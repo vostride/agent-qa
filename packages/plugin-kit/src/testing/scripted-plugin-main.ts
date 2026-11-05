@@ -35,6 +35,10 @@ const ScriptStepSchema = z.union([
   }),
 ])
 
+// A list gives each call its own step in order; the last step repeats.
+const ScriptSchema = z.union([ScriptStepSchema, z.array(ScriptStepSchema).min(1)])
+type ScriptStep = z.output<typeof ScriptStepSchema>
+
 const AnswerSchema = z.object({
   protocol: z.enum(PLUGIN_SERVES),
   url: z.string(),
@@ -54,7 +58,8 @@ const ScriptedOptionsSchema = z.looseObject({
   ledgerFile: z.string().optional(),
   recordProcess: z.boolean().optional(),
   answer: AnswerSchema.optional(),
-  script: z.record(z.string(), ScriptStepSchema).optional(),
+  script: z.record(z.string(), ScriptSchema).optional(),
+  stderr: z.record(z.string(), z.string()).optional(),
   progress: z.array(ProgressSchema).optional(),
   started: StartedResultSchema.optional(),
   upload: UploadAppResultSchema.optional(),
@@ -89,13 +94,25 @@ function cancelled(method: PluginMethod, handle: Handle | undefined): PluginErro
   })
 }
 
+const callsSoFar = new Map<string, number>()
+
+function stepFor(options: ScriptedOptions, method: PluginMethod): ScriptStep {
+  const planned = options.script?.[method] ?? 'ok'
+  if (!Array.isArray(planned)) return planned
+  const call = callsSoFar.get(method) ?? 0
+  callsSoFar.set(method, call + 1)
+  return planned[Math.min(call, planned.length - 1)] ?? 'ok'
+}
+
 async function follow(
   options: ScriptedOptions,
   method: PluginMethod,
   ctx: PluginCallContext,
   handle?: Handle,
 ): Promise<void> {
-  const step = options.script?.[method] ?? 'ok'
+  const logged = options.stderr?.[method]
+  if (logged !== undefined) writeSync(2, `${logged}\n`)
+  const step = stepFor(options, method)
   switch (step) {
     case 'ok':
       return

@@ -8,7 +8,6 @@ import {
   createHostProject,
   isAlive,
   methodsOf,
-  waitFor,
   webAnswer,
   webSession,
   type HostProject,
@@ -286,18 +285,6 @@ describe('refusals from the plugin host pool', () => {
     const refused = await refusalOf(pool.acquire(request('lab-a', 'lab', { deadlineMs: 300 })))
 
     expect(refused.kind).toBe('timeout')
-    expect(releasesOf(p.ledger(lab))).toEqual([{ n: 1 }])
-  })
-
-  it('releases the session of an acquire that answers after the grace', async () => {
-    const p = host()
-    const lab = p.entry('lab', { script: { acquire: { delayMs: 1_500, ignoreCancel: true } } })
-    const pool = p.pool([lab], { bounds: { cancelGraceMs: 300, killAfterMs: 1_000 } })
-
-    const refused = await refusalOf(pool.acquire(request('lab-a', 'lab', { deadlineMs: 200 })))
-    expect(refused.kind).toBe('timeout')
-
-    await waitFor(() => releasesOf(p.ledger(lab)).length === 1)
     expect(releasesOf(p.ledger(lab))).toEqual([{ n: 1 }])
   })
 

@@ -95,6 +95,8 @@ interface OpenLease {
 
 interface EntryFault {
   line: (remote: string) => string
+  // The lease whose own call went unanswered ends timeout; every other lease ends lost.
+  timedOut?: OpenLease
 }
 
 interface RunningEntry {
@@ -129,6 +131,16 @@ function crashLine(entry: string, reason: string | undefined): (remote: string) 
   return (remote) => `Remote ${remote}: plugin entry ${entry} stopped unexpectedly${why}.`
 }
 
+function silentLine(entry: string, deadlineMs: number): (remote: string) => string {
+  return (remote) =>
+    `Remote ${remote}: plugin entry ${entry} did not answer within ${formatMs(deadlineMs)} and was stopped.`
+}
+
+function strayLine(entry: string): (remote: string) => string {
+  return (remote) =>
+    `Remote ${remote}: plugin entry ${entry} wrote to stdout outside the protocol and was stopped.`
+}
+
 function refusalOf(kind: RemoteFailureKind, line: (remote: string) => string): Refusal {
   return (remote) => new RemoteRefusalError(line(remote), { remote, kind })
 }
@@ -154,9 +166,11 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     return work
   }
 
-  const pluginLine = (message: string): string => {
+  const pluginLine = (message: string, stderr?: string): string => {
     const first = input.mask(message).split(/\r?\n/, 1)[0]?.trim() ?? ''
-    return first === '' ? 'the plugin gave no reason.' : first
+    if (first !== '') return first
+    const logged = input.mask(stderr ?? '').trim()
+    return logged === '' ? 'the plugin gave no reason.' : logged
   }
 
   const pluginErrorKind = (outcome: Extract<PluginCallOutcome, { status: 'error' }>) => {
@@ -170,7 +184,8 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     outcome: Extract<PluginCallOutcome, { status: 'error' }>,
     scope: ErrorScope,
   ): string => {
-    const line = `Remote ${remote}: ${pluginLine(outcome.message).replace(/\.+$/, '')}.`
+    const reason = pluginLine(outcome.message, outcome.stderr).replace(/\.+$/, '')
+    const line = `Remote ${remote}: ${reason}.`
     const data = PluginErrorDataSchema.safeParse(outcome.data)
     const path = data.success ? input.mask(data.data.path ?? '').split(/\r?\n/, 1)[0]?.trim() : ''
     if (path === undefined || path === '') return line
@@ -194,12 +209,13 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     )
   }
 
-  const spawnPlugin = (entryFile: string): PluginProcess =>
+  const spawnPlugin = (entryFile: string, onStray?: () => void): PluginProcess =>
     startPluginProcess({
       entryFile,
       cwd: input.configDir,
       mask: input.mask,
       ...(input.debugLog === undefined ? {} : { debugLog: input.debugLog }),
+      ...(onStray === undefined ? {} : { onStray }),
       cancelGraceMs: bounds.cancelGraceMs,
       killAfterMs: bounds.killAfterMs,
     })
@@ -225,6 +241,9 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
         if (outcome.status !== 'result') {
           debug(`plugin entry ${running.name} did not release a session: ${outcome.status}`)
         }
+        if (outcome.status === 'silent') hung(running, boundMs)
+        if (outcome.status === 'exited') await running.process.exited
+        await running.restarted
       })(),
     )
   }
@@ -275,7 +294,10 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     running.fault = found
     const leases = [...running.leases]
     running.leases.clear()
-    for (const lease of leases) lease.end({ kind: 'lost', message: found.line(lease.remote) })
+    for (const lease of leases) {
+      const kind = lease === found.timedOut ? 'timeout' : 'lost'
+      lease.end({ kind, message: found.line(lease.remote) })
+    }
     running.restarted = track(
       (async () => {
         await running.process.stop()
@@ -287,12 +309,35 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     )
   }
 
+  // A plugin silent past a call's deadline and the cancel grace is stopped, unless agent-qa is
+  // already stopping it.
+  const hung = (running: RunningEntry, deadlineMs: number, own?: OpenLease): void => {
+    if (running.stopping) return
+    fault(running, {
+      line: silentLine(running.name, deadlineMs),
+      ...(own === undefined ? {} : { timedOut: own }),
+    })
+  }
+
+  const silentRefusal = (
+    running: RunningEntry,
+    remote: string,
+    deadlineMs: number,
+  ): RemoteRefusalError => {
+    hung(running, deadlineMs)
+    return new RemoteRefusalError(silentLine(running.name, deadlineMs)(remote), {
+      remote,
+      kind: 'timeout',
+    })
+  }
+
   const stoppedRefusal = (
     running: RunningEntry,
     remote: string,
-    outcome?: Extract<PluginCallOutcome, { status: 'exited' }>,
+    outcome?: Extract<PluginCallOutcome, { status: 'exited' | 'stray' }>,
   ): RemoteRefusalError => {
-    const line = running.fault?.line ?? crashLine(running.name, outcome?.stderr)
+    const stderr = outcome?.status === 'exited' ? outcome.stderr : undefined
+    const line = running.fault?.line ?? crashLine(running.name, stderr)
     return new RemoteRefusalError(line(remote), { remote, kind: 'lost' })
   }
 
@@ -340,7 +385,10 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     }
 
     const entryFile = resolve(resolved.packageDir, manifest.entry)
-    const child = spawnPlugin(entryFile)
+    let running: RunningEntry | undefined
+    const child = spawnPlugin(entryFile, () => {
+      if (running !== undefined) fault(running, { line: strayLine(name) })
+    })
     const runId = input.runFacts?.runId
     const sendsRunId = manifest.runFacts?.includes('runId') === true && runId !== undefined
     const initialize = {
@@ -364,6 +412,9 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       return { ok: false, refusal }
     }
 
+    if (outcome.status === 'stray') {
+      return fail(refusalOf('refused', strayLine(name)))
+    }
     if (outcome.status === 'silent' || (outcome.status !== 'exited' && outcome.cancelled)) {
       return fail(
         refusalOf(
@@ -411,7 +462,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       )
     }
 
-    const running: RunningEntry = {
+    running = {
       name,
       manifest,
       entryFile,
@@ -429,11 +480,12 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       held: new Set(),
       stopping: false,
     }
+    const started = running
     void child.exited.then(() => {
-      if (running.stopping) return
-      fault(running, { line: crashLine(name, child.stderrLine) })
+      if (started.stopping) return
+      fault(started, { line: crashLine(name, child.stderrLine) })
     })
-    return { ok: true, running }
+    return { ok: true, running: started }
   }
 
   const entryStart = (name: string): Promise<EntryStart> => {
@@ -498,6 +550,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
           { handle: answer.handle, ...(sessionId === undefined ? {} : { sessionId }) },
           { timeoutMs: bounds.startedMs },
         )
+        if (outcome.status === 'silent') hung(running, bounds.startedMs, open)
         const parsed =
           outcome.status === 'result' ? StartedResultSchema.safeParse(outcome.result) : undefined
         if (parsed?.success !== true) {
@@ -523,6 +576,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
           },
           { timeoutMs: bounds.endMs },
         )
+        if (answered.status === 'silent') hung(running, bounds.endMs, open)
         if (answered.status !== 'result') debug(`plugin entry ${running.name} did not answer end`)
       },
       release: () => release(bounds.releaseMs),
@@ -586,8 +640,10 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
         `Remote ${remote}: plugin entry ${entry} did not answer acquire within ${formatMs(request.deadlineMs)}.`,
         { remote, kind: 'timeout' },
       )
-    if (outcome.status === 'silent') throw timedOut()
-    if (outcome.status === 'exited') throw stoppedRefusal(running, remote, outcome)
+    if (outcome.status === 'silent') throw silentRefusal(running, remote, request.deadlineMs)
+    if (outcome.status === 'exited' || outcome.status === 'stray') {
+      throw stoppedRefusal(running, remote, outcome)
+    }
     if (outcome.cancelled) {
       await releaseCarried(running, outcome)
       throw timedOut()
@@ -660,7 +716,10 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
         { remote, kind: pluginErrorKind(outcome) },
       )
     }
-    if (outcome.status === 'exited') throw stoppedRefusal(running, remote, outcome)
+    if (outcome.status === 'exited' || outcome.status === 'stray') {
+      throw stoppedRefusal(running, remote, outcome)
+    }
+    if (outcome.status === 'silent') throw silentRefusal(running, remote, bounds.checkMs)
     throw new RemoteRefusalError(
       `Remote ${remote}: plugin entry ${entry} did not answer check within ${formatMs(bounds.checkMs)}.`,
       { remote, kind: 'timeout' },

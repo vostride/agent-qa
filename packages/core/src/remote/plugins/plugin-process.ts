@@ -18,15 +18,26 @@ export interface PluginProcessInput {
   mask: (text: string) => string
   debugLog?: (line: string) => void
   onProgress?: (progress: ProgressParams) => void
+  // Called once, at the first stdout line that is not a protocol message.
+  onStray?: () => void
   cancelGraceMs: number
   killAfterMs: number
 }
 
+// `stderr` is the first stderr line, masked, written while the call was open.
 export type PluginCallOutcome =
   | { status: 'result'; result: unknown; cancelled: boolean }
-  | { status: 'error'; code: number; message: string; data: unknown; cancelled: boolean }
+  | {
+      status: 'error'
+      code: number
+      message: string
+      data: unknown
+      cancelled: boolean
+      stderr?: string
+    }
   | { status: 'silent' }
   | { status: 'exited'; stderr?: string }
+  | { status: 'stray' }
 
 export type PluginLateAnswer = Extract<PluginCallOutcome, { status: 'result' | 'error' }>
 
@@ -55,10 +66,15 @@ interface Pending {
   cancelled: boolean
   options: PluginRequestOptions
   timers: ReturnType<typeof setTimeout>[]
+  stderr?: string
+  // An error answer with no message, held briefly for the stderr line that explains it.
+  awaiting?: PluginLateAnswer
 }
 
 // After exit, how long stdout and stderr may take to deliver what the plugin wrote last.
 const STDIO_DRAIN_MS = 250
+// stderr and stdout are separate pipes, so a reason logged before an answer can arrive after it.
+const STDERR_REASON_WAIT_MS = 150
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -78,6 +94,7 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
 
   let gone = false
   let finished = false
+  let strayed = false
   let stderrLine: string | undefined
   const pending = new Map<number, Pending>()
   const late = new Map<number, (answer: PluginLateAnswer) => void>()
@@ -93,6 +110,10 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
         ...(stderrLine === undefined ? {} : { stderr: stderrLine }),
       }
       for (const [id, call] of pending) {
+        if (call.awaiting !== undefined) {
+          finishCall(id, call, call.awaiting)
+          continue
+        }
         pending.delete(id)
         for (const timer of call.timers) clearTimeout(timer)
         call.settle(outcome)
@@ -118,6 +139,16 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
     child.stdin.write(encodeMessage(message))
   }
 
+  const finishCall = (id: number, call: Pending, outcome: PluginLateAnswer): void => {
+    pending.delete(id)
+    for (const timer of call.timers) clearTimeout(timer)
+    call.settle(
+      outcome.status === 'error' && call.stderr !== undefined
+        ? { ...outcome, stderr: call.stderr }
+        : outcome,
+    )
+  }
+
   const answer = (id: number, message: Record<string, unknown>): void => {
     const call = pending.get(id)
     const error = message.error
@@ -131,9 +162,15 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
         }
       : { status: 'result', result: message.result, cancelled: call?.cancelled ?? true }
     if (call !== undefined) {
-      pending.delete(id)
-      for (const timer of call.timers) clearTimeout(timer)
-      call.settle(outcome)
+      const unexplained =
+        outcome.status === 'error' && outcome.message.trim() === '' && call.stderr === undefined
+      if (unexplained) {
+        for (const timer of call.timers) clearTimeout(timer)
+        call.awaiting = outcome
+        call.timers = [setTimeout(() => finishCall(id, call, outcome), STDERR_REASON_WAIT_MS)]
+        return
+      }
+      finishCall(id, call, outcome)
       return
     }
     const onLate = late.get(id)
@@ -152,6 +189,21 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
     input.onProgress?.(parsed.data)
   }
 
+  // Anything on stdout that is not a protocol message gives up every open call; an answer that
+  // still follows goes to its call's late handler.
+  const stray = (line: string): void => {
+    debug(`plugin stdout: ${line}`)
+    if (strayed) return
+    strayed = true
+    for (const [id, call] of pending) {
+      pending.delete(id)
+      for (const timer of call.timers) clearTimeout(timer)
+      if (call.options.onLate !== undefined) late.set(id, call.options.onLate)
+      call.settle({ status: 'stray' })
+    }
+    input.onStray?.()
+  }
+
   const decoder = createLineDecoder({
     maxLineBytes: MAX_MESSAGE_BYTES,
     onLine(line) {
@@ -159,10 +211,13 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
       try {
         message = JSON.parse(line)
       } catch {
-        debug(`plugin stdout: ${line}`)
+        stray(line)
         return
       }
-      if (!isRecord(message)) return
+      if (!isRecord(message) || message.jsonrpc !== '2.0') {
+        stray(line)
+        return
+      }
       if (message.method === PROGRESS_METHOD) {
         progress(message.params)
         return
@@ -172,7 +227,7 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
       }
     },
     onOverflow() {
-      debug('plugin stdout: a line over the message size limit was dropped')
+      stray('a line over the message size limit')
     },
   })
   child.stdout.on('data', (chunk: Buffer) => decoder.push(chunk))
@@ -183,6 +238,11 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
     if (line.trim() === '') return
     input.debugLog?.(line)
     stderrLine ??= line.trim()
+    for (const [id, call] of pending) {
+      if (call.stderr !== undefined) continue
+      call.stderr = line.trim()
+      if (call.awaiting !== undefined) finishCall(id, call, call.awaiting)
+    }
   }
   let stderrRest = ''
   child.stderr.on('data', (chunk: Buffer) => {
@@ -224,6 +284,7 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
       return stderrLine
     },
     request(method, params, options) {
+      if (strayed) return Promise.resolve({ status: 'stray' })
       if (gone) return Promise.resolve({ status: 'exited' })
       nextId += 1
       const id = nextId
