@@ -6,7 +6,7 @@ export const AGENT_QA_PLUGIN_BROWSERSTACK_PACKAGE_CLASSES = ['plugin'] as const
 export const AGENT_QA_PLUGIN_BROWSERSTACK_ALLOWED_RESPONSIBILITIES = [
   "BrowserStack's session requests: capabilities, the Playwright URL and the Playwright versions BrowserStack lists",
   "BrowserStack's device session requests: the Appium hub and bstack:options",
-  "BrowserStack's REST API: Automate and App Automate session links, outcome marks and app uploads by content",
+  "BrowserStack's REST API: Automate and App Automate session links, outcome marks, plans and app uploads by content",
 ] as const
 export const AGENT_QA_PLUGIN_BROWSERSTACK_FORBIDDEN_RESPONSIBILITIES = [
   'any @vostride/agent-qa-* runtime dependency except the plugin kit',

@@ -1,4 +1,5 @@
 import { definePlugin, PluginError, z } from '@vostride/agent-qa-plugin-kit'
+import { checkAccount } from './check.js'
 import { deviceAnswer, DeviceHandleSchema, deviceStarted, markAppSession } from './devices.js'
 import { checkEndpoints, options, settings } from './options.js'
 import { uploadApp } from './upload.js'
@@ -20,6 +21,10 @@ export default definePlugin({
   initialize({ options, host }) {
     checkEndpoints(options)
     playwrightVersion = host.playwrightVersion
+  },
+
+  check({ options }, ctx) {
+    return checkAccount({ options, playwrightVersion, signal: ctx.signal })
   },
 
   acquire({ options, settings, session, run }, ctx) {

@@ -150,7 +150,7 @@ export async function startFakeBrowserStackApi(
           status: 200,
           json: {
             automate_plan: 'Automate Pro',
-            parallel_sessions_running: 0,
+            parallel_sessions_running: 1,
             parallel_sessions_max_allowed: 5,
             queued_sessions: 0,
             queued_sessions_max_allowed: 5,
@@ -163,9 +163,9 @@ export async function startFakeBrowserStackApi(
           json: {
             automate_plan: 'App Automate Device Cloud Pro',
             parallel_sessions_running: 0,
-            parallel_sessions_max_allowed: 5,
+            parallel_sessions_max_allowed: 2,
             queued_sessions: 0,
-            queued_sessions_max_allowed: 5,
+            queued_sessions_max_allowed: 2,
           },
         },
       ],
