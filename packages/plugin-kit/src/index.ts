@@ -1,4 +1,5 @@
 export { z } from 'zod'
+export { credential } from './credential.js'
 export {
   definePlugin,
   PluginError,
@@ -17,3 +18,9 @@ export {
   type UploadAppInput,
 } from './define-plugin.js'
 export { CANCEL_ANSWER_GRACE_MS, HOST_PID_POLL_MS, runPlugin, type PluginIo } from './run-plugin.js'
+export {
+  emitPluginFiles,
+  pluginManifest,
+  type EmitPluginFilesInput,
+  type EmittedPluginFiles,
+} from './emit.js'
