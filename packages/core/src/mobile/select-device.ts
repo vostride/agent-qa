@@ -2,7 +2,7 @@ import {
   DEFAULT_REMOTE_CONNECT_TIMEOUT_MS,
   type RemoteDeviceConfig,
 } from '@vostride/agent-qa-runner'
-import type { RemoteEntry } from '../schema/remote-schema.js'
+import { isUrlRemoteEntry, type RemoteEntry, type UrlRemoteEntry } from '../schema/remote-schema.js'
 
 export type DevicePlace =
   { kind: 'local'; device: string } | { kind: 'remote'; device: string; remote: RemoteDeviceConfig }
@@ -17,7 +17,7 @@ export interface SelectDevicePlaceInput {
 
 export type SelectDevicePlaceResult = { place: DevicePlace } | { refusal: string }
 
-export function toRemoteDeviceConfig(entry: RemoteEntry): RemoteDeviceConfig {
+export function toRemoteDeviceConfig(entry: UrlRemoteEntry): RemoteDeviceConfig {
   return {
     name: entry.name,
     protocol: 'appium',
@@ -52,9 +52,10 @@ export function selectDevicePlace(input: SelectDevicePlaceInput): SelectDevicePl
       refusal: `Device ${device} names remote "${profile.remote}", which registry.remotes does not list. ${listed}`,
     }
   }
-  if (entry.protocol !== 'appium') {
+  if (!isUrlRemoteEntry(entry) || entry.protocol !== 'appium') {
+    const kind = isUrlRemoteEntry(entry) ? entry.protocol : 'plugin'
     return {
-      refusal: `Device ${device} names remote ${entry.name}, a ${entry.protocol} remote; a device's remote needs protocol: appium.`,
+      refusal: `Device ${device} names remote ${entry.name}, a ${kind} remote; a device's remote needs protocol: appium.`,
     }
   }
   return { place: { kind: 'remote', device, remote: toRemoteDeviceConfig(entry) } }

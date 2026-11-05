@@ -141,6 +141,8 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
     (await importOriginal<typeof import('@vostride/agent-qa-core')>()).splitConnectionSecrets,
   missingRemoteSecrets:
     (await importOriginal<typeof import('@vostride/agent-qa-core')>()).missingRemoteSecrets,
+  isUrlRemoteEntry:
+    (await importOriginal<typeof import('@vostride/agent-qa-core')>()).isUrlRemoteEntry,
   missingRemoteSecretSentence:
     (await importOriginal<typeof import('@vostride/agent-qa-core')>()).missingRemoteSecretSentence,
   missingDeviceSecrets:

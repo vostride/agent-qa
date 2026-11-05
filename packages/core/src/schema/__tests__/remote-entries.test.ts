@@ -460,3 +460,148 @@ describe('remote names, the default pick and target urls', () => {
     })
   })
 })
+
+describe('a remote that names a plugins entry', () => {
+  const kernel = { name: 'kernel', package: '@vostride/agent-qa-plugin-kernel' }
+  const cloud = { name: 'cloud', plugin: 'kernel' }
+
+  function issuesOf(remotes: unknown[], plugins: unknown[] = [kernel]) {
+    const result = AgentQaConfigSchema.safeParse(configWith(remotes, { plugins }))
+    return result.success
+      ? []
+      : result.error.issues.map(issue => ({ path: issue.path.join('.'), message: issue.message }))
+  }
+
+  it('parses with its settings, timeouts, context and capabilities', () => {
+    const result = AgentQaConfigSchema.safeParse(
+      configWith(
+        [
+          {
+            ...cloud,
+            settings: { region: 'eu', auth: { token: '{{secret:KERNEL_TOKEN}}' } },
+            connectTimeout: '45s',
+            uploadTimeout: '15m',
+            context: 'reuse',
+            capabilities: { 'appium:newCommandTimeout': 120 },
+          },
+          grid,
+        ],
+        { plugins: [kernel] },
+      ),
+    )
+    expect(result.success ? [] : result.error.issues.map(issue => issue.message)).toEqual([])
+    expect(result.success && result.data.registry?.remotes[0]).toEqual({
+      name: 'cloud',
+      plugin: 'kernel',
+      settings: { region: 'eu', auth: { token: '{{secret:KERNEL_TOKEN}}' } },
+      connectTimeout: 45000,
+      uploadTimeout: 900000,
+      context: 'reuse',
+      capabilities: { 'appium:newCommandTimeout': 120 },
+    })
+  })
+
+  it('refuses a remote with both plugin and url in one sentence', () => {
+    expect(issuesOf([{ ...cloud, url: 'wss://grid.example.com/playwright' }])).toEqual([
+      {
+        path: 'registry.remotes.0',
+        message: 'Remote cloud has both plugin and url; a remote has one or the other.',
+      },
+    ])
+  })
+
+  it('refuses a remote with neither plugin nor url in one sentence', () => {
+    expect(issuesOf([{ name: 'cloud', protocol: 'playwright' }])).toEqual([
+      {
+        path: 'registry.remotes.0',
+        message:
+          'Remote cloud names no url or plugin; add url with its protocol, or plugin with a plugins entry name.',
+      },
+    ])
+  })
+
+  it("sends protocol, query, headers and basicAuth on a plugin remote to its plugins entry's options", () => {
+    expect(
+      issuesOf([{ ...cloud, headers: { Authorization: 'Bearer {{secret:KERNEL_TOKEN}}' } }]),
+    ).toEqual([
+      {
+        path: 'registry.remotes.0.headers',
+        message:
+          "Remote cloud names a plugin, so headers belongs to its plugins entry's options; remove headers from the remote.",
+      },
+    ])
+    expect(
+      issuesOf([{ ...cloud, protocol: 'playwright', query: {}, basicAuth: {} }]).map(
+        issue => issue.path,
+      ),
+    ).toEqual([
+      'registry.remotes.0.protocol',
+      'registry.remotes.0.query',
+      'registry.remotes.0.basicAuth',
+    ])
+  })
+
+  it('refuses options on a plugin remote, sending its own values to settings and account options to the entry', () => {
+    expect(issuesOf([{ ...cloud, options: { region: 'eu' } }])).toEqual([
+      {
+        path: 'registry.remotes.0.options',
+        message:
+          "Remote cloud has options; a remote's plugin values go under settings, and account options go on its plugins entry.",
+      },
+    ])
+  })
+
+  it('refuses a plugin name that no plugins entry has, listing the entries', () => {
+    expect(
+      issuesOf([{ ...cloud, plugin: 'kernal' }], [kernel, { name: 'stack', path: './stack' }]),
+    ).toContainEqual({
+      path: 'registry.remotes.0.plugin',
+      message: 'Remote cloud names plugin kernal; plugins lists: kernel, stack.',
+    })
+  })
+
+  it('refuses a plugin name when plugins lists no entries', () => {
+    expect(issuesOf([cloud], [])).toContainEqual({
+      path: 'registry.remotes.0.plugin',
+      message: 'Remote cloud names plugin kernel, but plugins lists no entries.',
+    })
+    const absent = AgentQaConfigSchema.safeParse(configWith([cloud]))
+    expect(absent.success ? [] : absent.error.issues.map(issue => issue.message)).toEqual([
+      'Remote cloud names plugin kernel, but plugins lists no entries.',
+    ])
+  })
+
+  it('refuses a literal under a credential-named settings key at any depth', () => {
+    expect(issuesOf([{ ...cloud, settings: { auth: { token: 'literal-abc' } } }])).toEqual([
+      {
+        path: 'registry.remotes.0.settings.auth.token',
+        message:
+          'Remote cloud: settings "auth.token" names a credential, so its value must be a {{secret:NAME}} reference.',
+      },
+    ])
+    const referenced = { auth: { token: '{{secret:KERNEL_TOKEN}}' } }
+    expect(issuesOf([{ ...cloud, settings: referenced }])).toEqual([])
+  })
+
+  it('refuses a literal under a credential-named capability', () => {
+    expect(
+      issuesOf([{ ...cloud, capabilities: { 'farm:options': { accessKey: 'literal-abc' } } }]),
+    ).toEqual([
+      {
+        path: 'registry.remotes.0.capabilities.farm:options.accessKey',
+        message:
+          'Remote cloud: capabilities "farm:options.accessKey" names a credential, so its value must be a {{secret:NAME}} reference.',
+      },
+    ])
+  })
+
+  it('may be the default pick', () => {
+    const result = AgentQaConfigSchema.safeParse(
+      configWith([cloud], {
+        plugins: [kernel],
+        use: { browser: { name: 'chromium', headless: true, remote: 'cloud' } },
+      }),
+    )
+    expect(result.success ? [] : result.error.issues.map(issue => issue.message)).toEqual([])
+  })
+})

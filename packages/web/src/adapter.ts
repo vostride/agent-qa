@@ -11,7 +11,9 @@ import type {
   PlatformConfig,
   RecordingCapability,
   RemoteBrowserConfig,
+  RemoteLeaseSource,
   RemotePlaceEvidence,
+  RemotePluginBrowserConfig,
   RemoteHeartbeat,
   RemoteRefusalMemory,
   RemoteSessionRegistry,
@@ -30,6 +32,7 @@ import {
   buildScreenState,
   createRemoteHeartbeat,
   createSnapshotLiveStream,
+  isPluginRemote,
   LIVE_KEEPALIVE_QUIET_MS,
   RemoteRefusalError,
 } from '@vostride/agent-qa-runner'
@@ -236,6 +239,8 @@ export interface WebPlatformAdapterOptions {
   readonly sessions?: RemoteSessionRegistry
   // Tests only: a shorter heartbeat interval than the fixed one hosts get.
   readonly heartbeatIntervalMs?: number
+  // The run's plugin hosts, which lease a session for a remote that names a plugins entry.
+  readonly pluginSessions?: RemoteLeaseSource
 }
 
 export class WebPlatformAdapter implements PlatformAdapter<'web'> {
@@ -290,7 +295,11 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
   async setup(config: PlatformConfig): Promise<void> {
     this.recordingConfig = config.recording
-    const remote = config.browser?.remote
+    const configured = config.browser?.remote
+    if (configured !== undefined && isPluginRemote(configured)) {
+      throw this.pluginRemoteRefusal(configured)
+    }
+    const remote = configured
     refuseLeakingEnvironment(remote)
     const { chromium, firefox, webkit } = await import('playwright-core')
     const launchers = { chromium, firefox, webkit } as const
@@ -359,6 +368,16 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       if (!(scrubbed instanceof RemoteRefusalError)) throw scrubbed
       throw this.options.refusalMemory?.remember(remote.name, scrubbed) ?? scrubbed
     }
+  }
+
+  private pluginRemoteRefusal(remote: RemotePluginBrowserConfig): RemoteRefusalError {
+    const named = `Remote ${remote.name} names plugin entry ${remote.plugin.entry}`
+    return new RemoteRefusalError(
+      this.options.pluginSessions === undefined
+        ? `${named}, and this host started no plugin host for it.`
+        : `${named}, and this browser adapter cannot lease a session from a plugin host.`,
+      { remote: remote.name, kind: 'refused' },
+    )
   }
 
   private async openSession(

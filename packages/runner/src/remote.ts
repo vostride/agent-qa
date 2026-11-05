@@ -27,6 +27,86 @@ export interface RemoteDeviceConfig {
 
 export const DEFAULT_REMOTE_CONNECT_TIMEOUT_MS = 5 * 60 * 1000
 
+export const DEFAULT_REMOTE_UPLOAD_TIMEOUT_MS = 10 * 60 * 1000
+
+// A remote served by a plugins entry: the entry's host answers with the connection at acquire.
+export interface RemotePluginRef {
+  entry: string
+  settings?: Record<string, unknown>
+}
+
+export interface RemotePluginBrowserConfig {
+  name: string
+  plugin: RemotePluginRef
+  connectTimeoutMs: number
+  context?: 'new' | 'reuse'
+}
+
+export interface RemotePluginDeviceConfig {
+  name: string
+  plugin: RemotePluginRef
+  connectTimeoutMs: number
+  uploadTimeoutMs: number
+  capabilities?: Record<string, unknown>
+}
+
+export function isPluginRemote<T extends object>(
+  remote: T,
+): remote is Extract<T, { plugin: RemotePluginRef }> {
+  return 'plugin' in remote
+}
+
+export type RemoteLeaseOutcome = 'passed' | 'failed' | 'error' | 'cancelled'
+
+export type RemotePluginOrigin = 'first-party' | 'third-party' | 'path'
+
+export interface RemotePluginEvidence {
+  entry: string
+  package?: string
+  path?: string
+  version: string
+  protocol: number
+  origin: RemotePluginOrigin
+}
+
+// Values here are resolved: the plugin answered with what to connect to.
+export interface RemoteLeaseAnswer {
+  protocol: RemoteProtocol
+  url: string
+  headers?: Record<string, string>
+  capabilities?: Record<string, unknown>
+}
+
+export interface RemoteLeaseRequest {
+  remote: string
+  plugin: RemotePluginRef
+  deadlineMs: number
+  session:
+    | { platform: 'web'; engine: 'chromium' | 'firefox' | 'webkit'; context: 'new' | 'reuse' }
+    | { platform: 'android' | 'ios'; capabilities: Record<string, unknown> }
+  testName?: string
+}
+
+export interface RemoteLease {
+  connection: RemoteLeaseAnswer
+  plugin: RemotePluginEvidence
+  link?: string
+  started(input: { sessionId?: string }): Promise<{ link?: string; appiumVersion?: string }>
+  end(outcome: RemoteLeaseOutcome, reason?: string): Promise<void>
+  release(): Promise<void>
+}
+
+export interface RemoteLeaseSource {
+  acquire(request: RemoteLeaseRequest): Promise<RemoteLease>
+  uploadApp?(request: {
+    remote: string
+    plugin: RemotePluginRef
+    platform: 'android' | 'ios'
+    path: string
+    deadlineMs: number
+  }): Promise<{ ref: string }>
+}
+
 export type RemoteFailureKind =
   | 'unreachable'
   | 'auth'

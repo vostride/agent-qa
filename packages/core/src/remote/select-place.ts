@@ -2,12 +2,20 @@ import {
   DEFAULT_REMOTE_CONNECT_TIMEOUT_MS,
   type RemoteBrowserConfig,
   type RemoteBrowserProtocol,
+  type RemotePluginBrowserConfig,
 } from '@vostride/agent-qa-runner'
 import type { DevicePlace } from '../mobile/select-device.js'
 import type { RunAttributeRunner } from '../run-attributes.js'
-import type { RemoteEntry } from '../schema/remote-schema.js'
+import {
+  isPluginRemoteEntry,
+  type PluginRemoteEntry,
+  type RemoteEntry,
+  type UrlRemoteEntry,
+} from '../schema/remote-schema.js'
 
-export type WebPlace = { kind: 'local' } | { kind: 'remote'; remote: RemoteBrowserConfig }
+export type WebPlace =
+  | { kind: 'local' }
+  | { kind: 'remote'; remote: RemoteBrowserConfig | RemotePluginBrowserConfig }
 
 export type BrowserEngine = 'chromium' | 'firefox' | 'webkit'
 
@@ -40,11 +48,33 @@ export interface SelectSuitePlaceInput {
 
 export type SelectWebPlaceResult = { place: WebPlace } | { refusal: string }
 
-export type BrowserRemoteEntry = RemoteEntry & { protocol: RemoteBrowserProtocol }
+export type BrowserRemoteEntry =
+  | (UrlRemoteEntry & { protocol: RemoteBrowserProtocol })
+  | PluginRemoteEntry
 
 const LOCAL_PICK = 'local'
 
-export function toRemoteBrowserConfig(entry: BrowserRemoteEntry): RemoteBrowserConfig {
+export function toRemoteBrowserConfig(
+  entry: UrlRemoteEntry & { protocol: RemoteBrowserProtocol },
+): RemoteBrowserConfig
+export function toRemoteBrowserConfig(entry: PluginRemoteEntry): RemotePluginBrowserConfig
+export function toRemoteBrowserConfig(
+  entry: BrowserRemoteEntry,
+): RemoteBrowserConfig | RemotePluginBrowserConfig
+export function toRemoteBrowserConfig(
+  entry: BrowserRemoteEntry,
+): RemoteBrowserConfig | RemotePluginBrowserConfig {
+  if (isPluginRemoteEntry(entry)) {
+    return {
+      name: entry.name,
+      plugin: {
+        entry: entry.plugin,
+        ...(entry.settings ? { settings: entry.settings } : {}),
+      },
+      connectTimeoutMs: entry.connectTimeout ?? DEFAULT_REMOTE_CONNECT_TIMEOUT_MS,
+      ...(entry.context ? { context: entry.context } : {}),
+    }
+  }
   return {
     name: entry.name,
     protocol: entry.protocol,
@@ -69,6 +99,10 @@ export function selectWebPlace(input: SelectWebPlaceInput): SelectWebPlaceResult
         ? 'registry.remotes lists no remotes.'
         : `registry.remotes lists: ${input.remotes.map((remote) => remote.name).join(', ')}.`
     return { refusal: `Unknown remote "${pick}" in ${from}. ${listed}` }
+  }
+  // What a plugin remote serves is checked at run start, when its manifest is read.
+  if (isPluginRemoteEntry(entry)) {
+    return { place: { kind: 'remote', remote: toRemoteBrowserConfig(entry) } }
   }
   if (entry.protocol === 'appium') {
     return {

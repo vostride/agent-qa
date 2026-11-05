@@ -479,6 +479,22 @@ describe("doctor's remote rows", () => {
     }
   })
 
+  it('gives a plugin remote no probe row, because its address is what its plugin answers', () => {
+    const checks = createRemoteChecks({
+      config: {
+        registry: {
+          remotes: [
+            { name: 'cloud', plugin: 'kernel', settings: { region: 'eu' } },
+            { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com/playwright' },
+          ],
+        },
+      },
+      configPath: join(pinned.root, 'agent-qa.config.yaml'),
+    })
+
+    expect(checks.map((check) => check.name)).toEqual(['Remote grid'])
+  })
+
   it('skips the local browser row when the config default names a remote and no test or suite says local', async () => {
     const probe = await startProbeServer()
     servers.push(probe)

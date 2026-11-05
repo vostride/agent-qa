@@ -6,7 +6,7 @@ import { Command, Option } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, describeAndroidHere, describeIOSHere, discoverWorkspaceFiles, findDeviceHere, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, describeAndroidHere, describeIOSHere, discoverWorkspaceFiles, findDeviceHere, isUrlRemoteEntry, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
@@ -42,8 +42,8 @@ import type {
 } from '@vostride/agent-qa-dashboard'
 import type { SecretStore, SecretRedactor, SecretRedactorPort, SecretResolver, HookDefinition, NonActionToolMap, SandboxRunnerOptions } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
-import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteDeviceConfig, RemoteFailureKind, RemotePlaceEvidence, RemoteProtocol, RemoteRefusalMemory, RemoteSessionRegistry } from '@vostride/agent-qa-runner'
-import { WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, memberStepText, redactSecretValue, RemoteRefusalError } from '@vostride/agent-qa-runner'
+import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteDeviceConfig, RemoteFailureKind, RemotePlaceEvidence, RemotePluginBrowserConfig, RemoteProtocol, RemoteRefusalMemory, RemoteSessionRegistry } from '@vostride/agent-qa-runner'
+import { isPluginRemote, WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, memberStepText, redactSecretValue, RemoteRefusalError } from '@vostride/agent-qa-runner'
 import { createCliStepModelScopeFactory } from '../composition/step-model-scope.js'
 import type { CliStepModelScopeOptions } from '../composition/step-model-scope.js'
 import type { RunMemberDescriptor, ConfigDigests, MemberTestRunContext, MemberTestExecutor, StepModelScopeFactory } from '@vostride/agent-qa-runner'
@@ -331,7 +331,10 @@ async function deviceWhere(
 ): Promise<string> {
   if (profile.remote !== undefined) {
     const remote = remotes.find((entry) => entry.name === profile.remote)
-    return `remote ${remote === undefined ? profile.remote : remoteLabel(remote)}`
+    if (remote === undefined) return `remote ${profile.remote}`
+    return isUrlRemoteEntry(remote)
+      ? `remote ${remoteLabel(remote)}`
+      : `remote ${remote.name} (plugin ${remote.plugin})`
   }
   const listing = await list(profile.platform)
   const finder = findDeviceHere({
@@ -529,7 +532,7 @@ export function buildPlatformConfig(
   globalBrowser?: { name?: string; headless?: boolean; viewport?: { width: number; height: number } },
   logCapture?: { console?: boolean; network?: boolean },
   mobileResolved?: ResolvedMobileRunConfig,
-  remote?: RemoteBrowserConfig,
+  remote?: RemoteBrowserConfig | RemotePluginBrowserConfig,
   prepared?: PreparedMobileDevice,
 ): PlatformConfig {
   if (platform === 'web') {
@@ -1409,8 +1412,8 @@ function selectDirectRemotes(
   configDir: string,
   bindings: readonly ParsedTestBinding[],
   browserFlag: string | undefined,
-): Map<ParsedTestBinding, RemoteBrowserConfig> {
-  const remotes = new Map<ParsedTestBinding, RemoteBrowserConfig>()
+): Map<ParsedTestBinding, RemoteBrowserConfig | RemotePluginBrowserConfig> {
+  const remotes = new Map<ParsedTestBinding, RemoteBrowserConfig | RemotePluginBrowserConfig>()
   for (const { binding, selected } of placeDirectTests(config, configDir, bindings, browserFlag)) {
     if ('refusal' in selected) throw new CliRunInputError([pc.red(selected.refusal)], 2)
     if (selected.place.kind === 'remote') remotes.set(binding, selected.place.remote)
@@ -1619,7 +1622,10 @@ async function loadRuntimeSecrets(input: {
   return {
     secretStore: splitConnectionSecrets(declared, input.config).stepStore,
     connectionSecretStore: declared,
-    secretRedactor: new SecretRedactor(declared, basicAuthMaskEntries(remotes, declared)),
+    secretRedactor: new SecretRedactor(
+      declared,
+      basicAuthMaskEntries(remotes.filter(isUrlRemoteEntry), declared),
+    ),
     secretsFileMetadata: {
       path: secretsPath,
       status: 'loaded',
@@ -1645,7 +1651,7 @@ function targetAppRef(config: AgentQaConfig, target: string | undefined): string
 function refuseRemoteSecretProblems(input: {
   readonly config: AgentQaConfig
   readonly configDir: string
-  readonly usedRemotes: Iterable<RemoteBrowserConfig>
+  readonly usedRemotes: Iterable<RemoteBrowserConfig | RemotePluginBrowserConfig>
   readonly usedDevices: Iterable<{ readonly place: DevicePlace; readonly target?: string }>
   readonly tests: Iterable<{ readonly filePath: string; readonly steps: readonly unknown[] }>
   readonly connectionSecretStore: SecretStore
@@ -1656,8 +1662,12 @@ function refuseRemoteSecretProblems(input: {
       ? { device: place.device, remote: place.remote, appRef: targetAppRef(input.config, target) }
       : { device: place.device },
   )
+  // A plugin remote's options and settings secrets are checked when its plugin host starts.
+  const urlRemotes = [...input.usedRemotes].flatMap((remote) =>
+    isPluginRemote(remote) ? [] : [remote],
+  )
   const lines = [
-    ...missingRemoteSecrets([...input.usedRemotes], input.connectionSecretStore).map((missing) =>
+    ...missingRemoteSecrets(urlRemotes, input.connectionSecretStore).map((missing) =>
       missingRemoteSecretSentence(missing, secretsFile),
     ),
     ...missingDeviceSecrets(
@@ -1976,9 +1986,15 @@ type RunArtifactPlace =
       origin: string
       failureKind?: RemoteFailureKind
     }
+  | {
+      place: 'remote'
+      name: string
+      plugin: string
+      failureKind?: RemoteFailureKind
+    }
 
 // A browser's remote, or a device's place.
-type SelectedPlace = RemoteBrowserConfig | DevicePlace | undefined
+type SelectedPlace = RemoteBrowserConfig | RemotePluginBrowserConfig | DevicePlace | undefined
 
 function originText(url: string): string {
   const origin = remoteOrigin(url)
@@ -1997,6 +2013,10 @@ function selectedArtifactPlace(selected: SelectedPlace): RunArtifactPlace {
       origin: originText(remote.url),
       device,
     }
+  }
+  // Recorded before its plugin answers, so there is no protocol or origin yet.
+  if (isPluginRemote(selected)) {
+    return { place: 'remote', name: selected.name, plugin: selected.plugin.entry }
   }
   return {
     place: 'remote',

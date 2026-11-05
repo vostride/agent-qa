@@ -5,7 +5,7 @@ import {
 } from '@vostride/agent-qa-runner'
 import { describe, expect, it } from 'vitest'
 
-import { RemoteEntrySchema } from '../../schema/remote-schema.js'
+import { UrlRemoteEntrySchema } from '../../schema/remote-schema.js'
 import {
   connectionSecretMisuse,
   missingDeviceSecrets,
@@ -15,13 +15,13 @@ import {
   splitConnectionSecrets,
 } from '../connection-secrets.js'
 
-const grid = RemoteEntrySchema.parse({
+const grid = UrlRemoteEntrySchema.parse({
   name: 'grid',
   protocol: 'playwright',
   url: 'ws://127.0.0.1:3000/',
   headers: { Authorization: 'Bearer {{secret:REMOTE_TOKEN}}' },
 })
-const farm = RemoteEntrySchema.parse({
+const farm = UrlRemoteEntrySchema.parse({
   name: 'farm',
   protocol: 'cdp',
   url: 'http://127.0.0.1:9222',
@@ -187,7 +187,7 @@ describe("a remote's connection-only secrets", () => {
   })
 
   it('name each secret a used remote device needs that the store does not declare, naming the device', () => {
-    const appiumFarm = RemoteEntrySchema.parse({
+    const appiumFarm = UrlRemoteEntrySchema.parse({
       name: 'farm',
       protocol: 'appium',
       url: 'https://farm.example.com/wd/hub',
@@ -226,7 +226,7 @@ describe("a remote's connection-only secrets", () => {
   })
 
   it('name each secret in the app.ref of the targets a remote device runs, once per device', () => {
-    const appiumFarm = RemoteEntrySchema.parse({
+    const appiumFarm = UrlRemoteEntrySchema.parse({
       name: 'farm',
       protocol: 'appium',
       url: 'https://farm.example.com/wd/hub',

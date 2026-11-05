@@ -26,7 +26,16 @@ export {
   SizeString,
 } from './config-schema.js'
 
-export { RemoteEntrySchema, type RemoteEntry } from './remote-schema.js'
+export {
+  RemoteEntrySchema,
+  UrlRemoteEntrySchema,
+  PluginRemoteEntrySchema,
+  isPluginRemoteEntry,
+  isUrlRemoteEntry,
+  type RemoteEntry,
+  type UrlRemoteEntry,
+  type PluginRemoteEntry,
+} from './remote-schema.js'
 
 export {
   DashboardConfigSchema,

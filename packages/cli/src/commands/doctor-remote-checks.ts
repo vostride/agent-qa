@@ -190,6 +190,8 @@ function remoteCheck(
 export function createRemoteChecks(input: RemoteChecksInput): DoctorCheck[] {
   const timeoutMs = input.fetchTimeoutMs ?? REMOTE_PROBE_TIMEOUT_MS
   return listedRemotes(input.config)
+    // A plugin remote's address is what its plugin answers at acquire, so there is no url to probe.
+    .filter((entry) => !Object.hasOwn(entry, 'plugin'))
     .filter((entry) => input.only === undefined || entry.name === input.only)
     .map((entry) => ({
       name: `Remote ${entry.name}`,

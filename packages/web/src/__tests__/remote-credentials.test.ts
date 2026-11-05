@@ -119,7 +119,7 @@ describe("a remote's credentials", () => {
     })
     const config = await setUp(remoteAt(url))
 
-    expect(config.browser?.remote?.headers).toEqual({
+    expect(config.browser?.remote).toHaveProperty('headers', {
       Authorization: 'Bearer {{secret:PW_TOKEN}}',
     })
     const [request, ...others] = proxy.requests()

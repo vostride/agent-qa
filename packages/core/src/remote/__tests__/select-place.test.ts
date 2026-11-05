@@ -26,7 +26,18 @@ const devtools = RemoteEntrySchema.parse({
   protocol: 'cdp',
   url: 'http://127.0.0.1:9222',
 })
-const remotes = [grid, farm, devtools]
+const cloud = RemoteEntrySchema.parse({
+  name: 'cloud',
+  plugin: 'kernel',
+  settings: { region: 'eu', auth: { token: '{{secret:KERNEL_TOKEN}}' } },
+})
+const fleet = RemoteEntrySchema.parse({
+  name: 'fleet',
+  plugin: 'kernel',
+  connectTimeout: '45s',
+  context: 'reuse',
+})
+const remotes = [grid, farm, devtools, cloud, fleet]
 
 function web(input: Omit<SelectWebPlaceInput, 'remotes'>): SelectWebPlaceResult {
   return selectWebPlace({ remotes, ...input })
@@ -147,7 +158,7 @@ describe('where a web test runs', () => {
 
   it('refuses an unknown name in a test file, naming that file', () => {
     expect(refusal(web({ test: 'nope', file: 'tests/a.test.yaml' }))).toBe(
-      'Unknown remote "nope" in tests/a.test.yaml. registry.remotes lists: grid, farm, devtools.',
+      'Unknown remote "nope" in tests/a.test.yaml. registry.remotes lists: grid, farm, devtools, cloud, fleet.',
     )
     const member = selectSuitePlace({
       remotes,
@@ -159,7 +170,7 @@ describe('where a web test runs', () => {
       ],
     })
     expect(refusal(member)).toBe(
-      'Unknown remote "nope" in tests/b.test.yaml. registry.remotes lists: grid, farm, devtools.',
+      'Unknown remote "nope" in tests/b.test.yaml. registry.remotes lists: grid, farm, devtools, cloud, fleet.',
     )
   })
 
@@ -249,6 +260,65 @@ describe('where a web test runs', () => {
   })
 })
 
+describe('a web test on a plugin remote', () => {
+  it('gets a plugin place carrying the entry name, its settings and a 5-minute connect timeout', () => {
+    const placed = web({ test: 'cloud' })
+    if ('refusal' in placed) throw new Error(placed.refusal)
+    expect(placed.place).toEqual({
+      kind: 'remote',
+      remote: {
+        name: 'cloud',
+        plugin: {
+          entry: 'kernel',
+          settings: { region: 'eu', auth: { token: '{{secret:KERNEL_TOKEN}}' } },
+        },
+        connectTimeoutMs: 300000,
+      },
+    })
+  })
+
+  it('takes its connectTimeout and context, and carries no settings it was not given', () => {
+    const placed = web({ config: 'fleet' })
+    if ('refusal' in placed) throw new Error(placed.refusal)
+    expect(placed.place).toEqual({
+      kind: 'remote',
+      remote: {
+        name: 'fleet',
+        plugin: { entry: 'kernel' },
+        connectTimeoutMs: 45000,
+        context: 'reuse',
+      },
+    })
+  })
+
+  it('is placed for any engine, because what its plugin serves is checked at run start', () => {
+    for (const engine of ['chromium', 'firefox', 'webkit'] as const) {
+      expect(placeName(web({ test: 'cloud', engine }))).toBe('cloud')
+    }
+  })
+
+  it('runs a whole suite there when the suite or its agreeing members pick it', () => {
+    const picked = selectSuitePlace({
+      remotes,
+      suiteName: 'checkout',
+      suiteFile: 'suites/checkout.suite.yaml',
+      suite: 'cloud',
+      members: [{ file: 'tests/a.test.yaml', pick: 'grid' }],
+    })
+    expect(placeName(picked)).toBe('cloud')
+    expect(connectTimeoutMs(picked)).toBe(300000)
+
+    const agreeing = selectSuitePlace({
+      remotes,
+      suiteName: 'checkout',
+      suiteFile: 'suites/checkout.suite.yaml',
+      config: 'cloud',
+      members: [{ file: 'tests/a.test.yaml' }, { file: 'tests/b.test.yaml', pick: 'cloud' }],
+    })
+    expect(placeName(agreeing)).toBe('cloud')
+  })
+})
+
 describe('the runner a run records', () => {
   it('is remote when any test runs on a remote, and local otherwise', () => {
     const here = { kind: 'local' } as const
@@ -259,5 +329,12 @@ describe('the runner a run records', () => {
     expect(runnerForPlaces([placed.place])).toBe('remote')
     expect(runnerForPlaces([here, here])).toBe('local')
     expect(runnerForPlaces([])).toBe('local')
+  })
+
+  it('is remote when a test runs on a plugin remote', () => {
+    const placed = web({ test: 'cloud' })
+    if ('refusal' in placed) throw new Error(placed.refusal)
+
+    expect(runnerForPlaces([{ kind: 'local' }, placed.place])).toBe('remote')
   })
 })

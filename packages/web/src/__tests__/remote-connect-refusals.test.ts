@@ -4,7 +4,11 @@ import {
   RemoteRefusalError,
   SecretStore,
 } from '@vostride/agent-qa-runner'
-import type { RemoteBrowserConfig, RemoteFailureKind } from '@vostride/agent-qa-runner'
+import type {
+  RemoteBrowserConfig,
+  RemoteFailureKind,
+  RemotePluginBrowserConfig,
+} from '@vostride/agent-qa-runner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { WebPlatformAdapter } from '../adapter.js'
@@ -65,7 +69,7 @@ function remoteAt(
 }
 
 async function refusalOf(
-  remote: RemoteBrowserConfig,
+  remote: RemoteBrowserConfig | RemotePluginBrowserConfig,
   options: WebPlatformAdapterOptions = { connectionSecrets, secretsFile: SECRETS_FILE },
 ): Promise<RemoteRefusalError> {
   const adapter = new WebPlatformAdapter(options)
@@ -256,6 +260,25 @@ describe('a remote that cannot connect', () => {
     expectRefusal(first, 'auth', sentence)
     expectRefusal(second, 'auth', sentence)
     expect(proxy.connections()).toBe(1)
+  })
+
+  it('refuses a plugin remote in one line when its host started no plugin host', async () => {
+    const connect = vi.spyOn(chromium, 'connect')
+    const connectOverCDP = vi.spyOn(chromium, 'connectOverCDP')
+    const remote: RemotePluginBrowserConfig = {
+      name: 'cloud',
+      plugin: { entry: 'kernel', settings: { region: 'eu' } },
+      connectTimeoutMs: CONNECT_TIMEOUT_MS,
+    }
+    const error = await refusalOf(remote)
+    expectRefusal(
+      error,
+      'refused',
+      'Remote cloud names plugin entry kernel, and this host started no plugin host for it.',
+    )
+    expect(error.remote).toBe('cloud')
+    expect(connect).not.toHaveBeenCalled()
+    expect(connectOverCDP).not.toHaveBeenCalled()
   })
 
   it('does not remember a session that ended or was lost', () => {

@@ -5,6 +5,7 @@ import type {
   ConsoleLogEntry,
   NetworkLogEntry,
   RemoteBrowserConfig,
+  RemotePluginBrowserConfig,
   StepAnnotation,
   SecretRedactor,
   SecretStore,
@@ -211,7 +212,7 @@ export interface LiveSessionConfig {
   connectionSecretNames?: ReadonlySet<string>
   // workspace.secretsFile as the project names it, for the adapter's credential refusals.
   secretsFile?: string
-  remote?: RemoteBrowserConfig
+  remote?: RemoteBrowserConfig | RemotePluginBrowserConfig
   secretRedactor?: SecretRedactor
   setupHooks?: string[]
   teardownHooks?: string[]

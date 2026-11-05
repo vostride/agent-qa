@@ -17,6 +17,7 @@ import { KnowledgeConfigSchema } from './knowledge-schema.js'
 import { retiredKeyScan } from './retired-keys.js'
 import { configShapeScan } from './config-shape-scan.js'
 import { NameSlugSchema } from './primitives.js'
+import { isPluginRemoteEntry, isUrlRemoteEntry } from './remote-schema.js'
 import { RegistrySchema } from './registry-schema.js'
 import { UseSchema } from './use-schema.js'
 import { AnalyticsSchema } from './analytics-schema.js'
@@ -114,6 +115,16 @@ const AgentQaConfigSchemaInner = z.strictObject({
         message: 'Remote name "local" is reserved: local means this machine. Rename the remote.',
       })
     }
+    if (isPluginRemoteEntry(remote) && !pluginNames.includes(remote.plugin)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['registry', 'remotes', index, 'plugin'],
+        message:
+          pluginNames.length === 0
+            ? `Remote ${remote.name} names plugin ${remote.plugin}, but plugins lists no entries.`
+            : `Remote ${remote.name} names plugin ${remote.plugin}; plugins lists: ${pluginNames.join(', ')}.`,
+      })
+    }
   })
   const pick = val.use?.browser?.remote
   if (pick !== undefined) {
@@ -147,7 +158,11 @@ const AgentQaConfigSchemaInner = z.strictObject({
   }
   for (const [device, profile] of Object.entries(devices)) {
     const at = remotes.findIndex(remote => remote.name === profile.remote)
-    const remote = at >= 0 && remotes[at]!.protocol === 'appium' ? remotes[at] : undefined
+    const listed = at >= 0 ? remotes[at]! : undefined
+    const remote =
+      listed !== undefined && isUrlRemoteEntry(listed) && listed.protocol === 'appium'
+        ? listed
+        : undefined
     const stated = {
       device,
       platform: profile.platform,
@@ -211,7 +226,10 @@ const AgentQaConfigSchemaInner = z.strictObject({
       report([...issue.path], `Target ${target}: ${issue.message}`)
     }
     const remote = remotes.find(listed => listed.name === profile?.remote)
-    const host = remote?.protocol === 'appium' ? cleartextHost(remote.url) : undefined
+    const host =
+      remote !== undefined && isUrlRemoteEntry(remote) && remote.protocol === 'appium'
+        ? cleartextHost(remote.url)
+        : undefined
     if (host !== undefined && carriesSecret(ref)) {
       report(
         refPath,

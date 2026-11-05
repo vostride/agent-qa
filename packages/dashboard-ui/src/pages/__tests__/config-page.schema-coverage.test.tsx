@@ -561,9 +561,12 @@ describe('ConfigPage schema coverage', () => {
       'registry.remotes[].context',
       'registry.remotes[].headers.*',
       'registry.remotes[].name',
+      'registry.remotes[].plugin',
       'registry.remotes[].protocol',
       'registry.remotes[].query.*',
       'registry.remotes[].query.*.*',
+      'registry.remotes[].settings.*',
+      'registry.remotes[].uploadTimeout',
       'registry.remotes[].url',
       'registry.targets.*.app.ref',
     ])

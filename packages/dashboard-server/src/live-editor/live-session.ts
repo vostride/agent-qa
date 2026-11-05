@@ -253,14 +253,18 @@ function stringEntries(value: unknown): Record<string, string> | undefined {
   )
 }
 
-// The project's remotes, read as the run reads them; a malformed field carries no reference.
+// The project's url remotes, read as the run reads them; a malformed field carries no reference.
+// A plugin remote has no connection fields here: its plugin answers with them at acquire.
 export async function readLiveRemotes(
   configManager: ConfigManager | undefined,
 ): Promise<RemoteConnectionFields[]> {
   const config = configManager === undefined ? {} : await readConfigValues(configManager)
   const remotes = isConfigRecord(config.registry) ? config.registry.remotes : undefined
   if (!Array.isArray(remotes)) return []
-  return remotes.filter(isConfigRecord).map((entry) => {
+  const urlRemotes = remotes
+    .filter(isConfigRecord)
+    .filter((entry) => !Object.hasOwn(entry, 'plugin'))
+  return urlRemotes.map((entry) => {
     const headers = stringEntries(entry.headers)
     const basicAuth = isConfigRecord(entry.basicAuth) ? entry.basicAuth : undefined
     return {

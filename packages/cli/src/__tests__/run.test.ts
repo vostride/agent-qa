@@ -233,6 +233,7 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
   // From the real module: the run start refuses a remote's secret misused or undeclared.
   splitConnectionSecrets: actual.splitConnectionSecrets,
   missingRemoteSecrets: actual.missingRemoteSecrets,
+  isUrlRemoteEntry: actual.isUrlRemoteEntry,
   missingRemoteSecretSentence: actual.missingRemoteSecretSentence,
   missingDeviceSecrets: actual.missingDeviceSecrets,
   missingDeviceSecretSentence: actual.missingDeviceSecretSentence,

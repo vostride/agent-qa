@@ -12,10 +12,11 @@ import {
   HookDefinitionSchema,
   HooksFileSchema,
   McpConfigSchema,
-  RemoteEntrySchema,
+  PluginRemoteEntrySchema,
   SuiteDefinitionSchema,
   SuiteTestEntrySchema,
   TestDefinitionSchema,
+  UrlRemoteEntrySchema,
 } from '@vostride/agent-qa-core'
 import {
   CONFIG_SCHEMA_LEAVES,
@@ -168,8 +169,14 @@ describe('the contracts reference matches the schemas', () => {
     }
   })
 
-  it('remotes in both copies lists the remote entry keys in schema order, what each is for, the protocols and the pick key', () => {
-    const entry = splitOf(RemoteEntrySchema)
+  it("remotes in both copies lists both remote forms' keys in schema order, what each is for, the protocols and the pick key", () => {
+    const entry = splitOf(UrlRemoteEntrySchema)
+    const pluginEntry = splitOf(PluginRemoteEntrySchema)
+    const urlKeys = keysOf(UrlRemoteEntrySchema)
+    const allKeys = [
+      ...urlKeys,
+      ...keysOf(PluginRemoteEntrySchema).filter((key) => !urlKeys.includes(key)),
+    ]
     for (const copy of CONTRACTS_COPIES) {
       const { remotes } = readContracts(copy)
       const at = relativeCopy(copy)
@@ -180,8 +187,18 @@ describe('the contracts reference matches the schemas', () => {
       expect(remoteLeaves.length, at).toBeGreaterThan(0)
       expectKeyList(`${at} remotes.requiredKeys`, remotes?.requiredKeys, entry.required)
       expectKeyList(`${at} remotes.optionalKeys`, remotes?.optionalKeys, entry.optional)
+      expectKeyList(
+        `${at} remotes.pluginRequiredKeys`,
+        remotes?.pluginRequiredKeys,
+        pluginEntry.required,
+      )
+      expectKeyList(
+        `${at} remotes.pluginOptionalKeys`,
+        remotes?.pluginOptionalKeys,
+        pluginEntry.optional,
+      )
       const purposes = remotes?.keys ?? {}
-      expectKeyList(`${at} remotes.keys`, Object.keys(purposes), keysOf(RemoteEntrySchema))
+      expectKeyList(`${at} remotes.keys`, Object.keys(purposes), allKeys)
       for (const [key, purpose] of Object.entries(purposes)) {
         expect(purpose.trim(), `${at} remotes.keys.${key}`).not.toBe('')
       }
