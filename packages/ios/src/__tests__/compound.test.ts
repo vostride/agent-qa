@@ -26,6 +26,7 @@ function createMockPointerAction() {
   chain.up = vi.fn().mockReturnValue(chain)
   chain.pause = vi.fn().mockReturnValue(chain)
   chain.perform = vi.fn().mockResolvedValue(undefined)
+  chain.toJSON = vi.fn().mockReturnValue({ type: 'pointer', actions: [] })
   return chain
 }
 
@@ -58,6 +59,8 @@ let mockSecureElement: ReturnType<typeof createMockElement>
 // `mobile: listApps` returns a bundleId-keyed map with CFBundleName labels.
 let listAppsReturn: Record<string, { CFBundleName?: string }>
 let listAppsThrows: boolean
+// The `mobile: deviceInfo` reply; undefined leaves the device type unknown.
+let deviceInfoReturn: unknown
 let isAppInstalledReturn: boolean
 
 function createMockDriver() {
@@ -68,7 +71,8 @@ function createMockDriver() {
     takeScreenshot: vi.fn().mockResolvedValue(SCREENSHOT_BASE64),
     deleteSession: vi.fn().mockResolvedValue(undefined),
     action: vi.fn().mockReturnValue(pointerAction),
-    actions: vi.fn().mockResolvedValue(undefined),
+    performActions: vi.fn().mockResolvedValue(undefined),
+    releaseActions: vi.fn().mockResolvedValue(undefined),
     keys: vi.fn().mockImplementation((k: unknown) => { calls.push(`keys:${JSON.stringify(k)}`); return Promise.resolve() }),
     pause: vi.fn().mockResolvedValue(undefined),
     activateApp: vi.fn().mockImplementation((id: string) => { calls.push(`activateApp:${id}`); return Promise.resolve() }),
@@ -76,6 +80,7 @@ function createMockDriver() {
     isAppInstalled: vi.fn().mockImplementation(() => { calls.push('isAppInstalled'); return Promise.resolve(isAppInstalledReturn) }),
     execute: vi.fn().mockImplementation((command: string, args?: unknown) => {
       calls.push(`execute:${command}:${JSON.stringify(args ?? null)}`)
+      if (command === 'mobile: deviceInfo') return Promise.resolve(deviceInfoReturn)
       if (command === 'mobile: listApps') {
         if (listAppsThrows) return Promise.reject(new Error('listApps is only supported on real devices'))
         return Promise.resolve(listAppsReturn)
@@ -118,6 +123,7 @@ describe('IOSPlatformAdapter compound behaviors', () => {
     fieldValueReturn = ''
     listAppsReturn = {}
     listAppsThrows = false
+    deviceInfoReturn = undefined
     isAppInstalledReturn = false
     lastTap = undefined
     mockElement = createMockElement('email')
@@ -349,7 +355,18 @@ describe('IOSPlatformAdapter compound behaviors', () => {
       expect(result.metadata?.openApp).toMatchObject({ resolvedId: 'com.apple.mobilecal' })
     })
 
-    it('simulator lane: listApps throwing ⇒ appName variant returns a structured error recommending an exact bundleId, never a crash', async () => {
+    it('simulator lane: appName on a simulator returns a structured error recommending an exact bundleId without asking for listApps', async () => {
+      deviceInfoReturn = { isSimulator: true }
+      await adapter.setup({ platform: 'ios' })
+
+      const result = await adapter.execute({ type: 'openApp', appName: 'Calendar' } as unknown as ExecAction)
+
+      expect(result.success).toBe(false)
+      expect(result.error).toMatch(/bundleId/i)
+      expect(mockDriver.execute.mock.calls.some(c => c[0] === 'mobile: listApps')).toBe(false)
+    })
+
+    it('unknown device type: a listApps that throws leaves appName with the same bundleId advice', async () => {
       listAppsThrows = true
       await adapter.setup({ platform: 'ios' })
 
@@ -359,8 +376,8 @@ describe('IOSPlatformAdapter compound behaviors', () => {
       expect(result.error).toMatch(/bundleId/i)
     })
 
-    it('explicit {bundleId} with registry unavailable: invalid bundle NEVER yields success true', async () => {
-      listAppsThrows = true
+    it('explicit {bundleId} on a simulator: invalid bundle NEVER yields success true', async () => {
+      deviceInfoReturn = { isSimulator: true }
       isAppInstalledReturn = false
       await adapter.setup({ platform: 'ios' })
 

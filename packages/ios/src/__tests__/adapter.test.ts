@@ -60,6 +60,7 @@ function createMockPointerAction() {
   chain.up = vi.fn().mockReturnValue(chain)
   chain.pause = vi.fn().mockReturnValue(chain)
   chain.perform = vi.fn().mockResolvedValue(undefined)
+  chain.toJSON = vi.fn().mockReturnValue({ type: 'pointer', actions: [] })
   return chain
 }
 
@@ -75,7 +76,8 @@ function createMockDriver() {
     takeScreenshot: vi.fn().mockResolvedValue(SCREENSHOT_BASE64),
     deleteSession: vi.fn().mockResolvedValue(undefined),
     action: vi.fn().mockReturnValue(pointerAction),
-    actions: vi.fn().mockResolvedValue(undefined),
+    performActions: vi.fn().mockResolvedValue(undefined),
+    releaseActions: vi.fn().mockResolvedValue(undefined),
     keys: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn().mockResolvedValue(undefined),
     activateApp: vi.fn().mockResolvedValue(undefined),
@@ -784,7 +786,7 @@ describe('IOSPlatformAdapter', () => {
 
       expect(result.success).toBe(false)
       expect(result.error).toBe('Missing iOS bundle id for native deep link: wdio://forms')
-      expect(mockDriver.execute).not.toHaveBeenCalled()
+      expect(mockDriver.execute.mock.calls.map((call) => call[0])).toEqual(['mobile: deviceInfo'])
       expect(mockDriver.url).not.toHaveBeenCalled()
     })
 

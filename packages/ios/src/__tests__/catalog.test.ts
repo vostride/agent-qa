@@ -23,6 +23,7 @@ function createMockPointerAction() {
   chain.up = vi.fn().mockReturnValue(chain)
   chain.pause = vi.fn().mockReturnValue(chain)
   chain.perform = vi.fn().mockResolvedValue(undefined)
+  chain.toJSON = vi.fn().mockReturnValue({ type: 'pointer', actions: [] })
   return chain
 }
 
@@ -39,8 +40,8 @@ function createMockElement() {
 }
 let mockElement: ReturnType<typeof createMockElement>
 
-// `listApps` throwing is the simulator signal.
-let listAppsThrows: boolean
+// The `mobile: deviceInfo` reply names the device type.
+let simulator: boolean
 
 function createMockDriver() {
   const pointerAction = createMockPointerAction()
@@ -50,7 +51,8 @@ function createMockDriver() {
     takeScreenshot: vi.fn().mockResolvedValue(SCREENSHOT_BASE64),
     deleteSession: vi.fn().mockResolvedValue(undefined),
     action: vi.fn().mockReturnValue(pointerAction),
-    actions: vi.fn().mockImplementation(() => { calls.push('actions'); return Promise.resolve(undefined) }),
+    performActions: vi.fn().mockImplementation(() => { calls.push('performActions'); return Promise.resolve(undefined) }),
+    releaseActions: vi.fn().mockResolvedValue(undefined),
     keys: vi.fn().mockImplementation((k: unknown) => { calls.push(`keys:${JSON.stringify(k)}`); return Promise.resolve() }),
     pause: vi.fn().mockImplementation((ms: number) => { calls.push(`pause:${ms}`); return Promise.resolve() }),
     hideKeyboard: vi.fn().mockResolvedValue(undefined),
@@ -60,10 +62,8 @@ function createMockDriver() {
     setOrientation: vi.fn().mockResolvedValue(undefined),
     execute: vi.fn().mockImplementation((command: string, args?: unknown) => {
       calls.push(`execute:${command}:${JSON.stringify(args ?? null)}`)
-      if (command === 'mobile: listApps') {
-        if (listAppsThrows) return Promise.reject(new Error('listApps is only supported on real devices'))
-        return Promise.resolve({})
-      }
+      if (command === 'mobile: deviceInfo') return Promise.resolve({ isSimulator: simulator })
+      if (command === 'mobile: listApps') return Promise.resolve({})
       return Promise.resolve(undefined)
     }),
     deepLink: vi.fn().mockImplementation(() => { calls.push('deepLink'); return Promise.resolve() }),
@@ -90,7 +90,7 @@ describe('IOSPlatformAdapter catalog', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     calls = []
-    listAppsThrows = false
+    simulator = false
     mockElement = createMockElement()
     mockDriver = createMockDriver()
     const { remote } = await import('webdriverio')
@@ -116,13 +116,14 @@ describe('IOSPlatformAdapter catalog', () => {
       expect(r.success).toBe(true)
       expect(mockDriver.execute).toHaveBeenCalledWith('mobile: pressButton', { name: 'home' })
     })
-    it('a volume button on a simulator-flagged session → degradation error, success false, no throw', async () => {
-      // The listApps-throws signal flags a simulator session here.
-      listAppsThrows = true
+    it('a volume button on a session the probe found to be a simulator is refused before sending', async () => {
+      simulator = true
+      await adapter.cleanup()
+      await adapter.setup({ platform: 'ios' })
       reset()
       const r = await adapter.execute({ type: 'pressButton', button: 'volumeUp' } as unknown as ExecAction)
-      expect(r.success).toBe(false)
-      expect(r.error).toMatch(/simulator|real device/i)
+      expect(r).toEqual({ success: false, error: 'pressButton "volumeUp" is not supported on this iOS simulator.' })
+      expect(mockDriver.execute).not.toHaveBeenCalled()
     })
   })
 

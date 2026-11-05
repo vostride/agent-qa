@@ -134,6 +134,7 @@ function createMockDriver(xml: string) {
     takeScreenshot: vi.fn().mockResolvedValue(SCREENSHOT_BASE64),
     deleteSession: vi.fn().mockResolvedValue(undefined),
     action: vi.fn().mockReturnValue(chain),
+    releaseActions: vi.fn().mockResolvedValue(undefined),
     keys: vi.fn().mockImplementation((k: unknown) => {
       calls.push(`keys:${JSON.stringify(k)}`)
       return Promise.resolve()

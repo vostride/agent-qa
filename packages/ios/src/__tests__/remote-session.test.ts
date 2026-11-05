@@ -467,6 +467,7 @@ describe("a remote iOS session's life", () => {
       device: 'iphone-farm',
       appiumVersion: '3.4.2',
       sessionId,
+      deviceType: 'unknown',
       heartbeat: { sent: 0, failed: 0, suspect: false },
     })
   })

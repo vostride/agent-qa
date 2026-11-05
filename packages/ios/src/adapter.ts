@@ -8,6 +8,7 @@ import type {
   ConsoleLogEntry,
   Direction,
   InterimNode,
+  IOSDeviceType,
   LiveStreamCapability,
   PlatformAdapter,
   PlatformConfig,
@@ -36,12 +37,15 @@ import {
   MobileElementResolver,
   MobileSetupError,
   buildRefEntries,
+  capabilityValue,
   classifyCommandFailure,
   computeFingerPositions,
   computePinch,
   computeSwipe,
   deriveMobileScroll,
   IOS_EDITABLE_TYPES,
+  iosDeviceTypeFromInfo,
+  isUnknownCommandError,
   parseMobileSource,
   printRunText,
   remoteDeviceLostSentence,
@@ -102,7 +106,7 @@ type TextBox = { coordinates: { x: number; y: number }; boundingBox: Rect }
 const MULTI_LINE_SUBMIT_NOTICE =
   'submit not sent: Return would add a new line in this multi-line field; tap its send or submit control'
 
-// pressButton: schema button → XCUITest hardware name. Volume buttons are real-devices-only.
+// pressButton: schema button → XCUITest hardware name. A simulator has no volume buttons.
 const IOS_BUTTON_NAME: Record<'home' | 'volumeUp' | 'action', string> = {
   home: 'home',
   volumeUp: 'volumeup',
@@ -116,6 +120,51 @@ const IOS_SAFARI_BUNDLE_ID = 'com.apple.mobilesafari'
 const IOS_SPRINGBOARD_BUNDLE_ID = 'com.apple.springboard'
 const IOS_LINK_HANDOFF_POLLS = 12
 const IOS_LINK_HANDOFF_PAUSE_MS = 500
+
+type TouchDriver = Pick<WebdriverIO.Browser, 'releaseActions'>
+
+// The touch has run once perform resolves; a server that does not know the release has none to do.
+async function releaseTouch(driver: TouchDriver): Promise<void> {
+  try {
+    await driver.releaseActions()
+  } catch (error) {
+    if (!isUnknownCommandError(error)) throw error
+  }
+}
+
+async function performTouch(
+  driver: TouchDriver,
+  chain: { perform: (skipRelease?: boolean) => Promise<void> },
+): Promise<void> {
+  await chain.perform(true)
+  await releaseTouch(driver)
+}
+
+async function performTouches(
+  driver: TouchDriver & Pick<WebdriverIO.Browser, 'performActions'>,
+  chains: ReadonlyArray<{ toJSON: () => unknown }>,
+): Promise<void> {
+  await driver.performActions(
+    chains.map((chain) => chain.toJSON()) as Parameters<WebdriverIO.Browser['performActions']>[0],
+  )
+  await releaseTouch(driver)
+}
+
+// XCUITest's own refusals name the device type a command needs; a server's unknown verb names none.
+function unsupportedOn(err: unknown, deviceType: IOSDeviceType | undefined): string | undefined {
+  const text = errorNameAndMessage(err)
+  if (/can only be performed on Simulator/i.test(text)) return 'real device'
+  if (/can only be performed on a real device/i.test(text)) return 'simulator'
+  const name = err instanceof Error ? err.name : ''
+  if (!isUnknownCommandError(err) && name !== 'unsupported operation') return undefined
+  return deviceType === 'simulator' || deviceType === 'real device' ? deviceType : 'device'
+}
+
+function actionVerb(action: ActionsFor<'ios'>): string {
+  if (action.type === 'pressButton') return `pressButton "${action.button}"`
+  if (action.type === 'executeScript') return `executeScript "${action.command}"`
+  return action.type
+}
 
 function remoteOriginText(url: string): string {
   const origin = remoteOrigin(url)
@@ -326,8 +375,10 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   private consoleDrainIndex = 0
   private captureConsole = true
   private bundleId: string | null = null
-  // `null` means not yet enumerated, or unavailable because simulators throw on `listApps`.
+  // `null` means not yet enumerated, or unavailable: a simulator has no `listApps`.
   private appRegistry: AppRegistryEntry[] | null = null
+  // Read once per session from `mobile: deviceInfo`; undefined before setup.
+  private deviceType: IOSDeviceType | undefined
   private sessionSnapshotDepth = IOS_SNAPSHOT_MAX_DEPTH
   private snapshotDepth = IOS_SNAPSHOT_MAX_DEPTH
   private readsAtLoweredDepth = 0
@@ -355,6 +406,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     this.disconnectKind = undefined
     this.disconnectError = undefined
     this.released = undefined
+    this.deviceType = undefined
 
     this.driver = await createIOSSession(this.config, {
       connectionSecrets: this.options.connectionSecrets,
@@ -366,15 +418,47 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     const remote = this.remote
     if (remote === undefined) {
       this.place = { place: 'here' }
+      this.deviceType = await this.probeDeviceType(this.driver)
       return this.prepareSession(config)
     }
     await this.openedRemote(this.driver, remote)
+    this.deviceType = await this.probeDeviceType(this.driver)
+    this.refuseAfterDisconnect()
     try {
       await this.prepareSession(config)
     } catch (error) {
       throw this.withoutEndpoint(error)
     }
     this.heartbeat?.start()
+  }
+
+  // One probe per session; a failed call or an unreadable reply is unknown, never a guess.
+  private async probeDeviceType(driver: WebdriverIO.Browser): Promise<IOSDeviceType> {
+    try {
+      return iosDeviceTypeFromInfo(
+        await this.holdingHeartbeat(() => driver.execute('mobile: deviceInfo')),
+      )
+    } catch {
+      return 'unknown'
+    }
+  }
+
+  // A real iPhone keeps its app data unless the session reinstalls the app.
+  private appDataNotes(): string[] {
+    const config = this.config
+    if (config?.appState !== 'reset' || this.deviceType !== 'real device') return []
+    const requested = (this.driver as { requestedCapabilities?: unknown } | null)
+      ?.requestedCapabilities
+    const capabilities =
+      typeof requested === 'object' && requested !== null
+        ? ((requested as { alwaysMatch?: Record<string, unknown> }).alwaysMatch ??
+          (requested as Record<string, unknown>))
+        : {}
+    if (capabilityValue(capabilities, 'app') !== undefined) return []
+    const target = config.targetName ?? 'ios'
+    return [
+      `App data was not cleared: device ${this.deviceName} is a real iPhone, and target ${target} has no app.ref to reinstall from.`,
+    ]
   }
 
   private async prepareSession(config: PlatformConfig): Promise<void> {
@@ -423,6 +507,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     this.heartbeat = undefined
     this.place = undefined
     this.remote = undefined
+    this.deviceType = undefined
     this.lastRefs = {}
     this.config = null
     this.consoleLogs = []
@@ -517,6 +602,12 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
       return await this.executeAction(action)
     } catch (err) {
       this.remoteCommandFailed(err)
+      const unsupported =
+        this.disconnectKind === undefined ? unsupportedOn(err, this.deviceType) : undefined
+      if (unsupported !== undefined) {
+        const error = `${actionVerb(action)} is not supported on this iOS ${unsupported}.`
+        return { success: false, error }
+      }
       let screenshot: Buffer | undefined
       if (this.disconnectKind === undefined) {
         try {
@@ -560,11 +651,17 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   // Where this test ran; undefined before setup and after cleanup.
   get placeEvidence(): RemotePlaceEvidence | undefined {
     const place = this.place
-    if (place?.place !== 'remote') return place
+    const deviceType = this.deviceType
+    if (place === undefined) return undefined
+    if (place.place === 'here') return deviceType === undefined ? place : { ...place, deviceType }
+    if (place.protocol !== 'appium') return place
+    const notes = this.appDataNotes()
     return {
       ...place,
+      ...(deviceType !== undefined ? { deviceType } : {}),
       ...(this.heartbeat !== undefined ? { heartbeat: this.heartbeat.counts() } : {}),
       ...(this.disconnectKind !== undefined ? { failureKind: this.disconnectKind } : {}),
+      ...(notes.length > 0 ? { notes } : {}),
     }
   }
 
@@ -833,12 +930,12 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   }
 
   private async tapAt(point: { x: number; y: number }): Promise<void> {
-    await this.driver!.action('pointer', { parameters: { pointerType: 'touch' } })
+    const driver = this.driver!
+    await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
       .move({ x: Math.round(point.x), y: Math.round(point.y) })
       .down({ button: 0 })
       .pause(IOS_TAP_HOLD_MS)
-      .up({ button: 0 })
-      .perform()
+      .up({ button: 0 }))
   }
 
   private async readRect(elementId: string): Promise<Rect | undefined> {
@@ -1069,12 +1166,11 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
           sy = Math.round(center.y)
         }
         const pts = computeSwipe(sx, sy, fingerDirectionFor(direction), distance)
-        await driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: pts.startX, y: pts.startY })
           .down({ button: 0 })
           .move({ x: pts.endX, y: pts.endY, duration: 300 })
-          .up({ button: 0 })
-          .perform()
+          .up({ button: 0 }))
         // XCUITest/WDA report no movement or boundary for a swipe or a direction scroll.
         return 'unknown'
       },
@@ -1098,7 +1194,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     }
   }
 
-  // Simulators throw on `listApps`, so `appName` needs a real device; `bundleId` works without it.
+  // A simulator has no `listApps`, so `appName` needs a real device; `bundleId` works without it.
   private async openApp(action: { appName: string } | { bundleId: string }): Promise<ActionResult> {
     const driver = this.driver!
     const registry = await this.ensureAppRegistry()
@@ -1194,14 +1290,16 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   /** Return the cached registry, enumerating once on first use. Failed enumeration returns null (uncached). */
   private async ensureAppRegistry(): Promise<AppRegistryEntry[] | null> {
     if (this.appRegistry !== null) return this.appRegistry
+    if (this.deviceType === 'simulator') return null
     const enumerated = await this.enumerateApps()
     if (enumerated !== null) this.appRegistry = enumerated
     return enumerated
   }
 
-  // Driver only, no simctl; `listApps` throws on simulators, which leaves enumeration unavailable.
+  // Driver only, no simctl; a device of unknown type that refuses `listApps` leaves it unavailable.
   private async enumerateApps(): Promise<AppRegistryEntry[] | null> {
     const driver = this.driver!
+    if (this.deviceType === 'simulator') return null
     try {
       const raw = await driver.execute('mobile: listApps')
       return this.mapListApps(raw)
@@ -1397,12 +1495,11 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
         warnIfOutOfBounds({ x: pts.endX, y: pts.endY }, { width, height }, 'swipe')
         const swipeDuration = action.durationMs
 
-        await driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: pts.startX, y: pts.startY })
           .down({ button: 0 })
           .move({ x: pts.endX, y: pts.endY, duration: swipeDuration })
-          .up({ button: 0 })
-          .perform()
+          .up({ button: 0 }))
         return {
           success: true,
           startCoordinates: { x: pts.startX, y: pts.startY },
@@ -1428,7 +1525,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
         const { finger1Start, finger1End, finger2Start, finger2End } = computePinch(pcx, pcy, action.scale)
         const pinchDuration = 500
 
-        await driver.actions([
+        await performTouches(driver, [
           driver.action('pointer', { parameters: { pointerType: 'touch' } })
             .move({ x: Math.round(finger1Start.x), y: Math.round(finger1Start.y) })
             .down({ button: 0 })
@@ -1459,7 +1556,8 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
         warnIfOutOfBounds({ x: mtcx, y: mtcy }, { width: mtW, height: mtH }, 'multiTap')
 
         const positions = computeFingerPositions(mtcx, mtcy, action.fingers)
-        await driver.actions(
+        await performTouches(
+          driver,
           positions.map(pos =>
             driver.action('pointer', { parameters: { pointerType: 'touch' } })
               .move({ x: Math.round(pos.x), y: Math.round(pos.y) })
@@ -1473,12 +1571,11 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
 
       case 'longpress': {
         const { center } = resolver.resolve(action.ref)
-        await driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: Math.round(center.x), y: Math.round(center.y) })
           .down({ button: 0 })
           .pause(action.duration ?? 1000)
-          .up({ button: 0 })
-          .perform()
+          .up({ button: 0 }))
         return { success: true }
       }
 
@@ -1689,13 +1786,12 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
       case 'drag': {
         const from = resolver.resolve(action.fromRef)
         const to = resolver.resolve(action.toRef)
-        await driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: Math.round(from.center.x), y: Math.round(from.center.y) })
           .down({ button: 0 })
           .pause(300)
           .move({ x: Math.round(to.center.x), y: Math.round(to.center.y), duration: 500 })
-          .up({ button: 0 })
-          .perform()
+          .up({ button: 0 }))
         return { success: true }
       }
 
@@ -1703,14 +1799,13 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
         const { center, bounds } = resolver.resolve(action.ref)
         const x = Math.round(center.x)
         const y = Math.round(center.y)
-        await driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x, y })
           .down({ button: 0 })
           .up({ button: 0 })
           .pause(50)
           .down({ button: 0 })
-          .up({ button: 0 })
-          .perform()
+          .up({ button: 0 }))
         return { success: true, coordinates: center, boundingBox: bounds }
       }
 
@@ -1744,19 +1839,11 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
       // --- iOS hardware / native verbs ---
 
       case 'pressButton': {
-        // mobile: pressButton maps the schema button to the XCUITest hardware name. Volume buttons
-        // are real-devices-only; on a simulator session `mobile: listApps` is unavailable (the 359
-        // listApps precedent) — probe it and mint a §7.1 degradation error rather than crash.
         const name = IOS_BUTTON_NAME[action.button]
-        if (VOLUME_BUTTONS.has(action.button)) {
-          const registry = await this.enumerateApps()
-          if (registry === null) {
-            return {
-              success: false,
-              error:
-                `pressButton "${action.button}" (a volume hardware button) is only supported on real devices; `
-                + `this appears to be an iOS simulator session, where volume buttons are unavailable. Run against a real device to use volume controls.`,
-            }
+        if (VOLUME_BUTTONS.has(action.button) && this.deviceType === 'simulator') {
+          return {
+            success: false,
+            error: `pressButton "${action.button}" is not supported on this iOS simulator.`,
           }
         }
         await driver.execute('mobile: pressButton', { name })
@@ -1817,12 +1904,11 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
           case 'bottom':
             start = { x: midX, y: height - 1 }; end = { x: midX, y: Math.round(height * 0.4) }; break
         }
-        await driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: start.x, y: start.y })
           .down({ button: 0 })
           .move({ x: end.x, y: end.y, duration: 300 })
-          .up({ button: 0 })
-          .perform()
+          .up({ button: 0 }))
         return { success: true, startCoordinates: start, endCoordinates: end }
       }
 
