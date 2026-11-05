@@ -2,7 +2,7 @@
   "name": "@vostride/agent-qa-plugin-browserstack",
   "version": "0.2.6",
   "private": false,
-  "description": "agent-qa plugin for BrowserStack: runs web tests on BrowserStack browsers over the Playwright protocol.",
+  "description": "agent-qa plugin for BrowserStack: runs web tests on BrowserStack browsers over the Playwright protocol and device tests on BrowserStack devices over Appium.",
   "keywords": [
     "agent-qa",
     "agent-qa-plugin",
@@ -58,9 +58,13 @@
       "protocol": 1,
       "entry": "./dist/main.js",
       "serves": [
-        "playwright"
+        "playwright",
+        "appium"
       ],
-      "methods": [],
+      "methods": [
+        "started",
+        "end"
+      ],
       "options": "./dist/options.schema.json",
       "settings": "./dist/settings.schema.json",
       "runFacts": [

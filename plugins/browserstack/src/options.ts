@@ -57,6 +57,11 @@ export const settings = z.strictObject({
     .min(1)
     .optional()
     .describe('The BrowserStack build name; by default the run id'),
+  appiumVersion: z
+    .string()
+    .min(1)
+    .optional()
+    .describe("The Appium version device sessions ask for; by default the plugin's own"),
   extra: z
     .record(z.string(), z.unknown())
     .optional()
