@@ -71,7 +71,7 @@ import type {
 import type { LanguageModel } from 'ai'
 import { authFromFetch, authFromRuntimeConfig, toModelProfileAndAuth } from '../llm-model-mapping.js'
 import { prepareMobileLiveSession } from './mobile-bootstrap.js'
-import type { MobileLiveAppiumLease } from './mobile-bootstrap.js'
+import type { LiveDevicesHereLister, MobileLiveAppiumLease } from './mobile-bootstrap.js'
 import type { AppiumManager } from '../execution/appium-manager.js'
 import { readConfigValues, type ConfigManager } from '../config/index.js'
 import type { LiveEditorAttachment } from '../live-view/editor-subjects.js'
@@ -423,6 +423,10 @@ export interface LiveSessionDeps {
   configPath?: string
   // The host's registry, which a dashboard shutdown releases beside the session's own cleanup.
   remoteSessions?: RemoteSessionRegistry
+  // This machine's devices; the platform's own lister when unset.
+  listDevicesHere?: LiveDevicesHereLister
+  // AGENT_QA_APPIUM_URL; the process environment when unset.
+  appiumEnvUrl?: string
 }
 
 export interface LiveStepExecutionResult extends StepResult {
@@ -928,8 +932,12 @@ export class LiveSession {
       appiumManager,
       configManager,
       configPath,
+      ...(this.deps.listDevicesHere === undefined
+        ? {}
+        : { listDevicesHere: this.deps.listDevicesHere }),
+      ...(this.deps.appiumEnvUrl === undefined ? {} : { envUrl: this.deps.appiumEnvUrl }),
     })
-    this.mobileAppiumLease = prepared.appiumLease
+    this.mobileAppiumLease = prepared.appiumLease ?? null
     return prepared.platformConfig
   }
 

@@ -5,6 +5,7 @@ import type { AppiumManager } from '../execution/appium-manager.js'
 import type { ConfigManager } from '../config/index.js'
 import type { LiveEditorSubjects } from '../live-view/editor-subjects.js'
 import type { RemoteSessionRegistry } from '@vostride/agent-qa-runner'
+import type { LiveDevicesHereLister } from './mobile-bootstrap.js'
 
 export interface SessionManagerDeps {
   appiumManager?: AppiumManager
@@ -13,6 +14,8 @@ export interface SessionManagerDeps {
   liveEditorSubjects?: LiveEditorSubjects
   // The host's registry, so a shutdown releases a live session's remote beside its cleanup.
   remoteSessions?: RemoteSessionRegistry
+  listDevicesHere?: LiveDevicesHereLister
+  appiumEnvUrl?: string
 }
 
 export class SessionManager {

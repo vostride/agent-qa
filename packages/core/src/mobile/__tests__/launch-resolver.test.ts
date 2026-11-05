@@ -363,7 +363,7 @@ describe('resolveMobileRunConfig', () => {
     )
   })
 
-  it('resolves a device on an appium remote to that remote, with no local Appium url', () => {
+  it("keeps a remote device's model and os beside its remote", () => {
     const config = {
       ...makeConfig({
         devices: {
@@ -388,7 +388,6 @@ describe('resolveMobileRunConfig', () => {
       config: withRemotes,
       targetName: 'release-android-wikipedia',
       useDeviceName: 'galaxy-farm',
-      appiumUrl: 'http://127.0.0.1:4723',
     })
 
     expect(resolved.device).toMatchObject({
@@ -397,7 +396,6 @@ describe('resolveMobileRunConfig', () => {
       os: '14',
       remote: { name: 'farm', protocol: 'appium', url: 'https://farm.example.com/wd/hub' },
     })
-    expect(resolved.appium).toEqual({ managed: false })
   })
 
   it('throws device-resolution for a device whose remote is not listed', () => {

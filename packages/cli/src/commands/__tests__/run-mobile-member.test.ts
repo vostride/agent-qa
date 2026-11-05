@@ -19,7 +19,6 @@ function hereDevice(model: string): ResolvedMobileRunConfig {
     plan: { kind: 'here', search: { model } },
     app: { appPackage: 'com.example.shop', sourceTrace: {} },
     appState: 'preserve',
-    appium: {},
     sourceTrace: [],
   }
 }

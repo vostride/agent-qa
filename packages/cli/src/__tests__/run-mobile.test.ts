@@ -179,7 +179,6 @@ describe('buildPlatformConfig', () => {
         sourceTrace: {},
       },
       appState: 'reset',
-      appium: { url: 'http://localhost:4723', managed: true },
       sourceTrace: [],
     })
 
@@ -205,7 +204,6 @@ describe('buildPlatformConfig', () => {
         plan: { kind: 'here', search: { model: 'Pixel 8' } },
         app: { appPackage: 'com.example.shop', sourceTrace: {} },
         appState: 'preserve',
-        appium: { url: 'http://127.0.0.1:9999', managed: false },
         sourceTrace: [],
       },
       undefined,
@@ -240,7 +238,6 @@ describe('buildPlatformConfig', () => {
         sourceTrace: {},
       },
       appState: 'preserve',
-      appium: { url: 'http://localhost:4723', managed: true },
       sourceTrace: [],
     })
 
@@ -266,7 +263,6 @@ describe('buildPlatformConfig', () => {
         sourceTrace: {},
       },
       appState: 'preserve',
-      appium: { url: 'http://localhost:4723', managed: true },
       sourceTrace: [],
     })
 
@@ -306,7 +302,6 @@ describe('buildPlatformConfig', () => {
         sourceTrace: {},
       },
       appState: 'preserve',
-      appium: { url: 'http://localhost:4723', managed: true },
       sourceTrace: [],
     })
 
@@ -337,7 +332,6 @@ describe('buildPlatformConfig', () => {
       plan: { kind: 'remote', remote },
       app: { ref: 'storage:shop-latest', bundleId: 'com.example.shop', sourceTrace: {} },
       appState: 'reset',
-      appium: { managed: false },
       sourceTrace: [],
     })
 
@@ -357,7 +351,6 @@ describe('buildPlatformConfig', () => {
       plan: { kind: 'here', search: { model: 'Pixel 8' } },
       app: { appPackage: 'com.example.shop', sourceTrace: {} },
       appState: 'preserve',
-      appium: { managed: true },
       sourceTrace: [],
     })
 

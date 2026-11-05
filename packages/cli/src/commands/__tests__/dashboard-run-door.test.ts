@@ -350,7 +350,6 @@ const PIXEL_HERE: ResolvedMobileRunConfig = {
   plan: { kind: 'here', search: { model: 'Pixel 8' } },
   app: { sourceTrace: {} },
   appState: 'preserve',
-  appium: {},
   sourceTrace: [],
 }
 

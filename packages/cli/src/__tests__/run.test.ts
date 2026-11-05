@@ -376,7 +376,6 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
     },
     app: {},
     appState: input.appState,
-    appium: { url: input.appiumUrl },
     sourceTrace: [],
   })),
   SecretStore: class MockSecretStore {

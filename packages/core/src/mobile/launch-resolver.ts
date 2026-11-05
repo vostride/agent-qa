@@ -92,7 +92,6 @@ export interface ResolvedMobileRunConfig {
   plan: MobileDevicePlan
   app: ResolvedMobileApp
   appState: MobileAppState
-  appium: { url?: string; managed?: boolean }
   sourceTrace: string[]
 }
 
@@ -104,7 +103,6 @@ export interface ResolveMobileRunConfigInput {
   useDeviceName?: string
   appState?: MobileAppState
   configFilePath?: string
-  appiumUrl?: string
 }
 
 interface TargetEntry {
@@ -438,11 +436,6 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     plan,
     app,
     appState,
-    // A remote device's Appium is its remote, so no local one is named or managed.
-    appium:
-      remote === undefined
-        ? { url: input.appiumUrl, managed: !input.appiumUrl }
-        : { managed: false },
     sourceTrace,
   }
 }

@@ -187,6 +187,8 @@ vi.mock('@vostride/agent-qa-core', async () => {
       }
     },
     resolveMobileRunConfig: vi.fn(),
+    findDeviceHere: actual.findDeviceHere,
+    chooseAppiumEndpoint: actual.chooseAppiumEndpoint,
     getAgentQaVersion: () => '0.0.0',
     executeStep: (...args: unknown[]) => mockExecuteStep(...args),
     LLMPlanner: vi.fn().mockImplementation(function () { return { plan: vi.fn() } }),
@@ -242,9 +244,9 @@ async function configuredAndroidSession(): Promise<LiveSession> {
     targetName: 'android-app',
     deviceName: 'pixel',
     device: { name: 'pixel', platform: 'android', model: 'Pixel 8' },
+    plan: { kind: 'here', search: { model: 'Pixel 8' } },
     app: { appPackage: 'com.example.app', deepLinkAppId: 'com.example.app', sourceTrace: {} },
     appState: 'preserve',
-    appium: {},
     sourceTrace: [],
   })
   const configManager = {
@@ -258,6 +260,11 @@ async function configuredAndroidSession(): Promise<LiveSession> {
     } as never,
     configManager,
     configPath: '/tmp/agent-qa.config.yaml',
+    listDevicesHere: async () => ({
+      attached: [{ serial: 'emulator-5554', state: 'device', model: 'Pixel 8' }],
+      avds: [],
+    }),
+    appiumEnvUrl: '',
   })
 }
 
