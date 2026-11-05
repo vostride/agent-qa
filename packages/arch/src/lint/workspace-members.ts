@@ -1,54 +1,58 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-export function workspaceMemberDirs(repoRoot: string): string[] {
-  const workspaceYaml = readFileSync(join(repoRoot, 'pnpm-workspace.yaml'), 'utf8')
-  const workspaceGlobs = workspaceYaml
-    .split(/\r?\n/u)
-    .map(line => line.trim())
-    .map(line => line.match(/^-\s*["']?(packages\/\*)["']?\s*$/u)?.[1])
-    .filter((glob): glob is 'packages/*' => glob === 'packages/*')
+const WORKSPACE_ROOTS = ['packages', 'plugins'] as const
+type WorkspaceRoot = (typeof WORKSPACE_ROOTS)[number]
 
-  if (workspaceGlobs.length === 0) {
+function declaredWorkspaceRoots(repoRoot: string): WorkspaceRoot[] {
+  const workspaceYaml = readFileSync(join(repoRoot, 'pnpm-workspace.yaml'), 'utf8')
+  const declared = new Set(
+    workspaceYaml
+      .split(/\r?\n/u)
+      .map(line => line.trim().match(/^-\s*["']?(packages|plugins)\/\*["']?\s*$/u)?.[1])
+      .filter((root): root is WorkspaceRoot => root !== undefined),
+  )
+
+  if (!declared.has('packages')) {
     throw new Error('pnpm-workspace.yaml must declare the packages/* workspace member glob')
   }
 
-  const packagesRoot = join(repoRoot, 'packages')
-  const workspaceMembers = new Set<string>()
-  for (const glob of workspaceGlobs) {
-    if (glob !== 'packages/*') {
-      continue
-    }
+  return WORKSPACE_ROOTS.filter(root => declared.has(root))
+}
 
-    for (const entry of readdirSync(packagesRoot, { withFileTypes: true })) {
-      if (!entry.isDirectory()) {
-        continue
-      }
-
-      const packageDir = join(packagesRoot, entry.name)
-      if (existsSync(join(packageDir, 'package.json'))) {
-        workspaceMembers.add(`packages/${entry.name}`)
-      }
-    }
+function packageDirsUnder(
+  repoRoot: string,
+  root: WorkspaceRoot,
+  qualifies: (packageDir: string) => boolean,
+): string[] {
+  const rootDir = join(repoRoot, root)
+  if (!existsSync(rootDir)) {
+    return []
   }
 
-  return [...workspaceMembers].sort()
+  return readdirSync(rootDir, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && qualifies(join(rootDir, entry.name)))
+    .map(entry => `${root}/${entry.name}`)
+}
+
+export function workspaceMemberDirs(repoRoot: string): string[] {
+  return declaredWorkspaceRoots(repoRoot)
+    .flatMap(root =>
+      packageDirsUnder(repoRoot, root, packageDir => existsSync(join(packageDir, 'package.json'))),
+    )
+    .sort()
 }
 
 export function contractBearingDirs(repoRoot: string): string[] {
-  const packagesRoot = join(repoRoot, 'packages')
-  return readdirSync(packagesRoot, { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .map(entry => entry.name)
-    .filter(name => {
-      const packageDir = join(packagesRoot, name)
-      return (
+  return WORKSPACE_ROOTS.flatMap(root =>
+    packageDirsUnder(
+      repoRoot,
+      root,
+      packageDir =>
         existsSync(join(packageDir, 'package.json')) &&
-        existsSync(join(packageDir, 'src', 'ownership-contract.ts'))
-      )
-    })
-    .map(name => `packages/${name}`)
-    .sort()
+        existsSync(join(packageDir, 'src', 'ownership-contract.ts')),
+    ),
+  ).sort()
 }
 
 export function findContractlessWorkspaceOffenders(

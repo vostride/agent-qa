@@ -8,6 +8,7 @@ export type PackageClass =
   | 'surface'
   | 'util'
   | 'pluginKit'
+  | 'plugin'
   | 'transitional'
 
 export interface LedgerEntry {
@@ -86,6 +87,13 @@ export const PACKAGE_CLASS_RULES = {
     forbidden: [
       'any @vostride/agent-qa-* runtime dependency',
       'vendor code',
+      ...NATIVE_STORE_DENYLIST,
+    ],
+  },
+  plugin: {
+    allowed: ['vendor code for one service behind the public plugin protocol'],
+    forbidden: [
+      'any @vostride/agent-qa-* runtime dependency except the plugin kit',
       ...NATIVE_STORE_DENYLIST,
     ],
   },
