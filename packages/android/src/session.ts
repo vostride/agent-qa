@@ -1,48 +1,175 @@
 import { remote } from 'webdriverio'
-import { MobileSetupError, resolveRemoteDeviceConnection } from '@vostride/agent-qa-core'
+import {
+  classifyNewSessionFailure,
+  createRemoteDeviceRequestBounds,
+  deviceDebugLoggingRefusal,
+  mergeCapabilities,
+  MobileSetupError,
+  REMOTE_COMMAND_BOUND_MS,
+  remoteAppCapability,
+  remoteDerivedIdentity,
+  remoteDeviceRefusalKey,
+  remoteDeviceRefusalSentence,
+  resolveRemoteDeviceConnection,
+  serverReasonLine,
+} from '@vostride/agent-qa-core'
+import type { CapabilityMap } from '@vostride/agent-qa-core'
+import { RemoteRefusalError, resolveSecretTemplatesInValue } from '@vostride/agent-qa-runner'
 import type { RemoteDeviceConfig } from '@vostride/agent-qa-runner'
+import { connectionSecretNames, remoteLabel, secretReferenceNames } from '@vostride/agent-qa-schema'
 import type { AndroidAdapterConfig, AndroidSessionOptions } from './types.js'
 
 const REMOTE_NEW_COMMAND_TIMEOUT_S = 90
 
-// Only what the config states goes to a remote: no match keys and no local-only defaults.
+function referencedNames(value: unknown): string[] {
+  if (typeof value === 'string') return secretReferenceNames(value)
+  if (Array.isArray(value)) return value.flatMap(referencedNames)
+  if (typeof value === 'object' && value !== null) {
+    return Object.values(value as Record<string, unknown>).flatMap(referencedNames)
+  }
+  return []
+}
+
+function rememberedRefusal(
+  options: AndroidSessionOptions,
+  remoteDevice: RemoteDeviceConfig,
+  device: string,
+): RemoteRefusalError | undefined {
+  const memory = options.refusalMemory
+  if (memory === undefined) return undefined
+  return (
+    memory.refusalFor(remoteDeviceRefusalKey(remoteDevice, device, undefined)) ??
+    memory.refusalFor(remoteDeviceRefusalKey(remoteDevice, device, 'refused'))
+  )
+}
+
+// Derived, then the remote's capabilities, then the device's; references resolve after the merge.
+function remoteCapabilities(
+  config: AndroidAdapterConfig,
+  remoteDevice: RemoteDeviceConfig,
+  device: string,
+  options: AndroidSessionOptions,
+): CapabilityMap {
+  const profile = config.device
+  const derived: CapabilityMap = {
+    platformName: 'Android',
+    'appium:automationName': 'UiAutomator2',
+    ...remoteDerivedIdentity({
+      ...(profile?.model !== undefined ? { model: profile.model } : {}),
+      ...(profile?.os !== undefined ? { os: profile.os } : {}),
+      ...(profile?.id !== undefined ? { id: profile.id } : {}),
+    }),
+    'appium:newCommandTimeout': REMOTE_NEW_COMMAND_TIMEOUT_S,
+  }
+  const browserName = config.browserName
+  if (browserName) {
+    derived.browserName = browserName
+    derived['appium:autoWebview'] = true
+    // A server-given BiDi url would be dialled with the remote's headers.
+    derived['wdio:enforceWebDriverClassic'] = true
+  } else {
+    if (config.appPackage) derived['appium:appPackage'] = config.appPackage
+    if (config.appActivity) derived['appium:appActivity'] = config.appActivity
+    if (config.appState === 'preserve') derived['appium:noReset'] = true
+    if (config.appState === 'reset') derived['appium:noReset'] = false
+  }
+
+  const merged = mergeCapabilities(derived, remoteDevice.capabilities, profile?.capabilities)
+  const label = remoteLabel(remoteDevice)
+  if (!browserName) {
+    const app = remoteAppCapability({
+      device,
+      remote: remoteDevice.name,
+      target: config.targetName ?? 'android',
+      ...(config.appRef !== undefined ? { appRef: config.appRef } : {}),
+      ...(config.appPath !== undefined ? { appPath: config.appPath } : {}),
+      capabilities: merged,
+    })
+    if ('refusal' in app) throw new RemoteRefusalError(app.refusal, { remote: label })
+    if (app.app !== undefined) merged['appium:app'] = app.app
+  }
+
+  const secrets = options.connectionSecrets
+  const missing = referencedNames(merged).find((name) => secrets?.has(name) !== true)
+  if (missing !== undefined) {
+    const secretsFile = options.secretsFile ?? 'workspace.secretsFile'
+    throw new RemoteRefusalError(
+      `Device ${device} on remote ${label} needs ${missing}, which ${secretsFile} does not declare. Add it there.`,
+      { remote: label },
+    )
+  }
+  return resolveSecretTemplatesInValue(merged, secrets)
+}
+
+// Nothing from WebdriverIO's error rides along: it holds the full url and the server's text.
 async function createRemoteAndroidSession(
   config: AndroidAdapterConfig,
   remoteDevice: RemoteDeviceConfig,
   options: AndroidSessionOptions,
 ) {
-  const device = config.device
+  const device = config.device?.name ?? 'android'
+  const label = remoteLabel(remoteDevice)
+  const logging = deviceDebugLoggingRefusal(
+    { WDIO_LOG_LEVEL: process.env.WDIO_LOG_LEVEL, NODE_DEBUG: process.env.NODE_DEBUG },
+    { remote: remoteDevice, device },
+  )
+  if (logging !== undefined) throw new RemoteRefusalError(logging, { remote: label })
+  const remembered = rememberedRefusal(options, remoteDevice, device)
+  if (remembered !== undefined) throw remembered
+
   const connection = resolveRemoteDeviceConnection({
     remote: remoteDevice,
-    device: device?.name ?? 'android',
+    device,
     secrets: options.connectionSecrets,
     secretsFile: options.secretsFile,
   })
-
-  const capabilities: Record<string, unknown> = {
-    platformName: 'Android',
-    'appium:automationName': 'UiAutomator2',
-    'appium:newCommandTimeout': REMOTE_NEW_COMMAND_TIMEOUT_S,
-  }
-  if (device?.model !== undefined) capabilities['appium:deviceName'] = device.model
-  if (device?.os !== undefined) capabilities['appium:platformVersion'] = device.os
-  if (config.appPackage) capabilities['appium:appPackage'] = config.appPackage
-  if (config.appActivity) capabilities['appium:appActivity'] = config.appActivity
-  if (config.appState === 'preserve') capabilities['appium:noReset'] = true
-  if (config.appState === 'reset') capabilities['appium:noReset'] = false
-
-  return remote({
-    protocol: connection.protocol,
-    hostname: connection.hostname,
-    port: connection.port,
-    path: connection.path,
-    headers: { ...connection.headers },
-    connectionRetryCount: 0,
-    enableDirectConnect: false,
-    logLevel: 'silent',
-    connectionRetryTimeout: remoteDevice.connectTimeoutMs,
-    capabilities: capabilities as WebdriverIO.Capabilities,
+  const capabilities = remoteCapabilities(config, remoteDevice, device, options)
+  const bounds = createRemoteDeviceRequestBounds({
+    commandBoundMs: options.commandBoundMs ?? REMOTE_COMMAND_BOUND_MS,
   })
+
+  let driver: WebdriverIO.Browser
+  try {
+    driver = await remote({
+      protocol: connection.protocol,
+      hostname: connection.hostname,
+      port: connection.port,
+      path: connection.path,
+      headers: { ...connection.headers },
+      connectionRetryCount: 0,
+      enableDirectConnect: false,
+      logLevel: 'silent',
+      connectionRetryTimeout: remoteDevice.connectTimeoutMs,
+      transformRequest: (request) => bounds.boundRequest(request),
+      transformResponse: (response) => {
+        bounds.captureReply({ statusCode: response.statusCode, body: response.body })
+        return response
+      },
+      capabilities: capabilities as WebdriverIO.Capabilities,
+    })
+  } catch (error) {
+    const reply = bounds.newSessionReply()
+    const kind = classifyNewSessionFailure(reply, error)
+    const mask = options.mask ?? ((text: string) => text)
+    const secretNames = [
+      ...new Set([
+        ...connectionSecretNames([remoteDevice]),
+        ...referencedNames(config.device?.capabilities),
+      ]),
+    ]
+    const sentence = remoteDeviceRefusalSentence(kind, {
+      remote: remoteDevice,
+      device,
+      secretsFile: options.secretsFile,
+      secretNames,
+      reason: kind === 'refused' ? serverReasonLine({ reply, error }, mask) : undefined,
+    })
+    const refused = new RemoteRefusalError(sentence, { remote: label, kind })
+    const key = remoteDeviceRefusalKey(remoteDevice, device, kind)
+    throw options.refusalMemory?.remember(key, refused) ?? refused
+  }
+  bounds.markOpened()
+  return driver
 }
 
 export async function createAndroidSession(

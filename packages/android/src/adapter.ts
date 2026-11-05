@@ -630,6 +630,9 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
     this.driver = await createAndroidSession(this.config, {
       connectionSecrets: this.options.connectionSecrets,
       secretsFile: this.options.secretsFile,
+      refusalMemory: this.options.refusalMemory,
+      mask: this.options.mask,
+      commandBoundMs: this.options.timing?.commandBoundMs,
     })
 
     const appPackage = this.appPackage

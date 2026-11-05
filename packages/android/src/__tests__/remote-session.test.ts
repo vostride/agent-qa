@@ -1,19 +1,44 @@
-import { SecretStore } from '@vostride/agent-qa-runner'
-import type { PlatformConfig, RemoteDeviceConfig } from '@vostride/agent-qa-runner'
-import { afterEach, describe, expect, it } from 'vitest'
+import {
+  createRemoteRefusalMemory,
+  RemoteRefusalError,
+  SecretRedactor,
+  SecretStore,
+} from '@vostride/agent-qa-runner'
+import type {
+  PlatformConfig,
+  RemoteDeviceConfig,
+  RemoteFailureKind,
+  RemoteRefusalMemory,
+} from '@vostride/agent-qa-runner'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { AndroidPlatformAdapter } from '../adapter.js'
+import type { AndroidAdapterConfig } from '../types.js'
 import { startFakeAppiumServer } from './fixtures/fake-appium-server.js'
 import type { FakeAppiumOptions, FakeAppiumServer } from './fixtures/fake-appium-server.js'
 
 const TOKEN = 'farm-token-mark'
 const PASSWORD = 'farm-password-mark'
 const SECRETS_FILE = '.env.secrets.local'
-const connectionSecrets = new SecretStore({ FARM_TOKEN: TOKEN, FARM_PASSWORD: PASSWORD })
+const USER_MARK = 'farm-user-mark'
+const KEY_MARK = 'farm-key-mark'
+const PATH_MARK = 'path-token-mark'
+const QUERY_MARK = 'query-secret-mark'
+const BODY_MARK = 'response-body-mark'
+const LEAK_MARKS = [TOKEN, USER_MARK, KEY_MARK, PATH_MARK, QUERY_MARK, BODY_MARK]
+const connectionSecrets = new SecretStore({
+  FARM_TOKEN: TOKEN,
+  FARM_PASSWORD: PASSWORD,
+  FARM_USER: USER_MARK,
+  FARM_KEY: KEY_MARK,
+})
+const redactor = new SecretRedactor(connectionSecrets)
+const mask = (text: string): string => redactor.redactString(text)
 
 const teardowns: Array<() => Promise<void>> = []
 
 afterEach(async () => {
+  vi.unstubAllEnvs()
   for (const teardown of teardowns.splice(0).reverse()) await teardown()
 })
 
@@ -39,26 +64,98 @@ function farmAt(
 
 function deviceOn(
   remote: RemoteDeviceConfig,
-  device: { model?: string; os?: string } = { model: 'Samsung Galaxy S24', os: '14' },
-): PlatformConfig {
+  device: {
+    name?: string
+    model?: string
+    os?: string
+    id?: string
+    capabilities?: Record<string, unknown>
+  } = { model: 'Samsung Galaxy S24', os: '14' },
+  extra: Partial<AndroidAdapterConfig> = {},
+): AndroidAdapterConfig {
   return {
     platform: 'android',
+    targetName: 'shop-android',
     appPackage: 'com.example.shop',
     appState: 'preserve',
+    ...extra,
     device: { name: 'galaxy-farm', platform: 'android', ...device, remote, match: {} },
   }
 }
 
-function adapterFor(): AndroidPlatformAdapter {
-  const adapter = new AndroidPlatformAdapter({ connectionSecrets, secretsFile: SECRETS_FILE })
+function adapterFor(refusalMemory?: RemoteRefusalMemory): AndroidPlatformAdapter {
+  const adapter = new AndroidPlatformAdapter({
+    connectionSecrets,
+    secretsFile: SECRETS_FILE,
+    mask,
+    ...(refusalMemory !== undefined ? { refusalMemory } : {}),
+  })
   teardowns.push(() => adapter.cleanup())
   return adapter
 }
 
 function newSessionRequests(server: FakeAppiumServer) {
   return server.requests.filter(
-    (request) => request.method === 'POST' && request.path === '/wd/hub/session',
+    (request) => request.method === 'POST' && request.path.endsWith('/session'),
   )
+}
+
+// The url carries a path token and a query mark; basicAuth and a header carry declared secrets.
+function leakyFarmAt(
+  server: FakeAppiumServer,
+  extra: Partial<RemoteDeviceConfig> = {},
+): RemoteDeviceConfig {
+  return {
+    name: 'farm',
+    protocol: 'appium',
+    url: `${server.origin}/wd/hub/${PATH_MARK}?token=${QUERY_MARK}`,
+    headers: { 'x-farm-token': '{{secret:FARM_TOKEN}}' },
+    basicAuth: { user: '{{secret:FARM_USER}}', password: '{{secret:FARM_KEY}}' },
+    connectTimeoutMs: 30_000,
+    ...extra,
+  }
+}
+
+async function leakyServer(options: FakeAppiumOptions = {}): Promise<FakeAppiumServer> {
+  return fakeServer({ basePath: `/wd/hub/${PATH_MARK}`, ...options })
+}
+
+async function refusalOf(
+  config: PlatformConfig,
+  refusalMemory?: RemoteRefusalMemory,
+): Promise<RemoteRefusalError> {
+  const adapter = adapterFor(refusalMemory)
+  try {
+    await adapter.setup(config)
+  } catch (error) {
+    return error as RemoteRefusalError
+  }
+  throw new Error('setup opened a session the remote should refuse')
+}
+
+function expectRefusal(
+  error: RemoteRefusalError,
+  kind: RemoteFailureKind | undefined,
+  sentence: string,
+): void {
+  expect(error).toBeInstanceOf(RemoteRefusalError)
+  expect(error.kind).toBe(kind)
+  expect(error.message).toBe(sentence)
+  expect('cause' in error).toBe(false)
+  const carried = [
+    error.message,
+    error.stack ?? '',
+    String(error),
+    ...Object.getOwnPropertyNames(error).map((key) =>
+      String((error as unknown as Record<string, unknown>)[key]),
+    ),
+  ].join('\n')
+  for (const mark of LEAK_MARKS) expect(carried).not.toContain(mark)
+  expect(carried).not.toContain('/wd/hub')
+}
+
+function labelOf(server: FakeAppiumServer): string {
+  return `farm (appium ${server.origin})`
 }
 
 function alwaysMatch(server: FakeAppiumServer): Record<string, unknown> {
@@ -132,25 +229,6 @@ describe('a remote Android device', () => {
     expect(capabilities).not.toHaveProperty('appium:platformVersion')
   })
 
-  it('asks for a refused new session once and fails setup', async () => {
-    const server = await fakeServer({
-      newSession: [
-        {
-          status: 500,
-          json: {
-            value: { error: 'session not created', message: 'No device matches', stacktrace: '' },
-          },
-        },
-      ],
-    })
-    const adapter = adapterFor()
-
-    await expect(adapter.setup(deviceOn(farmAt(server)))).rejects.toThrow()
-
-    expect(newSessionRequests(server)).toHaveLength(1)
-    expect(server.sessionsCreated()).toHaveLength(0)
-  })
-
   it('keeps every later request on the remote when the session reply asks to connect elsewhere', async () => {
     const decoy = await fakeServer()
     const server = await fakeServer({
@@ -190,5 +268,313 @@ describe('a remote Android device', () => {
     ).toBe(true)
     const status = await fetch(`${server.url}/status`)
     expect(status.ok).toBe(true)
+  })
+})
+
+describe("a remote Android device's refused session", () => {
+  it('names the secrets to check when the server refuses the credentials', async () => {
+    const server = await leakyServer({
+      newSession: [
+        {
+          status: 401,
+          json: {
+            value: { error: 'session not created', message: `bad key ${KEY_MARK}`, stacktrace: '' },
+          },
+        },
+      ],
+    })
+
+    const error = await refusalOf(deviceOn(leakyFarmAt(server)))
+
+    expectRefusal(
+      error,
+      'auth',
+      `Remote ${labelOf(server)} refused the credentials for device galaxy-farm. Check FARM_TOKEN, FARM_USER and FARM_KEY in ${SECRETS_FILE}.`,
+    )
+    expect(newSessionRequests(server)).toHaveLength(1)
+  })
+
+  it('says the remote has no free device when it answers 429', async () => {
+    const server = await leakyServer({
+      newSession: [
+        {
+          status: 429,
+          json: { value: { error: 'unknown error', message: `busy ${BODY_MARK}`, stacktrace: '' } },
+        },
+      ],
+    })
+
+    const error = await refusalOf(deviceOn(leakyFarmAt(server)))
+
+    expectRefusal(
+      error,
+      'capacity',
+      `Remote ${labelOf(server)} has no free device for galaxy-farm. Lower use.workers or raise the service's limit.`,
+    )
+    expect(newSessionRequests(server)).toHaveLength(1)
+  })
+
+  it("follows a refused session with the server's first line, masked and shown by origin", async () => {
+    const server = await leakyServer()
+    const reason =
+      `No device matches appium:deviceName "Samsung Galaxy S25" for ${TOKEN} at ` +
+      `${server.origin}/wd/hub/${PATH_MARK}/session?token=${QUERY_MARK}\n${BODY_MARK}`
+    const refusing = await leakyServer({
+      newSession: [
+        { status: 500, json: { value: { error: 'session not created', message: reason } } },
+      ],
+    })
+
+    const error = await refusalOf(deviceOn(leakyFarmAt(refusing)))
+
+    expectRefusal(
+      error,
+      'refused',
+      `Remote ${labelOf(refusing)} refused a session for device galaxy-farm: No device matches appium:deviceName "Samsung Galaxy S25" for [secret:FARM_TOKEN] at ${server.origin}.`,
+    )
+    expect(newSessionRequests(refusing)).toHaveLength(1)
+  })
+
+  it('shows the first line of a refusal that is not JSON', async () => {
+    const server = await leakyServer({
+      newSession: [{ status: 401, text: `Unauthorized: unknown farm user\n${BODY_MARK}` }],
+    })
+
+    const error = await refusalOf(deviceOn(leakyFarmAt(server)))
+
+    expectRefusal(
+      error,
+      'refused',
+      `Remote ${labelOf(server)} refused a session for device galaxy-farm: Unauthorized: unknown farm user.`,
+    )
+    expect(newSessionRequests(server)).toHaveLength(1)
+  })
+
+  it('says the remote did not answer when nothing listens on its port', async () => {
+    const closed = await startFakeAppiumServer({ basePath: `/wd/hub/${PATH_MARK}` })
+    await closed.close()
+
+    const error = await refusalOf(deviceOn(leakyFarmAt(closed)))
+
+    expectRefusal(
+      error,
+      'unreachable',
+      `Remote ${labelOf(closed)} did not answer for device galaxy-farm. Check its url and that the server is running.`,
+    )
+  })
+
+  it('names the connect timeout when the new session is never answered', async () => {
+    const server = await leakyServer({ newSession: ['hold'] })
+
+    const error = await refusalOf(deviceOn(leakyFarmAt(server, { connectTimeoutMs: 500 })))
+
+    expectRefusal(
+      error,
+      'timeout',
+      `Remote ${labelOf(server)} did not open a session for device galaxy-farm within 500ms. Raise its connectTimeout or check the service.`,
+    )
+    expect(newSessionRequests(server)).toHaveLength(1)
+  })
+
+  it('is not asked again in the run once it refused the credentials', async () => {
+    const server = await leakyServer({
+      newSession: [
+        { status: 401, json: { value: { error: 'session not created', message: 'no' } } },
+      ],
+    })
+    const memory = createRemoteRefusalMemory()
+    const first = await refusalOf(deviceOn(leakyFarmAt(server)), memory)
+    const sent = server.requests.length
+
+    const second = await refusalOf(
+      deviceOn(leakyFarmAt(server), { name: 'pixel-farm', model: 'Pixel 9' }),
+      memory,
+    )
+
+    expect(server.requests).toHaveLength(sent)
+    expect(second.message).toBe(first.message)
+    expect(second.kind).toBe('auth')
+  })
+
+  it('remembers a refused session for that device only', async () => {
+    const server = await leakyServer({
+      newSession: [
+        { status: 500, json: { value: { error: 'session not created', message: 'no match' } } },
+      ],
+    })
+    const memory = createRemoteRefusalMemory()
+    await refusalOf(deviceOn(leakyFarmAt(server)), memory)
+
+    const again = await refusalOf(deviceOn(leakyFarmAt(server)), memory)
+    expect(again.kind).toBe('refused')
+    expect(newSessionRequests(server)).toHaveLength(1)
+
+    const other = adapterFor(memory)
+    await other.setup(deviceOn(leakyFarmAt(server), { name: 'pixel-farm', model: 'Pixel 9' }))
+    expect(newSessionRequests(server)).toHaveLength(2)
+    expect(server.sessionsCreated()).toHaveLength(1)
+  })
+
+  it('is refused before any request while WDIO_LOG_LEVEL turns on WebdriverIO logging', async () => {
+    const server = await leakyServer()
+    vi.stubEnv('WDIO_LOG_LEVEL', 'info')
+
+    const error = await refusalOf(deviceOn(leakyFarmAt(server)))
+
+    expectRefusal(
+      error,
+      undefined,
+      "WDIO_LOG_LEVEL turns on WebdriverIO's own logging, which would print remote farm's address and requests. Unset WDIO_LOG_LEVEL to run device galaxy-farm.",
+    )
+    expect(server.requests).toHaveLength(0)
+  })
+
+  it('is refused before any request while NODE_DEBUG names undici', async () => {
+    const server = await leakyServer()
+    vi.stubEnv('NODE_DEBUG', 'undici')
+
+    const error = await refusalOf(deviceOn(leakyFarmAt(server)))
+
+    expectRefusal(
+      error,
+      undefined,
+      "NODE_DEBUG names undici, which prints remote farm's request paths. Remove undici and fetch from NODE_DEBUG to run device galaxy-farm.",
+    )
+    expect(server.requests).toHaveLength(0)
+  })
+})
+
+describe("a remote Android device's capabilities and app", () => {
+  it("sends the target's app.ref as appium:app", async () => {
+    const server = await fakeServer()
+
+    await adapterFor().setup(
+      deviceOn(farmAt(server), undefined, { appRef: 'shop-latest', appPath: 'builds/shop.apk' }),
+    )
+
+    expect(alwaysMatch(server)['appium:app']).toBe('shop-latest')
+  })
+
+  it("lets the device's appium:app win over the target's app.ref", async () => {
+    const server = await fakeServer()
+
+    await adapterFor().setup(
+      deviceOn(
+        farmAt(server),
+        { model: 'Samsung Galaxy S24', capabilities: { 'appium:app': 'farm://shop-build-7' } },
+        { appRef: 'shop-latest' },
+      ),
+    )
+
+    expect(alwaysMatch(server)['appium:app']).toBe('farm://shop-build-7')
+  })
+
+  it('refuses a target with only app.path before any request', async () => {
+    const server = await fakeServer()
+
+    const error = await refusalOf(
+      deviceOn(farmAt(server), undefined, { appPath: 'builds/shop.apk' }),
+    )
+
+    expectRefusal(
+      error,
+      undefined,
+      'Device galaxy-farm runs on remote farm, and target shop-android has only app.path. Set app.ref to the app the server installs.',
+    )
+    expect(server.requests).toHaveLength(0)
+  })
+
+  it("merges what agent-qa derives, then the remote's capabilities, then the device's", async () => {
+    const server = await fakeServer()
+    const remote = farmAt(server, {
+      capabilities: {
+        'appium:automationName': 'Espresso',
+        'farm:options': { region: 'eu', build: 'nightly' },
+      },
+    })
+
+    await adapterFor().setup(
+      deviceOn(remote, {
+        model: 'Samsung Galaxy S24',
+        id: 'R58M41ABCDE',
+        capabilities: { 'farm:options': { build: 'release' } },
+      }),
+    )
+
+    expect(alwaysMatch(server)).toMatchObject({
+      platformName: 'Android',
+      'appium:automationName': 'Espresso',
+      'appium:deviceName': 'Samsung Galaxy S24',
+      'appium:udid': 'R58M41ABCDE',
+      'farm:options': { region: 'eu', build: 'release' },
+    })
+  })
+
+  it('removes a derived capability the device sets to null', async () => {
+    const server = await fakeServer()
+
+    await adapterFor().setup(
+      deviceOn(farmAt(server), {
+        model: 'Samsung Galaxy S24',
+        capabilities: { 'appium:newCommandTimeout': null },
+      }),
+    )
+
+    expect(alwaysMatch(server)).not.toHaveProperty('appium:newCommandTimeout')
+  })
+
+  it('keeps the session on WebDriver classic in browser mode', async () => {
+    const server = await fakeServer()
+
+    await adapterFor().setup(deviceOn(farmAt(server), undefined, { browserName: 'chrome' }))
+
+    expect(alwaysMatch(server)).toMatchObject({
+      browserName: 'chrome',
+      'appium:autoWebview': true,
+      'wdio:enforceWebDriverClassic': true,
+    })
+    expect(alwaysMatch(server)).not.toHaveProperty('appium:appPackage')
+  })
+
+  it('resolves a secret in the capabilities for the server and never shows it in a refusal', async () => {
+    const server = await fakeServer({
+      newSession: [
+        {
+          status: 500,
+          json: { value: { error: 'session not created', message: `key ${KEY_MARK} expired` } },
+        },
+      ],
+    })
+    const config = deviceOn(farmAt(server), {
+      model: 'Samsung Galaxy S24',
+      capabilities: { 'farm:options': { accessKey: '{{secret:FARM_KEY}}' } },
+    })
+
+    const error = await refusalOf(config)
+
+    expect(alwaysMatch(server)['farm:options']).toEqual({ accessKey: KEY_MARK })
+    expectRefusal(
+      error,
+      'refused',
+      `Remote ${labelOf(server)} refused a session for device galaxy-farm: key [secret:FARM_KEY] expired.`,
+    )
+  })
+
+  it('refuses a capability secret the secrets file does not declare', async () => {
+    const server = await fakeServer()
+
+    const error = await refusalOf(
+      deviceOn(farmAt(server), {
+        model: 'Samsung Galaxy S24',
+        capabilities: { 'farm:options': { accessKey: '{{secret:FARM_OTHER_KEY}}' } },
+      }),
+    )
+
+    expectRefusal(
+      error,
+      undefined,
+      `Device galaxy-farm on remote ${labelOf(server)} needs FARM_OTHER_KEY, which ${SECRETS_FILE} does not declare. Add it there.`,
+    )
+    expect(server.requests).toHaveLength(0)
   })
 })
