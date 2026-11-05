@@ -6,7 +6,7 @@ import { Command, Option } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, describeAndroidHere, describeIOSHere, discoverWorkspaceFiles, findDeviceHere, isUrlRemoteEntry, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, describeAndroidHere, describeIOSHere, discoverWorkspaceFiles, findDeviceHere, isUrlRemoteEntry, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, pluginRemoteRefusals, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
@@ -1717,6 +1717,32 @@ function refuseRemoteSecretProblems(input: {
   if (lines.length > 0) throw new CliRunInputError(lines.map((line) => pc.red(line)), 2)
 }
 
+// Before any member starts, a plugin remote its plugin cannot serve is refused in the run's memory,
+// so only that remote's members fail, each with its one sentence.
+function rememberPluginRemoteRefusals(input: {
+  readonly config: AgentQaConfig
+  readonly configDir: string
+  readonly usedRemotes: Iterable<RemoteBrowserConfig | RemotePluginBrowserConfig>
+  readonly declaredSecrets: { has(name: string): boolean } | undefined
+  readonly refusalMemory: RemoteRefusalMemory
+}): void {
+  const uses = [...input.usedRemotes].flatMap((remote) =>
+    isPluginRemote(remote) ? [{ remote: remote.name, place: 'web' as const }] : [],
+  )
+  if (uses.length === 0) return
+  const refusals = pluginRemoteRefusals({
+    configDir: input.configDir,
+    agentQaVersion: getAgentQaVersion(),
+    plugins: input.config.plugins ?? [],
+    remotes: input.config.registry?.remotes ?? [],
+    uses,
+    ...(input.declaredSecrets === undefined ? {} : { declaredSecrets: input.declaredSecrets }),
+  })
+  for (const { remote, kind, message } of refusals) {
+    input.refusalMemory.remember(remote, new RemoteRefusalError(message, { remote, kind }))
+  }
+}
+
 // Zero runnable tests from resolved files refuses loudly, never a green `0 of 0` run.
 export function refuseZeroRunnableTests(
   files: readonly string[],
@@ -2797,22 +2823,23 @@ export async function produceSuiteRunMembers(
   const suiteDevicesHere = listDevicesHereOncePerRun(input.listDevicesHere ?? listDevicesHereByDefault)
   const suiteConnectionSecrets = variableContext?.connectionSecretStore
   const suiteSecretsFile = configuredSecretsFile(config)
+  const placedSuites = placePreflightSuites(
+    input.preflight,
+    config,
+    configDir,
+    opts.browser,
+    opts.device,
+  )
+  const suiteRemotes = placedSuites.flatMap(({ selected }) =>
+    selected !== undefined && 'place' in selected && selected.place.kind === 'remote'
+      ? [selected.place.remote]
+      : [],
+  )
   if (suiteConnectionSecrets !== undefined) {
-    const placedSuites = placePreflightSuites(
-      input.preflight,
-      config,
-      configDir,
-      opts.browser,
-      opts.device,
-    )
     refuseRemoteSecretProblems({
       config,
       configDir,
-      usedRemotes: placedSuites.flatMap(({ selected }) =>
-        selected !== undefined && 'place' in selected && selected.place.kind === 'remote'
-          ? [selected.place.remote]
-          : [],
-      ),
+      usedRemotes: suiteRemotes,
       usedDevices: placedSuites.flatMap(({ device, targets = [] }) =>
         device === undefined ? [] : targets.map((target) => ({ place: device, target })),
       ),
@@ -2825,6 +2852,14 @@ export async function produceSuiteRunMembers(
       connectionSecretStore: suiteConnectionSecrets,
     })
   }
+  const suiteRefusalMemory = input.refusalMemory ?? createRemoteRefusalMemory()
+  rememberPluginRemoteRefusals({
+    config,
+    configDir,
+    usedRemotes: suiteRemotes,
+    declaredSecrets: suiteConnectionSecrets,
+    refusalMemory: suiteRefusalMemory,
+  })
   const suitePluginHost = producerPluginHost({
     given: input.pluginSessions,
     config,
@@ -2837,7 +2872,7 @@ export async function produceSuiteRunMembers(
     ...hostSignals,
     ...(suiteConnectionSecrets === undefined ? {} : { connectionSecrets: suiteConnectionSecrets }),
     ...(suiteSecretsFile === undefined ? {} : { secretsFile: suiteSecretsFile }),
-    refusalMemory: input.refusalMemory ?? createRemoteRefusalMemory(),
+    refusalMemory: suiteRefusalMemory,
     mask: suiteRunMask,
     ...(suitePluginHost.pluginSessions === undefined
       ? {}
@@ -4038,6 +4073,13 @@ export async function produceDirectRunMembers(
   })
   const directSecretsFile = configuredSecretsFile(config)
   const directRefusalMemory = input.refusalMemory ?? createRemoteRefusalMemory()
+  rememberPluginRemoteRefusals({
+    config,
+    configDir,
+    usedRemotes: directRemotes.values(),
+    declaredSecrets: runtimeSecrets.connectionSecretStore,
+    refusalMemory: directRefusalMemory,
+  })
   const directPluginHost = producerPluginHost({
     given: input.pluginSessions,
     config,

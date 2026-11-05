@@ -11,6 +11,12 @@ export {
   type PluginConfigIssue,
 } from './options-check.js'
 export {
+  pluginRemoteRefusals,
+  type PluginRemoteRefusal,
+  type PluginRemoteRefusalsInput,
+  type PluginRemoteUse,
+} from './run-start.js'
+export {
   pluginInstallLine,
   resolvePluginEntries,
   resolvePluginEntry,
