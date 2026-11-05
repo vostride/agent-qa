@@ -11,6 +11,9 @@ import type {
   LiveStreamCapability,
   PlatformAdapter,
   PlatformConfig,
+  RemoteDeviceConfig,
+  RemoteHeartbeat,
+  RemotePlaceEvidence,
   ScrollPrimitives,
   SwipeSignal,
 } from '@vostride/agent-qa-runner'
@@ -18,18 +21,22 @@ import {
   assertNever,
   buildScreenState,
   compareFillReread,
+  createRemoteHeartbeat,
   createSnapshotLiveStream,
+  REMOTE_RELEASE_BOUND_MS,
   resolveAppName,
   runDirectionScroll,
   runToEndScroll,
   runUntilVisibleLoop,
 } from '@vostride/agent-qa-runner'
 import type { Ref, ScreenState } from '@vostride/agent-qa-schema'
+import { formatRemoteOrigin, remoteOrigin } from '@vostride/agent-qa-schema'
 import {
   KEY_MAP,
   MobileElementResolver,
   MobileSetupError,
   buildRefEntries,
+  classifyCommandFailure,
   computeFingerPositions,
   computePinch,
   computeSwipe,
@@ -37,6 +44,8 @@ import {
   IOS_EDITABLE_TYPES,
   parseMobileSource,
   printRunText,
+  remoteDeviceLostSentence,
+  scrubDeviceEndpoint,
   warnIfOutOfBounds,
 } from '@vostride/agent-qa-core'
 import type { MobileRefMap } from '@vostride/agent-qa-core'
@@ -47,7 +56,7 @@ import {
   createIOSSession,
   resolveIOSSnapshotDepth,
 } from './session.js'
-import type { IOSAdapterConfig } from './types.js'
+import type { IOSAdapterConfig, IOSAdapterOptions } from './types.js'
 
 const IOS_NATIVE_SELECT_TYPES = new Set([
   'XCUIElementTypePickerWheel',
@@ -107,6 +116,23 @@ const IOS_SAFARI_BUNDLE_ID = 'com.apple.mobilesafari'
 const IOS_SPRINGBOARD_BUNDLE_ID = 'com.apple.springboard'
 const IOS_LINK_HANDOFF_POLLS = 12
 const IOS_LINK_HANDOFF_PAUSE_MS = 500
+
+function remoteOriginText(url: string): string {
+  const origin = remoteOrigin(url)
+  return origin ? formatRemoteOrigin(origin) : 'invalid url'
+}
+
+function withinBound(work: Promise<unknown>, boundMs: number): Promise<void> {
+  return new Promise<void>((settled) => {
+    const timer = setTimeout(settled, boundMs)
+    timer.unref?.()
+    const done = (): void => {
+      clearTimeout(timer)
+      settled()
+    }
+    work.then(done, done)
+  })
+}
 
 function firstErrorLine(err: unknown): string {
   return (err instanceof Error ? err.message : String(err)).split('\n')[0]
@@ -285,6 +311,8 @@ function parseIOSSyslogLine(message: string, timestamp: number, bundleId: string
 export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   readonly platform = 'ios' as const
 
+  constructor(private readonly options: IOSAdapterOptions = {}) {}
+
   private driver: WebdriverIO.Browser | null = null
   private lastRefs: MobileRefMap = {}
   private config: IOSAdapterConfig | null = null
@@ -304,6 +332,15 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   private snapshotDepth = IOS_SNAPSHOT_MAX_DEPTH
   private readsAtLoweredDepth = 0
   private snapshotDepthWarned = false
+  private remote: RemoteDeviceConfig | undefined
+  private deviceName = 'ios'
+  private place: RemotePlaceEvidence | undefined
+  private heartbeat: RemoteHeartbeat | undefined
+  private unregisterRelease: (() => void) | undefined
+  private released: Promise<void> | undefined
+  // Set by the first command a remote leaves unanswered or ends; nothing is sent again after it.
+  private disconnectKind: 'lost' | 'ended' | undefined
+  private disconnectError: unknown
 
   async setup(config: PlatformConfig): Promise<void> {
     this.config = config as IOSAdapterConfig
@@ -313,23 +350,48 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     this.snapshotDepth = this.sessionSnapshotDepth
     this.readsAtLoweredDepth = 0
     this.snapshotDepthWarned = false
+    this.remote = config.device?.remote
+    this.deviceName = config.device?.name ?? 'ios'
+    this.disconnectKind = undefined
+    this.disconnectError = undefined
+    this.released = undefined
 
-    this.driver = await createIOSSession(this.config)
+    this.driver = await createIOSSession(this.config, {
+      connectionSecrets: this.options.connectionSecrets,
+      secretsFile: this.options.secretsFile,
+      refusalMemory: this.options.refusalMemory,
+      mask: this.options.mask,
+      commandBoundMs: this.options.timing?.commandBoundMs,
+    })
+    const remote = this.remote
+    if (remote === undefined) {
+      this.place = { place: 'here' }
+      return this.prepareSession(config)
+    }
+    await this.openedRemote(this.driver, remote)
+    try {
+      await this.prepareSession(config)
+    } catch (error) {
+      throw this.withoutEndpoint(error)
+    }
+    this.heartbeat?.start()
+  }
 
+  private async prepareSession(config: PlatformConfig): Promise<void> {
+    const driver = this.driver
     const bundleId = this.bundleId
-    if (bundleId) {
-      try {
-        await this.driver.activateApp(bundleId)
-      } catch (err) {
-        throw new MobileSetupError({
-          category: 'app-launch',
-          message: `Failed to launch iOS app "${bundleId}": ${err instanceof Error ? err.message : String(err)}`,
-          platform: 'ios',
-          deviceName: config.device?.name,
-          appId: bundleId,
-          cause: err,
-        })
-      }
+    if (!driver || !bundleId) return
+    try {
+      await this.holdingHeartbeat(() => driver.activateApp(bundleId))
+    } catch (err) {
+      throw new MobileSetupError({
+        category: 'app-launch',
+        message: `Failed to launch iOS app "${bundleId}": ${err instanceof Error ? err.message : String(err)}`,
+        platform: 'ios',
+        deviceName: config.device?.name,
+        appId: bundleId,
+        cause: err,
+      })
     }
   }
 
@@ -337,14 +399,30 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     try { await this.liveStreamCapability?.stop() } catch { /* best-effort */ }
     this.liveStreamCapability = undefined
 
-    try {
-      if (this.driver) {
-        await this.driver.deleteSession()
+    this.heartbeat?.stop()
+    this.unregisterRelease?.()
+    this.unregisterRelease = undefined
+    const driver = this.driver
+    if (driver && this.remote !== undefined) {
+      // An ended session has nothing to delete; a lost one gets only the release bound.
+      if (this.disconnectKind === 'lost') {
+        await withinBound(this.releaseRemote(driver), REMOTE_RELEASE_BOUND_MS)
+      } else if (this.disconnectKind === undefined) {
+        try { await this.releaseRemote(driver) } catch { /* session may already be closed */ }
       }
-    } catch {
-      // session may already be closed
+    } else {
+      try {
+        if (driver) {
+          await driver.deleteSession()
+        }
+      } catch {
+        // session may already be closed
+      }
     }
     this.driver = null
+    this.heartbeat = undefined
+    this.place = undefined
+    this.remote = undefined
     this.lastRefs = {}
     this.config = null
     this.consoleLogs = []
@@ -361,11 +439,25 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
 
   // `takeScreenshot()` only: `screenshot()` switches the Appium context mid-step.
   get liveStream(): LiveStreamCapability {
-    this.liveStreamCapability ??= createSnapshotLiveStream({ capture: () => this.captureScreenshot() })
+    this.liveStreamCapability ??= createSnapshotLiveStream({
+      capture: () => this.holdingHeartbeat(() => this.captureScreenshot()),
+    })
     return this.liveStreamCapability
   }
 
   async observe(): Promise<ScreenState> {
+    if (!this.driver) {
+      throw new Error('IOSPlatformAdapter not initialized — call setup() first')
+    }
+    this.refuseAfterDisconnect()
+    try {
+      return await this.holdingHeartbeat(() => this.observeScreen())
+    } catch (error) {
+      throw this.withoutEndpoint(error)
+    }
+  }
+
+  private async observeScreen(): Promise<ScreenState> {
     if (!this.driver) {
       throw new Error('IOSPlatformAdapter not initialized — call setup() first')
     }
@@ -413,15 +505,25 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     if (!this.driver) {
       throw new Error('IOSPlatformAdapter not initialized — call setup() first')
     }
+    const lost = this.disconnectSummary
+    if (lost !== undefined) return { success: false, error: lost }
+    const result = await this.holdingHeartbeat(() => this.executeOnDevice(action))
+    if (this.remote === undefined || result.error === undefined) return result
+    return { ...result, error: scrubDeviceEndpoint(result.error, this.remote) }
+  }
 
+  private async executeOnDevice(action: ActionsFor<'ios'>): Promise<ActionResult> {
     try {
       return await this.executeAction(action)
     } catch (err) {
+      this.remoteCommandFailed(err)
       let screenshot: Buffer | undefined
-      try {
-        screenshot = await this.captureScreenshot()
-      } catch {
-        // ignore screenshot failure
+      if (this.disconnectKind === undefined) {
+        try {
+          screenshot = await this.captureScreenshot()
+        } catch {
+          // ignore screenshot failure
+        }
       }
       return {
         success: false,
@@ -432,6 +534,15 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   }
 
   async screenshot(): Promise<Buffer | undefined> {
+    this.refuseAfterDisconnect()
+    try {
+      return await this.holdingHeartbeat(() => this.screenshotScreen())
+    } catch (error) {
+      throw this.withoutEndpoint(error)
+    }
+  }
+
+  private async screenshotScreen(): Promise<Buffer | undefined> {
     try { await this.ensureContext('NATIVE_APP') } catch { /* best-effort */ }
     const raw = await this.captureScreenshot()
     if (!raw || !this.driver) return raw
@@ -446,15 +557,135 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     }
   }
 
+  // Where this test ran; undefined before setup and after cleanup.
+  get placeEvidence(): RemotePlaceEvidence | undefined {
+    const place = this.place
+    if (place?.place !== 'remote') return place
+    return {
+      ...place,
+      ...(this.heartbeat !== undefined ? { heartbeat: this.heartbeat.counts() } : {}),
+      ...(this.disconnectKind !== undefined ? { failureKind: this.disconnectKind } : {}),
+    }
+  }
+
+  get isBrowserDisconnected(): boolean {
+    return this.disconnectKind !== undefined
+  }
+
+  // The sentence a test whose remote session was lost or ended fails with.
+  get disconnectSummary(): string | undefined {
+    const remote = this.remote
+    const kind = this.disconnectKind
+    if (remote === undefined || kind === undefined) return undefined
+    return remoteDeviceLostSentence(kind, {
+      remote,
+      device: this.deviceName,
+      ...(this.disconnectError !== undefined ? { error: this.disconnectError } : {}),
+    })
+  }
+
+  private async openedRemote(
+    driver: WebdriverIO.Browser,
+    remote: RemoteDeviceConfig,
+  ): Promise<void> {
+    driver.on('result', (event: { command?: string; result?: unknown }) => {
+      if (this.driver !== driver) return
+      if (event.command === 'deleteSession' || event.command === 'status') return
+      const result = event.result
+      if (typeof result === 'object' && result !== null && 'error' in result) {
+        this.remoteCommandFailed((result as { error: unknown }).error)
+      }
+    })
+    let appiumVersion: string | undefined
+    try {
+      const status = (await driver.status()) as { build?: { version?: unknown } } | undefined
+      const version = status?.build?.version
+      if (typeof version === 'string' && version !== '') appiumVersion = version
+    } catch {
+      // A server without a status still runs the test; only the version goes unrecorded.
+    }
+    this.place = {
+      place: 'remote',
+      name: remote.name,
+      protocol: 'appium',
+      origin: remoteOriginText(remote.url),
+      device: this.deviceName,
+      ...(appiumVersion !== undefined ? { appiumVersion } : {}),
+      ...(driver.sessionId ? { sessionId: driver.sessionId } : {}),
+    }
+    const sessions = this.options.sessions
+    if (sessions !== undefined) {
+      this.unregisterRelease = sessions.register(() => this.releaseRemote(driver))
+    }
+    const intervalMs = this.options.timing?.heartbeatIntervalMs
+    // Appium answers the timeouts from memory: it touches neither the device nor the app.
+    this.heartbeat = createRemoteHeartbeat({
+      ...(intervalMs !== undefined ? { intervalMs } : {}),
+      beat: () => driver.getTimeouts(),
+    })
+  }
+
+  // Deletes the session once, whether a signal or cleanup asks first; the server keeps running.
+  private releaseRemote(driver: WebdriverIO.Browser): Promise<void> {
+    this.heartbeat?.stop()
+    this.released ??= driver.deleteSession()
+    return this.released
+  }
+
+  private remoteCommandFailed(error: unknown): void {
+    if (this.remote === undefined || this.disconnectKind !== undefined) return
+    const kind = classifyCommandFailure(error)
+    if (kind === undefined) return
+    this.disconnectKind = kind
+    this.disconnectError = error
+    this.heartbeat?.stop()
+  }
+
+  private refuseAfterDisconnect(): void {
+    const lost = this.disconnectSummary
+    if (lost !== undefined) throw new Error(lost)
+  }
+
+  // Every device operation holds the heartbeat off, so a beat never overlaps it.
+  private async holdingHeartbeat<T>(work: () => Promise<T>): Promise<T> {
+    const heartbeat = this.heartbeat
+    if (heartbeat === undefined) return work()
+    await heartbeat.enter()
+    try {
+      return await work()
+    } finally {
+      heartbeat.leave()
+    }
+  }
+
+  // WebdriverIO's errors repeat the full request url, with its path and session id.
+  private withoutEndpoint(error: unknown): unknown {
+    const remote = this.remote
+    if (remote === undefined) return error
+    if (typeof error === 'string') return scrubDeviceEndpoint(error, remote)
+    let current: unknown = error
+    for (let depth = 0; current instanceof Error && depth < 8; depth += 1) {
+      current.message = scrubDeviceEndpoint(current.message, remote)
+      if (typeof current.stack === 'string') {
+        current.stack = scrubDeviceEndpoint(current.stack, remote)
+      }
+      current = current.cause
+    }
+    return error
+  }
+
   // ---------------------------------------------------------------------------
   // Device log capture
   // ---------------------------------------------------------------------------
 
   async pollDeviceLogs(): Promise<void> {
     if (!this.captureConsole) return
-    if (!this.driver) return
+    if (!this.driver || this.disconnectKind !== undefined) return
+    const driver = this.driver
     try {
-      const logs = await this.driver.getLogs('syslog') as { message: string; timestamp?: number; level?: string }[]
+      const logs = await this.holdingHeartbeat(
+        () => driver.getLogs('syslog') as Promise<{ message: string; timestamp?: number; level?: string }[]>,
+      )
       for (const entry of logs) {
         const parsed = parseIOSSyslogLine(entry.message, entry.timestamp ?? Date.now(), this.bundleId)
         if (parsed) {
