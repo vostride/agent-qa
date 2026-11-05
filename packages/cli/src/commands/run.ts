@@ -1145,12 +1145,14 @@ export interface RunTerminal {
   printRunId(runId: string): void
   printRunAttributes(attributes: RunAttributes): void
   printDebugLine(line: string): void
+  printPlaceNote(note: string): void
 }
 
 const RUN_TERMINAL: RunTerminal = {
   printRunId,
   printRunAttributes,
   printDebugLine: (line) => printRunText(pc.dim(line), (text) => console.log(text)),
+  printPlaceNote: (note) => printRunText(pc.dim(`  ${note}`), (text) => console.log(text)),
 }
 
 // Printed at the terminal door only, before the first test and at every log level. A test's own
@@ -1865,29 +1867,54 @@ type RunArtifactPlace =
       failureKind?: RemoteFailureKind
     }
 
-function selectedArtifactPlace(remote: RemoteBrowserConfig | undefined): RunArtifactPlace {
-  if (remote === undefined) return { place: 'here' }
-  const origin = remoteOrigin(remote.url)
+// A browser's remote, or a device's place.
+type SelectedPlace = RemoteBrowserConfig | DevicePlace | undefined
+
+function originText(url: string): string {
+  const origin = remoteOrigin(url)
+  return origin === undefined ? 'invalid url' : formatRemoteOrigin(origin)
+}
+
+function selectedArtifactPlace(selected: SelectedPlace): RunArtifactPlace {
+  if (selected === undefined) return { place: 'here' }
+  if ('kind' in selected) {
+    if (selected.kind === 'local') return { place: 'here' }
+    const { remote, device } = selected
+    return {
+      place: 'remote',
+      name: remote.name,
+      protocol: 'appium',
+      origin: originText(remote.url),
+      device,
+    }
+  }
   return {
     place: 'remote',
-    name: remote.name,
-    protocol: remote.protocol,
-    origin: origin === undefined ? 'invalid url' : formatRemoteOrigin(origin),
+    name: selected.name,
+    protocol: selected.protocol,
+    origin: originText(selected.url),
   }
 }
 
-function refusedArtifactPlace(
-  remote: RemoteBrowserConfig | undefined,
-  refusal: Error,
-): RunArtifactPlace {
-  const place = selectedArtifactPlace(remote)
+function refusedArtifactPlace(selected: SelectedPlace, refusal: Error): RunArtifactPlace {
+  const place = selectedArtifactPlace(selected)
   const kind = (refusal as { kind?: RemoteFailureKind }).kind
   return place.place === 'remote' && kind !== undefined ? { ...place, failureKind: kind } : place
 }
 
-// Duck-typed like the member runner's adapter flags: only the web adapter reports a place.
+// Duck-typed like the member runner's adapter flags; the web and mobile adapters report a place.
 function adapterPlaceEvidence(adapter: unknown): RemotePlaceEvidence | undefined {
   return (adapter as { placeEvidence?: RemotePlaceEvidence } | null | undefined)?.placeEvidence
+}
+
+// A session's notes, such as app data a real device kept, print once when it starts.
+function printPlaceNotes(
+  terminal: RunTerminal | undefined,
+  place: RunArtifactPlace | undefined,
+  mask: MaskFn,
+): void {
+  if (terminal === undefined || place === undefined || !('notes' in place)) return
+  for (const note of place.notes ?? []) terminal.printPlaceNote(mask(note))
 }
 
 function withArtifactPlace(
@@ -3086,7 +3113,7 @@ export async function produceSuiteRunMembers(
       platform: suitePlatform,
       target: suiteResolvedTarget,
       deviceName,
-      ...(suitePlatform === 'web' ? { place: selectedArtifactPlace(suiteRemote) } : {}),
+      place: selectedArtifactPlace(suitePlatform === 'web' ? suiteRemote : suiteDevicePlace),
       attributes: suiteAttributes,
       timeouts: testTimeouts,
       cache: {
@@ -3246,8 +3273,9 @@ export async function produceSuiteRunMembers(
       }
     }
 
-    const { suitePlace } = prepared
-    const suiteRemote = suitePlace.kind === 'remote' ? suitePlace.remote : undefined
+    const { suitePlace, suiteDevicePlace } = prepared
+    const suiteSelected =
+      suiteDevicePlace ?? (suitePlace.kind === 'remote' ? suitePlace.remote : undefined)
     try {
       await suiteConfig.adapter.setup(suiteConfig.platformConfig)
     } catch (err) {
@@ -3256,11 +3284,12 @@ export async function produceSuiteRunMembers(
       suiteRemoteRefusal ??= err
       prepared.bootstrapFailure = err.message
       prepared.bootstrapRemoteRefusal = true
-      emitSuitePlace(prepared, refusedArtifactPlace(suiteRemote, err))
+      emitSuitePlace(prepared, refusedArtifactPlace(suiteSelected, err))
       return
     }
     const setUpPlace = adapterPlaceEvidence(suiteConfig.adapter)
     if (setUpPlace !== undefined) emitSuitePlace(prepared, setUpPlace)
+    printPlaceNotes(input.terminal, setUpPlace, suiteRunMask)
 
     const initialTargetName = suite.target ?? testEntries[0]?.test.target
     if (suiteConfig.resolveUrl && initialTargetName) {
@@ -4133,7 +4162,9 @@ export async function produceDirectRunMembers(
           await adapter.setup(platformConfig)
         } catch (err) {
           // The refused remote's kind is this test's evidence; the refusal still fails the member.
-          if (isRemoteRefusal(err)) emitDirectSnapshot(refusedArtifactPlace(testRemote, err))
+          if (isRemoteRefusal(err)) {
+            emitDirectSnapshot(refusedArtifactPlace(testRemote ?? testDevicePlace, err))
+          }
           throw err
         }
 
@@ -4215,7 +4246,9 @@ export async function produceDirectRunMembers(
 
       const testRecording = resolveRecordingSetting(opts.record, config.services?.recording, testDef.meta?.record)
 
-      emitDirectSnapshot(adapterPlaceEvidence(adapter))
+      const startPlace = adapterPlaceEvidence(adapter)
+      emitDirectSnapshot(startPlace)
+      printPlaceNotes(input.terminal, startPlace, singleRunMask)
 
       const getAuthAwareSandboxOptions = () => sandboxOptions && activeTestAuthState
         ? { ...sandboxOptions, authState: activeTestAuthState }
