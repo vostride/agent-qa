@@ -1,3 +1,5 @@
 export { AndroidPlatformAdapter } from './adapter.js'
 export type { AndroidAdapterConfig, AndroidAdapterOptions, AndroidSessionOptions } from './types.js'
 export { createAndroidSession } from './session.js'
+export { listAndroidDevicesHere } from './devices-here.js'
+export type { ListAndroidDevicesHereOptions, ListingExec } from './devices-here.js'
