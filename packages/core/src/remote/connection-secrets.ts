@@ -53,18 +53,19 @@ export function missingRemoteSecretSentence(
   return `Remote ${remoteLabel(missing.remote)} needs ${missing.name}, which ${file} does not declare. Add it there.`
 }
 
-export interface RemoteDeviceUse {
+export interface DeviceUse {
   readonly device: string
-  readonly remote: RemoteConnectionFields
+  // Absent for a device here, whose capabilities still resolve their references at connect.
+  readonly remote?: RemoteConnectionFields | undefined
 }
 
-export interface MissingDeviceSecret extends RemoteDeviceUse {
+export interface MissingDeviceSecret extends DeviceUse {
   readonly name: string
 }
 
-// What a used remote device's connection needs: its remote's values and its own capabilities.
+// What a used device's connection needs: its remote's values, if any, and its own capabilities.
 export function missingDeviceSecrets(
-  used: readonly RemoteDeviceUse[],
+  used: readonly DeviceUse[],
   devices: Readonly<Record<string, { readonly capabilities?: unknown }>>,
   store: { has(name: string): boolean },
 ): MissingDeviceSecret[] {
@@ -75,7 +76,7 @@ export function missingDeviceSecrets(
     seen.add(device)
     const capabilities = Object.hasOwn(devices, device) ? devices[device]?.capabilities : undefined
     const names = new Set([
-      ...connectionSecretNames([remote]),
+      ...(remote === undefined ? [] : connectionSecretNames([remote])),
       ...secretReferenceNames(JSON.stringify(capabilities ?? {})),
     ])
     for (const name of names) {
@@ -90,7 +91,8 @@ export function missingDeviceSecretSentence(
   secretsFile: string | undefined,
 ): string {
   const file = secretsFile ?? 'workspace.secretsFile'
-  return `Device ${missing.device} on remote ${remoteLabel(missing.remote)} needs ${missing.name}, which ${file} does not declare. Add it there.`
+  const where = missing.remote === undefined ? '' : ` on remote ${remoteLabel(missing.remote)}`
+  return `Device ${missing.device}${where} needs ${missing.name}, which ${file} does not declare. Add it there.`
 }
 
 export interface ConnectionSecretMisuseInput {

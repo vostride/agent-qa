@@ -67,6 +67,25 @@ function referencedNames(value: unknown): string[] {
   return []
 }
 
+// A reference the secrets file does not declare is refused before any request.
+function withSecretsResolved(
+  capabilities: CapabilityMap,
+  options: IOSSessionOptions,
+  subject: string,
+  details: { remote?: string } = {},
+): CapabilityMap {
+  const secrets = options.connectionSecrets
+  const missing = referencedNames(capabilities).find((name) => secrets?.has(name) !== true)
+  if (missing !== undefined) {
+    const secretsFile = options.secretsFile ?? 'workspace.secretsFile'
+    throw new RemoteRefusalError(
+      `${subject} needs ${missing}, which ${secretsFile} does not declare. Add it there.`,
+      details,
+    )
+  }
+  return resolveSecretTemplatesInValue(capabilities, secrets)
+}
+
 function rememberedRefusal(
   options: IOSSessionOptions,
   remoteDevice: RemoteDeviceConfig,
@@ -132,16 +151,9 @@ function remoteCapabilities(
     if (app.app !== undefined) merged['appium:app'] = app.app
   }
 
-  const secrets = options.connectionSecrets
-  const missing = referencedNames(merged).find((name) => secrets?.has(name) !== true)
-  if (missing !== undefined) {
-    const secretsFile = options.secretsFile ?? 'workspace.secretsFile'
-    throw new RemoteRefusalError(
-      `Device ${device} on remote ${label} needs ${missing}, which ${secretsFile} does not declare. Add it there.`,
-      { remote: label },
-    )
-  }
-  return resolveSecretTemplatesInValue(merged, secrets)
+  return withSecretsResolved(merged, options, `Device ${device} on remote ${label}`, {
+    remote: label,
+  })
 }
 
 // Nothing from WebdriverIO's error rides along: it holds the full url and the server's text.
@@ -254,6 +266,10 @@ export async function createIOSSession(
     port: endpoint.port,
     path: endpoint.path,
     logLevel: config.verbose ? 'info' : 'silent',
-    capabilities: mergeCapabilities(derived, stated) as WebdriverIO.Capabilities,
+    capabilities: withSecretsResolved(
+      mergeCapabilities(derived, stated),
+      options,
+      `Device ${profile?.name ?? 'ios'}`,
+    ) as WebdriverIO.Capabilities,
   })
 }

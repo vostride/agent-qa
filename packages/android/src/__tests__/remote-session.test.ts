@@ -603,3 +603,42 @@ describe("a remote Android device's capabilities and app", () => {
     expect(server.requests).toHaveLength(0)
   })
 })
+
+describe("a device here's capability secrets", () => {
+  function deviceHere(server: FakeAppiumServer, password: string): AndroidAdapterConfig {
+    return {
+      platform: 'android',
+      targetName: 'shop-android',
+      appPackage: 'com.example.shop',
+      appState: 'preserve',
+      appiumUrl: server.url,
+      device: {
+        name: 'keyed-phone',
+        platform: 'android',
+        model: 'Pixel 9',
+        capabilities: { 'appium:keystorePassword': password },
+      },
+    }
+  }
+
+  it('resolves a secret reference for its own Appium', async () => {
+    const server = await fakeServer()
+
+    await adapterFor().setup(deviceHere(server, '{{secret:FARM_KEY}}'))
+
+    expect(alwaysMatch(server)['appium:keystorePassword']).toBe(KEY_MARK)
+  })
+
+  it('refuses a secret the secrets file does not declare before any request', async () => {
+    const server = await fakeServer()
+
+    const error = await refusalOf(deviceHere(server, '{{secret:KEYSTORE_PASSWORD}}'))
+
+    expectRefusal(
+      error,
+      undefined,
+      `Device keyed-phone needs KEYSTORE_PASSWORD, which ${SECRETS_FILE} does not declare. Add it there.`,
+    )
+    expect(server.requests).toHaveLength(0)
+  })
+})

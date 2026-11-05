@@ -1630,8 +1630,7 @@ function configuredSecretsFile(config: AgentQaConfig): string | undefined {
   return typeof file === 'string' ? file : undefined
 }
 
-// Before the run is recorded: a remote or remote device this run uses lacks a secret, or a test
-// names one.
+// Before the run is recorded: a remote or device this run uses lacks a secret, or a test names one.
 function refuseRemoteSecretProblems(input: {
   readonly config: AgentQaConfig
   readonly configDir: string
@@ -1641,15 +1640,17 @@ function refuseRemoteSecretProblems(input: {
   readonly connectionSecretStore: SecretStore
 }): void {
   const secretsFile = configuredSecretsFile(input.config)
-  const remoteDevices = [...input.usedDevices].flatMap((place) =>
-    place.kind === 'remote' ? [{ device: place.device, remote: place.remote }] : [],
+  const devices = [...input.usedDevices].map((place) =>
+    place.kind === 'remote'
+      ? { device: place.device, remote: place.remote }
+      : { device: place.device },
   )
   const lines = [
     ...missingRemoteSecrets([...input.usedRemotes], input.connectionSecretStore).map((missing) =>
       missingRemoteSecretSentence(missing, secretsFile),
     ),
     ...missingDeviceSecrets(
-      remoteDevices,
+      devices,
       input.config.registry?.devices ?? {},
       input.connectionSecretStore,
     ).map((missing) => missingDeviceSecretSentence(missing, secretsFile)),

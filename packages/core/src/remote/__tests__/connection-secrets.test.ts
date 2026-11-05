@@ -224,4 +224,26 @@ describe("a remote's connection-only secrets", () => {
       missingDeviceSecrets(used, devices, new SecretStore({ FARM_TOKEN: 't', FARM_KEY: 'k' })),
     ).toEqual([])
   })
+
+  it('name each secret a used device here needs for its capabilities, naming no remote', () => {
+    const devices = {
+      'keyed-phone': {
+        capabilities: { 'appium:keystorePassword': '{{secret:KEYSTORE_PASSWORD}}' },
+      },
+    }
+    const missing = missingDeviceSecrets([{ device: 'keyed-phone' }], devices, new SecretStore({}))
+    expect(missing.map(({ device, name }) => [device, name])).toEqual([
+      ['keyed-phone', 'KEYSTORE_PASSWORD'],
+    ])
+    expect(missingDeviceSecretSentence(missing[0]!, '.env.secrets.local')).toBe(
+      'Device keyed-phone needs KEYSTORE_PASSWORD, which .env.secrets.local does not declare. Add it there.',
+    )
+    expect(
+      missingDeviceSecrets(
+        [{ device: 'keyed-phone' }],
+        devices,
+        new SecretStore({ KEYSTORE_PASSWORD: 'p' }),
+      ),
+    ).toEqual([])
+  })
 })

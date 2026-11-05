@@ -201,6 +201,28 @@ describe('where a mobile test runs is chosen from its files before the run is re
   )
 
   it(
+    '--device naming a device here whose capabilities need an undeclared secret is refused with exit 2 before the run is recorded',
+    async () => {
+      const cell = await scene({
+        localDevice: true,
+        localDeviceCapabilities: { 'appium:keystorePassword': '{{secret:KEYSTORE_PASSWORD}}' },
+      })
+      const { project, server, log, exitCode, acquire } = cell
+
+      await runThroughCli(cell, [project.testPattern, '--device', LOCAL_DEVICE_NAME])
+
+      expect(exitCode(), log()).toBe(2)
+      expect(log()).toContain(
+        'Device pixel needs KEYSTORE_PASSWORD, which .env.secrets.local does not declare. Add it there.',
+      )
+      expect(storedRunners(project), log()).toEqual([])
+      expect(server.requests, log()).toEqual([])
+      expect(acquire).not.toHaveBeenCalled()
+    },
+    RUN_BUDGET_MS,
+  )
+
+  it(
     'a suite whose members pick different devices and names none is refused with exit 2',
     async () => {
       const cell = await scene({

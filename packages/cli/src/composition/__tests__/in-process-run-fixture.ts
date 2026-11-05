@@ -139,6 +139,8 @@ export interface InProcessFixtureInput {
   readonly deviceOnTarget?: boolean
   /** A device here, `pixel`, described by model `Pixel 8` with no remote. */
   readonly localDevice?: boolean
+  /** With `localDevice`, its own `capabilities`, written as JSON. */
+  readonly localDeviceCapabilities?: Readonly<Record<string, unknown>>
   /**
    * With `remoteDevice`, the suite and two members run on its target, and each member's
    * `use.device` is the name given (none when undefined).
@@ -311,6 +313,9 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
             `    ${LOCAL_DEVICE_NAME}:`,
             '      platform: android',
             `      model: ${JSON.stringify(LOCAL_DEVICE_MODEL)}`,
+            ...(input.localDeviceCapabilities === undefined
+              ? []
+              : [`      capabilities: ${JSON.stringify(input.localDeviceCapabilities)}`]),
           ]
         : []),
       ...(keyed === undefined

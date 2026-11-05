@@ -516,3 +516,42 @@ describe("a remote iOS session's life", () => {
     expect(server.sessionsDeleted()).toEqual([])
   })
 })
+
+describe("a device here's capability secrets", () => {
+  function deviceHere(server: FakeAppiumServer, password: string): IOSAdapterConfig {
+    return {
+      platform: 'ios',
+      targetName: 'shop-ios',
+      bundleId: 'com.example.shop',
+      appState: 'preserve',
+      appiumUrl: server.url,
+      device: {
+        name: 'keyed-iphone',
+        platform: 'ios',
+        model: 'iPhone 16',
+        capabilities: { 'appium:keychainPassword': password },
+      },
+    }
+  }
+
+  it('resolves a secret reference for its own Appium', async () => {
+    const server = await fakeServer()
+
+    await adapterFor().setup(deviceHere(server, '{{secret:FARM_KEY}}'))
+
+    expect(alwaysMatch(server)['appium:keychainPassword']).toBe(KEY_MARK)
+  })
+
+  it('refuses a secret the secrets file does not declare before any request', async () => {
+    const server = await fakeServer()
+
+    const error = await refusalOf(deviceHere(server, '{{secret:KEYCHAIN_PASSWORD}}'))
+
+    expectRefusal(
+      error,
+      undefined,
+      `Device keyed-iphone needs KEYCHAIN_PASSWORD, which ${SECRETS_FILE} does not declare. Add it there.`,
+    )
+    expect(server.requests).toHaveLength(0)
+  })
+})
