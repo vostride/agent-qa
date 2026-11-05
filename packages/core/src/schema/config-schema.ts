@@ -1,7 +1,15 @@
 import { z } from 'zod'
-import { connectionSecretNames, secretReferenceNames } from '@vostride/agent-qa-schema'
+import {
+  appRefIssues,
+  capabilityCredentialIssues,
+  connectionSecretNames,
+  isLoopbackHost,
+  remoteOrigin,
+  secretReferenceNames,
+} from '@vostride/agent-qa-schema'
 import { selectWebPlace } from '../remote/select-place.js'
 import { selectDevicePlace } from '../mobile/select-device.js'
+import { staticCapabilityContradictions } from '../mobile/device-plan.js'
 import { WorkspaceSchema } from './workspace-schema.js'
 import { ServicesSchema } from './services-schema.js'
 import { KnowledgeConfigSchema } from './knowledge-schema.js'
@@ -115,6 +123,87 @@ const AgentQaConfigSchemaInner = z.strictObject({
       })
     }
   }
+  const reported = new Set<string>()
+  const report = (path: (string | number)[], message: string) => {
+    const key = JSON.stringify([path, message])
+    if (reported.has(key)) return
+    reported.add(key)
+    ctx.addIssue({ code: 'custom', path, message })
+  }
+  for (const [device, profile] of Object.entries(devices)) {
+    const at = remotes.findIndex(remote => remote.name === profile.remote)
+    const remote = at >= 0 && remotes[at]!.protocol === 'appium' ? remotes[at] : undefined
+    const stated = {
+      device,
+      platform: profile.platform,
+      model: profile.model,
+      os: profile.os,
+      id: profile.id,
+    }
+    if (remote?.capabilities !== undefined) {
+      const layer = { name: remote.name, capabilities: remote.capabilities }
+      for (const sentence of staticCapabilityContradictions({ ...stated, remote: layer })) {
+        report(['registry', 'remotes', at, 'capabilities'], sentence)
+      }
+    }
+    if (profile.capabilities === undefined) continue
+    const path = ['registry', 'devices', device, 'capabilities']
+    for (const sentence of staticCapabilityContradictions({
+      ...stated,
+      capabilities: profile.capabilities,
+    })) {
+      report(path, sentence)
+    }
+    for (const issue of capabilityCredentialIssues(profile.capabilities, path)) {
+      report([...issue.path], `Device ${device}: ${issue.message}`)
+    }
+    const host = remote === undefined ? undefined : cleartextHost(remote.url)
+    if (host !== undefined && carriesSecret(profile.capabilities)) {
+      report(
+        path,
+        `Device ${device} sends a credential in its capabilities over http:// to ${host}; use https://.`,
+      )
+    }
+  }
+  const deviceNames = Object.keys(devices)
+  const listedDevices =
+    deviceNames.length === 0
+      ? 'registry.devices lists no devices.'
+      : `registry.devices lists: ${deviceNames.join(', ')}.`
+  for (const [target, entry] of Object.entries(val.registry?.targets ?? {})) {
+    const pick = entry.device
+    const profile = pick !== undefined && Object.hasOwn(devices, pick) ? devices[pick] : undefined
+    if (pick !== undefined) {
+      const path = ['registry', 'targets', target, 'device']
+      if (entry.platform === 'web') {
+        report(path, `Target ${target} is a web target; device applies to android and ios targets.`)
+      } else if (profile === undefined) {
+        report(
+          path,
+          `Target ${target} names device "${pick}", which registry.devices does not list. ${listedDevices}`,
+        )
+      } else if (profile.platform !== entry.platform) {
+        report(
+          path,
+          `Target ${target} is ${entry.platform}, but its device ${pick} is ${profile.platform}.`,
+        )
+      }
+    }
+    const ref = entry.app?.ref
+    if (ref === undefined) continue
+    const refPath = ['registry', 'targets', target, 'app', 'ref']
+    for (const issue of appRefIssues(ref, refPath)) {
+      report([...issue.path], `Target ${target}: ${issue.message}`)
+    }
+    const remote = remotes.find(listed => listed.name === profile?.remote)
+    const host = remote?.protocol === 'appium' ? cleartextHost(remote.url) : undefined
+    if (host !== undefined && carriesSecret(ref)) {
+      report(
+        refPath,
+        `Target ${target} sends a credential in its app.ref over http:// to ${host} through device ${pick}; use https://.`,
+      )
+    }
+  }
   const connectionSecrets = new Set(connectionSecretNames(remotes))
   for (const [target, { url }] of Object.entries(val.registry?.targets ?? {})) {
     if (url === undefined) continue
@@ -128,6 +217,19 @@ const AgentQaConfigSchemaInner = z.strictObject({
     }
   }
 })
+
+function carriesSecret(value: unknown): boolean {
+  return secretReferenceNames(JSON.stringify(value)).length > 0
+}
+
+// The host a plain http:// url names when it is not this machine.
+function cleartextHost(url: string): string | undefined {
+  const origin = remoteOrigin(url)
+  if (origin === undefined || origin.scheme !== 'http' || isLoopbackHost(origin.host)) {
+    return undefined
+  }
+  return origin.host.includes(':') ? `[${origin.host}]` : origin.host
+}
 
 // The scan runs before the strict object: zod skips refinements after a strict parse rejects.
 export const AgentQaConfigSchema = retiredKeyScan.pipe(AgentQaConfigSchemaInner)

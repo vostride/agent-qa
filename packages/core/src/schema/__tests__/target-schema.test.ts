@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { AgentQaConfigSchema } from '../config-schema.js'
 import { TargetSchema } from '../registry-schema.js'
 
 // No default: the run gate's descriptor builder alone decides that undeclared means shared.
@@ -74,5 +75,91 @@ describe('TargetSchema device and app reference', () => {
   it('refuses an empty device or app reference', () => {
     expect(TargetSchema.safeParse({ ...android, device: '' }).success).toBe(false)
     expect(TargetSchema.safeParse({ ...android, app: { ref: '  ' } }).success).toBe(false)
+  })
+})
+
+describe("a target's device and app reference in the strict parse", () => {
+  const workspace = {
+    testMatch: ['tests/**/*.yaml'],
+    suiteMatch: ['suites/**/*.suite.yaml'],
+    hooksFile: 'hooks.yaml',
+    envFile: '.env',
+    secretsFile: '.env.secrets.local',
+  }
+  const farm = { name: 'farm', protocol: 'appium', url: 'https://farm.example.com/wd/hub' }
+  const devices = {
+    pixel: { platform: 'android', model: 'Pixel 8' },
+    iphone: { platform: 'ios', model: 'iPhone 16' },
+    'galaxy-farm': { platform: 'android', model: 'Samsung Galaxy S24', remote: 'farm' },
+  }
+  const shop = { platform: 'android', appPackage: 'com.example.shop' }
+
+  function issues(targets: Record<string, unknown>, remotes: unknown[] = [farm]) {
+    const result = AgentQaConfigSchema.safeParse({
+      workspace,
+      registry: { remotes, devices, targets },
+    })
+    return result.success
+      ? []
+      : result.error.issues.map((issue) => ({ path: issue.path, message: issue.message }))
+  }
+
+  it('accepts a device of the target platform', () => {
+    expect(issues({ 'shop-android': { ...shop, device: 'pixel' } })).toEqual([])
+    expect(issues({ 'shop-ios': { platform: 'ios', device: 'iphone' } })).toEqual([])
+  })
+
+  it('refuses a device registry.devices does not list, naming what it lists', () => {
+    expect(issues({ 'shop-android': { ...shop, device: 'pixle' } })).toEqual([
+      {
+        path: ['registry', 'targets', 'shop-android', 'device'],
+        message:
+          'Target shop-android names device "pixle", which registry.devices does not list. registry.devices lists: pixel, iphone, galaxy-farm.',
+      },
+    ])
+  })
+
+  it('refuses a device of another platform', () => {
+    expect(issues({ 'shop-android': { ...shop, device: 'iphone' } })).toEqual([
+      {
+        path: ['registry', 'targets', 'shop-android', 'device'],
+        message: 'Target shop-android is android, but its device iphone is ios.',
+      },
+    ])
+  })
+
+  it('refuses a device on a web target', () => {
+    const web = { platform: 'web', url: 'https://example.com', device: 'pixel' }
+    expect(issues({ web })).toEqual([
+      {
+        path: ['registry', 'targets', 'web', 'device'],
+        message: 'Target web is a web target; device applies to android and ios targets.',
+      },
+    ])
+  })
+
+  it('refuses a literal credential in an app reference url and accepts a server reference', () => {
+    const signed = 'https://apps.example.com/shop.apk?X-Amz-Signature=abc123'
+    expect(issues({ 'shop-android': { ...shop, app: { ref: signed } } })).toEqual([
+      {
+        path: ['registry', 'targets', 'shop-android', 'app', 'ref'],
+        message:
+          'Target shop-android: app.ref query "X-Amz-Signature" names a credential, so its value must be a {{secret:NAME}} reference.',
+      },
+    ])
+    expect(issues({ 'shop-android': { ...shop, app: { ref: 'shop-latest' } } })).toEqual([])
+  })
+
+  it("refuses a credential in an app reference its device's remote gets over http:// to another host", () => {
+    const plain = { ...farm, url: 'http://farm.example.com/wd/hub' }
+    const target = { ...shop, device: 'galaxy-farm', app: { ref: 'storage:{{secret:SHOP_APP}}' } }
+    expect(issues({ 'shop-android': target }, [plain])).toEqual([
+      {
+        path: ['registry', 'targets', 'shop-android', 'app', 'ref'],
+        message:
+          'Target shop-android sends a credential in its app.ref over http:// to farm.example.com through device galaxy-farm; use https://.',
+      },
+    ])
+    expect(issues({ 'shop-android': target })).toEqual([])
   })
 })

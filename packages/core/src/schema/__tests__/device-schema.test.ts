@@ -225,6 +225,109 @@ describe('a device on a remote', () => {
   })
 })
 
+describe('capabilities the strict parse refuses', () => {
+  const workspace = {
+    testMatch: ['tests/**/*.yaml'],
+    suiteMatch: ['suites/**/*.suite.yaml'],
+    hooksFile: 'hooks.yaml',
+    envFile: '.env',
+    secretsFile: '.env.secrets.local',
+  }
+  const farm = { name: 'farm', protocol: 'appium', url: 'https://farm.example.com/wd/hub' }
+  const galaxyFarm = { platform: 'android', model: 'Samsung Galaxy S24', os: '14', remote: 'farm' }
+
+  async function issues(devices: Record<string, unknown>, remotes: unknown[] = [farm]) {
+    const { AgentQaConfigSchema } = await import('../config-schema.js')
+    const result = AgentQaConfigSchema.safeParse({ workspace, registry: { remotes, devices } })
+    return result.success
+      ? []
+      : result.error.issues.map(issue => ({ path: issue.path, message: issue.message }))
+  }
+
+  it('refuses a device capability that contradicts its model, naming both places', async () => {
+    const capabilities = { 'appium:deviceName': 'Pixel 9' }
+    expect(await issues({ 'galaxy-farm': { ...galaxyFarm, capabilities } })).toEqual([
+      {
+        path: ['registry', 'devices', 'galaxy-farm', 'capabilities'],
+        message:
+          'Device galaxy-farm sets appium:deviceName "Pixel 9" in its capabilities; its model is Samsung Galaxy S24.',
+      },
+    ])
+  })
+
+  it("refuses a remote capability that contradicts a device's platform, at the remote's capabilities", async () => {
+    const remote = { ...farm, capabilities: { platformName: 'iOS' } }
+    expect(await issues({ 'galaxy-farm': galaxyFarm }, [remote])).toEqual([
+      {
+        path: ['registry', 'remotes', 0, 'capabilities'],
+        message:
+          'Remote farm sets platformName "iOS" in its capabilities; device galaxy-farm is android.',
+      },
+    ])
+  })
+
+  it('refuses a driver for the other platform and a contradicting os or id on a device here', async () => {
+    const rack = {
+      platform: 'android',
+      model: 'SM-S921B',
+      os: '14',
+      id: 'R58M41ABCDE',
+      capabilities: {
+        'appium:automationName': 'XCUITest',
+        'appium:options': { platformVersion: '15' },
+        'appium:udid': 'emulator-5554',
+      },
+    }
+    expect((await issues({ rack })).map(issue => issue.message)).toEqual([
+      'Device rack sets appium:automationName "XCUITest" in its capabilities; that driver serves ios, and the device is android.',
+      'Device rack sets appium:options.platformVersion "15" in its capabilities; its os is 14.',
+      'Device rack sets appium:udid "emulator-5554" in its capabilities; its id is R58M41ABCDE.',
+    ])
+  })
+
+  it('refuses an unprefixed capability that is not a W3C name', async () => {
+    const capabilities = { deviceName: 'Samsung Galaxy S24', browserName: 'chrome' }
+    expect(await issues({ 'galaxy-farm': { ...galaxyFarm, capabilities } })).toEqual([
+      {
+        path: ['registry', 'devices', 'galaxy-farm', 'capabilities'],
+        message:
+          'Device galaxy-farm capabilities "deviceName" needs a vendor prefix, such as appium:deviceName.',
+      },
+    ])
+  })
+
+  it('refuses a literal under a credential-named capability at any depth and accepts a reference', async () => {
+    const literal = { 'farm:options': { project: 'shop', accessKey: 'literal-9f3e' } }
+    expect(await issues({ 'galaxy-farm': { ...galaxyFarm, capabilities: literal } })).toEqual([
+      {
+        path: ['registry', 'devices', 'galaxy-farm', 'capabilities', 'farm:options', 'accessKey'],
+        message:
+          'Device galaxy-farm: capabilities "farm:options.accessKey" names a credential, so its value must be a {{secret:NAME}} reference.',
+      },
+    ])
+    const referenced = { 'farm:options': { project: 'shop', accessKey: '{{secret:FARM_KEY}}' } }
+    expect(await issues({ 'galaxy-farm': { ...galaxyFarm, capabilities: referenced } })).toEqual([])
+    const settings = { 'appium:keystorePath': 'keys/release.jks', 'appium:keyAlias': 'release' }
+    const pixel = { platform: 'android', model: 'Pixel 8', capabilities: settings }
+    expect(await issues({ pixel })).toEqual([])
+  })
+
+  it('refuses a credential in device capabilities sent over http:// to another host', async () => {
+    const plain = { ...farm, url: 'http://farm.example.com/wd/hub' }
+    const capabilities = { 'farm:options': { accessKey: '{{secret:FARM_KEY}}' } }
+    expect(await issues({ 'galaxy-farm': { ...galaxyFarm, capabilities } }, [plain])).toEqual([
+      {
+        path: ['registry', 'devices', 'galaxy-farm', 'capabilities'],
+        message:
+          'Device galaxy-farm sends a credential in its capabilities over http:// to farm.example.com; use https://.',
+      },
+    ])
+    expect(await issues({ 'galaxy-farm': galaxyFarm }, [plain])).toEqual([])
+    const loopback = { ...farm, url: 'http://127.0.0.1:4723' }
+    expect(await issues({ 'galaxy-farm': { ...galaxyFarm, capabilities } }, [loopback])).toEqual([])
+  })
+})
+
 describe('UseSchema mobile app state', () => {
   async function getSchema() {
     const mod = await import('../use-schema.js') as any
