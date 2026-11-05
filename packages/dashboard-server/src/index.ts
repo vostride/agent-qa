@@ -11,6 +11,7 @@ export {
   type InProcessRunStatus,
 } from './execution/in-process-backend.js'
 export type {
+  AppiumProvider,
   ExecuteOptions,
   ExecutionBackend,
   RunSettledDetails,

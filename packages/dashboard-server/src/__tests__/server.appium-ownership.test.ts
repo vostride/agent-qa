@@ -135,7 +135,11 @@ import { EventEmitter } from 'node:events'
 
 import { DashboardDatabase } from '../db/database.js'
 import { startServer } from '../server/server.js'
-import type { ExecutionBackend } from '../execution/execution-backend.js'
+import type {
+  AppiumProvider,
+  ExecuteOptions,
+  ExecutionBackend,
+} from '../execution/execution-backend.js'
 
 interface QueueResponse {
   runId: string
@@ -291,6 +295,14 @@ function currentRunner(): RunnerInstance {
   return mockState.runnerInstances[0]
 }
 
+// What a run's producer holds; it asks only when the run's device is here.
+function providerFor(runner: RunnerInstance, runId: string): AppiumProvider {
+  const calls = runner.execute.mock.calls as Array<[ExecuteOptions]>
+  const opts = calls.find(([candidate]) => candidate.runId === runId)?.[0]
+  if (opts?.appium === undefined) throw new Error(`run ${runId} was handed no Appium provider`)
+  return opts.appium
+}
+
 describe('dashboard Appium ownership', () => {
   it('keeps shared Appium alive until both overlapping Android and iOS runs complete', async () => {
     const port = await startDashboard()
@@ -308,16 +320,15 @@ describe('dashboard Appium ownership', () => {
     const appium = currentAppium()
     const runner = currentRunner()
     await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(2))
+    expect(appium.acquireLease).not.toHaveBeenCalled()
 
+    expect(await providerFor(runner, android.runId).acquire('android')).toBe('http://localhost:4723')
+    expect(await providerFor(runner, ios.runId).acquire('ios')).toBe('http://localhost:4723')
     expect(appium.acquireLease).toHaveBeenCalledWith({ runId: android.runId, platform: 'android' })
     expect(appium.acquireLease).toHaveBeenCalledWith({ runId: ios.runId, platform: 'ios' })
 
-    // The lease URL travels as an `execute` argument; `ExecuteOptions` has no `env` field.
+    // The provider travels as an `execute` argument; `ExecuteOptions` has no `env` field.
     const executeCalls = runner.execute.mock.calls as Array<[Record<string, unknown>]>
-    expect(executeCalls.map(([opts]) => opts.appiumUrl)).toEqual([
-      'http://localhost:4723',
-      'http://localhost:4723',
-    ])
     for (const [opts] of executeCalls) expect(opts).not.toHaveProperty('env')
 
     runner.closeRun(android.runId, 'completed')
@@ -343,6 +354,7 @@ describe('dashboard Appium ownership', () => {
     const appium = currentAppium()
     const runner = currentRunner()
     await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(1))
+    await providerFor(runner, android.runId).acquire('android')
 
     const cancel = await postJson<CancelResponse>(port, `/api/runs/${android.runId}/cancel`, {})
     expect(cancel.outcome).toBe('stop-requested')
@@ -500,6 +512,7 @@ describe('dashboard Appium ownership', () => {
     const appium = currentAppium()
     const runner = currentRunner()
     await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(1))
+    await providerFor(runner, first.runId).acquire('android')
     expect(appium.acquireLease).toHaveBeenCalledWith({ runId: first.runId, platform: 'android' })
     expect(currentDb!.getRun(second.runId)?.status).toBe('pending')
 
@@ -509,6 +522,8 @@ describe('dashboard Appium ownership', () => {
 
     await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(2))
     expect(appium.releases).toEqual([{ runId: first.runId, reason: 'cancelled' }])
+    expect(appium.acquireLease).not.toHaveBeenCalledWith({ runId: second.runId, platform: 'android' })
+    await providerFor(runner, second.runId).acquire('android')
     expect(appium.acquireLease).toHaveBeenCalledWith({ runId: second.runId, platform: 'android' })
     expect(currentDb!.getRun(second.runId)?.status).toBe('running')
   })
@@ -524,6 +539,7 @@ describe('dashboard Appium ownership', () => {
     const appium = currentAppium()
     const runner = currentRunner()
     await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(1))
+    await providerFor(runner, queued.runId).acquire('android')
 
     const live = await postJson<{ sessionId: string }>(port, '/api/live-editor/sessions', {
       platform: 'android',
@@ -557,6 +573,7 @@ describe('dashboard Appium ownership', () => {
     const appium = currentAppium()
     const runner = currentRunner()
     await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(1))
+    await providerFor(runner, android.runId).acquire('android')
 
     started!.close()
     started = undefined
@@ -571,6 +588,108 @@ describe('dashboard Appium ownership', () => {
     expect(killAllIndex).toBeGreaterThanOrEqual(0)
     expect(releaseIndex).toBeGreaterThan(killAllIndex)
     expect(shutdownIndex).toBeGreaterThan(releaseIndex)
+  })
+
+  it('leases and starts nothing for a mobile run whose device is remote', async () => {
+    const port = await startDashboard()
+    const run = await postJson<QueueResponse>(port, '/api/queue/enqueue', {
+      name: 'Android on a farm',
+      platform: 'android',
+    })
+
+    const appium = currentAppium()
+    const runner = currentRunner()
+    await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(1))
+    // The producer asks no provider for a remote device, so the run goes from start to settle.
+    runner.closeRun(run.runId, 'failed', ['Framework error: the farm refused the session'])
+
+    expect(appium.acquireLease).not.toHaveBeenCalled()
+    expect(appium.releases).toEqual([])
+    expect(appium.stopCalls).toBe(0)
+    expect(currentDb!.getRun(run.runId)?.status).toBe('failed')
+  })
+
+  it('leases nothing for a web run', async () => {
+    const port = await startDashboard()
+    const run = await postJson<QueueResponse>(port, '/api/queue/enqueue', {
+      name: 'Web',
+      platform: 'web',
+    })
+
+    const appium = currentAppium()
+    const runner = currentRunner()
+    await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(1))
+    runner.closeRun(run.runId, 'completed')
+
+    expect(appium.acquireLease).not.toHaveBeenCalled()
+    expect(appium.releases).toEqual([])
+  })
+
+  it('leases once for a run whose device is here and releases it when the run settles', async () => {
+    const port = await startDashboard()
+    const run = await postJson<QueueResponse>(port, '/api/queue/enqueue', {
+      name: 'Android here',
+      platform: 'android',
+    })
+
+    const appium = currentAppium()
+    const runner = currentRunner()
+    await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(1))
+    expect(appium.acquireLease).not.toHaveBeenCalled()
+
+    expect(await providerFor(runner, run.runId).acquire('android')).toBe('http://localhost:4723')
+    expect(appium.acquireLease).toHaveBeenCalledOnce()
+    expect(appium.acquireLease).toHaveBeenCalledWith({ runId: run.runId, platform: 'android' })
+    expect(appium.leases.size).toBe(1)
+
+    runner.closeRun(run.runId, 'completed')
+    expect(appium.releases).toEqual([{ runId: run.runId, reason: 'completed' }])
+    expect(appium.leases.size).toBe(0)
+    expect(appium.stopCalls).toBe(1)
+  })
+
+  it('fails only the run whose lease failed, with its reason, and frees its slot', async () => {
+    const port = await startDashboard()
+    const failing = await postJson<QueueResponse>(port, '/api/queue/enqueue', {
+      name: 'Android 1',
+      platform: 'android',
+    })
+    const next = await postJson<QueueResponse>(port, '/api/queue/enqueue', {
+      name: 'Android 2',
+      platform: 'android',
+    })
+
+    const appium = currentAppium()
+    const runner = currentRunner()
+    await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(1))
+    appium.acquireLease.mockRejectedValueOnce(new Error('port 4723 is in use'))
+
+    const quiet = vi.spyOn(console, 'error').mockImplementation(() => {})
+    try {
+      await expect(providerFor(runner, failing.runId).acquire('android')).rejects.toThrow(
+        'port 4723 is in use',
+      )
+    } finally {
+      quiet.mockRestore()
+    }
+    expect(appium.leases.size).toBe(0)
+    // The queue never fails the run itself; the member's error settles it.
+    expect(currentDb!.getRun(failing.runId)?.status).toBe('running')
+    runner.closeRun(failing.runId, 'failed', [
+      'Framework error: Could not start Appium: port 4723 is in use',
+    ])
+
+    const stored = currentDb!.getRun(failing.runId)
+    expect(stored?.status).toBe('failed')
+    expect(stored?.failureSummary).toBe(
+      'Framework error: Could not start Appium: port 4723 is in use',
+    )
+    expect(appium.releases).toEqual([])
+
+    await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(2))
+    expect(await providerFor(runner, next.runId).acquire('android')).toBe('http://localhost:4723')
+    expect(appium.leases.has(next.runId)).toBe(true)
+    expect(currentDb!.getRun(next.runId)?.status).toBe('running')
   })
 })
 
@@ -591,7 +710,9 @@ describe('an Appium start failure for a queued run', () => {
       platform: 'android',
       parallel: true,
     })
-    await waitFor(() => expect(currentDb!.getRun(run.runId)?.status).toBe('failed'))
+    const runner = currentRunner()
+    await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(1))
+    await expect(providerFor(runner, run.runId).acquire('android')).rejects.toThrow(message)
     return run.runId
   }
 

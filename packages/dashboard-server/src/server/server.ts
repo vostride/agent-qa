@@ -13,7 +13,7 @@ import {
   refuseUnparseableRequest,
   tryParseRequestUrl,
 } from './request-url.js'
-import type { ExecutionBackend, RunSettledDetails, RunSettledStatus } from '../execution/execution-backend.js'
+import type { AppiumProvider, ExecutionBackend, RunSettledDetails, RunSettledStatus } from '../execution/execution-backend.js'
 import { JobQueue } from '../queue/job-queue.js'
 import { TestFileManager } from '../tests/test-file-manager.js'
 import { SuiteFileManager } from '../tests/suite-file-manager.js'
@@ -298,34 +298,27 @@ export async function startServer(opts: StartServerOptions): Promise<{
     requestStop: (runId) => executionBackend?.kill(runId) ?? false,
   })
   console.log(`Run queue started with ${concurrency} concurrency slot(s)`)
-  console.log('Appium lifecycle manager initialized (auto-start on first mobile test)')
+  console.log('Appium lifecycle manager initialized (started only for a run on a device here)')
 
-  jobQueue.on('execute', async (run) => {
-    if (!executionBackend) return
-
-    const platform = run.platform ?? 'web'
-    const isMobile = platform === 'ios' || platform === 'android'
-
-    // Ensure Appium is running before mobile test execution
-    if (isMobile) {
+  // A run asks for Appium only when its device is here and AGENT_QA_APPIUM_URL is unset.
+  const appiumFor = (runId: string): AppiumProvider => ({
+    acquire: async (platform) => {
       try {
-        await appiumManager.acquireLease({ runId: run.id, platform })
-        mobileRuns.set(run.id, platform)
+        await appiumManager.acquireLease({ runId, platform })
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err)
-        printRunText(`Failed to start Appium for run ${run.id}: ${message}`, (text) =>
+        printRunText(`Failed to start Appium for run ${runId}: ${message}`, (text) =>
           console.error(text),
         )
-        db.updateRun(run.id, {
-          status: 'failed',
-          failureSummary: `Appium server failed to start: ${message}`,
-          endedAt: new Date().toISOString(),
-        })
-        finalizeRunArtifactBestEffort(run.id, 'appium-startup', 'appium-startup', `Appium server failed to start: ${message}`, { status: 'failed' })
-        jobQueue.onSlotFreed(run.id)
-        return
+        throw err
       }
-    }
+      mobileRuns.set(runId, platform)
+      return appiumManager.getUrl()
+    },
+  })
+
+  jobQueue.on('execute', (run) => {
+    if (!executionBackend) return
 
     const meta = (run.metadata ?? {}) as Record<string, unknown>
     const args = Array.isArray(meta.args)
@@ -341,7 +334,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
       attributes: run.attributes,
       // The backend takes `opts.timeout ?? defaultTimeout`, so an unusable value falls back here.
       timeout: sanitizeQueuedExecutionTimeout(meta.timeout),
-      ...(isMobile ? { appiumUrl: appiumManager.getUrl() } : {}),
+      appium: appiumFor(run.id),
     })
   })
 

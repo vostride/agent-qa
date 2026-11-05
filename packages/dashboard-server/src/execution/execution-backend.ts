@@ -1,14 +1,19 @@
 import type { RunAttributes } from '@vostride/agent-qa-core'
 import type { EventEmitter } from 'node:events'
 
+// The host's Appium, asked only for a device here when AGENT_QA_APPIUM_URL is unset.
+export interface AppiumProvider {
+  acquire(platform: 'android' | 'ios'): Promise<string>
+}
+
 export interface ExecuteOptions {
   runId: string
   args: string[]
   source: string
   attributes?: RunAttributes
   timeout?: number
-  // The Appium lease URL for a mobile run, an argument because the run happens in this process.
-  appiumUrl?: string
+  // Bound to this run, so a lease it takes is released when the run settles.
+  appium?: AppiumProvider
 }
 
 // The host reconciles the row, releases the Appium lease and frees the queue slot off this event.

@@ -6,7 +6,7 @@ import { join } from 'node:path'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 
 import { DashboardDatabase } from '@vostride/agent-qa-dashboard'
-import type { ExecuteOptions, RunSettledDetails } from '@vostride/agent-qa-dashboard'
+import type { AppiumProvider, ExecuteOptions, RunSettledDetails } from '@vostride/agent-qa-dashboard'
 import {
   getActiveExecutionContext,
   setActiveExecutionContextResolver,
@@ -70,8 +70,8 @@ interface Driven {
   settled: Settled[]
   backend: Awaited<ReturnType<typeof createDashboardRunDoor>>['backend']
   db: DashboardDatabase
-  /** The composed door's own per-run Appium answer, readable while a run is in flight. */
-  resolveAppiumUrl(runId: string): string | undefined
+  /** The composed door's own per-run Appium provider, readable while a run is in flight. */
+  appiumFor(runId: string): AppiumProvider | undefined
 }
 
 /** Compose the SHIPPED door pair over a fixture and hand back the surfaces a cell reads. */
@@ -106,7 +106,7 @@ async function composeDoor(fixture: Fixture): Promise<Driven> {
     settled,
     backend: runDoor.backend,
     db,
-    resolveAppiumUrl: (runId) => runDoor.runBridge.resolveAppiumUrl?.(runId),
+    appiumFor: (runId) => runDoor.runBridge.appiumFor?.(runId),
   }
 }
 
@@ -364,10 +364,16 @@ describe('the Appium lease travels as data, not as a child’s environment', () 
       prepareMobileDevice({
         resolved,
         envUrl,
-        hostAppiumUrl: () => {
-          asked.push('host')
-          return host
-        },
+        ...(host === undefined
+          ? {}
+          : {
+              hostAppium: {
+                acquire: async () => {
+                  asked.push('host')
+                  return host
+                },
+              },
+            }),
         startAppium: async () => {
           asked.push('start')
           return 'http://127.0.0.1:4723'
@@ -394,7 +400,7 @@ describe('the Appium lease travels as data, not as a child’s environment', () 
     const started = await prepare(here, undefined, undefined)
     expect(started.appiumUrl).toBe('http://127.0.0.1:4723')
     expect(started.managed).toBe(true)
-    expect(asked).toEqual(['host', 'host', 'start'])
+    expect(asked).toEqual(['host', 'start'])
   })
 
   it('THE DOOR ANSWERS PER RUN, WHILE THE RUN IS IN FLIGHT — a lease belongs to one run', async () => {
@@ -408,24 +414,25 @@ describe('the Appium lease travels as data, not as a child’s environment', () 
 
       // Before either run exists the door knows about neither — the entry is per run and is created
       // by the starter, so a resolver that answered a process-global would be visible right here.
-      expect(driven.resolveAppiumUrl(runA)).toBeUndefined()
+      expect(driven.appiumFor(runA)).toBeUndefined()
 
+      const providerA: AppiumProvider = { acquire: async () => 'http://leased-for-a:4723' }
       driven.backend.execute({
         runId: runA,
         args: [fixture.testPattern],
         source: 'dashboard',
-        appiumUrl: 'http://leased-for-a:4723',
+        appium: providerA,
       })
       driven.backend.execute({ runId: runB, args: [fixture.testPattern], source: 'dashboard' })
 
-      await waitFor(() => { expect(driven.resolveAppiumUrl(runA)).toBe('http://leased-for-a:4723') })
-      // The other concurrent run gets ITS answer, which is that it leased nothing — a shared box
+      await waitFor(() => { expect(driven.appiumFor(runA)).toBe(providerA) })
+      // The other concurrent run gets ITS answer, which is that it was handed none — a shared box
       // would hand a web run the mobile run's Appium.
-      expect(driven.resolveAppiumUrl(runB)).toBeUndefined()
+      expect(driven.appiumFor(runB)).toBeUndefined()
 
       await waitFor(() => { expect(driven.settled).toHaveLength(2) }, 240_000)
       // And the entry is released when the run is over, so a later run cannot inherit it.
-      expect(driven.resolveAppiumUrl(runA)).toBeUndefined()
+      expect(driven.appiumFor(runA)).toBeUndefined()
     } finally {
       await target.close()
     }

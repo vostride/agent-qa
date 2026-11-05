@@ -34,6 +34,7 @@ import {
   resolveRunInvocationInputs,
 } from '../commands/run.js'
 import type {
+  AppiumProvider,
   ProducedCliRunMembers,
   RunArtifactSnapshotListener,
   RunInvocationInputs,
@@ -168,7 +169,7 @@ export interface InProcessCliRunExecutionOptions {
   /** Where a quarantine-fold warning goes. The door owns its rendering. */
   readonly warn?: (message: string) => void
   // Takes the run id because one door port serves many runs and a lease belongs to one.
-  readonly resolveAppiumUrl?: (runId: string) => string | undefined
+  readonly appiumFor?: (runId: string) => AppiumProvider | undefined
   // UI flags `RunsStartInput` lacks, added one named field at a time, never as `RunOptions`.
   readonly resolveRunFlags?: (runId: string) => { readonly disableCache?: boolean } | undefined
 }
@@ -192,6 +193,8 @@ export async function runInProcessCliRun(
 ): Promise<CliRunOutcome> {
   const configPath = request.configPath ?? options.configPath
   const runId = request.runId ?? mintCliRunId()
+  // The door's per-run provider, bound to this run's id here, the one place the id is decided.
+  const appium = options.appiumFor?.(runId)
 
   // A DOOR THAT BROUGHT ITS OWN PRODUCER BROUGHT ITS OWN INPUTS TOO. Resolving them here anyway
   // would re-read the config and the secrets file for a door that already has both, and would make
@@ -204,11 +207,7 @@ export async function runInProcessCliRun(
         }),
         runId,
         runRecord: options.runRecord,
-        // The door's per-run resolver, BOUND to this run's id here — the one place the id is
-        // decided. See `resolveAppiumUrl` on the options.
-        ...(options.resolveAppiumUrl === undefined
-          ? {}
-          : { resolveAppiumUrl: (): string | undefined => options.resolveAppiumUrl!(runId) }),
+        ...(appium === undefined ? {} : { appium }),
         ...(options.resolveRunFlags === undefined
           ? {}
           : { opts: { ...options.resolveRunFlags(runId) } as RunOptions }),

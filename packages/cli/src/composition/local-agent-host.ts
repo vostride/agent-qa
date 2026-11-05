@@ -257,9 +257,9 @@ function createComposedRunExecution(input: {
                 return { flush: async () => { await subscriber.flush?.() } }
               },
             }),
-            ...(input.runBridge?.resolveAppiumUrl === undefined
+            ...(input.runBridge?.appiumFor === undefined
               ? {}
-              : { resolveAppiumUrl: input.runBridge.resolveAppiumUrl }),
+              : { appiumFor: input.runBridge.appiumFor }),
             ...(input.runBridge?.resolveRunFlags === undefined
               ? {}
               : { resolveRunFlags: input.runBridge.resolveRunFlags }),
@@ -356,8 +356,8 @@ export interface ComposeCliLocalAgentInput {
     readonly onSession?: (session: RunSession) => void
     /** The host's runs.db handle and its queue's rows. */
     readonly record?: RunRecordHostBinding
-    /** The Appium this host leased for a named run, if it leases any. */
-    readonly resolveAppiumUrl?: InProcessCliRunExecutionOptions['resolveAppiumUrl']
+    // The Appium this host leases for a named run, asked only for a device here.
+    readonly appiumFor?: InProcessCliRunExecutionOptions['appiumFor']
     /** Per-run flags this host's own UI offers that the request DTO has no field for. */
     readonly resolveRunFlags?: InProcessCliRunExecutionOptions['resolveRunFlags']
     // The dashboard's live push channel, handed to `composeCliPostRunTail` as `relay`.

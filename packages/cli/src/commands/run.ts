@@ -35,7 +35,7 @@ import type {
   RunStatus,
   VerdictPayload,
 } from '@vostride/agent-qa-schema'
-import type { DashboardDatabase, RunIdentityMember } from '@vostride/agent-qa-dashboard'
+import type { AppiumProvider, DashboardDatabase, RunIdentityMember } from '@vostride/agent-qa-dashboard'
 import type { SecretStore, SecretRedactor, SecretRedactorPort, SecretResolver, HookDefinition, NonActionToolMap, SandboxRunnerOptions } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
 import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteDeviceConfig, RemoteFailureKind, RemotePlaceEvidence, RemoteProtocol, RemoteRefusalMemory, RemoteSessionRegistry } from '@vostride/agent-qa-runner'
@@ -267,9 +267,6 @@ async function buildStorageStateStore(configDir: string): Promise<import('@vostr
 
 let _appiumManager: InstanceType<typeof import('@vostride/agent-qa-dashboard').AppiumManager> | null = null
 
-// The Appium the host already runs for this run, such as the dashboard's lease.
-export type AppiumUrlResolver = () => string | undefined
-
 async function acquireAppium(logLevel: string): Promise<string | undefined> {
   const { AppiumManager } = await import('@vostride/agent-qa-dashboard')
   if (!_appiumManager) {
@@ -309,7 +306,8 @@ export interface PrepareMobileDeviceInput {
   readonly resolved: ResolvedMobileRunConfig
   // The value of AGENT_QA_APPIUM_URL.
   readonly envUrl: string | undefined
-  readonly hostAppiumUrl?: AppiumUrlResolver
+  // The host's Appium, such as the dashboard's lease, bound to this run.
+  readonly hostAppium?: AppiumProvider
   readonly startAppium: () => Promise<string | undefined>
   readonly listDevicesHere: DevicesHereLister
 }
@@ -349,10 +347,30 @@ export async function prepareMobileDevice(
   const choice = chooseAppiumEndpoint({ device: resolved.device, envUrl: input.envUrl })
   if ('refusal' in choice) throw new RemoteRefusalError(choice.refusal)
   if (choice.kind === 'given') return { here, appiumUrl: choice.url, managed: false }
-  const hostUrl = input.hostAppiumUrl?.()
-  if (hostUrl) return { here, appiumUrl: hostUrl, managed: false }
+  if (input.hostAppium !== undefined) {
+    return { here, appiumUrl: await acquireHostAppium(input.hostAppium, resolved), managed: false }
+  }
   const started = await input.startAppium()
   return { here, ...(started === undefined ? {} : { appiumUrl: started }), managed: true }
+}
+
+// The host's Appium failing to start fails this member, never the queue.
+async function acquireHostAppium(
+  provider: AppiumProvider,
+  resolved: ResolvedMobileRunConfig,
+): Promise<string> {
+  try {
+    return await provider.acquire(resolved.platform)
+  } catch (err) {
+    throw new MobileSetupError({
+      category: 'appium-startup',
+      message: `Could not start Appium: ${err instanceof Error ? err.message : String(err)}`,
+      platform: resolved.platform,
+      targetName: resolved.targetName,
+      deviceName: resolved.deviceName,
+      cause: err,
+    })
+  }
 }
 
 async function startAppiumOrThrow(
@@ -370,6 +388,8 @@ async function startAppiumOrThrow(
     })
   }
 }
+
+export type { AppiumProvider }
 
 function releaseAppium(): void {
   _appiumManager?.release()
@@ -2411,7 +2431,7 @@ export interface PatternMemberProductionContext {
   readonly opts?: RunOptions
   readonly analytics?: () => Promise<CliAnalyticsHost>
   // The host's own Appium, asked for a device here only when AGENT_QA_APPIUM_URL is unset.
-  readonly resolveAppiumUrl?: AppiumUrlResolver
+  readonly appium?: AppiumProvider
   // Absent, this machine's adb and simctl are listed.
   readonly listDevicesHere?: DevicesHereLister
 }
@@ -2453,7 +2473,7 @@ export async function produceMembersFromPatterns(
       ...(product === undefined ? {} : { product }),
       ...(context.opts === undefined ? {} : { opts: context.opts }),
       ...(context.analytics === undefined ? {} : { analytics: context.analytics }),
-      ...(context.resolveAppiumUrl === undefined ? {} : { resolveAppiumUrl: context.resolveAppiumUrl }),
+      ...(context.appium === undefined ? {} : { appium: context.appium }),
       ...(context.listDevicesHere === undefined ? {} : { listDevicesHere: context.listDevicesHere }),
     })
   }
@@ -2493,7 +2513,7 @@ export async function produceMembersFromPatterns(
         sandboxOptions: context.inputs.sandboxOptions,
       },
       ...(context.analytics === undefined ? {} : { analytics: context.analytics }),
-      ...(context.resolveAppiumUrl === undefined ? {} : { resolveAppiumUrl: context.resolveAppiumUrl }),
+      ...(context.appium === undefined ? {} : { appium: context.appium }),
       ...(context.listDevicesHere === undefined ? {} : { listDevicesHere: context.listDevicesHere }),
     })
   }
@@ -2580,7 +2600,7 @@ export interface SuiteRunMemberProductionInput {
   readonly hooksContext?: { resolvedHooks: Map<string, HookDefinition>; sandboxOptions: SandboxRunnerOptions }
   readonly analytics?: () => Promise<CliAnalyticsHost>
   // The host's own Appium, asked for a device here only when AGENT_QA_APPIUM_URL is unset.
-  readonly resolveAppiumUrl?: AppiumUrlResolver
+  readonly appium?: AppiumProvider
   // Absent, this machine's adb and simctl are listed.
   readonly listDevicesHere?: DevicesHereLister
   /** `RunInvocationInputs.loadPlugins`, awaited once the run's record is open. */
@@ -2956,9 +2976,7 @@ export async function produceSuiteRunMembers(
         : await prepareMobileDevice({
             resolved: mobileResolved,
             envUrl: process.env.AGENT_QA_APPIUM_URL,
-            ...(input.resolveAppiumUrl === undefined
-              ? {}
-              : { hostAppiumUrl: input.resolveAppiumUrl }),
+            ...(input.appium === undefined ? {} : { hostAppium: input.appium }),
             startAppium: () =>
               startAppiumOrThrow(effectiveLogLevel, {
                 platform: suitePlatform as 'android' | 'ios',
@@ -3742,7 +3760,7 @@ export interface DirectRunMemberProductionInput {
   // Only `agent-qa run` passes this; its controller owns SIGINT, SIGTERM and SIGHUP.
   readonly hostOwnsSignals?: true
   // The host's own Appium, asked for a device here only when AGENT_QA_APPIUM_URL is unset.
-  readonly resolveAppiumUrl?: AppiumUrlResolver
+  readonly appium?: AppiumProvider
   // Absent, this machine's adb and simctl are listed.
   readonly listDevicesHere?: DevicesHereLister
   // Absent, the run makes its own; `agent-qa run` shares one between its suite and direct halves.
@@ -4114,9 +4132,7 @@ export async function produceDirectRunMembers(
             : await prepareMobileDevice({
                 resolved: testMobileResolved,
                 envUrl: process.env.AGENT_QA_APPIUM_URL,
-                ...(input.resolveAppiumUrl === undefined
-                  ? {}
-                  : { hostAppiumUrl: input.resolveAppiumUrl }),
+                ...(input.appium === undefined ? {} : { hostAppium: input.appium }),
                 startAppium: () =>
                   startAppiumOrThrow(effectiveLogLevel, {
                     platform: testMobileResolved.platform,

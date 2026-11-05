@@ -118,19 +118,10 @@ describe('queue retries are retired', () => {
   it('no retry ceiling reaches the backend — the field is not on the options at all', () => {
     expect(codeOnly(backendInterface)).not.toContain('maxRetries')
     expect(codeOnly(backendInterface)).not.toContain('env?:')
-    // The lease is data on the same options object, and it is optional.
-    expect(codeOnly(backendInterface)).toContain('appiumUrl?: string')
   })
 
   it('the queue wiring passes no retry ceiling', () => {
     const executeCall = server.slice(server.indexOf("jobQueue.on('execute'"))
     expect(executeCall).not.toContain('maxRetries')
-  })
-
-  it('the Appium lease block is untouched — only the URL delivery moved', () => {
-    expect(server).toContain('appiumManager.acquireLease({ runId: run.id, platform })')
-    expect(server).toContain('appiumManager.releaseLease(runId, reason)')
-    expect(server).toContain('appiumUrl: appiumManager.getUrl()')
-    expect(codeOnly(server)).not.toContain('AGENT_QA_APPIUM_URL')
   })
 })

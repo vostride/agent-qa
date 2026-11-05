@@ -313,11 +313,12 @@ export interface DashboardRunDoor {
 
 /** Structural, so this module names the dashboard package's own type without importing its value. */
 type DashboardExecutionBackend = import('@vostride/agent-qa-dashboard').ExecutionBackend
+type AppiumProvider = import('@vostride/agent-qa-dashboard').AppiumProvider
 
 /** What the door holds for a run between `runs.start` going in and the run coming out. */
 interface DashboardRunEntry {
   readonly onSession: (session: RunSession) => void
-  readonly appiumUrl?: string
+  readonly appium?: AppiumProvider
   readonly flags: DashboardRunFlags
   readonly attributes?: RunAttributes
 }
@@ -407,7 +408,7 @@ export async function createDashboardRunDoor(input: {
         return entry.attributes === undefined ? {} : { attributes: entry.attributes }
       },
     },
-    resolveAppiumUrl: (runId: string): string | undefined => entries.get(runId)?.appiumUrl,
+    appiumFor: (runId: string): AppiumProvider | undefined => entries.get(runId)?.appium,
     resolveRunFlags: (runId: string): DashboardRunFlags | undefined => entries.get(runId)?.flags,
     onExecution: (execution: Promise<unknown>): void => { track(executions, execution) },
     onPostRun: (settled: Promise<void>): void => { track(postRun, settled) },
@@ -430,7 +431,7 @@ export async function createDashboardRunDoor(input: {
 
       entries.set(opts.runId, {
         onSession,
-        ...(opts.appiumUrl === undefined ? {} : { appiumUrl: opts.appiumUrl }),
+        ...(opts.appium === undefined ? {} : { appium: opts.appium }),
         flags,
         ...(opts.attributes === undefined ? {} : { attributes: opts.attributes }),
       })
