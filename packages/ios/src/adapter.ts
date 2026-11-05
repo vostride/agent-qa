@@ -57,6 +57,7 @@ import { alignToWindow } from '@vostride/agent-qa-runner-local'
 import {
   IOS_SNAPSHOT_FALLBACK_DEPTH,
   IOS_SNAPSHOT_MAX_DEPTH,
+  browserModeName,
   createIOSSession,
   resolveIOSSnapshotDepth,
 } from './session.js'
@@ -396,7 +397,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   async setup(config: PlatformConfig): Promise<void> {
     this.config = config as IOSAdapterConfig
     this.captureConsole = config.logCapture?.console !== false
-    this.bundleId = this.config.bundleId ?? (config.device?.match?.bundleId as string | undefined) ?? null
+    this.bundleId = this.config.bundleId ?? null
     this.sessionSnapshotDepth = resolveIOSSnapshotDepth()
     this.snapshotDepth = this.sessionSnapshotDepth
     this.readsAtLoweredDepth = 0
@@ -851,8 +852,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   }
 
   private isBrowserSession(): boolean {
-    const browserName = this.config?.device?.match?.browserName
-    return typeof browserName === 'string' && browserName.trim().length > 0
+    return this.config !== null && browserModeName(this.config) !== undefined
   }
 
   private async ensureContext(target: string): Promise<void> {

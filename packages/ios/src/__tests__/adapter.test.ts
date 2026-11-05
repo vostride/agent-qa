@@ -175,7 +175,7 @@ describe('IOSPlatformAdapter', () => {
       const config: PlatformConfig = {
         platform: 'ios',
         appState: 'preserve',
-        device: { name: 'iphone-15', platform: 'ios', match: { automationName: 'XCUITest', platformVersion: '17.0', deviceName: 'iPhone 15', app: '/path/to/app.app' } },
+        device: { name: 'iphone-15', platform: 'ios', os: '17.0', match: {} },
       }
 
       await adapter.setup(config)
@@ -213,7 +213,7 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          match: { automationName: 'XCUITest' },
+          match: {},
         },
         bundleId: 'org.reactjs.native.example.wdiodemoapp',
         appPath: '/tmp/wdio.app',
@@ -232,7 +232,7 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          match: { automationName: 'XCUITest' },
+          match: {},
         },
       })
 
@@ -248,23 +248,7 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          match: { automationName: 'XCUITest' },
-        },
-      })
-
-      const { remote } = await import('webdriverio')
-      const call = vi.mocked(remote).mock.calls[0][0] as any
-      expect(call.capabilities['appium:noReset']).toBe(false)
-    })
-
-    it('uses appState instead of stale match.noReset', async () => {
-      await adapter.setup({
-        platform: 'ios',
-        appState: 'reset',
-        device: {
-          name: 'ios-sim',
-          platform: 'ios',
-          match: { automationName: 'XCUITest', noReset: true },
+          match: {},
         },
       })
 
@@ -279,7 +263,7 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          match: { automationName: 'XCUITest' },
+          match: {},
         },
         bundleId: 'org.reactjs.native.example.wdiodemoapp',
       })
@@ -302,7 +286,7 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          match: { automationName: 'XCUITest' },
+          match: {},
         },
         bundleId: 'org.reactjs.native.example.wdiodemoapp',
       })
@@ -397,6 +381,15 @@ describe('IOSPlatformAdapter', () => {
       const call = await opened({ device: device({ capabilities: { 'appium:showIOSLog': null } }) })
       expect(call.capabilities).not.toHaveProperty('appium:showIOSLog')
       expect(call.capabilities['appium:newCommandTimeout']).toBe(300)
+    })
+
+    it('a browserName capability opens the simulator in browser mode without noReset', async () => {
+      const call = await opened({
+        appState: 'reset',
+        device: device({ capabilities: { browserName: 'Safari' } }),
+      })
+      expect(call.capabilities.browserName).toBe('Safari')
+      expect(call.capabilities).not.toHaveProperty('appium:noReset')
     })
   })
 

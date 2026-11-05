@@ -80,17 +80,10 @@ function rememberedRefusal(
   )
 }
 
-function remoteBrowserName(
-  config: IOSAdapterConfig,
-  remoteDevice: RemoteDeviceConfig,
-): string | undefined {
-  const named = config.device?.match?.browserName
-  if (typeof named === 'string' && named.trim().length > 0) return named.trim()
-  const stated = mergeCapabilities(remoteDevice.capabilities, config.device?.capabilities)
-  const browserName = stated.browserName
-  return typeof browserName === 'string' && browserName.trim().length > 0
-    ? browserName.trim()
-    : undefined
+export function browserModeName(config: IOSAdapterConfig): string | undefined {
+  const device = config.device
+  const stated = mergeCapabilities(device?.remote?.capabilities, device?.capabilities)
+  return statedText(stated, 'browserName')
 }
 
 // Derived, then the remote's capabilities, then the device's; references resolve after the merge.
@@ -113,7 +106,7 @@ function remoteCapabilities(
     'appium:newCommandTimeout': REMOTE_NEW_COMMAND_TIMEOUT_S,
     [IOS_SNAPSHOT_DEPTH_CAPABILITY]: resolveIOSSnapshotDepth(),
   }
-  const browserName = remoteBrowserName(config, remoteDevice)
+  const browserName = browserModeName(config)
   if (browserName) {
     derived.browserName = browserName
     // A server-given BiDi url would be dialled with the remote's headers.
@@ -230,18 +223,17 @@ export async function createIOSSession(
   if (remoteDevice !== undefined) return createRemoteIOSSession(config, remoteDevice, options)
 
   const profile = config.device
-  const match = profile?.match ?? {}
   const here = profile?.here
   const stated = profile?.capabilities
-  const browserName = statedText(stated, 'browserName') ?? textOf(match.browserName)
+  const browserName = browserModeName(config)
 
-  const udid = here?.udid ?? profile?.id ?? config.udid ?? textOf(match.udid)
+  const udid = here?.udid ?? profile?.id ?? config.udid
   // Without a version XCUITest picks the newest SDK, not the simulator that was found.
-  const platformVersion = here?.os ?? profile?.os ?? textOf(match.platformVersion)
+  const platformVersion = here?.os ?? profile?.os
 
   const derived: CapabilityMap = {
     platformName: 'iOS',
-    'appium:automationName': textOf(match.automationName) ?? 'XCUITest',
+    'appium:automationName': 'XCUITest',
     'appium:deviceName': here?.name ?? profile?.model ?? profile?.name ?? 'iPhone Simulator',
     'appium:showIOSLog': true,
     'appium:newCommandTimeout': config.timeouts?.test ? Math.ceil(config.timeouts.test / 1000) : 300,
@@ -252,8 +244,7 @@ export async function createIOSSession(
 
   if (!browserName && config.appState === 'preserve') derived['appium:noReset'] = true
   if (!browserName && config.appState === 'reset') derived['appium:noReset'] = false
-  const bundleId = config.bundleId ?? textOf(match.bundleId)
-  if (bundleId) derived['appium:bundleId'] = bundleId
+  if (config.bundleId) derived['appium:bundleId'] = config.bundleId
   if (config.appPath) derived['appium:app'] = config.appPath
 
   const endpoint = localEndpoint(config.appiumUrl)
