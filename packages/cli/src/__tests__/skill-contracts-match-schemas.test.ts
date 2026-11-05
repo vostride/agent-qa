@@ -110,6 +110,28 @@ function relativeCopy(copy: string): string {
   return path.relative(AGENT_QA_ROOT, copy).split(path.sep).join('/')
 }
 
+const EXAMPLE_WORKSPACE = {
+  testMatch: ['tests/**/*.yaml'],
+  suiteMatch: ['suites/**/*.suite.yaml'],
+  hooksFile: 'hooks.yaml',
+  envFile: '.env',
+  secretsFile: '.env.secrets.local',
+}
+
+// The first yaml block under a skill heading, with a workspace so it is a whole config.
+function sectionExample(copy: string, heading: string): Record<string, unknown> {
+  const body = readFileSync(copy, 'utf8')
+  const at = relativeCopy(copy)
+  const section = body.indexOf(`\n## ${heading}\n`)
+  expect(section, `${at} has no ${heading} section`).toBeGreaterThan(-1)
+  const example = /```yaml\n([\s\S]*?)```/.exec(body.slice(section))?.[1]
+  expect(example, `${at} ${heading} has no yaml example`).toBeDefined()
+  return {
+    workspace: EXAMPLE_WORKSPACE,
+    ...(parse(example ?? '') as Record<string, unknown>),
+  }
+}
+
 describe('the contracts reference matches the schemas', () => {
   it('config.rootKeys in both copies are the config schema root keys in schema order', () => {
     expect(
@@ -169,29 +191,36 @@ describe('the contracts reference matches the schemas', () => {
   })
 
   it("the authoring skill's remote example passes the strict parse in both copies", () => {
-    const workspace = {
-      testMatch: ['tests/**/*.yaml'],
-      suiteMatch: ['suites/**/*.suite.yaml'],
-      hooksFile: 'hooks.yaml',
-      envFile: '.env',
-      secretsFile: '.env.secrets.local',
-    }
     for (const copy of SKILL_COPIES) {
-      const body = readFileSync(copy, 'utf8')
       const at = relativeCopy(copy)
-      const section = body.indexOf('\n## Remote browsers\n')
-      expect(section, `${at} has no Remote browsers section`).toBeGreaterThan(-1)
-      const example = /```yaml\n([\s\S]*?)```/.exec(body.slice(section))?.[1]
-      expect(example, `${at} Remote browsers has no yaml example`).toBeDefined()
-      const config: Record<string, unknown> = {
-        workspace,
-        ...(parse(example ?? '') as Record<string, unknown>),
-      }
+      const config = sectionExample(copy, 'Remote browsers')
       const result = AgentQaConfigSchema.safeParse(config)
       const messages = result.success ? [] : result.error.issues.map((issue) => issue.message)
       expect(messages, at).toEqual([])
       const remotes = (config.registry as { remotes: RemoteEntryLike[] }).remotes
       expect(connectionSecretNames(remotes).length, at).toBeGreaterThan(0)
+    }
+  })
+
+  it("the authoring skill's device example passes the strict parse in both copies", () => {
+    for (const copy of SKILL_COPIES) {
+      const at = relativeCopy(copy)
+      const config = sectionExample(copy, 'Devices')
+      const result = AgentQaConfigSchema.safeParse(config)
+      const messages = result.success ? [] : result.error.issues.map((issue) => issue.message)
+      expect(messages, at).toEqual([])
+      const registry = config.registry as {
+        remotes: RemoteEntryLike[]
+        devices: Record<string, { remote?: string }>
+      }
+      const remoteNames = registry.remotes
+        .filter((remote) => remote.protocol === 'appium')
+        .map((remote) => remote.name)
+      const devicesOnRemotes = Object.values(registry.devices).filter(
+        (device) => device.remote !== undefined,
+      )
+      expect(devicesOnRemotes.length, at).toBeGreaterThan(0)
+      for (const device of devicesOnRemotes) expect(remoteNames, at).toContain(device.remote)
     }
   })
 

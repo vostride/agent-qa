@@ -124,6 +124,118 @@ Picking a remote:
 - `agent_qa_change_config` can set `use.browser.remote` but never changes `registry.remotes` or
   `plugins`; a person edits those in the file.
 
+## Devices
+
+A mobile test runs on a device named under `registry.devices` in `agent-qa.config.yaml`: an
+Android emulator, a phone plugged into this machine or an iOS simulator, or a device on an Appium
+server agent-qa does not start, listed under `registry.remotes` with `protocol: appium`.
+
+```yaml
+registry:
+  remotes:
+    - name: farm
+      protocol: appium
+      url: https://farm.example.com/wd/hub
+      basicAuth:
+        user: "{{secret:FARM_USER}}"
+        password: "{{secret:FARM_KEY}}"
+  devices:
+    pixel:
+      platform: android
+      model: Pixel 8
+    iphone:
+      platform: ios
+      model: iPhone 16
+      os: "18.4"
+    galaxy-farm:
+      platform: android
+      remote: farm
+      model: Samsung Galaxy S24
+      os: "14"
+  targets:
+    shop-android:
+      platform: android
+      appPackage: com.example.shop
+      device: pixel
+      app:
+        path: builds/shop.apk
+        ref: shop-latest
+    shop-ios:
+      platform: ios
+      bundleId: com.example.shop
+      device: iphone
+      app:
+        path: builds/Shop.app
+```
+
+- `platform`: `android` or `ios`.
+- `model`: what people call the device, such as `Pixel 8`, `SM-S921B` or `iPhone 16`.
+- `os` (optional): the Android or iOS version, written as quoted text such as `os: "17.10"`. YAML
+  reads an unquoted `17.10` as the number 17.1, so a number is refused.
+- `id` (optional): an Android serial or a simulator udid. Set it only when two identical units are
+  attached at once; it is the one place a machine id appears.
+- `remote` (optional): the name of a `registry.remotes` entry with `protocol: appium`. A device
+  with no remote runs on this machine.
+- `capabilities` (optional): Appium capabilities, merged after agent-qa's own and then the
+  remote's `capabilities`. Maps merge key by key, and `null` removes a key. A key carries a
+  prefix such as `appium:` unless it is a W3C one such as `platformName` or `browserName`. The
+  driver (`appium:automationName`) and a mobile browser (`browserName`) go here.
+- App ids (`appPackage`, `appActivity`, `bundleId`) live on the target, never on the device.
+
+Capabilities:
+
+- Write every credential as a `{{secret:<name>}}` reference, quoted in YAML. The strict parse
+  refuses a literal under a capability name that carries a credential word, at any depth.
+  `appium:keystorePath`, `appium:keyAlias` and `appium:sendKeyStrategy` are settings, not
+  credentials; `appium:keystorePassword` and `appium:keyPassword` are credentials.
+- A capability that contradicts the device or its target is refused before the session opens,
+  with one line naming both places: `platformName` or a driver for the other platform;
+  `appium:deviceName`, `appium:platformVersion` or `appium:udid` against `model`, `os` or `id`;
+  `appium:appPackage`, `appium:appActivity` or `appium:bundleId` against the target; and
+  `appium:noReset` or `appium:fullReset` against `use.mobile.appState`.
+
+Finding a device on this machine:
+
+- iOS: a simulator whose name is the `model`, on `os` when set. A plugged-in iPhone is never used.
+- Android: a phone by the model it reports (`adb devices -l` prints `model:SM_S921B`), or an
+  emulator or AVD by its AVD name or its device profile.
+- Case is ignored, and spaces, `_` and `-` count as the same. `os: "18"` matches 18.2.
+- When several match, the newest OS wins, then a running one; if that still leaves more than one,
+  the test is refused and `id` picks one. With no `model`, the one running device of that platform
+  is used.
+- A matching simulator or AVD that is not running is started; agent-qa never creates one. When
+  nothing matches, the test is refused before it starts with one line listing what this machine
+  has.
+- `agent-qa devices` shows each device and what this machine has (attached phones with their
+  model, AVDs and simulators), so you can copy the `model` to write.
+
+Picking a device:
+
+- A mobile target names its default device with `device`.
+- A test runs on `--device`, else its own `use.device`, else its target's `device`. A suite runs on
+  one device: `--device`, else the suite's `use.device`, else the one device its members agree on.
+  `use.device` belongs in a suite or test, not under the config's `use`.
+- `--device` picks devices on this machine only; naming a device that has a `remote` is refused.
+  To send a test to a remote device, set `use.device` in its suite or test.
+- `AGENT_QA_APPIUM_URL` names your own Appium on this machine, for devices without a remote. A host
+  other than loopback is refused: list that server under `registry.remotes` instead. Without it,
+  a device here uses the dashboard's Appium or the one agent-qa starts. A device with a `remote`
+  always uses its remote, and agent-qa starts no Appium for it.
+
+On a remote Appium server:
+
+- `model` is sent as `appium:deviceName` and `os` as `appium:platformVersion`, both unread, so the
+  server's own matching applies; `id` is sent as `appium:udid`. For a server that selects devices
+  another way, leave `model` out and set its own key in `capabilities`, as you do for its real or
+  virtual device flag.
+- The target's `app.ref`, an https URL or the server's own reference, is sent as `appium:app`; an
+  `appium:app` in the device's or remote's capabilities wins. agent-qa itself uploads no app, so
+  a remote device whose target has only `app.path` is refused.
+- Android emulators and devices and iOS simulators are proven by agent-qa's own tests. Real
+  iPhones behind a remote server work through capabilities and are not proven by agent-qa's tests.
+- `agent_qa_change_config` never changes a device's `remote` or `capabilities` or a target's
+  `app.ref`; a person edits those in the file.
+
 ## Do Not
 
 - Do not invent config keys.
