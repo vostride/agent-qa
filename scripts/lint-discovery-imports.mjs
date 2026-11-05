@@ -312,7 +312,7 @@ function sourceFor(base) {
   const candidates = []
   if (/\.m?js$/u.test(base)) {
     const stem = base.replace(/\.m?js$/u, '')
-    candidates.push(`${stem}.ts`, `${stem}.tsx`, `${stem}.mts`)
+    candidates.push(`${stem}.ts`, `${stem}.tsx`, `${stem}.mts`, join(stem, 'index.ts'))
   }
   candidates.push(base, `${base}.ts`, join(base, 'index.ts'))
   return candidates.find(candidate => existsSync(candidate) && statSync(candidate).isFile())

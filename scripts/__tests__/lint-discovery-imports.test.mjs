@@ -90,6 +90,15 @@ test('a clean subject resolves the workspace alias and passes with type-only and
   ])
 })
 
+test('a subpath export built from a folder index resolves to that index', (t) => {
+  const result = lintSubject(t, {
+    'packages/app/src/entry.ts': "import { reader } from '@vostride/agent-qa-lib/reader'\nexport const run = reader\n",
+    'packages/lib/src/reader/index.ts': "export const reader = 1\n",
+  })
+  assert.deepEqual(rules(result), [])
+  assert.deepEqual(result.graph, ['packages/app/src/entry.ts', 'packages/lib/src/reader/index.ts'])
+})
+
 test('a planted eager import behind a workspace re-export is flagged where it lives', (t) => {
   const result = lintSubject(t, {
     'packages/app/src/entry.ts': "import { read } from '@vostride/agent-qa-lib'\nexport const run = read\n",
