@@ -36,7 +36,13 @@ vi.mock('@vostride/agent-qa-web', () => ({
   WebPlatformAdapter: vi.fn(function () { return mockWebAdapter }),
 }))
 
-import { createPlatformAdapter, buildPlatformConfig } from '../commands/run.js'
+import {
+  createRemoteRefusalMemory,
+  createRemoteSessionRegistry,
+  SecretStore,
+} from '@vostride/agent-qa-runner'
+
+import { createPlatformAdapter, buildPlatformConfig, processRemoteSessions } from '../commands/run.js'
 import { resolveTarget } from '../targets.js'
 import type { AgentQaConfig } from '@vostride/agent-qa-core'
 
@@ -58,6 +64,32 @@ describe('createPlatformAdapter', () => {
   it('returns WebPlatformAdapter for web platform', async () => {
     const adapter = await createPlatformAdapter('web')
     expect(adapter).toBe(mockWebAdapter)
+  })
+
+  it("hands both mobile adapters the run's connection secrets, secrets file, refusal memory, sessions and mask", async () => {
+    const { AndroidPlatformAdapter } = await import('@vostride/agent-qa-android')
+    const { IOSPlatformAdapter } = await import('@vostride/agent-qa-ios')
+    const options = {
+      connectionSecrets: new SecretStore({ FARM_TOKEN: 'farm-token-value' }),
+      secretsFile: '.env.secrets.local',
+      refusalMemory: createRemoteRefusalMemory(),
+      sessions: createRemoteSessionRegistry(),
+      mask: (text: string) => text.replaceAll('farm-token-value', '***'),
+    }
+
+    await createPlatformAdapter('android', options)
+    await createPlatformAdapter('ios', options)
+
+    expect(AndroidPlatformAdapter).toHaveBeenCalledWith(options)
+    expect(IOSPlatformAdapter).toHaveBeenCalledWith(options)
+  })
+
+  it('gives a mobile adapter built with no registry the one a signal releases', async () => {
+    const { IOSPlatformAdapter } = await import('@vostride/agent-qa-ios')
+
+    await createPlatformAdapter('ios')
+
+    expect(IOSPlatformAdapter).toHaveBeenCalledWith({ sessions: processRemoteSessions })
   })
 
   it('throws helpful error when @vostride/agent-qa-android import fails', async () => {
@@ -280,6 +312,57 @@ describe('buildPlatformConfig', () => {
 
     expect(config.device?.name).toBe('ios-sim')
     expect(config.bundleId).toBe('org.reactjs.native.example.wdiodemoapp')
+  })
+
+  it("carries the target's name, its app.ref and the device's remote with its capabilities", () => {
+    const remote = {
+      name: 'farm',
+      protocol: 'appium' as const,
+      url: 'https://farm.example/wd/hub',
+      connectTimeoutMs: 300_000,
+      capabilities: { 'farm:project': 'shop' },
+    }
+    const resolvedDevice = {
+      name: 'iphone-farm',
+      platform: 'ios' as const,
+      model: 'iPhone 16',
+      capabilities: { 'appium:orientation': 'PORTRAIT' },
+      remote,
+    }
+    const config = buildPlatformConfig('ios', resolvedDevice, undefined, undefined, undefined, {
+      platform: 'ios',
+      targetName: 'shop-ios',
+      deviceName: 'iphone-farm',
+      device: resolvedDevice,
+      plan: { kind: 'remote', remote },
+      app: { ref: 'storage:shop-latest', bundleId: 'com.example.shop', sourceTrace: {} },
+      appState: 'reset',
+      appium: { managed: false },
+      sourceTrace: [],
+    })
+
+    expect(config.targetName).toBe('shop-ios')
+    expect(config.appRef).toBe('storage:shop-latest')
+    expect(config.device?.remote).toEqual(remote)
+    expect(config.device?.capabilities).toEqual({ 'appium:orientation': 'PORTRAIT' })
+  })
+
+  it('carries no app.ref for a target that names none', () => {
+    const resolvedDevice = { name: 'pixel', platform: 'android' as const, model: 'Pixel 8' }
+    const config = buildPlatformConfig('android', resolvedDevice, undefined, undefined, undefined, {
+      platform: 'android',
+      targetName: 'shop-android',
+      deviceName: 'pixel',
+      device: resolvedDevice,
+      plan: { kind: 'here', search: { model: 'Pixel 8' } },
+      app: { appPackage: 'com.example.shop', sourceTrace: {} },
+      appState: 'preserve',
+      appium: { managed: true },
+      sourceTrace: [],
+    })
+
+    expect(config.targetName).toBe('shop-android')
+    expect(config).not.toHaveProperty('appRef')
   })
 
   it('returns undefined device for mobile when no resolvedDevice', () => {

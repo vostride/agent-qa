@@ -6,7 +6,7 @@ import { Command, Option } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { chooseAppiumEndpoint, connectionSecretMisuse, discoverWorkspaceFiles, findDeviceHere, isWorkspacePathMatch, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, discoverWorkspaceFiles, findDeviceHere, isWorkspacePathMatch, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, remoteOrigin } from '@vostride/agent-qa-schema'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
@@ -389,19 +389,23 @@ export async function createPlatformAdapter(
     readonly refusalMemory?: RemoteRefusalMemory
     // Defaults to this process's registry, which a signal releases.
     readonly sessions?: RemoteSessionRegistry
+    // The run's declared mask, which a device server's refusal reason passes through.
+    readonly mask?: (text: string) => string
   } = {},
 ): Promise<PlatformAdapter> {
+  const connection = {
+    ...(options.connectionSecrets === undefined
+      ? {}
+      : { connectionSecrets: options.connectionSecrets }),
+    ...(options.secretsFile === undefined ? {} : { secretsFile: options.secretsFile }),
+    ...(options.refusalMemory === undefined ? {} : { refusalMemory: options.refusalMemory }),
+    sessions: options.sessions ?? processRemoteSessions,
+  }
+  const mobile = { ...connection, ...(options.mask === undefined ? {} : { mask: options.mask }) }
   if (platform === 'android') {
     try {
       const { AndroidPlatformAdapter } = await import('@vostride/agent-qa-android')
-      return new AndroidPlatformAdapter({
-        ...(options.connectionSecrets === undefined
-          ? {}
-          : { connectionSecrets: options.connectionSecrets }),
-        ...(options.secretsFile === undefined ? {} : { secretsFile: options.secretsFile }),
-        ...(options.refusalMemory === undefined ? {} : { refusalMemory: options.refusalMemory }),
-        sessions: options.sessions ?? processRemoteSessions,
-      })
+      return new AndroidPlatformAdapter(mobile)
     } catch {
       throw new Error(
         'Android adapter not available. Install @vostride/agent-qa-android: pnpm add @vostride/agent-qa-android',
@@ -411,7 +415,7 @@ export async function createPlatformAdapter(
   if (platform === 'ios') {
     try {
       const { IOSPlatformAdapter } = await import('@vostride/agent-qa-ios')
-      return new IOSPlatformAdapter()
+      return new IOSPlatformAdapter(mobile)
     } catch {
       throw new Error(
         'iOS adapter not available. Install @vostride/agent-qa-ios: pnpm add @vostride/agent-qa-ios',
@@ -421,12 +425,7 @@ export async function createPlatformAdapter(
   const { WebPlatformAdapter } = await import('@vostride/agent-qa-web')
   return new WebPlatformAdapter({
     ...(options.hostOwnsSignals === true ? { hostOwnsSignals: true as const } : {}),
-    ...(options.connectionSecrets === undefined
-      ? {}
-      : { connectionSecrets: options.connectionSecrets }),
-    ...(options.secretsFile === undefined ? {} : { secretsFile: options.secretsFile }),
-    ...(options.refusalMemory === undefined ? {} : { refusalMemory: options.refusalMemory }),
-    sessions: options.sessions ?? processRemoteSessions,
+    ...connection,
   })
 }
 
@@ -460,6 +459,8 @@ export function buildPlatformConfig(
   }
   return {
     platform,
+    ...(mobileResolved === undefined ? {} : { targetName: mobileResolved.targetName }),
+    ...(mobileResolved?.app.ref === undefined ? {} : { appRef: mobileResolved.app.ref }),
     device: resolvedDevice ? {
       name: resolvedDevice.name,
       platform: resolvedDevice.platform,
@@ -2637,6 +2638,7 @@ export async function produceSuiteRunMembers(
     ...(suiteConnectionSecrets === undefined ? {} : { connectionSecrets: suiteConnectionSecrets }),
     ...(suiteSecretsFile === undefined ? {} : { secretsFile: suiteSecretsFile }),
     refusalMemory: input.refusalMemory ?? createRemoteRefusalMemory(),
+    mask: suiteRunMask,
   }
 
   // The record opens here, before plugins; the drive's later open is a no-op.
@@ -2951,7 +2953,12 @@ export async function produceSuiteRunMembers(
     const suiteLogCapture = (mergedUse.logCapture as Record<string, unknown> | undefined) ?? (config as any).use?.logCapture
     const platformConfig = buildPlatformConfig(suitePlatform, resolvedDevice, testTimeouts, suiteBrowser as any, suiteLogCapture, mobileResolved, suiteRemote, suitePrepared)
     platformConfig.authState = suiteAuthState
-    platformConfig.verbose = effectiveLogLevel === 'debug'
+    // WebdriverIO's logger is process-wide, so one remote device keeps every session silent.
+    platformConfig.verbose =
+      webdriverLogLevel({
+        verbose: effectiveLogLevel === 'debug',
+        anyRemoteDevice: anyRemoteDevice(config),
+      }) === 'info'
     if (opts.headless !== undefined && platformConfig.browser) {
       platformConfig.browser.headless = opts.headless
     }
@@ -4095,12 +4102,18 @@ export async function produceDirectRunMembers(
           connectionSecrets: runtimeSecrets.connectionSecretStore,
           ...(directSecretsFile === undefined ? {} : { secretsFile: directSecretsFile }),
           refusalMemory: directRefusalMemory,
+          mask: singleRunMask,
         })
 
         const mergedBrowser = (mergedUse as Record<string, unknown>).browser as Record<string, unknown> | undefined
         const platformConfig = buildPlatformConfig(testPlatform, testResolvedDevice, testTimeoutsForSetup, mergedBrowser ?? config.use?.browser, (testMergedConfig as any).use?.logCapture ?? config.use?.logCapture, testMobileResolved, directRemotes.get(binding), testPrepared)
         platformConfig.authState = activeTestAuthState
-        platformConfig.verbose = effectiveLogLevel === 'debug'
+        // WebdriverIO's logger is process-wide, so one remote device keeps every session silent.
+        platformConfig.verbose =
+          webdriverLogLevel({
+            verbose: effectiveLogLevel === 'debug',
+            anyRemoteDevice: anyRemoteDevice(config),
+          }) === 'info'
         if (opts.headless !== undefined) {
           if (platformConfig.browser) {
             platformConfig.browser.headless = opts.headless

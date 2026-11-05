@@ -6,17 +6,20 @@ import { join } from 'node:path'
 import { Command } from 'commander'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
+import type { AndroidHere } from '@vostride/agent-qa-core'
 import { AppiumManager, DashboardDatabase } from '@vostride/agent-qa-dashboard'
 
 import { createRunCommand } from '../../commands/run.js'
 import { pinProcessTmpdir, removeTempRoots } from '../../__tests__/temp-roots.js'
 import type { PinnedTmpdir } from '../../__tests__/temp-roots.js'
 import {
+  LOCAL_DEVICE_MODEL,
+  LOCAL_DEVICE_NAME,
   createInProcessFixture,
   freshUpdateCheckHome,
   removeInProcessFixtures,
 } from './in-process-run-fixture.js'
-import type { InProcessFixture } from './in-process-run-fixture.js'
+import type { InProcessFixture, InProcessFixtureInput } from './in-process-run-fixture.js'
 
 interface FakeAppiumRequest {
   readonly method: string
@@ -44,6 +47,13 @@ const { startFakeAppiumServer } = (await import(
 const RUN_BUDGET_MS = 180_000
 const FARM_TOKEN = 'farm-token-value-mark'
 const MODEL = 'Samsung Galaxy S24'
+const IPHONE_MODEL = 'iPhone 16'
+
+// The phone this machine has in the cells that run here, so no cell runs adb.
+const HERE: AndroidHere = {
+  attached: [{ serial: '37121FDJH000', state: 'device', model: LOCAL_DEVICE_MODEL, os: '15' }],
+  avds: [],
+}
 
 const opened: Array<() => Promise<void> | void> = []
 
@@ -74,7 +84,13 @@ interface DeviceScene {
   readonly acquireLease: ReturnType<typeof vi.spyOn>
 }
 
-async function onRemoteDevice(drive: (scene: DeviceScene) => Promise<void>): Promise<void> {
+async function onRemoteDevice(
+  drive: (scene: DeviceScene) => Promise<void>,
+  knobs: {
+    readonly device?: Partial<NonNullable<InProcessFixtureInput['remoteDevice']>>
+    readonly fixture?: Omit<InProcessFixtureInput, 'origin' | 'remoteDevice'>
+  } = {},
+): Promise<void> {
   const server = await startFakeAppiumServer({ requireHeader: ['x-farm-token', FARM_TOKEN] })
   opened.push(() => server.close())
   const project = createInProcessFixture({
@@ -85,8 +101,10 @@ async function onRemoteDevice(drive: (scene: DeviceScene) => Promise<void>): Pro
       headers: { 'x-farm-token': '{{secret:FARM_TOKEN}}' },
       model: MODEL,
       os: '14',
+      ...knobs.device,
     },
     extraSecrets: { FARM_TOKEN },
+    ...knobs.fixture,
   })
   vi.stubEnv('HOME', freshUpdateCheckHome())
   const printed: string[] = []
@@ -108,11 +126,36 @@ async function onRemoteDevice(drive: (scene: DeviceScene) => Promise<void>): Pro
   await drive({ project, server, printed, acquire, acquireLease })
 }
 
-async function runThroughCli(project: InProcessFixture, pattern: string): Promise<void> {
-  const program = new Command().option('--config <path>').addCommand(createRunCommand())
+async function runThroughCli(
+  project: InProcessFixture,
+  args: readonly string[],
+  options: { readonly logLevel?: string; readonly here?: AndroidHere } = {},
+): Promise<void> {
+  const here = options.here
+  const program = new Command()
+    .option('--config <path>')
+    .option('--log-level <level>')
+    .addCommand(
+      createRunCommand(here === undefined ? {} : { listDevicesHere: async () => here }),
+    )
   await expect(
-    program.parseAsync(['--config', project.configPath, 'run', pattern], { from: 'user' }),
+    program.parseAsync(
+      [
+        '--config',
+        project.configPath,
+        ...(options.logLevel === undefined ? [] : ['--log-level', options.logLevel]),
+        'run',
+        ...args,
+      ],
+      { from: 'user' },
+    ),
   ).rejects.toThrow('fixture command exit')
+}
+
+function newSessionsOn(server: FakeAppiumServer): readonly FakeAppiumRequest[] {
+  return server.requests.filter(
+    (request) => request.method === 'POST' && request.path === '/wd/hub/session',
+  )
 }
 
 function storedRunners(project: InProcessFixture): unknown[] {
@@ -129,7 +172,7 @@ describe('a test on a remote device runs there from every door', () => {
     'agent-qa run opens the session on the remote with its resolved header, records the run remote and starts no Appium',
     async () => {
       await onRemoteDevice(async ({ project, server, printed, acquire, acquireLease }) => {
-        await runThroughCli(project, project.testPattern)
+        await runThroughCli(project, [project.testPattern])
 
         const log = printed.join('\n')
         const newSessions = server.requests.filter(
@@ -162,6 +205,73 @@ describe('a test on a remote device runs there from every door', () => {
         expect(acquireLease).not.toHaveBeenCalled()
         expect(log).not.toContain(FARM_TOKEN)
       })
+    },
+    RUN_BUDGET_MS,
+  )
+
+  it(
+    'agent-qa run opens one session for an iOS device on the remote, asking for no simulator log',
+    async () => {
+      await onRemoteDevice(
+        async ({ project, server, printed, acquire, acquireLease }) => {
+          await runThroughCli(project, [project.testPattern])
+
+          const log = printed.join('\n')
+          const newSessions = newSessionsOn(server)
+          expect(newSessions, log).toHaveLength(1)
+          const body = newSessions[0]?.body as {
+            capabilities?: { alwaysMatch?: Record<string, unknown> }
+          }
+          const asked = body.capabilities?.alwaysMatch ?? {}
+          expect(asked.platformName, log).toBe('iOS')
+          expect(asked['appium:deviceName'], log).toBe(IPHONE_MODEL)
+          expect(asked, log).not.toHaveProperty('appium:showIOSLog')
+          expect(newSessions[0]?.headers['x-farm-token'], log).toBe(FARM_TOKEN)
+          expect(server.sessionsDeleted(), log).toEqual(server.sessionsCreated())
+          expect(new Set(storedRunners(project)), log).toEqual(new Set(['remote']))
+          expect(acquire).not.toHaveBeenCalled()
+          expect(acquireLease).not.toHaveBeenCalled()
+        },
+        { device: { platform: 'ios', model: IPHONE_MODEL, os: '18.2' } },
+      )
+    },
+    RUN_BUDGET_MS,
+  )
+
+  it(
+    'a debug run on a device here stays silent when the config lists a remote device, and a remote run after it still opens',
+    async () => {
+      await onRemoteDevice(
+        async ({ project, server, printed }) => {
+          const here = await startFakeAppiumServer()
+          opened.push(() => here.close())
+          vi.stubEnv('AGENT_QA_APPIUM_URL', here.url)
+          vi.stubEnv('WDIO_LOG_LEVEL', undefined)
+          const wdioLines: string[] = []
+          const keepWdio = (...args: unknown[]): void => {
+            wdioLines.push(plain(args.map(String).join(' ')))
+          }
+          vi.spyOn(console, 'info').mockImplementation(keepWdio)
+          vi.spyOn(console, 'debug').mockImplementation(keepWdio)
+          vi.spyOn(console, 'trace').mockImplementation(keepWdio)
+
+          await runThroughCli(project, [project.testPattern, '--device', LOCAL_DEVICE_NAME], {
+            logLevel: 'debug',
+            here: HERE,
+          })
+
+          const log = printed.join('\n')
+          expect(newSessionsOn(here), log).toHaveLength(1)
+          expect(process.env.WDIO_LOG_LEVEL ?? 'silent', log).toBe('silent')
+          const webdriverLine = /\b(?:webdriver|webdriverio|devtools):/
+          expect([...printed, ...wdioLines].filter((line) => webdriverLine.test(line))).toEqual([])
+
+          await runThroughCli(project, [project.testPattern])
+
+          expect(newSessionsOn(server), printed.join('\n')).toHaveLength(1)
+        },
+        { fixture: { localDevice: true } },
+      )
     },
     RUN_BUDGET_MS,
   )

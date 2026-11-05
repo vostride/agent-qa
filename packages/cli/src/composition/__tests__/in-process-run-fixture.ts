@@ -118,6 +118,10 @@ export interface InProcessFixtureInput {
     readonly headers?: Readonly<Record<string, string>>
     readonly model: string
     readonly os?: string
+    /** An iPhone and an iOS target in place of the Android device and target. */
+    readonly platform?: 'ios'
+    /** The standalone test's `use.mobile.appState`; `preserve` when absent. */
+    readonly appState?: 'reset'
   }
   /** With `remoteDevice`, its target names the remote device and the standalone test names none. */
   readonly deviceOnTarget?: boolean
@@ -149,6 +153,8 @@ export const REMOTE_DEVICE_REMOTE_NAME = 'farm'
 export const REMOTE_DEVICE_NAME = 'galaxy-farm'
 export const REMOTE_DEVICE_TARGET_NAME = 'shop-android'
 export const REMOTE_DEVICE_APP_PACKAGE = 'com.example.shop'
+export const REMOTE_IOS_DEVICE_NAME = 'iphone-farm'
+export const REMOTE_IOS_TARGET_NAME = 'shop-ios'
 export const LOCAL_DEVICE_NAME = 'pixel'
 export const LOCAL_DEVICE_MODEL = 'Pixel 8'
 
@@ -193,6 +199,9 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
   const directTestId = generateTestId()
   const memberTestId = generateTestId()
   const remoteDevice = input.remoteDevice
+  const remoteOnIOS = remoteDevice?.platform === 'ios'
+  const remoteDeviceName = remoteOnIOS ? REMOTE_IOS_DEVICE_NAME : REMOTE_DEVICE_NAME
+  const remoteTargetName = remoteOnIOS ? REMOTE_IOS_TARGET_NAME : REMOTE_DEVICE_TARGET_NAME
   const pixelDevice =
     input.remote !== undefined &&
     (input.remoteAnchoredInDevices === true || input.remotesKeyAliased === true)
@@ -256,8 +265,8 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       ...(remoteDevice === undefined
         ? []
         : [
-            `    ${REMOTE_DEVICE_NAME}:`,
-            '      platform: android',
+            `    ${remoteDeviceName}:`,
+            `      platform: ${remoteOnIOS ? 'ios' : 'android'}`,
             `      model: ${JSON.stringify(remoteDevice.model)}`,
             ...(remoteDevice.os === undefined
               ? []
@@ -290,10 +299,11 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       ...(remoteDevice === undefined
         ? []
         : [
-            `    ${REMOTE_DEVICE_TARGET_NAME}:`,
-            '      platform: android',
-            `      appPackage: ${REMOTE_DEVICE_APP_PACKAGE}`,
-            ...(input.deviceOnTarget === true ? [`      device: ${REMOTE_DEVICE_NAME}`] : []),
+            `    ${remoteTargetName}:`,
+            ...(remoteOnIOS
+              ? ['      platform: ios', `      bundleId: ${REMOTE_DEVICE_APP_PACKAGE}`]
+              : ['      platform: android', `      appPackage: ${REMOTE_DEVICE_APP_PACKAGE}`]),
+            ...(input.deviceOnTarget === true ? [`      device: ${remoteDeviceName}`] : []),
           ]),
       '  llms:',
       ...(input.model === undefined
@@ -408,7 +418,7 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
           `test-id: ${directTestId}`,
           'name: the standalone test',
           `target: ${
-            remoteDevice === undefined ? IN_PROCESS_TARGET_NAME : REMOTE_DEVICE_TARGET_NAME
+            remoteDevice === undefined ? IN_PROCESS_TARGET_NAME : remoteTargetName
           }`,
           ...(input.directTestPick === undefined && remoteDevice === undefined ? [] : ['use:']),
           ...(input.directTestPick === undefined
@@ -417,9 +427,9 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
           ...(remoteDevice === undefined
             ? []
             : [
-                ...(input.deviceOnTarget === true ? [] : [`  device: ${REMOTE_DEVICE_NAME}`]),
+                ...(input.deviceOnTarget === true ? [] : [`  device: ${remoteDeviceName}`]),
                 '  mobile:',
-                '    appState: preserve',
+                `    appState: ${remoteDevice.appState ?? 'preserve'}`,
               ]),
           ...setupLines('test'),
           'steps:',
@@ -446,7 +456,7 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
   }
 
   const memberDevices = remoteDevice === undefined ? undefined : input.suiteMemberDevices
-  const memberTarget = memberDevices === undefined ? IN_PROCESS_TARGET_NAME : REMOTE_DEVICE_TARGET_NAME
+  const memberTarget = memberDevices === undefined ? IN_PROCESS_TARGET_NAME : remoteTargetName
   const memberDeviceLines = (device: string | undefined): string[] =>
     device === undefined ? [] : ['use:', `  device: ${device}`]
   writeFileSync(
@@ -484,7 +494,7 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       'name: the in-process suite',
       `target: ${
         memberDevices !== undefined
-          ? REMOTE_DEVICE_TARGET_NAME
+          ? remoteTargetName
           : input.secondTarget === true && input.suiteOnSecondTarget === true
             ? SECOND_TARGET_NAME
             : IN_PROCESS_TARGET_NAME
