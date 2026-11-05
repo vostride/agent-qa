@@ -285,6 +285,25 @@ describe('commands after the session opens', () => {
     [Object.assign(new Error('session gone'), { name: 'invalid session id' }), 'ended'],
     [new Error('A session is either terminated or not started'), 'ended'],
     [Object.assign(new Error('no such element'), { name: 'no such element' }), undefined],
+    [
+      Object.assign(
+        new Error('Could not proxy command to the remote server. Original error: socket hang up'),
+        { name: 'unknown error' },
+      ),
+      undefined,
+    ],
+    [
+      Object.assign(new Error('Original error: connect ECONNREFUSED 127.0.0.1:8200'), {
+        name: 'unknown error',
+      }),
+      undefined,
+    ],
+    [
+      Object.assign(new Error('Could not parse response body: "502 Bad Gateway: ECONNRESET"'), {
+        statusCode: 502,
+      }),
+      undefined,
+    ],
   ] as const)('%s is %s', (error, kind) => {
     expect(classifyCommandFailure(error)).toBe(kind)
   })

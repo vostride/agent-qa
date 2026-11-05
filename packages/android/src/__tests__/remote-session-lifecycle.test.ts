@@ -238,6 +238,27 @@ describe("a remote Android session's life", () => {
     expect(adapter.isBrowserDisconnected).toBe(false)
   })
 
+  it('keeps the session when the server answers that its device-side server dropped a connection', async () => {
+    const server = await fakeServer({
+      execute: {
+        'mobile: pressKey': {
+          status: 500,
+          error: 'unknown error',
+          message: 'Could not proxy command to the remote server. Original error: socket hang up',
+        },
+      },
+    })
+    const adapter = await opened(server, { heartbeatIntervalMs: QUIET_HEARTBEAT_MS })
+
+    const result = await adapter.execute(BACK)
+
+    expect(result.success).toBe(false)
+    expect(result.error).toContain('socket hang up')
+    expect(adapter.isBrowserDisconnected).toBe(false)
+    expect(adapter.disconnectSummary).toBeUndefined()
+    expect((await adapter.execute(BACK)).error).not.toBe(lostSentence(server))
+  })
+
   it('counts a tap as done when the server does not know the release', async () => {
     const server = await fakeServer({ releaseActions: 'unknown command' })
     const adapter = await opened(server, { heartbeatIntervalMs: QUIET_HEARTBEAT_MS })

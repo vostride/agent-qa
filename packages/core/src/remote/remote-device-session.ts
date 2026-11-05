@@ -207,10 +207,21 @@ function isRequestTimeout(error: unknown): boolean {
   )
 }
 
+// A reply carries its status or names its W3C error; a transport failure is a plain Error.
+function serverAnswered(error: unknown): boolean {
+  if (typeof error === 'object' && error !== null && 'statusCode' in error) {
+    if (typeof (error as { statusCode: unknown }).statusCode === 'number') return true
+  }
+  const name = nameOf(error)
+  return name !== '' && name !== 'Error'
+}
+
+// A server that answered is still reachable, whatever its text says about its own connections.
 export function classifyCommandFailure(error: unknown): 'lost' | 'ended' | undefined {
   const text = `${nameOf(error)} ${messageOf(error)}`
   if (SESSION_ENDED.test(text)) return 'ended'
-  if (isRequestTimeout(error) || SOCKET_FAILURE.test(text)) return 'lost'
+  if (isRequestTimeout(error)) return 'lost'
+  if (!serverAnswered(error) && SOCKET_FAILURE.test(text)) return 'lost'
   return undefined
 }
 
