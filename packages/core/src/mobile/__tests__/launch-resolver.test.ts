@@ -58,6 +58,14 @@ function makeConfig(overrides?: {
   }
 }
 
+function iosTargetWithDevice() {
+  return makeConfig({
+    targets: {
+      'release-ios-wdio': { platform: 'ios', bundleId: 'com.example', device: 'target-ios' },
+    },
+  })
+}
+
 function expectMobileSetupError(fn: () => unknown) {
   try {
     fn()
@@ -143,7 +151,40 @@ describe('resolveMobileRunConfig', () => {
     expect(resolved.deviceName).toBe('use-ios')
   })
 
-  it('does not fall back to target or global config default device', () => {
+  it("uses the target's device when neither --device nor use.device names one", () => {
+    const resolved = resolveMobileRunConfig({
+      config: iosTargetWithDevice(),
+      targetName: 'release-ios-wdio',
+    })
+
+    expect(resolved.deviceName).toBe('target-ios')
+    expect(resolved.sourceTrace).toContain(
+      'device=registry.targets.release-ios-wdio.device:target-ios',
+    )
+  })
+
+  it("prefers use.device over the target's device", () => {
+    const resolved = resolveMobileRunConfig({
+      config: iosTargetWithDevice(),
+      targetName: 'release-ios-wdio',
+      useDeviceName: 'use-ios',
+    })
+
+    expect(resolved.deviceName).toBe('use-ios')
+  })
+
+  it("prefers the --device flag over use.device and the target's device", () => {
+    const resolved = resolveMobileRunConfig({
+      config: iosTargetWithDevice(),
+      targetName: 'release-ios-wdio',
+      explicitDeviceName: 'explicit-ios',
+      useDeviceName: 'use-ios',
+    })
+
+    expect(resolved.deviceName).toBe('explicit-ios')
+  })
+
+  it('refuses a mobile test with no device anywhere, naming the three places to set one', () => {
     const err = expectMobileSetupError(() => resolveMobileRunConfigBase({
       appState: 'preserve',
       config: makeConfig(),
@@ -151,7 +192,95 @@ describe('resolveMobileRunConfig', () => {
     }))
 
     expect(err.category).toBe('device-resolution')
-    expect(err.message).toContain('No device specified for mobile target')
+    expect(err.message).toBe(
+      'No device specified for mobile target "release-ios-wdio". Set device on ' +
+        'registry.targets.release-ios-wdio, use.device in the test or its suite, or pass --device.',
+    )
+  })
+
+  it('plans a search here for a device with no remote, by its model, os and id', () => {
+    const resolved = resolveMobileRunConfig({
+      config: makeConfig({
+        devices: {
+          pixel: { platform: 'android', model: 'Pixel 8', os: '14', id: 'emulator-5554' },
+        },
+      }),
+      targetName: 'release-android-wikipedia',
+      useDeviceName: 'pixel',
+    })
+
+    expect(resolved.plan).toEqual({
+      kind: 'here',
+      search: { model: 'Pixel 8', os: '14', id: 'emulator-5554' },
+    })
+  })
+
+  it('plans a search here with only the fields the device states', () => {
+    const resolved = resolveMobileRunConfig({
+      config: makeConfig(),
+      targetName: 'release-android-wikipedia',
+      useDeviceName: 'android-emu',
+    })
+
+    expect(resolved.plan).toEqual({ kind: 'here', search: {} })
+  })
+
+  it("plans a device on an appium remote to that remote, with the remote's capabilities", () => {
+    const config = makeConfig({
+      devices: {
+        'galaxy-farm': { platform: 'android', model: 'Samsung Galaxy S24', remote: 'farm' },
+      },
+    })
+    const resolved = resolveMobileRunConfig({
+      config: {
+        ...config,
+        registry: {
+          ...config.registry,
+          remotes: [
+            {
+              name: 'farm',
+              protocol: 'appium',
+              url: 'https://farm.example.com/wd/hub',
+              connectTimeout: 60_000,
+              capabilities: { 'farm:options': { build: 'nightly' } },
+            },
+          ],
+        },
+      },
+      targetName: 'release-android-wikipedia',
+      useDeviceName: 'galaxy-farm',
+    })
+
+    const remote = {
+      name: 'farm',
+      protocol: 'appium',
+      url: 'https://farm.example.com/wd/hub',
+      connectTimeoutMs: 60_000,
+      capabilities: { 'farm:options': { build: 'nightly' } },
+    }
+    expect(resolved.plan).toEqual({ kind: 'remote', remote })
+    expect(resolved.device.remote).toEqual(remote)
+  })
+
+  it("carries the target's app.ref", () => {
+    const resolved = resolveMobileRunConfig({
+      config: makeConfig({
+        targets: {
+          'release-android-wikipedia': {
+            platform: 'android',
+            appPackage: 'org.wikipedia.alpha',
+            app: { ref: 'https://builds.example.com/wikipedia.apk' },
+          },
+        },
+      }),
+      targetName: 'release-android-wikipedia',
+      useDeviceName: 'android-emu',
+    })
+
+    expect(resolved.app.ref).toBe('https://builds.example.com/wikipedia.apk')
+    expect(resolved.app.sourceTrace['app.ref']).toBe(
+      'registry.targets.release-android-wikipedia.app.ref',
+    )
   })
 
   it('carries the device model, os, id and capabilities, and takes app ids from the target', () => {

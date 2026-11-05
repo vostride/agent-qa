@@ -64,6 +64,7 @@ export interface ResolvedMobileAppInstall {
 }
 
 export interface ResolvedMobileApp {
+  ref?: string
   bundleId?: string
   appPackage?: string
   appActivity?: string
@@ -72,11 +73,17 @@ export interface ResolvedMobileApp {
   sourceTrace: Record<string, string>
 }
 
+// A device on a remote connects there; a device here is searched for on this machine.
+export type MobileDevicePlan =
+  | { kind: 'remote'; remote: RemoteDeviceConfig }
+  | { kind: 'here'; search: { model?: string; os?: string; id?: string } }
+
 export interface ResolvedMobileRunConfig {
   platform: MobilePlatform
   targetName: string
   deviceName: string
   device: ResolvedMobileDevice
+  plan: MobileDevicePlan
   app: ResolvedMobileApp
   appState: MobileAppState
   appium: { url?: string; managed?: boolean }
@@ -101,6 +108,7 @@ interface TargetEntry {
   appActivity?: string
   app?: {
     path?: string
+    ref?: string
   }
   device?: string
 }
@@ -160,10 +168,14 @@ function appInstallError(
   })
 }
 
-function chooseDeviceName(input: ResolveMobileRunConfigInput): { name?: string; source?: string } {
+function chooseDeviceName(
+  input: ResolveMobileRunConfigInput,
+  target: TargetEntry,
+): { name?: string; source?: string } {
   const candidates = [
     ['explicitDeviceName', input.explicitDeviceName],
     ['use.device', input.useDeviceName],
+    [`registry.targets.${input.targetName}.device`, target.device],
   ] as const
 
   for (const [source, value] of candidates) {
@@ -251,10 +263,12 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     )
   }
 
-  const chosenDevice = chooseDeviceName(input)
+  const chosenDevice = chooseDeviceName(input, target)
   if (!chosenDevice.name) {
     throw setupError(
-      `No device specified for mobile target "${input.targetName}"`,
+      `No device specified for mobile target "${input.targetName}". ` +
+        `Set device on registry.targets.${input.targetName}, ` +
+        'use.device in the test or its suite, or pass --device.',
       input,
       { platform },
     )
@@ -324,10 +338,31 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     if (bundleId.source) sourceTrace.push(`app.bundleId=${bundleId.source}`)
   }
 
+  const appRef = asOptionalString(target.app?.ref)
+  if (appRef) {
+    app.ref = appRef
+    appSourceTrace['app.ref'] = `registry.targets.${input.targetName}.app.ref`
+  }
+
   const install = resolveAppInstall(target, input, platform, deviceName, sourceTrace)
   if (install) {
     app.install = install
   }
+
+  const model = asOptionalString(deviceProfile.model)
+  const os = asOptionalString(deviceProfile.os)
+  const id = asOptionalString(deviceProfile.id)
+  const plan: MobileDevicePlan =
+    remote === undefined
+      ? {
+          kind: 'here',
+          search: {
+            ...(model ? { model } : {}),
+            ...(os ? { os } : {}),
+            ...(id ? { id } : {}),
+          },
+        }
+      : { kind: 'remote', remote }
 
   return {
     platform,
@@ -336,12 +371,13 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     device: {
       name: deviceName,
       platform,
-      ...(asOptionalString(deviceProfile.model) ? { model: deviceProfile.model } : {}),
-      ...(asOptionalString(deviceProfile.os) ? { os: deviceProfile.os } : {}),
-      ...(asOptionalString(deviceProfile.id) ? { id: deviceProfile.id } : {}),
+      ...(model ? { model } : {}),
+      ...(os ? { os } : {}),
+      ...(id ? { id } : {}),
       ...(isRecord(deviceProfile.capabilities) ? { capabilities: deviceProfile.capabilities } : {}),
       ...(remote === undefined ? {} : { remote }),
     },
+    plan,
     app,
     appState,
     // A remote device's Appium is its remote, so no local one is named or managed.

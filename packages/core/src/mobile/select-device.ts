@@ -25,6 +25,7 @@ export function toRemoteDeviceConfig(entry: RemoteEntry): RemoteDeviceConfig {
     ...(entry.headers ? { headers: entry.headers } : {}),
     ...(entry.basicAuth ? { basicAuth: entry.basicAuth } : {}),
     connectTimeoutMs: entry.connectTimeout ?? DEFAULT_REMOTE_CONNECT_TIMEOUT_MS,
+    ...(entry.capabilities ? { capabilities: entry.capabilities } : {}),
   }
 }
 

@@ -139,6 +139,7 @@ describe('buildPlatformConfig', () => {
       targetName: 'release-android-wikipedia',
       deviceName: 'android-emu',
       device: resolvedDevice,
+      plan: { kind: 'here', search: {} },
       app: {
         appPackage: 'org.wikipedia.alpha',
         appActivity: '.main.MainActivity',
@@ -168,6 +169,7 @@ describe('buildPlatformConfig', () => {
       targetName: 'release-android-wikipedia',
       deviceName: 'android-emu',
       device: resolvedDevice,
+      plan: { kind: 'here', search: {} },
       app: {
         appPackage: 'org.wikipedia.alpha',
         deepLinkAppId: 'org.wikipedia.alpha',
@@ -199,6 +201,7 @@ describe('buildPlatformConfig', () => {
       targetName: 'release-android-wikipedia',
       deviceName: 'android-emu',
       device: resolvedDevice,
+      plan: { kind: 'here', search: {} },
       app: {
         appPackage: 'org.wikipedia.alpha',
         deepLinkAppId: 'org.wikipedia.alpha',
@@ -238,6 +241,7 @@ describe('buildPlatformConfig', () => {
       targetName: 'release-ios-wdio',
       deviceName: 'ios-sim',
       device: resolvedDevice,
+      plan: { kind: 'here', search: {} },
       app: {
         bundleId: 'org.reactjs.native.example.wdiodemoapp',
         deepLinkAppId: 'org.reactjs.native.example.wdiodemoapp',
