@@ -17,6 +17,7 @@ export const AGENT_QA_CORE_FORBIDDEN_RESPONSIBILITIES = [
 ] as const
 export const AGENT_QA_CORE_EXTERNAL_DEPENDENCIES = [
   'ai',
+  'ajv',
   'bytes',
   'fast-xml-parser',
   'glob',

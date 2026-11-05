@@ -4,6 +4,13 @@ export {
   type PluginManifestRead,
 } from './manifest.js'
 export {
+  checkPluginConfig,
+  MAX_PLUGIN_SCHEMA_BYTES,
+  MAX_PLUGIN_SCHEMA_DEPTH,
+  type PluginConfigInput,
+  type PluginConfigIssue,
+} from './options-check.js'
+export {
   pluginInstallLine,
   resolvePluginEntries,
   resolvePluginEntry,
