@@ -25,7 +25,7 @@ type Scope = PluginConfigIssue['scope']
 type DataPath = (string | number)[]
 type JsonObject = Record<string, unknown>
 
-type LoadedSchema =
+export type LoadedPluginSchema =
   | { ok: true; schema: JsonObject; validate: ValidateFunction }
   | { ok: false; message: string }
 
@@ -44,7 +44,7 @@ function exceedsDepth(value: unknown, depth: number): boolean {
   return children.some((child) => exceedsDepth(child, depth + 1))
 }
 
-function loadSchema(packageDir: string, file: string): LoadedSchema {
+export function loadPluginSchema(packageDir: string, file: string): LoadedPluginSchema {
   const path = resolve(packageDir, file)
   let text: string
   try {
@@ -191,7 +191,7 @@ function describeError(scope: Scope, error: ErrorObject): { path: DataPath; sent
 }
 
 function checkValue(
-  loaded: Extract<LoadedSchema, { ok: true }>,
+  loaded: Extract<LoadedPluginSchema, { ok: true }>,
   scope: Scope,
   value: unknown,
   speaker: string,
@@ -249,7 +249,7 @@ export function checkPluginConfig(
   const issues: PluginConfigIssue[] = []
 
   if (manifest.options !== undefined) {
-    const loaded = loadSchema(packageDir, manifest.options)
+    const loaded = loadPluginSchema(packageDir, manifest.options)
     if (loaded.ok) {
       issues.push(...checkValue(loaded, 'options', config.options, entrySpeaker, undefined))
     } else {
@@ -258,7 +258,7 @@ export function checkPluginConfig(
   }
 
   if (manifest.kind === 'remote' && config.remotes.length > 0) {
-    const loaded = loadSchema(packageDir, manifest.settings)
+    const loaded = loadPluginSchema(packageDir, manifest.settings)
     if (!loaded.ok) {
       issues.push({ scope: 'settings', path: [], message: `${entrySpeaker}: ${loaded.message}.` })
       return issues

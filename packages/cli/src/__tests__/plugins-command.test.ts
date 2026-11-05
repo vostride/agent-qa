@@ -87,8 +87,7 @@ async function writeConfig(lines: {
     path.join(workspaceDir, 'agent-qa.config.yaml'),
     [
       ...WORKSPACE,
-      'registry:',
-      '  remotes:',
+      ...(lines.remotes.length === 0 ? [] : ['registry:', '  remotes:']),
       ...lines.remotes.flatMap(([remote, entry]) => [
         `    - name: ${remote}`,
         `      plugin: ${entry}`,
@@ -313,7 +312,149 @@ describe('agent-qa plugins list without entries or config', () => {
     await runPlugins('list', '--json')
 
     expect(stdout()).toBe('')
-    expect(stderr()).toMatch(/^Plugins error: /)
+    expect(stderr()).toMatch(/^Config validation failed:/)
+    expect(process.exitCode).toBe(1)
+  })
+})
+
+describe('agent-qa plugins describe', () => {
+  beforeEach(async () => {
+    await installPackage('@acme/agent-qa-plugin-grid', {
+      manifest: {
+        serves: ['playwright', 'cdp'],
+        methods: ['check'],
+        runFacts: ['testName', 'runId', 'failure'],
+        skill: './skill',
+      },
+      options: objectSchema(
+        {
+          apiKey: { type: 'string', credential: true, description: 'The account key' },
+          apiUrl: {
+            type: 'string',
+            default: 'https://api.acme.test',
+            description: 'The API endpoint',
+          },
+        },
+        { required: ['apiKey'] },
+      ),
+      settings: objectSchema({
+        region: { type: 'string', enum: ['eu', 'us'], description: 'Where sessions run' },
+      }),
+    })
+    await installPackage('@acme/agent-qa-plugin-spare')
+    await writeConfig({
+      plugins: [
+        '  - name: grid',
+        "    package: '@acme/agent-qa-plugin-grid'",
+        '  - name: spare',
+        "    package: '@acme/agent-qa-plugin-spare'",
+      ],
+      remotes: [['farm', 'grid']],
+    })
+  })
+
+  it('prints what the plugin serves, its methods and run facts, then its fields', async () => {
+    await runPlugins('describe', 'grid')
+
+    const lines = stdout().split('\n')
+    expect(lines.slice(0, 5)).toEqual([
+      'grid  @acme/agent-qa-plugin-grid  third-party  1.0.0  protocol 1',
+      'serves: playwright, cdp',
+      'methods: check',
+      'receives: testName, runId, failure',
+      'skill: ./skill',
+    ])
+    const options = lines.indexOf('Options')
+    const settings = lines.indexOf('Settings')
+    expect(options).toBeGreaterThan(4)
+    expect(settings).toBeGreaterThan(options)
+    const optionRows = lines.slice(options + 1, settings)
+    expect(optionRows[0]).toMatch(
+      /^\s+field\s+type\s+required\s+default\s+credential\s+description$/,
+    )
+    expect(optionRows[1]).toMatch(
+      /^\s+apiKey\s+string\s+required\s+-\s+credential\s+The account key$/,
+    )
+    expect(optionRows[2]).toMatch(
+      /^\s+apiUrl\s+string\s+optional\s+"https:\/\/api\.acme\.test"\s+-\s+The API endpoint$/,
+    )
+    expect(lines[settings + 2]).toMatch(
+      /^\s+region\s+'eu' \| 'us'\s+optional\s+-\s+-\s+Where sessions run$/,
+    )
+    expect(existsSync(path.join(workspaceDir, 'plugin-ran.marker'))).toBe(false)
+    expect(process.exitCode).toBe(0)
+  })
+
+  it('says a plugin that declares no run facts receives session facts only', async () => {
+    await runPlugins('describe', 'spare')
+
+    expect(stdout().split('\n')).toContain('receives: session facts only')
+    expect(stdout().split('\n')).toContain('methods: none')
+  })
+
+  it('emits the same description as JSON', async () => {
+    await runPlugins('describe', 'grid', '--json')
+
+    expect(jsonOut()).toEqual({
+      entry: 'grid',
+      package: '@acme/agent-qa-plugin-grid',
+      origin: 'third-party',
+      version: '1.0.0',
+      protocol: 1,
+      serves: ['playwright', 'cdp'],
+      methods: ['check'],
+      runFacts: ['testName', 'runId', 'failure'],
+      skill: './skill',
+      options: [
+        {
+          path: 'apiKey',
+          type: 'string',
+          required: true,
+          description: 'The account key',
+          credential: true,
+        },
+        {
+          path: 'apiUrl',
+          type: 'string',
+          required: false,
+          default: 'https://api.acme.test',
+          description: 'The API endpoint',
+          credential: false,
+        },
+      ],
+      settings: [
+        {
+          path: 'region',
+          type: "'eu' | 'us'",
+          required: false,
+          description: 'Where sessions run',
+          credential: false,
+        },
+      ],
+    })
+    expect(process.exitCode).toBe(0)
+  })
+
+  it.each([[[]], [['--json']]])('refuses an unknown entry name and exits 1 (%j)', async (flags) => {
+    await runPlugins('describe', 'nope', ...flags)
+
+    expect(stdout()).toBe('')
+    expect(stderr()).toBe('No plugins entry named nope. plugins lists: grid, spare.')
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('refuses an entry whose package is not installed with its install line', async () => {
+    await writeConfig({
+      plugins: ['  - name: absent', "    package: '@acme/agent-qa-plugin-absent'"],
+      remotes: [],
+    })
+
+    await runPlugins('describe', 'absent')
+
+    expect(stderr()).toBe(
+      'Plugin entry absent names @acme/agent-qa-plugin-absent, which is not installed. Run npm '
+        + 'install --save-dev @acme/agent-qa-plugin-absent.',
+    )
     expect(process.exitCode).toBe(1)
   })
 })

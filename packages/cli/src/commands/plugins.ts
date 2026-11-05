@@ -3,11 +3,15 @@
 import { dirname, resolve } from 'node:path'
 
 import {
+  describePlugin,
   getAgentQaVersion,
   isPluginRemoteEntry,
   resolvePluginEntries,
+  resolvePluginEntry,
   type AgentQaConfig,
+  type PluginDescription,
   type PluginEntryState,
+  type PluginField,
   type PluginOrigin,
   type PluginRemoteInput,
   type ResolvedPluginEntry,
@@ -117,14 +121,86 @@ function listLines(rows: readonly PluginListRow[]): string[] {
   })
 }
 
-function printError(label: string, error: unknown): void {
-  const message = error instanceof Error ? error.message : String(error)
-  printRunText(pc.red(`${label}: ${message}`), (line) => console.error(line))
-  process.exitCode = 1
+function fieldTable(title: string, fields: readonly PluginField[]): string[] {
+  if (fields.length === 0) return [title, '  none']
+  const rows = [
+    ['field', 'type', 'required', 'default', 'credential', 'description'],
+    ...fields.map((field) => [
+      field.path,
+      field.type,
+      field.required ? 'required' : 'optional',
+      'default' in field ? JSON.stringify(field.default) : '-',
+      field.credential ? 'credential' : '-',
+      field.description ?? '',
+    ]),
+  ]
+  const widths = rows[0]!.map((_, column) => Math.max(...rows.map((row) => row[column]!.length)))
+  return [
+    title,
+    ...rows.map((row) =>
+      `  ${row.map((cell, column) => cell.padEnd(widths[column]!)).join('  ')}`.trimEnd(),
+    ),
+  ]
 }
 
-function printJson(value: unknown): void {
-  console.log(guardJsonText(JSON.stringify(value, null, 2)))
+function describeLines(described: PluginDescription): string[] {
+  const list = (values: readonly string[]) => (values.length === 0 ? 'none' : values.join(', '))
+  return [
+    [
+      described.entry,
+      described.package ?? described.path ?? '-',
+      described.origin,
+      described.version ?? '-',
+      `protocol ${described.protocol ?? '-'}`,
+    ].join('  '),
+    `serves: ${list(described.serves)}`,
+    `methods: ${list(described.methods)}`,
+    `receives: ${
+      described.runFacts.length === 0 ? 'session facts only' : described.runFacts.join(', ')
+    }`,
+    ...(described.skill === undefined ? [] : [`skill: ${described.skill}`]),
+    '',
+    ...fieldTable('Options', described.options),
+    ...fieldTable('Settings', described.settings),
+  ]
+}
+
+function describeEntry(project: PluginProject, name: string): PluginDescription {
+  const plugins = project.config.plugins ?? []
+  const entry = plugins.find((plugin) => plugin.name === name)
+  if (entry === undefined) {
+    const names = plugins.map((plugin) => plugin.name).join(', ')
+    throw new Error(`No plugins entry named ${name}. plugins lists: ${names || 'no entries'}.`)
+  }
+  return describePlugin(
+    resolvePluginEntry(entry, {
+      configDir: project.configDir,
+      agentQaVersion: getAgentQaVersion(),
+    }),
+  )
+}
+
+// `--json` keeps stdout for the document; every failure goes to stderr with exit 1.
+async function printResult<T>(
+  options: JsonOption,
+  produce: () => Promise<T>,
+  lines: (value: T) => string[],
+): Promise<void> {
+  const releaseStdout = options.json === true ? reserveStdoutForData() : undefined
+  try {
+    const value = await produce()
+    if (options.json === true) {
+      console.log(guardJsonText(JSON.stringify(value, null, 2)))
+      return
+    }
+    printRunText(lines(value).join('\n'))
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    printRunText(pc.red(message), (line) => console.error(line))
+    process.exitCode = 1
+  } finally {
+    releaseStdout?.()
+  }
 }
 
 function createListCommand(): Command {
@@ -132,19 +208,25 @@ function createListCommand(): Command {
     .description("List the plugins entries with each one's state, read from manifests only")
     .option('--json', 'emit the entries as JSON')
     .action(async (options: JsonOption, command: Command) => {
-      const releaseStdout = options.json === true ? reserveStdoutForData() : undefined
-      try {
-        const rows = pluginListRows(await loadProject(command))
-        if (options.json === true) {
-          printJson({ plugins: rows })
-          return
-        }
-        printRunText(listLines(rows).join('\n'))
-      } catch (error) {
-        printError('Plugins error', error)
-      } finally {
-        releaseStdout?.()
-      }
+      await printResult(
+        options,
+        async () => ({ plugins: pluginListRows(await loadProject(command)) }),
+        ({ plugins }) => listLines(plugins),
+      )
+    })
+}
+
+function createDescribeCommand(): Command {
+  return new Command('describe')
+    .description("Show a plugin's options and settings from its shipped schemas")
+    .argument('<name>', 'the plugins entry to describe')
+    .option('--json', 'emit the description as JSON')
+    .action(async (name: string, options: JsonOption, command: Command) => {
+      await printResult(
+        options,
+        async () => describeEntry(await loadProject(command), name),
+        describeLines,
+      )
     })
 }
 
@@ -152,4 +234,5 @@ export function createPluginsCommand(): Command {
   return new Command('plugins')
     .description('Read the plugins entries without running plugin code')
     .addCommand(createListCommand())
+    .addCommand(createDescribeCommand())
 }

@@ -1,4 +1,9 @@
 export {
+  describePlugin,
+  type PluginDescription,
+  type PluginField,
+} from './describe.js'
+export {
   readPluginManifest,
   SUBSCRIPTION_AUTH_PACKAGE,
   type PluginManifestRead,
