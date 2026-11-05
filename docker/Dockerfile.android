@@ -84,8 +84,7 @@ RUN yes | sdkmanager --licenses > /dev/null 2>&1 \
       "${AGENT_QA_ANDROID_SYSTEM_IMAGE}" \
       "emulator"
 
-# Create a deterministic CI AVD. agent-qa.local.yaml should reference this name
-# unless a local developer intentionally overrides it.
+# A device with model: Pixel 6 (this AVD's device profile) or the AVD's name finds it.
 RUN echo "no" | avdmanager create avd \
     -n "${AGENT_QA_ANDROID_AVD}" \
     -k "${AGENT_QA_ANDROID_SYSTEM_IMAGE}" \
