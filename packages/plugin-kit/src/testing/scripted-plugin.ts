@@ -18,6 +18,12 @@ export interface ScriptedPluginInput {
   serves?: readonly PluginServe[]
   methods?: readonly OptionalPluginMethod[]
   runFacts?: readonly PluginRunFact[]
+  timing?: ScriptedPluginTiming
+}
+
+export interface ScriptedPluginTiming {
+  cancelAnswerGraceMs?: number
+  hostPidPollMs?: number
 }
 
 export interface ScriptedPlugin {
@@ -37,7 +43,8 @@ description: A scripted agent-qa plugin that answers each call as its options sa
 
 # Scripted plugin
 
-Each call follows \`options.script[method]\`: \`ok\`, \`hold\` or \`{ error }\`.
+Each call follows \`options.script[method]\`: \`ok\`, \`hold\`, \`ignoreCancel\`, \`crash\`,
+\`noise\`, \`consoleLog\`, \`{ delayMs }\`, \`{ error }\` or \`{ errorAfterCreate }\`.
 `
 
 function scriptedMainFile(): string {
@@ -79,9 +86,17 @@ export function writeScriptedPlugin(dir: string, input: ScriptedPluginInput = {}
   writeFileSync(join(dir, 'options.schema.json'), openSchema)
   writeFileSync(join(dir, 'settings.schema.json'), openSchema)
   writeFileSync(join(dir, 'skill', 'SKILL.md'), SKILL)
+  const timing = {
+    ...(input.timing?.cancelAnswerGraceMs === undefined
+      ? {}
+      : { cancelAnswerGraceMs: input.timing.cancelAnswerGraceMs }),
+    ...(input.timing?.hostPidPollMs === undefined
+      ? {}
+      : { hostPidPollMs: input.timing.hostPidPollMs }),
+  }
   writeFileSync(
     join(dir, 'main.mjs'),
-    `import { startScriptedPlugin } from ${JSON.stringify(mainUrl)}\n\nstartScriptedPlugin()\n`,
+    `import { startScriptedPlugin } from ${JSON.stringify(mainUrl)}\n\nstartScriptedPlugin(${JSON.stringify(timing)})\n`,
   )
   return { dir, entry: join(dir, 'main.mjs') }
 }

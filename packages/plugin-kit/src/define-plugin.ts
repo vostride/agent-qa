@@ -78,26 +78,47 @@ export interface ShutdownInput<Options> {
   options: Options
 }
 
+export interface PluginProgress {
+  message: string
+  queued?: number
+  percent?: number
+}
+
+export interface PluginCallContext {
+  signal: AbortSignal
+  progress(update: PluginProgress): void
+  runFacts: InitializeParams['runFacts']
+}
+
 export interface PluginSpec<OptionsSchema extends z.ZodType, SettingsSchema extends z.ZodType> {
   options: OptionsSchema
   settings: SettingsSchema
   serves: readonly PluginServe[]
   runFacts?: readonly PluginRunFact[]
   skill?: string
-  initialize?(input: InitializeInput<z.output<OptionsSchema>>): Awaitable<void>
+  initialize?(
+    input: InitializeInput<z.output<OptionsSchema>>,
+    ctx: PluginCallContext,
+  ): Awaitable<void>
   check?(
     input: CheckInput<z.output<OptionsSchema>, z.output<SettingsSchema>>,
+    ctx: PluginCallContext,
   ): Awaitable<CheckResult>
   acquire(
     input: AcquireInput<z.output<OptionsSchema>, z.output<SettingsSchema>>,
+    ctx: PluginCallContext,
   ): Awaitable<AcquireResult>
   uploadApp?(
     input: UploadAppInput<z.output<OptionsSchema>, z.output<SettingsSchema>>,
+    ctx: PluginCallContext,
   ): Awaitable<UploadAppResult>
-  started?(input: StartedInput<z.output<OptionsSchema>>): Awaitable<StartedResult>
-  end?(input: EndInput<z.output<OptionsSchema>>): Awaitable<void>
-  release(input: ReleaseInput<z.output<OptionsSchema>>): Awaitable<void>
-  shutdown?(input: ShutdownInput<z.output<OptionsSchema>>): Awaitable<void>
+  started?(
+    input: StartedInput<z.output<OptionsSchema>>,
+    ctx: PluginCallContext,
+  ): Awaitable<StartedResult>
+  end?(input: EndInput<z.output<OptionsSchema>>, ctx: PluginCallContext): Awaitable<void>
+  release(input: ReleaseInput<z.output<OptionsSchema>>, ctx: PluginCallContext): Awaitable<void>
+  shutdown?(input: ShutdownInput<z.output<OptionsSchema>>, ctx: PluginCallContext): Awaitable<void>
 }
 
 export interface PluginDefinition<

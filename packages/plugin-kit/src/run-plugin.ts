@@ -1,11 +1,14 @@
 import { realpathSync } from 'node:fs'
 import { dirname } from 'node:path'
+import { format } from 'node:util'
 import type { z } from 'zod'
-import { PluginError, type PluginDefinition } from './define-plugin.js'
+import { PluginError, type PluginCallContext, type PluginDefinition } from './define-plugin.js'
 import { findPackageRoot, readPackageJson } from './package-root.js'
 import { createLineDecoder, encodeMessage } from './protocol/framing.js'
 import {
   AcquireParamsSchema,
+  CANCEL_METHOD,
+  CancelParamsSchema,
   CheckParamsSchema,
   EndParamsSchema,
   InitializeParamsSchema,
@@ -14,9 +17,11 @@ import {
   PLUGIN_ERROR_CODES,
   PLUGIN_METHODS,
   PLUGIN_PROTOCOL_VERSION,
+  PROGRESS_METHOD,
   ReleaseParamsSchema,
   StartedParamsSchema,
   UploadAppParamsSchema,
+  type InitializeParams,
   type InitializeResult,
   type OptionalPluginMethod,
   type PluginMethod,
@@ -30,9 +35,17 @@ export interface PluginIo {
   stdout: { write(chunk: string, callback?: (error?: Error | null) => void): unknown }
   exit(code: number): void
   entryPath?: string
+  cancelAnswerGraceMs: number
+  hostPidPollMs: number
 }
 
 type RequestId = string | number
+type Json = z.core.util.JSONType
+
+export const CANCEL_ANSWER_GRACE_MS = 4_000
+export const HOST_PID_POLL_MS = 1_000
+const RELEASE_ON_CLOSE_BOUND_MS = 30_000
+const RELEASE_ON_SIGTERM_BOUND_MS = 4_000
 
 const SUPPORTED_PROTOCOL_VERSIONS = [PLUGIN_PROTOCOL_VERSION]
 
@@ -46,13 +59,67 @@ class ProtocolFailure extends Error {
   }
 }
 
-function processIo(): PluginIo {
+function resolveIo(io: Partial<PluginIo>): PluginIo {
   return {
-    stdin: process.stdin,
-    stdout: process.stdout,
-    exit: (code) => process.exit(code),
-    entryPath: process.argv[1],
+    stdin: io.stdin ?? process.stdin,
+    stdout: io.stdout ?? process.stdout,
+    exit: io.exit ?? ((code) => process.exit(code)),
+    entryPath: io.entryPath ?? process.argv[1],
+    cancelAnswerGraceMs: io.cancelAnswerGraceMs ?? CANCEL_ANSWER_GRACE_MS,
+    hostPidPollMs: io.hostPidPollMs ?? HOST_PID_POLL_MS,
   }
+}
+
+function routeStrayOutputToStderr() {
+  const toLog = (...args: unknown[]) => {
+    process.stderr.write(`${format(...args)}\n`)
+  }
+  console.log = toLog
+  console.info = toLog
+  console.debug = toLog
+  console.warn = toLog
+  process.stdout.write = process.stderr.write.bind(process.stderr) as typeof process.stdout.write
+}
+
+function hostGone(hostPid: number, startPpid: number): boolean {
+  if (process.ppid !== startPpid) return true
+  try {
+    process.kill(hostPid, 0)
+    return false
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'ESRCH'
+  }
+}
+
+// Handles are JSON; two handles are the same session when their JSON is equal.
+function handleKey(handle: Json): string {
+  const canonical = (value: Json): Json => {
+    if (Array.isArray(value)) return value.map(canonical)
+    if (value === null || typeof value !== 'object') return value
+    return Object.fromEntries(
+      Object.keys(value)
+        .sort()
+        .map((key) => [key, canonical(value[key] as Json)]),
+    )
+  }
+  return JSON.stringify(canonical(handle))
+}
+
+function within<T>(work: Promise<T>, boundMs: number): Promise<T | undefined> {
+  let timer: NodeJS.Timeout | undefined
+  const bound = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), boundMs)
+  })
+  return Promise.race([work, bound]).finally(() => clearTimeout(timer))
+}
+
+type Outcome = { ok: true; value: unknown } | { ok: false; error: unknown }
+
+interface PendingCall {
+  method: string
+  controller: AbortController
+  answered: boolean
+  graceTimer?: NodeJS.Timeout
 }
 
 function firstLine(message: string): string {
@@ -125,9 +192,13 @@ function pluginIdentity(entryPath: string | undefined): InitializeResult['plugin
 
 export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extends z.ZodType>(
   definition: PluginDefinition<OptionsSchema, SettingsSchema>,
-  io: PluginIo = processIo(),
+  ioInput: Partial<PluginIo> = {},
 ): void {
+  const io = resolveIo(ioInput)
   const write = io.stdout.write.bind(io.stdout)
+  routeStrayOutputToStderr()
+  process.on('SIGINT', () => {})
+
   const send = (message: Record<string, unknown>) => {
     write(encodeMessage(message))
   }
@@ -145,14 +216,64 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
     })
 
   let options: z.output<OptionsSchema> | undefined
+  let runFacts: InitializeParams['runFacts']
   let initialized = false
   let initializing = false
-  let finished = false
+  let shutdownRan = false
+  let leaving = false
+  let hostPoll: NodeJS.Timeout | undefined
+  const startPpid = process.ppid
+  const pending = new Map<RequestId, PendingCall>()
+  const held = new Map<string, Json>()
+
+  const detachedContext = (): PluginCallContext => ({
+    signal: new AbortController().signal,
+    progress: () => {},
+    runFacts,
+  })
+
+  const hold = (handle: Json) => held.set(handleKey(handle), handle)
+
+  const releaseHeld = async (handle: Json) => {
+    await definition.release(
+      { handle, options: options as z.output<OptionsSchema> },
+      detachedContext(),
+    )
+    held.delete(handleKey(handle))
+  }
 
   const settings = (value: unknown, prefix: string) =>
     refuse(definition.settings, value, prefix) as z.output<SettingsSchema>
 
-  const initialize = async (params: unknown): Promise<InitializeResult> => {
+  const leave = async (boundMs: number) => {
+    if (leaving) return
+    leaving = true
+    clearInterval(hostPoll)
+    const sequence = async () => {
+      if (!initialized) return
+      await Promise.allSettled([...held.values()].map((handle) => releaseHeld(handle)))
+      if (shutdownRan) return
+      shutdownRan = true
+      await definition.shutdown?.(
+        { options: options as z.output<OptionsSchema> },
+        detachedContext(),
+      )
+    }
+    await within(
+      sequence().catch(() => {}),
+      boundMs,
+    )
+    write('', () => io.exit(0))
+  }
+
+  const watchHost = (hostPid: number) => {
+    hostPoll = setInterval(() => {
+      if (hostGone(hostPid, startPpid)) void leave(RELEASE_ON_CLOSE_BOUND_MS)
+    }, io.hostPidPollMs)
+    hostPoll.unref()
+  }
+
+  const initialize = async (params: unknown, ctx: PluginCallContext): Promise<InitializeResult> => {
     if (initialized || initializing) {
       throw new ProtocolFailure(PLUGIN_ERROR_CODES.invalidRequest, 'initialize was already called')
     }
@@ -174,17 +295,22 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
     const parsedOptions = refuse(definition.options, input.options, '') as z.output<OptionsSchema>
     initializing = true
     try {
-      await definition.initialize?.({
-        options: parsedOptions,
-        host: input.host,
-        entry: input.entry,
-        runFacts: input.runFacts,
-      })
+      await definition.initialize?.(
+        {
+          options: parsedOptions,
+          host: input.host,
+          entry: input.entry,
+          runFacts: input.runFacts,
+        },
+        { ...ctx, runFacts: input.runFacts },
+      )
     } finally {
       initializing = false
     }
     options = parsedOptions
+    runFacts = input.runFacts
     initialized = true
+    watchHost(input.host.pid)
     return {
       protocolVersion: Math.max(...offered),
       plugin: pluginIdentity(io.entryPath),
@@ -193,8 +319,12 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
     }
   }
 
-  const call = async (method: string, params: unknown): Promise<unknown> => {
-    if (method === 'initialize') return initialize(params)
+  const call = async (
+    method: string,
+    params: unknown,
+    ctx: PluginCallContext,
+  ): Promise<unknown> => {
+    if (method === 'initialize') return initialize(params, ctx)
     if (
       !isPluginMethod(method) ||
       (isOptionalMethod(method) &&
@@ -215,19 +345,20 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
     switch (method) {
       case 'acquire': {
         const input = parseParams(AcquireParamsSchema, params, method)
-        return definition.acquire({
-          ...input,
-          settings: settings(input.settings, 'settings'),
-          options: current,
-        })
+        return definition.acquire(
+          { ...input, settings: settings(input.settings, 'settings'), options: current },
+          ctx,
+        )
       }
       case 'release': {
         const input = parseParams(ReleaseParamsSchema, params, method)
-        await definition.release({ handle: input.handle, options: current })
+        await definition.release({ handle: input.handle, options: current }, ctx)
+        held.delete(handleKey(input.handle))
         return {}
       }
       case 'shutdown': {
-        await definition.shutdown?.({ options: current })
+        shutdownRan = true
+        await definition.shutdown?.({ options: current }, ctx)
         return {}
       }
       case 'check': {
@@ -236,23 +367,22 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
           name: remote.name,
           settings: settings(remote.settings, 'settings'),
         }))
-        return definition.check?.({ remotes, options: current })
+        return definition.check?.({ remotes, options: current }, ctx)
       }
       case 'uploadApp': {
         const input = parseParams(UploadAppParamsSchema, params, method)
-        return definition.uploadApp?.({
-          ...input,
-          settings: settings(input.settings, 'settings'),
-          options: current,
-        })
+        return definition.uploadApp?.(
+          { ...input, settings: settings(input.settings, 'settings'), options: current },
+          ctx,
+        )
       }
       case 'started': {
         const input = parseParams(StartedParamsSchema, params, method)
-        return definition.started?.({ ...input, options: current })
+        return definition.started?.({ ...input, options: current }, ctx)
       }
       case 'end': {
         const input = parseParams(EndParamsSchema, params, method)
-        await definition.end?.({ ...input, options: current })
+        await definition.end?.({ ...input, options: current }, ctx)
         return {}
       }
       default:
@@ -263,23 +393,87 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
     }
   }
 
-  const dispatch = async (id: RequestId, method: string, params: unknown) => {
-    try {
-      answer(id, await call(method, params))
-    } catch (error) {
-      if (error instanceof ProtocolFailure) {
-        fail(id, error.code, error.message, error.data)
-      } else if (error instanceof PluginError) {
-        fail(id, PLUGIN_ERROR_CODES.plugin, error.message, {
-          kind: error.kind,
-          ...(error.path === undefined ? {} : { path: error.path }),
-          ...(error.handle === undefined ? {} : { handle: error.handle }),
-        })
-      } else {
-        const message = error instanceof Error ? error.message : String(error)
-        fail(id, PLUGIN_ERROR_CODES.plugin, message, { kind: 'unreachable' })
-      }
+  const createdHandle = (method: string, outcome: Outcome): Json | undefined => {
+    if (outcome.ok) {
+      if (method !== 'acquire' || !isRecord(outcome.value)) return undefined
+      return outcome.value.handle as Json | undefined
     }
+    return outcome.error instanceof PluginError ? outcome.error.handle : undefined
+  }
+
+  const answerFailure = (id: RequestId, error: unknown) => {
+    if (error instanceof ProtocolFailure) {
+      fail(id, error.code, error.message, error.data)
+    } else if (error instanceof PluginError) {
+      fail(id, PLUGIN_ERROR_CODES.plugin, error.message, {
+        kind: error.kind,
+        ...(error.path === undefined ? {} : { path: error.path }),
+        ...(error.handle === undefined ? {} : { handle: error.handle }),
+      })
+    } else {
+      const message = error instanceof Error ? error.message : String(error)
+      fail(id, PLUGIN_ERROR_CODES.plugin, message, { kind: 'unreachable' })
+    }
+  }
+
+  const dispatch = async (id: RequestId, method: string, params: unknown) => {
+    const entry: PendingCall = { method, controller: new AbortController(), answered: false }
+    pending.set(id, entry)
+    const ctx: PluginCallContext = {
+      signal: entry.controller.signal,
+      progress: (update) => {
+        if (entry.answered) return
+        send({ jsonrpc: '2.0', method: PROGRESS_METHOD, params: { id, ...update } })
+      },
+      runFacts,
+    }
+    let outcome: Outcome
+    try {
+      outcome = { ok: true, value: await call(method, params, ctx) }
+    } catch (error) {
+      outcome = { ok: false, error }
+    }
+    clearTimeout(entry.graceTimer)
+    if (pending.get(id) === entry) pending.delete(id)
+    const handle = createdHandle(method, outcome)
+    const tracked = initialized ? handle : undefined
+    if (tracked !== undefined) hold(tracked)
+    if (entry.answered) {
+      // The cancel was already answered without this handle, so nobody else will release it.
+      if (tracked !== undefined) void releaseHeld(tracked).catch(() => {})
+      return
+    }
+    entry.answered = true
+    if (outcome.ok) {
+      answer(id, outcome.value)
+    } else if (entry.controller.signal.aborted) {
+      const message = outcome.error instanceof Error ? outcome.error.message : String(outcome.error)
+      fail(id, PLUGIN_ERROR_CODES.cancelled, message, {
+        kind: 'timeout',
+        ...(handle === undefined ? {} : { handle }),
+      })
+    } else {
+      answerFailure(id, outcome.error)
+    }
+  }
+
+  const cancel = (params: unknown) => {
+    const parsed = CancelParamsSchema.safeParse(params)
+    if (!parsed.success) return
+    const { id } = parsed.data
+    const entry = pending.get(id)
+    if (entry === undefined || entry.controller.signal.aborted) return
+    entry.controller.abort()
+    entry.graceTimer = setTimeout(() => {
+      if (entry.answered) return
+      entry.answered = true
+      fail(
+        id,
+        PLUGIN_ERROR_CODES.cancelled,
+        `${entry.method} did not stop within ${io.cancelAnswerGraceMs} ms of its cancel`,
+        { kind: 'timeout' },
+      )
+    }, io.cancelAnswerGraceMs)
   }
 
   const handleLine = (line: string) => {
@@ -300,7 +494,10 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
       fail(id, PLUGIN_ERROR_CODES.invalidRequest, 'a request needs jsonrpc "2.0" and a method')
       return
     }
-    if (!('id' in message)) return
+    if (!('id' in message)) {
+      if (message.method === CANCEL_METHOD) cancel(message.params)
+      return
+    }
     if (id === null) {
       fail(null, PLUGIN_ERROR_CODES.invalidRequest, 'a request id is a string or a number')
       return
@@ -319,14 +516,14 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
       ),
   })
 
-  const finish = () => {
-    if (finished) return
-    finished = true
+  const stdinClosed = () => {
+    if (leaving) return
     decoder.end()
-    write('', () => io.exit(0))
+    void leave(RELEASE_ON_CLOSE_BOUND_MS)
   }
 
+  process.on('SIGTERM', () => void leave(RELEASE_ON_SIGTERM_BOUND_MS))
   io.stdin.on('data', (chunk) => decoder.push(chunk))
-  io.stdin.on('end', finish)
-  io.stdin.on('error', finish)
+  io.stdin.on('end', stdinClosed)
+  io.stdin.on('error', stdinClosed)
 }
