@@ -17,6 +17,7 @@ import type {
   TestRetryScheduledPayload,
   RunArtifactStageInput,
   RunArtifactFinalizeInput,
+  RemoteProgressPayload,
 } from '@vostride/agent-qa-schema'
 import type { TestResult } from '../result.js'
 import type { EvidenceArtifactStorePort, LoopEventEmitPort, SecretRedactorPort } from '../loop/ports.js'
@@ -232,6 +233,11 @@ export type MemberTestExecutor = (
   ctx: MemberTestRunContext,
 ) => Promise<TestResult>
 
+// The host's plugin progress, bound to a run's bus once it opens; the returned function detaches.
+export interface RemoteProgressRelay {
+  attach(publish: (payload: RemoteProgressPayload) => void): () => void
+}
+
 // All optional: an absent leg means no persistence, memory-only telemetry or the default clock.
 export interface RunPorts {
   handoffStore?: HandoffStorePort
@@ -250,6 +256,8 @@ export interface RunPorts {
   onSubscriberFault?: (code: string, message: string) => void
   // Awaited between artifact finalize and `runFinished`; absent means `detached` with no warning.
   postVerdict?: PostVerdictPort
+  // Attached after `runStarted` and detached before `verdict`, so it never meets a closed bus.
+  remoteProgress?: RemoteProgressRelay
 }
 
 // `startRun` never touches fs or providers, so nothing fs- or provider-shaped belongs here.

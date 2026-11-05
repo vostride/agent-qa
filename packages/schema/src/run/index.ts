@@ -74,6 +74,7 @@ export type {
   HookStartedPayload,
   HookFinishedPayload,
   TestRetryScheduledPayload,
+  RemoteProgressPayload,
 } from './bus-events'
 export {
   maskPayloadStrings,

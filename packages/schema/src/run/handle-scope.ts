@@ -30,6 +30,8 @@ export const RUN_EVENT_SCOPE = {
   // Hook lifecycle — scope is a property of the instance (see header)
   hookStarted: 'member-when-addressed',
   hookFinished: 'member-when-addressed',
+  // A direct member's session names its member; a suite's shared session reaches every handle
+  remoteProgress: 'member-when-addressed',
   // Post-processing / status chips
   analysisStarted: 'run',
   analysisCompleted: 'run',

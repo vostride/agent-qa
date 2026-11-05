@@ -262,7 +262,10 @@ export async function runInProcessCliRun(
         executionContext: assemblyContext.executionContext,
         configDir: assemblyContext.configDir,
         knowledgeRoot: produced.knowledgeRoot,
-        ports: assemblyContext.ports,
+        // The producer's plugin progress reaches this run's bus while it is open.
+        ports: produced.remoteProgress === undefined
+          ? assemblyContext.ports
+          : { ...assemblyContext.ports, remoteProgress: produced.remoteProgress },
         secretRedactor: produced.secretRedactor,
         members: produced.members,
         executor: produced.executor,

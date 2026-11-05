@@ -661,6 +661,7 @@ export type {
   HookStartedPayload,
   HookFinishedPayload,
   TestRetryScheduledPayload,
+  RemoteProgressPayload,
 } from './run/index'
 export type { Job, JobKind, JobStatus, JobConclusionKind, JobId } from './job/index'
 export { asJobId, isJobKind, jobSchema } from './job/index'

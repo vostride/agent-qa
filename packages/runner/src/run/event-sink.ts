@@ -20,7 +20,7 @@ import type { MemberEventSink } from './ports.js'
 import type { LoopEventEmitPort } from '../loop/ports.js'
 
 // Telemetry is fire-and-forget: an error becomes at most one guarded `runWarning` and is swallowed.
-function guardEmit(bus: RunEventBus, fn: () => void): void {
+export function guardEmit(bus: RunEventBus, fn: () => void): void {
   try {
     fn()
   } catch (error) {

@@ -1,7 +1,7 @@
-// A path plugin reports its farm queue while it acquires, and agent-qa run prints each change of
-// that line once, masked, before the session's link.
+// A path plugin reports its farm queue while it acquires: agent-qa run prints each change of that
+// line once, masked, before the session's link, and the run's event log keeps it for its member.
 
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { Command } from 'commander'
@@ -24,6 +24,7 @@ import {
   createInProcessFixture,
   freshUpdateCheckHome,
   removeInProcessFixtures,
+  runDirs,
 } from './in-process-run-fixture.js'
 import type { InProcessFixture, InProcessFixtureInput } from './in-process-run-fixture.js'
 import { refuseWithoutChromium, startRemoteBrowserEndpoint } from './remote-browser-endpoint.js'
@@ -137,6 +138,19 @@ async function runWithProgress(
   }
 }
 
+function progressEvents(project: InProcessFixture): unknown[] {
+  return runDirs(project).flatMap((dir) => {
+    const path = join(dir, 'events.jsonl')
+    if (!existsSync(path)) return []
+    return readFileSync(path, 'utf8')
+      .split('\n')
+      .filter((line) => line.trim() !== '')
+      .map((line) => JSON.parse(line) as { type: string; payload: unknown })
+      .filter((event) => event.type === 'remoteProgress')
+      .map((event) => event.payload)
+  })
+}
+
 const MASKED_FIRST = `Remote ${REMOTE_NAME}: queued, 3 ahead on pool [secret:${PLANTED_SECRET_NAME}]`
 const SHOWN_SECOND = `Remote ${REMOTE_NAME}: ${SECOND}`
 const LINK_NOTE = `Remote ${REMOTE_NAME}: ${LINK}`
@@ -154,5 +168,38 @@ describe("a plugin's progress while it acquires", () => {
     const at = (text: string) => run.printed.findIndex((line) => line.trim() === text)
     expect(at(MASKED_FIRST), run.log).toBeLessThan(at(SHOWN_SECOND))
     expect(at(SHOWN_SECOND), run.log).toBeLessThan(at(LINK_NOTE))
+  }, RUN_BUDGET_MS)
+})
+
+describe("a plugin's progress on the run's bus", () => {
+  it("is recorded once per change for a direct test, masked, under that test's index", async () => {
+    const run = await runWithProgress((project) => project.testPattern)
+
+    expect(run.exitCode, run.log).toBe(0)
+    const events = progressEvents(run.project)
+    expect(events, run.log).toEqual([
+      {
+        remote: REMOTE_NAME,
+        message: `queued, 3 ahead on pool [secret:${PLANTED_SECRET_NAME}]`,
+        testIndex: 0,
+        queued: 3,
+      },
+      { remote: REMOTE_NAME, message: SECOND, testIndex: 0, queued: 1 },
+    ])
+    expect(JSON.stringify(events)).not.toContain(PLANTED)
+  }, RUN_BUDGET_MS)
+
+  it("is recorded with no member for a suite's shared session, so every handle receives it", async () => {
+    const run = await runWithProgress((project) => project.suitePattern)
+
+    expect(run.exitCode, run.log).toBe(0)
+    expect(progressEvents(run.project), run.log).toEqual([
+      {
+        remote: REMOTE_NAME,
+        message: `queued, 3 ahead on pool [secret:${PLANTED_SECRET_NAME}]`,
+        queued: 3,
+      },
+      { remote: REMOTE_NAME, message: SECOND, queued: 1 },
+    ])
   }, RUN_BUDGET_MS)
 })

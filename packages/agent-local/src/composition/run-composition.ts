@@ -58,6 +58,7 @@ import type {
   KnowledgeHintReader,
   PostVerdictPort,
   RecordLedger,
+  RemoteProgressRelay,
   RunArtifactStorePort,
   RunJsHandler,
   RunMemberDescriptor,
@@ -271,6 +272,8 @@ export interface RunPersistencePorts {
   onSubscriberFault?: (code: string, message: string) => void
   // Declared here for the same spread, and threaded from the host; `buildRunPorts` never builds it.
   postVerdict?: PostVerdictPort
+  // The producer's plugin progress, threaded the same way; `buildRunPorts` never builds it.
+  remoteProgress?: RemoteProgressRelay
 }
 
 // All four stores write under one `<configDir>/.agent-qa/runs/<slug(runId)>/` directory.

@@ -7,7 +7,13 @@ import {
   pluginSecretResolver,
 } from '@vostride/agent-qa-core'
 import type { AgentQaConfig, PluginHostPool, PluginHostProgress } from '@vostride/agent-qa-core'
-import type { RemoteSessionRegistry, SecretResolver } from '@vostride/agent-qa-runner'
+import type {
+  RemoteLeaseSource,
+  RemoteProgress,
+  RemoteProgressRelay,
+  RemoteSessionRegistry,
+  SecretResolver,
+} from '@vostride/agent-qa-runner'
 
 import { pluginMaskName } from './declared-secrets.js'
 import type { MaskExtra } from './declared-secrets.js'
@@ -54,4 +60,66 @@ export function createRunPluginHost(input: RunPluginHostInput): PluginHostPool {
     ...(input.debugLog === undefined ? {} : { debugLog: input.debugLog }),
     ...(input.sessions === undefined ? {} : { sessions: input.sessions }),
   })
+}
+
+export interface RemoteProgressEvent extends RemoteProgress {
+  remote: string
+  // The member whose session it is; a suite's shared session names none.
+  testIndex?: number
+}
+
+export interface RemoteProgressSource extends RemoteProgressRelay {
+  emit(event: RemoteProgressEvent): void
+}
+
+// The one path from a producer's plugin host to its run's bus. An emit while no bus is attached
+// is dropped: the pool's own listener has already printed the line.
+export function createRemoteProgressRelay(): RemoteProgressSource {
+  let publish: ((event: RemoteProgressEvent) => void) | undefined
+  return {
+    attach(next) {
+      publish = next
+      return () => {
+        if (publish === next) publish = undefined
+      }
+    },
+    emit(event) {
+      publish?.(event)
+    },
+  }
+}
+
+// Every request passed on reports each change of its progress to the sink under its remote's
+// name, after the request's own listener.
+export function withLeaseProgress(
+  source: RemoteLeaseSource,
+  sink: (event: RemoteProgressEvent) => void,
+): RemoteLeaseSource {
+  const relay = (remote: string, own: ((progress: RemoteProgress) => void) | undefined) => {
+    let last: string | undefined
+    return (progress: RemoteProgress): void => {
+      own?.(progress)
+      const seen = JSON.stringify([progress.message, progress.queued, progress.percent])
+      if (seen === last) return
+      last = seen
+      sink({ remote, ...progress })
+    }
+  }
+  const uploadApp = source.uploadApp?.bind(source)
+  return {
+    acquire: (request) =>
+      source.acquire({
+        ...request,
+        onProgress: relay(request.remote, request.onProgress?.bind(request)),
+      }),
+    ...(uploadApp === undefined
+      ? {}
+      : {
+          uploadApp: (request) =>
+            uploadApp({
+              ...request,
+              onProgress: relay(request.remote, request.onProgress?.bind(request)),
+            }),
+        }),
+  }
 }

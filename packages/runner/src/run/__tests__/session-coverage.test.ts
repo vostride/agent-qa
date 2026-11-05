@@ -334,6 +334,10 @@ const EVENT_FIXTURES: Record<RunEventType, RunEvent> = {
     seq: 14, ts: 0, runId: RID, type: 'testRetryScheduled',
     payload: { testId: 'a', testIndex: 0, attempt: 2, maxAttempts: 3, reason: 'flaky' },
   },
+  remoteProgress: {
+    seq: 15, ts: 0, runId: RID, type: 'remoteProgress',
+    payload: { remote: 'lab', message: 'queued, 3 ahead', testIndex: 0, queued: 3 },
+  },
   analysisStarted: chip('analysisStarted'),
   analysisCompleted: chip('analysisCompleted'),
   analysisFailed: chip('analysisFailed'),

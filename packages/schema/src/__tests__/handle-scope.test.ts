@@ -78,9 +78,10 @@ describe('RUN_EVENT_SCOPE — a TOTAL, positive classification of the frozen eve
     // producer only fills it when the hook's identity carries one — so hook scope is a property
     // of the INSTANCE, not of the type. Read at implementation time from the payload type and
     // `hooks/orchestrator.ts:buildStartedPayload`, which spreads `testIndex` conditionally.
+    // `RemoteProgressPayload.testIndex` is optional too: a suite's shared session names no member.
     expect(
       RUN_EVENT_TYPES.filter((type) => RUN_EVENT_SCOPE[type] === 'member-when-addressed'),
-    ).toEqual(['hookStarted', 'hookFinished'])
+    ).toEqual(['hookStarted', 'hookFinished', 'remoteProgress'])
   })
 })
 
@@ -152,6 +153,20 @@ describe('passesHandleFilter — run-scoped ALWAYS passes, member-scoped only it
     })
     expect(passesHandleFilter(memberHook, 7)).toBe(true)
     expect(passesHandleFilter(memberHook, 0)).toBe(false)
+  })
+
+  it("passes a member's remote progress to that member's handle only, and a suite's to every handle", () => {
+    const direct = envelopeOf('remoteProgress', {
+      remote: 'lab', message: 'queued, 3 ahead', testIndex: 1, queued: 3,
+    })
+    expect(passesHandleFilter(direct, 1)).toBe(true)
+    expect(passesHandleFilter(direct, 0)).toBe(false)
+    expect(passesHandleFilter(direct, 2)).toBe(false)
+
+    const shared = envelopeOf('remoteProgress', { remote: 'lab', message: 'queued, 3 ahead' })
+    expect(passesHandleFilter(shared, 0)).toBe(true)
+    expect(passesHandleFilter(shared, 1)).toBe(true)
+    expect(passesHandleFilter(shared, 7)).toBe(true)
   })
 
   it('FAILS CLOSED: a member-scoped envelope with no usable testIndex reaches no handle', () => {

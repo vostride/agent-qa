@@ -46,7 +46,7 @@ import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, 
 import { isPluginRemote, WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, memberStepText, redactSecretValue, RemoteRefusalError } from '@vostride/agent-qa-runner'
 import { createCliStepModelScopeFactory } from '../composition/step-model-scope.js'
 import type { CliStepModelScopeOptions } from '../composition/step-model-scope.js'
-import type { RunMemberDescriptor, ConfigDigests, MemberTestRunContext, MemberTestExecutor, StepModelScopeFactory } from '@vostride/agent-qa-runner'
+import type { RunMemberDescriptor, ConfigDigests, MemberTestRunContext, MemberTestExecutor, StepModelScopeFactory, RemoteProgressRelay } from '@vostride/agent-qa-runner'
 // The run-start ledger fold lives at the local composition root; the CLI names no knowledge.
 import { resolveRunQuarantineSnapshot } from '@vostride/agent-qa-agent-local'
 // The door renders the core's refusal; the in-process drive composes the core.
@@ -66,7 +66,11 @@ import {
   readDeclaredSecrets,
   RunSecretRedactor,
 } from '../composition/declared-secrets.js'
-import { createRunPluginHost } from '../composition/plugin-host.js'
+import {
+  createRemoteProgressRelay,
+  createRunPluginHost,
+  withLeaseProgress,
+} from '../composition/plugin-host.js'
 import { composeRunOwnership } from '../composition/run-owner-probe.js'
 import {
   buildMemberRunConfig,
@@ -527,8 +531,17 @@ export async function createPlatformAdapter(
 }
 
 interface ProducerPluginHost {
-  readonly pluginSessions: RemoteLeaseSource | undefined
+  // A direct member's progress names its testIndex; a suite's shared session names none.
+  sessionsFor(testIndex?: number): RemoteLeaseSource | undefined
+  // What the run's bus attaches to, so the host's progress reaches the run's event log.
+  readonly remoteProgress: RemoteProgressRelay | undefined
   close(): Promise<void>
+}
+
+function withPluginSessions(
+  sessions: RemoteLeaseSource | undefined,
+): { pluginSessions?: RemoteLeaseSource } {
+  return sessions === undefined ? {} : { pluginSessions: sessions }
 }
 
 // A plugin's progress prints once for each change of its line on that remote.
@@ -556,7 +569,11 @@ function producerPluginHost(input: {
   readonly terminal: RunTerminal | undefined
 }): ProducerPluginHost {
   if ((input.config.plugins ?? []).length === 0) {
-    return { pluginSessions: undefined, close: () => Promise.resolve() }
+    return {
+      sessionsFor: () => undefined,
+      remoteProgress: undefined,
+      close: () => Promise.resolve(),
+    }
   }
   const onProgress = remoteProgressPrinter(input.terminal, input.mask)
   const pool = createRunPluginHost({
@@ -572,7 +589,15 @@ function producerPluginHost(input: {
     // The registry a signal releases, so each lease and the pool's shutdown get the plugin bound.
     sessions: processRemoteSessions,
   })
-  return { pluginSessions: pool, close: () => pool.shutdown() }
+  const relay = createRemoteProgressRelay()
+  return {
+    sessionsFor: (testIndex) =>
+      withLeaseProgress(pool, (event) =>
+        relay.emit(testIndex === undefined ? event : { ...event, testIndex }),
+      ),
+    remoteProgress: relay,
+    close: () => pool.shutdown(),
+  }
 }
 
 const runWebAccessibilityCheck: NonNullable<RunSuiteConfig['accessibilityCheck']> = async (page, options) => {
@@ -2969,9 +2994,7 @@ export async function produceSuiteRunMembers(
     ...(suiteSecretsFile === undefined ? {} : { secretsFile: suiteSecretsFile }),
     refusalMemory: suiteRefusalMemory,
     mask: suiteRunMask,
-    ...(suitePluginHost.pluginSessions === undefined
-      ? {}
-      : { pluginSessions: suitePluginHost.pluginSessions }),
+    ...withPluginSessions(suitePluginHost.sessionsFor()),
   }
 
   // The record opens here, before plugins; the drive's later open is a no-op.
@@ -4008,6 +4031,9 @@ export async function produceSuiteRunMembers(
     takeFrameworkError: () => undefined,
     takeRemoteRefusal: () => suiteRemoteRefusal,
     closePluginHosts: () => suitePluginHost.close(),
+    ...(suitePluginHost.remoteProgress === undefined
+      ? {}
+      : { remoteProgress: suitePluginHost.remoteProgress }),
     getCurationModelDeps: () => preparedSuites[0]?.curationModelDeps,
     finalize: () => lifecycle.finalize(),
     // Needs the ordinal the assembler just advanced, and rides the producer so both doors get it.
@@ -4122,6 +4148,8 @@ export interface ProducedCliRunMembers {
   finalize?(): Promise<void>
   // Shuts down a plugin host the producer started itself, on every path out of the run.
   closePluginHosts?(): Promise<void>
+  // The producer's plugin progress, which the drive hands the run as `ports.remoteProgress`.
+  readonly remoteProgress?: RemoteProgressRelay
   /** The run's plugin load, which the core awaits once the request and its run id are allowed. */
   readonly loadPlugins: () => Promise<void>
   /** The run's own config's `services.dashboard.dbPath`, resolved only when the record opens. */
@@ -4470,9 +4498,7 @@ export async function produceDirectRunMembers(
           ...(directSecretsFile === undefined ? {} : { secretsFile: directSecretsFile }),
           refusalMemory: directRefusalMemory,
           mask: singleRunMask,
-          ...(directPluginHost.pluginSessions === undefined
-            ? {}
-            : { pluginSessions: directPluginHost.pluginSessions }),
+          ...withPluginSessions(directPluginHost.sessionsFor(ctx.testIndex)),
         })
 
         const mergedBrowser = (mergedUse as Record<string, unknown>).browser as Record<string, unknown> | undefined
@@ -4899,6 +4925,9 @@ export async function produceDirectRunMembers(
     bindSession: (session) => { activeRunSession = session },
     takeFrameworkError: () => frameworkError,
     closePluginHosts: () => directPluginHost.close(),
+    ...(directPluginHost.remoteProgress === undefined
+      ? {}
+      : { remoteProgress: directPluginHost.remoteProgress }),
     getCurationModelDeps: () => singleCurationModelDeps,
     onMemberSnapshot: memberSnapshots.subscribe,
     subscriberSeed: { attributes: directRunAttributes },

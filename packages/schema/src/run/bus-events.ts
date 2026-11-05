@@ -45,6 +45,8 @@ export const RUN_EVENT_TYPES = [
   'hookStarted',
   'hookFinished',
   'testRetryScheduled',
+  // A plugin remote's progress on a session it is still getting ready
+  'remoteProgress',
 ] as const
 
 export type RunEventType = (typeof RUN_EVENT_TYPES)[number]
@@ -93,6 +95,18 @@ export type RunErrorPayload = RunWarningPayload
 
 /** `heartbeat`: empty payload, emitted after ~10 s of bus silence. */
 export type HeartbeatPayload = Record<string, never>
+
+// --- Remote progress payload ------------------------------------------------
+
+// A plugin remote's farm queue position or upload percentage, masked, one event per change.
+// `testIndex` names the member whose session it is; a suite's shared session names none.
+export interface RemoteProgressPayload {
+  remote: string
+  message: string
+  testIndex?: number
+  queued?: number
+  percent?: number
+}
 
 // --- Member-test lifecycle payloads -----------------------------------------
 
@@ -246,6 +260,7 @@ export type RunEventPayload =
   | HookStartedPayload
   | HookFinishedPayload
   | TestRetryScheduledPayload
+  | RemoteProgressPayload
   | ChipEventPayload
 
 // `seq` is the per-run gap-free order and resume token; `ts` is wall-clock, for audit only.
@@ -281,6 +296,7 @@ export type RunEvent =
   | RunEventOf<'hookStarted', HookStartedPayload>
   | RunEventOf<'hookFinished', HookFinishedPayload>
   | RunEventOf<'testRetryScheduled', TestRetryScheduledPayload>
+  | RunEventOf<'remoteProgress', RemoteProgressPayload>
   | RunEventOf<'analysisStarted', AnalysisStartedPayload>
   | RunEventOf<'analysisCompleted', AnalysisCompletedPayload>
   | RunEventOf<'analysisFailed', AnalysisFailedPayload>

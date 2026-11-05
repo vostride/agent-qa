@@ -50,6 +50,8 @@ const EXPECTED_EVENT_TYPES: readonly string[] = [
   'hookStarted',
   'hookFinished',
   'testRetryScheduled',
+  // Remote progress
+  'remoteProgress',
 ]
 
 const scope: ScopeKey = { tier: 'suite', key: 'checkout' }

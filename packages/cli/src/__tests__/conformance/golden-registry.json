@@ -557,7 +557,7 @@
       "classifies": true,
       "id": "runs.events",
       "inputSchemaDigest": "673158dacd01df7d44f83fa974746da4305048063dd0261603d2bf14410fbd2b",
-      "outputSchemaDigest": "5c95563c2afcb63d5f53adfe6fe7683e1f717a1e9074f4b54ed5fcd4a29775dc",
+      "outputSchemaDigest": "ce24cde876e7fc9df8da0575b042f982029c2fa68a9612d4d8a34d71b952ba7a",
       "partition": {
         "kind": "unprojected",
         "reason": "not-mid-flight-read"

@@ -259,6 +259,7 @@ export type {
   PostVerdictPort,
   PostVerdictStepInput,
   PostVerdictOutcome,
+  RemoteProgressRelay,
 } from './run/ports.js'
 export { POST_VERDICT_STEP_BUDGET_MS } from './run/ports.js'
 export { createStepModelScope, withStepModelCall } from './run/step-model-observations.js'

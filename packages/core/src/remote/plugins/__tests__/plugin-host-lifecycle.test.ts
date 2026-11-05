@@ -298,7 +298,9 @@ describe("a plugin's progress", () => {
 
     const elapsed = Date.now() - started
     expect(refused.kind).toBe('timeout')
-    expect(refused.message).toBe('Remote lab-a: plugin entry lab did not answer acquire within 500ms.')
+    expect(refused.message).toBe(
+      'Remote lab-a: plugin entry lab did not answer acquire within 500ms.',
+    )
     expect(elapsed).toBeGreaterThanOrEqual(450)
     expect(elapsed).toBeLessThan(1_500)
     expect(seen.length).toBeGreaterThanOrEqual(3)
@@ -320,8 +322,12 @@ describe("a plugin's progress", () => {
     const seenB: RemoteProgress[] = []
 
     await Promise.all([
-      pool.acquire(request('lab-a', 'lab', { onProgress: (update: RemoteProgress) => seenA.push(update) })),
-      pool.acquire(request('lab-b', 'lab', { onProgress: (update: RemoteProgress) => seenB.push(update) })),
+      pool.acquire(
+        request('lab-a', 'lab', { onProgress: (update: RemoteProgress) => seenA.push(update) }),
+      ),
+      pool.acquire(
+        request('lab-b', 'lab', { onProgress: (update: RemoteProgress) => seenB.push(update) }),
+      ),
     ])
 
     expect(seenA).toEqual([{ message: 'queued, 3 ahead', queued: 3 }])
@@ -345,7 +351,9 @@ describe("a plugin's progress", () => {
     const pool = p.pool([lab], { mask, onProgress: (event) => heard.push(event) })
     const seen: RemoteProgress[] = []
 
-    await pool.acquire(request('lab-a', 'lab', { onProgress: (update: RemoteProgress) => seen.push(update) }))
+    await pool.acquire(
+      request('lab-a', 'lab', { onProgress: (update: RemoteProgress) => seen.push(update) }),
+    )
 
     expect(seen).toEqual([
       { message: 'waiting for pool token=[secret:LAB_TOKEN]' },
