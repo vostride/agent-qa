@@ -1,0 +1,83 @@
+{
+  "name": "@vostride/agent-qa-plugin-kit",
+  "version": "0.2.6",
+  "private": false,
+  "description": "Build agent-qa plugins: the protocol, definePlugin, the stdio loop and a conformance suite.",
+  "keywords": [
+    "agent-qa",
+    "agent-qa-plugin"
+  ],
+  "license": "FSL-1.1-ALv2",
+  "homepage": "https://github.com/vostride/agent-qa#readme",
+  "bugs": {
+    "url": "https://github.com/vostride/agent-qa/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vostride/agent-qa.git",
+    "directory": "packages/plugin-kit"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./protocol": {
+      "import": {
+        "types": "./dist/protocol.d.ts",
+        "default": "./dist/protocol.js"
+      },
+      "require": {
+        "types": "./dist/protocol.d.cts",
+        "default": "./dist/protocol.cjs"
+      }
+    },
+    "./testing": {
+      "import": {
+        "types": "./dist/testing.d.ts",
+        "default": "./dist/testing.js"
+      },
+      "require": {
+        "types": "./dist/testing.d.cts",
+        "default": "./dist/testing.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "LICENSE.md",
+    "NOTICE.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "~24.19.2",
+    "@vostride/agent-qa-arch": "workspace:*",
+    "tsdown": "~0.23.4",
+    "typescript": "~7.0.2",
+    "vitest": "~5.0.5"
+  }
+}

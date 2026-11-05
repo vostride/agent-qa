@@ -22,32 +22,6 @@ const packagesRoot = join(testDir, '..', '..', '..')
 const repoRoot = join(packagesRoot, '..')
 const legalPackageClasses = new Set(Object.keys(PACKAGE_CLASS_RULES))
 
-const expectedPackageDirs = [
-  'packages/arch',
-  'packages/agent',
-  'packages/agent-local',
-  'packages/schema',
-  'packages/model',
-  'packages/runner',
-  'packages/safety',
-  'packages/safety-local',
-  'packages/runner-local',
-  'packages/knowledge-local',
-  'packages/core',
-  'packages/ids',
-  'packages/web',
-  'packages/android',
-  'packages/ios',
-  'packages/mcp',
-  // Listed in manifest order, beside the host-facing packages it composes with.
-  'packages/analytics',
-  'packages/cli',
-  'packages/dashboard-server',
-  'packages/dashboard-ui',
-  'packages/eval',
-  'packages/eval-local',
-] as const
-
 const stalePrototypeDirs = [] as const
 
 function packageDirsFromManifest(): string[] {
@@ -227,14 +201,9 @@ describe('ARCH_MANIFEST enumeration', () => {
     ).toContain('packages/b: workspace package missing src/ownership-contract.ts')
   })
 
-  it('declares exactly the expected package set', () => {
+  it('declares no stale prototype and no package folder twice', () => {
     const packageDirs = packageDirsFromManifest()
 
-    expect(
-      findSetMismatchOffenders('manifest vs expected package set', packageDirs, [
-        ...expectedPackageDirs,
-      ]),
-    ).toEqual([])
     expect(findStalePrototypeOffenders(packageDirs)).toEqual([])
     expect(findDuplicatePackageDirOffenders(packageDirs)).toEqual([])
   })

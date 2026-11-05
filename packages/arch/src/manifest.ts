@@ -13,6 +13,7 @@ import { AGENT_QA_IOS_OWNERSHIP_CONTRACT } from '../../ios/src/ownership-contrac
 import { AGENT_QA_KNOWLEDGE_LOCAL_OWNERSHIP_CONTRACT } from '../../knowledge-local/src/ownership-contract.js'
 import { AGENT_QA_MCP_OWNERSHIP_CONTRACT } from '../../mcp/src/ownership-contract.js'
 import { AGENT_QA_MODEL_OWNERSHIP_CONTRACT } from '../../model/src/ownership-contract.js'
+import { AGENT_QA_PLUGIN_KIT_OWNERSHIP_CONTRACT } from '../../plugin-kit/src/ownership-contract.js'
 import { AGENT_QA_RUNNER_OWNERSHIP_CONTRACT } from '../../runner/src/ownership-contract.js'
 import { AGENT_QA_RUNNER_LOCAL_OWNERSHIP_CONTRACT } from '../../runner-local/src/ownership-contract.js'
 import { AGENT_QA_SAFETY_OWNERSHIP_CONTRACT } from '../../safety/src/ownership-contract.js'
@@ -48,6 +49,7 @@ export const ARCH_MANIFEST = {
     AGENT_QA_DASHBOARD_UI_OWNERSHIP_CONTRACT,
     AGENT_QA_EVAL_OWNERSHIP_CONTRACT,
     AGENT_QA_EVAL_LOCAL_OWNERSHIP_CONTRACT,
+    AGENT_QA_PLUGIN_KIT_OWNERSHIP_CONTRACT,
   ],
   taxonomy: PACKAGE_CLASS_RULES,
 } as const satisfies {

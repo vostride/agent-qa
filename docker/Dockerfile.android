@@ -31,6 +31,7 @@ COPY packages/ios/package.json packages/ios/
 COPY packages/knowledge-local/package.json packages/knowledge-local/
 COPY packages/mcp/package.json packages/mcp/
 COPY packages/model/package.json packages/model/
+COPY packages/plugin-kit/package.json packages/plugin-kit/
 COPY packages/runner/package.json packages/runner/
 COPY packages/runner-local/package.json packages/runner-local/
 COPY packages/safety/package.json packages/safety/
