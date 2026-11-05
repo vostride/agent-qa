@@ -1,12 +1,21 @@
 // Runs only with the live-model env set; an ambiguous step must fail without clicking a button.
 
 import { spawn } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { createServer } from 'node:http'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { generateTestId } from '@vostride/agent-qa-ids'
@@ -16,6 +25,7 @@ const LIVE = process.env.AGENT_QA_LIVE_MODEL === '1'
 const AUTH_PLUGIN = process.env.AGENT_QA_LIVE_AUTH_PLUGIN
 const LLM = process.env.AGENT_QA_LIVE_LLM ?? 'gpt-6.1-sol'
 const PROVIDER = 'openai-subscription'
+const AUTH_PLUGIN_PACKAGE = '@vostride/agent-qa-subscription-auth'
 
 /** packages/cli/src/__tests__ -> packages/cli/dist/cli.js */
 const CLI_DIST = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'dist', 'cli.js')
@@ -78,7 +88,7 @@ function configYaml(): string {
     '      environment: local',
     'plugins:',
     '  auth:',
-    `    - path: ${JSON.stringify(AUTH_PLUGIN ?? '')}`,
+    `    - package: ${JSON.stringify(AUTH_PLUGIN_PACKAGE)}`,
     'use:',
     '  browser:',
     '    name: chromium',
@@ -99,6 +109,9 @@ function coldWorkspace(step: string): string {
   const project = mkdtempSync(join(tmpdir(), 'auto15-live-'))
   mkdirSync(join(project, 'tests'), { recursive: true })
   writeFileSync(join(project, 'agent-qa.config.yaml'), configYaml())
+  const pluginLink = join(project, 'node_modules', ...AUTH_PLUGIN_PACKAGE.split('/'))
+  mkdirSync(dirname(pluginLink), { recursive: true })
+  symlinkSync(resolve(AUTH_PLUGIN!), pluginLink, 'dir')
   writeFileSync(join(project, 'hooks.yaml'), 'hooks: []\n')
   writeFileSync(join(project, '.env'), '')
   writeFileSync(join(project, '.env.secrets.local'), '')
@@ -216,11 +229,11 @@ function runReading(run: LiveRun, clicked: readonly string[]): string {
 function requireLiveSetup(): void {
   expect(
     AUTH_PLUGIN,
-    'AGENT_QA_LIVE_AUTH_PLUGIN is unset: name the built agent-qa-subscription-auth dist/index.js',
+    'AGENT_QA_LIVE_AUTH_PLUGIN is unset: name the built agent-qa-subscription-auth package folder',
   ).toBeDefined()
   expect(
-    existsSync(AUTH_PLUGIN!),
-    `AGENT_QA_LIVE_AUTH_PLUGIN names no file: ${String(AUTH_PLUGIN)}`,
+    existsSync(join(AUTH_PLUGIN!, 'package.json')),
+    `AGENT_QA_LIVE_AUTH_PLUGIN names no package folder: ${String(AUTH_PLUGIN)}`,
   ).toBe(true)
   expect(existsSync(CLI_DIST), 'packages/cli/dist/cli.js is missing: run pnpm build').toBe(true)
 }

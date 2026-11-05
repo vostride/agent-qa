@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { clearLoadedProviderPluginModules } from '@vostride/agent-qa-core'
@@ -8,6 +8,22 @@ import { loadProviderPluginsForRawConfig } from '../provider-plugins.js'
 
 async function withTempDir(): Promise<string> {
   return mkdtemp(join(tmpdir(), 'agent-qa-cli-provider-plugin-'))
+}
+
+async function writeProviderPackage(root: string, name: string, source: string): Promise<void> {
+  const packageDir = join(root, 'node_modules', ...name.split('/'))
+  await mkdir(packageDir, { recursive: true })
+  await writeFile(
+    join(packageDir, 'package.json'),
+    JSON.stringify({
+      name,
+      version: '0.0.0',
+      type: 'module',
+      exports: './index.mjs',
+      'agent-qa': { plugin: { kind: 'model-provider', runs: 'in-process', entry: './index.mjs' } },
+    }),
+  )
+  await writeFile(join(packageDir, 'index.mjs'), source)
 }
 
 describe('loadProviderPluginsForRawConfig', () => {
@@ -24,8 +40,7 @@ describe('loadProviderPluginsForRawConfig', () => {
   it('loads a provider plugin descriptor and registers it in the model registry', async () => {
     const tempDir = await withTempDir()
     tempDirs.push(tempDir)
-    const pluginPath = join(tempDir, 'test-gateway.mjs')
-    await writeFile(pluginPath, `
+    await writeProviderPackage(tempDir, '@vostride/agent-qa-acme-gateway', `
       export default {
         id: 'test-gateway',
         label: 'Test Gateway',
@@ -38,7 +53,7 @@ describe('loadProviderPluginsForRawConfig', () => {
     `)
 
     await loadProviderPluginsForRawConfig(
-      { plugins: { providers: [{ path: pluginPath }] } },
+      { plugins: { providers: [{ package: '@vostride/agent-qa-acme-gateway' }] } },
       join(tempDir, 'agent-qa.config.yaml'),
     )
 
@@ -59,9 +74,7 @@ describe('loadProviderPluginsForRawConfig', () => {
   it('registers descriptors in declaration order so later providers win', async () => {
     const tempDir = await withTempDir()
     tempDirs.push(tempDir)
-    const firstPath = join(tempDir, 'first-gateway.mjs')
-    const secondPath = join(tempDir, 'second-gateway.mjs')
-    await writeFile(firstPath, `
+    await writeProviderPackage(tempDir, '@vostride/agent-qa-acme-gateway', `
       export default {
         id: 'test-gateway',
         label: 'First Gateway',
@@ -70,7 +83,7 @@ describe('loadProviderPluginsForRawConfig', () => {
         adapter() { return { source: 'first' } },
       }
     `)
-    await writeFile(secondPath, `
+    await writeProviderPackage(tempDir, '@vostride/agent-qa-acme-second-gateway', `
       export default {
         id: 'test-gateway',
         label: 'Second Gateway',
@@ -81,7 +94,14 @@ describe('loadProviderPluginsForRawConfig', () => {
     `)
 
     await loadProviderPluginsForRawConfig(
-      { plugins: { providers: [{ path: firstPath }, { path: secondPath }] } },
+      {
+        plugins: {
+          providers: [
+            { package: '@vostride/agent-qa-acme-gateway' },
+            { package: '@vostride/agent-qa-acme-second-gateway' },
+          ],
+        },
+      },
       join(tempDir, 'agent-qa.config.yaml'),
     )
 

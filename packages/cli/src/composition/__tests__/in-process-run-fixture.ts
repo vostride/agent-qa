@@ -1,6 +1,6 @@
 // The model points at an unbindable port, so a planner retry never lands in the target's `hits`.
 
-import { mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs'
+import { appendFileSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
@@ -157,8 +157,11 @@ export interface InProcessFixtureInput {
   readonly connectionOnlyReferences?: { readonly capability: string; readonly appRef: string }
 }
 
-/** The package name the knob above declares. Not installed, and named so a reader can tell. */
-export const UNINSTALLED_AUTH_PLUGIN_PACKAGE = '@acme/auth-plugin-NOT-INSTALLED'
+/**
+ * The package the knob above declares. A fixture project lives under the OS temp dir, so this
+ * package never resolves from it.
+ */
+export const UNINSTALLED_AUTH_PLUGIN_PACKAGE = '@vostride/agent-qa-subscription-auth'
 
 // Exported so cells read the name the config writer interpolates rather than retyping it.
 export const IN_PROCESS_TARGET_NAME = 'in-process-thing'
@@ -622,6 +625,46 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       ? { secondDirectTestPattern: 'tests/direct-2.yaml' }
       : {}),
   }
+}
+
+const MARKER_AUTH_PLUGIN_PACKAGE = '@vostride/agent-qa-marker-auth'
+
+/**
+ * Installs and declares an auth plugin that writes `<project>/plugin-loaded.marker` when it is
+ * imported, and returns that marker's path.
+ */
+export function declareMarkerAuthPlugin(fixture: InProcessFixture): string {
+  const marker = join(fixture.project, 'plugin-loaded.marker')
+  const packageDir = join(
+    fixture.project,
+    'node_modules',
+    ...MARKER_AUTH_PLUGIN_PACKAGE.split('/'),
+  )
+  mkdirSync(packageDir, { recursive: true })
+  writeFileSync(
+    join(packageDir, 'package.json'),
+    JSON.stringify({
+      name: MARKER_AUTH_PLUGIN_PACKAGE,
+      version: '0.0.0',
+      type: 'module',
+      exports: './index.mjs',
+      'agent-qa': { plugin: { kind: 'model-auth', runs: 'in-process', entry: './index.mjs' } },
+    }),
+  )
+  writeFileSync(
+    join(packageDir, 'index.mjs'),
+    [
+      "import { writeFileSync } from 'node:fs'",
+      `writeFileSync(${JSON.stringify(marker)}, String(process.pid))`,
+      'export const providers = []',
+      '',
+    ].join('\n'),
+  )
+  appendFileSync(
+    fixture.configPath,
+    `plugins:\n  auth:\n    - package: "${MARKER_AUTH_PLUGIN_PACKAGE}"\n`,
+  )
+  return marker
 }
 
 const openTestRunRecords: RunRecord[] = []

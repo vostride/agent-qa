@@ -10,7 +10,11 @@ import {
 } from '../../commands/run.js'
 import type { RunOptions } from '../../commands/run.js'
 import { CliRunInputError } from '../in-process-run-execution.js'
-import { CountingTarget, createInProcessFixture } from './in-process-run-fixture.js'
+import {
+  CountingTarget,
+  createInProcessFixture,
+  declareMarkerAuthPlugin,
+} from './in-process-run-fixture.js'
 import { pinProcessTmpdir, removeTempRoots } from '../../__tests__/temp-roots.js'
 import type { PinnedTmpdir } from '../../__tests__/temp-roots.js'
 
@@ -842,17 +846,7 @@ describe('a suite run opens its record before preparing the suite', () => {
     const composed = composeCliLocalAgent({ agentQaRoot: fixture.agentQaRoot, configPath: fixture.configPath })
     try {
       fixtureOptions(fixture)
-      const marker = join(fixture.project, 'plugin-loaded.marker')
-      writeFileSync(join(fixture.project, 'marker-auth-plugin.mjs'), [
-        "import { writeFileSync } from 'node:fs'",
-        "writeFileSync(new URL('./plugin-loaded.marker', import.meta.url), String(process.pid))",
-        'export const providers = []',
-        '',
-      ].join('\n'))
-      writeFileSync(
-        fixture.configPath,
-        `${readFileSync(fixture.configPath, 'utf8')}plugins:\n  auth:\n    - path: ./marker-auth-plugin.mjs\n`,
-      )
+      const marker = declareMarkerAuthPlugin(fixture)
       const dbPath = join(fixture.agentQaRoot, 'runs.db')
       mkdirSync(fixture.agentQaRoot, { recursive: true })
       const old = new DatabaseSync(dbPath)

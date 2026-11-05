@@ -19,6 +19,7 @@ import {
   CountingTarget,
   closeTestRunRecords,
   createInProcessFixture,
+  declareMarkerAuthPlugin,
   testRunRecord,
   removeInProcessFixtures,
 } from '../../composition/__tests__/in-process-run-fixture.js'
@@ -138,19 +139,6 @@ function rawRow(path: string, runId: string): string {
 const flat = (text: string): string => text.replace(/\s*\n\s*/gu, ' | ').slice(0, 800)
 
 const sha256 = (path: string): string => createHash('sha256').update(readFileSync(path)).digest('hex')
-
-const PLUGIN_MARKER = 'plugin-loaded.marker'
-
-function declareMarkerAuthPlugin(at: InProcessFixture): string {
-  writeFileSync(join(at.project, 'marker-auth-plugin.mjs'), [
-    "import { writeFileSync } from 'node:fs'",
-    `writeFileSync(new URL('./${PLUGIN_MARKER}', import.meta.url), String(process.pid))`,
-    'export const providers = []',
-    '',
-  ].join('\n'))
-  appendFileSync(at.configPath, 'plugins:\n  auth:\n    - path: ./marker-auth-plugin.mjs\n')
-  return join(at.project, PLUGIN_MARKER)
-}
 
 function writeVersion4RunsDb(at: InProcessFixture): string {
   const path = runsDbOf(at)
