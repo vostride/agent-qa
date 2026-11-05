@@ -6,7 +6,9 @@ This package is agent-qa's BrowserStack plugin. It answers a web test with Brows
 Playwright URL, whose `caps` query carries BrowserStack's capabilities, and refuses a web test
 when BrowserStack does not list agent-qa's Playwright version. It answers a device test with
 BrowserStack's Appium hub and `bstack:options`, returns the App Automate session's
-`browser_url` from `started` (never its `public_url`) and marks the session from `end`. It is
+`browser_url` from `started` (never its `public_url`) and marks the session from `end`.
+`uploadApp` uploads a target's app once per content, under the custom id
+`agent-qa-<first 32 hex of its SHA-256>`, and reuses the newest upload listed under it. It is
 built only with `@vostride/agent-qa-plugin-kit` and depends on no other agent-qa package. The
 username and access key are credentials: they travel only inside the masked Playwright URL,
 the `bstack:options` the host masks and the basic auth header, and are never logged.
@@ -18,10 +20,12 @@ the `bstack:options` the host masks and the basic auth header, and are never log
 - `src/options.ts`
 - `src/web.ts`
 - `src/devices.ts`
+- `src/upload.ts`
 - `src/browserstack-api.ts`
 - `src/playwright-versions.ts`
 - `src/__tests__/web-acquire.test.ts`
 - `src/__tests__/device-acquire.test.ts`
+- `src/__tests__/upload.test.ts`
 
 ## Commands
 

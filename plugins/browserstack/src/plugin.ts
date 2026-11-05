@@ -1,6 +1,7 @@
 import { definePlugin, PluginError, z } from '@vostride/agent-qa-plugin-kit'
 import { deviceAnswer, DeviceHandleSchema, deviceStarted, markAppSession } from './devices.js'
 import { checkEndpoints, options, settings } from './options.js'
+import { uploadApp } from './upload.js'
 import { playwrightAnswer } from './web.js'
 
 const HandleSchema = z.union([z.object({ kind: z.literal('web') }), DeviceHandleSchema])
@@ -39,6 +40,10 @@ export default definePlugin({
       testName: run?.testName,
       runId: ctx.runFacts?.runId,
     })
+  },
+
+  uploadApp({ options, path, sha256, size }, ctx) {
+    return uploadApp({ options, path, sha256, size, signal: ctx.signal, progress: ctx.progress })
   },
 
   async started({ options, handle, sessionId }, ctx) {

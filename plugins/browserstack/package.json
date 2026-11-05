@@ -62,6 +62,7 @@
         "appium"
       ],
       "methods": [
+        "uploadApp",
         "started",
         "end"
       ],

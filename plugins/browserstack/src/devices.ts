@@ -1,10 +1,6 @@
 import { randomUUID } from 'node:crypto'
 import { z } from '@vostride/agent-qa-plugin-kit'
-import {
-  createBrowserStackApi,
-  type AppSessionMark,
-  type BrowserStackApi,
-} from './browserstack-api.js'
+import { browserStackApiFor, type AppSessionMark } from './browserstack-api.js'
 import type { BrowserStackOptions, BrowserStackSettings } from './options.js'
 
 type Json = z.core.util.JSONType
@@ -79,15 +75,6 @@ export function deviceAnswer(request: DeviceRequest): DeviceAnswer {
   }
 }
 
-export function appApi(options: BrowserStackOptions): BrowserStackApi {
-  return createBrowserStackApi({
-    apiUrl: options.apiUrl,
-    appApiUrl: options.appApiUrl,
-    username: options.username,
-    accessKey: options.accessKey,
-  })
-}
-
 function sessionDetails(body: unknown): Record<string, unknown> | undefined {
   if (typeof body !== 'object' || body === null) return undefined
   const wrapped = (body as Record<string, unknown>).automation_session
@@ -117,7 +104,7 @@ export async function deviceStarted(
   if (input.sessionId === undefined) return { appiumVersion }
   try {
     const details = sessionDetails(
-      await appApi(input.options).appSession(input.sessionId, input.signal),
+      await browserStackApiFor(input.options).appSession(input.sessionId, input.signal),
     )
     // browser_url needs a BrowserStack login; public_url is shareable, so it is never recorded.
     const link = details?.browser_url
@@ -157,7 +144,7 @@ export async function markAppSession(input: MarkAppSessionInput): Promise<void> 
   const mark = sessionMark(input.outcome, input.reason)
   if (mark === undefined) return
   try {
-    await appApi(input.options).markAppSession(input.sessionId, mark, input.signal)
+    await browserStackApiFor(input.options).markAppSession(input.sessionId, mark, input.signal)
   } catch (error) {
     warn(
       `BrowserStack: could not mark App Automate session ${input.sessionId} ${mark.status}: ${failureText(error)}`,

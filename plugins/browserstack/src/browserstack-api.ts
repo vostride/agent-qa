@@ -1,4 +1,5 @@
 import { PluginError } from '@vostride/agent-qa-plugin-kit'
+import type { BrowserStackOptions } from './options.js'
 
 export type BrowserStackFailureKind = 'auth' | 'capacity' | 'refused' | 'unreachable'
 
@@ -17,6 +18,8 @@ export interface AppSessionMark {
 export interface BrowserStackApi {
   appSession(id: string, signal?: AbortSignal): Promise<unknown>
   markAppSession(id: string, mark: AppSessionMark, signal?: AbortSignal): Promise<void>
+  recentApps(customId: string, signal?: AbortSignal): Promise<unknown>
+  uploadApp(form: FormData, signal?: AbortSignal): Promise<unknown>
 }
 
 export function browserStackFailureKind(status: number | undefined): BrowserStackFailureKind {
@@ -79,7 +82,7 @@ function withSlash(url: string): string {
 
 interface SendInit {
   headers?: Record<string, string>
-  body?: string
+  body?: string | FormData
   signal?: AbortSignal | undefined
 }
 
@@ -128,5 +131,30 @@ export function createBrowserStackApi(input: BrowserStackApiInput): BrowserStack
       if (!response.ok) throw await statusFailure(response, 'PUT /app-automate/sessions/{id}.json')
       await response.body?.cancel()
     },
+
+    async recentApps(customId, signal) {
+      const path = `app-automate/recent_apps/${encodeURIComponent(customId)}`
+      const response = await send('GET', path, { signal })
+      // An unknown custom id may answer 404 with a message, which means nothing is uploaded yet.
+      if (response.status === 404) {
+        await response.body?.cancel()
+        return undefined
+      }
+      return readJson(response, 'GET /app-automate/recent_apps/{custom_id}')
+    },
+
+    async uploadApp(form, signal) {
+      const response = await send('POST', 'app-automate/upload', { body: form, signal })
+      return readJson(response, 'POST /app-automate/upload')
+    },
   }
+}
+
+export function browserStackApiFor(options: BrowserStackOptions): BrowserStackApi {
+  return createBrowserStackApi({
+    apiUrl: options.apiUrl,
+    appApiUrl: options.appApiUrl,
+    username: options.username,
+    accessKey: options.accessKey,
+  })
 }
