@@ -48,6 +48,7 @@ export {
   isLoopbackHost,
   NAME_SLUG_PATTERN,
   PLAYWRIGHT_VERSION_TOKEN,
+  pluginValueCredentialIssues,
   projectConfigRemotes,
   projectRemotesForDisplay,
   REMOTE_CREDENTIAL_TERMS,
@@ -56,6 +57,7 @@ export {
   remoteLabel,
   remoteOrigin,
   SECRET_REFERENCE_PATTERN,
+  SUBSCRIPTION_AUTH_ENTRY_NAME,
   SUBSCRIPTION_AUTH_PACKAGE,
   secretReferenceNames,
 } from './remote'

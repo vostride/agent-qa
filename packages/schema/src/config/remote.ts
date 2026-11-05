@@ -264,6 +264,19 @@ export function capabilityCredentialIssues(
     }))
 }
 
+export function pluginValueCredentialIssues(
+  value: unknown,
+  path: readonly (string | number)[],
+  label: string,
+): RemoteEntryIssue[] {
+  return credentialKeys(value, CAPABILITY_WALK)
+    .filter((credential) => credential.literal)
+    .map((credential) => ({
+      path: [...path, ...credential.path],
+      message: `${label} "${credential.path.join('.')}" names a credential, so its value must be a {{secret:NAME}} reference.`,
+    }))
+}
+
 function tokenKeys(value: unknown, path: KeyPath = []): KeyPath[] {
   return children(value).flatMap(([key, child]) => {
     const childPath = [...path, key]
@@ -532,6 +545,7 @@ export function appRefIssues(ref: string, path: readonly (string | number)[]): R
 }
 
 export const SUBSCRIPTION_AUTH_PACKAGE = '@vostride/agent-qa-subscription-auth'
+export const SUBSCRIPTION_AUTH_ENTRY_NAME = 'subscription'
 
 function structurallyEqual(left: unknown, right: unknown): boolean {
   if (Array.isArray(left) || Array.isArray(right)) {
@@ -551,6 +565,20 @@ function structurallyEqual(left: unknown, right: unknown): boolean {
     )
   }
   return Object.is(left, right)
+}
+
+export function appendsSubscriptionEntry(before: unknown, after: unknown): boolean {
+  const kept = before === undefined ? [] : before
+  return (
+    Array.isArray(kept) &&
+    Array.isArray(after) &&
+    after.length === kept.length + 1 &&
+    structurallyEqual(after.slice(0, -1), kept) &&
+    structurallyEqual(after.at(-1), {
+      name: SUBSCRIPTION_AUTH_ENTRY_NAME,
+      package: SUBSCRIPTION_AUTH_PACKAGE,
+    })
+  )
 }
 
 interface ClosedFields {
