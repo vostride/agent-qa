@@ -48,20 +48,46 @@ test('checks deterministic v-prefixed release tags before mutation', () => {
   }), /could not verify git tag absence: v0\.1\.1/)
 })
 
+const BOT_IDENTITY = ['-c', 'user.name=github-actions[bot]', '-c', 'user.email=41898282+github-actions[bot]@users.noreply.github.com']
+
 test('creates deterministic release commit and annotated tag without git push', () => {
   const calls = []
   createReleaseCommitAndTag('0.1.1', ['packages/cli/package.json', 'plugins/acme/package.json'], {
-    execFileSync: (cmd, args) => calls.push([cmd, args]),
+    rootDir: '/release-checkout',
+    execFileSync: (cmd, args, options) => calls.push([cmd, args, options.cwd]),
   })
 
   assert.deepEqual(calls, [
-    ['git', ['config', 'user.name', 'github-actions[bot]']],
-    ['git', ['config', 'user.email', '41898282+github-actions[bot]@users.noreply.github.com']],
-    ['git', ['add', '--', 'packages/cli/package.json', 'plugins/acme/package.json']],
-    ['git', ['commit', '-m', 'release: agent-qa v0.1.1']],
-    ['git', ['tag', '-a', 'v0.1.1', '-m', 'agent-qa v0.1.1']],
+    ['git', ['add', '--', 'packages/cli/package.json', 'plugins/acme/package.json'], '/release-checkout'],
+    ['git', [...BOT_IDENTITY, 'commit', '-m', 'release: agent-qa v0.1.1'], '/release-checkout'],
+    ['git', [...BOT_IDENTITY, 'tag', '-a', 'v0.1.1', '-m', 'agent-qa v0.1.1'], '/release-checkout'],
   ])
   assert.equal(JSON.stringify(calls).includes('git push'), false)
+})
+
+test('the release identity is passed per command and never written to the repository config', () => {
+  const calls = []
+  createReleaseCommitAndTag('0.1.1', ['packages/cli/package.json'], {
+    rootDir: '/release-checkout',
+    execFileSync: (cmd, args) => calls.push([cmd, args]),
+  })
+
+  assert.equal(calls.some(([, args]) => args.includes('config')), false)
+})
+
+test('the release commit refuses to run without the repository it commits in', () => {
+  const calls = []
+  assert.throws(
+    () => createReleaseCommitAndTag('0.1.1', ['packages/cli/package.json'], {
+      execFileSync: (cmd, args) => calls.push([cmd, args]),
+    }),
+    /needs options\.rootDir/,
+  )
+  assert.throws(
+    () => createReleaseCommitAndTag('0.1.1', { execFileSync: (cmd, args) => calls.push([cmd, args]) }),
+    /needs options\.rootDir/,
+  )
+  assert.deepEqual(calls, [])
 })
 
 test('parses and dispatches node scripts/release/git.mjs --commit-tag', async () => {
@@ -78,7 +104,7 @@ test('parses and dispatches node scripts/release/git.mjs --commit-tag', async ()
     })
 
     assert.equal(calls.some(([cmd, args]) => cmd === 'git' && args.includes('push')), false)
-    assert.deepEqual(calls.at(-1), ['git', ['tag', '-a', 'v0.1.1', '-m', 'agent-qa v0.1.1']])
+    assert.deepEqual(calls.at(-1), ['git', [...BOT_IDENTITY, 'tag', '-a', 'v0.1.1', '-m', 'agent-qa v0.1.1']])
   } finally {
     await rm(fixtureRoot, { recursive: true, force: true })
   }
