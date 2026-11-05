@@ -75,6 +75,7 @@
     "@vostride/agent-qa-agent": "workspace:*",
     "@vostride/agent-qa-agent-local": "workspace:*",
     "@vostride/agent-qa-arch": "workspace:*",
+    "@vostride/agent-qa-plugin-kit": "workspace:*",
     "tsdown": "~0.23.4",
     "typescript": "~7.0.2"
   }

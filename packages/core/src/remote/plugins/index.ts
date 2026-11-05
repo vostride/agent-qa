@@ -12,3 +12,9 @@ export {
   type PluginHostPool,
   type PluginHostPoolInput,
 } from './host-pool.js'
+export {
+  installedPackageVersion,
+  pluginHostVersions,
+  type PluginHostVersions,
+} from './host-versions.js'
+export { pluginSecretResolver } from './secret-references.js'

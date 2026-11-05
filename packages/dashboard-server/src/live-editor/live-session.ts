@@ -5,12 +5,16 @@ import {
   AUTH_STATE_SCHEMA_VERSION,
   MobileSetupError,
   PlannerConfigSchema,
+  PluginsSchema,
   RemoteEntrySchema,
   SuiteDefinitionSchema,
   TestDefinitionSchema,
   TimeoutConfigSchema,
   connectionSecretMisuse,
+  createPluginHostPool,
   getAgentQaVersion,
+  pluginHostVersions,
+  pluginSecretResolver,
   printRunText,
   readAuthStateMetadata,
   resolveAuthStatePaths,
@@ -33,6 +37,7 @@ import {
   stripHookInline,
   createLiveStreamHub,
   createRemoteRefusalMemory,
+  isPluginRemote,
   liveStreamFor,
 } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
@@ -48,6 +53,8 @@ import type {
   AuthStateMetadata,
   HookDefinition,
   MobilePlatform,
+  PluginHostPool,
+  PluginHostPoolInput,
   RemoteConnectionFields,
   RemoteEntry,
   SelectWebPlaceResult,
@@ -431,6 +438,22 @@ export interface LiveSessionDeps {
   listDevicesHere?: LiveDevicesHereLister
   // AGENT_QA_APPIUM_URL; the process environment when unset.
   appiumEnvUrl?: string
+  // REMOTE_INACTIVITY_TIMEOUT_MS when unset.
+  remoteInactivityMs?: number
+}
+
+// The plugins entries the strict config parse accepts; an entry it refuses refuses the session.
+function livePluginEntries(plugins: unknown): PluginHostPoolInput['plugins'] {
+  if (plugins === undefined) return []
+  const parsed = PluginsSchema.safeParse(plugins)
+  if (parsed.success) return parsed.data
+  const issue = parsed.error.issues[0]
+  const at = (issue?.path ?? [])
+    .map((key) => (typeof key === 'number' ? `[${key}]` : `.${String(key)}`))
+    .join('')
+  throw new LiveRemotesRefusedError(
+    `project config sets plugins${at}: ${(issue?.message ?? 'invalid value').replace(/\.$/, '')}. The CLI refuses this file too.`,
+  )
 }
 
 export interface LiveStepExecutionResult extends StepResult {
@@ -630,6 +653,8 @@ export class LiveSession {
   private messageSink: ((message: ServerMessage) => void) | null = null
   private hookCaptures = new Set<LiveHookPayload[]>()
   private mobileAppiumLease: MobileLiveAppiumLease | null = null
+  // Created only for a session on a plugin remote, and shut down when the session ends.
+  private pluginPool: PluginHostPool | null = null
   private onRemote = false
   private secretStore: SecretStore | undefined
   private connectionSecretNames: ReadonlySet<string> = new Set()
@@ -1010,6 +1035,34 @@ export class LiveSession {
     }
   }
 
+  // One process per plugins entry the session uses, started on first acquire. Without the project
+  // config there is no plugins list, and the web adapter refuses the plugin remote itself.
+  private async openPluginPool(config: LiveSessionConfig): Promise<PluginHostPool | undefined> {
+    const { configManager, configPath } = this.deps
+    if (configManager === undefined || configPath === undefined) return undefined
+    const values = await readConfigValues(configManager)
+    const redactor = config.secretRedactor
+    this.pluginPool = createPluginHostPool({
+      configDir: dirname(resolvePath(configPath)),
+      plugins: livePluginEntries(values.plugins),
+      agentQaVersion: getAgentQaVersion(),
+      hostVersions: pluginHostVersions(import.meta.url),
+      resolveSecrets: pluginSecretResolver(
+        config.connectionSecretStore,
+        config.secretsFile ?? 'workspace.secretsFile',
+      ),
+      mask: redactor === undefined ? configManager.mask : (text) => redactor.redactString(text),
+    })
+    return this.pluginPool
+  }
+
+  private async shutdownPluginPool(): Promise<void> {
+    const pool = this.pluginPool
+    this.pluginPool = null
+    // Best-effort, as the CLI's run closes its plugin hosts: teardown hooks still run.
+    await pool?.shutdown().catch(() => undefined)
+  }
+
   async initialize(config: LiveSessionConfig): Promise<void> {
     this.platform = config.platform
     this.onRemote = config.platform === 'web' && config.remote !== undefined
@@ -1050,6 +1103,10 @@ export class LiveSession {
       this.currentUrl = null
     } else {
       const { WebPlatformAdapter } = await import('@vostride/agent-qa-web')
+      const pluginSessions =
+        config.remote !== undefined && isPluginRemote(config.remote)
+          ? await this.openPluginPool(config)
+          : undefined
       // Only the adapter gets the full store, so a remote's references resolve at connect alone.
       const adapter = new WebPlatformAdapter({
         refusalMemory: createRemoteRefusalMemory(),
@@ -1058,6 +1115,7 @@ export class LiveSession {
           : { connectionSecrets: config.connectionSecretStore }),
         ...(config.secretsFile === undefined ? {} : { secretsFile: config.secretsFile }),
         ...(this.deps.remoteSessions === undefined ? {} : { sessions: this.deps.remoteSessions }),
+        ...(pluginSessions === undefined ? {} : { pluginSessions }),
       })
       await adapter.setup({
         platform: 'web',
@@ -1894,7 +1952,10 @@ export class LiveSession {
     this.remoteInactivityTimer = null
     const onExpire = this.onRemoteInactivity
     if (onExpire === null || this.executing) return
-    this.remoteInactivityTimer = setTimeout(onExpire, REMOTE_INACTIVITY_TIMEOUT_MS)
+    this.remoteInactivityTimer = setTimeout(
+      onExpire,
+      this.deps.remoteInactivityMs ?? REMOTE_INACTIVITY_TIMEOUT_MS,
+    )
     this.remoteInactivityTimer.unref?.()
   }
 
@@ -1931,6 +1992,7 @@ export class LiveSession {
       await this.adapter?.cleanup()
     } finally {
       try {
+        await this.shutdownPluginPool()
         await this.runLifecycleHooks('teardown', this.teardownHooks)
       } finally {
         this.releaseMobileAppiumLease('session-cleanup')

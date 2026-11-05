@@ -213,13 +213,13 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     file: 'packages/cli/src/composition/plugin-host.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',
-    reason: "the run's plugin host composes core's plugin host pool with the config's plugins entries, host versions and declared secrets; joins the typed config action class",
+    reason: "the run's plugin host composes core's plugin host pool with the config's plugins entries, core's host versions and secret resolver; joins the typed config action class",
   },
   {
     file: 'packages/cli/src/composition/plugin-host.ts',
     specifier: '@vostride/agent-qa-runner',
     clearedBy: '395',
-    reason: "the run's plugin host refuses an undeclared secret in a plugin value with the runner's RemoteRefusalError; joins the typed config action class",
+    reason: "the run's plugin host types its declared secrets and session registry with the runner's ports; joins the typed config action class",
   },
   {
     // Moved out of run.ts so the daemon and MCP hosts release sessions without loading the run.

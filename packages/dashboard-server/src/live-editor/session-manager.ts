@@ -16,6 +16,7 @@ export interface SessionManagerDeps {
   remoteSessions?: RemoteSessionRegistry
   listDevicesHere?: LiveDevicesHereLister
   appiumEnvUrl?: string
+  remoteInactivityMs?: number
 }
 
 export class SessionManager {

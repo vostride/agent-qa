@@ -628,6 +628,9 @@ importers:
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
+      '@vostride/agent-qa-plugin-kit':
+        specifier: workspace:*
+        version: link:../plugin-kit
       tsdown:
         specifier: ~0.23.4
         version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)

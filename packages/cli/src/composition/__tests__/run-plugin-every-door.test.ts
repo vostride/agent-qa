@@ -1,5 +1,6 @@
-// Every door runs a web test on a remote that names a path plugins entry. The plugin answers acquire
-// with a loopback Playwright server, and its ledger shows what the door's plugin host asked of it.
+// Every door runs a web test on a remote that names a path plugins entry. The plugin answers
+// acquire with a loopback Playwright server, and its ledger shows what the door's plugin host
+// asked of it.
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
@@ -202,7 +203,8 @@ function storedRuns(project: InProcessFixture): Array<{ runner: unknown; outcome
   }
 }
 
-// The plugin process may outlive the run's terminal row by its host's shutdown, so both are awaited.
+// The plugin process may outlive the run's terminal row by its host's shutdown, so both are
+// awaited.
 async function expectPluginWentAway(scene: PluginScene): Promise<void> {
   const log = (): string => `${JSON.stringify(ledgerOf(scene))}\n${scene.printed.join('\n')}`
   await waitFor(
@@ -530,6 +532,41 @@ describe('a web test on a plugin remote runs there from every door', () => {
       )
 
       await expectPassedOnPlugin(scene)
+    })
+  }, RUN_BUDGET_MS)
+
+  it('the live editor opens a session on the plugin lease and returns it at its end', async () => {
+    await onPluginRemote({}, async (scene) => {
+      const dashboard = await openDashboard(scene.project)
+      const endSession = (path: string): Promise<Response> =>
+        fetch(`${dashboard.origin}${path}`, { method: 'DELETE' })
+      let sessionPath: string | undefined
+      opened.push(async () => {
+        if (sessionPath !== undefined) await endSession(sessionPath).catch(() => undefined)
+      })
+      const sessionId = (
+        await postJson(dashboard, '/api/live-editor/sessions', {
+          platform: 'web',
+          targetName: scene.project.targetName,
+          url: `${scene.targetOrigin}/in-process-thing`,
+          headless: true,
+        })
+      )['sessionId']
+      expect(typeof sessionId, 'the live editor answered no session id').toBe('string')
+      sessionPath = `/api/live-editor/sessions/${sessionId as string}`
+      expect(ledgerOf(scene).map((line) => line.method)).toEqual(['initialize', 'acquire'])
+      const ended = await endSession(sessionPath)
+      expect(ended.status, await ended.text()).toBeLessThan(300)
+      sessionPath = undefined
+
+      await expectPluginWentAway(scene)
+      const log = scene.printed.join('\n')
+      expect(scene.endpoint.sessions(), log).toBe(1)
+      expect(scene.launch, log).not.toHaveBeenCalled()
+      expect(
+        ledgerOf(scene).map((line) => line.method),
+        log,
+      ).toEqual(LEASED_ONCE)
     })
   }, RUN_BUDGET_MS)
 
