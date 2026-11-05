@@ -206,17 +206,19 @@ Finding a device on this machine:
 - A matching simulator or AVD that is not running is started; agent-qa never creates one. When
   nothing matches, the test is refused before it starts with one line listing what this machine
   has.
-- `agent-qa devices` shows each device and what this machine has (attached phones with their
+- `npx agent-qa devices` shows each device and what this machine has (attached phones with their
   model, AVDs and simulators), so you can copy the `model` to write.
 
 Picking a device:
 
-- A mobile target names its default device with `device`.
-- A test runs on `--device`, else its own `use.device`, else its target's `device`. A suite runs on
-  one device: `--device`, else the suite's `use.device`, else the one device its members agree on.
-  `use.device` belongs in a suite or test, not under the config's `use`.
+- A mobile target names its default device with `device`. Its `app` holds `path`, the file
+  installed on devices here, and `ref`, what a remote server installs.
+- A test runs on `--device`, else the `device` under its own `use`, else its target's `device`. A
+  suite runs on one device: `--device`, else the `device` under the suite's `use`, else the one
+  device its members agree on. That `device` goes under `use` in a suite or test, never in
+  `agent-qa.config.yaml`.
 - `--device` picks devices on this machine only; naming a device that has a `remote` is refused.
-  To send a test to a remote device, set `use.device` in its suite or test.
+  To send a test to a remote device, set `device` under `use` in its suite or test.
 - `AGENT_QA_APPIUM_URL` names your own Appium on this machine, for devices without a remote. A host
   other than loopback is refused: list that server under `registry.remotes` instead. Without it,
   a device here uses the dashboard's Appium or the one agent-qa starts. A device with a `remote`
@@ -228,13 +230,13 @@ On a remote Appium server:
   server's own matching applies; `id` is sent as `appium:udid`. For a server that selects devices
   another way, leave `model` out and set its own key in `capabilities`, as you do for its real or
   virtual device flag.
-- The target's `app.ref`, an https URL or the server's own reference, is sent as `appium:app`; an
+- The target's app `ref`, an https URL or the server's own reference, is sent as `appium:app`; an
   `appium:app` in the device's or remote's capabilities wins. agent-qa itself uploads no app, so
-  a remote device whose target has only `app.path` is refused.
+  a remote device whose target's `app` has only a `path` is refused.
 - Android emulators and devices and iOS simulators are proven by agent-qa's own tests. Real
   iPhones behind a remote server work through capabilities and are not proven by agent-qa's tests.
-- `agent_qa_change_config` never changes a device's `remote` or `capabilities` or a target's
-  `app.ref`; a person edits those in the file.
+- `agent_qa_change_config` never changes a device's `remote` or `capabilities` or a target's app
+  `ref`; a person edits those in the file.
 
 ## Do Not
 
