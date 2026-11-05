@@ -41,6 +41,8 @@ export interface InProcessFixture {
   readonly targetName: string
   /** The second target's name, present only under `secondTarget` — `SECOND_TARGET_NAME`. */
   readonly secondTargetName?: string
+  /** The second standalone test on the remote device, only under `remoteDevice.secondTest`. */
+  readonly secondDirectTestPattern?: string
   /** The workspace-relative path of the test naming the second target, under `secondTarget`. */
   readonly secondTestPattern?: string
 }
@@ -124,6 +126,14 @@ export interface InProcessFixtureInput {
     readonly appState?: 'reset'
     /** The device's own `capabilities`, written as JSON. */
     readonly capabilities?: Readonly<Record<string, unknown>>
+    /** The remote's `basicAuth`. */
+    readonly basicAuth?: { readonly user: string; readonly password: string }
+    /** The remote's `connectTimeout`, such as `1s`. */
+    readonly connectTimeout?: string
+    /** The target's `app.path`, written as an empty file in the project, and no `app.ref`. */
+    readonly appPath?: string
+    /** A second standalone test, `tests/direct-2.yaml`, on the same device. */
+    readonly secondTest?: boolean
   }
   /** With `remoteDevice`, its target names the remote device and the standalone test names none. */
   readonly deviceOnTarget?: boolean
@@ -220,6 +230,8 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
     readonly protocol: string
     readonly url: string
     readonly headers?: Readonly<Record<string, string>>
+    readonly basicAuth?: { readonly user: string; readonly password: string }
+    readonly connectTimeout?: string
   }): string[] => [
     `    - name: ${remote.name}`,
     `      protocol: ${remote.protocol}`,
@@ -232,6 +244,16 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
             ([name, value]) => `        ${name}: ${JSON.stringify(value)}`,
           ),
         ]),
+    ...(remote.basicAuth === undefined
+      ? []
+      : [
+          '      basicAuth:',
+          `        user: ${JSON.stringify(remote.basicAuth.user)}`,
+          `        password: ${JSON.stringify(remote.basicAuth.password)}`,
+        ]),
+    ...(remote.connectTimeout === undefined
+      ? []
+      : [`      connectTimeout: ${remote.connectTimeout}`]),
   ]
 
   writeFileSync(
@@ -324,6 +346,9 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
               ? ['      platform: ios', `      bundleId: ${REMOTE_DEVICE_APP_PACKAGE}`]
               : ['      platform: android', `      appPackage: ${REMOTE_DEVICE_APP_PACKAGE}`]),
             ...(input.deviceOnTarget === true ? [`      device: ${remoteDeviceName}`] : []),
+            ...(remoteDevice.appPath === undefined
+              ? []
+              : ['      app:', `        path: ${JSON.stringify(remoteDevice.appPath)}`]),
           ]),
       ...(keyed === undefined
         ? []
@@ -358,6 +383,10 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
             protocol: 'appium',
             url: remoteDevice.url,
             ...(remoteDevice.headers === undefined ? {} : { headers: remoteDevice.headers }),
+            ...(remoteDevice.basicAuth === undefined ? {} : { basicAuth: remoteDevice.basicAuth }),
+            ...(remoteDevice.connectTimeout === undefined
+              ? {}
+              : { connectTimeout: remoteDevice.connectTimeout }),
           })),
       ...(input.remote === undefined
         ? []
@@ -466,6 +495,27 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
           '',
         ].join('\n'),
   )
+  if (remoteDevice?.appPath !== undefined) {
+    mkdirSync(dirname(join(project, remoteDevice.appPath)), { recursive: true })
+    writeFileSync(join(project, remoteDevice.appPath), '')
+  }
+  if (remoteDevice?.secondTest === true) {
+    writeFileSync(
+      join(project, 'tests', 'direct-2.yaml'),
+      [
+        `test-id: ${generateTestId()}`,
+        'name: the second standalone test',
+        `target: ${remoteTargetName}`,
+        'use:',
+        `  device: ${remoteDeviceName}`,
+        '  mobile:',
+        `    appState: ${remoteDevice.appState ?? 'preserve'}`,
+        'steps:',
+        step,
+        '',
+      ].join('\n'),
+    )
+  }
   const secondTestId = generateTestId()
   if (input.secondTarget === true) {
     writeFileSync(
@@ -557,6 +607,9 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
     targetName: IN_PROCESS_TARGET_NAME,
     ...(input.secondTarget === true
       ? { secondTargetName: SECOND_TARGET_NAME, secondTestPattern: 'tests/second.yaml' }
+      : {}),
+    ...(remoteDevice?.secondTest === true
+      ? { secondDirectTestPattern: 'tests/direct-2.yaml' }
       : {}),
   }
 }
