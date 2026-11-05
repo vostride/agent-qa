@@ -42,6 +42,7 @@ function sentHeadless(request: LoopbackRequest): boolean {
 export async function startFakeKernelApi(input: FakeKernelApiInput = {}): Promise<FakeKernelApi> {
   const scripted = [...(input.create ?? [])]
   const created: string[] = []
+  const live = new Set<string>()
   const fake = await startLoopbackFake({
     routes: {
       [CREATE_ROUTE]: (request) => {
@@ -49,9 +50,17 @@ export async function startFakeKernelApi(input: FakeKernelApiInput = {}): Promis
         if (reply !== undefined) return reply
         const id = `browser-${String(created.length + 1)}`
         created.push(id)
+        live.add(id)
         return { status: 200, json: kernelBrowser(id, sentHeadless(request)) }
       },
-      [DELETE_ROUTE]: input.delete ?? [{ status: 204 }],
+      // Like Kernel, a browser deleted once is gone, so a second delete answers 404.
+      [DELETE_ROUTE]:
+        input.delete ??
+        ((request) => {
+          const id = request.params.id ?? ''
+          if (!live.delete(id)) return { status: 404, json: { message: 'browser not found' } }
+          return { status: 204 }
+        }),
     },
   })
   return {
