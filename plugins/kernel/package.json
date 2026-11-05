@@ -53,14 +53,16 @@
   },
   "agent-qa": {
     "plugin": {
-      "protocol": 1,
       "kind": "remote",
       "runs": "process",
+      "protocol": 1,
       "entry": "./dist/main.js",
       "serves": [
         "cdp"
       ],
-      "methods": [],
+      "methods": [
+        "check"
+      ],
       "options": "./dist/options.schema.json",
       "settings": "./dist/settings.schema.json",
       "skill": "./skill"

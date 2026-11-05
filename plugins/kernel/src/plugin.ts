@@ -164,6 +164,33 @@ async function acquireFromPool(
   }
 }
 
+const OrgLimitsSchema = z.object({
+  concurrent_sessions_available: z.int().nonnegative(),
+  concurrent_sessions_used: z.int().nonnegative(),
+})
+
+function refusedKey(error: unknown): boolean {
+  return error instanceof PluginError && error.kind === 'auth'
+}
+
+function failureLine(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
+async function limitsLine(api: KernelApi, signal: AbortSignal): Promise<string> {
+  let answer: unknown
+  try {
+    answer = await api.orgLimits(signal)
+  } catch (error) {
+    if (refusedKey(error)) return 'organization limits not readable with this key'
+    return `organization limits not readable: ${failureLine(error)}`
+  }
+  const limits = OrgLimitsSchema.safeParse(answer)
+  if (!limits.success) return 'organization limits not readable: Kernel answered another shape'
+  const { concurrent_sessions_available: free, concurrent_sessions_used: used } = limits.data
+  return `${String(free)} of ${String(free + used)} concurrent sessions free`
+}
+
 export default definePlugin({
   options,
   settings,
@@ -177,6 +204,32 @@ export default definePlugin({
         path: 'apiUrl',
       })
     }
+  },
+
+  async check({ options, remotes }, ctx) {
+    const api = createKernelApi(options)
+    try {
+      await api.listBrowsers(1, ctx.signal)
+    } catch (error) {
+      const line = refusedKey(error) ? 'the API key was refused' : failureLine(error)
+      return { state: 'warn', lines: [line] }
+    }
+    const lines = ['the API key was accepted', await limitsLine(api, ctx.signal)]
+    let state: 'ok' | 'warn' = 'ok'
+    const pools = new Set(remotes.flatMap(({ settings }) => settings.pool ?? []))
+    for (const pool of pools) {
+      let found: boolean
+      try {
+        found = await api.getPool(pool, ctx.signal)
+      } catch (error) {
+        state = 'warn'
+        lines.push(`pool ${pool} not readable: ${failureLine(error)}`)
+        continue
+      }
+      if (!found) state = 'warn'
+      lines.push(found ? `pool ${pool} found` : `pool ${pool} not found`)
+    }
+    return { state, lines }
   },
 
   async acquire({ options, settings, session }, ctx) {

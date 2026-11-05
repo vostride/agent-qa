@@ -121,6 +121,11 @@ export function absolutizeReadmeLinks(body) {
     .replace(/(!?)\[([^\]]*)\]\(([^)\s]+)\)/g, (_, bang, text, path) => `${bang}[${text}](${bang ? raw(path) : blob(path)})`)
 }
 
+// A plugin documents its own options and settings, so its README ships in place of the root one.
+function keepsOwnReadme(record) {
+  return record.pkg['agent-qa']?.plugin !== undefined && existsSync(join(record.dir, 'README.md'))
+}
+
 function readRootReadme(rootDir) {
   const readmePath = join(rootDir ?? process.cwd(), 'README.md')
   if (!existsSync(readmePath)) throw new Error(`missing root README for staged packages: ${readmePath}`)
@@ -148,7 +153,7 @@ export async function stagePublishPackages(options = {}) {
     if (record.pkg.name === entryPackageName) {
       await stageCliSkills(record.dir, targetDir)
     }
-    await writeFile(join(targetDir, 'README.md'), readme, 'utf8')
+    if (!keepsOwnReadme(record)) await writeFile(join(targetDir, 'README.md'), readme, 'utf8')
     const stagedManifestPath = join(targetDir, 'package.json')
     const stagedManifest = stripSourceOnlyScripts(rewriteInternalWorkspaceRanges({ ...record.pkg, version: targetVersion }, targetVersion))
     stagedManifest.version = targetVersion

@@ -142,7 +142,7 @@ test('source skill validation fails on a missing or empty knowledge reference', 
   }
 })
 
-test('stages the root README into every public package without writing it to the source packages', async () => {
+test('stages the root README into every public package but a plugin with its own, without writing it to the source packages', async () => {
   await withTemp(async (tempDir) => {
     const fixture = await fixtureRepo(tempDir)
     const stagedDir = join(tempDir, 'staged')
@@ -157,6 +157,22 @@ test('stages the root README into every public package without writing it to the
     assert.ok(expected.includes('https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/'))
     assert.doesNotMatch(expected, /\b(?:src|srcset|href)="(?!https?:\/\/|#)/)
     assert.doesNotMatch(expected, /\]\((?!https?:\/\/|#)/)
+  })
+})
+
+test('keeps a plugin\'s own README and gives a packages/ member with one the root README', async () => {
+  await withTemp(async (tempDir) => {
+    const fixture = await fixtureRepo(tempDir)
+    const pluginReadme = '# Kernel plugin\n\nOptions and settings.\n'
+    await writeFile(join(fixture, 'plugins', 'kernel', 'README.md'), pluginReadme)
+    await writeFile(join(fixture, 'packages', 'cli', 'README.md'), '# CLI notes\n')
+    const stagedDir = join(tempDir, 'staged')
+    await stagePublishPackages({ rootDir: fixture, targetVersion: '0.1.1', outputDir: stagedDir })
+    const rootReadme = absolutizeReadmeLinks(readFileSync(join(rootDir, 'README.md'), 'utf8'))
+
+    assert.equal(readFileSync(join(stagedDir, 'plugins-kernel', 'README.md'), 'utf8'), pluginReadme)
+    assert.equal(readFileSync(join(stagedDir, 'cli', 'README.md'), 'utf8'), rootReadme)
+    assert.equal(readFileSync(join(fixture, 'plugins', 'kernel', 'README.md'), 'utf8'), pluginReadme)
   })
 })
 

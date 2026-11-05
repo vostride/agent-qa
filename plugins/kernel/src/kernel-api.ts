@@ -24,6 +24,9 @@ export interface KernelApi {
     signal?: AbortSignal,
   ): Promise<PoolAcquireAnswer>
   releaseToPool(pool: string, sessionId: string, reuse: boolean, signal?: AbortSignal): Promise<void>
+  listBrowsers(limit: number, signal?: AbortSignal): Promise<void>
+  orgLimits(signal?: AbortSignal): Promise<unknown>
+  getPool(pool: string, signal?: AbortSignal): Promise<boolean>
 }
 
 export function kernelFailureKind(status: number | undefined): KernelFailureKind {
@@ -158,6 +161,38 @@ export function createKernelApi(input: KernelApiInput): KernelApi {
         return
       }
       throw await statusFailure(response, 'POST /browser_pools/{pool}/release')
+    },
+
+    async listBrowsers(limit, signal) {
+      const response = await send('GET', `browsers?limit=${String(limit)}`, {
+        headers: { accept: 'application/json' },
+        signal,
+      })
+      if (!response.ok) throw await statusFailure(response, 'GET /browsers')
+      await response.body?.cancel()
+    },
+
+    async orgLimits(signal) {
+      const response = await send('GET', 'org/limits', {
+        headers: { accept: 'application/json' },
+        signal,
+      })
+      if (!response.ok) throw await statusFailure(response, 'GET /org/limits')
+      return jsonOf(response)
+    },
+
+    async getPool(pool, signal) {
+      const response = await send('GET', poolPath(pool), {
+        headers: { accept: 'application/json' },
+        signal,
+      })
+      if (response.status === 404) {
+        await response.body?.cancel()
+        return false
+      }
+      if (!response.ok) throw await statusFailure(response, 'GET /browser_pools/{pool}')
+      await response.body?.cancel()
+      return true
     },
   }
 }
