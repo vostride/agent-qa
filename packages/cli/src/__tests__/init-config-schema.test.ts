@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { parse as parseYaml } from 'yaml'
 import { AgentQaConfigSchema } from '@vostride/agent-qa-core'
 import { buildDefaultConfig } from '../commands/init.js'
 import { renderScaffoldConfigYaml } from '../commands/scaffold-content.js'
@@ -23,6 +24,16 @@ function parseGeneratedConfig(config: Record<string, unknown>) {
     throw new Error(JSON.stringify(result.error.issues, null, 2))
   }
   return result.data
+}
+
+function uncommentBlock(text: string, firstLine: string): string {
+  const lines = text.split('\n')
+  const start = lines.indexOf(firstLine)
+  if (start === -1) throw new Error(`the scaffold has no line ${JSON.stringify(firstLine)}`)
+  for (let i = start; i < lines.length && /^\s*# /.test(lines[i]!); i++) {
+    lines[i] = lines[i]!.replace(/^(\s*)# /, '$1')
+  }
+  return lines.join('\n')
 }
 
 function expectCompressionDefaults(config: Record<string, unknown>): void {
@@ -91,6 +102,29 @@ describe('init generated config schema compatibility', () => {
         expect(written).not.toContain(retired)
       }
       expect(written.toLowerCase()).not.toContain('reconcil')
+    },
+  )
+
+  it.each(['web', 'android', 'ios', 'web+android'] as const)(
+    'the %s scaffold with its device and mobile target examples uncommented passes the strict parse',
+    (platform) => {
+      const config = buildDefaultConfig(platform, 'anthropic-subscription', 'claude-sonnet-4-6')
+      const written = renderScaffoldConfigYaml(config)
+      const uncommented = uncommentBlock(
+        uncommentBlock(written, '  # devices:'),
+        '    # my-mobile:',
+      )
+
+      const parsed = parseGeneratedConfig(parseYaml(uncommented) as Record<string, unknown>)
+      expect(parsed.registry?.devices?.pixel).toMatchObject({
+        platform: 'android',
+        model: 'Pixel 8',
+      })
+      expect(parsed.registry?.targets?.['my-mobile']).toMatchObject({
+        platform: 'android',
+        device: 'pixel',
+      })
+      expect(parsed.use).not.toHaveProperty('device')
     },
   )
 

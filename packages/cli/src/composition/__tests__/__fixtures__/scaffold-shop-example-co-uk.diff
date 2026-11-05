@@ -18,7 +18,7 @@
 +# agent-qa init:end
 --- /dev/null
 +++ b/agent-qa.config.yaml
-@@ -0,0 +1,85 @@
+@@ -0,0 +1,87 @@
 +# agent-qa Configuration
 +
 +# File discovery and project settings
@@ -66,10 +66,11 @@
 +
 +# Named resource definitions (LLM configs, app targets)
 +registry:
-+  # Optional: local device profiles.
++  # Optional: devices, described by what people call them. agent-qa finds them on this machine.
 +  # devices:
-+  #   android-emu:
++  #   pixel:
 +  #     platform: android
++  #     model: Pixel 8
 +  targets:
 +    # Optional: add more web or mobile targets here.
 +    # my-mobile:
@@ -78,6 +79,7 @@
 +    #   appActivity: .MainActivity
 +    #   app:
 +    #     path: apps/example.apk
++    #   device: pixel # its tests run here unless a suite or test sets use.device
 +    shop-example-co-uk:
 +      platform: web
 +      url: https://shop.example.co.uk
