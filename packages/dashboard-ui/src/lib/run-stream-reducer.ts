@@ -1,6 +1,7 @@
 import type {
   MemberTestOutcome,
   RecordedRetrievalRung,
+  RemoteProgressPayload,
   RunEventEnvelope,
   RunStartedPayload,
   RunStatus,
@@ -74,6 +75,14 @@ export interface RunStreamNotice {
   message: string
 }
 
+// A plugin remote's latest progress for one running member, such as its farm queue position.
+export interface RemoteProgressLine {
+  remote: string
+  message: string
+  queued?: number
+  percent?: number
+}
+
 /** The inclusive seq range a replay floor cost this viewer. See {@link markGap}. */
 export interface RunStreamGap {
   from: number
@@ -97,6 +106,8 @@ export interface RunStreamState {
   verdict?: RunStatus
   terminal: boolean
   notices: readonly RunStreamNotice[]
+  // By `testIndex`; a member's line is cleared when it finishes, and every line when the run does.
+  progress: Readonly<Record<number, RemoteProgressLine>>
   gap?: RunStreamGap
   // Run-constant, so the first carrying frame wins; absent, never nulled, until one arrives.
   retrievalRung?: RecordedRetrievalRung
@@ -112,6 +123,7 @@ export function createInitialRunStreamState(): RunStreamState {
     verdict: undefined,
     terminal: false,
     notices: [],
+    progress: {},
     gap: undefined,
   }
 }
@@ -168,6 +180,14 @@ function replaceRow(rows: readonly LiveStepRow[], index: number, row: LiveStepRo
   const next = [...rows]
   next[index] = row
   return next
+}
+
+function withoutProgress(
+  progress: Readonly<Record<number, RemoteProgressLine>>,
+  testIndex: number,
+): Readonly<Record<number, RemoteProgressLine>> {
+  if (progress[testIndex] === undefined) return progress
+  return Object.fromEntries(Object.entries(progress).filter(([key]) => Number(key) !== testIndex))
 }
 
 const rowIndexOf = (rows: readonly LiveStepRow[], testIndex: number, stepIndex: number): number =>
@@ -320,7 +340,32 @@ export function reduceRunStream(state: RunStreamState, envelope: RunEventEnvelop
               ? { ...row, status: 'skipped' as StepStatus }
               : row,
           )
-      return { ...base, members: withMember(base, member), steps }
+      return {
+        ...base,
+        members: withMember(base, member),
+        steps,
+        progress: withoutProgress(base.progress, payload.testIndex),
+      }
+    }
+
+    case 'remoteProgress': {
+      const payload = envelope.payload as RemoteProgressPayload
+      if (typeof payload.remote !== 'string' || typeof payload.message !== 'string') return base
+      const line: RemoteProgressLine = {
+        remote: payload.remote,
+        message: payload.message,
+        ...(typeof payload.queued === 'number' ? { queued: payload.queued } : {}),
+        ...(typeof payload.percent === 'number' ? { percent: payload.percent } : {}),
+      }
+      // A suite's shared session names no member, so its line goes to every member still running.
+      const finished = (testIndex: number) => base.members[testIndex]?.outcome !== undefined
+      const addressed = typeof payload.testIndex === 'number'
+        ? [payload.testIndex].filter((testIndex) => !finished(testIndex))
+        : Object.values(base.members).filter((member) => member.outcome === undefined).map((member) => member.testIndex)
+      if (addressed.length === 0) return base
+      const progress: Record<number, RemoteProgressLine> = { ...base.progress }
+      for (const testIndex of addressed) progress[testIndex] = line
+      return { ...base, progress }
     }
 
     case 'testRetryScheduled': {
@@ -347,7 +392,7 @@ export function reduceRunStream(state: RunStreamState, envelope: RunEventEnvelop
     }
 
     case 'runFinished':
-      return { ...base, terminal: true }
+      return { ...base, terminal: true, progress: {} }
 
     case 'runWarning':
     case 'runError': {

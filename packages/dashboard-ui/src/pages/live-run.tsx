@@ -22,6 +22,7 @@ import {
   createInitialRunStreamState,
   markGap,
   reduceRunStream,
+  type RemoteProgressLine,
   type RunStreamState,
 } from '@/lib/run-stream-reducer'
 import { getRunStatusDescriptor, getStatusBadgeClassName } from '@/lib/status'
@@ -35,6 +36,12 @@ const SOURCE_CLOSED = 2
 // The range is inclusive, because both ends are envelopes the viewer will not see.
 export function gapMarkerText(from: number, to: number): string {
   return `${String(to - from + 1)} events missed (seq ${String(from)}–${String(to)}) — see run detail`
+}
+
+// A running test's latest word from its plugin remote, such as its farm queue position.
+export function remoteProgressText(line: RemoteProgressLine): string {
+  const percent = line.percent === undefined ? '' : ` ${String(Math.round(line.percent))}%`
+  return `Remote ${line.remote}: ${line.message}${percent}`
 }
 
 /** What the terminal band says beside the verdict. */
@@ -230,6 +237,7 @@ export default function LiveRunPage() {
 
   // Named once so the strip's condition and the element inside it cannot come apart.
   const rung = state.retrievalRung
+  const progressLines = Object.entries(state.progress)
 
   // Gated on `rungBannerText`, the banner's own predicate, so container and child cannot disagree.
   const rungSentence = rungBannerText(rung === undefined ? undefined : {
@@ -303,7 +311,7 @@ export default function LiveRunPage() {
 
       {/* The rung joins the second line, gated on its sentence so `memidex` adds no empty rule. */}
       {(bandsTerminal || runMetaFailed || runOver || state.gap !== undefined
-        || rungSentence !== undefined || state.notices.length > 0) && (
+        || rungSentence !== undefined || state.notices.length > 0 || progressLines.length > 0) && (
         <div data-run-meta-strip className="flex shrink-0 flex-wrap items-center gap-3 border-b px-3 py-2 text-xs">
           {bandsTerminal && (
             <div data-terminal-state={verdictDescriptor.normalized} className="flex items-center gap-2">
@@ -330,6 +338,11 @@ export default function LiveRunPage() {
             is scope order.
           */}
           <RetrievalRungBanner variant="live" rung={rung?.rung} reason={rung?.reason} />
+          {progressLines.map(([testIndex, line]) => (
+            <p key={`progress:${testIndex}`} data-remote-progress={testIndex} className="text-muted-foreground">
+              {remoteProgressText(line)}
+            </p>
+          ))}
           {runMetaFailed && (
             <p data-run-meta-unavailable className="text-muted-foreground">
               run details unavailable — the live stream is unaffected

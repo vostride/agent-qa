@@ -614,6 +614,7 @@ describe('the module publishes no bus liveness, and an absent export is the proo
       'lastSeq',
       'members',
       'notices',
+      'progress',
       'steps',
       'terminal',
       'verdict',
@@ -725,6 +726,7 @@ describe('the retrieval rung is a RUN-CONSTANT, folded from the first frame that
       'lastSeq',
       'members',
       'notices',
+      'progress',
       'retrievalRung',
       'steps',
       'terminal',
@@ -732,5 +734,70 @@ describe('the retrieval rung is a RUN-CONSTANT, folded from the first frame that
     ])
     expect(JSON.stringify(state)).not.toContain(SENTINEL)
     expect(JSON.stringify(state)).not.toContain('tokenUsage')
+  })
+})
+
+// A plugin remote's progress
+
+const testStarted = (testIndex: number, seq?: number) =>
+  envelope('testStarted', { testId: `t${String(testIndex)}`, testIndex, name: `member ${String(testIndex)}` }, seq)
+
+const testFinished = (testIndex: number, seq?: number) =>
+  envelope('testFinished', { testId: `t${String(testIndex)}`, testIndex, outcome: 'passed', durationMs: 5 }, seq)
+
+const remoteProgress = (payload: Record<string, unknown>, seq?: number) =>
+  envelope('remoteProgress', { remote: 'lab', ...payload }, seq)
+
+describe('a running test holds the latest progress line its plugin remote sent', () => {
+  it('keeps the second of two lines for its member and nothing for another', () => {
+    const state = fold([
+      testStarted(0),
+      testStarted(1),
+      remoteProgress({ message: 'queued, 3 ahead', testIndex: 0, queued: 3 }),
+      remoteProgress({ message: 'queued, 1 ahead', testIndex: 0, queued: 1 }),
+    ])
+
+    expect(state.progress).toEqual({ 0: { remote: 'lab', message: 'queued, 1 ahead', queued: 1 } })
+    expect(state.progress[1]).toBeUndefined()
+  })
+
+  it("holds a suite's shared line, which names no member, for every member running when it arrives", () => {
+    const state = fold([
+      testStarted(0),
+      testStarted(1),
+      testFinished(1),
+      testStarted(2),
+      remoteProgress({ message: 'uploading app (12 MB)', percent: 40 }),
+    ])
+
+    const line = { remote: 'lab', message: 'uploading app (12 MB)', percent: 40 }
+    expect(state.progress).toEqual({ 0: line, 2: line })
+  })
+
+  it("clears a member's line when it finishes, and every line when the run finishes", () => {
+    const afterTest = fold([
+      testStarted(0),
+      testStarted(1),
+      remoteProgress({ message: 'waiting for pool chrome', testIndex: 0 }),
+      remoteProgress({ message: 'waiting for pool chrome', testIndex: 1 }),
+      testFinished(0),
+    ])
+    expect(Object.keys(afterTest.progress)).toEqual(['1'])
+
+    const afterRun = reduceRunStream(afterTest, envelope('runFinished', { status: 'passed' }), 0)
+    expect(afterRun.progress).toEqual({})
+  })
+
+  it("copies only the line's own fields, and drops a line for a member that already finished", () => {
+    const state = fold([
+      testStarted(0),
+      testFinished(0),
+      remoteProgress({ message: 'late', testIndex: 0 }),
+      testStarted(1),
+      remoteProgress({ message: 'app uploaded', testIndex: 1, reasoning: SENTINEL }),
+    ])
+
+    expect(state.progress).toEqual({ 1: { remote: 'lab', message: 'app uploaded' } })
+    expect(JSON.stringify(state)).not.toContain(SENTINEL)
   })
 })

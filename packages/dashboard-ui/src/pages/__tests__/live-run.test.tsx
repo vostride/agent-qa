@@ -628,6 +628,27 @@ describe('NO-LIVENESS-PILL: the page makes no claim about the bus channel', () =
   })
 })
 
+describe("a running test's plugin progress", () => {
+  const remoteProgress = (payload: Record<string, unknown>) =>
+    envelope('remoteProgress', { remote: 'bs-chrome', ...payload })
+  const progressText = () => qa('[data-remote-progress]').map((node) => node.textContent)
+
+  it('shows the latest line for a running test, with its percentage, until the test finishes', async () => {
+    await mount()
+    await open()
+    await emit(runStarted(), testStarted(0, 'the member', 1), stepStarted())
+    await emit(remoteProgress({ message: 'queued, 3 ahead', testIndex: 0, queued: 3 }))
+    expect(progressText()).toEqual(['Remote bs-chrome: queued, 3 ahead'])
+
+    await emit(remoteProgress({ message: 'uploading app (12 MB)', testIndex: 0, percent: 40 }))
+    expect(progressText()).toEqual(['Remote bs-chrome: uploading app (12 MB) 40%'])
+    expect(q('[data-remote-progress]')?.className).toContain('text-muted-foreground')
+
+    await emit(testFinished(0, 'passed'))
+    expect(progressText()).toEqual([])
+  })
+})
+
 describe('the header is the title, the file path, Cancel and view run detail', () => {
   const header = (): Element => {
     const found = q('[data-tour-id="tour-live-run-status"]')?.parentElement
