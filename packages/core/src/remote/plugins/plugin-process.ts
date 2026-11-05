@@ -40,7 +40,11 @@ export interface PluginRequestOptions {
 export interface PluginProcess {
   readonly pid: number | undefined
   readonly exited: Promise<void>
-  request(method: string, params: unknown, options: PluginRequestOptions): Promise<PluginCallOutcome>
+  request(
+    method: string,
+    params: unknown,
+    options: PluginRequestOptions,
+  ): Promise<PluginCallOutcome>
   stop(killAfterMs?: number): Promise<void>
 }
 

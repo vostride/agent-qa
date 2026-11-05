@@ -27,6 +27,7 @@ import {
   supportedPluginProtocols,
   type PluginEntryInput,
 } from '../../plugins/resolve-entries.js'
+import { checkPluginAnswer } from './answer.js'
 import {
   startPluginProcess,
   type PluginCallOutcome,
@@ -148,8 +149,17 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
   const pluginErrorLine = (
     remote: string,
     outcome: Extract<PluginCallOutcome, { status: 'error' }>,
-    _scope: ErrorScope,
-  ): string => `Remote ${remote}: ${pluginLine(outcome.message)}`
+    scope: ErrorScope,
+  ): string => {
+    const line = `Remote ${remote}: ${pluginLine(outcome.message).replace(/\.+$/, '')}.`
+    const data = PluginErrorDataSchema.safeParse(outcome.data)
+    const path = data.success ? input.mask(data.data.path ?? '').split(/\r?\n/, 1)[0]?.trim() : ''
+    if (path === undefined || path === '') return line
+    if (scope.call === 'initialize') {
+      return `${line} Check options.${path.replace(/^options\./, '')} in plugins entry ${scope.entry}.`
+    }
+    return `${line} Check settings.${path.replace(/^settings\./, '')} in remote ${scope.remote}.`
+  }
 
   const asRefusal = (error: unknown, remote: string, entry: string): RemoteRefusalError => {
     if (error instanceof RemoteRefusalError) {
@@ -470,6 +480,16 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
         `Remote ${remote}: plugin entry ${entry} answered acquire with something that is not a session.`,
         { remote, kind: 'refused' },
       )
+    }
+    const unsafe = checkPluginAnswer(parsed.data, {
+      serves: running.manifest.serves,
+      place: request.session.platform === 'web' ? 'web' : 'device',
+      remote,
+      entry,
+    })
+    if (unsafe !== undefined) {
+      await releaseCarried(running, outcome)
+      throw unsafe
     }
     return openLease(running, parsed.data)
   }

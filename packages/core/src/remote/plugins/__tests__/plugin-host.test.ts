@@ -1,5 +1,6 @@
 import { execFileSync } from 'node:child_process'
 
+import { RemoteRefusalError } from '@vostride/agent-qa-runner'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { PLUGIN_ENVIRONMENT_NAMES, pluginEnvironment } from '../environment.js'
@@ -7,6 +8,7 @@ import {
   createHostProject,
   isAlive,
   methodsOf,
+  waitFor,
   webAnswer,
   webSession,
   type HostProject,
@@ -130,7 +132,9 @@ describe('the plugin host pool', () => {
     })
 
     const pid = initialize?.pid as number
-    const pgid = Number(execFileSync('ps', ['-o', 'pgid=', '-p', String(pid)], { encoding: 'utf8' }))
+    const pgid = Number(
+      execFileSync('ps', ['-o', 'pgid=', '-p', String(pid)], { encoding: 'utf8' }),
+    )
     expect(pgid).toBe(pid)
   })
 
@@ -210,5 +214,133 @@ describe('the plugin host pool', () => {
       'release',
       'shutdown',
     ])
+  })
+})
+
+async function refusalOf(work: Promise<unknown>): Promise<RemoteRefusalError> {
+  const error = await work.then(
+    () => undefined,
+    (thrown: unknown) => thrown,
+  )
+  expect(error).toBeInstanceOf(RemoteRefusalError)
+  return error as RemoteRefusalError
+}
+
+const releasesOf = (lines: readonly Record<string, unknown>[]) =>
+  lines.filter((line) => line.method === 'release').map((line) => line.handle)
+
+describe('refusals from the plugin host pool', () => {
+  it.each([
+    ['a protocol it does not serve', { protocol: 'appium', url: 'http://127.0.0.1:4723' }],
+    ['a url with credentials', { protocol: 'playwright', url: 'wss://u:p@lab.example.com/s' }],
+    ['a cleartext url to another host', { protocol: 'playwright', url: 'ws://lab.example.com/s' }],
+  ])('refuses an answer with %s and releases its session', async (_, answer) => {
+    const p = host()
+    const lab = p.entry('lab', { answer })
+    const pool = p.pool([lab])
+
+    const refused = await refusalOf(pool.acquire(request('lab-a', 'lab')))
+
+    expect(refused.kind).toBe('refused')
+    expect(refused.message).toMatch(/^Remote lab-a: plugin entry lab answered with /)
+    expect(releasesOf(p.ledger(lab))).toEqual([{ n: 1 }])
+  })
+
+  it("refuses only the remotes naming an entry that is not installed, with the entry's line", async () => {
+    const p = host()
+    const gone = p.missingEntry('gone')
+    const lab = p.entry('lab')
+    const pool = p.pool([gone, lab])
+
+    const refused = await refusalOf(pool.acquire(request('farm', 'gone')))
+    const lease = await pool.acquire(request('lab-a', 'lab'))
+
+    expect(refused.kind).toBe('refused')
+    expect(refused.message).toBe(
+      'Remote farm: Plugin entry gone names the path ./plugins/gone, which has no package.json '
+        + 'inside this project. Fix the path in plugins, or make the plugin a workspace package and '
+        + 'name it with package.',
+    )
+    expect(lease.connection).toEqual(webAnswer)
+  })
+
+  it('cancels an acquire past its deadline, releases the session it answers with and refuses with timeout', async () => {
+    const p = host()
+    const lab = p.entry('lab', { script: { acquire: { delayMs: 5_000 } } })
+    const pool = p.pool([lab])
+
+    const refused = await refusalOf(pool.acquire(request('lab-a', 'lab', { deadlineMs: 300 })))
+
+    expect(refused.kind).toBe('timeout')
+    expect(refused.message).toBe(
+      'Remote lab-a: plugin entry lab did not answer acquire within 300ms.',
+    )
+    expect(releasesOf(p.ledger(lab))).toEqual([{ n: 1 }])
+  })
+
+  it('releases the session of an acquire that finishes inside the grace after its cancel', async () => {
+    const p = host()
+    const lab = p.entry('lab', { script: { acquire: { delayMs: 600, ignoreCancel: true } } })
+    const pool = p.pool([lab])
+
+    const refused = await refusalOf(pool.acquire(request('lab-a', 'lab', { deadlineMs: 300 })))
+
+    expect(refused.kind).toBe('timeout')
+    expect(releasesOf(p.ledger(lab))).toEqual([{ n: 1 }])
+  })
+
+  it('releases the session of an acquire that answers after the grace', async () => {
+    const p = host()
+    const lab = p.entry('lab', { script: { acquire: { delayMs: 1_500, ignoreCancel: true } } })
+    const pool = p.pool([lab], { bounds: { cancelGraceMs: 300, killAfterMs: 1_000 } })
+
+    const refused = await refusalOf(pool.acquire(request('lab-a', 'lab', { deadlineMs: 200 })))
+    expect(refused.kind).toBe('timeout')
+
+    await waitFor(() => releasesOf(p.ledger(lab)).length === 1)
+    expect(releasesOf(p.ledger(lab))).toEqual([{ n: 1 }])
+  })
+
+  it("refuses a failed acquire with the plugin's kind and first line, pointing at its setting", async () => {
+    const p = host()
+    const message = 'no browsers left\nsecond line'
+    const withPath = p.entry('pooled', {
+      script: { acquire: { error: { kind: 'capacity', message, path: 'pool' } } },
+    })
+    const withoutPath = p.entry('plain', {
+      script: { acquire: { error: { kind: 'capacity', message } } },
+    })
+    const pool = p.pool([withPath, withoutPath])
+
+    const pointed = await refusalOf(pool.acquire(request('lab-a', 'pooled')))
+    const plain = await refusalOf(pool.acquire(request('lab-b', 'plain')))
+
+    expect(pointed.kind).toBe('capacity')
+    expect(pointed.message).toBe(
+      'Remote lab-a: no browsers left. Check settings.pool in remote lab-a.',
+    )
+    expect(plain.kind).toBe('capacity')
+    expect(plain.message).toBe('Remote lab-b: no browsers left.')
+  })
+
+  it('refuses every remote naming an entry whose initialize failed, pointing at its option', async () => {
+    const p = host()
+    const lab = p.entry('lab', {
+      script: { initialize: { error: { kind: 'auth', message: 'key rejected', path: 'apiKey' } } },
+    })
+    const pool = p.pool([lab])
+
+    const first = await refusalOf(pool.acquire(request('lab-a', 'lab')))
+    const second = await refusalOf(pool.acquire(request('lab-b', 'lab')))
+
+    expect(first.kind).toBe('auth')
+    expect(first.message).toBe(
+      'Remote lab-a: key rejected. Check options.apiKey in plugins entry lab.',
+    )
+    expect(second.kind).toBe('auth')
+    expect(second.message).toBe(
+      'Remote lab-b: key rejected. Check options.apiKey in plugins entry lab.',
+    )
+    expect(methodsOf(p.ledger(lab))).toEqual(['initialize'])
   })
 })

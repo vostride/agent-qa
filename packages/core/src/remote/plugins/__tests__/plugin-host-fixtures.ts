@@ -25,7 +25,9 @@ function resolveValue(value: unknown): unknown {
   }
   if (Array.isArray(value)) return value.map(resolveValue)
   if (typeof value === 'object' && value !== null) {
-    return Object.fromEntries(Object.entries(value).map(([key, child]) => [key, resolveValue(child)]))
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [key, resolveValue(child)]),
+    )
   }
   return value
 }
@@ -50,6 +52,7 @@ export interface HostProject {
     options?: Record<string, unknown>,
     scripted?: ScriptedPluginInput,
   ): ScriptedEntry
+  missingEntry(name: string): ScriptedEntry
   pool(
     entries: readonly ScriptedEntry[],
     input?: Partial<PluginHostPoolInput>,
@@ -71,6 +74,14 @@ export function createHostProject(): HostProject {
         path: `./plugins/${name}`,
         ledgerFile,
         options: { ledgerFile, answer: webAnswer, ...options },
+      }
+    },
+    missingEntry(name) {
+      return {
+        name,
+        path: `./plugins/${name}`,
+        ledgerFile: join(fixture.root, `${name}.ledger.jsonl`),
+        options: {},
       }
     },
     pool(entries, input = {}) {
@@ -115,5 +126,13 @@ export function isAlive(pid: number): boolean {
     return true
   } catch {
     return false
+  }
+}
+
+export async function waitFor(check: () => boolean, timeoutMs = 5_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  while (!check()) {
+    if (Date.now() > deadline) throw new Error('the condition did not hold in time')
+    await new Promise((resolve) => setTimeout(resolve, 25))
   }
 }

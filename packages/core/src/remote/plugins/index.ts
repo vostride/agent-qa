@@ -1,3 +1,4 @@
+export { checkPluginAnswer, type PluginAnswerContext } from './answer.js'
 export {
   PLUGIN_ENVIRONMENT_NAMES,
   PLUGIN_WINDOWS_ENVIRONMENT_NAMES,
