@@ -4496,10 +4496,6 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
               ...(remote === undefined ? {} : { remote }),
               useDeviceName: typeof body?.useDeviceName === 'string' ? body.useDeviceName : undefined,
               appState: body?.appState === 'preserve' || body?.appState === 'reset' ? body.appState : undefined,
-              bundleId: typeof body?.bundleId === 'string' ? body.bundleId : undefined,
-              appPackage: typeof body?.appPackage === 'string' ? body.appPackage : undefined,
-              appActivity: typeof body?.appActivity === 'string' ? body.appActivity : undefined,
-              device: body?.device as import('../live-editor/types.js').LiveSessionConfig['device'],
             },
             entityRef,
           )

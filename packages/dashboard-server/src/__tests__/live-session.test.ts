@@ -234,6 +234,33 @@ const webConfig: LiveSessionConfig = {
   headless: true,
 }
 
+// A mobile session is built only from the project config, through a managed Appium lease.
+async function configuredAndroidSession(): Promise<LiveSession> {
+  const core = await import('@vostride/agent-qa-core')
+  ;(core.resolveMobileRunConfig as unknown as Mock).mockReturnValue({
+    platform: 'android',
+    targetName: 'android-app',
+    deviceName: 'pixel',
+    device: { name: 'pixel', platform: 'android', model: 'Pixel 8' },
+    app: { appPackage: 'com.example.app', deepLinkAppId: 'com.example.app', sourceTrace: {} },
+    appState: 'preserve',
+    appium: {},
+    sourceTrace: [],
+  })
+  const configManager = {
+    readWithRevision: async () => ({ kind: 'ok', config: {}, raw: '', revision: 'r1' }),
+  } as unknown as ConfigManager
+  return new LiveSession('mobile-session', {
+    appiumManager: {
+      acquireLease: vi.fn().mockResolvedValue(undefined),
+      releaseLease: vi.fn().mockReturnValue(true),
+      getUrl: vi.fn(() => 'http://localhost:4723'),
+    } as never,
+    configManager,
+    configPath: '/tmp/agent-qa.config.yaml',
+  })
+}
+
 describe('LiveSession', () => {
   let session: LiveSession
 
@@ -339,8 +366,29 @@ describe('LiveSession', () => {
   })
 
   it('initialize throws when android adapter is not available', async () => {
+    const mobileSession = await configuredAndroidSession()
+    const mobileConfig: LiveSessionConfig = { ...webConfig, platform: 'android', targetName: 'android-app' }
+    await expect(mobileSession.initialize(mobileConfig)).rejects.toThrow('Failed to load Android adapter')
+  })
+
+  it('refuses a mobile session without the project config, naming what is missing', async () => {
+    const { AndroidPlatformAdapter } = await import('@vostride/agent-qa-android')
     const mobileConfig: LiveSessionConfig = { ...webConfig, platform: 'android' }
-    await expect(session.initialize(mobileConfig)).rejects.toThrow('Failed to load Android adapter')
+
+    await expect(session.initialize(mobileConfig)).rejects.toThrow(
+      'device-resolution: An Android live session is built only from the project config; missing: Appium manager, config manager, config path, target name',
+    )
+    expect(AndroidPlatformAdapter).not.toHaveBeenCalled()
+  })
+
+  it('refuses a configured mobile session that names no target', async () => {
+    const mobileSession = await configuredAndroidSession()
+    const { AndroidPlatformAdapter } = await import('@vostride/agent-qa-android')
+
+    await expect(
+      mobileSession.initialize({ ...webConfig, platform: 'android' }),
+    ).rejects.toThrow(/project config; missing: target name$/)
+    expect(AndroidPlatformAdapter).not.toHaveBeenCalled()
   })
 
   it('executeStepCommand calls executeStep with correct config', async () => {
@@ -857,8 +905,9 @@ describe('LiveSession', () => {
       }
     })
 
-    await session.initialize({ ...webConfig, platform: 'android', appPackage: 'com.example.app' })
-    const attachment = session.liveAttachment()
+    const mobileSession = await configuredAndroidSession()
+    await mobileSession.initialize({ ...webConfig, platform: 'android', targetName: 'android-app' })
+    const attachment = mobileSession.liveAttachment()
 
     expect(attachment.streamCapabilityOf(0)).toEqual({ kind: 'snapshot' })
     const subscription = attachment.subscribeFrames(0, () => {})

@@ -223,21 +223,6 @@ export interface LiveSessionConfig {
   navigationTimeoutMs?: number
   useDeviceName?: string
   appState?: 'preserve' | 'reset'
-  bundleId?: string
-  appPackage?: string
-  appActivity?: string
-  device?: {
-    name: string
-    platformVersion?: string
-    appPath?: string
-    browserName?: string
-    appPackage?: string
-    appActivity?: string
-    bundleId?: string
-    udid?: string
-    avd?: string
-    appiumUrl?: string
-  }
 }
 
 // The close code for a session this process does not hold; the dashboard UI spells it too.

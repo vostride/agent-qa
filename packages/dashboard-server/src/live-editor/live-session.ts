@@ -900,47 +900,37 @@ export class LiveSession {
     this.mobileAppiumLease = null
   }
 
-  private legacyMobilePlatformConfig(config: LiveSessionConfig): PlatformConfig {
-    const platform = config.platform as MobilePlatform
-    return {
-      platform,
-      bundleId: config.bundleId,
-      appPackage: config.appPackage,
-      appActivity: config.appActivity,
-      deepLinkAppId: platform === 'android' ? config.appPackage : config.bundleId,
-      appState: config.appState,
-      device: config.device
-        ? {
-            name: config.device.name,
-            platform,
-            match: config.device,
-          }
-        : undefined,
-    }
-  }
-
   private async resolveMobilePlatformConfig(config: LiveSessionConfig): Promise<PlatformConfig> {
-    if (
-      this.deps.appiumManager
-      && this.deps.configManager
-      && this.deps.configPath
-      && config.targetName
-    ) {
-      const prepared = await prepareMobileLiveSession({
-        sessionId: this.sessionId,
-        platform: config.platform as MobilePlatform,
-        targetName: config.targetName,
-        useDeviceName: config.useDeviceName,
-        appState: config.appState,
-        appiumManager: this.deps.appiumManager,
-        configManager: this.deps.configManager,
-        configPath: this.deps.configPath,
+    const platform = config.platform as MobilePlatform
+    const { appiumManager, configManager, configPath } = this.deps
+    const targetName = config.targetName
+    if (!appiumManager || !configManager || !configPath || !targetName) {
+      const missing = [
+        ...(appiumManager ? [] : ['Appium manager']),
+        ...(configManager ? [] : ['config manager']),
+        ...(configPath ? [] : ['config path']),
+        ...(targetName ? [] : ['target name']),
+      ]
+      throw new MobileSetupError({
+        category: 'device-resolution',
+        message: `${platform === 'ios' ? 'An iOS' : 'An Android'} live session is built only from the project config; missing: ${missing.join(', ')}`,
+        platform,
+        ...(targetName ? { targetName } : {}),
       })
-      this.mobileAppiumLease = prepared.appiumLease
-      return prepared.platformConfig
     }
 
-    return this.legacyMobilePlatformConfig(config)
+    const prepared = await prepareMobileLiveSession({
+      sessionId: this.sessionId,
+      platform,
+      targetName,
+      useDeviceName: config.useDeviceName,
+      appState: config.appState,
+      appiumManager,
+      configManager,
+      configPath,
+    })
+    this.mobileAppiumLease = prepared.appiumLease
+    return prepared.platformConfig
   }
 
   private async setupMobileAdapter(platform: MobilePlatform, config: LiveSessionConfig): Promise<void> {
