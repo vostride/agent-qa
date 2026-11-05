@@ -2,8 +2,8 @@ import { definePlugin, PluginError, z } from '@vostride/agent-qa-plugin-kit'
 import { checkAccount } from './check.js'
 import { deviceAnswer, DeviceHandleSchema, deviceStarted, markAppSession } from './devices.js'
 import {
+  browserStackLocalFactory,
   createTunnelManager,
-  unavailableTunnelFactory,
   type TunnelFactory,
   type TunnelManager,
 } from './local.js'
@@ -18,7 +18,7 @@ export interface BrowserStackPluginInput {
 }
 
 export function createBrowserStackPlugin(input: BrowserStackPluginInput = {}) {
-  const tunnelFactory = input.tunnelFactory ?? unavailableTunnelFactory
+  const tunnelFactory = input.tunnelFactory ?? browserStackLocalFactory
   let playwrightVersion = 'unknown'
   let tunnel: TunnelManager | undefined
   const appSessions = new Map<string, string>()

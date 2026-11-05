@@ -14,10 +14,14 @@ session's `browser_url` from `started` (never its `public_url`) and marks the se
 `uploadApp` uploads a target's app once per content, under the custom id
 `agent-qa-<first 32 hex of its SHA-256>`, and reuses the newest upload listed under it.
 `check` reads the Automate and App Automate plans, opening no session, and warns when
-BrowserStack does not list agent-qa's Playwright version. It is
-built only with `@vostride/agent-qa-plugin-kit` and depends on no other agent-qa package. The
-username and access key are credentials: they travel only inside the masked Playwright URL,
-the `bstack:options` the host masks and the basic auth header, and are never logged.
+BrowserStack does not list agent-qa's Playwright version. With `local: true` it starts one
+BrowserStack Local tunnel per run through BrowserStack's `browserstack-local` wrapper, logs it to
+a temp file and stops it on shutdown, stdin close and `SIGTERM`; `localIdentifier` alone asks for
+a tunnel that is already running. It is built only with `@vostride/agent-qa-plugin-kit` and
+`browserstack-local`, and depends on no other agent-qa package. The username and access key are
+credentials: they travel only inside the masked Playwright URL, the `bstack:options` the host
+masks and the basic auth header, and are never logged, except that BrowserStack's tunnel binary
+takes the access key as `--key` on its command line.
 
 ## Read First
 
@@ -31,12 +35,14 @@ the `bstack:options` the host masks and the basic auth header, and are never log
 - `src/upload.ts`
 - `src/check.ts`
 - `src/browserstack-api.ts`
+- `src/local.ts`
 - `src/playwright-versions.ts`
 - `src/__tests__/web-acquire.test.ts`
 - `src/__tests__/web-marks.test.ts`
 - `src/__tests__/device-acquire.test.ts`
 - `src/__tests__/upload.test.ts`
 - `src/__tests__/check.test.ts`
+- `src/__tests__/local.test.ts`
 
 ## Commands
 

@@ -1,5 +1,9 @@
 import { randomBytes } from 'node:crypto'
+import { writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { PluginError, type PluginProgress } from '@vostride/agent-qa-plugin-kit'
+import { Local } from 'browserstack-local'
 
 const STOP_BOUND_MS = 3_000
 
@@ -17,12 +21,39 @@ export interface TunnelFactory {
   start(request: TunnelRequest): Promise<RunningTunnel>
 }
 
-export const unavailableTunnelFactory: TunnelFactory = {
-  start() {
-    throw new PluginError(
-      'This build of the plugin cannot start BrowserStack Local; start the tunnel yourself and set localIdentifier.',
-      { kind: 'unreachable', path: 'local' },
-    )
+function localLogFile(): string {
+  const name = `agent-qa-browserstack-local-${process.pid}-${randomBytes(4).toString('hex')}.log`
+  return join(tmpdir(), name)
+}
+
+export const browserStackLocalFactory: TunnelFactory = {
+  start(request) {
+    const logFile = localLogFile()
+    // Created private first; the wrapper only truncates it, so the mode holds.
+    writeFileSync(logFile, '', { mode: 0o600 })
+    const local = new Local()
+    if (request.binary !== undefined) {
+      // After a failed run the wrapper deletes its binary and retries; the user's own must stay.
+      ;(local as unknown as { retriesLeft: number }).retriesLeft = 0
+    }
+    return new Promise<RunningTunnel>((resolve, reject) => {
+      local.start(
+        {
+          key: request.accessKey,
+          localIdentifier: request.identifier,
+          logFile,
+          ...(request.binary === undefined ? {} : { binarypath: request.binary }),
+        },
+        (error) => {
+          if (error) {
+            const [first] = error.message.split('\n')
+            reject(new Error(`${first} (its log is ${logFile})`))
+            return
+          }
+          resolve({ stop: () => new Promise<void>((done) => local.stop(() => done())) })
+        },
+      )
+    })
   },
 }
 
@@ -40,7 +71,7 @@ export interface TunnelManager {
   stop(): Promise<void>
 }
 
-export function freshLocalIdentifier(): string {
+function freshLocalIdentifier(): string {
   return `agent-qa-${randomBytes(8).toString('hex')}`
 }
 

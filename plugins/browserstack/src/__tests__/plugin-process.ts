@@ -24,13 +24,20 @@ export interface PluginProcess {
   cancel(id: number): void
   progress(id: number): string[]
   stderr(): string
+  stdoutLines(): string[]
+  terminate(): Promise<void>
   close(): Promise<void>
 }
 
-export function startPluginProcess(): PluginProcess {
-  const child = spawn(process.execPath, [ENTRY], { stdio: ['pipe', 'pipe', 'pipe'] })
+export function startPluginProcess(input: { cwd?: string } = {}): PluginProcess {
+  const child = spawn(process.execPath, [ENTRY], {
+    stdio: ['pipe', 'pipe', 'pipe'],
+    ...(input.cwd === undefined ? {} : { cwd: input.cwd }),
+  })
+  child.stdin.on('error', () => {})
   const waiting = new Map<number, (answer: RpcAnswer) => void>()
   const progress = new Map<number, string[]>()
+  const stdoutLines: string[] = []
   let stderr = ''
   let next = 0
   child.stderr.on('data', (chunk: Buffer) => {
@@ -39,7 +46,14 @@ export function startPluginProcess(): PluginProcess {
   const decoder = createLineDecoder({
     maxLineBytes: MAX_MESSAGE_BYTES,
     onLine: (line) => {
-      const message = JSON.parse(line) as RpcAnswer & {
+      stdoutLines.push(line)
+      let parsed: unknown
+      try {
+        parsed = JSON.parse(line)
+      } catch {
+        return
+      }
+      const message = parsed as RpcAnswer & {
         id?: number
         method?: string
         params?: { id?: number; message?: string }
@@ -75,6 +89,11 @@ export function startPluginProcess(): PluginProcess {
     },
     progress: (id) => [...(progress.get(id) ?? [])],
     stderr: () => stderr,
+    stdoutLines: () => [...stdoutLines],
+    terminate() {
+      child.kill('SIGTERM')
+      return exited
+    },
     close() {
       child.stdin.end()
       return exited

@@ -42,7 +42,8 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@vostride/agent-qa-plugin-kit": "workspace:*"
+    "@vostride/agent-qa-plugin-kit": "workspace:*",
+    "browserstack-local": "1.5.16"
   },
   "devDependencies": {
     "@types/node": "~24.19.2",

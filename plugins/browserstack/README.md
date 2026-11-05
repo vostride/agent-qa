@@ -51,14 +51,17 @@ BrowserStack remote.
 
 Options belong to the `plugins` entry and describe the account.
 
-| Option          | Default                                 | Meaning                                                    |
-| --------------- | --------------------------------------- | ---------------------------------------------------------- |
-| `username`      | required                                | The BrowserStack username, a credential.                   |
-| `accessKey`     | required                                | The BrowserStack access key, a credential.                 |
-| `apiUrl`        | `https://api.browserstack.com`          | The Automate API: web session lookups, marks and the plan. |
-| `appApiUrl`     | `https://api-cloud.browserstack.com`    | The App Automate API: uploads, device sessions, the plan.  |
-| `hubUrl`        | `https://hub.browserstack.com/wd/hub`   | The Appium hub device sessions connect to.                 |
-| `playwrightUrl` | `wss://cdp.browserstack.com/playwright` | The Playwright endpoint web sessions connect to.           |
+| Option            | Default                                 | Meaning                                                              |
+| ----------------- | --------------------------------------- | -------------------------------------------------------------------- |
+| `username`        | required                                | The BrowserStack username, a credential.                             |
+| `accessKey`       | required                                | The BrowserStack access key, a credential.                           |
+| `apiUrl`          | `https://api.browserstack.com`          | The Automate API: web session lookups, marks and the plan.           |
+| `appApiUrl`       | `https://api-cloud.browserstack.com`    | The App Automate API: uploads, device sessions, the plan.            |
+| `hubUrl`          | `https://hub.browserstack.com/wd/hub`   | The Appium hub device sessions connect to.                           |
+| `playwrightUrl`   | `wss://cdp.browserstack.com/playwright` | The Playwright endpoint web sessions connect to.                     |
+| `local`           | `false`                                 | Start a BrowserStack Local tunnel for the run.                       |
+| `localIdentifier` | -                                       | The tunnel's identifier; without `local`, a tunnel already running.  |
+| `localBinary`     | -                                       | The BrowserStackLocal binary `local` runs, instead of the wrapper's. |
 
 Write the credentials as `{{secret:<name>}}` references. The endpoints must use `https://`
 (`wss://` for `playwrightUrl`) and carry no user or password, unless they point at this machine;
@@ -179,7 +182,8 @@ for devices. A lookup or a mark that fails is one stderr line and never fails th
 
 Each failure is one line naming the status, the request and BrowserStack's message, with
 `retry after` on a `429`. A Playwright version BrowserStack does not list is kind `version`. A
-setting or option that is wrong is kind `refused` with its path.
+setting or option that is wrong is kind `refused` with its path. A BrowserStack Local tunnel that
+cannot start is kind `unreachable` at path `local`.
 
 ## Account check
 
@@ -195,11 +199,33 @@ setting or option that is wrong is kind `refused` with its path.
 
 ## BrowserStack Local
 
-This plugin does not start BrowserStack Local yet. The settings parse refuses `local`,
-`localIdentifier` and `localBinary`, so a target must be reachable from BrowserStack's cloud.
+BrowserStack Local is a tunnel that lets BrowserStack's browsers and devices reach a target only
+this machine can reach, such as `localhost` or a staging host behind a VPN.
+
+- `local: true` makes the plugin start its own tunnel on the run's first acquire, with a fresh
+  identifier, `agent-qa-<16 hex>`, or with `localIdentifier` when that is set too. The start
+  counts against the acquire's deadline, and acquires that arrive while it starts wait for the
+  same tunnel. Every web and device session of the run then asks for that tunnel:
+  `browserstack.local` and `browserstack.localIdentifier` in the web capabilities, `local` and
+  `localIdentifier` in `bstack:options`.
+- `localIdentifier` without `local` asks every session for a tunnel that is already running
+  under that identifier, and the plugin starts nothing.
+- The tunnel comes from BrowserStack's `browserstack-local` package, pinned at `1.5.16`. It finds
+  BrowserStack's binary in `~/.browserstack`, the working directory or the temp directory, and
+  downloads it from BrowserStack over `https` when none is there. `localBinary` names a binary
+  to run instead; it needs `local: true`. When that binary fails, the plugin stops; it never
+  deletes the binary or downloads another one.
+- The tunnel logs to a fresh file under the temp directory,
+  `agent-qa-browserstack-local-<pid>-<random>.log`, readable only by you. Nothing is written to
+  the project. When the tunnel cannot start, the refusal has kind `unreachable` at path `local`
+  and names that log.
+- The tunnel runs as a daemon outside the plugin's process group, so the plugin stops it itself:
+  on `shutdown`, when agent-qa closes the plugin's stdin and on `SIGTERM`.
+- The wrapper's own console output goes to the plugin's stderr, never to the protocol stream.
 
 BrowserStack's tunnel binary takes the access key as `--key` on its command line. That is
-BrowserStack's design, and it means other users of the same machine can read the key with `ps`.
+BrowserStack's design, and it means other users of the same machine can read the key with `ps`
+while the tunnel runs.
 
 ## License
 

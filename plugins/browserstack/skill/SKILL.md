@@ -93,10 +93,30 @@ registry:
 
 ## BrowserStack Local
 
-The plugin does not start BrowserStack Local yet. `local`, `localIdentifier` and `localBinary` are
-refused by the settings parse, so a target must be reachable from BrowserStack's cloud.
-BrowserStack's tunnel binary takes the access key as `--key` on its command line, by BrowserStack's
-design, so other users of the same machine can read it with `ps`.
+Use BrowserStack Local when the target is reachable only from this machine, for example
+`localhost` or a host behind a VPN.
+
+```yaml
+plugins:
+  - name: browserstack
+    package: "@vostride/agent-qa-plugin-browserstack"
+    options:
+      username: "{{secret:BROWSERSTACK_USERNAME}}"
+      accessKey: "{{secret:BROWSERSTACK_ACCESS_KEY}}"
+      local: true
+```
+
+- `local: true` starts the plugin's own tunnel on the run's first acquire, with a fresh identifier
+  (or `localIdentifier` when set too), and every web and device session of the run asks for it.
+  The plugin stops the tunnel when the run ends, on stdin close and on `SIGTERM`.
+- `localIdentifier` alone uses a tunnel you already run under that identifier; nothing is started.
+- The tunnel comes from BrowserStack's `browserstack-local` package, which finds or downloads
+  BrowserStack's binary. `localBinary` names a binary to run instead and needs `local: true`.
+- The tunnel logs to a fresh file under the temp directory, never into the project.
+- A tunnel that cannot start refuses the session with kind `unreachable` at path `local`; the line
+  names the tunnel's log.
+- BrowserStack's tunnel binary takes the access key as `--key` on its command line, by
+  BrowserStack's design, so other users of the same machine can read it with `ps`.
 
 ## Links and marks
 
@@ -119,7 +139,8 @@ design, so other users of the same machine can read it with `ps`.
   why.
 - `refused` with no path: BrowserStack answered another error. The line has its status and
   message.
-- `unreachable`: BrowserStack could not be reached. Check the network.
+- `unreachable`: BrowserStack could not be reached. Check the network. At path `local`, the
+  BrowserStack Local tunnel did not start; its log is named in the line.
 
 ## Check and describe
 

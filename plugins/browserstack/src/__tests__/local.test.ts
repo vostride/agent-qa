@@ -1,5 +1,7 @@
-import { existsSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { PluginError, type PluginCallContext } from '@vostride/agent-qa-plugin-kit'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { TunnelFactory, TunnelRequest } from '../local.js'
@@ -271,30 +273,188 @@ describe('a BrowserStack Local tunnel that is already running', () => {
   })
 })
 
-describe('the built BrowserStack plugin with local on', () => {
-  const plugins: PluginProcess[] = []
+const STUB = fileURLToPath(new URL('./fixtures/stub-browserstack-local.mjs', import.meta.url))
 
-  afterEach(async () => {
-    await Promise.all(plugins.splice(0).map((plugin) => plugin.close()))
+interface StubRecord {
+  args: string[]
+  pid: number
+}
+
+interface StubBinary {
+  dir: string
+  path: string
+  record(): StubRecord
+}
+
+const dirs: string[] = []
+const sleepers: number[] = []
+const processes: PluginProcess[] = []
+
+afterEach(async () => {
+  await Promise.all(processes.splice(0).map((plugin) => plugin.close()))
+  for (const pid of sleepers.splice(0)) {
+    try {
+      process.kill(pid, 'SIGKILL')
+    } catch {}
+  }
+  for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true })
+})
+
+function freshDir(): string {
+  const dir = mkdtempSync(join(tmpdir(), 'agent-qa-browserstack-local-test-'))
+  dirs.push(dir)
+  return dir
+}
+
+// Git file modes do not survive every checkout, so the executable is written here.
+function stubBinary(mode: 'connect' | 'fail'): StubBinary {
+  const dir = freshDir()
+  const path = join(dir, 'BrowserStackLocal')
+  const recordPath = join(dir, 'record.json')
+  writeFileSync(
+    path,
+    `#!/bin/sh\nexec "${process.execPath}" "${STUB}" "${recordPath}" "${mode}" "$@"\n`,
+    { mode: 0o755 },
+  )
+  return {
+    dir,
+    path,
+    record() {
+      const record = JSON.parse(readFileSync(recordPath, 'utf8')) as StubRecord
+      sleepers.push(record.pid)
+      const logFile = record.args[record.args.indexOf('--log-file') + 1]
+      if (logFile !== undefined) dirs.push(logFile)
+      return record
+    },
+  }
+}
+
+function alive(pid: number): boolean {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch {
+    return false
+  }
+}
+
+async function gone(pid: number): Promise<boolean> {
+  for (let waited = 0; waited < 5_000; waited += 50) {
+    if (!alive(pid)) return true
+    await new Promise((resolve) => setTimeout(resolve, 50))
+  }
+  return false
+}
+
+function argument(args: string[], flag: string): string | undefined {
+  const at = args.indexOf(flag)
+  return at === -1 ? undefined : args[at + 1]
+}
+
+async function tunnelled(stub: StubBinary) {
+  const cwd = freshDir()
+  const plugin = startPluginProcess({ cwd })
+  processes.push(plugin)
+  const init = await initializePlugin(plugin, { local: true, localBinary: stub.path }, LISTED)
+  expect(init.error).toBeUndefined()
+  const answer = await plugin.call('acquire', {
+    remote: 'browserstack',
+    settings: {},
+    session: { platform: 'web', engine: 'chromium', context: 'new' },
+    run: { testName: TEST_NAME },
+  })
+  if (answer.error === undefined) stub.record()
+  return { cwd, plugin, answer }
+}
+
+function protocolOnly(lines: string[]): void {
+  expect(lines.length).toBeGreaterThan(0)
+  for (const line of lines) {
+    expect((JSON.parse(line) as { jsonrpc?: string }).jsonrpc).toBe('2.0')
+  }
+}
+
+// The stand-in binary is a shell script and its sleeper is found by pid; CI runs macOS and Linux.
+describe.skipIf(process.platform === 'win32')('BrowserStack Local run through its wrapper', () => {
+  it('connects the tunnel the localBinary runs and asks for it in the web capabilities', async () => {
+    const stub = stubBinary('connect')
+
+    const { answer } = await tunnelled(stub)
+
+    expect(answer.error).toBeUndefined()
+    const { args, pid } = stub.record()
+    expect(args.slice(0, 2)).toEqual(['--daemon', 'start'])
+    const identifier = argument(args, '--local-identifier')
+    expect(identifier).toMatch(FRESH_IDENTIFIER)
+    expect(capsOf((answer.result as { url: string }).url)).toMatchObject({
+      'browserstack.local': true,
+      'browserstack.localIdentifier': identifier,
+    })
+    expect(alive(pid)).toBe(true)
   })
 
-  it('refuses the acquire with kind unreachable, because this build cannot start BrowserStack Local', async () => {
-    const plugin = startPluginProcess()
-    plugins.push(plugin)
-    expect((await initializePlugin(plugin, { local: true }, LISTED)).error).toBeUndefined()
+  it('stops the tunnel on shutdown', async () => {
+    const stub = stubBinary('connect')
+    const { plugin } = await tunnelled(stub)
+    const { pid } = stub.record()
 
-    const answer = await plugin.call('acquire', {
-      remote: 'browserstack',
-      settings: {},
-      session: { platform: 'web', engine: 'chromium', context: 'new' },
-      run: { testName: TEST_NAME },
-    })
+    expect((await plugin.call('shutdown')).error).toBeUndefined()
+
+    expect(await gone(pid)).toBe(true)
+  })
+
+  it('stops the tunnel when the host closes stdin', async () => {
+    const stub = stubBinary('connect')
+    const { plugin } = await tunnelled(stub)
+    const { pid } = stub.record()
+
+    await plugin.close()
+
+    expect(await gone(pid)).toBe(true)
+  })
+
+  it('stops the tunnel on SIGTERM', async () => {
+    const stub = stubBinary('connect')
+    const { plugin } = await tunnelled(stub)
+    const { pid } = stub.record()
+
+    await plugin.terminate()
+
+    expect(await gone(pid)).toBe(true)
+  })
+
+  it('keeps stdout protocol-only although the wrapper logs with console.log', async () => {
+    const stub = stubBinary('connect')
+    const { plugin } = await tunnelled(stub)
+    await plugin.close()
+
+    protocolOnly(plugin.stdoutLines())
+    expect(plugin.stderr()).toContain('BINARY PATH IS DEFINED')
+  })
+
+  it("logs to a fresh file under the temp directory and never to local.log in the plugin's working directory", async () => {
+    const stub = stubBinary('connect')
+    const { cwd, plugin } = await tunnelled(stub)
+    await plugin.close()
+
+    const logFile = argument(stub.record().args, '--log-file') ?? ''
+    expect(logFile.startsWith(join(tmpdir(), 'agent-qa-browserstack-local-'))).toBe(true)
+    expect(logFile.endsWith('.log')).toBe(true)
+    expect(existsSync(join(cwd, 'local.log'))).toBe(false)
+  })
+
+  it('refuses the acquire with kind unreachable when the binary fails, without the key, and leaves the binary in place', async () => {
+    const stub = stubBinary('fail')
+
+    const { answer } = await tunnelled(stub)
 
     expect(answer.error?.code).toBe(-32000)
     expect(answer.error?.data).toMatchObject({ kind: 'unreachable', path: 'local' })
-    expect(answer.error?.message).toBe(
-      'This build of the plugin cannot start BrowserStack Local; start the tunnel yourself and set localIdentifier.',
-    )
-    expect(existsSync(join(process.cwd(), 'local.log'))).toBe(false)
+    expect(answer.error?.message).toMatch(/^BrowserStack Local did not start: /)
+    expect(answer.error?.message).not.toContain(ACCESS_KEY)
+    const logFile = /\(its log is (.+)\)$/.exec(answer.error?.message ?? '')?.[1]
+    expect(logFile?.startsWith(join(tmpdir(), 'agent-qa-browserstack-local-'))).toBe(true)
+    if (logFile !== undefined) dirs.push(logFile)
+    expect(existsSync(stub.path)).toBe(true)
   })
 })
