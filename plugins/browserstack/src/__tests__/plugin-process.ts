@@ -85,13 +85,14 @@ export function startPluginProcess(): PluginProcess {
 export async function initializePlugin(
   plugin: PluginProcess,
   options: Record<string, unknown>,
+  playwrightVersion = 'unknown',
 ): Promise<RpcAnswer> {
   return plugin.call('initialize', {
     protocolVersions: [1],
     host: {
       pid: process.pid,
       agentQaVersion: '0.0.0',
-      playwrightVersion: 'unknown',
+      playwrightVersion,
       webdriverioVersion: 'unknown',
     },
     entry: 'browserstack',

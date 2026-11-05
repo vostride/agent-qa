@@ -18,6 +18,13 @@ export interface AppSessionMark {
 export interface BrowserStackApi {
   appSession(id: string, signal?: AbortSignal): Promise<unknown>
   markAppSession(id: string, mark: AppSessionMark, signal?: AbortSignal): Promise<void>
+  runningBuilds(signal?: AbortSignal): Promise<unknown>
+  runningBuildSessions(buildId: string, signal?: AbortSignal): Promise<unknown>
+  webSession(id: string, signal?: AbortSignal): Promise<unknown>
+  markWebSession(id: string, mark: AppSessionMark, signal?: AbortSignal): Promise<void>
+  // Both plans answer undefined on 404: that product is not on the account.
+  automatePlan(signal?: AbortSignal): Promise<unknown>
+  appAutomatePlan(signal?: AbortSignal): Promise<unknown>
   recentApps(customId: string, signal?: AbortSignal): Promise<unknown>
   uploadApp(form: FormData, signal?: AbortSignal): Promise<unknown>
 }
@@ -81,6 +88,7 @@ function withSlash(url: string): string {
 }
 
 interface SendInit {
+  base?: string
   headers?: Record<string, string>
   body?: string | FormData
   signal?: AbortSignal | undefined
@@ -88,11 +96,12 @@ interface SendInit {
 
 export function createBrowserStackApi(input: BrowserStackApiInput): BrowserStackApi {
   const appBase = withSlash(input.appApiUrl)
+  const automateBase = withSlash(input.apiUrl)
   const token = Buffer.from(`${input.username}:${input.accessKey}`).toString('base64')
   const authorization = `Basic ${token}`
 
   const send = async (method: string, path: string, init: SendInit): Promise<Response> => {
-    const url = new URL(path, appBase)
+    const url = new URL(path, init.base ?? appBase)
     try {
       return await fetch(url, {
         method,
@@ -115,6 +124,33 @@ export function createBrowserStackApi(input: BrowserStackApiInput): BrowserStack
   }
 
   const sessionPath = (id: string) => `app-automate/sessions/${encodeURIComponent(id)}.json`
+  const webSessionPath = (id: string) => `automate/sessions/${encodeURIComponent(id)}.json`
+
+  const mark = async (
+    base: string,
+    path: string,
+    request: string,
+    body: AppSessionMark,
+    signal?: AbortSignal,
+  ) => {
+    const response = await send('PUT', path, {
+      base,
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      signal,
+    })
+    if (!response.ok) throw await statusFailure(response, request)
+    await response.body?.cancel()
+  }
+
+  const plan = async (base: string, path: string, signal?: AbortSignal) => {
+    const response = await send('GET', path, { base, signal })
+    if (response.status === 404) {
+      await response.body?.cancel()
+      return undefined
+    }
+    return readJson(response, `GET /${path}`)
+  }
 
   return {
     async appSession(id, signal) {
@@ -122,14 +158,40 @@ export function createBrowserStackApi(input: BrowserStackApiInput): BrowserStack
       return readJson(response, 'GET /app-automate/sessions/{id}.json')
     },
 
-    async markAppSession(id, mark, signal) {
-      const response = await send('PUT', sessionPath(id), {
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify(mark),
-        signal,
-      })
-      if (!response.ok) throw await statusFailure(response, 'PUT /app-automate/sessions/{id}.json')
-      await response.body?.cancel()
+    markAppSession(id, body, signal) {
+      const request = 'PUT /app-automate/sessions/{id}.json'
+      return mark(appBase, sessionPath(id), request, body, signal)
+    },
+
+    async runningBuilds(signal) {
+      const path = 'automate/builds.json?limit=100&status=running'
+      const response = await send('GET', path, { base: automateBase, signal })
+      return readJson(response, 'GET /automate/builds.json')
+    },
+
+    async runningBuildSessions(buildId, signal) {
+      const build = encodeURIComponent(buildId)
+      const path = `automate/builds/${build}/sessions.json?limit=100&status=running`
+      const response = await send('GET', path, { base: automateBase, signal })
+      return readJson(response, 'GET /automate/builds/{id}/sessions.json')
+    },
+
+    async webSession(id, signal) {
+      const response = await send('GET', webSessionPath(id), { base: automateBase, signal })
+      return readJson(response, 'GET /automate/sessions/{id}.json')
+    },
+
+    markWebSession(id, body, signal) {
+      const request = 'PUT /automate/sessions/{id}.json'
+      return mark(automateBase, webSessionPath(id), request, body, signal)
+    },
+
+    automatePlan(signal) {
+      return plan(automateBase, 'automate/plan.json', signal)
+    },
+
+    appAutomatePlan(signal) {
+      return plan(appBase, 'app-automate/plan.json', signal)
     },
 
     async recentApps(customId, signal) {

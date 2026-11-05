@@ -75,18 +75,18 @@ export function deviceAnswer(request: DeviceRequest): DeviceAnswer {
   }
 }
 
-function sessionDetails(body: unknown): Record<string, unknown> | undefined {
+export function sessionDetails(body: unknown): Record<string, unknown> | undefined {
   if (typeof body !== 'object' || body === null) return undefined
   const wrapped = (body as Record<string, unknown>).automation_session
   if (typeof wrapped === 'object' && wrapped !== null) return wrapped as Record<string, unknown>
   return body as Record<string, unknown>
 }
 
-function warn(line: string): void {
+export function warn(line: string): void {
   process.stderr.write(`${line.replace(/\s+/g, ' ').trim()}\n`)
 }
 
-function failureText(error: unknown): string {
+export function failureText(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 

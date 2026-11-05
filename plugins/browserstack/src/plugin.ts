@@ -2,12 +2,13 @@ import { definePlugin, PluginError, z } from '@vostride/agent-qa-plugin-kit'
 import { deviceAnswer, DeviceHandleSchema, deviceStarted, markAppSession } from './devices.js'
 import { checkEndpoints, options, settings } from './options.js'
 import { uploadApp } from './upload.js'
-import { playwrightAnswer } from './web.js'
+import { markWebSession, playwrightAnswer, WebHandleSchema, webStarted } from './web.js'
 
-const HandleSchema = z.union([z.object({ kind: z.literal('web') }), DeviceHandleSchema])
+const HandleSchema = z.union([WebHandleSchema, DeviceHandleSchema])
 
 let playwrightVersion = 'unknown'
 const appSessions = new Map<string, string>()
+const webSessions = new Map<string, string>()
 
 export default definePlugin({
   options,
@@ -47,6 +48,12 @@ export default definePlugin({
   },
 
   async started({ options, handle, sessionId }, ctx) {
+    const web = WebHandleSchema.safeParse(handle)
+    if (web.success) {
+      const { session, link } = await webStarted({ options, handle: web.data, signal: ctx.signal })
+      if (session !== undefined) webSessions.set(web.data.id, session.hashedId)
+      return link === undefined ? {} : { link }
+    }
     const device = DeviceHandleSchema.safeParse(handle)
     if (!device.success) return {}
     if (sessionId !== undefined) appSessions.set(device.data.id, sessionId)
@@ -54,6 +61,13 @@ export default definePlugin({
   },
 
   async end({ options, handle, outcome, reason }, ctx) {
+    const web = WebHandleSchema.safeParse(handle)
+    if (web.success) {
+      const sessionId = webSessions.get(web.data.id)
+      if (sessionId === undefined) return
+      await markWebSession({ options, sessionId, outcome, reason, signal: ctx.signal })
+      return
+    }
     const device = DeviceHandleSchema.safeParse(handle)
     if (!device.success) return
     const sessionId = appSessions.get(device.data.id)
@@ -67,5 +81,6 @@ export default definePlugin({
       throw new PluginError('A BrowserStack handle names its kind of session.', { kind: 'refused' })
     }
     if (parsed.data.kind === 'device') appSessions.delete(parsed.data.id)
+    else webSessions.delete(parsed.data.id)
   },
 })
