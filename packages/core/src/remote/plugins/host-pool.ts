@@ -16,6 +16,7 @@ import {
   RemoteRefusalError,
   type RemoteFailureKind,
   type RemoteLease,
+  type RemoteLeaseEnded,
   type RemoteLeaseRequest,
   type RemoteLeaseSource,
   type RemotePluginEvidence,
@@ -87,15 +88,28 @@ export interface PluginHostPool extends RemoteLeaseSource {
 type Refusal = (remote: string) => RemoteRefusalError
 
 interface OpenLease {
+  remote: string
   release(boundMs: number): Promise<void>
+  end(ended: RemoteLeaseEnded): void
+}
+
+interface EntryFault {
+  line: (remote: string) => string
 }
 
 interface RunningEntry {
   name: string
   manifest: RemotePluginManifest
+  entryFile: string
+  initialize: Record<string, unknown>
   process: PluginProcess
   evidence: RemotePluginEvidence
   leases: Set<OpenLease>
+  // Every session handle this process gave out and has not answered a release for.
+  held: Set<unknown>
+  stopping: boolean
+  fault?: EntryFault
+  restarted?: Promise<void>
 }
 
 type EntryStart = { ok: true; running: RunningEntry } | { ok: false; refusal: Refusal }
@@ -108,6 +122,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function formatMs(ms: number): string {
   return ms < 1000 ? `${ms}ms` : `${Number((ms / 1000).toFixed(1))}s`
+}
+
+function crashLine(entry: string, reason: string | undefined): (remote: string) => string {
+  const why = reason === undefined ? '' : `: ${reason.replace(/\.+$/, '')}`
+  return (remote) => `Remote ${remote}: plugin entry ${entry} stopped unexpectedly${why}.`
 }
 
 function refusalOf(kind: RemoteFailureKind, line: (remote: string) => string): Refusal {
@@ -175,28 +194,106 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     )
   }
 
-  const releaseHandle = (running: RunningEntry, handle: unknown, boundMs: number) =>
-    track(
+  const spawnPlugin = (entryFile: string): PluginProcess =>
+    startPluginProcess({
+      entryFile,
+      cwd: input.configDir,
+      mask: input.mask,
+      ...(input.debugLog === undefined ? {} : { debugLog: input.debugLog }),
+      cancelGraceMs: bounds.cancelGraceMs,
+      killAfterMs: bounds.killAfterMs,
+    })
+
+  // A handle stays held until the plugin answers its release; a stopped plugin's held handles
+  // go to the restart.
+  const releaseHandle = (
+    running: RunningEntry,
+    handle: unknown,
+    boundMs: number,
+  ): Promise<void> => {
+    if (running.fault !== undefined) return running.restarted ?? Promise.resolve()
+    return track(
       (async () => {
         const outcome = await running.process.request(
           'release',
           { handle },
           { timeoutMs: boundMs },
         )
+        if (outcome.status === 'result' || outcome.status === 'error') {
+          running.held.delete(handle)
+        }
         if (outcome.status !== 'result') {
           debug(`plugin entry ${running.name} did not release a session: ${outcome.status}`)
         }
       })(),
     )
+  }
 
   const releaseCarried = (running: RunningEntry, answer: PluginLateAnswer): Promise<void> => {
     const handle = carriedHandle(answer)
     if (handle === undefined) return Promise.resolve()
+    running.held.add(handle)
     return releaseHandle(running, handle, bounds.releaseMs)
   }
 
   const stopInBackground = (child: PluginProcess): void => {
     void track(child.stop())
+  }
+
+  // A fresh process with the same options only releases what the stopped one held; nothing is
+  // acquired again.
+  async function releaseOnly(running: RunningEntry, handles: readonly unknown[]): Promise<void> {
+    const child = spawnPlugin(running.entryFile)
+    try {
+      const started = await child.request('initialize', running.initialize, {
+        timeoutMs: bounds.initializeMs,
+      })
+      if (started.status !== 'result' || started.cancelled) {
+        debug(`plugin entry ${running.name} did not restart to release its sessions`)
+        return
+      }
+      await Promise.all(
+        handles.map(async (handle) => {
+          const outcome = await child.request(
+            'release',
+            { handle },
+            { timeoutMs: bounds.releaseMs },
+          )
+          if (outcome.status !== 'result') {
+            debug(`plugin entry ${running.name} did not release a session after its restart`)
+          }
+        }),
+      )
+      await child.request('shutdown', {}, { timeoutMs: bounds.shutdownMs })
+    } finally {
+      await child.stop()
+    }
+  }
+
+  function fault(running: RunningEntry, found: EntryFault): void {
+    if (running.fault !== undefined) return
+    running.fault = found
+    const leases = [...running.leases]
+    running.leases.clear()
+    for (const lease of leases) lease.end({ kind: 'lost', message: found.line(lease.remote) })
+    running.restarted = track(
+      (async () => {
+        await running.process.stop()
+        await running.process.exited
+        const handles = [...running.held]
+        running.held.clear()
+        if (handles.length > 0) await releaseOnly(running, handles)
+      })(),
+    )
+  }
+
+  const stoppedRefusal = (
+    running: RunningEntry,
+    remote: string,
+    outcome?: Extract<PluginCallOutcome, { status: 'exited' }>,
+  ): RemoteRefusalError => {
+    const line = running.fault?.line ?? crashLine(running.name, outcome?.stderr)
+    return new RemoteRefusalError(line(remote), { remote, kind: 'lost' })
   }
 
   async function startEntry(name: string): Promise<EntryStart> {
@@ -242,32 +339,25 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       return { ok: false, refusal: (remote) => asRefusal(error, remote, name) }
     }
 
-    const child = startPluginProcess({
-      entryFile: resolve(resolved.packageDir, manifest.entry),
-      cwd: input.configDir,
-      mask: input.mask,
-      ...(input.debugLog === undefined ? {} : { debugLog: input.debugLog }),
-      cancelGraceMs: bounds.cancelGraceMs,
-      killAfterMs: bounds.killAfterMs,
-    })
+    const entryFile = resolve(resolved.packageDir, manifest.entry)
+    const child = spawnPlugin(entryFile)
     const runId = input.runFacts?.runId
     const sendsRunId = manifest.runFacts?.includes('runId') === true && runId !== undefined
-    const outcome = await child.request(
-      'initialize',
-      {
-        protocolVersions: supportedPluginProtocols(),
-        host: {
-          pid: process.pid,
-          agentQaVersion: input.agentQaVersion,
-          playwrightVersion: input.hostVersions.playwright,
-          webdriverioVersion: input.hostVersions.webdriverio,
-        },
-        entry: name,
-        options,
-        ...(sendsRunId ? { runFacts: { runId } } : {}),
+    const initialize = {
+      protocolVersions: supportedPluginProtocols(),
+      host: {
+        pid: process.pid,
+        agentQaVersion: input.agentQaVersion,
+        playwrightVersion: input.hostVersions.playwright,
+        webdriverioVersion: input.hostVersions.webdriverio,
       },
-      { timeoutMs: bounds.initializeMs },
-    )
+      entry: name,
+      options,
+      ...(sendsRunId ? { runFacts: { runId } } : {}),
+    }
+    const outcome = await child.request('initialize', initialize, {
+      timeoutMs: bounds.initializeMs,
+    })
 
     const fail = (refusal: Refusal): EntryStart => {
       stopInBackground(child)
@@ -321,23 +411,29 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       )
     }
 
-    return {
-      ok: true,
-      running: {
-        name,
-        manifest,
-        process: child,
-        evidence: {
-          entry: name,
-          ...(entry.package === undefined ? {} : { package: entry.package }),
-          ...(entry.path === undefined ? {} : { path: entry.path }),
-          version: resolved.version ?? parsed.data.plugin.version,
-          protocol: parsed.data.protocolVersion,
-          origin: resolved.origin,
-        },
-        leases: new Set(),
+    const running: RunningEntry = {
+      name,
+      manifest,
+      entryFile,
+      initialize,
+      process: child,
+      evidence: {
+        entry: name,
+        ...(entry.package === undefined ? {} : { package: entry.package }),
+        ...(entry.path === undefined ? {} : { path: entry.path }),
+        version: resolved.version ?? parsed.data.plugin.version,
+        protocol: parsed.data.protocolVersion,
+        origin: resolved.origin,
       },
+      leases: new Set(),
+      held: new Set(),
+      stopping: false,
     }
+    void child.exited.then(() => {
+      if (running.stopping) return
+      fault(running, { line: crashLine(name, child.stderrLine) })
+    })
+    return { ok: true, running }
   }
 
   const entryStart = (name: string): Promise<EntryStart> => {
@@ -352,9 +448,18 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
   const declares = (running: RunningEntry, method: OptionalPluginMethod): boolean =>
     running.manifest.methods.includes(method)
 
-  function openLease(running: RunningEntry, answer: AcquireResult): RemoteLease {
+  function openLease(running: RunningEntry, remote: string, answer: AcquireResult): RemoteLease {
     let releasing: Promise<void> | undefined
     let unregister: (() => void) | undefined
+    let ended: RemoteLeaseEnded | undefined
+    const listeners = new Set<(ended: RemoteLeaseEnded) => void>()
+    const tell = (listener: (ended: RemoteLeaseEnded) => void, value: RemoteLeaseEnded) => {
+      try {
+        listener(value)
+      } catch (error) {
+        debug(`a listener for remote ${remote} failed: ${String(error)}`)
+      }
+    }
     const release = (boundMs: number): Promise<void> => {
       if (releasing === undefined) {
         running.leases.delete(open)
@@ -363,7 +468,17 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       }
       return releasing
     }
-    const open: OpenLease = { release }
+    const open: OpenLease = {
+      remote,
+      release,
+      end(value) {
+        if (ended !== undefined) return
+        ended = value
+        for (const listener of [...listeners]) tell(listener, value)
+        listeners.clear()
+      },
+    }
+    running.held.add(answer.handle)
     running.leases.add(open)
     unregister = input.sessions?.register(release)
 
@@ -377,7 +492,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       plugin: running.evidence,
       ...(answer.link === undefined ? {} : { link: answer.link }),
       async started({ sessionId }) {
-        if (!declares(running, 'started')) return {}
+        if (!declares(running, 'started') || running.fault !== undefined) return {}
         const outcome = await running.process.request(
           'started',
           { handle: answer.handle, ...(sessionId === undefined ? {} : { sessionId }) },
@@ -397,7 +512,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
         }
       },
       async end(outcome, reason) {
-        if (!declares(running, 'end')) return
+        if (!declares(running, 'end') || running.fault !== undefined) return
         const sendsReason = running.manifest.runFacts?.includes('failure') === true
         const answered = await running.process.request(
           'end',
@@ -411,6 +526,22 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
         if (answered.status !== 'result') debug(`plugin entry ${running.name} did not answer end`)
       },
       release: () => release(bounds.releaseMs),
+      onEnded(listener) {
+        if (ended !== undefined) {
+          const value = ended
+          let live = true
+          queueMicrotask(() => {
+            if (live) tell(listener, value)
+          })
+          return () => {
+            live = false
+          }
+        }
+        listeners.add(listener)
+        return () => {
+          listeners.delete(listener)
+        }
+      },
     }
   }
 
@@ -426,6 +557,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     const start = await entryStart(entry)
     if (!start.ok) throw start.refusal(remote)
     const running = start.running
+    if (running.fault !== undefined) throw stoppedRefusal(running, remote)
 
     let settings: Record<string, unknown>
     try {
@@ -455,12 +587,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
         { remote, kind: 'timeout' },
       )
     if (outcome.status === 'silent') throw timedOut()
-    if (outcome.status === 'exited') {
-      throw new RemoteRefusalError(
-        `Remote ${remote}: plugin entry ${entry} exited before it answered acquire.`,
-        { remote, kind: 'lost' },
-      )
-    }
+    if (outcome.status === 'exited') throw stoppedRefusal(running, remote, outcome)
     if (outcome.cancelled) {
       await releaseCarried(running, outcome)
       throw timedOut()
@@ -491,7 +618,11 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       await releaseCarried(running, outcome)
       throw unsafe
     }
-    return openLease(running, parsed.data)
+    if (running.fault !== undefined) {
+      running.held.add(parsed.data.handle)
+      throw stoppedRefusal(running, remote)
+    }
+    return openLease(running, remote, parsed.data)
   }
 
   async function check(
@@ -503,6 +634,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     if (!start.ok) throw start.refusal(remote)
     const running = start.running
     if (!declares(running, 'check')) return undefined
+    if (running.fault !== undefined) throw stoppedRefusal(running, remote)
 
     let params: { remotes: { name: string; settings: Record<string, unknown> }[] }
     try {
@@ -528,6 +660,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
         { remote, kind: pluginErrorKind(outcome) },
       )
     }
+    if (outcome.status === 'exited') throw stoppedRefusal(running, remote, outcome)
     throw new RemoteRefusalError(
       `Remote ${remote}: plugin entry ${entry} did not answer check within ${formatMs(bounds.checkMs)}.`,
       { remote, kind: 'timeout' },
@@ -536,7 +669,14 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
 
   async function stopEntry(running: RunningEntry, signal: boolean): Promise<void> {
     const bound = (ms: number): number => (signal ? bounds.signalMs : ms)
-    await Promise.all([...running.leases].map((lease) => lease.release(bound(bounds.releaseMs))))
+    if (running.fault === undefined) {
+      await Promise.all([...running.leases].map((lease) => lease.release(bound(bounds.releaseMs))))
+    }
+    if (running.fault !== undefined) {
+      await running.restarted
+      return
+    }
+    running.stopping = true
     await running.process.request('shutdown', {}, { timeoutMs: bound(bounds.shutdownMs) })
     await running.process.stop(bound(bounds.killAfterMs))
   }

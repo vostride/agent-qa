@@ -26,7 +26,7 @@ export type PluginCallOutcome =
   | { status: 'result'; result: unknown; cancelled: boolean }
   | { status: 'error'; code: number; message: string; data: unknown; cancelled: boolean }
   | { status: 'silent' }
-  | { status: 'exited' }
+  | { status: 'exited'; stderr?: string }
 
 export type PluginLateAnswer = Extract<PluginCallOutcome, { status: 'result' | 'error' }>
 
@@ -40,6 +40,8 @@ export interface PluginRequestOptions {
 export interface PluginProcess {
   readonly pid: number | undefined
   readonly exited: Promise<void>
+  // The first stderr line, masked, since the last request was sent.
+  readonly stderrLine: string | undefined
   request(
     method: string,
     params: unknown,
@@ -54,6 +56,9 @@ interface Pending {
   options: PluginRequestOptions
   timers: ReturnType<typeof setTimeout>[]
 }
+
+// After exit, how long stdout and stderr may take to deliver what the plugin wrote last.
+const STDIO_DRAIN_MS = 250
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -72,23 +77,34 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
   }
 
   let gone = false
+  let finished = false
+  let stderrLine: string | undefined
   const pending = new Map<number, Pending>()
   const late = new Map<number, (answer: PluginLateAnswer) => void>()
   let nextId = 0
 
   const exited = new Promise<void>((resolve) => {
     const finish = (): void => {
-      if (gone) return
+      if (finished) return
+      finished = true
       gone = true
+      const outcome: PluginCallOutcome = {
+        status: 'exited',
+        ...(stderrLine === undefined ? {} : { stderr: stderrLine }),
+      }
       for (const [id, call] of pending) {
         pending.delete(id)
         for (const timer of call.timers) clearTimeout(timer)
-        call.settle({ status: 'exited' })
+        call.settle(outcome)
       }
       late.clear()
       resolve()
     }
-    child.once('exit', finish)
+    child.once('exit', () => {
+      gone = true
+      setTimeout(finish, STDIO_DRAIN_MS)
+    })
+    child.once('close', finish)
     child.once('error', (error) => {
       debug(`plugin process error: ${error.message}`)
       finish()
@@ -162,14 +178,20 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
   child.stdout.on('data', (chunk: Buffer) => decoder.push(chunk))
   child.stdout.on('end', () => decoder.end())
 
+  const logLine = (raw: string): void => {
+    const line = input.mask(raw.replace(/\r$/, ''))
+    if (line.trim() === '') return
+    input.debugLog?.(line)
+    stderrLine ??= line.trim()
+  }
   let stderrRest = ''
   child.stderr.on('data', (chunk: Buffer) => {
     const lines = (stderrRest + chunk.toString('utf8')).split('\n')
     stderrRest = lines.pop() ?? ''
-    for (const line of lines) debug(line.replace(/\r$/, ''))
+    for (const line of lines) logLine(line)
   })
   child.stderr.on('end', () => {
-    if (stderrRest !== '') debug(stderrRest)
+    if (stderrRest !== '') logLine(stderrRest)
     stderrRest = ''
   })
 
@@ -198,10 +220,14 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
   return {
     pid: child.pid,
     exited,
+    get stderrLine() {
+      return stderrLine
+    },
     request(method, params, options) {
       if (gone) return Promise.resolve({ status: 'exited' })
       nextId += 1
       const id = nextId
+      stderrLine = undefined
       return new Promise<PluginCallOutcome>((settle) => {
         const call: Pending = { settle, cancelled: false, options, timers: [] }
         pending.set(id, call)

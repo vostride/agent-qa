@@ -8,6 +8,7 @@ import {
 import type {
   RemoteLease,
   RemoteLeaseAnswer,
+  RemoteLeaseEnded,
   RemoteLeaseRequest,
   RemoteLeaseSource,
   RemotePluginBrowserConfig,
@@ -32,6 +33,8 @@ interface FakeLeases {
   readonly release: Mock<() => Promise<void>>
   readonly started: Mock<RemoteLease['started']>
   readonly leases: RemoteLease[]
+  readonly listeners: Set<(ended: RemoteLeaseEnded) => void>
+  end(ended: RemoteLeaseEnded): void
 }
 
 function fakeLeases(answer: RemoteLeaseAnswer, delayMs = 0): FakeLeases {
@@ -39,6 +42,7 @@ function fakeLeases(answer: RemoteLeaseAnswer, delayMs = 0): FakeLeases {
   const leases: RemoteLease[] = []
   const release = vi.fn<() => Promise<void>>(() => Promise.resolve())
   const started = vi.fn<RemoteLease['started']>(() => Promise.resolve({}))
+  const listeners = new Set<(ended: RemoteLeaseEnded) => void>()
   const source: RemoteLeaseSource = {
     async acquire(request) {
       requests.push(request)
@@ -55,12 +59,21 @@ function fakeLeases(answer: RemoteLeaseAnswer, delayMs = 0): FakeLeases {
         started,
         end: () => Promise.resolve(),
         release,
+        onEnded(listener) {
+          listeners.add(listener)
+          return () => {
+            listeners.delete(listener)
+          }
+        },
       }
       leases.push(lease)
       return lease
     },
   }
-  return { source, requests, release, started, leases }
+  const end = (ended: RemoteLeaseEnded) => {
+    for (const listener of [...listeners]) listener(ended)
+  }
+  return { source, requests, release, started, leases, listeners, end }
 }
 
 function pluginRemote(connectTimeoutMs = 30_000): RemotePluginBrowserConfig {
@@ -212,6 +225,40 @@ describe("a plugin remote's leased session", () => {
 
     expect(leases.release).toHaveBeenCalledTimes(1)
     expect(connectedAtRelease).toBe(false)
+  })
+
+  it('ends the test as lost, naming the remote, when the plugin that leased it stops', async () => {
+    const server = await startPlaywrightServer()
+    teardowns.push(() => server.close())
+    const leases = fakeLeases({ protocol: 'playwright', url: server.wsEndpoint })
+    const connect = vi.spyOn(chromium, 'connect')
+    const adapter = await setupOn(pluginRemote(), { pluginSessions: leases.source })
+    const browser = (await connect.mock.results[0]?.value) as Browser
+    expect(adapter.isBrowserDisconnected).toBe(false)
+    expect(leases.listeners.size).toBe(1)
+
+    const message = 'Remote lab-chrome: plugin entry lab stopped unexpectedly.'
+    leases.end({ kind: 'lost', message })
+
+    expect(adapter.isBrowserDisconnected).toBe(true)
+    expect(adapter.disconnectSummary).toBe(message)
+    expect(adapter.placeEvidence).toMatchObject({
+      place: 'remote',
+      name: 'lab-chrome',
+      failureKind: 'lost',
+    })
+    await vi.waitFor(() => expect(browser.isConnected()).toBe(false))
+    await adapter.settleDisconnect()
+    expect(adapter.disconnectSummary).toBe(message)
+    const step = await adapter.execute({ type: 'navigate', to: 'url', url: 'about:blank' }).then(
+      (result) => result.success,
+      () => false,
+    )
+    expect(step).toBe(false)
+
+    await adapter.cleanup()
+    expect(leases.listeners.size).toBe(0)
+    expect(leases.release).toHaveBeenCalledTimes(1)
   })
 
   it('refuses a remote whose plugin had no free session from memory, without asking again', async () => {

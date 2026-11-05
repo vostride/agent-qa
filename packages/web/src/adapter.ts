@@ -12,6 +12,7 @@ import type {
   RecordingCapability,
   RemoteBrowserConfig,
   RemoteLease,
+  RemoteLeaseEnded,
   RemoteLeaseSource,
   RemotePlaceEvidence,
   RemotePluginBrowserConfig,
@@ -275,6 +276,9 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private unregisterRelease: (() => void) | undefined
   private lease: RemoteLease | undefined
   private releaseLease: (() => Promise<void>) | undefined
+  private unwatchLease: (() => void) | undefined
+  // Set when the plugin that leased this session stopped under the test.
+  private leaseEnded: RemoteLeaseEnded | undefined
   // Adapter-private: observe returns only the `ScreenState`, never the native binding.
   private lastRefs: RefMap = {}
   private epoch: ObservationEpoch | undefined
@@ -384,14 +388,17 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     this.intentionalClose = false
     this.disconnectKind = undefined
     this.disconnectSettled = undefined
+    this.leaseEnded = undefined
     const browser = this.browser
     // An earlier session's late event must not mark this adapter's next session.
     browser.on('disconnected', () => {
-      if (this.browser !== browser || this.intentionalClose) return
+      if (this.browser !== browser || this.intentionalClose || this.leaseEnded !== undefined) return
       this.disconnected = true
       if (remote !== undefined) this.remoteDropped(remote)
     })
     if (remote !== undefined) this.registerRelease(browser, releaseLease)
+    const lease = this.lease
+    if (remote !== undefined && lease !== undefined) this.watchLease(lease, browser, remote)
 
     if (remote === undefined) return this.openSession(config, undefined, browserName, headless)
     try {
@@ -620,10 +627,26 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     }
   }
 
+  // A plugin that stopped took its session with it, so the test ends as if its remote dropped.
+  private watchLease(lease: RemoteLease, browser: Browser, remote: RemoteBrowserConfig): void {
+    this.unwatchLease?.()
+    this.unwatchLease = lease.onEnded((ended) => {
+      if (this.browser !== browser || this.intentionalClose || this.leaseEnded !== undefined) return
+      this.disconnected = true
+      this.remoteDropped(remote, ended)
+      void browser.close().catch(() => undefined)
+    })
+  }
+
   // Nothing reconnects: the test that held the session fails, naming the remote.
-  private remoteDropped(remote: RemoteBrowserConfig): void {
+  private remoteDropped(remote: RemoteBrowserConfig, ended?: RemoteLeaseEnded): void {
     this.heartbeat?.stop()
     this.disconnectKind = 'lost'
+    if (ended !== undefined) {
+      this.leaseEnded = ended
+      this.disconnectSettled = undefined
+      return
+    }
     const settled: Promise<void> = classifyDisconnect(remote).then((kind) => {
       if (this.disconnectSettled === settled) this.disconnectKind = kind
     })
@@ -635,10 +658,11 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     const place = this.place
     if (place?.place !== 'remote') return place
     if (this.heartbeat === undefined && this.disconnectKind === undefined) return place
+    const failureKind = this.leaseEnded?.kind ?? this.disconnectKind
     return {
       ...place,
       ...(this.heartbeat !== undefined ? { heartbeat: this.heartbeat.counts() } : {}),
-      ...(this.disconnectKind !== undefined ? { failureKind: this.disconnectKind } : {}),
+      ...(failureKind !== undefined ? { failureKind } : {}),
     }
   }
 
@@ -647,7 +671,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     const remote = this.remote
     const kind = this.disconnectKind
     if (remote === undefined || kind === undefined) return undefined
-    return disconnectSentence(kind, remote)
+    return this.leaseEnded?.message ?? disconnectSentence(kind, remote)
   }
 
   // Resolves once a drop's kind is known, within the probe's bound; at once when nothing dropped.
@@ -935,6 +959,8 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   async cleanup(): Promise<void> {
     this.unregisterRelease?.()
     this.unregisterRelease = undefined
+    this.unwatchLease?.()
+    this.unwatchLease = undefined
     this.intentionalClose = true
     this.heartbeat?.stop()
     this.heartbeat = undefined
@@ -970,6 +996,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     this.disconnected = false
     this.disconnectKind = undefined
     this.disconnectSettled = undefined
+    this.leaseEnded = undefined
     this.intentionalClose = false
     this.screencast = null
     this.screencastOnFrame = null

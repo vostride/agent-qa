@@ -87,6 +87,11 @@ export interface RemoteLeaseRequest {
   testName?: string
 }
 
+export interface RemoteLeaseEnded {
+  kind: 'lost' | 'timeout'
+  message: string
+}
+
 export interface RemoteLease {
   connection: RemoteLeaseAnswer
   plugin: RemotePluginEvidence
@@ -94,6 +99,9 @@ export interface RemoteLease {
   started(input: { sessionId?: string }): Promise<{ link?: string; appiumVersion?: string }>
   end(outcome: RemoteLeaseOutcome, reason?: string): Promise<void>
   release(): Promise<void>
+  // The session ended under the test, because its plugin stopped. A listener added after the
+  // end is called at once.
+  onEnded(listener: (ended: RemoteLeaseEnded) => void): () => void
 }
 
 export interface RemoteLeaseSource {
