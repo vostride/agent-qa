@@ -85,6 +85,9 @@ function locate(
   const packageJsonPath = findPackageJson(target, options.configDir)
   if (packageJsonPath !== null) return { packageJsonPath }
   const install = pluginInstallLine({ name: target, package: target }, options.agentQaVersion)
+  if (install === undefined) {
+    return { check: failed('package', [`${target} is not an npm package name or a folder`]) }
+  }
   return {
     check: failed('package', [`${target} is not installed in this project. Run ${install}.`]),
   }

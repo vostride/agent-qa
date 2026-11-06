@@ -685,4 +685,12 @@ describe('agent-qa plugin validate', () => {
     )
     expect(process.exitCode).toBe(1)
   })
+
+  it('prints no install line for a target that is not an npm package name', async () => {
+    await validate('$(id)')
+
+    expect(stdout()).toContain('$(id) is not an npm package name or a folder')
+    expect(stdout()).not.toContain('npm install')
+    expect(process.exitCode).toBe(1)
+  })
 })

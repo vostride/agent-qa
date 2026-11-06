@@ -83,7 +83,8 @@ export function pluginInstallLine(
   agentQaVersion: string,
 ): string | undefined {
   const packageName = packageDeclarationValue(entry)
-  if (!packageName) return undefined
+  // A person runs this line, so it is only ever built from an npm name.
+  if (!isNpmPackageName(packageName)) return undefined
   if (packageName.startsWith(FIRST_PARTY_PLUGIN_PREFIX)) {
     return `npm install --save-dev --save-exact ${packageName}@${agentQaVersion}`
   }
@@ -133,6 +134,15 @@ export function resolvePluginEntry(
   } else {
     packageJsonPath = findPackageJson(packageDeclarationValue(entry), configDir) ?? undefined
     if (!packageJsonPath) {
+      if (install === undefined) {
+        return {
+          ...base,
+          state: 'not_installed',
+          reason:
+            `Plugin entry ${entry.name} names a package that is not an npm package name. Fix `
+            + 'package in plugins, or name a folder with path.',
+        }
+      }
       return {
         ...base,
         state: 'not_installed',
@@ -163,7 +173,8 @@ export function resolvePluginEntry(
   }
 
   if (
-    label.startsWith(FIRST_PARTY_PLUGIN_PREFIX)
+    install !== undefined
+    && label.startsWith(FIRST_PARTY_PLUGIN_PREFIX)
     && read.version !== undefined
     && read.version !== agentQaVersion
   ) {

