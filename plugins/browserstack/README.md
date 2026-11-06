@@ -139,8 +139,10 @@ The plugin's `uploadApp` takes the target's `app.path`:
 
 1. it names the content with the custom id `agent-qa-<first 32 hex of the file's SHA-256>`;
 2. it asks `GET app-automate/recent_apps/<custom id>` and reuses the newest upload listed there;
-3. when nothing is listed, it posts the file once to `POST app-automate/upload` with that custom
-   id, reporting `uploading app (<n> MB)` and then `app uploaded` as progress.
+3. when nothing is listed, it checks that the file still has the size and SHA-256 agent-qa sent,
+   refusing it at path `path` when it changed, then posts the file once to
+   `POST app-automate/upload` with that custom id, reporting `uploading app (<n> MB)` and then
+   `app uploaded` as progress.
 
 It answers the `bs://` ref the session installs. The same file uploads once, and later runs reuse
 it while BrowserStack keeps it, which is 30 days. A cancel stops the upload.

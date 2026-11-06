@@ -128,14 +128,26 @@ describe('uploading an app to BrowserStack', () => {
   it('uses the first 32 hex digits of the SHA-256 as the custom id', async () => {
     const { api, plugin } = await browserStack()
     const app = await appFile()
-    const sha256 = 'ab'.repeat(32)
+    const customId = `agent-qa-${app.sha256.slice(0, 32)}`
 
-    await plugin.call('uploadApp', { ...uploadParams(app), sha256 })
+    await plugin.call('uploadApp', { ...uploadParams(app), sha256: app.sha256.toUpperCase() })
 
-    expect(api.routeCalls(RECENT_APPS_ROUTE)[0]?.params.customId).toBe(
-      `agent-qa-${'ab'.repeat(16)}`,
-    )
-    expect(uploadedField(api.uploads()[0]!, 'custom_id')).toBe(`agent-qa-${'ab'.repeat(16)}`)
+    expect(api.routeCalls(RECENT_APPS_ROUTE)[0]?.params.customId).toBe(customId)
+    expect(uploadedField(api.uploads()[0]!, 'custom_id')).toBe(customId)
+  })
+
+  it.each([
+    ['whose bytes no longer hash to the SHA-256', { sha256: 'ab'.repeat(32) }],
+    ['whose size no longer matches', { size: 3 }],
+  ])('refuses an app %s, at its path, and uploads nothing', async (_, changed) => {
+    const app = await appFile()
+    const { api, plugin } = await browserStack()
+
+    const answer = await plugin.call('uploadApp', { ...uploadParams(app), ...changed })
+
+    expect(answer.error?.data).toMatchObject({ kind: 'refused', path: 'path' })
+    expect(answer.error?.message).toContain('no longer matches the SHA-256')
+    expect(api.uploads()).toEqual([])
   })
 
   it('uploads a second app with the same content no more than once', async () => {

@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { openAsBlob } from 'node:fs'
 import { basename } from 'node:path'
 import { PluginError, type PluginProgress } from '@vostride/agent-qa-plugin-kit'
@@ -59,6 +60,28 @@ async function readApp(path: string): Promise<Blob> {
   }
 }
 
+// The upload is keyed by the host's hash, so the bytes sent must be the bytes it hashed. A blob
+// from openAsBlob refuses to read once its file changes, so the checked blob is what is sent.
+async function checkContent(app: Blob, request: UploadAppRequest): Promise<void> {
+  const changed = () =>
+    new PluginError(
+      `The app at ${request.path} no longer matches the SHA-256 agent-qa computed; run again.`,
+      { kind: 'refused', path: 'path' },
+    )
+  if (app.size !== request.size) throw changed()
+  const hash = createHash('sha256')
+  try {
+    for await (const chunk of app.stream()) {
+      request.signal.throwIfAborted()
+      hash.update(chunk)
+    }
+  } catch (error) {
+    if (request.signal.aborted) throw error
+    throw changed()
+  }
+  if (hash.digest('hex') !== request.sha256.toLowerCase()) throw changed()
+}
+
 export interface UploadAppRequest {
   options: BrowserStackOptions
   path: string
@@ -74,9 +97,11 @@ export async function uploadApp(request: UploadAppRequest): Promise<{ ref: strin
   const reused = newestAppUrl(await api.recentApps(customId, request.signal))
   if (reused !== undefined) return { ref: reused }
 
+  const app = await readApp(request.path)
+  await checkContent(app, request)
   const form = new FormData()
   form.append('custom_id', customId)
-  form.append('file', await readApp(request.path), basename(request.path))
+  form.append('file', app, basename(request.path))
   request.progress({ message: `uploading app (${megabytes(request.size)} MB)` })
   const ref = appUrlOf(await api.uploadApp(form, request.signal))
   if (ref === undefined) {
