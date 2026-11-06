@@ -109,8 +109,10 @@ By default the plugin asks for a 720-minute session, the longest Hyperbrowser al
 
 The plugin never asks Hyperbrowser for keep-alive, so Hyperbrowser stops a session whose connection
 drops. A session left behind by a killed job, where agent-qa and the plugin die together, stops
-when its connection does. agent-qa also stops every session itself after the test; the lifetime
-only bounds a session that agent-qa could not stop.
+when its connection does. A session whose create was still in flight when the job was killed was
+never connected and has no idle timeout, so it runs until `timeoutMinutes`; lower
+`timeoutMinutes` to bound it. agent-qa also stops every session itself after the test; the
+lifetime only bounds a session that agent-qa could not stop.
 
 ## Recording
 
