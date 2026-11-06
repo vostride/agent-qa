@@ -28,16 +28,29 @@ async function startApi(input?: Parameters<typeof startFakeHyperbrowserApi>[0]) 
   return api
 }
 
-async function hyperbrowserPlugin(api: FakeHyperbrowserApi) {
+async function initialized(options: Record<string, unknown>) {
   const plugin = spawnHyperbrowserPlugin()
   hosts.push(plugin)
-  const answer = await initializeHyperbrowser(plugin, { apiKey: API_KEY, apiUrl: api.url })
+  const answer = await initializeHyperbrowser(plugin, options)
+  return { plugin, answer }
+}
+
+async function hyperbrowserPlugin(api: FakeHyperbrowserApi) {
+  const { plugin, answer } = await initialized({ apiKey: API_KEY, apiUrl: api.url })
   expect(answer.error).toBeUndefined()
   return plugin
 }
 
-function acquire(plugin: SpawnedHyperbrowser, settings: Record<string, unknown> = {}) {
-  return plugin.call('acquire', { remote: 'hyperbrowser', settings, session: WEB_SESSION })
+function acquire(
+  plugin: SpawnedHyperbrowser,
+  settings: Record<string, unknown> = {},
+  session: Record<string, unknown> = WEB_SESSION,
+) {
+  return plugin.call('acquire', { remote: 'hyperbrowser', settings, session })
+}
+
+function createBodies(api: FakeHyperbrowserApi) {
+  return api.routeCalls(CREATE_ROUTE).map((request) => request.body)
 }
 
 describe('creating a Hyperbrowser session', () => {
@@ -80,6 +93,138 @@ describe('creating a Hyperbrowser session', () => {
       link: `https://app.example.invalid/sessions/${String(id)}`,
     })
     expect((answer.result as { url: string }).url).not.toContain('keepAlive')
+  })
+})
+
+describe('the Hyperbrowser settings', () => {
+  it('lowers the lifetime', async () => {
+    const api = await startApi()
+    const plugin = await hyperbrowserPlugin(api)
+
+    expect((await acquire(plugin, { timeoutMinutes: 30 })).error).toBeUndefined()
+
+    expect(createBodies(api)[0]).toMatchObject({ timeoutMinutes: 30 })
+  })
+
+  it.each([0, 721])('refuses timeoutMinutes %i before any create', async (timeoutMinutes) => {
+    const api = await startApi()
+    const plugin = await hyperbrowserPlugin(api)
+
+    const answer = await acquire(plugin, { timeoutMinutes })
+
+    expect(answer.error?.data).toMatchObject({ kind: 'refused', path: 'settings.timeoutMinutes' })
+    expect(createBodies(api)).toEqual([])
+  })
+
+  it.each([false, true])('sends recording %s as enableWebRecording', async (recording) => {
+    const api = await startApi()
+    const plugin = await hyperbrowserPlugin(api)
+
+    expect((await acquire(plugin, { recording })).error).toBeUndefined()
+
+    expect(createBodies(api)[0]).toMatchObject({ enableWebRecording: recording })
+  })
+
+  it('turns each page-changing feature on when its setting is true', async () => {
+    const api = await startApi()
+    const plugin = await hyperbrowserPlugin(api)
+
+    const settings = {
+      stealth: true,
+      solveCaptchas: true,
+      adblock: true,
+      trackers: true,
+      annoyances: true,
+      acceptCookies: true,
+      proxy: true,
+    }
+    expect((await acquire(plugin, settings)).error).toBeUndefined()
+
+    const [body] = createBodies(api)
+    expect(body).toMatchObject({
+      useStealth: true,
+      solveCaptchas: true,
+      adblock: true,
+      trackers: true,
+      annoyances: true,
+      acceptCookies: true,
+      useProxy: true,
+    })
+    expect(body).not.toHaveProperty('proxyCountry')
+  })
+
+  it('sends a proxy location as useProxy with the fields it is given', async () => {
+    const api = await startApi()
+    const plugin = await hyperbrowserPlugin(api)
+
+    const settings = { proxy: { country: 'DE', city: 'berlin' } }
+    expect((await acquire(plugin, settings)).error).toBeUndefined()
+
+    const [body] = createBodies(api)
+    expect(body).toMatchObject({ useProxy: true, proxyCountry: 'DE', proxyCity: 'berlin' })
+    expect(body).not.toHaveProperty('proxyState')
+  })
+
+  it('merges extra last, so it overrides a curated setting and adds its own fields', async () => {
+    const api = await startApi()
+    const plugin = await hyperbrowserPlugin(api)
+
+    const settings = { adblock: false, extra: { adblock: true, useUltraStealth: true } }
+    expect((await acquire(plugin, settings)).error).toBeUndefined()
+
+    expect(createBodies(api)[0]).toMatchObject({ adblock: true, useUltraStealth: true })
+  })
+
+  it('sends the screen, the region and the extensions it is given', async () => {
+    const api = await startApi()
+    const plugin = await hyperbrowserPlugin(api)
+
+    const settings = {
+      screen: { width: 1440, height: 900 },
+      region: 'europe-west',
+      extensions: ['e-1'],
+    }
+    expect((await acquire(plugin, settings)).error).toBeUndefined()
+
+    expect(createBodies(api)[0]).toMatchObject({
+      screen: { width: 1440, height: 900 },
+      region: 'europe-west',
+      extensionIds: ['e-1'],
+    })
+  })
+
+  it('loads a profile read-only into a reused context', async () => {
+    const api = await startApi()
+    const plugin = await hyperbrowserPlugin(api)
+
+    const answer = await acquire(plugin, { profile: 'p-1' }, { ...WEB_SESSION, context: 'reuse' })
+    expect(answer.error).toBeUndefined()
+
+    expect(createBodies(api)[0]).toMatchObject({ profile: { id: 'p-1', persistChanges: false } })
+  })
+
+  it('refuses a profile for a new context before any create, pointing at profile', async () => {
+    const api = await startApi()
+    const plugin = await hyperbrowserPlugin(api)
+
+    const answer = await acquire(plugin, { profile: 'p-1' })
+
+    expect(answer.error?.message).toBe(
+      'profile loads only into a reused context; set context: reuse on the remote.',
+    )
+    expect(answer.error?.data).toMatchObject({ kind: 'refused', path: 'settings.profile' })
+    expect(createBodies(api)).toEqual([])
+  })
+
+  it('refuses a session that is not Chromium before any create', async () => {
+    const api = await startApi()
+    const plugin = await hyperbrowserPlugin(api)
+
+    const answer = await acquire(plugin, {}, { ...WEB_SESSION, engine: 'firefox' })
+
+    expect(answer.error?.message).toBe('Hyperbrowser runs Chromium web sessions only, not firefox.')
+    expect(answer.error?.data?.kind).toBe('refused')
+    expect(createBodies(api)).toEqual([])
   })
 })
 
