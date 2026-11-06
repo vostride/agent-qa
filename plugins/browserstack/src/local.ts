@@ -1,3 +1,4 @@
+import { execFile, type ChildProcess } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -17,8 +18,30 @@ export interface RunningTunnel {
   stop(): Promise<void>
 }
 
+// A start still in flight can be aborted: the plugin may stop before the tunnel connects.
+export interface StartingTunnel {
+  running: Promise<RunningTunnel>
+  abort(): Promise<void>
+}
+
 export interface TunnelFactory {
-  start(request: TunnelRequest): Promise<RunningTunnel>
+  start(request: TunnelRequest): StartingTunnel
+}
+
+interface WrapperState {
+  retriesLeft: number
+  tunnel?: ChildProcess
+  binaryPath?: string
+}
+
+// The binary's own stop for a daemon by identifier; it runs whatever state the launch reached.
+function stopDaemon(binary: string, request: TunnelRequest): Promise<void> {
+  const args = ['--daemon', 'stop', '--local-identifier', request.identifier]
+  return new Promise<void>((done) => {
+    execFile(binary, [...args, '--key', request.accessKey], { timeout: STOP_BOUND_MS }, () =>
+      done(),
+    )
+  })
 }
 
 function localLogFile(): string {
@@ -32,11 +55,12 @@ export const browserStackLocalFactory: TunnelFactory = {
     // Created private first; the wrapper only truncates it, so the mode holds.
     writeFileSync(logFile, '', { mode: 0o600 })
     const local = new Local()
+    const wrapper = local as unknown as WrapperState
     if (request.binary !== undefined) {
       // After a failed run the wrapper deletes its binary and retries; the user's own must stay.
-      ;(local as unknown as { retriesLeft: number }).retriesLeft = 0
+      wrapper.retriesLeft = 0
     }
-    return new Promise<RunningTunnel>((resolve, reject) => {
+    const running = new Promise<RunningTunnel>((resolve, reject) => {
       local.start(
         {
           key: request.accessKey,
@@ -54,6 +78,15 @@ export const browserStackLocalFactory: TunnelFactory = {
         },
       )
     })
+    return {
+      running,
+      async abort() {
+        // A killed launch must not be retried with a fresh download.
+        wrapper.retriesLeft = 0
+        wrapper.tunnel?.kill()
+        if (wrapper.binaryPath !== undefined) await stopDaemon(wrapper.binaryPath, request)
+      },
+    }
   },
 }
 
@@ -97,26 +130,31 @@ export function createTunnelManager(input: TunnelManagerInput): TunnelManager {
   const identifier = input.local
     ? (input.localIdentifier ?? freshLocalIdentifier())
     : input.localIdentifier
-  let starting: Promise<RunningTunnel> | undefined
+  let starting: StartingTunnel | undefined
   let stopped = false
   let connected = false
 
   const start = (): Promise<RunningTunnel> => {
-    if (starting !== undefined) return starting
-    const attempt = Promise.resolve()
-      .then(() =>
-        input.factory.start({
-          accessKey: input.accessKey,
-          identifier: identifier as string,
-          binary: input.localBinary,
-        }),
-      )
-      .catch((error: unknown) => {
-        throw startFailure(error, input.accessKey)
+    if (starting !== undefined) return starting.running
+    let begun: StartingTunnel
+    try {
+      begun = input.factory.start({
+        accessKey: input.accessKey,
+        identifier: identifier as string,
+        binary: input.localBinary,
       })
+    } catch (error) {
+      return Promise.reject(startFailure(error, input.accessKey))
+    }
+    const attempt: StartingTunnel = {
+      running: begun.running.catch((error: unknown) => {
+        throw startFailure(error, input.accessKey)
+      }),
+      abort: () => begun.abort(),
+    }
     starting = attempt
     // A failed start is not kept, so the next acquire tries again.
-    attempt.then(
+    attempt.running.then(
       () => {
         connected = true
       },
@@ -124,7 +162,7 @@ export function createTunnelManager(input: TunnelManagerInput): TunnelManager {
         if (starting === attempt) starting = undefined
       },
     )
-    return attempt
+    return attempt.running
   }
 
   return {
@@ -163,7 +201,14 @@ export function createTunnelManager(input: TunnelManagerInput): TunnelManager {
       stopped = true
       const pending = starting
       if (pending === undefined) return
-      await bounded(pending.then((tunnel) => tunnel.stop()), STOP_BOUND_MS)
+      const stopRunning = pending.running.then((tunnel) => tunnel.stop())
+      if (connected) {
+        await bounded(stopRunning, STOP_BOUND_MS)
+        return
+      }
+      // Still starting: abort the launch, and stop the tunnel too if it connects meanwhile.
+      const both = Promise.allSettled([pending.abort(), stopRunning]).then(() => {})
+      await bounded(both, STOP_BOUND_MS)
     },
   }
 }

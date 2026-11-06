@@ -220,7 +220,9 @@ this machine can reach, such as `localhost` or a staging host behind a VPN.
   the project. When the tunnel cannot start, the refusal has kind `unreachable` at path `local`
   and names that log.
 - The tunnel runs as a daemon outside the plugin's process group, so the plugin stops it itself:
-  on `shutdown`, when agent-qa closes the plugin's stdin and on `SIGTERM`.
+  on `shutdown`, when agent-qa closes the plugin's stdin and on `SIGTERM`. A tunnel still starting
+  then is aborted: the plugin kills the launch and runs the binary's `--daemon stop` for the
+  tunnel's identifier, and stops the tunnel too if it connects meanwhile.
 - The wrapper's own console output goes to the plugin's stderr, never to the protocol stream.
 
 BrowserStack's tunnel binary takes the access key as `--key` on its command line. That is

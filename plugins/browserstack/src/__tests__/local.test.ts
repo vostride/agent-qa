@@ -23,19 +23,29 @@ const FRESH_IDENTIFIER = /^agent-qa-[0-9a-f]{16}$/
 interface FakeFactory extends TunnelFactory {
   starts: TunnelRequest[]
   stops: number
+  aborts: number
 }
 
 function fakeFactory(input: { fail?: Error; startMs?: number } = {}): FakeFactory {
   const factory: FakeFactory = {
     starts: [],
     stops: 0,
-    async start(request) {
+    aborts: 0,
+    start(request) {
       factory.starts.push(request)
-      if (input.startMs !== undefined) await new Promise((r) => setTimeout(r, input.startMs))
-      if (input.fail !== undefined) throw input.fail
+      const running = (async () => {
+        if (input.startMs !== undefined) await new Promise((r) => setTimeout(r, input.startMs))
+        if (input.fail !== undefined) throw input.fail
+        return {
+          async stop() {
+            factory.stops += 1
+          },
+        }
+      })()
       return {
-        async stop() {
-          factory.stops += 1
+        running,
+        async abort() {
+          factory.aborts += 1
         },
       }
     },
@@ -179,7 +189,7 @@ describe('BrowserStack Local started by the plugin', () => {
     expect(factory.stops).toBe(1)
   })
 
-  it('stops a tunnel that was still starting when shutdown came', async () => {
+  it('aborts a tunnel that was still starting when shutdown came, and stops it if it connects', async () => {
     const factory = fakeFactory({ startMs: 50 })
     const { web, shutdown } = await browserStack(factory, { local: true })
     const acquiring = web()
@@ -187,6 +197,18 @@ describe('BrowserStack Local started by the plugin', () => {
     await shutdown()
     await acquiring
 
+    expect(factory.aborts).toBe(1)
+    expect(factory.stops).toBe(1)
+  })
+
+  it('stops a connected tunnel without aborting it', async () => {
+    const factory = fakeFactory()
+    const { web, shutdown } = await browserStack(factory, { local: true })
+    await web()
+
+    await shutdown()
+
+    expect(factory.aborts).toBe(0)
     expect(factory.stops).toBe(1)
   })
 
@@ -278,12 +300,15 @@ const STUB = fileURLToPath(new URL('./fixtures/stub-browserstack-local.mjs', imp
 interface StubRecord {
   args: string[]
   pid: number
+  launcher: number
 }
 
 interface StubBinary {
   dir: string
   path: string
   record(): StubRecord
+  started(): boolean
+  stopArgs(): string[] | undefined
 }
 
 const dirs: string[] = []
@@ -307,7 +332,7 @@ function freshDir(): string {
 }
 
 // Git file modes do not survive every checkout, so the executable is written here.
-function stubBinary(mode: 'connect' | 'fail'): StubBinary {
+function stubBinary(mode: 'connect' | 'fail' | 'slow'): StubBinary {
   const dir = freshDir()
   const path = join(dir, 'BrowserStackLocal')
   const recordPath = join(dir, 'record.json')
@@ -325,6 +350,14 @@ function stubBinary(mode: 'connect' | 'fail'): StubBinary {
       const logFile = record.args[record.args.indexOf('--log-file') + 1]
       if (logFile !== undefined) dirs.push(logFile)
       return record
+    },
+    started() {
+      return existsSync(recordPath)
+    },
+    stopArgs() {
+      const stopPath = `${recordPath}.stop`
+      if (!existsSync(stopPath)) return undefined
+      return (JSON.parse(readFileSync(stopPath, 'utf8')) as { args: string[] }).args
     },
   }
 }
@@ -421,6 +454,34 @@ describe.skipIf(process.platform === 'win32')('BrowserStack Local run through it
     await plugin.terminate()
 
     expect(await gone(pid)).toBe(true)
+  })
+
+  it('stops a tunnel still starting when stdin closes, so it never outlives the plugin', async () => {
+    const stub = stubBinary('slow')
+    const plugin = startPluginProcess({ cwd: freshDir() })
+    processes.push(plugin)
+    const init = await initializePlugin(plugin, { local: true, localBinary: stub.path }, LISTED)
+    expect(init.error).toBeUndefined()
+    void plugin.request('acquire', {
+      remote: 'browserstack',
+      settings: {},
+      session: { platform: 'web', engine: 'chromium', context: 'new' },
+    })
+    for (let waited = 0; !stub.started() && waited < 5_000; waited += 50) {
+      await new Promise((resolve) => setTimeout(resolve, 50))
+    }
+    const { args, pid, launcher } = stub.record()
+    sleepers.push(launcher)
+
+    await plugin.close()
+
+    expect(await gone(pid)).toBe(true)
+    expect(await gone(launcher)).toBe(true)
+    const stopArgs = stub.stopArgs()
+    expect(stopArgs?.slice(0, 2)).toEqual(['--daemon', 'stop'])
+    expect(argument(stopArgs ?? [], '--local-identifier')).toBe(
+      argument(args, '--local-identifier'),
+    )
   })
 
   it('keeps stdout protocol-only although the wrapper logs with console.log', async () => {
