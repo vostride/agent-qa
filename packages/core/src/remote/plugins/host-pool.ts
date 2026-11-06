@@ -466,7 +466,16 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     return new RemoteRefusalError(line(remote), { remote, kind: 'lost' })
   }
 
+  // An unexpected throw, such as a folder changing under resolution, refuses only this entry.
   async function startEntry(name: string): Promise<EntryStart> {
+    try {
+      return await startEntryProcess(name)
+    } catch (error) {
+      return { ok: false, refusal: (remote) => asRefusal(error, remote, name) }
+    }
+  }
+
+  async function startEntryProcess(name: string): Promise<EntryStart> {
     const entry = input.plugins.find((candidate) => candidate.name === name)
     if (entry === undefined) {
       return {
@@ -980,9 +989,13 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     const signal = options.signal === true
     if (signal) signalDeadline ??= Date.now() + bounds.signalMs
     const closed = (closing ??= (async () => {
-      const started = await Promise.all(starts.values())
-      await Promise.all(
-        started.map((start) => (start.ok ? stopEntry(start.running, signal) : undefined)),
+      const started = await Promise.allSettled(starts.values())
+      await Promise.allSettled(
+        started.map((start) =>
+          start.status === 'fulfilled' && start.value.ok
+            ? stopEntry(start.value.running, signal)
+            : undefined,
+        ),
       )
       while (background.size > 0) await Promise.all(background)
     })().finally(() => unregisterShutdown?.()))

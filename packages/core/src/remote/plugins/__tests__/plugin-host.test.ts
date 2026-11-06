@@ -408,6 +408,30 @@ describe('refusals from the plugin host pool', () => {
     )
   })
 
+  it('refuses an entry whose start throws, and still shuts the other entries down', async () => {
+    const p = host()
+    const lab = p.entry('lab')
+    const broken = {
+      name: 'broken',
+      get path(): string {
+        throw new Error('the plugins folder changed')
+      },
+    }
+    const pool = p.pool([lab], {
+      plugins: [{ name: lab.name, path: lab.path, options: lab.options }, broken],
+    })
+
+    await pool.acquire(request('lab-a', 'lab'))
+    const refused = await refusalOf(pool.acquire(request('lab-b', 'broken')))
+    await pool.shutdown()
+
+    expect(refused.kind).toBe('refused')
+    expect(refused.message).toBe(
+      'Remote lab-b: plugin entry broken could not start: the plugins folder changed',
+    )
+    expect(methodsOf(p.ledger(lab))).toEqual(['initialize', 'acquire', 'release', 'shutdown'])
+  })
+
   it('refuses every remote naming an entry whose initialize failed, pointing at its option', async () => {
     const p = host()
     const lab = p.entry('lab', {
