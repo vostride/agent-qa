@@ -199,7 +199,7 @@ describe('the Kernel apiUrl', () => {
 
       expect(answer.error?.data).toMatchObject({ kind: 'refused', path: 'apiUrl' })
       expect(answer.error?.message).toBe(
-        'apiUrl must use https:// unless it points at this machine.',
+        'apiUrl must use https:// with no user or password, unless it points at this machine.',
       )
     },
   )

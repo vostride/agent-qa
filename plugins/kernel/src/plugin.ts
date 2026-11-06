@@ -1,5 +1,6 @@
 import { setTimeout as delay } from 'node:timers/promises'
 import {
+  checkEndpoints,
   credential,
   definePlugin,
   PluginError,
@@ -17,7 +18,6 @@ import {
 const KERNEL_API_URL = 'https://api.onkernel.com'
 // Kernel answers 204 at once when the acquire timeout is short, so a poll waits at least this long.
 const POOL_POLL_FLOOR_MS = 1_000
-const LOOPBACK_HOSTS = new Set(['localhost', '[::1]'])
 
 const options = z.strictObject({
   apiKey: credential('The Kernel API key'),
@@ -66,14 +66,6 @@ const settings = z.strictObject({
 
 type KernelSettings = z.output<typeof settings>
 type Session = AcquireInput<unknown, unknown>['session']
-
-function apiUrlAllowed(value: string): boolean {
-  const url = new URL(value)
-  if (url.username !== '' || url.password !== '') return false
-  if (url.protocol === 'https:') return true
-  if (url.protocol !== 'http:') return false
-  return LOOPBACK_HOSTS.has(url.hostname) || /^127(?:\.\d{1,3}){3}$/.test(url.hostname)
-}
 
 const CREATE_ONLY_SETTINGS = ['stealth', 'region', 'proxy', 'viewport'] as const
 
@@ -205,12 +197,7 @@ export default definePlugin({
   skill: './skill',
 
   initialize({ options }) {
-    if (!apiUrlAllowed(options.apiUrl)) {
-      throw new PluginError('apiUrl must use https:// unless it points at this machine.', {
-        kind: 'refused',
-        path: 'apiUrl',
-      })
-    }
+    checkEndpoints(options, [{ path: 'apiUrl', scheme: 'https' }])
   },
 
   async check({ options, remotes }, ctx) {
