@@ -104,14 +104,23 @@ function createBody(sessionId: string, input: SteelSettings): Record<string, unk
   }
 }
 
-function withHandle(error: unknown, sessionId: string, timeoutMinutes: number): PluginError {
+// A create Steel refused with a 4xx made no session. Anything else (no answer, a 5xx, an
+// unreadable answer) may have, so it carries the handle that releases it.
+function mayHaveCreated(error: unknown): boolean {
+  return !(error instanceof SteelCreateFailure) || error.status >= 500
+}
+
+function createFailure(error: unknown, sessionId: string, timeoutMinutes: number): PluginError {
   const message = error instanceof Error ? error.message : String(error)
   const kind = error instanceof PluginError ? error.kind : 'refused'
   const lifetime =
     error instanceof SteelCreateFailure && LIFETIME_REFUSALS.includes(error.status)
       ? `; if your Steel plan caps sessions below ${String(timeoutMinutes)} minutes, set settings.timeoutMinutes to the cap`
       : ''
-  return new PluginError(`${message}${lifetime}`, { kind, handle: { sessionId } })
+  return new PluginError(`${message}${lifetime}`, {
+    kind,
+    ...(mayHaveCreated(error) ? { handle: { sessionId } } : {}),
+  })
 }
 
 function noteGrantedLifetime(granted: number | undefined, timeoutMinutes: number): void {
@@ -181,7 +190,7 @@ export default definePlugin({
     try {
       created = await api.createSession(createBody(sessionId, settings))
     } catch (error) {
-      throw withHandle(error, sessionId, settings.timeoutMinutes)
+      throw createFailure(error, sessionId, settings.timeoutMinutes)
     }
     const answer = SteelSessionSchema.safeParse(created)
     const url = answer.success ? URL.parse(answer.data.websocketUrl) : null
