@@ -161,6 +161,39 @@ describe('config.auth.set and auth plugin packages', () => {
     }
   })
 
+  it('refuses a plugins block that is not a list, or an entry that is not a map, and writes nothing', async () => {
+    const asked = ', then run config.auth.set again.'
+    const cases = [
+      {
+        plugins: `plugins:\n  auth:\n    - package: "${SUBSCRIPTION_AUTH_PACKAGE}"\n`,
+        detail:
+          'plugins holds the retired map of auth and providers lists: plugins is now a list of '
+          + 'entries, each with a name and a package. Rewrite it as a list in the config file'
+          + asked,
+      },
+      {
+        plugins: 'plugins:\n',
+        detail:
+          'plugins is not a list. Make it a list of entries, each with a name and a package, in '
+          + 'the config file' + asked,
+      },
+      {
+        plugins: 'plugins:\n  - name: acme\n    package: "@vostride/agent-qa-acme-auth"\n  - lab\n',
+        detail:
+          'plugins entry 1 is not an entry with a name and a package. Fix it in the config file'
+          + asked,
+      },
+    ]
+    for (const { plugins, detail } of cases) {
+      const test = harness(`${CONFIG}${plugins}`)
+
+      const answer = await authSet(test, SUBSCRIPTION_AUTH_PACKAGE)
+
+      expect(answer).toEqual({ outcome: 'refused', reason: 'unsupported-reference', detail })
+      expect(test.written).toEqual([])
+    }
+  })
+
   it('refuses any other package before the document is inspected, and writes nothing', async () => {
     const test = harness()
 

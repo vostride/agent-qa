@@ -33,6 +33,7 @@ import { HOSTNAME_GATE_REFUSAL_DETAIL, parseHostnameToken } from './hostname-gat
 import type {
   ConfigFieldValue,
   ConfigFileBytes,
+  ConfigPathFacts,
   ConfigFieldWriteOutcome,
   ConfigFilePublishOutcome,
   ConfigFileSet,
@@ -283,6 +284,35 @@ async function heldPluginEntries(
   return entries
 }
 
+// An entry is read by a set at its name and package, which only a map holds, so any other shape is
+// refused before it is read.
+async function pluginsShapeRefusal(
+  deps: ConstructConfigChangeDeps,
+  bytes: Uint8Array | undefined,
+  existing: Omit<ConfigPathFacts, 'path'>,
+): Promise<string | undefined> {
+  const asked = ', then run config.auth.set again.'
+  if (!existing.present) return undefined
+  if (existing.kind === 'map') {
+    return 'plugins holds the retired map of auth and providers lists: plugins is now a list of '
+      + 'entries, each with a name and a package. Rewrite it as a list in the config file' + asked
+  }
+  if (existing.kind !== 'sequence') {
+    return 'plugins is not a list. Make it a list of entries, each with a name and a package, in '
+      + 'the config file' + asked
+  }
+  const paths = Array.from({ length: existing.length ?? 0 }, (_, at) => `${PLUGINS_PATH}.${at}`)
+  if (paths.length === 0) return undefined
+  const entries = await deps.configFiles.inspect({
+    ...(bytes === undefined ? {} : { bytes }),
+    paths,
+  })
+  const odd = paths.findIndex((path) => factsFor(entries, path).kind !== 'map')
+  if (odd === -1) return undefined
+  return `plugins entry ${String(odd)} is not an entry with a name and a package. Fix it in the `
+    + 'config file' + asked
+}
+
 // Writes only the `plugins` list's subscription entry; `target` resolves.
 export async function setConfigAuth(
   input: ConfigAuthSetInput & { readonly action: string },
@@ -348,6 +378,10 @@ export async function setConfigAuth(
 
   if (input.pluginPackage !== undefined) {
     const existing = factsFor(facts, PLUGINS_PATH)
+    const shapeRefusal = await pluginsShapeRefusal(deps, bytes, existing)
+    if (shapeRefusal !== undefined) {
+      return { outcome: 'refused', reason: 'unsupported-reference', detail: shapeRefusal }
+    }
     const at = existing.length ?? 0
     const held = await heldPluginEntries(deps, bytes, at)
     const declared = held.some((entry) => entry.package === SUBSCRIPTION_AUTH_PACKAGE)
@@ -914,9 +948,9 @@ function configSegments(path: string): string[] {
 
 /** One path's facts out of the port's answer, by NAME — never by the index a caller assumed. */
 function factsFor(
-  facts: readonly { path: string; present: boolean; keys?: readonly string[]; length?: number }[],
+  facts: readonly ConfigPathFacts[],
   path: string,
-): { present: boolean; keys?: readonly string[]; length?: number } {
+): Omit<ConfigPathFacts, 'path'> {
   return facts.find((fact) => fact.path === path) ?? { present: false }
 }
 
