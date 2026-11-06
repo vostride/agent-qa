@@ -5,6 +5,7 @@ import {
   definePlugin,
   PluginError,
   z,
+  type AcquireInput,
 } from '@vostride/agent-qa-plugin-kit'
 import { createSteelApi, SteelSessionSchema } from './steel-api.js'
 
@@ -42,6 +43,24 @@ const settings = z.strictObject({
     .union([z.boolean(), z.record(z.string(), z.unknown())])
     .default(false)
     .describe("Steel's proxy, true or Steel's proxy object, sent as useProxy"),
+  proxyUrl: credential(
+    "Your own proxy, http(s)://user:password@host:port, sent instead of Steel's",
+  ).optional(),
+  dimensions: z
+    .strictObject({ width: z.int().positive(), height: z.int().positive() })
+    .optional()
+    .describe('The browser window size'),
+  region: z.string().min(1).optional().describe('The Steel region, for example us-east'),
+  profile: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('A Steel profile id loaded read-only; needs context: reuse'),
+  extensions: z
+    .array(z.string().min(1))
+    .min(1)
+    .optional()
+    .describe('Steel extension ids loaded into the browser'),
   extra: z
     .record(z.string(), z.unknown())
     .optional()
@@ -49,6 +68,22 @@ const settings = z.strictObject({
 })
 
 type SteelSettings = z.output<typeof settings>
+type Session = AcquireInput<unknown, unknown>['session']
+
+function checkSettings(input: SteelSettings, session: Session): void {
+  if (input.profile !== undefined && (session.platform !== 'web' || session.context !== 'reuse')) {
+    throw new PluginError(
+      'profile loads only into a reused context; set context: reuse on the remote.',
+      { kind: 'refused', path: 'settings.profile' },
+    )
+  }
+  if (input.proxyUrl !== undefined && input.proxy !== false) {
+    throw new PluginError('proxy and proxyUrl both choose a proxy; set one of them.', {
+      kind: 'refused',
+      path: 'settings.proxyUrl',
+    })
+  }
+}
 
 function createBody(sessionId: string, input: SteelSettings): Record<string, unknown> {
   return {
@@ -57,8 +92,13 @@ function createBody(sessionId: string, input: SteelSettings): Record<string, unk
     inactivityTimeout: input.idleMinutes * MINUTE_MS,
     solveCaptcha: input.solveCaptcha,
     blockAds: input.blockAds,
-    useProxy: input.proxy,
+    ...(input.proxyUrl === undefined ? { useProxy: input.proxy } : {}),
     stealthConfig: { skipFingerprintInjection: !input.fingerprint },
+    ...(input.proxyUrl === undefined ? {} : { proxyUrl: input.proxyUrl }),
+    ...(input.dimensions === undefined ? {} : { dimensions: input.dimensions }),
+    ...(input.region === undefined ? {} : { region: input.region }),
+    ...(input.profile === undefined ? {} : { profileId: input.profile }),
+    ...(input.extensions === undefined ? {} : { extensionIds: input.extensions }),
     ...input.extra,
   }
 }
@@ -93,6 +133,7 @@ export default definePlugin({
         kind: 'refused',
       })
     }
+    checkSettings(settings, session)
     const api = createSteelApi(options)
     const sessionId = randomUUID()
     let created: unknown
