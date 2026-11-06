@@ -181,7 +181,7 @@ describe('a web test on a remote served by the built Hyperbrowser plugin', () =>
       })
       expect(body, log).not.toHaveProperty('keepAlive')
       expect(api.createdIds(), log).toHaveLength(1)
-      expect(api.createdIds(), log).toEqual([...new Set(api.stoppedIds())])
+      expect(api.stoppedIds(), log).toEqual(api.createdIds())
 
       const runs = storedRuns(project)
       expect(runs.map((run) => run.outcomes), log).toEqual([['passed']])
