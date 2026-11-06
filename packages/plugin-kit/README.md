@@ -215,7 +215,8 @@ reports. The full protocol, with every field, deadline and error code, is agent-
 
 - **stdout carries only protocol messages.** Anything else on stdout stops the plugin. The kit sends
   `console.log`, `console.info`, `console.debug`, `console.warn` and `process.stdout.write` to stderr. A
-  child process the plugin starts, such as a tunnel, must not inherit stdout.
+  child process the plugin starts, such as a tunnel, must not inherit stdout. Given its own `stdout`,
+  `runPlugin` leaves the process's console, stdout and signal handlers alone.
 - **stderr is the plugin's log.** agent-qa masks it and shows it only at debug level, and its first line
   becomes a failed call's reason.
 - **A handle is self-contained JSON.** agent-qa keeps it and passes it back to `started`, `end` and

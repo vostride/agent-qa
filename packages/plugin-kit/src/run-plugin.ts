@@ -196,11 +196,15 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
 ): void {
   const io = resolveIo(ioInput)
   const write = io.stdout.write.bind(io.stdout)
-  routeStrayOutputToStderr()
-  // Once the host is gone its pipes have no reader; EPIPE must not stop the releases.
-  process.stdout.on('error', () => {})
-  process.stderr.on('error', () => {})
-  process.on('SIGINT', () => {})
+  // A caller that brings its own stdout keeps the process's console, streams and signals.
+  const ownsProcess = ioInput.stdout === undefined
+  if (ownsProcess) {
+    routeStrayOutputToStderr()
+    // Once the host is gone its pipes have no reader; EPIPE must not stop the releases.
+    process.stdout.on('error', () => {})
+    process.stderr.on('error', () => {})
+    process.on('SIGINT', () => {})
+  }
 
   const send = (message: Record<string, unknown>) => {
     if (leaving) return
@@ -558,7 +562,7 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
     void leave(RELEASE_ON_CLOSE_BOUND_MS)
   }
 
-  process.on('SIGTERM', () => void leave(RELEASE_ON_SIGTERM_BOUND_MS))
+  if (ownsProcess) process.on('SIGTERM', () => void leave(RELEASE_ON_SIGTERM_BOUND_MS))
   io.stdin.on('data', (chunk) => decoder.push(chunk))
   io.stdin.on('end', stdinClosed)
   io.stdin.on('error', stdinClosed)
