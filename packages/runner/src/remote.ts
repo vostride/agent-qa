@@ -113,6 +113,15 @@ export interface RemoteLease {
   onEnded(listener: (ended: RemoteLeaseEnded) => void): () => void
 }
 
+// A lease goes back to its plugin once, however many paths ask; a failed release is not retried.
+export function releasingOnce(lease: Pick<RemoteLease, 'release'>): () => Promise<void> {
+  let released: Promise<void> | undefined
+  return () => (released ??= lease.release().catch(() => undefined))
+}
+
+// A plugin's acquire spends the remote's connect budget; the session after it still gets this much.
+export const MIN_PLUGIN_CONNECT_MS = 1_000
+
 export interface RemoteLeaseSource {
   acquire(request: RemoteLeaseRequest): Promise<RemoteLease>
   uploadApp?(request: {

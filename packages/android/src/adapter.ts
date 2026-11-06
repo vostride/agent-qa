@@ -150,11 +150,6 @@ async function performTouches(
   await releaseTouch(driver)
 }
 
-function releasingOnce(lease: RemoteLease): () => Promise<void> {
-  let released: Promise<void> | undefined
-  return () => (released ??= lease.release().catch(() => undefined))
-}
-
 function remoteOriginText(url: string): string {
   const origin = remoteOrigin(url)
   return origin ? formatRemoteOrigin(origin) : 'invalid url'
@@ -722,7 +717,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
       this.driver = leased.driver
       this.remote = leased.remote
       this.lease = leased.lease
-      this.releaseLease = releasingOnce(leased.lease)
+      this.releaseLease = leased.release
     } else {
       this.remote = configured
       this.driver = await createAndroidSession(this.config, sessionOptions)

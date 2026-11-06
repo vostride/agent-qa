@@ -36,6 +36,8 @@ import {
   createSnapshotLiveStream,
   isPluginRemote,
   LIVE_KEEPALIVE_QUIET_MS,
+  MIN_PLUGIN_CONNECT_MS,
+  releasingOnce,
   RemoteRefusalError,
 } from '@vostride/agent-qa-runner'
 import type { ScreenState } from '@vostride/agent-qa-schema'
@@ -225,14 +227,6 @@ function remoteCaptureReason(remote: RemoteBrowserConfig): string {
     parts.push(`the clipboard probe is off because ${SHARED_CONTEXT}`)
   }
   return parts.join('; ')
-}
-
-// A plugin's acquire spends the remote's connect budget; the connect still gets this much.
-export const MIN_PLUGIN_CONNECT_MS = 1_000
-
-function releasingOnce(lease: RemoteLease): () => Promise<void> {
-  let released: Promise<void> | undefined
-  return () => (released ??= lease.release().catch(() => undefined))
 }
 
 function remoteOriginText(url: string): string {

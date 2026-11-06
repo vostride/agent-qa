@@ -3,6 +3,7 @@ import type { Browser } from 'playwright-core'
 import {
   createRemoteRefusalMemory,
   createRemoteSessionRegistry,
+  MIN_PLUGIN_CONNECT_MS,
   RemoteRefusalError,
 } from '@vostride/agent-qa-runner'
 import type {
@@ -17,7 +18,7 @@ import type {
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Mock } from 'vitest'
 
-import { MIN_PLUGIN_CONNECT_MS, WebPlatformAdapter } from '../adapter.js'
+import { WebPlatformAdapter } from '../adapter.js'
 import type { WebPlatformAdapterOptions } from '../adapter.js'
 import {
   freePort,

@@ -176,11 +176,6 @@ function remoteOriginText(url: string): string {
   return origin ? formatRemoteOrigin(origin) : 'invalid url'
 }
 
-function releasingOnce(lease: RemoteLease): () => Promise<void> {
-  let released: Promise<void> | undefined
-  return () => (released ??= lease.release().catch(() => undefined))
-}
-
 // A healthy server's delete may take longer than a signal's release, but far less than a command.
 const CLEANUP_RELEASE_BOUND_MS = 10 * REMOTE_RELEASE_BOUND_MS
 
@@ -445,7 +440,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
       this.driver = leased.driver
       this.remote = leased.remote
       this.lease = leased.lease
-      this.releaseLease = releasingOnce(leased.lease)
+      this.releaseLease = leased.release
     } else {
       this.remote = configured
       this.driver = await createIOSSession(this.config, sessionOptions)

@@ -2,31 +2,30 @@ import { remote } from 'webdriverio'
 import {
   capabilityValue,
   classifyNewSessionFailure,
+  createPluginDeviceSession,
   createRemoteDeviceRequestBounds,
-  deviceDebugLoggingRefusal,
   mergeCapabilities,
   REMOTE_COMMAND_BOUND_MS,
-  remoteAppCapability,
+  referencedSecretNames,
+  refuseLeakingDeviceLogs,
+  rememberedDeviceRefusal,
   remoteDerivedIdentity,
+  remoteDeviceCapabilities,
   remoteDeviceRefusalKey,
   remoteDeviceRefusalSentence,
   resolveRemoteDeviceConnection,
-  runStartCapabilityContradictions,
   serverReasonLine,
-  staticCapabilityContradictions,
+  withDeviceSecretsResolved,
 } from '@vostride/agent-qa-core'
-import type { CapabilityMap, RemoteDeviceConnection } from '@vostride/agent-qa-core'
-import {
-  isPluginRemote,
-  RemoteRefusalError,
-  resolveSecretTemplatesInValue,
-} from '@vostride/agent-qa-runner'
 import type {
-  RemoteDeviceConfig,
-  RemoteLease,
-  RemotePluginDeviceConfig,
-} from '@vostride/agent-qa-runner'
-import { connectionSecretNames, remoteLabel, secretReferenceNames } from '@vostride/agent-qa-schema'
+  CapabilityMap,
+  PluginDeviceSession,
+  RemoteDeviceConnection,
+  RemoteDeviceTest,
+} from '@vostride/agent-qa-core'
+import { isPluginRemote, RemoteRefusalError } from '@vostride/agent-qa-runner'
+import type { RemoteDeviceConfig, RemotePluginDeviceConfig } from '@vostride/agent-qa-runner'
+import { connectionSecretNames, remoteLabel } from '@vostride/agent-qa-schema'
 import type { IOSAdapterConfig, IOSSessionOptions } from './types.js'
 
 // WDA's default 50 cuts React Native trees, and deeper snapshots can fail inside XCTest on some hosts.
@@ -68,59 +67,14 @@ function statedText(capabilities: CapabilityMap | undefined, name: string): stri
   return capabilities === undefined ? undefined : textOf(capabilityValue(capabilities, name))
 }
 
-function referencedNames(value: unknown): string[] {
-  if (typeof value === 'string') return secretReferenceNames(value)
-  if (Array.isArray(value)) return value.flatMap(referencedNames)
-  if (typeof value === 'object' && value !== null) {
-    return Object.values(value as Record<string, unknown>).flatMap(referencedNames)
-  }
-  return []
-}
-
-// A reference the secrets file does not declare is refused before any request.
-function withSecretsResolved(
-  capabilities: CapabilityMap,
-  options: IOSSessionOptions,
-  subject: string,
-  details: { remote?: string } = {},
-): CapabilityMap {
-  const secrets = options.connectionSecrets
-  const missing = referencedNames(capabilities).find((name) => secrets?.has(name) !== true)
-  if (missing !== undefined) {
-    const secretsFile = options.secretsFile ?? 'workspace.secretsFile'
-    throw new RemoteRefusalError(
-      `${subject} needs ${missing}, which ${secretsFile} does not declare. Add it there.`,
-      details,
-    )
-  }
-  return resolveSecretTemplatesInValue(capabilities, secrets)
-}
-
-function rememberedRefusal(
-  options: IOSSessionOptions,
-  remoteDevice: Pick<RemoteDeviceConfig, 'name'>,
-  device: string,
-): RemoteRefusalError | undefined {
-  const memory = options.refusalMemory
-  if (memory === undefined) return undefined
-  return (
-    memory.refusalFor(remoteDeviceRefusalKey(remoteDevice, device, undefined)) ??
-    memory.refusalFor(remoteDeviceRefusalKey(remoteDevice, device, 'refused'))
-  )
-}
-
 export function browserModeName(config: IOSAdapterConfig): string | undefined {
   const device = config.device
   const stated = mergeCapabilities(device?.remote?.capabilities, device?.capabilities)
   return statedText(stated, 'browserName')
 }
 
-// Derived, then the remote's capabilities, then the device's, with their references as written.
 // A simulator's default name and its log stream are this machine's business, never a remote's.
-function statedRemoteCapabilities(
-  config: IOSAdapterConfig,
-  remoteCapabilities: CapabilityMap | undefined,
-): CapabilityMap {
+function derivedRemoteCapabilities(config: IOSAdapterConfig): CapabilityMap {
   const profile = config.device
   const derived: CapabilityMap = {
     platformName: 'iOS',
@@ -143,82 +97,43 @@ function statedRemoteCapabilities(
     if (config.appState === 'preserve') derived['appium:noReset'] = true
     if (config.appState === 'reset') derived['appium:noReset'] = false
   }
-  return mergeCapabilities(derived, remoteCapabilities, profile?.capabilities)
+  return derived
 }
 
-// References resolve after the merge.
-function remoteCapabilities(
-  config: IOSAdapterConfig,
-  remoteDevice: RemoteDeviceConfig,
-  device: string,
-  options: IOSSessionOptions,
-): CapabilityMap {
-  const merged = statedRemoteCapabilities(config, remoteDevice.capabilities)
-  const browserName = browserModeName(config)
-  const label = remoteLabel(remoteDevice)
-  if (!browserName) {
-    const app = remoteAppCapability({
-      device,
-      remote: remoteDevice.name,
-      target: config.targetName ?? 'ios',
-      ...(config.appRef !== undefined ? { appRef: config.appRef } : {}),
-      ...(config.appPath !== undefined ? { appPath: config.appPath } : {}),
-      capabilities: merged,
-    })
-    if ('refusal' in app) throw new RemoteRefusalError(app.refusal, { remote: label })
-    if (app.app !== undefined) merged['appium:app'] = app.app
-  }
-
-  return withSecretsResolved(merged, options, `Device ${device} on remote ${label}`, {
-    remote: label,
-  })
-}
-
-function refuseLeakingLogs(device: string, remote: { name: string }, label: string): void {
-  const logging = deviceDebugLoggingRefusal(
-    { WDIO_LOG_LEVEL: process.env.WDIO_LOG_LEVEL, NODE_DEBUG: process.env.NODE_DEBUG },
-    { remote, device },
-  )
-  if (logging !== undefined) throw new RemoteRefusalError(logging, { remote: label })
-}
-
-// A plugin's answer is already resolved: it carries values, not references.
-function answeredConnection(remoteDevice: RemoteDeviceConfig): RemoteDeviceConnection {
-  const url = new URL(remoteDevice.url)
-  const protocol = url.protocol === 'https:' ? 'https' : 'http'
+function remoteDeviceTest(config: IOSAdapterConfig): RemoteDeviceTest {
+  const profile = config.device
   return {
-    protocol,
-    hostname: url.hostname,
-    port: url.port === '' ? (protocol === 'https' ? 443 : 80) : Number(url.port),
-    path: url.pathname === '' ? '/' : url.pathname,
-    headers: { ...remoteDevice.headers },
+    platform: 'ios',
+    device: {
+      name: profile?.name ?? 'ios',
+      model: profile?.model,
+      os: profile?.os,
+      id: profile?.id,
+      capabilities: profile?.capabilities,
+    },
+    target: {
+      name: config.targetName ?? 'ios',
+      ...(config.bundleId ? { bundleId: config.bundleId } : {}),
+    },
+    appState: config.appState ?? 'preserve',
+    browserName: browserModeName(config),
+    appRef: config.appRef,
+    appPath: config.appPath,
+    testName: config.runFacts?.testName,
+    derived: derivedRemoteCapabilities(config),
   }
 }
 
 // Nothing from WebdriverIO's error rides along: it holds the full url and the server's text.
-async function createRemoteIOSSession(
+async function connectRemoteIOSSession(
   config: IOSAdapterConfig,
   remoteDevice: RemoteDeviceConfig,
+  connection: RemoteDeviceConnection,
+  capabilities: CapabilityMap,
   options: IOSSessionOptions,
-  answered = false,
 ) {
   const device = config.device?.name ?? 'ios'
   const label = remoteLabel(remoteDevice)
-  let connection: RemoteDeviceConnection
-  if (answered) {
-    connection = answeredConnection(remoteDevice)
-  } else {
-    refuseLeakingLogs(device, remoteDevice, label)
-    const remembered = rememberedRefusal(options, remoteDevice, device)
-    if (remembered !== undefined) throw remembered
-    connection = resolveRemoteDeviceConnection({
-      remote: remoteDevice,
-      device,
-      secrets: options.connectionSecrets,
-      secretsFile: options.secretsFile,
-    })
-  }
-  const capabilities = remoteCapabilities(config, remoteDevice, device, options)
   const bounds = createRemoteDeviceRequestBounds({
     connectTimeoutMs: remoteDevice.connectTimeoutMs,
     commandBoundMs: options.commandBoundMs ?? REMOTE_COMMAND_BOUND_MS,
@@ -250,7 +165,7 @@ async function createRemoteIOSSession(
     const secretNames = [
       ...new Set([
         ...connectionSecretNames([remoteDevice]),
-        ...referencedNames(config.device?.capabilities),
+        ...referencedSecretNames(config.device?.capabilities),
       ]),
     ]
     const sentence = remoteDeviceRefusalSentence(kind, {
@@ -268,148 +183,40 @@ async function createRemoteIOSSession(
   return driver
 }
 
-// A plugin's acquire spends the remote's connect budget; the new session still gets this much.
-export const MIN_PLUGIN_CONNECT_MS = 1_000
-
-export interface PluginIOSSession {
-  readonly driver: WebdriverIO.Browser
-  readonly lease: RemoteLease
-  // The plugin's answer as a url remote: what the session connected to.
-  readonly remote: RemoteDeviceConfig
-}
-
-function releasingOnce(lease: RemoteLease): () => Promise<void> {
-  let released: Promise<void> | undefined
-  return () => (released ??= lease.release().catch(() => undefined))
-}
-
-// The answer is checked like a remote's capabilities, so it cannot change what the test runs on.
-function answerContradictions(
+async function createRemoteIOSSession(
   config: IOSAdapterConfig,
-  remote: string,
-  capabilities: CapabilityMap | undefined,
-): string[] {
-  if (capabilities === undefined) return []
-  const profile = config.device
-  const device = profile?.name ?? 'ios'
-  const layer = { name: remote, capabilities }
-  return [
-    ...staticCapabilityContradictions({
-      device,
-      platform: 'ios',
-      ...(profile?.model !== undefined ? { model: profile.model } : {}),
-      ...(profile?.os !== undefined ? { os: profile.os } : {}),
-      ...(profile?.id !== undefined ? { id: profile.id } : {}),
-      remote: layer,
-    }),
-    ...runStartCapabilityContradictions({
-      device,
-      target: {
-        name: config.targetName ?? 'ios',
-        ...(config.bundleId ? { bundleId: config.bundleId } : {}),
-      },
-      appState: config.appState ?? 'preserve',
-      browserMode: browserModeName(config) !== undefined,
-      remote: layer,
-    }),
-  ]
+  remoteDevice: RemoteDeviceConfig,
+  options: IOSSessionOptions,
+) {
+  const device = config.device?.name ?? 'ios'
+  const label = remoteLabel(remoteDevice)
+  refuseLeakingDeviceLogs(device, remoteDevice, label)
+  const remembered = rememberedDeviceRefusal(options.refusalMemory, remoteDevice, device)
+  if (remembered !== undefined) throw remembered
+  const connection = resolveRemoteDeviceConnection({
+    remote: remoteDevice,
+    device,
+    secrets: options.connectionSecrets,
+    secretsFile: options.secretsFile,
+  })
+  const capabilities = remoteDeviceCapabilities(remoteDeviceTest(config), remoteDevice, options)
+  return connectRemoteIOSSession(config, remoteDevice, connection, capabilities, options)
 }
 
-// The plugin leases the device; its answer then takes the url remote's path, so refusals, bounds
-// and capability checks are the same as on a url remote.
-export async function createPluginIOSSession(
+export type PluginIOSSession = PluginDeviceSession<WebdriverIO.Browser>
+
+export function createPluginIOSSession(
   config: IOSAdapterConfig,
   pluginDevice: RemotePluginDeviceConfig,
   options: IOSSessionOptions = {},
 ): Promise<PluginIOSSession> {
-  const device = config.device?.name ?? 'ios'
-  const { name } = pluginDevice
-  const entry = pluginDevice.plugin.entry
-  const sessions = options.pluginSessions
-  if (sessions === undefined) {
-    throw new RemoteRefusalError(
-      `Remote ${name} names plugin entry ${entry}, and this host started no plugin host for it.`,
-      { remote: name, kind: 'refused' },
-    )
-  }
-  refuseLeakingLogs(device, pluginDevice, name)
-  const memory = options.refusalMemory
-  const remembered = rememberedRefusal(options, pluginDevice, device)
-  if (remembered !== undefined) throw remembered
-  const remember = (error: RemoteRefusalError): RemoteRefusalError =>
-    memory?.remember(remoteDeviceRefusalKey(pluginDevice, device, error.kind), error) ?? error
-
-  const capabilities = statedRemoteCapabilities(config, pluginDevice.capabilities)
-  // A set app.ref, or an app the capabilities name, wins; only an app.path alone uploads.
-  let sessionConfig = config
-  const appPath = config.appPath?.trim()
-  if (
-    !browserModeName(config) &&
-    capabilityValue(capabilities, 'app') === undefined &&
-    !config.appRef?.trim() &&
-    appPath
-  ) {
-    if (sessions.uploadApp === undefined) {
-      throw new RemoteRefusalError(
-        `Remote ${name}: plugin entry ${entry} uploads no apps; set app.ref on the target to an app the service already has.`,
-        { remote: name, kind: 'refused' },
-      )
-    }
-    const uploaded = await sessions.uploadApp({
-      remote: name,
-      plugin: pluginDevice.plugin,
-      platform: 'ios',
-      path: appPath,
-      deadlineMs: pluginDevice.uploadTimeoutMs,
-    })
-    sessionConfig = { ...config, appRef: uploaded.ref }
-  }
-
-  const startedAt = Date.now()
-  let lease: RemoteLease
-  try {
-    lease = await sessions.acquire({
-      remote: name,
-      plugin: pluginDevice.plugin,
-      deadlineMs: pluginDevice.connectTimeoutMs,
-      session: { platform: 'ios', capabilities },
-      ...(config.runFacts?.testName === undefined ? {} : { testName: config.runFacts.testName }),
-    })
-  } catch (error) {
-    if (!(error instanceof RemoteRefusalError)) throw error
-    throw remember(error)
-  }
-  const release = releasingOnce(lease)
-  const answer = lease.connection
-  const refuse = async (sentence: string): Promise<never> => {
-    await release()
-    throw remember(new RemoteRefusalError(sentence, { remote: name, kind: 'refused' }))
-  }
-  if (answer.protocol !== 'appium') {
-    return refuse(
-      `Remote ${name}: plugin entry ${entry} answered a device with a ${answer.protocol} session.`,
-    )
-  }
-  const label = remoteLabel({ name, plugin: entry })
-  const contradictions = answerContradictions(config, label, answer.capabilities)
-  if (contradictions.length > 0) return refuse(contradictions.join('\n'))
-
-  const remaining = pluginDevice.connectTimeoutMs - (Date.now() - startedAt)
-  const remote: RemoteDeviceConfig = {
-    name,
-    protocol: 'appium',
-    url: answer.url,
-    ...(answer.headers === undefined ? {} : { headers: answer.headers }),
-    connectTimeoutMs: Math.max(MIN_PLUGIN_CONNECT_MS, remaining),
-    capabilities: mergeCapabilities(answer.capabilities, pluginDevice.capabilities),
-  }
-  try {
-    const driver = await createRemoteIOSSession(sessionConfig, remote, options, true)
-    return { driver, lease, remote }
-  } catch (error) {
-    await release()
-    throw error
-  }
+  return createPluginDeviceSession({
+    ...remoteDeviceTest(config),
+    remote: pluginDevice,
+    options,
+    open: ({ remote: answered, connection, capabilities }) =>
+      connectRemoteIOSSession(config, answered, connection, capabilities, options),
+  })
 }
 
 export async function createIOSSession(
@@ -457,7 +264,7 @@ export async function createIOSSession(
     port: endpoint.port,
     path: endpoint.path,
     logLevel: config.verbose ? 'info' : 'silent',
-    capabilities: withSecretsResolved(
+    capabilities: withDeviceSecretsResolved(
       mergeCapabilities(derived, stated),
       options,
       `Device ${profile?.name ?? 'ios'}`,
