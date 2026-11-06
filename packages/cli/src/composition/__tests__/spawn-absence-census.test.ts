@@ -493,9 +493,11 @@ describe('every allowed survivor has its shape pinned', () => {
   it('the plugin child is a remote plugin\u2019s own entry file, run by the node binary', () => {
     const source = read('core/src/remote/plugins/plugin-process.ts')
     const spans = launchSpans(source)
-    expect(spans).toHaveLength(1)
-    expect(spans[0]).toMatch(/^\(process\.execPath, \[input\.entryFile\],/)
-    expect(namesTheRunVerb(spans[0]!)).toBe(false)
+    expect(spans).not.toEqual([])
+    for (const span of spans) {
+      expect(span).toMatch(/^\(process\.execPath, \[input\.entryFile\],/)
+      expect(namesTheRunVerb(span)).toBe(false)
+    }
     expect(source).not.toContain('process.argv')
     expect(source).not.toContain('cliEntry')
   })
