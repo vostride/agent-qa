@@ -23,6 +23,7 @@ import { isLoopbackHost } from '@vostride/agent-qa-schema'
 import { createModel, getProvider } from '@vostride/agent-qa-model'
 import { createKnowledgeChecks } from './doctor-knowledge-checks.js'
 import { createPluginChecks } from './doctor-plugin-checks.js'
+import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
 import { createRemoteChecks, listedRemotes } from './doctor-remote-checks.js'
 import {
   composeRow,
@@ -796,6 +797,8 @@ export function createDoctorCommand(): Command {
       const workspace = resolved?.ok ? resolved.workspace : undefined
       const placement = await resolveWebPlacement(config, workspace)
       const skips = deviceToolSkips(config)
+      const doorFlags = this.parent?.opts<Parameters<typeof doorLogLevel>[0]>() ?? {}
+      const debugLog = pluginDebugLog(doorLogLevel(doorFlags, config))
 
       const checks: DoctorCheck[] = [
         checkNodeVersion(),
@@ -823,6 +826,7 @@ export function createDoctorCommand(): Command {
           configDir: dirname(resolve(configPath)),
           secretsFile: workspace?.secretsFile,
           only: options.remote,
+          ...(debugLog === undefined ? {} : { debugLog }),
         }),
         checkAppium(config, configPath, skips),
         checkAppiumDrivers(config, configPath, skips),

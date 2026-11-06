@@ -58,6 +58,19 @@ export function pluginDebugLog(logLevel: string): ((line: string) => void) | und
   }
 }
 
+// The fold run's door and producer apply, for doors that have no producer.
+export function doorLogLevel(
+  flags: { logLevel?: string; verbose?: boolean; quiet?: boolean },
+  config: unknown,
+): string {
+  if (flags.logLevel !== undefined) return flags.logLevel
+  if (flags.verbose === true) return 'debug'
+  if (flags.quiet === true) return 'silent'
+  const level = (config as { services?: { logging?: { level?: unknown } } } | null)?.services
+    ?.logging?.level
+  return typeof level === 'string' ? level : 'warn'
+}
+
 // One per run invocation: it starts nothing until a remote asks its plugin for a session.
 export function createRunPluginHost(input: RunPluginHostInput): PluginHostPool {
   const { addMaskExtras, onProgress } = input

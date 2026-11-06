@@ -22,6 +22,8 @@ export interface PluginChecksInput {
   secretsFile?: { configuredPath: string; absolutePath: string }
   only?: string
   checkTimeoutMs?: number
+  // Given only at debug level; the host masks and names each line first.
+  debugLog?: (line: string) => void
 }
 
 interface PluginRemote {
@@ -127,6 +129,7 @@ async function accountCheck(
       input.secretsFile?.configuredPath ?? 'workspace.secretsFile',
     ),
     mask,
+    ...(input.debugLog === undefined ? {} : { debugLog: input.debugLog }),
     bounds: { checkMs: timeoutMs, shutdownMs: 5_000, releaseMs: 5_000 },
   })
   try {

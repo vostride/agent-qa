@@ -201,21 +201,30 @@ process.stdin.on('data', (chunk) => {
   )
 }
 
-async function runDoctorJson(project: Project, raw: Record<string, unknown>, ...args: string[]) {
+function plain(text: string): string {
+  return text.replace(/\x1b\[[0-9;]*m/g, '')
+}
+
+async function runDoctorJson(
+  project: Project,
+  raw: Record<string, unknown>,
+  ...globalArgs: string[]
+) {
   await writeFile(project.configPath, stringify(raw))
   printed = []
   process.exitCode = 0
   const program = new Command()
   program.option('--config <path>', 'config file path', 'agent-qa.config.yaml')
+  program.option('--log-level <level>')
   program.addCommand(createDoctorCommand())
   await program.parseAsync([
     'node',
     'agent-qa',
     '--config',
     project.configPath,
+    ...globalArgs,
     'doctor',
     '--json',
-    ...args,
   ])
   return JSON.parse(printed.join('\n')) as { ok: boolean; checks: Row[] }
 }
@@ -411,6 +420,59 @@ describe("doctor's plugin rows", () => {
     expect(pluginRows[0]?.message).toContain(`${FIRST_PARTY}, first-party, version`)
     expect(result.checks.some((row) => row.name === 'Node.js')).toBe(true)
     expect(ledgerMethods(project)).toEqual(['initialize', 'check', 'shutdown'])
+  })
+
+  function stderrProject(project: Project): Record<string, unknown> {
+    installFirstParty(project)
+    return config(
+      [
+        {
+          name: 'lab',
+          package: FIRST_PARTY,
+          options: {
+            key: '{{secret:LAB_KEY}}',
+            stderr: { check: 'checking the plan with ' + SECRET_VALUE },
+          },
+        },
+      ],
+      [{ name: 'farm', plugin: 'lab' }],
+    )
+  }
+
+  function captureStderr(): string[] {
+    const written: string[] = []
+    const spy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
+      written.push(plain(String(chunk)))
+      return true
+    })
+    consoleSpies.push(spy)
+    return written
+  }
+
+  it("shows the account check's plugin stderr, masked and under its entry, as DEBUG lines on stderr under --log-level debug, and its JSON stays whole", async () => {
+    const project = await newProject('LAB_KEY=' + SECRET_VALUE + '\n')
+    const raw = stderrProject(project)
+    const written = captureStderr()
+
+    const result = await runDoctorJson(project, raw, '--log-level', 'debug')
+
+    const row = result.checks.find((check) => check.name === 'Plugin lab')
+    expect(row?.status).toBe('pass')
+    const stderr = written.join('')
+    expect(stderr).toMatch(
+      /DEBUG\s+\[adapter\] plugin lab: checking the plan with \[secret:LAB_KEY\]/,
+    )
+    expect(stderr).not.toContain(SECRET_VALUE)
+  })
+
+  it('shows no plugin stderr at the default level', async () => {
+    const project = await newProject('LAB_KEY=' + SECRET_VALUE + '\n')
+    const raw = stderrProject(project)
+    const written = captureStderr()
+
+    await runDoctorJson(project, raw)
+
+    expect(written.join('')).not.toContain('checking the plan')
   })
 })
 
