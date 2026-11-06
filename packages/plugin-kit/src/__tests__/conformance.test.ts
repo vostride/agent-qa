@@ -38,12 +38,14 @@ function readLedger(file: string): Record<string, unknown>[] {
 
 interface HandWritten {
   printHello?: boolean
+  lateByeFromChild?: boolean
   ignoreStdinClose?: boolean
   requirePlaywright?: string
 }
 
 // A plugin written without the kit, answering the protocol by hand.
-const HAND_WRITTEN_MAIN = `import { appendFileSync } from 'node:fs'
+const HAND_WRITTEN_MAIN = `import { spawn } from 'node:child_process'
+import { appendFileSync } from 'node:fs'
 import { createInterface } from 'node:readline'
 
 const behaviour = BEHAVIOUR
@@ -78,7 +80,13 @@ lines.on('line', (line) => {
   send({ id: message.id, error: { code: -32601, message: message.method + ' is not a method' } })
 })
 if (behaviour.ignoreStdinClose) setInterval(() => {}, 1000)
-else lines.on('close', () => process.exit(0))
+else lines.on('close', () => {
+  if (behaviour.lateByeFromChild) {
+    const bye = "setTimeout(() => process.stdout.write('bye'), 200)"
+    spawn(process.execPath, ['-e', bye], { stdio: ['ignore', 'inherit', 'ignore'] })
+  }
+  process.exit(0)
+})
 `
 
 function writeHandWrittenPlugin(behaviour: HandWritten = {}): { dir: string; ledgerFile: string } {
@@ -169,6 +177,16 @@ describe('runConformance', () => {
     expect(report.checks.filter((check) => !check.ok).map((check) => check.name)).toEqual([
       'clean-stdout',
     ])
+  })
+
+  it('fails clean-stdout for output that reaches stdout after the plugin exited', async () => {
+    const { dir } = writeHandWrittenPlugin({ lateByeFromChild: true })
+
+    const report = await runConformance({ packageDir: dir, options: {}, quick: true })
+
+    expect(checkOf(report, 'clean-stdout')).toMatchObject({ ok: false })
+    expect(checkOf(report, 'clean-stdout')?.detail).toContain('bye')
+    expect(checkOf(report, 'exit-on-stdin-close')).toMatchObject({ ok: true })
   })
 
   it('fails exit-on-stdin-close for a plugin that keeps running after stdin closes', async () => {

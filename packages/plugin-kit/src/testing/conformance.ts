@@ -59,6 +59,7 @@ export interface ConformanceInput {
 const DEFAULT_CALL_TIMEOUT_MS = 10_000
 const CANCEL_ANSWER_WINDOW_MS = 5_000
 const EXIT_WINDOW_MS = 5_000
+const STDIO_DRAIN_MS = 1_000
 const DRAFT_2020_12 = /^https:\/\/json-schema\.org\/draft\/2020-12\/schema#?$/
 const DEFAULT_SESSION: AcquireParams['session'] = {
   platform: 'web',
@@ -178,6 +179,7 @@ interface PluginProcess {
   stdoutProblems(): string[]
   closeStdin(): void
   exitedWithin(ms: number): Promise<{ exited: boolean; code: number | null }>
+  drained(ms: number): Promise<void>
   hasExited(): boolean
   kill(): void
 }
@@ -231,10 +233,11 @@ function startPlugin(entry: string, cwd: string): PluginProcess {
     child.on('exit', (code) => {
       exited = true
       exitCode = code
-      decoder.end()
       resolve(code)
     }),
   )
+  // 'exit' can come before stdout delivers its last chunks; 'close' comes after the streams end.
+  const closed = new Promise<void>((resolve) => child.on('close', () => resolve()))
   let next = 0
 
   const plugin: PluginProcess = {
@@ -272,6 +275,10 @@ function startPlugin(entry: string, cwd: string): PluginProcess {
       } catch {
         return { exited: false, code: null }
       }
+    },
+    async drained(ms) {
+      await within(closed, ms, 'stdout').catch(() => {})
+      decoder.end()
     },
     hasExited() {
       return exited
@@ -481,6 +488,7 @@ export async function runConformance(input: ConformanceInput): Promise<Conforman
       checks.push(await checkAnsweredCancel(plugin, acquireParams, timeoutMs))
     }
     const exitCheck = await checkExitOnStdinClose(plugin)
+    if (exitCheck.ok) await plugin.drained(STDIO_DRAIN_MS)
     const unclean = plugin.stdoutProblems()
     checks.push(
       unclean.length === 0
