@@ -368,8 +368,8 @@ describe("a run's mask and the values handed over during the run", () => {
       await pool.shutdown()
     }
 
-    expect(logged).toContain('signed in with [secret:LAB_KEY]')
-    expect(logged).toContain('handing back [secret:PLUGIN_LAB]')
+    expect(logged).toContain('plugin lab: signed in with [secret:LAB_KEY]')
+    expect(logged).toContain('plugin lab: handing back [secret:PLUGIN_LAB]')
     const log = logged.join('\n')
     for (const value of [LONG, HANDED, encodeURIComponent(HANDED)]) {
       expect(log.includes(value), 'the debug log holds a value').toBe(false)

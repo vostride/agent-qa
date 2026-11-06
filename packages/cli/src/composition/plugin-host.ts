@@ -2,9 +2,11 @@ import { dirname, resolve } from 'node:path'
 
 import {
   createPluginHostPool,
+  formatLogEntry,
   getAgentQaVersion,
   pluginHostVersions,
   pluginSecretResolver,
+  printRunText,
 } from '@vostride/agent-qa-core'
 import type { AgentQaConfig, PluginHostPool, PluginHostProgress } from '@vostride/agent-qa-core'
 import { pluginMaskName } from '@vostride/agent-qa-runner'
@@ -35,6 +37,25 @@ export interface RunPluginHostInput {
 function secretsFileOf(config: AgentQaConfig): string {
   const file = (config as { workspace?: { secretsFile?: unknown } }).workspace?.secretsFile
   return typeof file === 'string' && file.trim() !== '' ? file : 'workspace.secretsFile'
+}
+
+// The host has masked and named each line already; it goes only to stderr because a door's stdout
+// may carry JSON or a protocol.
+export function pluginDebugLog(logLevel: string): ((line: string) => void) | undefined {
+  if (logLevel !== 'debug') return undefined
+  return (line) => {
+    const text = formatLogEntry({
+      id: '',
+      stepId: null,
+      runId: '',
+      level: 'debug',
+      source: 'adapter',
+      message: line,
+      data: {},
+      timestamp: new Date().toISOString(),
+    })
+    printRunText(text, (shown) => process.stderr.write(shown + '\n'), { stdoutIsData: true })
+  }
 }
 
 // One per run invocation: it starts nothing until a remote asks its plugin for a session.

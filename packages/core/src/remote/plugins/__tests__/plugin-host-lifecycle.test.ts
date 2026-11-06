@@ -240,7 +240,7 @@ describe('a plugin that writes to stdout outside the protocol', () => {
 })
 
 describe("a plugin's stderr", () => {
-  it('reaches the debug log masked, and nowhere else', async () => {
+  it("reaches the debug log masked, under its entry's name, and nowhere else", async () => {
     const p = host()
     const lab = p.entry('lab', { stderr: { acquire: 'token=abc123' } })
     const debugLines: string[] = []
@@ -249,7 +249,7 @@ describe("a plugin's stderr", () => {
     await pool.acquire(request('lab-a', 'lab'))
 
     await waitFor(() => debugLines.some((line) => line.includes('token=')))
-    expect(debugLines).toContain('token=[secret:LAB_TOKEN]')
+    expect(debugLines).toContain('plugin lab: token=[secret:LAB_TOKEN]')
     expect(debugLines.join('\n')).not.toContain('abc123')
   })
 

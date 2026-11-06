@@ -69,6 +69,7 @@ import {
 import {
   createRemoteProgressRelay,
   createRunPluginHost,
+  pluginDebugLog,
   withLeaseProgress,
 } from '../composition/plugin-host.js'
 import { composeRunOwnership } from '../composition/run-owner-probe.js'
@@ -610,6 +611,7 @@ function producerPluginHost(input: {
   readonly mask: MaskFn
   readonly redactor: SecretRedactor | undefined
   readonly terminal: RunTerminal | undefined
+  readonly logLevel: string
 }): ProducerPluginHost {
   if ((input.config.plugins ?? []).length === 0) {
     return {
@@ -619,6 +621,7 @@ function producerPluginHost(input: {
     }
   }
   const onProgress = remoteProgressPrinter(input.terminal, input.mask)
+  const debugLog = pluginDebugLog(input.logLevel)
   const pool = createRunPluginHost({
     config: input.config,
     configPath: input.configPath,
@@ -629,6 +632,7 @@ function producerPluginHost(input: {
       ? { addMaskExtras: input.redactor.addMaskExtras.bind(input.redactor) }
       : {}),
     ...(onProgress === undefined ? {} : { onProgress }),
+    ...(debugLog === undefined ? {} : { debugLog }),
     // The registry a signal releases, so each lease and the pool's shutdown get the plugin bound.
     sessions: processRemoteSessions,
   })
@@ -3055,6 +3059,7 @@ export async function produceSuiteRunMembers(
     mask: suiteRunMask,
     redactor: suiteRunSecretRedactor,
     terminal: input.terminal,
+    logLevel: effectiveLogLevel,
   })
   const suiteAdapterOptions: Parameters<typeof createPlatformAdapter>[1] = {
     ...hostSignals,
@@ -4299,6 +4304,7 @@ export async function produceDirectRunMembers(
     mask: singleRunMask,
     redactor: runtimeSecrets.secretRedactor,
     terminal: input.terminal,
+    logLevel: effectiveLogLevel,
   })
   const directPlaces = directRunPlaces(config, configDir, filtered, opts.browser, opts.device)
   const directRunAttributes = buildCliRunAttributes(userRunAttributes, runnerForPlaces(directPlaces))

@@ -347,12 +347,16 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     )
   }
 
-  const spawnPlugin = (entryFile: string, onStray?: () => void): PluginProcess => {
+  const spawnPlugin = (name: string, entryFile: string, onStray?: () => void): PluginProcess => {
+    const debugLog = input.debugLog
     const child = startPluginProcess({
       entryFile,
       cwd: input.configDir,
       mask: input.mask,
-      ...(input.debugLog === undefined ? {} : { debugLog: input.debugLog }),
+      // Several plugins can run at once, so each line names its entry.
+      ...(debugLog === undefined
+        ? {}
+        : { debugLog: (line: string) => debugLog(`plugin ${name}: ${line}`) }),
       ...(onStray === undefined ? {} : { onStray }),
       cancelGraceMs: bounds.cancelGraceMs,
       killAfterMs: bounds.killAfterMs,
@@ -404,7 +408,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       debug(`plugin entry ${running.name} had no time left on the signal to release its sessions`)
       return
     }
-    const child = spawnPlugin(running.entryFile)
+    const child = spawnPlugin(running.name, running.entryFile)
     try {
       const started = await child.request(
         'initialize',
@@ -535,7 +539,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
 
     const entryFile = resolve(resolved.packageDir, manifest.entry)
     let running: RunningEntry | undefined
-    const child = spawnPlugin(entryFile, () => {
+    const child = spawnPlugin(name, entryFile, () => {
       if (running !== undefined) fault(running, { line: strayLine(name) })
     })
     const runId = input.runFacts?.runId
