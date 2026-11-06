@@ -182,6 +182,11 @@ function refusalOf(kind: RemoteFailureKind, line: (remote: string) => string): R
   return (remote) => new RemoteRefusalError(line(remote), { remote, kind })
 }
 
+const shutDown: Refusal = refusalOf(
+  'ended',
+  (remote) => `Remote ${remote}: the plugin host has shut down.`,
+)
+
 function carriedHandle(answer: PluginLateAnswer): unknown {
   if (answer.status === 'result') {
     return isRecord(answer.result) ? answer.result.handle : undefined
@@ -605,7 +610,9 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     return { ok: true, running: started }
   }
 
+  // Once shutdown has begun nothing new starts, so nothing escapes it.
   const entryStart = (name: string): Promise<EntryStart> => {
+    if (closing !== undefined) return Promise.resolve({ ok: false, refusal: shutDown })
     let start = starts.get(name)
     if (start === undefined) {
       // A signal shuts every started entry down after its leases' releases, in the same bound.
@@ -737,14 +744,9 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
   async function acquire(request: RemoteLeaseRequest): Promise<RemoteLease> {
     const { remote } = request
     const entry = request.plugin.entry
-    if (closing !== undefined) {
-      throw new RemoteRefusalError(`Remote ${remote}: the plugin host has shut down.`, {
-        remote,
-        kind: 'ended',
-      })
-    }
     const start = await entryStart(entry)
     if (!start.ok) throw start.refusal(remote)
+    if (closing !== undefined) throw shutDown(remote)
     const running = start.running
     if (running.fault !== undefined) throw stoppedRefusal(running, remote)
 
@@ -811,6 +813,11 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       await releaseCarried(running, outcome)
       throw unsafe
     }
+    // A session answered once shutdown has begun is released, never handed out.
+    if (closing !== undefined || running.stopping) {
+      void releaseCarried(running, outcome)
+      throw shutDown(remote)
+    }
     if (running.fault !== undefined) {
       running.held.add(parsed.data.handle)
       throw stoppedRefusal(running, remote)
@@ -821,12 +828,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
   async function uploadApp(request: PluginUploadRequest): Promise<{ ref: string }> {
     const { remote, path, platform } = request
     const entry = request.plugin.entry
-    if (closing !== undefined) {
-      throw new RemoteRefusalError(`Remote ${remote}: the plugin host has shut down.`, {
-        remote,
-        kind: 'ended',
-      })
-    }
+    if (closing !== undefined) throw shutDown(remote)
     let facts: { sha256: string; size: number }
     try {
       facts = await fileFacts(path)
@@ -836,6 +838,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
         kind: 'refused',
       })
     }
+    if (closing !== undefined) throw shutDown(remote)
     const key = JSON.stringify([entry, platform, facts.sha256])
     let upload = uploads.get(key)
     if (upload === undefined) {
@@ -978,7 +981,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       await Promise.all(
         started.map((start) => (start.ok ? stopEntry(start.running, signal) : undefined)),
       )
-      await Promise.all(background)
+      while (background.size > 0) await Promise.all(background)
     })())
     if (signalDeadline === undefined) return closed
     signalClosing ??= (async () => {

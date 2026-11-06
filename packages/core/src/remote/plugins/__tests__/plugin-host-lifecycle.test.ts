@@ -177,6 +177,39 @@ describe('a plugin that stays silent after a cancel', () => {
   })
 })
 
+describe('work that arrives around shutdown', () => {
+  it('releases a session the plugin answers once shutdown has begun, and refuses its acquire', async () => {
+    const p = host()
+    const lab = p.entry('lab', {
+      script: { acquire: { delayMs: 300, ignoreCancel: true }, shutdown: { delayMs: 600 } },
+    })
+    const pool = p.pool([lab])
+
+    const acquiring = pool.acquire(request('lab-a', 'lab'))
+    await waitFor(() => methodsOf(p.ledger(lab)).includes('acquire'))
+    const closing = pool.shutdown()
+    const refused = await refusalOf(acquiring)
+    await closing
+
+    expect(refused.kind).toBe('ended')
+    expect(refused.message).toBe('Remote lab-a: the plugin host has shut down.')
+    const releases = p.ledger(lab).filter((line) => line.method === 'release')
+    expect(releases.map((line) => line.handle)).toEqual([{ n: 1 }])
+  })
+
+  it('refuses a check that comes after shutdown, and starts nothing', async () => {
+    const p = host()
+    const lab = p.entry('lab', {}, { methods: ['check'] })
+    const pool = p.pool([lab])
+
+    await pool.shutdown()
+    const refused = await refusalOf(pool.check('lab', [{ name: 'lab-a' }]))
+
+    expect(refused.kind).toBe('ended')
+    expect(p.ledger(lab)).toEqual([])
+  })
+})
+
 describe('a plugin that writes to stdout outside the protocol', () => {
   it('is stopped with one line, its lease ends lost and the restart releases its session', async () => {
     const p = host()

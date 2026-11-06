@@ -204,6 +204,21 @@ describe("a plugin's app upload", () => {
     ])
   })
 
+  it('refuses an upload whose file was still being read when shutdown began, and starts nothing', async () => {
+    const p = host()
+    const lab = p.entry('lab', { upload: { ref: 'bs://shop-1' } }, { methods: ['uploadApp'] })
+    const path = appFile(p, 'shop.apk', 'an android build\n'.repeat(65_536))
+    const pool = p.pool([lab])
+
+    const uploading = pool.uploadApp(upload('lab-a', 'lab', path))
+    await pool.shutdown()
+    const refused = await refusalOf(uploading)
+
+    expect(refused.kind).toBe('ended')
+    expect(refused.message).toBe('Remote lab-a: the plugin host has shut down.')
+    expect(p.ledger(lab)).toEqual([])
+  })
+
   it('refuses an app file it cannot read, naming the path', async () => {
     const p = host()
     const lab = p.entry('lab', {}, { methods: ['uploadApp'] })
