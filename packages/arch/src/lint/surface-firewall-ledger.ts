@@ -136,6 +136,18 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'spawns the v1 MCP server; rewritten with the SDK re-derivation',
   },
   {
+    file: 'packages/cli/src/commands/plugin-remote-refusals.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '386',
+    reason: 'the run command keeps its plugin remote refusals here, split out of run.ts; relocates with the run-session composition root',
+  },
+  {
+    file: 'packages/cli/src/commands/plugin-remote-refusals.ts',
+    specifier: '@vostride/agent-qa-runner',
+    clearedBy: '386',
+    reason: 'the run command keeps its plugin remote refusals here, split out of run.ts; relocates with the run-session composition root',
+  },
+  {
     file: 'packages/cli/src/commands/plugins.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',
