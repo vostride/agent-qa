@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PluginError, type PluginCallContext } from '@vostride/agent-qa-plugin-kit'
 import { afterEach, describe, expect, it } from 'vitest'
-import { localBinaryFix, type TunnelFactory, type TunnelRequest } from '../local.js'
+import { cannotRunReason, type TunnelFactory, type TunnelRequest } from '../local.js'
 import { createBrowserStackPlugin } from '../plugin.js'
 import { BROWSERSTACK_PLAYWRIGHT_VERSIONS } from '../playwright-versions.js'
 import {
@@ -258,12 +258,26 @@ describe('BrowserStack Local started by the plugin', () => {
     await expect(acquiring).rejects.toThrow('cancelled while BrowserStack Local was starting')
   })
 
-  it('names Rosetta in the fix only on macOS', () => {
-    expect(localBinaryFix('darwin')).toBe(
-      'Install Rosetta (softwareupdate --install-rosetta --agree-to-license) or set localBinary to a binary this machine can run',
+  it('gives each spawn failure its own fix, and Rosetta only for a Mac binary built for another CPU', () => {
+    const binary = '/opt/BrowserStackLocal'
+    const failure = (code: string, errno: number) => Object.assign(new Error(code), { code, errno })
+    const badCpu = failure('Unknown system error -86', -86)
+
+    expect(cannotRunReason(binary, badCpu, 'darwin')).toBe(
+      `this machine cannot run ${binary} (EBADARCH: bad CPU type in executable). Install Rosetta (softwareupdate --install-rosetta --agree-to-license) or set localBinary to a binary built for this Mac`,
     )
-    expect(localBinaryFix('linux')).toBe('Set localBinary to a binary this machine can run')
-    expect(localBinaryFix('win32')).toBe('Set localBinary to a binary this machine can run')
+    expect(cannotRunReason(binary, badCpu, 'linux')).toBe(
+      `this machine cannot run ${binary} (Unknown system error -86). Set localBinary to a binary this machine can run`,
+    )
+    expect(cannotRunReason(binary, failure('ENOENT', -2), 'darwin')).toBe(
+      `${binary} does not exist (ENOENT). Set localBinary to the path of a BrowserStackLocal binary`,
+    )
+    expect(cannotRunReason(binary, failure('EACCES', -13), 'darwin')).toBe(
+      `this machine cannot run ${binary} (EACCES). Check that it is an executable file, or set localBinary to one that is`,
+    )
+    expect(cannotRunReason(binary, failure('ENOEXEC', -8), 'darwin')).toBe(
+      `this machine cannot run ${binary} (ENOEXEC). Set localBinary to a binary this machine can run`,
+    )
   })
 })
 
@@ -423,7 +437,7 @@ const webAcquire = {
   run: { testName: TEST_NAME },
 }
 
-const FIX = localBinaryFix(process.platform)
+const NOT_EXECUTABLE = 'Check that it is an executable file, or set localBinary to one that is'
 
 async function tunnelled(stub: StubBinary) {
   const cwd = freshDir()
@@ -572,13 +586,29 @@ describe.skipIf(process.platform === 'win32')('BrowserStack Local run through it
     expect(log.startsWith(join(tmpdir(), 'agent-qa-browserstack-local-'))).toBe(true)
     expect(log.endsWith('.log')).toBe(true)
     expect(first.error?.message).toBe(
-      `BrowserStack Local did not start: this machine cannot run ${binary} (EACCES). ${FIX} (its log is ${log})`,
+      `BrowserStack Local did not start: this machine cannot run ${binary} (EACCES). ${NOT_EXECUTABLE} (its log is ${log})`,
     )
     const second = await plugin.call('acquire', webAcquire)
     refusalLog(second.error?.message)
     expect(second.error?.data).toMatchObject({ kind: 'unreachable', path: 'options.localBinary' })
     expect((await plugin.call('shutdown')).error).toBeUndefined()
     expect(plugin.stderr()).not.toContain(ACCESS_KEY)
+  })
+
+  it('refuses a localBinary that does not exist at the plugin option localBinary, saying so', async () => {
+    const binary = join(freshDir(), 'BrowserStackLocl')
+    const plugin = startPluginProcess({ cwd: freshDir() })
+    processes.push(plugin)
+    const init = await initializePlugin(plugin, { local: true, localBinary: binary }, LISTED)
+    expect(init.error).toBeUndefined()
+
+    const answer = await plugin.call('acquire', webAcquire)
+
+    expect(answer.error?.data).toMatchObject({ kind: 'unreachable', path: 'options.localBinary' })
+    const log = refusalLog(answer.error?.message)
+    expect(answer.error?.message).toBe(
+      `BrowserStack Local did not start: ${binary} does not exist (ENOENT). Set localBinary to the path of a BrowserStackLocal binary (its log is ${log})`,
+    )
   })
 
   it('refuses the acquire at the plugin option local with the fix when this machine cannot run the binary the wrapper finds, and keeps serving', async () => {
@@ -596,7 +626,7 @@ describe.skipIf(process.platform === 'win32')('BrowserStack Local run through it
     const log = refusalLog(first.error?.message)
     expect(log.startsWith(join(tmpdir(), 'agent-qa-browserstack-local-'))).toBe(true)
     expect(first.error?.message).toBe(
-      `BrowserStack Local did not start: this machine cannot run ${found} (EACCES). ${FIX} (its log is ${log})`,
+      `BrowserStack Local did not start: this machine cannot run ${found} (EACCES). ${NOT_EXECUTABLE} (its log is ${log})`,
     )
     const second = await plugin.call('acquire', webAcquire)
     refusalLog(second.error?.message)

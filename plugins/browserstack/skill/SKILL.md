@@ -115,13 +115,17 @@ plugins:
 - The tunnel logs to a fresh file under the temp directory, never into the project.
 - A tunnel that cannot start refuses the session with kind `unreachable` at path `options.local`,
   or `options.localBinary` when that is set; the line names the tunnel's log.
-- Before it starts the tunnel, the plugin checks that this machine can run the binary.
-  `browserstack-local` downloads BrowserStack's Intel build on every Mac, which an Apple Silicon
-  Mac runs only under Rosetta. A binary this machine cannot run refuses the session the same way.
-  On macOS the line says to install Rosetta
-  (`softwareupdate --install-rosetta --agree-to-license`) or set `localBinary` to a binary this
-  machine can run; on any other system it says to set `localBinary` to a binary this machine can
-  run.
+- Before it starts the tunnel, the plugin checks that this machine can run the binary. A binary
+  this machine cannot run refuses the session the same way, and the line's fix follows the cause:
+  - `EBADARCH`, a Mac binary built for another CPU: install Rosetta
+    (`softwareupdate --install-rosetta --agree-to-license`) or set `localBinary` to a binary
+    built for this Mac. `browserstack-local` downloads BrowserStack's Intel build on every Mac,
+    which an Apple Silicon Mac runs only under Rosetta.
+  - `ENOENT`, a path that does not exist: set `localBinary` to the path of a BrowserStackLocal
+    binary.
+  - `EACCES`, a file that is not executable: make it executable, or set `localBinary` to one that
+    is.
+  - Any other failure: set `localBinary` to a binary this machine can run.
 - BrowserStack's tunnel binary takes the access key as `--key` on its command line, by
   BrowserStack's design, so other users of the same machine can read it with `ps`.
 

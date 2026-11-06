@@ -38,12 +38,26 @@ interface WrapperState {
   getBinaryPath(found: (path: string | undefined) => void): void
 }
 
+// macOS's EBADARCH, which Node names only "Unknown system error -86".
+const BAD_CPU_TYPE = -86
+
 // browserstack-local downloads BrowserStack's Intel build on every Mac, and only a Mac has Rosetta.
-export function localBinaryFix(platform: NodeJS.Platform): string {
-  if (platform === 'darwin') {
-    return 'Install Rosetta (softwareupdate --install-rosetta --agree-to-license) or set localBinary to a binary this machine can run'
+export function cannotRunReason(
+  binary: string,
+  error: NodeJS.ErrnoException,
+  platform: NodeJS.Platform,
+): string {
+  if (platform === 'darwin' && error.errno === BAD_CPU_TYPE) {
+    return `this machine cannot run ${binary} (EBADARCH: bad CPU type in executable). Install Rosetta (softwareupdate --install-rosetta --agree-to-license) or set localBinary to a binary built for this Mac`
   }
-  return 'Set localBinary to a binary this machine can run'
+  const code = error.code ?? error.message
+  if (code === 'ENOENT') {
+    return `${binary} does not exist (ENOENT). Set localBinary to the path of a BrowserStackLocal binary`
+  }
+  if (code === 'EACCES') {
+    return `this machine cannot run ${binary} (EACCES). Check that it is an executable file, or set localBinary to one that is`
+  }
+  return `this machine cannot run ${binary} (${code}). Set localBinary to a binary this machine can run`
 }
 
 function wrapperBinary(wrapper: WrapperState, accessKey: string): Promise<string> {
@@ -64,12 +78,10 @@ function wrapperBinary(wrapper: WrapperState, accessKey: string): Promise<string
 
 // spawnSync returns a spawn failure, such as BrowserStack's Intel build on an Apple Silicon Mac
 // without Rosetta, where the wrapper's own launch throws it from a callback no caller can catch.
-function cannotRun(binary: string): string | undefined {
+function cannotRun(binary: string): NodeJS.ErrnoException | undefined {
   const { error } = spawnSync(binary, ['--version'], { stdio: 'ignore', timeout: CHECK_BOUND_MS })
   if (error === undefined) return undefined
-  const code = (error as NodeJS.ErrnoException).code
-  if (code === 'ETIMEDOUT') return undefined
-  return code ?? error.message
+  return (error as NodeJS.ErrnoException).code === 'ETIMEDOUT' ? undefined : error
 }
 
 // The binary's own stop for a daemon by identifier; it runs whatever state the launch reached.
@@ -124,7 +136,7 @@ export const browserStackLocalFactory: TunnelFactory = {
       const failure = cannotRun(binary)
       if (failure !== undefined) {
         throw new Error(
-          `this machine cannot run ${binary} (${failure}). ${localBinaryFix(process.platform)} (its log is ${logFile})`,
+          `${cannotRunReason(binary, failure, process.platform)} (its log is ${logFile})`,
         )
       }
       if (aborted) throw new Error('it was stopped while it was starting')
