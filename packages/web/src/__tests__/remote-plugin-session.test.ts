@@ -12,6 +12,7 @@ import type {
   RemoteLeaseRequest,
   RemoteLeaseSource,
   RemotePluginBrowserConfig,
+  RemoteSessionRegistry,
 } from '@vostride/agent-qa-runner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Mock } from 'vitest'
@@ -42,7 +43,12 @@ interface FakeLeases {
   end(ended: RemoteLeaseEnded): void
 }
 
-function fakeLeases(answer: RemoteLeaseAnswer, delayMs = 0): FakeLeases {
+// With sessions, each lease registers its own release there once, as the run's plugin host does.
+function fakeLeases(
+  answer: RemoteLeaseAnswer,
+  delayMs = 0,
+  sessions?: RemoteSessionRegistry,
+): FakeLeases {
   const requests: RemoteLeaseRequest[] = []
   const leases: RemoteLease[] = []
   const release = vi.fn<() => Promise<void>>(() => Promise.resolve())
@@ -52,6 +58,8 @@ function fakeLeases(answer: RemoteLeaseAnswer, delayMs = 0): FakeLeases {
     async acquire(request) {
       requests.push(request)
       if (delayMs > 0) await new Promise((wait) => setTimeout(wait, delayMs))
+      let releasing: Promise<void> | undefined
+      const releaseOnce = () => (releasing ??= release())
       const lease: RemoteLease = {
         connection: answer,
         plugin: {
@@ -63,7 +71,7 @@ function fakeLeases(answer: RemoteLeaseAnswer, delayMs = 0): FakeLeases {
         },
         started,
         end: () => Promise.resolve(),
-        release,
+        release: releaseOnce,
         onEnded(listener) {
           listeners.add(listener)
           return () => {
@@ -72,6 +80,7 @@ function fakeLeases(answer: RemoteLeaseAnswer, delayMs = 0): FakeLeases {
         },
       }
       leases.push(lease)
+      sessions?.register(releaseOnce)
       return lease
     },
   }
@@ -214,23 +223,17 @@ describe("a plugin remote's leased session", () => {
     expect(timeout).toBe(MIN_PLUGIN_CONNECT_MS)
   })
 
-  it('closes the browser and then releases the lease when the session registry releases it', async () => {
+  it('closes the browser and releases the lease once when the session registry releases both', async () => {
     const server = await startPlaywrightServer()
     teardowns.push(() => server.close())
-    const leases = fakeLeases({ protocol: 'playwright', url: server.wsEndpoint })
-    const events: string[] = []
-    leases.release.mockImplementation(() => {
-      events.push('released')
-      return Promise.resolve()
-    })
+    const sessions = createRemoteSessionRegistry()
+    const leases = fakeLeases({ protocol: 'playwright', url: server.wsEndpoint }, 0, sessions)
     const connect = chromium.connect.bind(chromium)
     let browser: Browser | undefined
     vi.spyOn(chromium, 'connect').mockImplementation(async (...args) => {
       browser = await connect(...args)
-      browser.on('disconnected', () => events.push('closed'))
       return browser
     })
-    const sessions = createRemoteSessionRegistry()
 
     const adapter = await setupOn(pluginRemote(), { pluginSessions: leases.source, sessions })
 
@@ -238,7 +241,8 @@ describe("a plugin remote's leased session", () => {
     expect(leases.started).toHaveBeenCalledTimes(1)
     expect(adapter.placeEvidence).toMatchObject({ place: 'remote', name: 'lab-chrome' })
     await sessions.releaseAll(2_000)
-    expect(events).toEqual(['closed', 'released'])
+    expect(browser?.isConnected()).toBe(false)
+    expect(leases.release).toHaveBeenCalledTimes(1)
 
     await adapter.cleanup()
     expect(leases.release).toHaveBeenCalledTimes(1)

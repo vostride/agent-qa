@@ -612,7 +612,8 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   }
 
   // Disconnects only: close() on a connected browser never stops the remote service. A leased
-  // session goes back to its plugin after the browser has closed.
+  // session goes back to its plugin after this close; the plugin host registers the lease's own
+  // release too, so on a signal that release can run while the browser is still closing.
   private registerRelease(browser: Browser, releaseLease?: () => Promise<void>): void {
     const sessions = this.options.sessions
     if (sessions === undefined) return
