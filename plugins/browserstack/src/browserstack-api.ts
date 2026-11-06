@@ -1,5 +1,13 @@
-import { createVendorApi, vendorFailureKind, type VendorApi } from '@vostride/agent-qa-plugin-kit'
+import {
+  createVendorApi,
+  vendorFailureKind,
+  type VendorApi,
+  type VendorStatusKinds,
+} from '@vostride/agent-qa-plugin-kit'
 import type { BrowserStackOptions } from './options.js'
+
+// BrowserStack's statuses all read as the kit's defaults; the client and the export share this map.
+const BROWSERSTACK_STATUS_KINDS: VendorStatusKinds = {}
 
 export type BrowserStackFailureKind = ReturnType<typeof vendorFailureKind>
 
@@ -30,7 +38,7 @@ export interface BrowserStackApi {
 }
 
 export function browserStackFailureKind(status: number | undefined): BrowserStackFailureKind {
-  return vendorFailureKind(status)
+  return vendorFailureKind(status, BROWSERSTACK_STATUS_KINDS)
 }
 
 export function createBrowserStackApi(input: BrowserStackApiInput): BrowserStackApi {
@@ -40,6 +48,7 @@ export function createBrowserStackApi(input: BrowserStackApiInput): BrowserStack
       vendor: 'BrowserStack',
       baseUrl,
       headers: { accept: 'application/json', authorization: `Basic ${token}` },
+      kinds: BROWSERSTACK_STATUS_KINDS,
     })
   const automate = client(input.apiUrl)
   const app = client(input.appApiUrl)
