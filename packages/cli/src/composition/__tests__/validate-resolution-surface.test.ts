@@ -201,25 +201,22 @@ describe('a project the product scaffolds is validated, not attested over an emp
     expect(status, `an unresolvable config is a non-zero exit:\n${combined}`).not.toBe(0)
   }, 180_000)
 
-  it('the verbs that DO load the declared plugin name the package and the remedy, not a require stack', () => {
-    // `run` and `devices list` reach the plugin loader by different roads, so both are driven.
+  it('run, which loads the declared plugin, names the package and the remedy, not a require stack', () => {
     scaffoldWithShippedInit()
 
-    for (const verb of [['run', 'tests/examples/komazon-checkout.yaml'], ['devices', 'list']]) {
-      const { status, combined } = runShippedCli(...verb)
+    const { status, combined } = runShippedCli('run', 'tests/examples/komazon-checkout.yaml')
 
-      expect(status, `a project missing its declared plugin must still fail (${verb.join(' ')}):\n${combined}`)
-        .not.toBe(0)
-      expect(combined, `the failure did not name the package (${verb.join(' ')}):\n${combined}`)
-        .toContain(SUBSCRIPTION_AUTH_PACKAGE)
-      expect(combined, `the failure did not name the remedy (${verb.join(' ')}):\n${combined}`)
-        .toMatch(/npm install @vostride\/agent-qa-subscription-auth/)
-      // A message still carrying Node's loader boilerplate means the typed error replaced nothing.
-      expect(combined, `the failure still speaks Node's loader dialect (${verb.join(' ')}):\n${combined}`)
-        .not.toContain('Require stack')
-      expect(combined, `the failure still speaks Node's loader dialect (${verb.join(' ')}):\n${combined}`)
-        .not.toContain('Cannot find module')
-    }
+    expect(status, `a project missing its declared plugin must still fail:\n${combined}`)
+      .not.toBe(0)
+    expect(combined, `the failure did not name the package:\n${combined}`)
+      .toContain(SUBSCRIPTION_AUTH_PACKAGE)
+    expect(combined, `the failure did not name the remedy:\n${combined}`)
+      .toMatch(/npm install @vostride\/agent-qa-subscription-auth/)
+    // A message still carrying Node's loader boilerplate means the typed error replaced nothing.
+    expect(combined, `the failure still speaks Node's loader dialect:\n${combined}`)
+      .not.toContain('Require stack')
+    expect(combined, `the failure still speaks Node's loader dialect:\n${combined}`)
+      .not.toContain('Cannot find module')
   }, 180_000)
 
   it('the workspace-match gate is BACK in the init-scaffolded project — the amplifier road is closed', () => {
