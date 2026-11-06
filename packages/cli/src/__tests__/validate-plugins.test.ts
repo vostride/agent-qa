@@ -14,6 +14,7 @@ import { createValidateCommand } from '../commands/validate.js'
 const FIRST_PARTY = '@vostride/agent-qa-plugin-scripted'
 const THIRD_PARTY = '@acme/agent-qa-plugin-grid'
 const SPARE = '@acme/agent-qa-plugin-spare'
+const LOCAL_PROVIDER = '@acme/agent-qa-provider-local'
 const DRAFT = 'https://json-schema.org/draft/2020-12/schema'
 const cartTestId = generateTestId()
 
@@ -268,6 +269,31 @@ describe('validate checks plugins entries', () => {
         + '@vostride/agent-qa-* packages load inside agent-qa. Remove the entry.',
     )
     expect(output()).toMatch(/error\s+Plugin entry local names/)
+    expect(existsSync(path.join(workspaceDir, 'plugin-ran.marker'))).toBe(false)
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('refuses a third-party entry whose manifest declares a model provider, without running it', async () => {
+    await installPlugin(THIRD_PARTY)
+    await writeInProcessPlugin(
+      path.join(workspaceDir, 'node_modules', ...LOCAL_PROVIDER.split('/')),
+      LOCAL_PROVIDER,
+      'model-provider',
+    )
+    await writeConfig([
+      '  - name: kit',
+      `    package: '${THIRD_PARTY}'`,
+      '  - name: provider',
+      `    package: '${LOCAL_PROVIDER}'`,
+    ])
+
+    await runValidate()
+
+    expect(output()).toContain(
+      `Plugin entry provider names ${LOCAL_PROVIDER}, which declares a model-provider plugin; only `
+        + '@vostride/agent-qa-* packages load inside agent-qa. Remove the entry.',
+    )
+    expect(output()).toMatch(/error\s+Plugin entry provider names/)
     expect(existsSync(path.join(workspaceDir, 'plugin-ran.marker'))).toBe(false)
     expect(process.exitCode).toBe(1)
   })
