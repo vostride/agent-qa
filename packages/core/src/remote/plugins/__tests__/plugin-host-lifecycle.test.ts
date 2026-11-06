@@ -257,6 +257,22 @@ describe("a plugin's stderr", () => {
     expect(debugLines.join('\n')).not.toContain('abc123')
   })
 
+  it('reaches the debug log as plain text, so a secret an escape sequence splits stays masked', async () => {
+    const p = host()
+    const lab = p.entry('lab', {
+      stderr: { acquire: 'tunnel token=abc\x1b[0m123 is up\x1b]0;title\x07\x1b[2K' },
+    })
+    const debugLines: string[] = []
+    const pool = p.pool([lab], { mask, debugLog: (line) => debugLines.push(line) })
+
+    await pool.acquire(request('lab-a', 'lab'))
+
+    await waitFor(() => debugLines.some((line) => line.includes('tunnel')))
+    expect(debugLines).toContain('plugin lab: tunnel token=[secret:LAB_TOKEN] is up')
+    expect(debugLines.join('\n')).not.toContain('abc')
+    expect(debugLines.join('\n')).not.toContain('\x1b')
+  })
+
   it('reaches nothing when no debug log is given', async () => {
     const p = host()
     const lab = p.entry('lab', { stderr: { acquire: 'token=abc123' } })

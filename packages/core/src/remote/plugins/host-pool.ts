@@ -80,6 +80,10 @@ const PROGRESS_LINE_MAX = 200
 const ESCAPE_SEQUENCE = /\x1b(?:\[[0-?]*[ -\/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\|$)|[ -\/]*[0-~])/g
 const CONTROL_CHARACTER = /[\x00-\x1f\x7f-\x9f]/g
 
+function plainText(text: string): string {
+  return text.replace(ESCAPE_SEQUENCE, '').replace(CONTROL_CHARACTER, ' ')
+}
+
 // One line a terminal or a page shows as plain text: no escape sequence and no C0 or C1 control.
 function plainFirstLine(text: string): string {
   const first = text.replace(ESCAPE_SEQUENCE, '').split(/\r?\n/, 1)[0] ?? ''
@@ -270,7 +274,9 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     return done
   }
 
-  const debug = (line: string): void => input.debugLog?.(input.mask(line))
+  // Masked again once plain, in case an escape sequence split a secret.
+  const debugText = (line: string): string => input.mask(plainText(input.mask(line)))
+  const debug = (line: string): void => input.debugLog?.(debugText(line))
 
   const track = (work: Promise<void>): Promise<void> => {
     background.add(work)
@@ -356,7 +362,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       // Several plugins can run at once, so each line names its entry.
       ...(debugLog === undefined
         ? {}
-        : { debugLog: (line: string) => debugLog(`plugin ${name}: ${line}`) }),
+        : { debugLog: (line: string) => debugLog(`plugin ${name}: ${debugText(line)}`) }),
       ...(onStray === undefined ? {} : { onStray }),
       cancelGraceMs: bounds.cancelGraceMs,
       killAfterMs: bounds.killAfterMs,
