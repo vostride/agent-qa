@@ -12,6 +12,8 @@ import { createSteelApi, SteelCreateFailure, SteelSessionSchema } from './steel-
 const STEEL_API_URL = 'https://api.steel.dev'
 const MINUTE_MS = 60_000
 const LIFETIME_REFUSALS: readonly number[] = [400, 422]
+const SMALLEST_PLAN_CAP_MINUTES = 15
+const LIFETIME_WORDS = /timeout|lifetime|duration|minute|plan|limit/i
 
 const options = z.strictObject({
   apiKey: credential('The Steel API key; leave it out for a self-hosted steel-browser').optional(),
@@ -110,13 +112,23 @@ function mayHaveCreated(error: unknown): boolean {
   return !(error instanceof SteelCreateFailure) || error.status >= 500
 }
 
+// How Steel refuses a lifetime above the plan's cap is undocumented, so the hint is added only when
+// the lifetime asked for is above the smallest cap and Steel's reason, if any, may be about it.
+function lifetimeMayBeRefused(error: unknown, timeoutMinutes: number): boolean {
+  if (!(error instanceof SteelCreateFailure) || !LIFETIME_REFUSALS.includes(error.status)) {
+    return false
+  }
+  if (timeoutMinutes <= SMALLEST_PLAN_CAP_MINUTES) return false
+  const reason = error.message.split(': ').slice(1).join(': ')
+  return reason === '' || LIFETIME_WORDS.test(reason)
+}
+
 function createFailure(error: unknown, sessionId: string, timeoutMinutes: number): PluginError {
   const message = error instanceof Error ? error.message : String(error)
   const kind = error instanceof PluginError ? error.kind : 'refused'
-  const lifetime =
-    error instanceof SteelCreateFailure && LIFETIME_REFUSALS.includes(error.status)
-      ? `; if your Steel plan caps sessions below ${String(timeoutMinutes)} minutes, set settings.timeoutMinutes to the cap`
-      : ''
+  const lifetime = lifetimeMayBeRefused(error, timeoutMinutes)
+    ? `; if your Steel plan caps sessions below ${String(timeoutMinutes)} minutes, set settings.timeoutMinutes to the cap`
+    : ''
   return new PluginError(`${message}${lifetime}`, {
     kind,
     ...(mayHaveCreated(error) ? { handle: { sessionId } } : {}),

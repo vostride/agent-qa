@@ -274,6 +274,39 @@ describe('Steel failures', () => {
     },
   )
 
+  it('a 400 with no reason still names settings.timeoutMinutes', async () => {
+    const api = await startApi({ create: [{ status: 400, json: {} }] })
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin)
+
+    expect(answer.error?.message).toBe(
+      'Steel answered 400 to POST /v1/sessions; if your Steel plan caps sessions below 1440 minutes, set settings.timeoutMinutes to the cap',
+    )
+  })
+
+  it('a 422 whose reason is about another field does not name settings.timeoutMinutes', async () => {
+    const api = await startApi({
+      create: [{ status: 422, json: { message: 'unknown profile id p-1' } }],
+    })
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin)
+
+    expect(answer.error?.message).toBe(
+      'Steel answered 422 to POST /v1/sessions: unknown profile id p-1',
+    )
+  })
+
+  it('a 422 does not name settings.timeoutMinutes when no plan caps the lifetime asked for', async () => {
+    const api = await startApi({ create: [{ status: 422, json: { message: 'timeout too long' } }] })
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin, { timeoutMinutes: 15 })
+
+    expect(answer.error?.message).toBe('Steel answered 422 to POST /v1/sessions: timeout too long')
+  })
+
   it.each([
     [401, 'auth'],
     [403, 'refused'],
