@@ -14,7 +14,7 @@ import {
   pathDeclarationValue,
 } from '../plugin-loader-util.js'
 import { isPathInsideDir } from '../utils/path-validation.js'
-import { SUBSCRIPTION_AUTH_PACKAGE, readPluginManifest } from './manifest.js'
+import { readPluginManifest } from './manifest.js'
 
 export type PluginOrigin = 'first-party' | 'third-party' | 'path'
 
@@ -62,7 +62,7 @@ export type InProcessPluginKind = 'model-auth' | 'model-provider'
 
 export interface InProcessRefusal {
   entry: string
-  state: 'not_installed' | 'bad_manifest'
+  state: 'not_installed' | 'version_mismatch' | 'bad_manifest'
   reason: string
 }
 
@@ -256,11 +256,15 @@ export function resolvePluginEntries(
   })
 }
 
+// An entry whose kind cannot be read, because it is missing, at the wrong version or unreadable,
+// is refused unless a remote names it; run start refuses those for the remotes that use them.
 export function selectInProcessPluginEntries(
   entries: readonly PluginEntryInput[],
   kind: InProcessPluginKind,
   options: ResolvePluginEntryOptions,
+  remotes: readonly PluginRemoteInput[] = [],
 ): InProcessSelection {
+  const named = new Set(remotes.map((remote) => remote.plugin))
   const selection: InProcessSelection = { load: [], refusals: [] }
   for (const entry of entries) {
     const resolved = resolvePluginEntry(entry, options)
@@ -270,14 +274,18 @@ export function selectInProcessPluginEntries(
     } else if (resolved.state === 'bad_manifest' && ofKind) {
       selection.refusals.push(refusal(resolved, 'bad_manifest'))
     } else if (
-      kind === 'model-auth'
-      && resolved.state === 'not_installed'
-      && packageDeclarationValue(entry) === SUBSCRIPTION_AUTH_PACKAGE
+      resolved.manifest === undefined
+      && isRefusedState(resolved.state)
+      && !named.has(entry.name)
     ) {
-      selection.refusals.push(refusal(resolved, 'not_installed'))
+      selection.refusals.push(refusal(resolved, resolved.state))
     }
   }
   return selection
+}
+
+function isRefusedState(state: PluginEntryState): state is InProcessRefusal['state'] {
+  return state === 'not_installed' || state === 'version_mismatch' || state === 'bad_manifest'
 }
 
 function refusal(

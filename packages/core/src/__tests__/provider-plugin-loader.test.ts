@@ -150,4 +150,21 @@ describe('loadProviderPlugins', () => {
         .__agentQaThirdPartyProviderImported,
     ).toBeUndefined()
   })
+
+  it('refuses a declared plugin that is not installed, naming its entry and install line', async () => {
+    const entries = [{ name: 'p', package: '@vostride/agent-qa-provider-missing' }]
+
+    await expect(loadProviderPlugins(entries, { baseDir: tempDir })).rejects.toThrow(
+      'Plugin entry p names @vostride/agent-qa-provider-missing, which is not installed. Run npm '
+        + 'install --save-dev @vostride/agent-qa-provider-missing.',
+    )
+  })
+
+  it('leaves a missing entry a remote names to run start', async () => {
+    const entries = [{ name: 'farm', package: '@acme/agent-qa-plugin-farm' }]
+
+    await expect(
+      loadProviderPlugins(entries, { baseDir: tempDir, remotes: [{ name: 'lab', plugin: 'farm' }] }),
+    ).resolves.toEqual([])
+  })
 })

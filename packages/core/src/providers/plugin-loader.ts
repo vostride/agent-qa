@@ -1,5 +1,8 @@
 import { declarationKey, importDeclaredPluginModule } from '../plugin-loader-util.js'
-import { selectInProcessPluginEntries } from '../plugins/resolve-entries.js'
+import {
+  selectInProcessPluginEntries,
+  type PluginRemoteInput,
+} from '../plugins/resolve-entries.js'
 import type { PluginEntry } from '../schema/config-schema.js'
 import { getAgentQaVersion } from '../version.js'
 
@@ -18,6 +21,8 @@ export interface ProviderPluginDescriptor {
 
 export interface LoadProviderPluginsOptions {
   baseDir?: string
+  // The config's registry.remotes; an entry one of them names is refused at run start instead.
+  remotes?: readonly PluginRemoteInput[]
 }
 
 type ProviderPluginModule = {
@@ -96,10 +101,12 @@ export async function loadProviderPlugins(
 ): Promise<ProviderPluginDescriptor[]> {
   if (!entries?.length) return []
   const baseDir = options.baseDir ?? process.cwd()
-  const { load, refusals } = selectInProcessPluginEntries(entries, 'model-provider', {
-    configDir: baseDir,
-    agentQaVersion: getAgentQaVersion(),
-  })
+  const { load, refusals } = selectInProcessPluginEntries(
+    entries,
+    'model-provider',
+    { configDir: baseDir, agentQaVersion: getAgentQaVersion() },
+    options.remotes,
+  )
   const [refused] = refusals
   if (refused) throw new Error(refused.reason)
 

@@ -228,6 +228,21 @@ describe('in-process plugins', () => {
 })
 
 describe('selecting in-process entries', () => {
+  const missingSubscription = {
+    entry: 'subscription',
+    state: 'not_installed',
+    reason:
+      `Plugin entry subscription names ${SUBSCRIPTION}, which is not installed. `
+      + `Run npm install --save-dev ${SUBSCRIPTION}.`,
+  }
+  const missingGone = {
+    entry: 'gone',
+    state: 'not_installed',
+    reason:
+      'Plugin entry gone names @acme/never-installed, which is not installed. '
+      + 'Run npm install --save-dev @acme/never-installed.',
+  }
+
   function installMixedList() {
     installInProcess('@vostride/agent-qa-acme-auth', 'model-auth')
     installPluginPackage(fixture.configDir, SCRIPTED, VERSION, remoteManifest())
@@ -253,21 +268,41 @@ describe('selecting in-process entries', () => {
           'Plugin entry acme names @acme/agent-qa-auth, which declares a model-auth plugin; only '
           + '@vostride/agent-qa-* packages load inside agent-qa. Remove the entry.',
       },
-      {
-        entry: 'subscription',
-        state: 'not_installed',
-        reason:
-          `Plugin entry subscription names ${SUBSCRIPTION}, which is not installed. `
-          + `Run npm install --save-dev ${SUBSCRIPTION}.`,
-      },
+      missingSubscription,
+      missingGone,
     ])
   })
 
-  it('loads and refuses nothing for model providers from the same list', () => {
+  it('loads nothing for model providers from the same list and refuses its missing entries', () => {
     expect(selectInProcessPluginEntries(installMixedList(), 'model-provider', options)).toEqual({
       load: [],
-      refusals: [],
+      refusals: [missingSubscription, missingGone],
     })
+  })
+
+  it('leaves a missing entry that a remote names to run start', () => {
+    const selection = selectInProcessPluginEntries(
+      [{ name: 'farm', package: '@acme/agent-qa-plugin-farm' }],
+      'model-auth',
+      options,
+      [{ name: 'lab', plugin: 'farm' }],
+    )
+
+    expect(selection).toEqual({ load: [], refusals: [] })
+  })
+
+  it('refuses an entry at the wrong version whose kind cannot be read', () => {
+    installPluginPackage(fixture.configDir, SCRIPTED, '0.0.1', remoteManifest())
+
+    const selection = selectInProcessPluginEntries(
+      [{ name: 'scripted', package: SCRIPTED }],
+      'model-provider',
+      options,
+    )
+
+    expect(selection.refusals.map((refused) => [refused.entry, refused.state])).toEqual([
+      ['scripted', 'version_mismatch'],
+    ])
   })
 
   it('keeps declaration order among the loaded entries', () => {

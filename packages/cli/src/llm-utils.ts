@@ -3,6 +3,7 @@ import { createModel, createTokenAccounting, getProviderOptions, resolveCapabili
 import { generateText } from 'ai'
 import { createDeclaredSecretMask } from './composition/declared-secrets.js'
 import { DEFAULT_ANTHROPIC_MODEL } from './model-defaults.js'
+import { pluginRemotesOfRawConfig } from './plugin-remotes.js'
 import { loadProviderPluginsForRawConfig } from './provider-plugins.js'
 
 import type { ChatLanguageModel, JobModelCapability } from '@vostride/agent-qa-agent'
@@ -88,6 +89,7 @@ export async function loadAuthPluginsForRawConfig(raw: unknown, configPath = 'ag
   const { loadLLMAuthPlugins } = await import('@vostride/agent-qa-core')
   await loadLLMAuthPlugins(entries as Parameters<typeof loadLLMAuthPlugins>[0], {
     baseDir: dirname(resolvePath(configPath)),
+    remotes: pluginRemotesOfRawConfig(raw),
   })
 }
 

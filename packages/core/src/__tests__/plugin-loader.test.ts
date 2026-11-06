@@ -129,6 +129,15 @@ describe('loadLLMAuthPlugins', () => {
     expect(getLLMAuthProviderPlugin('third-party-provider')).toBeUndefined()
   })
 
+  it('refuses a declared auth plugin that is not installed, naming its entry', async () => {
+    const entries = [{ name: 'acme', package: '@vostride/agent-qa-acme-missing-auth' }]
+
+    await expect(loadLLMAuthPlugins(entries, { baseDir: tempDir })).rejects.toThrow(
+      'Plugin entry acme names @vostride/agent-qa-acme-missing-auth, which is not installed. Run '
+        + 'npm install --save-dev @vostride/agent-qa-acme-missing-auth.',
+    )
+  })
+
   it('throws PluginNotInstalledError naming the entry when subscription-auth is missing', async () => {
     const entries = [{ name: 'subscription', package: '@vostride/agent-qa-subscription-auth' }]
 

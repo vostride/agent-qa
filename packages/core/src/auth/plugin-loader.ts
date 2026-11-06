@@ -3,8 +3,13 @@ import {
   PluginNotInstalledError,
   declarationKey,
   importDeclaredPluginModule,
+  packageDeclarationValue,
 } from '../plugin-loader-util.js'
-import { selectInProcessPluginEntries } from '../plugins/resolve-entries.js'
+import { SUBSCRIPTION_AUTH_PACKAGE } from '../plugins/manifest.js'
+import {
+  selectInProcessPluginEntries,
+  type PluginRemoteInput,
+} from '../plugins/resolve-entries.js'
 import type { PluginEntry } from '../schema/config-schema.js'
 import { getAgentQaVersion } from '../version.js'
 
@@ -14,6 +19,8 @@ export interface AuthPluginBundle {
 
 export interface LoadLLMAuthPluginsOptions {
   baseDir?: string
+  // The config's registry.remotes; an entry one of them names is refused at run start instead.
+  remotes?: readonly PluginRemoteInput[]
 }
 
 type AuthPluginFactory = () => AuthPluginBundle | Promise<AuthPluginBundle>
@@ -60,15 +67,19 @@ export async function loadLLMAuthPlugins(
 ): Promise<LLMAuthProviderPlugin[]> {
   if (!entries?.length) return []
   const baseDir = options.baseDir ?? process.cwd()
-  const { load, refusals } = selectInProcessPluginEntries(entries, 'model-auth', {
-    configDir: baseDir,
-    agentQaVersion: getAgentQaVersion(),
-  })
+  const { load, refusals } = selectInProcessPluginEntries(
+    entries,
+    'model-auth',
+    { configDir: baseDir, agentQaVersion: getAgentQaVersion() },
+    options.remotes,
+  )
   const [refused] = refusals
   if (refused) {
-    if (refused.state === 'not_installed') {
-      const entry = entries.find((candidate) => candidate.name === refused.entry)
-      throw new PluginNotInstalledError(entry ?? { name: refused.entry }, 'auth')
+    const entry = entries.find((candidate) => candidate.name === refused.entry)
+    const subscription =
+      entry !== undefined && packageDeclarationValue(entry) === SUBSCRIPTION_AUTH_PACKAGE
+    if (refused.state === 'not_installed' && subscription) {
+      throw new PluginNotInstalledError(entry, 'auth')
     }
     throw new Error(refused.reason)
   }
