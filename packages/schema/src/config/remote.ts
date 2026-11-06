@@ -820,38 +820,58 @@ function pluginEntryDisplay(entry: unknown): PluginEntryDisplay {
     shown.package =
       typeof name === 'string' && PACKAGE_NAME_PATTERN.test(name) ? name : 'invalid package'
   }
-  if (Object.hasOwn(record, 'path')) {
-    shown.path = typeof record.path === 'string' ? record.path : 'invalid path'
-  }
+  if (Object.hasOwn(record, 'path')) shown.path = shownPath(record.path)
   return shown
 }
 
-function withoutOptions(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(withoutOptions)
-  if (!isPlainRecord(value)) return isRecord(value) ? {} : value
+const URL_SCHEME = /^[a-z][a-z0-9+.-]+:/i
+
+// A path is a folder on disk; one written as a url can carry a user, password or token.
+function shownPath(path: unknown): string {
+  if (typeof path !== 'string') return 'invalid path'
+  if (remoteOrigin(path) !== undefined) return displayOrigin(path)
+  return URL_SCHEME.test(path) ? 'invalid path' : path
+}
+
+function isPluginEntryLike(value: unknown): value is Record<string, unknown> {
+  return isPlainRecord(value) && [...SHOWN_PLUGIN_KEYS].some((key) => Object.hasOwn(value, key))
+}
+
+// A plugins block that is not a list is retired or invalid config, still served: each entry in it
+// shows as a list entry does, and any other value in it shows as invalid plugins.
+function pluginsBlockDisplay(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(pluginsBlockDisplay)
+  if (isPluginEntryLike(value)) return pluginEntryDisplay(value)
+  if (!isPlainRecord(value)) return 'invalid plugins'
   return Object.fromEntries(
     Object.entries(value)
       .filter(([key]) => key !== 'options')
-      .map(([key, child]) => [key, withoutOptions(child)]),
+      .map(([key, child]) => [
+        URL_SCHEME.test(key) ? displayOrigin(key) : key,
+        pluginsBlockDisplay(child),
+      ]),
   )
 }
 
-function optionValues(value: unknown): unknown[] {
-  if (Array.isArray(value)) return value.flatMap(optionValues)
-  if (!isPlainRecord(value)) return isRecord(value) ? [value] : []
+function entryHeldValues(entry: Record<string, unknown>): unknown[] {
+  return Object.entries(entry).flatMap(([key, child]) =>
+    SHOWN_PLUGIN_KEYS.has(key) ? [] : [child],
+  )
+}
+
+function blockHeldValues(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value.flatMap(blockHeldValues)
+  if (isPluginEntryLike(value)) return entryHeldValues(value)
+  if (!isPlainRecord(value)) return [value]
   return Object.entries(value).flatMap(([key, child]) =>
-    key === 'options' ? [child] : optionValues(child),
+    key === 'options' ? [child] : blockHeldValues(child),
   )
 }
 
 // Everything an entry holds beyond its name, package and path stays in the file.
 function pluginHeldValues(plugins: unknown): unknown[] {
-  if (!Array.isArray(plugins)) return optionValues(plugins)
-  return plugins.flatMap((entry) =>
-    isPlainRecord(entry)
-      ? Object.entries(entry).flatMap(([key, child]) => (SHOWN_PLUGIN_KEYS.has(key) ? [] : [child]))
-      : [entry],
-  )
+  if (!Array.isArray(plugins)) return blockHeldValues(plugins)
+  return plugins.flatMap((entry) => (isPlainRecord(entry) ? entryHeldValues(entry) : [entry]))
 }
 
 function remotesDisplay(remotes: unknown): RemoteDisplay[] {
@@ -910,7 +930,7 @@ export function projectConfigRemotes<T>(config: T): T {
   const shownRemotes = showsRemotes ? remotesDisplay(remotes) : []
   const shownPlugins = Array.isArray(plugins)
     ? plugins.map(pluginEntryDisplay)
-    : withoutOptions(plugins)
+    : pluginsBlockDisplay(plugins)
   const held = showsPlugins ? pluginHeldValues(plugins) : []
   const copies = showsRemotes ? remoteCopies(remotes, shownRemotes) : new Map<string, unknown>()
   addHeldCopies(copies, held)

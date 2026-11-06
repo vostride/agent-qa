@@ -684,7 +684,7 @@ describe('a plugins entry in a served config', () => {
     for (const text of SHOWN_NOWHERE) expect(JSON.stringify(shown)).not.toContain(text)
   })
 
-  it('serves a plugins block that is not a list as written, without options in any object inside', () => {
+  it('shows each entry in a plugins block that is not a list by its name and package or path, and none of its options', () => {
     const shown = projectConfigRemotes({
       plugins: { auth: [KERNEL], providers: { lab: LAB } },
       use: { browser: { copied: LAB.options } },
@@ -698,5 +698,57 @@ describe('a plugins entry in a served config', () => {
       use: { browser: { copied: null } },
     })
     for (const text of SHOWN_NOWHERE) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+
+  it('shows a tokenised tarball url in the retired plugins.auth shape as invalid package, and every other value in it as invalid plugins', () => {
+    const tarball = 'https://npm.example.com/@a/b/-/b-1.tgz?token=NPM_TOKEN'
+    const shown = projectConfigRemotes({
+      plugins: {
+        auth: [
+          { package: tarball, token: 'AUTH_TOKEN' },
+          'https://u:PASSWORD@npm.example.com/x',
+        ],
+        providers: { 'https://u:PASSWORD@npm.example.com/y': [{ name: 'lab', path: tarball }] },
+        extra: 'EXTRA_SECRET',
+      },
+      use: { browser: { copied: 'https://u:PASSWORD@npm.example.com/x' } },
+    })
+
+    expect(shown).toEqual({
+      plugins: {
+        auth: [{ package: 'invalid package' }, 'invalid plugins'],
+        providers: {
+          'https://npm.example.com:443': [{ name: 'lab', path: 'https://npm.example.com:443' }],
+        },
+        extra: 'invalid plugins',
+      },
+      use: { browser: { copied: 'https://npm.example.com:443' } },
+    })
+    for (const text of ['NPM_TOKEN', 'AUTH_TOKEN', 'PASSWORD', 'EXTRA_SECRET']) {
+      expect(JSON.stringify(shown)).not.toContain(text)
+    }
+  })
+
+  it('shows a plugins block that is a single value as invalid plugins', () => {
+    const shown = projectConfigRemotes({ plugins: 'https://u:PASSWORD@npm.example.com/x?t=SECRET' })
+
+    expect(shown).toEqual({ plugins: 'invalid plugins' })
+  })
+
+  it('shows a path written as a url by its origin, and one with another scheme as invalid path', () => {
+    const shown = projectConfigRemotes({
+      plugins: [
+        { name: 'lab', path: 'https://bob:TOKEN@host.example.com/p/x.tgz?k=SECRET' },
+        { name: 'git', path: 'git+ssh://bob:TOKEN@host.example.com/p.git' },
+        { name: 'local', path: '../tools/lab' },
+      ],
+    })
+
+    expect(shown.plugins).toEqual([
+      { name: 'lab', path: 'https://host.example.com:443' },
+      { name: 'git', path: 'invalid path' },
+      { name: 'local', path: '../tools/lab' },
+    ])
+    expect(JSON.stringify(shown)).not.toMatch(/TOKEN|SECRET|bob/)
   })
 })
