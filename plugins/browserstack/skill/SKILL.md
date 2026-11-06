@@ -116,7 +116,8 @@ plugins:
 - A tunnel that cannot start refuses the session with kind `unreachable` at path `options.local`,
   or `options.localBinary` when that is set; the line names the tunnel's log.
 - Before it starts the tunnel, the plugin checks that this machine can run the binary. A binary
-  this machine cannot run refuses the session the same way, and the line's fix follows the cause:
+  this machine cannot run refuses the session the same way, with no log because the tunnel never
+  ran, and the line's fix follows the cause:
   - `EBADARCH`, a Mac binary built for another CPU: install Rosetta
     (`softwareupdate --install-rosetta --agree-to-license`) or set `localBinary` to a binary
     built for this Mac. `browserstack-local` downloads BrowserStack's Intel build on every Mac,
@@ -151,8 +152,8 @@ plugins:
 - `refused` with no path: BrowserStack answered another error. The line has its status and
   message.
 - `unreachable`: BrowserStack could not be reached. Check the network. At path `options.local` or
-  `options.localBinary`, the BrowserStack Local tunnel did not start; its log is named in the
-  line, and when this machine cannot run the binary, the line also says how to fix it.
+  `options.localBinary`, the BrowserStack Local tunnel did not start. When the tunnel ran, its log
+  is named in the line; when this machine cannot run the binary, the line says how to fix it.
 
 ## Check and describe
 

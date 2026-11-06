@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -401,13 +409,6 @@ function unrunnableBinary(path: string): string {
   return path
 }
 
-function refusalLog(message: string | undefined): string {
-  const log = /\(its log is (.+)\)$/.exec(message ?? '')?.[1]
-  if (log === undefined) return ''
-  dirs.push(log)
-  return log
-}
-
 function alive(pid: number): boolean {
   try {
     process.kill(pid, 0)
@@ -571,9 +572,10 @@ describe.skipIf(process.platform === 'win32')('BrowserStack Local run through it
     expect(existsSync(stub.path)).toBe(true)
   })
 
-  it('refuses the acquire at the plugin option localBinary with the fix when this machine cannot run it, and keeps serving', async () => {
+  it('refuses the acquire at the plugin option localBinary with the fix when this machine cannot run it, leaves no log, and keeps serving', async () => {
     const binary = unrunnableBinary(join(freshDir(), 'BrowserStackLocal'))
-    const plugin = startPluginProcess({ cwd: freshDir() })
+    const temp = freshDir()
+    const plugin = startPluginProcess({ cwd: freshDir(), env: { ...process.env, TMPDIR: temp } })
     processes.push(plugin)
     const init = await initializePlugin(plugin, { local: true, localBinary: binary }, LISTED)
     expect(init.error).toBeUndefined()
@@ -582,22 +584,20 @@ describe.skipIf(process.platform === 'win32')('BrowserStack Local run through it
 
     expect(first.error?.code).toBe(-32000)
     expect(first.error?.data).toMatchObject({ kind: 'unreachable', path: 'options.localBinary' })
-    const log = refusalLog(first.error?.message)
-    expect(log.startsWith(join(tmpdir(), 'agent-qa-browserstack-local-'))).toBe(true)
-    expect(log.endsWith('.log')).toBe(true)
     expect(first.error?.message).toBe(
-      `BrowserStack Local did not start: this machine cannot run ${binary} (EACCES). ${NOT_EXECUTABLE} (its log is ${log})`,
+      `BrowserStack Local did not start: this machine cannot run ${binary} (EACCES). ${NOT_EXECUTABLE}`,
     )
     const second = await plugin.call('acquire', webAcquire)
-    refusalLog(second.error?.message)
     expect(second.error?.data).toMatchObject({ kind: 'unreachable', path: 'options.localBinary' })
     expect((await plugin.call('shutdown')).error).toBeUndefined()
+    expect(readdirSync(temp)).toEqual([])
     expect(plugin.stderr()).not.toContain(ACCESS_KEY)
   })
 
   it('refuses a localBinary that does not exist at the plugin option localBinary, saying so', async () => {
     const binary = join(freshDir(), 'BrowserStackLocl')
-    const plugin = startPluginProcess({ cwd: freshDir() })
+    const temp = freshDir()
+    const plugin = startPluginProcess({ cwd: freshDir(), env: { ...process.env, TMPDIR: temp } })
     processes.push(plugin)
     const init = await initializePlugin(plugin, { local: true, localBinary: binary }, LISTED)
     expect(init.error).toBeUndefined()
@@ -605,16 +605,20 @@ describe.skipIf(process.platform === 'win32')('BrowserStack Local run through it
     const answer = await plugin.call('acquire', webAcquire)
 
     expect(answer.error?.data).toMatchObject({ kind: 'unreachable', path: 'options.localBinary' })
-    const log = refusalLog(answer.error?.message)
     expect(answer.error?.message).toBe(
-      `BrowserStack Local did not start: ${binary} does not exist (ENOENT). Set localBinary to the path of a BrowserStackLocal binary (its log is ${log})`,
+      `BrowserStack Local did not start: ${binary} does not exist (ENOENT). Set localBinary to the path of a BrowserStackLocal binary`,
     )
+    expect(readdirSync(temp)).toEqual([])
   })
 
-  it('refuses the acquire at the plugin option local with the fix when this machine cannot run the binary the wrapper finds, and keeps serving', async () => {
+  it('refuses the acquire at the plugin option local with the fix when this machine cannot run the binary the wrapper finds, leaves no log, and keeps serving', async () => {
     const home = freshDir()
     const found = unrunnableBinary(join(home, '.browserstack', 'BrowserStackLocal'))
-    const plugin = startPluginProcess({ cwd: freshDir(), env: { ...process.env, HOME: home } })
+    const temp = freshDir()
+    const plugin = startPluginProcess({
+      cwd: freshDir(),
+      env: { ...process.env, HOME: home, TMPDIR: temp },
+    })
     processes.push(plugin)
     const init = await initializePlugin(plugin, { local: true }, LISTED)
     expect(init.error).toBeUndefined()
@@ -623,14 +627,12 @@ describe.skipIf(process.platform === 'win32')('BrowserStack Local run through it
 
     expect(first.error?.code).toBe(-32000)
     expect(first.error?.data).toMatchObject({ kind: 'unreachable', path: 'options.local' })
-    const log = refusalLog(first.error?.message)
-    expect(log.startsWith(join(tmpdir(), 'agent-qa-browserstack-local-'))).toBe(true)
     expect(first.error?.message).toBe(
-      `BrowserStack Local did not start: this machine cannot run ${found} (EACCES). ${NOT_EXECUTABLE} (its log is ${log})`,
+      `BrowserStack Local did not start: this machine cannot run ${found} (EACCES). ${NOT_EXECUTABLE}`,
     )
     const second = await plugin.call('acquire', webAcquire)
-    refusalLog(second.error?.message)
     expect(second.error?.data).toMatchObject({ kind: 'unreachable', path: 'options.local' })
+    expect(readdirSync(temp)).toEqual([])
     expect((await plugin.call('shutdown')).error).toBeUndefined()
     expect(plugin.stderr()).not.toContain(ACCESS_KEY)
   })

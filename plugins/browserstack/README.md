@@ -224,8 +224,8 @@ this machine can reach, such as `localhost` or a staging host behind a VPN.
   `options.local`, or `options.localBinary` when that is set, and names that log.
 - Before it starts the tunnel, the plugin runs the binary once with `--version` to check that
   this machine can run it. A binary this machine cannot run refuses the session the same way,
-  with kind `unreachable` at the same path, naming the binary, the cause, the fix and the log.
-  The fix follows the cause:
+  with kind `unreachable` at the same path, naming the binary, the cause and the fix. The tunnel
+  never ran, so the line names no log and no log file is created. The fix follows the cause:
   - A Mac binary built for another CPU (`EBADARCH`): install Rosetta
     (`softwareupdate --install-rosetta --agree-to-license`) or set `localBinary` to a binary
     built for this Mac. `browserstack-local` downloads BrowserStack's Intel build on every Mac,

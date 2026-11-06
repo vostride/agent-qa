@@ -118,9 +118,6 @@ function localLogFile(): string {
 
 export const browserStackLocalFactory: TunnelFactory = {
   start(request) {
-    const logFile = localLogFile()
-    // Created private first; the wrapper only truncates it, so the mode holds.
-    writeFileSync(logFile, '', { mode: 0o600 })
     const local = new Local()
     const wrapper = local as unknown as WrapperState
     // After a failed launch the wrapper deletes the binary and launches a fresh download unchecked,
@@ -133,12 +130,11 @@ export const browserStackLocalFactory: TunnelFactory = {
     const running = (async (): Promise<RunningTunnel> => {
       const binary = request.binary ?? (await wrapperBinary(wrapper, request.accessKey))
       const failure = cannotRun(binary)
-      if (failure !== undefined) {
-        throw new Error(
-          `${cannotRunReason(binary, failure, process.platform)} (its log is ${logFile})`,
-        )
-      }
+      if (failure !== undefined) throw new Error(cannotRunReason(binary, failure, process.platform))
       if (aborted) throw new Error('it was stopped while it was starting')
+      const logFile = localLogFile()
+      // Created private first; the wrapper only truncates it, so the mode holds.
+      writeFileSync(logFile, '', { mode: 0o600 })
       return new Promise<RunningTunnel>((resolve, reject) => {
         local.start(
           {
