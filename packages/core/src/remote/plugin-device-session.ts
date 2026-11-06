@@ -139,7 +139,8 @@ export interface PluginDeviceSession<Driver> {
   readonly lease: RemoteLease
   // Sends the lease back once, whoever asks first.
   readonly release: () => Promise<void>
-  // The plugin's answer as a url remote: what the session connected to.
+  // The plugin's answer as a url remote, with the remote's own capabilities: what the session
+  // connected to.
   readonly remote: RemoteDeviceConfig
 }
 
@@ -179,28 +180,62 @@ function answerContradictions(
   ]
 }
 
-// The capabilities a remote device session sends; references resolve after the merge.
+// The app the session installs, when the target names one and the capabilities do not.
+function remoteDeviceApp(
+  test: RemoteDeviceTest,
+  remote: RemoteDeviceConfig,
+  capabilities: CapabilityMap,
+): string | undefined {
+  if (test.browserName !== undefined) return undefined
+  const app = remoteAppCapability({
+    device: test.device.name,
+    remote: remote.name,
+    target: test.target.name,
+    ...(test.appRef !== undefined ? { appRef: test.appRef } : {}),
+    ...(test.appPath !== undefined ? { appPath: test.appPath } : {}),
+    capabilities,
+  })
+  if ('refusal' in app) throw new RemoteRefusalError(app.refusal, { remote: remoteLabel(remote) })
+  return app.app
+}
+
+// The capabilities a url remote's device session sends; references resolve after the merge.
 export function remoteDeviceCapabilities(
   test: RemoteDeviceTest,
   remote: RemoteDeviceConfig,
   options: DeviceSecretsInput,
 ): CapabilityMap {
   const merged = statedCapabilities(test, remote.capabilities)
+  const app = remoteDeviceApp(test, remote, merged)
+  if (app !== undefined) merged['appium:app'] = app
   const label = remoteLabel(remote)
-  if (test.browserName === undefined) {
-    const app = remoteAppCapability({
-      device: test.device.name,
-      remote: remote.name,
-      target: test.target.name,
-      ...(test.appRef !== undefined ? { appRef: test.appRef } : {}),
-      ...(test.appPath !== undefined ? { appPath: test.appPath } : {}),
-      capabilities: merged,
-    })
-    if ('refusal' in app) throw new RemoteRefusalError(app.refusal, { remote: label })
-    if (app.app !== undefined) merged['appium:app'] = app.app
-  }
   const subject = `Device ${test.device.name} on remote ${label}`
   return withDeviceSecretsResolved(merged, options, subject, { remote: label })
+}
+
+// A plugin's answer carries values, so it goes in as given between the derived capabilities and
+// the remote's; only what the project states resolves, one layer at a time.
+function answeredCapabilities(
+  test: RemoteDeviceTest,
+  remote: RemoteDeviceConfig,
+  options: DeviceSecretsInput,
+  answer: CapabilityMap | undefined,
+): CapabilityMap {
+  const label = remoteLabel(remote)
+  const subject = `Device ${test.device.name} on remote ${label}`
+  const resolved = (capabilities: CapabilityMap | undefined): CapabilityMap | undefined =>
+    capabilities === undefined
+      ? undefined
+      : withDeviceSecretsResolved(capabilities, options, subject, { remote: label })
+  const merged = mergeCapabilities(
+    resolved(test.derived),
+    answer,
+    resolved(remote.capabilities),
+    resolved(test.device.capabilities),
+  )
+  const app = remoteDeviceApp(test, remote, merged)
+  if (app !== undefined) Object.assign(merged, resolved({ 'appium:app': app }))
+  return merged
 }
 
 // The plugin leases the device; its answer then takes the url remote's path, so refusals, bounds
@@ -288,13 +323,14 @@ export async function createPluginDeviceSession<Driver>(
     url: answer.url,
     ...(answer.headers === undefined ? {} : { headers: answer.headers }),
     connectTimeoutMs: Math.max(MIN_PLUGIN_CONNECT_MS, remaining),
-    capabilities: mergeCapabilities(answer.capabilities, pluginDevice.capabilities),
+    ...(pluginDevice.capabilities === undefined ? {} : { capabilities: pluginDevice.capabilities }),
   }
   try {
+    const test = { ...input, appRef }
     const driver = await input.open({
       remote,
       connection: answeredDeviceConnection(remote),
-      capabilities: remoteDeviceCapabilities({ ...input, appRef }, remote, options),
+      capabilities: answeredCapabilities(test, remote, options, answer.capabilities),
     })
     return { driver, lease, release, remote }
   } catch (error) {
