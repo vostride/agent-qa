@@ -8,6 +8,7 @@ export const AGENT_QA_PLUGIN_KIT_ALLOWED_RESPONSIBILITIES = [
   'definePlugin and the stdio loop a plugin runs',
   'credential marks and the build-time schema and manifest emitter',
   'the conformance runner and scripted plugins for testing hosts and plugins',
+  'vendor-neutral HTTP helpers for plugin authors: endpoint options and status-to-failure-kind mapping',
 ] as const
 export const AGENT_QA_PLUGIN_KIT_FORBIDDEN_RESPONSIBILITIES = [
   'vendor code',

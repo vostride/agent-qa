@@ -55,7 +55,21 @@ tests can import the definition without starting the plugin.
 
 ```ts
 // src/plugin.ts
-import { credential, definePlugin, PluginError, z } from '@vostride/agent-qa-plugin-kit'
+import {
+  checkEndpoints,
+  createVendorApi,
+  credential,
+  definePlugin,
+  z,
+} from '@vostride/agent-qa-plugin-kit'
+
+function acmeApi(options: { apiKey: string; endpoint: string }) {
+  return createVendorApi({
+    vendor: 'Acme',
+    baseUrl: options.endpoint,
+    headers: { authorization: `Bearer ${options.apiKey}` },
+  })
+}
 
 export default definePlugin({
   options: z.strictObject({
@@ -68,24 +82,20 @@ export default definePlugin({
   serves: ['cdp'],
   skill: './skill',
 
+  initialize({ options }) {
+    checkEndpoints(options, [{ path: 'endpoint', scheme: 'https' }])
+  },
+
   async acquire({ options, settings }, ctx) {
     ctx.progress({ message: 'creating a browser' })
-    const response = await fetch(`${options.endpoint}/browsers`, {
-      method: 'POST',
-      headers: {
-        authorization: `Bearer ${options.apiKey}`,
-        'content-type': 'application/json',
-      },
+    const api = acmeApi(options)
+    const response = await api.send('POST', 'browsers', {
+      headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ region: settings.region }),
       signal: ctx.signal,
     })
-    if (response.status === 401) {
-      throw new PluginError('Acme refused the API key', { kind: 'auth', path: 'options.apiKey' })
-    }
-    if (!response.ok) {
-      throw new PluginError(`Acme answered ${response.status}`, { kind: 'unreachable' })
-    }
-    const browser = (await response.json()) as { id: string; cdpUrl: string }
+    if (!response.ok) throw await api.failure(response, 'POST /browsers')
+    const browser = (await api.json(response)) as { id: string; cdpUrl: string }
     return {
       handle: { id: browser.id },
       protocol: 'cdp',
@@ -94,14 +104,14 @@ export default definePlugin({
     }
   },
 
-  async release({ options, handle }) {
+  async release({ options, handle }, ctx) {
     const { id } = handle as { id: string }
-    const response = await fetch(`${options.endpoint}/browsers/${id}`, {
-      method: 'DELETE',
-      headers: { authorization: `Bearer ${options.apiKey}` },
+    const api = acmeApi(options)
+    const response = await api.send('DELETE', `browsers/${encodeURIComponent(id)}`, {
+      signal: ctx.signal,
     })
     if (!response.ok && response.status !== 404) {
-      throw new PluginError(`Acme answered ${response.status}`, { kind: 'unreachable' })
+      throw await api.failure(response, 'DELETE /browsers/{id}', { handle })
     }
   },
 })
@@ -133,6 +143,42 @@ runPlugin(plugin)
 - The kit checks what `acquire`, `check`, `uploadApp` and `started` return against the protocol. A
   malformed result is answered as a `refused` failure naming the field, and a malformed `acquire` result
   keeps its handle, so the session is still released.
+
+## Vendor API helpers
+
+Most plugins call one HTTP API. The kit's root exports small helpers for that, so every plugin refuses
+the same endpoints and fails with the same lines.
+
+`createVendorApi({ vendor, baseUrl, headers?, kinds? })` builds a client for one API:
+
+- `send(method, path, { headers?, body?, signal? })` resolves `path` against `baseUrl` and answers the
+  `Response`. Pass `ctx.signal` as `signal`.
+- `headers` are sent with every call and win over a per-call header of the same name, so put
+  credentials there.
+- One client has one base URL. A service with two bases gets two clients.
+- `failure(response, request, { handle? })` answers a `PluginError` to throw. It reads
+  `<vendor> answered <status> to <request>: <reason>`. The reason is the body's `message`, then its
+  `error`, on one line of at most 200 characters. With neither, the line has no reason. A 429 with
+  `Retry-After` adds `, retry after <s> s`. Pass `handle` when the service had already created
+  something.
+- `json(response)` answers the parsed body, or `undefined` when the body is not JSON.
+- A call nothing answers fails `unreachable` with `<vendor> could not be reached at <origin>: <cause>`.
+  It names the origin only, never the path or a header. A call whose signal aborted rethrows its abort.
+
+Name the request after its route, as in `POST /browsers` or `DELETE /browsers/{id}`. Never put the real
+id or a key in it.
+
+The failure kind comes from the status: no answer is `unreachable`, 401 is `auth`, 429 is `capacity`
+and anything else is `refused`. `kinds` adds statuses or overrides these, as in
+`{ 403: 'auth', 529: 'capacity' }`. `vendorFailureKind(status, kinds?)` answers the same kind for a
+status map of your own.
+
+`checkEndpoints(options, [{ path, scheme }])` checks the options that name an endpoint. Call it from
+`initialize`. An option must use `https`, or `wss` for a `wss` option, with no user or password. Plain
+`http` or `ws` is allowed only to this machine: `localhost`, `127.x.x.x` or `[::1]`. An option that is
+not set is skipped. The first option that breaks the rule is refused, kind `refused`, with the option's
+name as its path and `<path> must use <scheme>:// with no user or password, unless it points at this
+machine.`
 
 ## Build
 
