@@ -216,8 +216,8 @@ this machine can reach, such as `localhost` or a staging host behind a VPN.
 - The tunnel comes from BrowserStack's `browserstack-local` package, pinned at `1.5.16`. It finds
   BrowserStack's binary in `~/.browserstack`, the working directory or the temp directory, and
   downloads it from BrowserStack over `https` when none is there. `localBinary` names a binary
-  to run instead; it needs `local: true`. When that binary fails, the plugin stops; it never
-  deletes the binary or downloads another one.
+  to run instead; it needs `local: true`. When a binary fails, the plugin never deletes it or
+  downloads another one; the next acquire runs the same binary again.
 - The tunnel logs to a fresh file under the temp directory,
   `agent-qa-browserstack-local-<pid>-<random>.log`, readable only by you. Nothing is written to
   the project. When the tunnel cannot start, the refusal has kind `unreachable` at path

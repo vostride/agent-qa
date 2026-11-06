@@ -123,10 +123,9 @@ export const browserStackLocalFactory: TunnelFactory = {
     writeFileSync(logFile, '', { mode: 0o600 })
     const local = new Local()
     const wrapper = local as unknown as WrapperState
-    if (request.binary !== undefined) {
-      // After a failed run the wrapper deletes its binary and retries; the user's own must stay.
-      wrapper.retriesLeft = 0
-    }
+    // After a failed launch the wrapper deletes the binary and launches a fresh download unchecked,
+    // which can throw where nothing catches it. The next acquire tries again instead.
+    wrapper.retriesLeft = 0
     const unmask = maskConsole(request.accessKey)
     let aborted = false
     // The launch waits for the check, so it always runs from this promise and nothing it throws
@@ -140,16 +139,13 @@ export const browserStackLocalFactory: TunnelFactory = {
         )
       }
       if (aborted) throw new Error('it was stopped while it was starting')
-      // Its own find, so a launch that fails still deletes it and downloads another, as the
-      // wrapper does.
-      if (request.binary === undefined) wrapper.binaryPath = binary
       return new Promise<RunningTunnel>((resolve, reject) => {
         local.start(
           {
             key: request.accessKey,
             localIdentifier: request.identifier,
             logFile,
-            ...(request.binary === undefined ? {} : { binarypath: request.binary }),
+            binarypath: binary,
           },
           (error) => {
             if (error) {
@@ -166,8 +162,6 @@ export const browserStackLocalFactory: TunnelFactory = {
       running,
       async abort() {
         aborted = true
-        // A killed launch must not be retried with a fresh download.
-        wrapper.retriesLeft = 0
         wrapper.tunnel?.kill()
         if (wrapper.binaryPath !== undefined) await stopDaemon(wrapper.binaryPath, request)
       },
