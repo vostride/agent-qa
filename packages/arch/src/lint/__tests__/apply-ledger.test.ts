@@ -2,6 +2,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { AGENT_QA_CORE_HOST_BASELINE } from '../../core-host-baseline.js'
+import { AGENT_QA_CORE_SCOPED_HOST_BASELINE } from '../../core-host-scoped-baseline.js'
 import { AGENT_QA_CORE_MIGRATION_LEDGER } from '../../../../core/src/ownership-contract.js'
 import { applyLedger, transitionalLeaks } from '../apply-ledger.js'
 import { configFilesFor, extractSpecifiers, sourceFilesFor } from '../extract-specifiers.js'
@@ -66,8 +67,29 @@ describe('applyLedger', () => {
         transitionalLeaks(coreHits),
         AGENT_QA_CORE_MIGRATION_LEDGER,
         new Set(AGENT_QA_CORE_HOST_BASELINE),
+        AGENT_QA_CORE_SCOPED_HOST_BASELINE,
       ),
     ).toEqual([])
+  })
+
+  it('waives a scoped host module only in the file it is scoped to', () => {
+    const scoped = [{ target: 'node:child_process', file: 'packages/core/src/a/b.ts', reason: 'x' }]
+    const at = (file: string): SpecifierHit => ({ specifier: 'node:child_process', file, line: 1 })
+    expect(
+      applyLedger(
+        [at('packages/core/src/a/b.ts'), at('/abs/agent-qa/packages/core/src/a/b.ts')],
+        [],
+        new Set(),
+        scoped,
+      ),
+    ).toEqual([])
+    expect(applyLedger([at('packages/core/src/a/c.ts')], [], new Set(), scoped)).toEqual([
+      'packages/core | packages/core/src/a/c.ts:1 | node:child_process | unwaived transitional leak',
+    ])
+    const fs = { ...at('packages/core/src/a/b.ts'), specifier: 'node:fs' }
+    expect(applyLedger([fs], [], new Set(), scoped)).toEqual([
+      'packages/core | packages/core/src/a/b.ts:1 | node:fs | unwaived transitional leak',
+    ])
   })
 
   it('flags an uncovered transitional leak', () => {

@@ -2,6 +2,8 @@ import {
   NATIVE_STORE_DENYLIST,
   PROVIDER_SDK_FORBIDDEN_PREFIX,
 } from '../contract-types.js'
+import { inScopedHostBaseline } from '../core-host-scoped-baseline.js'
+import type { ScopedHostBaselineEntry } from '../core-host-scoped-baseline.js'
 import { HOST_EXTERNALS, matchesDenylistEntry } from './denylist.js'
 import { classifySpecifier } from './extract-specifiers.js'
 import type { LedgerEntry } from '../contract-types.js'
@@ -27,6 +29,7 @@ export function applyLedger(
   leaks: readonly SpecifierHit[],
   ledger: readonly LedgerEntry[],
   baseline: ReadonlySet<string> = new Set<string>(),
+  scoped: readonly ScopedHostBaselineEntry[] = [],
 ): string[] {
   const offenders: string[] = []
   const ledgerTargets = new Set(ledger.map(entry => entry.target))
@@ -39,7 +42,7 @@ export function applyLedger(
       continue
     }
 
-    if (baseline.has(target)) {
+    if (baseline.has(target) || inScopedHostBaseline(leak, scoped)) {
       continue
     }
 

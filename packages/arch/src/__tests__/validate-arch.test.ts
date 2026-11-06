@@ -8,6 +8,7 @@ import {
   PROVIDER_SDK_FORBIDDEN_PREFIX,
 } from '../contract-types.js'
 import { AGENT_QA_CORE_HOST_BASELINE } from '../core-host-baseline.js'
+import { AGENT_QA_CORE_SCOPED_HOST_BASELINE } from '../core-host-scoped-baseline.js'
 import type { OwnershipContract, PackageClass } from '../contract-types.js'
 import { findClassRuleOffenders } from '../lint/classify-rule.js'
 import {
@@ -201,6 +202,7 @@ describe('arch lint class rules and dep contracts', () => {
             transitionalLeaks(allHits),
             contract.ledger ?? [],
             new Set(AGENT_QA_CORE_HOST_BASELINE),
+            AGENT_QA_CORE_SCOPED_HOST_BASELINE,
           ),
         )
       } else {
@@ -516,13 +518,16 @@ describe('arch lint held-out fixtures', () => {
         transitionalLeaks([
           fixtureHit('node:dgram'),
           fixtureHit('better-sqlite3', { line: 2 }),
+          fixtureHit('node:child_process', { line: 3 }),
         ]),
         AGENT_QA_CORE_MIGRATION_LEDGER,
         new Set(AGENT_QA_CORE_HOST_BASELINE),
+        AGENT_QA_CORE_SCOPED_HOST_BASELINE,
       ),
     ).toEqual([
       'packages/core | fixture.ts:1 | node:dgram | unwaived transitional leak',
       'packages/core | fixture.ts:2 | better-sqlite3 | unwaived transitional leak',
+      'packages/core | fixture.ts:3 | node:child_process | unwaived transitional leak',
     ])
   })
 })
