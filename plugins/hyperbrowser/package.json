@@ -60,7 +60,9 @@
       "serves": [
         "cdp"
       ],
-      "methods": [],
+      "methods": [
+        "check"
+      ],
       "options": "./dist/options.schema.json",
       "settings": "./dist/settings.schema.json",
       "skill": "./skill"

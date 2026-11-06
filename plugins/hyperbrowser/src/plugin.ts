@@ -129,6 +129,16 @@ function dashboardLink(url: string | undefined): string | undefined {
 
 const HandleSchema = z.object({ sessionId: z.string().min(1) })
 
+const ActiveSessionsSchema = z.object({ totalCount: z.int().nonnegative() })
+
+function activeLine(count: number): string {
+  return count === 1 ? '1 active session' : `${String(count)} active sessions`
+}
+
+function failureLine(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
 export default definePlugin({
   options,
   settings,
@@ -137,6 +147,26 @@ export default definePlugin({
 
   initialize({ options }) {
     checkEndpoints(options, [{ path: 'apiUrl', scheme: 'https' }])
+  },
+
+  async check({ options }, ctx) {
+    let answer: unknown
+    try {
+      answer = await createHyperbrowserApi(options).activeSessions(ctx.signal)
+    } catch (error) {
+      if (error instanceof PluginError && error.kind === 'auth') {
+        return { state: 'warn', lines: ['the API key was refused'] }
+      }
+      return { state: 'warn', lines: [failureLine(error)] }
+    }
+    const count = ActiveSessionsSchema.safeParse(answer)
+    return {
+      state: 'ok',
+      lines: [
+        'the API key was accepted',
+        ...(count.success ? [activeLine(count.data.totalCount)] : []),
+      ],
+    }
   },
 
   async acquire({ options, settings, session }) {
