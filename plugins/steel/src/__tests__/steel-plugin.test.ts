@@ -287,6 +287,27 @@ describe('Steel failures', () => {
     },
   )
 
+  it('a reason that ends its sentence joins the hint without the full stop', async () => {
+    const api = await startApi({
+      create: [
+        {
+          status: 400,
+          json: {
+            message:
+              "Requested 'timeout' of 86400000 ms exceeds the maximum of 15 minutes on the launch plan. Set 'timeout' to 900000 or less, or upgrade your plan for longer sessions.",
+          },
+        },
+      ],
+    })
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin)
+
+    expect(answer.error?.message).toBe(
+      "Steel answered 400 to POST /v1/sessions: Requested 'timeout' of 86400000 ms exceeds the maximum of 15 minutes on the launch plan. Set 'timeout' to 900000 or less, or upgrade your plan for longer sessions; if your Steel plan caps sessions below 1440 minutes, set settings.timeoutMinutes to the cap",
+    )
+  })
+
   it('a 400 with no reason still names settings.timeoutMinutes', async () => {
     const api = await startApi({ create: [{ status: 400, json: {} }] })
     const plugin = await steelPlugin(api)
