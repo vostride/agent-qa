@@ -16,7 +16,8 @@
         "build",
         "@vostride/agent-qa-plugin-kernel#build",
         "@vostride/agent-qa-plugin-browserstack#build",
-        "@vostride/agent-qa-plugin-steel#build"
+        "@vostride/agent-qa-plugin-steel#build",
+        "@vostride/agent-qa-plugin-hyperbrowser#build"
       ]
     },
     "@vostride/agent-qa-arch#test": {
