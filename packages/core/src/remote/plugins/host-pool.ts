@@ -927,6 +927,10 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     if (outcome.status === 'result' && !outcome.cancelled) {
       const parsed = CheckResultSchema.safeParse(outcome.result)
       if (parsed.success) return parsed.data
+      throw new RemoteRefusalError(
+        `Remote ${remote}: plugin entry ${entry} answered check with something that is not a check result.`,
+        { remote, kind: 'refused' },
+      )
     }
     if (outcome.status === 'error' && !outcome.cancelled) {
       throw new RemoteRefusalError(

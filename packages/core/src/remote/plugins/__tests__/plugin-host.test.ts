@@ -1,4 +1,6 @@
 import { execFileSync } from 'node:child_process'
+import { writeFileSync } from 'node:fs'
+import { join } from 'node:path'
 
 import { RemoteRefusalError } from '@vostride/agent-qa-runner'
 import { afterEach, describe, expect, it } from 'vitest'
@@ -290,6 +292,26 @@ async function refusalOf(work: Promise<unknown>): Promise<RemoteRefusalError> {
 const releasesOf = (lines: readonly Record<string, unknown>[]) =>
   lines.filter((line) => line.method === 'release').map((line) => line.handle)
 
+// Speaks the protocol by hand, so it can answer check with something the kit would refuse to send.
+const CHECKS_WRONGLY = `import { createInterface } from 'node:readline'
+const send = (message) =>
+  process.stdout.write(JSON.stringify({ jsonrpc: '2.0', ...message }) + '\\n')
+const answers = {
+  initialize: {
+    protocolVersion: 1,
+    plugin: { name: 'lab', version: '1.0.0' },
+    serves: ['playwright'],
+    methods: ['check'],
+  },
+  check: { verdict: 'fine' },
+  shutdown: {},
+}
+createInterface({ input: process.stdin }).on('line', (line) => {
+  const message = JSON.parse(line)
+  if (message.id !== undefined) send({ id: message.id, result: answers[message.method] ?? {} })
+}).on('close', () => process.exit(0))
+`
+
 describe('refusals from the plugin host pool', () => {
   it.each([
     ['a protocol it does not serve', { protocol: 'appium', url: 'http://127.0.0.1:4723' }],
@@ -370,6 +392,20 @@ describe('refusals from the plugin host pool', () => {
     )
     expect(plain.kind).toBe('capacity')
     expect(plain.message).toBe('Remote lab-b: no browsers left.')
+  })
+
+  it('refuses a check answer that is not a check result as refused, not as a timeout', async () => {
+    const p = host()
+    const lab = p.entry('lab', {}, { methods: ['check'] })
+    writeFileSync(join(p.fixture.configDir, 'plugins', 'lab', 'main.mjs'), CHECKS_WRONGLY)
+    const pool = p.pool([lab])
+
+    const refused = await refusalOf(pool.check('lab', [{ name: 'lab-a' }]))
+
+    expect(refused.kind).toBe('refused')
+    expect(refused.message).toBe(
+      'Remote lab-a: plugin entry lab answered check with something that is not a check result.',
+    )
   })
 
   it('refuses every remote naming an entry whose initialize failed, pointing at its option', async () => {
