@@ -24,3 +24,13 @@ export {
   type EmitPluginFilesInput,
   type EmittedPluginFiles,
 } from './emit.js'
+export {
+  checkEndpoints,
+  createVendorApi,
+  vendorFailureKind,
+  type EndpointOption,
+  type VendorApi,
+  type VendorApiInput,
+  type VendorRequestInit,
+  type VendorStatusKinds,
+} from './vendor-api.js'
