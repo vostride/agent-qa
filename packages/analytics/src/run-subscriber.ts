@@ -14,6 +14,7 @@ import {
   analyticsTestId,
   ANALYTICS_AGENT_PRODUCTS,
   ANALYTICS_EMITTING_HOSTS,
+  ANALYTICS_REMOTE_PLUGINS,
   ANALYTICS_RUNNERS,
   ANALYTICS_RUNTIME_CONTEXTS,
   ANALYTICS_RUN_STATUSES,
@@ -52,6 +53,8 @@ export interface AnalyticsRunSubscriberOptions {
   triggerSource?: string
   /** Which runner executed it, as known at the composition root. */
   runner?: string
+  /** The closed ids of the plugins its places used; anything else reads as third_party. */
+  remotePlugins?: readonly string[]
   standardProperties?: AnalyticsRunStandardProperties
 }
 
@@ -103,6 +106,15 @@ function normalizeRunner(value: unknown): AnalyticsRunner {
   return ANALYTICS_RUNNERS.find((candidate) => candidate === value) ?? 'unknown'
 }
 
+function normalizeRemotePlugins(values: readonly string[] | undefined): string[] | undefined {
+  const ids = new Set(
+    (values ?? []).map(
+      (value) => ANALYTICS_REMOTE_PLUGINS.find((candidate) => candidate === value) ?? 'third_party',
+    ),
+  )
+  return ids.size === 0 ? undefined : [...ids]
+}
+
 /** `healed` counts as `passed` (the heal marker lives on the step) and `timeout` as `failed`. */
 function outcomeToAnalyticsStatus(outcome: unknown): AnalyticsRunStatus {
   switch (outcome) {
@@ -138,6 +150,7 @@ export function createAnalyticsRunSubscriber(
   const standard = options.standardProperties ?? {}
   const triggerSource = normalizeTriggerSource(options.triggerSource)
   const runner = normalizeRunner(options.runner)
+  const remotePlugins = normalizeRemotePlugins(options.remotePlugins)
 
   // Accumulated run state, filled from the envelope stream and read once at flush.
   let runId: string | undefined
@@ -229,6 +242,7 @@ export function createAnalyticsRunSubscriber(
       test_id: testId,
       trigger_source: triggerSource,
       runner,
+      remote_plugins: remotePlugins,
       status,
       duration_ms: record.durationMs,
       retry_count: record.retryCount,
@@ -257,6 +271,7 @@ export function createAnalyticsRunSubscriber(
       suite_id: suiteId,
       trigger_source: triggerSource,
       runner,
+      remote_plugins: remotePlugins,
       status: outcomeToAnalyticsStatus(aggregateVerdict),
       duration_ms: records.reduce((sum, record) => sum + (record.durationMs ?? 0), 0),
       suite_child_count: records.length,

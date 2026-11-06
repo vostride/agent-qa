@@ -247,11 +247,12 @@ function createComposedRunExecution(input: {
             runRecord,
             // Subscribed directly: `attachRunSubscribers`' wire reporter can print to stdout.
             ...(analytics === undefined || runSession === undefined ? {} : {
-              subscribers: ({ session, runner }) => {
+              subscribers: ({ session, runner, remotePlugins }) => {
                 const subscriber = runSession.buildAnalyticsRunSubscriber({
                   analytics,
                   triggerSource: trigger,
                   ...(runner === undefined ? {} : { runner }),
+                  ...(remotePlugins === undefined ? {} : { remotePlugins }),
                 })
                 session.subscribe(runSession.REPLAY_FROM_START, subscriber.handler)
                 return { flush: async () => { await subscriber.flush?.() } }

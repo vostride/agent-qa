@@ -585,11 +585,12 @@ async function composeDaemonRunExecution(input: {
             onSession: (session) => { startedRunId = session.id as unknown as string },
             // Subscribed directly: `attachRunSubscribers`' wire reporter can print to stdout.
             ...(jobAnalytics === undefined || runSession === undefined ? {} : {
-              subscribers: ({ session, runner }) => {
+              subscribers: ({ session, runner, remotePlugins }) => {
                 const subscriber = runSession.buildAnalyticsRunSubscriber({
                   analytics: jobAnalytics,
                   triggerSource: 'daemon',
                   ...(runner === undefined ? {} : { runner }),
+                  ...(remotePlugins === undefined ? {} : { remotePlugins }),
                 })
                 session.subscribe(runSession.REPLAY_FROM_START, subscriber.handler)
                 return { flush: async () => { await subscriber.flush?.() } }

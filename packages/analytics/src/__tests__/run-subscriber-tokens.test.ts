@@ -37,7 +37,7 @@ function envelope(type: RunEventType, payload: unknown): RunEventEnvelope {
   return { seq, ts: 1_700_000_000_000 + seq, runId, type, payload: payload as RunEventPayload }
 }
 
-function harness(runner = 'local') {
+function harness(runner = 'local', remotePlugins?: readonly string[]) {
   const transport = recordingTransport()
   const port = createAnalyticsPort<AgentQaAnalyticsEvent>({
     transport,
@@ -47,6 +47,7 @@ function harness(runner = 'local') {
     port,
     triggerSource: 'cli',
     runner,
+    ...(remotePlugins === undefined ? {} : { remotePlugins }),
     standardProperties: { surface: 'cli', runtime_context: 'user' },
   })
   return { transport, subscriber }
@@ -180,5 +181,37 @@ describe('the runner a completed run reports', () => {
     await subscriber.flush()
 
     expect(completionProperties(transport).runner).toBe(reported)
+  })
+})
+
+describe('the remote plugins a completed run reports', () => {
+  async function reported(remotePlugins?: readonly string[]): Promise<unknown> {
+    const { transport, subscriber } = harness('remote', remotePlugins)
+    subscriber.handler(envelope('testStarted', { testId, testIndex: 0, name: 'a test' }))
+    subscriber.handler(
+      envelope('testFinished', { testId, testIndex: 0, outcome: 'passed', durationMs: 5 }),
+    )
+    subscriber.handler(envelope('runFinished', { aggregateVerdict: 'passed' }))
+    await subscriber.flush()
+    return completionProperties(transport).remote_plugins
+  }
+
+  it('reports each id it is given once, in the order first given', async () => {
+    expect(await reported(['kernel', 'third_party', 'kernel', 'third_party'])).toEqual([
+      'kernel',
+      'third_party',
+    ])
+  })
+
+  it('reports any string outside the closed ids as third_party', async () => {
+    expect(await reported(['@acme/agent-qa-plugin-grid', 'browserstack'])).toEqual([
+      'third_party',
+      'browserstack',
+    ])
+  })
+
+  it('carries no remote_plugins key for a run that used no plugin', async () => {
+    expect(await reported()).toBeUndefined()
+    expect(await reported([])).toBeUndefined()
   })
 })

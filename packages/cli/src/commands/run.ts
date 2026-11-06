@@ -106,6 +106,8 @@ import { composeCliPostRunTail } from '../curation/post-run-tail-composition.js'
 import { flushWorkingMemory } from '../wm-flush.js'
 import { isPathInsideDir } from '@vostride/agent-qa-core'
 import type { PluginHostProgress } from '@vostride/agent-qa-core'
+import { analyticsRemotePluginId } from '@vostride/agent-qa-analytics'
+import type { AnalyticsRemotePlugin } from '@vostride/agent-qa-analytics'
 import { createShutdownController } from './shutdown-controller.js'
 import { buildDirectRunMembers } from './direct-run-members.js'
 import { resolveRecordingSetting, resolveRecordingStagingDir } from './recording-setting.js'
@@ -1568,6 +1570,20 @@ function placeDirectDevices(
 }
 
 // Read from the files before the run is recorded; a refused pick places nothing.
+function directRunPlaces(
+  config: AgentQaConfig,
+  configDir: string,
+  bindings: readonly ParsedTestBinding[],
+  browserFlag: string | undefined,
+  deviceFlag: string | undefined,
+): (WebPlace | DevicePlace)[] {
+  return [
+    ...placeDirectTests(config, configDir, bindings, browserFlag)
+      .flatMap(({ selected }) => ('place' in selected ? [selected.place] : [])),
+    ...placeDirectDevices(config, configDir, bindings, deviceFlag).values(),
+  ]
+}
+
 function directRunRunner(
   config: AgentQaConfig,
   configDir: string,
@@ -1575,11 +1591,22 @@ function directRunRunner(
   browserFlag: string | undefined,
   deviceFlag: string | undefined,
 ): RunAttributeRunner {
-  return runnerForPlaces([
-    ...placeDirectTests(config, configDir, bindings, browserFlag)
-      .flatMap(({ selected }) => ('place' in selected ? [selected.place] : [])),
-    ...placeDirectDevices(config, configDir, bindings, deviceFlag).values(),
-  ])
+  return runnerForPlaces(directRunPlaces(config, configDir, bindings, browserFlag, deviceFlag))
+}
+
+// What analytics may know of the plugins a run's places use: a first-party id or third_party,
+// never a package name or path.
+export function runRemotePlugins(
+  config: Pick<AgentQaConfig, 'plugins'>,
+  places: readonly (WebPlace | DevicePlace)[],
+): AnalyticsRemotePlugin[] {
+  const entries = config.plugins ?? []
+  return places.flatMap((place) => {
+    if (place.kind !== 'remote' || !('plugin' in place.remote)) return []
+    const named = place.remote.plugin.entry
+    const entry = entries.find((candidate) => candidate.name === named)
+    return entry === undefined ? [] : [analyticsRemotePluginId(entry)]
+  })
 }
 
 // A suite shares one browser, so it is placed once for all its members.
@@ -2576,6 +2603,7 @@ async function executeSuites(
       extraSubscribers.push(buildAnalyticsRunSubscriber({
         analytics: analyticsHost,
         ...analyticsRunAttribution(runAttributes),
+        ...(produced.remotePlugins === undefined ? {} : { remotePlugins: produced.remotePlugins }),
       }))
     }
 
@@ -3969,6 +3997,11 @@ export async function produceSuiteRunMembers(
     suitePlannerMembers,
   )
 
+  const suiteRunPlaces = preparedSuites.flatMap((prepared) => [
+    prepared.suitePlace,
+    ...(prepared.suiteDevicePlace === undefined ? [] : [prepared.suiteDevicePlace]),
+  ])
+
   // Each suite's source and config, masked with the run's redactor; emitted once, replayed.
   for (const prepared of preparedSuites) {
     if (isSnapshotRecord(prepared.suiteArtifact)) {
@@ -4012,15 +4045,11 @@ export async function produceSuiteRunMembers(
         sourceSnapshot: suiteArtifact?.source,
         attributes: buildCliRunAttributes(
           variableContext?.userRunAttributes ?? {},
-          runnerForPlaces(
-            preparedSuites.flatMap((prepared) => [
-              prepared.suitePlace,
-              ...(prepared.suiteDevicePlace === undefined ? [] : [prepared.suiteDevicePlace]),
-            ]),
-          ),
+          runnerForPlaces(suiteRunPlaces),
         ),
       }
     })(),
+    remotePlugins: runRemotePlugins(config, suiteRunPlaces),
     onMemberSnapshot: suiteSnapshots.subscribe,
     applyAssembly: ({ buildOrdinal, quarantined }) => {
       suiteBuildOrdinal = buildOrdinal
@@ -4149,6 +4178,8 @@ export interface ProducedCliRunMembers {
   closePluginHosts?(): Promise<void>
   // The producer's plugin progress, which the drive hands the run as `ports.remoteProgress`.
   readonly remoteProgress?: RemoteProgressRelay
+  // The analytics ids of the plugins its places use, for a door's run-completion event.
+  readonly remotePlugins?: readonly AnalyticsRemotePlugin[]
   /** The run's plugin load, which the core awaits once the request and its run id are allowed. */
   readonly loadPlugins: () => Promise<void>
   /** The run's own config's `services.dashboard.dbPath`, resolved only when the record opens. */
@@ -4222,10 +4253,8 @@ export async function produceDirectRunMembers(
     redactor: runtimeSecrets.secretRedactor,
     terminal: input.terminal,
   })
-  const directRunAttributes = buildCliRunAttributes(
-    userRunAttributes,
-    directRunRunner(config, configDir, filtered, opts.browser, opts.device),
-  )
+  const directPlaces = directRunPlaces(config, configDir, filtered, opts.browser, opts.device)
+  const directRunAttributes = buildCliRunAttributes(userRunAttributes, runnerForPlaces(directPlaces))
 
   // The late-bound slots the run's own lifecycle fills. `singleRunProduct` and `singleBuildOrdinal` are declared with the block
   // below, exactly where the command declared them; these two are new only in the sense that the
@@ -4930,6 +4959,7 @@ export async function produceDirectRunMembers(
     getCurationModelDeps: () => singleCurationModelDeps,
     onMemberSnapshot: memberSnapshots.subscribe,
     subscriberSeed: { attributes: directRunAttributes },
+    remotePlugins: runRemotePlugins(config, directPlaces),
     loadPlugins: input.inputs.loadPlugins,
     ...(config.services?.dashboard?.dbPath === undefined
       ? {}
@@ -5333,6 +5363,7 @@ export function createRunCommand(
         singleExtraSubscribers.push(buildAnalyticsRunSubscriber({
           analytics: singleAnalytics,
           ...analyticsRunAttribution(directAttributes),
+          ...(produced.remotePlugins === undefined ? {} : { remotePlugins: produced.remotePlugins }),
         }))
 
         const { runInProcessCliRun } = await import('../composition/in-process-run-execution.js')

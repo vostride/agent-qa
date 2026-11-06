@@ -86,6 +86,8 @@ export interface RunSubscriberAttachInput {
   readonly onMemberSnapshot?: (listener: RunArtifactSnapshotListener) => () => void
   // The runner the producer read from the files, so a door's analytics names it.
   readonly runner?: string
+  // The analytics ids of the plugins the producer's places use.
+  readonly remotePlugins?: readonly string[]
 }
 
 /** What a door's post-verdict tail is handed, INSIDE the run's own safety scope. */
@@ -297,6 +299,7 @@ export async function runInProcessCliRun(
         mask,
         ...(produced.onMemberSnapshot === undefined ? {} : { onMemberSnapshot: produced.onMemberSnapshot }),
         ...(runner === undefined ? {} : { runner }),
+        ...(produced.remotePlugins === undefined ? {} : { remotePlugins: produced.remotePlugins }),
       })
       // Subscribed directly, never through `attachRunSubscribers`: its wire reporter can print to
       // stdout, which is the protocol on the MCP stdio server and `fn --json`.

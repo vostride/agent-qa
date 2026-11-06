@@ -29,12 +29,15 @@ export function buildAnalyticsRunSubscriber(input: {
   triggerSource?: string
   /** `agent-qa.runner` off the same attributes, on the same normalisation. */
   runner?: string
+  /** The closed ids of the plugins the run's places use; never a package name. */
+  remotePlugins?: readonly string[]
 }): RunSubscriberHandle {
   return createAnalyticsRunSubscriber({
     port: input.analytics.port,
     standardProperties: input.analytics.properties,
     ...(input.triggerSource === undefined ? {} : { triggerSource: input.triggerSource }),
     ...(input.runner === undefined ? {} : { runner: input.runner }),
+    ...(input.remotePlugins === undefined ? {} : { remotePlugins: input.remotePlugins }),
   })
 }
 

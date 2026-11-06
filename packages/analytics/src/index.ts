@@ -45,19 +45,25 @@ export {
   ANALYTICS_MCP_TOOL_STATUSES,
   ANALYTICS_MCP_TRANSPORTS,
   ANALYTICS_PLATFORMS,
+  ANALYTICS_REMOTE_PLUGINS,
   ANALYTICS_RUN_STATUSES,
   ANALYTICS_RUNNERS,
   ANALYTICS_RUNTIME_CONTEXTS,
   ANALYTICS_SUITE_EXECUTION_MODES,
   ANALYTICS_TRIGGER_SOURCES,
   ANALYTICS_VOCABULARY_META_KEY,
+  analyticsRemotePluginId,
   analyticsRunId,
   analyticsSuiteId,
   analyticsTestId,
   assertNoUnconstrainedStrings,
   RETIRED_V33_EVENT_NAMES,
 } from './events.js'
-export type { AgentQaAnalyticsEvent, AnalyticsEventName } from './events.js'
+export type {
+  AgentQaAnalyticsEvent,
+  AnalyticsEventName,
+  AnalyticsRemotePlugin,
+} from './events.js'
 
 // The send seam. `maskEventForSend` is published so a later transport (a second sink, a batching
 // relay) composes the SAME seam rather than writing its own. The host hands it the declared-secret

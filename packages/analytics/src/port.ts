@@ -17,6 +17,7 @@ export type AnalyticsPropertyValue =
   | number
   | boolean
   | undefined
+  | readonly string[]
   | Readonly<Record<string, string | number | boolean | undefined>>
 
 /** What a transport is handed: the event plus the identity it is attributed to. */

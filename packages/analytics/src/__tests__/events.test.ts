@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { AGENT_QA_TOOL_PROJECTIONS } from '@vostride/agent-qa-mcp'
 import {
   AgentQaAnalyticsEventSchema,
+  analyticsRemotePluginId,
   ANALYTICS_EVENT_MEMBERS,
   ANALYTICS_EVENT_NAMES,
   ANALYTICS_EVENT_SCHEMA_BY_NAME,
@@ -262,6 +263,7 @@ const COMPLETION_KEYS = [
   'total_tokens',
   'is_flaky',
   'memory_enabled',
+  'remote_plugins',
 ]
 
 describe('the run-completion shape is a closed set', () => {
@@ -305,5 +307,43 @@ describe('the run-completion shape is a closed set', () => {
     expect(keys).toContain('input_tokens')
     expect(keys).toContain('output_tokens')
     expect(keys).toContain('total_tokens')
+  })
+})
+
+describe('the remote plugins a run used', () => {
+  it('names a first-party plugin package by its id, and anything else third_party', () => {
+    expect(analyticsRemotePluginId({ package: '@vostride/agent-qa-plugin-kernel' })).toBe('kernel')
+    expect(analyticsRemotePluginId({ package: '@vostride/agent-qa-plugin-browserstack' })).toBe(
+      'browserstack',
+    )
+    for (const declared of [
+      { package: '@acme/agent-qa-plugin-grid' },
+      { package: '@vostride/agent-qa-plugin-other' },
+      { path: './tools/lab' },
+      { path: './node_modules/@vostride/agent-qa-plugin-kernel' },
+      {},
+    ]) {
+      expect(analyticsRemotePluginId(declared)).toBe('third_party')
+    }
+  })
+
+  it('a run completion with first-party ids and third_party validates, and one with a package name does not', () => {
+    for (const name of ['agent-qa.test_run.completed', 'agent-qa.suite_run.completed'] as const) {
+      expect(
+        AgentQaAnalyticsEventSchema.safeParse({
+          name,
+          properties: { remote_plugins: ['kernel', 'third_party'] },
+        }).success,
+      ).toBe(true)
+      for (const planted of ['@acme/agent-qa-plugin-grid', './tools/lab', 'Kernel']) {
+        expect(
+          AgentQaAnalyticsEventSchema.safeParse({
+            name,
+            properties: { remote_plugins: ['kernel', planted] },
+          }).success,
+          planted,
+        ).toBe(false)
+      }
+    }
   })
 })
