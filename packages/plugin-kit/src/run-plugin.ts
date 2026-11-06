@@ -388,6 +388,8 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
       }
       case 'shutdown': {
         shutdownRan = true
+        // A handle whose release failed is still held; shutdown may dispose what releasing needs.
+        await releaseHeld(new Set())
         await definition.shutdown?.({ options: current }, ctx)
         return {}
       }

@@ -205,7 +205,7 @@ implements handlers.
 | `started` | Once the session is open, with its session id |
 | `end` | When the test ends, with its outcome |
 | `release` | To delete the session, by its handle |
-| `shutdown` | Once, last |
+| `shutdown` | Once, last. The kit first releases any handle it still holds, such as one whose release failed |
 
 `$/cancel` cancels a call that missed its deadline, and `$/progress` carries the plugin's progress
 reports. The full protocol, with every field, deadline and error code, is agent-qa's plugin specification,

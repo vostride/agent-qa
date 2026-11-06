@@ -159,6 +159,27 @@ describe('handles and progress', () => {
   })
 })
 
+describe('shutdown', () => {
+  it('releases a handle whose release failed before it runs shutdown', async () => {
+    const plugin = spawnScriptedPlugin()
+    const failed = { error: { kind: 'unreachable', message: 'the vendor did not answer' } }
+    await plugin.initialize({ answer, script: { release: [failed, 'ok'] } })
+    await plugin.request('acquire', acquireParams)
+    expect((await plugin.request('release', { handle: { n: 1 } })).error?.data).toEqual({
+      kind: 'unreachable',
+    })
+
+    expect((await plugin.request('shutdown', {})).result).toEqual({})
+    expect(plugin.ledger().slice(-3)).toEqual([
+      { method: 'release', handle: { n: 1 } },
+      { method: 'release', handle: { n: 1 } },
+      { method: 'shutdown' },
+    ])
+    expect(await plugin.close()).toBe(0)
+    expect(plugin.ledger().at(-1)).toEqual({ method: 'shutdown' })
+  })
+})
+
 describe('leaving', () => {
   it('releases the handle it still holds, shuts down and exits 0 when stdin closes', async () => {
     const plugin = spawnScriptedPlugin()
