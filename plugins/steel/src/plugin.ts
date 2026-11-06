@@ -129,6 +129,14 @@ function viewerLink(url: string | undefined): string | undefined {
 
 const HandleSchema = z.object({ sessionId: z.string().min(1) })
 
+function refusedKey(error: unknown): boolean {
+  return error instanceof PluginError && error.kind === 'auth'
+}
+
+function failureLine(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
 export default definePlugin({
   options,
   settings,
@@ -137,6 +145,24 @@ export default definePlugin({
 
   initialize({ options }) {
     checkEndpoints(options, [{ path: 'apiUrl', scheme: 'https' }])
+  },
+
+  async check({ options }, ctx) {
+    try {
+      await createSteelApi(options).listSessions(ctx.signal)
+    } catch (error) {
+      if (!refusedKey(error)) return { state: 'warn', lines: [failureLine(error)] }
+      const line =
+        options.apiKey === undefined
+          ? 'Steel asked for an API key; set options.apiKey'
+          : 'the API key was refused'
+      return { state: 'warn', lines: [line] }
+    }
+    const line =
+      options.apiKey === undefined
+        ? 'Steel answered without an API key'
+        : 'the API key was accepted'
+    return { state: 'ok', lines: [line] }
   },
 
   async acquire({ options, settings, session }) {
