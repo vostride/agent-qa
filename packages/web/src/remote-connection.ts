@@ -66,12 +66,48 @@ function listNames(names: readonly string[]): string {
   return `${names.slice(0, -1).join(', ')} and ${names[names.length - 1] as string}`
 }
 
+// A plugin remote connects to the endpoint its plugin answered, so its refusals name the remote
+// by its plugins entry, point at that entry, and count the remote's whole connectTimeout.
+export interface PluginConnect {
+  entry: string
+  connectTimeoutMs: number
+}
+
+interface ConnectContext {
+  secretsFile?: string
+  plugin?: PluginConnect
+}
+
+function connectLabel(remote: RemoteBrowserConfig, plugin: PluginConnect | undefined): string {
+  return plugin === undefined
+    ? remoteLabel(remote)
+    : remoteLabel({ name: remote.name, plugin: plugin.entry })
+}
+
+function pluginRefusalSentence(kind: RemoteFailureKind, label: string, plugin: PluginConnect) {
+  const entry = `plugin entry ${plugin.entry}`
+  switch (kind) {
+    case 'auth':
+      return `Remote ${label} refused the credentials its plugin answered with. Check ${entry}'s options and the remote's settings.`
+    case 'timeout':
+      return `Remote ${label} did not connect within ${formatConnectTimeout(plugin.connectTimeoutMs)}. Raise its connectTimeout or check the service.`
+    case 'capacity':
+    case 'version':
+      return undefined
+    default:
+      return `Remote ${label} did not answer at the endpoint its plugin gave. Check ${entry}'s options and that the service is running.`
+  }
+}
+
 function refusalSentence(
   kind: RemoteFailureKind,
   remote: RemoteBrowserConfig,
-  context: { secretsFile?: string },
+  context: ConnectContext,
 ): string {
-  const label = remoteLabel(remote)
+  const label = connectLabel(remote, context.plugin)
+  const forPlugin =
+    context.plugin === undefined ? undefined : pluginRefusalSentence(kind, label, context.plugin)
+  if (forPlugin !== undefined) return forPlugin
   switch (kind) {
     case 'auth': {
       const names = [...connectionSecretNames([remote])].sort()
@@ -96,25 +132,30 @@ function refusalSentence(
 export function rewriteConnectError(
   error: unknown,
   remote: RemoteBrowserConfig,
-  context: { secretsFile?: string } = {},
+  context: ConnectContext = {},
 ): RemoteRefusalError {
   const kind = classifyConnectError(error, remote.protocol)
   return new RemoteRefusalError(refusalSentence(kind, remote, context), {
-    remote: remoteLabel(remote),
+    remote: connectLabel(remote, context.plugin),
     kind,
   })
 }
 
 // A remote that goes silent after its handshake would hold setup with no test timeout running yet.
-export function withinConnectTimeout<T>(work: Promise<T>, remote: RemoteBrowserConfig): Promise<T> {
+export function withinConnectTimeout<T>(
+  work: Promise<T>,
+  remote: RemoteBrowserConfig,
+  plugin?: PluginConnect,
+): Promise<T> {
   void work.catch(() => undefined)
   let timer: ReturnType<typeof setTimeout> | undefined
   const bound = new Promise<never>((_resolve, reject) => {
     timer = setTimeout(() => {
-      const label = remoteLabel(remote)
+      const label = connectLabel(remote, plugin)
+      const budget = plugin?.connectTimeoutMs ?? remote.connectTimeoutMs
       reject(
         new RemoteRefusalError(
-          `Remote ${label} connected but did not open a page within ${formatConnectTimeout(remote.connectTimeoutMs)}. Raise its connectTimeout or check the service.`,
+          `Remote ${label} connected but did not open a page within ${formatConnectTimeout(budget)}. Raise its connectTimeout or check the service.`,
           { remote: label, kind: 'timeout' },
         ),
       )

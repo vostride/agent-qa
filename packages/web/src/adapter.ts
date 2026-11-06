@@ -68,7 +68,7 @@ import {
 } from './remote-connection.js'
 import { createScreencastRecording, type ScreencastRecording } from './recording.js'
 import { isHeadlessLaunch, OperationCapture } from './operation-capture.js'
-import type { RemoteDisconnectKind } from './remote-connection.js'
+import type { PluginConnect, RemoteDisconnectKind } from './remote-connection.js'
 import type { CapturedOperations } from './operation-capture.js'
 
 interface PageLogBuffers {
@@ -320,9 +320,11 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     const browserName = config.browser?.name ?? 'chromium'
     let remote: RemoteBrowserConfig | undefined
     let releaseLease: (() => Promise<void>) | undefined
+    let plugin: PluginConnect | undefined
     if (configured !== undefined && isPluginRemote(configured)) {
       const leased = await this.leaseSession(configured, browserName, config.runFacts?.testName)
       remote = leased.remote
+      plugin = { entry: configured.plugin.entry, connectTimeoutMs: configured.connectTimeoutMs }
       releaseLease = releasingOnce(leased.lease)
       this.lease = leased.lease
       this.releaseLease = releaseLease
@@ -356,11 +358,12 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
             ? await chromium.connectOverCDP(url, { headers, timeout: remote.connectTimeoutMs })
             : await launcher.connect(url, { headers, timeout: remote.connectTimeoutMs })
       } catch (error) {
-        const refused = rewriteConnectError(
-          error,
-          remote,
-          this.options.secretsFile !== undefined ? { secretsFile: this.options.secretsFile } : {},
-        )
+        const refused = rewriteConnectError(error, remote, {
+          ...(this.options.secretsFile !== undefined
+            ? { secretsFile: this.options.secretsFile }
+            : {}),
+          ...(plugin === undefined ? {} : { plugin }),
+        })
         if (releaseLease !== undefined) {
           this.lease = undefined
           this.releaseLease = undefined
@@ -403,7 +406,11 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
     if (remote === undefined) return this.openSession(config, undefined, browserName, headless)
     try {
-      await withinConnectTimeout(this.openSession(config, remote, browserName, headless), remote)
+      await withinConnectTimeout(
+        this.openSession(config, remote, browserName, headless),
+        remote,
+        plugin,
+      )
     } catch (error) {
       const scrubbed = this.withoutEndpoint(error)
       if (!(scrubbed instanceof RemoteRefusalError)) throw scrubbed

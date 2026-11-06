@@ -18,7 +18,12 @@ import type { Mock } from 'vitest'
 
 import { MIN_PLUGIN_CONNECT_MS, WebPlatformAdapter } from '../adapter.js'
 import type { WebPlatformAdapterOptions } from '../adapter.js'
-import { freePort, startPlaywrightServer } from './fixtures/remote-browsers.js'
+import {
+  freePort,
+  startPlaywrightServer,
+  startSilentSocket,
+  startStatusServer,
+} from './fixtures/remote-browsers.js'
 
 const teardowns: Array<() => Promise<void>> = []
 
@@ -128,12 +133,48 @@ describe("a plugin remote's leased session", () => {
     expect(error).toBeInstanceOf(RemoteRefusalError)
     expect((error as RemoteRefusalError).kind).toBe('unreachable')
     expect((error as RemoteRefusalError).message).toBe(
-      `Remote lab-chrome (playwright ws://127.0.0.1:${String(port)}) did not answer. Check its url and that the service is running.`,
+      "Remote lab-chrome (plugin lab) did not answer at the endpoint its plugin gave. Check plugin entry lab's options and that the service is running.",
     )
+    expect((error as RemoteRefusalError).message).not.toContain(String(port))
     expect(leases.release).toHaveBeenCalledTimes(1)
     await adapter.cleanup()
     expect(leases.release).toHaveBeenCalledTimes(1)
     expect(leases.started).not.toHaveBeenCalled()
+  })
+
+  it("points a refused credential at the plugin entry's options and the remote's settings", async () => {
+    const server = await startStatusServer(401, 'refused')
+    teardowns.push(() => server.close())
+    const leases = fakeLeases({
+      protocol: 'playwright',
+      url: `ws://127.0.0.1:${String(server.port)}/`,
+    })
+
+    const error = await refusalOf(pluginRemote(), { pluginSessions: leases.source })
+
+    expect(error.kind).toBe('auth')
+    expect(error.message).toBe(
+      "Remote lab-chrome (plugin lab) refused the credentials its plugin answered with. Check plugin entry lab's options and the remote's settings.",
+    )
+    expect(leases.release).toHaveBeenCalledTimes(1)
+  })
+
+  it("names the remote's whole connectTimeout when the connect after the acquire times out", async () => {
+    const silent = await startSilentSocket()
+    teardowns.push(() => silent.close())
+    const answer: RemoteLeaseAnswer = {
+      protocol: 'playwright',
+      url: `ws://127.0.0.1:${String(silent.port)}/`,
+    }
+
+    const error = await refusalOf(pluginRemote(2_000), {
+      pluginSessions: fakeLeases(answer, 300).source,
+    })
+
+    expect(error.kind).toBe('timeout')
+    expect(error.message).toBe(
+      'Remote lab-chrome (plugin lab) did not connect within 2s. Raise its connectTimeout or check the service.',
+    )
   })
 
   it('asks the plugin for a web session with the deadline the remote allows', async () => {
