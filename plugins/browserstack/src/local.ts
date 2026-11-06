@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { format } from 'node:util'
 import { PluginError, type PluginProgress } from '@vostride/agent-qa-plugin-kit'
 import { Local } from 'browserstack-local'
 
@@ -44,6 +45,23 @@ function stopDaemon(binary: string, request: TunnelRequest): Promise<void> {
   })
 }
 
+const CONSOLE_METHODS = ['log', 'info', 'debug', 'warn', 'error'] as const
+
+// The wrapper logs the binary's whole command line, --key included, when the binary fails.
+function maskConsole(secret: string): () => void {
+  if (secret === '') return () => {}
+  const originals = CONSOLE_METHODS.map((method) => console[method])
+  CONSOLE_METHODS.forEach((method, index) => {
+    const original = originals[index] as (...args: unknown[]) => void
+    console[method] = (...args: unknown[]) => original(format(...args).split(secret).join('***'))
+  })
+  return () => {
+    CONSOLE_METHODS.forEach((method, index) => {
+      console[method] = originals[index] as (...args: unknown[]) => void
+    })
+  }
+}
+
 function localLogFile(): string {
   const name = `agent-qa-browserstack-local-${process.pid}-${randomBytes(4).toString('hex')}.log`
   return join(tmpdir(), name)
@@ -60,6 +78,7 @@ export const browserStackLocalFactory: TunnelFactory = {
       // After a failed run the wrapper deletes its binary and retries; the user's own must stay.
       wrapper.retriesLeft = 0
     }
+    const unmask = maskConsole(request.accessKey)
     const running = new Promise<RunningTunnel>((resolve, reject) => {
       local.start(
         {
@@ -69,6 +88,7 @@ export const browserStackLocalFactory: TunnelFactory = {
           ...(request.binary === undefined ? {} : { binarypath: request.binary }),
         },
         (error) => {
+          unmask()
           if (error) {
             const [first] = error.message.split('\n')
             reject(new Error(`${first} (its log is ${logFile})`))

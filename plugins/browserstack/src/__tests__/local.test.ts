@@ -507,12 +507,14 @@ describe.skipIf(process.platform === 'win32')('BrowserStack Local run through it
   it('refuses the acquire with kind unreachable when the binary fails, without the key, and leaves the binary in place', async () => {
     const stub = stubBinary('fail')
 
-    const { answer } = await tunnelled(stub)
+    const { answer, plugin } = await tunnelled(stub)
 
     expect(answer.error?.code).toBe(-32000)
     expect(answer.error?.data).toMatchObject({ kind: 'unreachable', path: 'local' })
     expect(answer.error?.message).toMatch(/^BrowserStack Local did not start: /)
     expect(answer.error?.message).not.toContain(ACCESS_KEY)
+    expect(plugin.stderr()).toContain('Error while trying to execute binary')
+    expect(plugin.stderr()).not.toContain(ACCESS_KEY)
     const logFile = /\(its log is (.+)\)$/.exec(answer.error?.message ?? '')?.[1]
     expect(logFile?.startsWith(join(tmpdir(), 'agent-qa-browserstack-local-'))).toBe(true)
     if (logFile !== undefined) dirs.push(logFile)
