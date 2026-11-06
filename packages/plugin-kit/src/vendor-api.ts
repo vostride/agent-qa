@@ -63,6 +63,13 @@ function vendorReason(body: unknown): string | undefined {
   return undefined
 }
 
+// Retry-After is a number of seconds or an HTTP date.
+function retryWait(retryAfter: string | null): string {
+  const value = retryAfter?.trim() ?? ''
+  if (value === '') return ''
+  return /^\d+$/.test(value) ? `, retry after ${value} s` : `, retry after ${oneLine(value)}`
+}
+
 function causeText(error: unknown): string {
   if (!(error instanceof Error)) return oneLine(String(error))
   const cause = error.cause
@@ -102,9 +109,7 @@ export function createVendorApi(input: VendorApiInput): VendorApi {
       const text = await response.text().catch(() => '')
       const message = vendorReason(parseJson(text))
       const reason = message === undefined ? '' : `: ${message}`
-      const retryAfter = response.headers.get('retry-after')
-      const wait =
-        response.status === 429 && retryAfter !== null ? `, retry after ${retryAfter} s` : ''
+      const wait = response.status === 429 ? retryWait(response.headers.get('retry-after')) : ''
       return new PluginError(
         `${input.vendor} answered ${response.status} to ${request}${reason}${wait}`,
         {

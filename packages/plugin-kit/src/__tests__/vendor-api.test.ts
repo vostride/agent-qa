@@ -176,6 +176,18 @@ describe('createVendorApi failure', () => {
     expect(error.kind).toBe('capacity')
   })
 
+  it('names a Retry-After date as it was sent, without seconds', async () => {
+    const error = await failureOf({
+      status: 429,
+      json: { message: 'slow down' },
+      headers: { 'retry-after': 'Wed, 21 Oct 2026 07:28:00 GMT' },
+    })
+
+    expect(error.message).toBe(
+      'Acme answered 429 to POST /things: slow down, retry after Wed, 21 Oct 2026 07:28:00 GMT',
+    )
+  })
+
   it('names no wait for a status other than 429', async () => {
     const error = await failureOf({ status: 529, json: {}, headers: { 'retry-after': '7' } })
 
