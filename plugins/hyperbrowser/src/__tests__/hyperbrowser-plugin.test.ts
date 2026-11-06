@@ -314,9 +314,22 @@ describe('Hyperbrowser failures', () => {
     const answer = await acquire(plugin)
 
     expect(answer.error?.message).toBe(
-      'Hyperbrowser answered a session without an id and a wsEndpoint.',
+      'Hyperbrowser answered a session without a usable wsEndpoint.',
     )
     expect(answer.error?.data).toMatchObject({ kind: 'refused', handle: { sessionId: 'h-9' } })
+  })
+
+  it('refuses an answer without an id, with no handle to stop', async () => {
+    const api = await startApi({
+      create: [{ status: 200, json: { wsEndpoint: 'wss://connect.example.invalid/' } }],
+    })
+    const plugin = await hyperbrowserPlugin(api)
+
+    const answer = await acquire(plugin)
+
+    expect(answer.error?.message).toBe('Hyperbrowser answered a session without an id.')
+    expect(answer.error?.data?.kind).toBe('refused')
+    expect(answer.error?.data).not.toHaveProperty('handle')
   })
 })
 
