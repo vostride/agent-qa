@@ -343,7 +343,7 @@ describe.skipIf(process.platform === 'win32')('the plugin host pool shutting a p
 })
 
 describe('the plugin host pool on the session registry', () => {
-  it('registers each lease and its own signal shutdown at five seconds, so a slow release still gets its shutdown', async () => {
+  it('registers each lease at five seconds and its own signal shutdown past them, so a slow release still gets its shutdown', async () => {
     const p = host()
     const lab = p.entry('lab', { recordProcess: true, script: { release: { delayMs: 3_000 } } })
     const sessions = createRemoteSessionRegistry()
@@ -357,6 +357,21 @@ describe('the plugin host pool on the session registry', () => {
     expect(Date.now() - startedAt).toBeGreaterThanOrEqual(3_000 - SLACK_MS)
     expect(methodsOf(p.ledger(lab))).toEqual(['initialize', 'acquire', 'release', 'shutdown'])
     expect(isAlive(pid)).toBe(false)
+  }, 15_000)
+
+  it('kills a plugin group that ignores SIGTERM before the registry stops waiting on a signal', async () => {
+    const p = host()
+    const stubborn = stubbornEntry(p, { answersShutdown: false })
+    const sessions = createRemoteSessionRegistry()
+    const pool = p.pool([stubborn], { sessions })
+
+    await pool.acquire(request('lab-a', 'stubborn'))
+    const pid = pidOf(eventsOf(stubborn), 'initialize')
+    strays.push(pid)
+    await sessions.releaseAll(REMOTE_RELEASE_BOUND_MS)
+
+    await waitFor(() => !groupAlive(pid), 250)
+    expect(eventsOf(stubborn).map((line) => line.event)).toContain('SIGTERM')
   }, 15_000)
 
   it('on a signal tells a plugin that declares end that a session the run never marked was cancelled, then releases it', async () => {

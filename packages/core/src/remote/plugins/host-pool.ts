@@ -70,6 +70,8 @@ export const DEFAULT_PLUGIN_HOST_BOUNDS: PluginHostBounds = {
 
 // On a signal, once SIGTERM is sent, how long a plugin's group has before SIGKILL.
 const SIGNAL_KILL_AFTER_MS = 500
+// What the session registry waits past signalMs, so SIGTERM and SIGKILL are sent before it gives up.
+const SIGNAL_KILL_RESERVE_MS = SIGNAL_KILL_AFTER_MS + 500
 
 const PROGRESS_LINE_MAX = 200
 
@@ -617,7 +619,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     if (start === undefined) {
       // A signal shuts every started entry down after its leases' releases, in the same bound.
       unregisterShutdown ??= input.sessions?.register(() => shutdown({ signal: true }), {
-        boundMs: PLUGIN_RELEASE_BOUND_MS,
+        boundMs: bounds.signalMs + SIGNAL_KILL_RESERVE_MS,
       })
       start = startEntry(name)
       starts.set(name, start)
