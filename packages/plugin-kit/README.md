@@ -385,6 +385,8 @@ package.json differs from the one the emitter would write.
   runs out, or a function from the request to a reply.
 - A reply is `{ status, json?, text?, headers? }`, or `'hold'`, which never answers until the fake closes.
 - A request no route matches is answered 404 with `{ message: 'no route' }`.
+- A route function that throws, for example on a failed `expect`, is answered 500, and `close()` rejects
+  with the first such error.
 
 It returns `{ url, origin, requests, routeCalls(key), close() }`. `url` is `http://127.0.0.1:<port>`.
 `requests` records the method, path, query, route params, headers and parsed JSON body of every request,

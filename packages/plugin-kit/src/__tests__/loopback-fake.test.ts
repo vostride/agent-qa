@@ -120,6 +120,33 @@ describe('startLoopbackFake', () => {
     expect(await pending).toBe('closed')
   })
 
+  it('answers 500 when a route function throws, and rejects close with that error', async () => {
+    const fake = await startLoopbackFake({
+      routes: {
+        'POST /browsers': () => {
+          throw new Error('expected the bearer token')
+        },
+      },
+    })
+
+    const response = await post(`${fake.url}/browsers`, {})
+
+    expect(response.status).toBe(500)
+    expect(await response.json()).toEqual({
+      message: 'the route threw: Error: expected the bearer token',
+    })
+    await expect(fake.close()).rejects.toThrow('expected the bearer token')
+  })
+
+  it('passes a :param segment that is not valid percent-encoding through as written', async () => {
+    const fake = await start({ 'GET /browsers/:id': () => ({ status: 204 }) })
+
+    const response = await fetch(`${fake.url}/browsers/50%zz`)
+
+    expect(response.status).toBe(204)
+    expect(fake.routeCalls('GET /browsers/:id')[0]?.params).toEqual({ id: '50%zz' })
+  })
+
   it('listens on 127.0.0.1 only', async () => {
     const fake = await start({})
 

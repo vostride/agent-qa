@@ -57,6 +57,14 @@ function compile(key: string, route: LoopbackRoute): CompiledRoute {
   return { key, method: match[1], segments: splitPath(match[2]), route, calls: [] }
 }
 
+function decodeSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment)
+  } catch {
+    return segment
+  }
+}
+
 function matchParams(route: CompiledRoute, method: string, path: string) {
   if (route.method !== method) return undefined
   const segments = splitPath(path)
@@ -64,7 +72,7 @@ function matchParams(route: CompiledRoute, method: string, path: string) {
   const params: Record<string, string> = {}
   for (const [index, expected] of route.segments.entries()) {
     const actual = segments[index] ?? ''
-    if (expected.startsWith(':')) params[expected.slice(1)] = decodeURIComponent(actual)
+    if (expected.startsWith(':')) params[expected.slice(1)] = decodeSegment(actual)
     else if (expected !== actual) return undefined
   }
   return params
@@ -105,6 +113,7 @@ export async function startLoopbackFake(input: LoopbackFakeInput): Promise<Loopb
   const routes = Object.entries(input.routes).map(([key, route]) => compile(key, route))
   const requests: LoopbackRequest[] = []
   const sockets = new Set<Socket>()
+  let routeFailure: unknown
 
   const answer = (record: LoopbackRequest, response: ServerResponse) => {
     for (const route of routes) {
@@ -137,7 +146,15 @@ export async function startLoopbackFake(input: LoopbackFakeInput): Promise<Loopb
         headers: lowerCasedHeaders(request),
         body: parseBody(Buffer.concat(chunks).toString('utf8')),
       }
-      answer(record, response)
+      try {
+        answer(record, response)
+      } catch (error) {
+        // A route that throws, such as an expect() on a header, fails the test at close.
+        routeFailure ??= error
+        if (!response.headersSent) {
+          send(response, { status: 500, json: { message: `the route threw: ${String(error)}` } })
+        }
+      }
     })
   })
   server.on('connection', (socket: Socket) => {
@@ -160,9 +177,9 @@ export async function startLoopbackFake(input: LoopbackFakeInput): Promise<Loopb
       return [...(routes.find((route) => route.key === key)?.calls ?? [])]
     },
     close() {
-      closing ??= new Promise<void>((closed) => {
+      closing ??= new Promise<void>((closed, failed) => {
         for (const socket of sockets) socket.destroy()
-        server.close(() => closed())
+        server.close(() => (routeFailure === undefined ? closed() : failed(routeFailure)))
       })
       return closing
     },
