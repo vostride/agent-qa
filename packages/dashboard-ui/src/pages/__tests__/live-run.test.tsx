@@ -647,6 +647,42 @@ describe("a running test's plugin progress", () => {
     await emit(testFinished(0, 'passed'))
     expect(progressText()).toEqual([])
   })
+
+  it("shows a suite session's shared line once, without a test name", async () => {
+    await mount()
+    await open()
+    await emit(runStarted(), testStarted(0, 'checkout', 1), testStarted(1, 'login', 1))
+    await emit(remoteProgress({ message: 'queued, 3 ahead', queued: 3 }))
+
+    expect(progressText()).toEqual(['Remote bs-chrome: queued, 3 ahead'])
+  })
+
+  it("names each running test before its line when the tests' lines differ", async () => {
+    await mount()
+    await open()
+    await emit(runStarted(), testStarted(0, 'checkout', 1), testStarted(1, 'login', 1))
+    await emit(
+      remoteProgress({ message: 'queued, 3 ahead', testIndex: 0 }),
+      remoteProgress({ message: 'uploading app', testIndex: 1, percent: 40 }),
+    )
+
+    expect(progressText()).toEqual([
+      'checkout · Remote bs-chrome: queued, 3 ahead',
+      'login · Remote bs-chrome: uploading app 40%',
+    ])
+  })
+
+  it('announces the lines from one polite live region', async () => {
+    await mount()
+    await open()
+    await emit(runStarted(), testStarted(0, 'checkout', 1))
+    await emit(remoteProgress({ message: 'queued, 3 ahead', testIndex: 0 }))
+
+    const region = q('[data-remote-progress]')?.parentElement
+    expect(region?.getAttribute('role')).toBe('status')
+    expect(region?.getAttribute('aria-live')).toBe('polite')
+    expect(qa('[role="status"] [data-remote-progress]')).toHaveLength(1)
+  })
 })
 
 describe('the header is the title, the file path, Cancel and view run detail', () => {

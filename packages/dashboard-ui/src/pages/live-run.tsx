@@ -44,6 +44,31 @@ export function remoteProgressText(line: RemoteProgressLine): string {
   return `Remote ${line.remote}: ${line.message}${percent}`
 }
 
+export interface RemoteProgressRow {
+  key: string
+  text: string
+}
+
+// Each distinct line once, so a suite's shared session shows one; when the lines differ, each
+// names the tests it belongs to.
+export function remoteProgressRows(
+  progress: RunStreamState['progress'],
+  members: RunStreamState['members'],
+): RemoteProgressRow[] {
+  const byText = new Map<string, number[]>()
+  for (const [testIndex, line] of Object.entries(progress)) {
+    const text = remoteProgressText(line)
+    byText.set(text, [...(byText.get(text) ?? []), Number(testIndex)])
+  }
+  const named = byText.size > 1
+  return [...byText].map(([text, testIndexes]) => {
+    const names = testIndexes.map(
+      (testIndex) => members[testIndex]?.name ?? `test ${String(testIndex + 1)}`,
+    )
+    return { key: testIndexes.join(','), text: named ? `${names.join(', ')} · ${text}` : text }
+  })
+}
+
 /** What the terminal band says beside the verdict. */
 export const RUN_ENDED_TEXT = 'run ended'
 
@@ -237,7 +262,7 @@ export default function LiveRunPage() {
 
   // Named once so the strip's condition and the element inside it cannot come apart.
   const rung = state.retrievalRung
-  const progressLines = Object.entries(state.progress)
+  const progressRows = remoteProgressRows(state.progress, state.members)
 
   // Gated on `rungBannerText`, the banner's own predicate, so container and child cannot disagree.
   const rungSentence = rungBannerText(rung === undefined ? undefined : {
@@ -311,7 +336,7 @@ export default function LiveRunPage() {
 
       {/* The rung joins the second line, gated on its sentence so `memidex` adds no empty rule. */}
       {(bandsTerminal || runMetaFailed || runOver || state.gap !== undefined
-        || rungSentence !== undefined || state.notices.length > 0 || progressLines.length > 0) && (
+        || rungSentence !== undefined || state.notices.length > 0 || progressRows.length > 0) && (
         <div data-run-meta-strip className="flex shrink-0 flex-wrap items-center gap-3 border-b px-3 py-2 text-xs">
           {bandsTerminal && (
             <div data-terminal-state={verdictDescriptor.normalized} className="flex items-center gap-2">
@@ -338,11 +363,15 @@ export default function LiveRunPage() {
             is scope order.
           */}
           <RetrievalRungBanner variant="live" rung={rung?.rung} reason={rung?.reason} />
-          {progressLines.map(([testIndex, line]) => (
-            <p key={`progress:${testIndex}`} data-remote-progress={testIndex} className="text-muted-foreground">
-              {remoteProgressText(line)}
-            </p>
-          ))}
+          {progressRows.length > 0 && (
+            <div role="status" aria-live="polite" className="contents">
+              {progressRows.map((row) => (
+                <p key={`progress:${row.key}`} data-remote-progress={row.key} className="text-muted-foreground">
+                  {row.text}
+                </p>
+              ))}
+            </div>
+          )}
           {runMetaFailed && (
             <p data-run-meta-unavailable className="text-muted-foreground">
               run details unavailable — the live stream is unaffected
