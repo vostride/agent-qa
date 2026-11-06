@@ -1,10 +1,10 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PluginError, type PluginCallContext } from '@vostride/agent-qa-plugin-kit'
 import { afterEach, describe, expect, it } from 'vitest'
-import type { TunnelFactory, TunnelRequest } from '../local.js'
+import { localBinaryFix, type TunnelFactory, type TunnelRequest } from '../local.js'
 import { createBrowserStackPlugin } from '../plugin.js'
 import { BROWSERSTACK_PLAYWRIGHT_VERSIONS } from '../playwright-versions.js'
 import {
@@ -247,6 +247,14 @@ describe('BrowserStack Local started by the plugin', () => {
 
     await expect(acquiring).rejects.toThrow('cancelled while BrowserStack Local was starting')
   })
+
+  it('names Rosetta in the fix only on macOS', () => {
+    expect(localBinaryFix('darwin')).toBe(
+      'Install Rosetta (softwareupdate --install-rosetta --agree-to-license) or set localBinary to a binary this machine can run',
+    )
+    expect(localBinaryFix('linux')).toBe('Set localBinary to a binary this machine can run')
+    expect(localBinaryFix('win32')).toBe('Set localBinary to a binary this machine can run')
+  })
 })
 
 describe('a BrowserStack Local tunnel that is already running', () => {
@@ -362,6 +370,20 @@ function stubBinary(mode: 'connect' | 'fail' | 'slow'): StubBinary {
   }
 }
 
+// A directory passes the wrapper's executable check, so it is found without a download, and
+// spawning it fails with EACCES on every POSIX system.
+function unrunnableBinary(path: string): string {
+  mkdirSync(path, { recursive: true })
+  return path
+}
+
+function refusalLog(message: string | undefined): string {
+  const log = /\(its log is (.+)\)$/.exec(message ?? '')?.[1]
+  if (log === undefined) return ''
+  dirs.push(log)
+  return log
+}
+
 function alive(pid: number): boolean {
   try {
     process.kill(pid, 0)
@@ -384,18 +406,22 @@ function argument(args: string[], flag: string): string | undefined {
   return at === -1 ? undefined : args[at + 1]
 }
 
+const webAcquire = {
+  remote: 'browserstack',
+  settings: {},
+  session: { platform: 'web', engine: 'chromium', context: 'new' },
+  run: { testName: TEST_NAME },
+}
+
+const FIX = localBinaryFix(process.platform)
+
 async function tunnelled(stub: StubBinary) {
   const cwd = freshDir()
   const plugin = startPluginProcess({ cwd })
   processes.push(plugin)
   const init = await initializePlugin(plugin, { local: true, localBinary: stub.path }, LISTED)
   expect(init.error).toBeUndefined()
-  const answer = await plugin.call('acquire', {
-    remote: 'browserstack',
-    settings: {},
-    session: { platform: 'web', engine: 'chromium', context: 'new' },
-    run: { testName: TEST_NAME },
-  })
+  const answer = await plugin.call('acquire', webAcquire)
   if (answer.error === undefined) stub.record()
   return { cwd, plugin, answer }
 }
@@ -519,5 +545,53 @@ describe.skipIf(process.platform === 'win32')('BrowserStack Local run through it
     expect(logFile?.startsWith(join(tmpdir(), 'agent-qa-browserstack-local-'))).toBe(true)
     if (logFile !== undefined) dirs.push(logFile)
     expect(existsSync(stub.path)).toBe(true)
+  })
+
+  it('refuses the acquire at path local with the fix when this machine cannot run the localBinary, and keeps serving', async () => {
+    const binary = unrunnableBinary(join(freshDir(), 'BrowserStackLocal'))
+    const plugin = startPluginProcess({ cwd: freshDir() })
+    processes.push(plugin)
+    const init = await initializePlugin(plugin, { local: true, localBinary: binary }, LISTED)
+    expect(init.error).toBeUndefined()
+
+    const first = await plugin.call('acquire', webAcquire)
+
+    expect(first.error?.code).toBe(-32000)
+    expect(first.error?.data).toMatchObject({ kind: 'unreachable', path: 'local' })
+    const log = refusalLog(first.error?.message)
+    expect(log.startsWith(join(tmpdir(), 'agent-qa-browserstack-local-'))).toBe(true)
+    expect(log.endsWith('.log')).toBe(true)
+    expect(first.error?.message).toBe(
+      `BrowserStack Local did not start: this machine cannot run ${binary} (EACCES). ${FIX} (its log is ${log})`,
+    )
+    const second = await plugin.call('acquire', webAcquire)
+    refusalLog(second.error?.message)
+    expect(second.error?.data).toMatchObject({ kind: 'unreachable', path: 'local' })
+    expect((await plugin.call('shutdown')).error).toBeUndefined()
+    expect(plugin.stderr()).not.toContain(ACCESS_KEY)
+  })
+
+  it('refuses the acquire at path local with the fix when this machine cannot run the binary the wrapper finds, and keeps serving', async () => {
+    const home = freshDir()
+    const found = unrunnableBinary(join(home, '.browserstack', 'BrowserStackLocal'))
+    const plugin = startPluginProcess({ cwd: freshDir(), env: { ...process.env, HOME: home } })
+    processes.push(plugin)
+    const init = await initializePlugin(plugin, { local: true }, LISTED)
+    expect(init.error).toBeUndefined()
+
+    const first = await plugin.call('acquire', webAcquire)
+
+    expect(first.error?.code).toBe(-32000)
+    expect(first.error?.data).toMatchObject({ kind: 'unreachable', path: 'local' })
+    const log = refusalLog(first.error?.message)
+    expect(log.startsWith(join(tmpdir(), 'agent-qa-browserstack-local-'))).toBe(true)
+    expect(first.error?.message).toBe(
+      `BrowserStack Local did not start: this machine cannot run ${found} (EACCES). ${FIX} (its log is ${log})`,
+    )
+    const second = await plugin.call('acquire', webAcquire)
+    refusalLog(second.error?.message)
+    expect(second.error?.data).toMatchObject({ kind: 'unreachable', path: 'local' })
+    expect((await plugin.call('shutdown')).error).toBeUndefined()
+    expect(plugin.stderr()).not.toContain(ACCESS_KEY)
   })
 })

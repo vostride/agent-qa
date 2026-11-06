@@ -29,10 +29,13 @@ export interface PluginProcess {
   close(): Promise<void>
 }
 
-export function startPluginProcess(input: { cwd?: string } = {}): PluginProcess {
+export function startPluginProcess(
+  input: { cwd?: string; env?: NodeJS.ProcessEnv } = {},
+): PluginProcess {
   const child = spawn(process.execPath, [ENTRY], {
     stdio: ['pipe', 'pipe', 'pipe'],
     ...(input.cwd === undefined ? {} : { cwd: input.cwd }),
+    ...(input.env === undefined ? {} : { env: input.env }),
   })
   child.stdin.on('error', () => {})
   const waiting = new Map<number, (answer: RpcAnswer) => void>()

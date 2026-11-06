@@ -221,6 +221,14 @@ this machine can reach, such as `localhost` or a staging host behind a VPN.
   `agent-qa-browserstack-local-<pid>-<random>.log`, readable only by you. Nothing is written to
   the project. When the tunnel cannot start, the refusal has kind `unreachable` at path `local`
   and names that log.
+- Before it starts the tunnel, the plugin runs the binary once with `--version` to check that
+  this machine can run it. `browserstack-local` downloads BrowserStack's Intel build on every Mac,
+  which an Apple Silicon Mac runs only under Rosetta. A binary this machine cannot run refuses
+  the session the same way, with kind `unreachable` at path `local`, naming the binary, the fix
+  and the log. On macOS the fix is to install Rosetta
+  (`softwareupdate --install-rosetta --agree-to-license`) or set `localBinary` to a binary this
+  machine can run; on any other system it is to set `localBinary` to a binary this machine can
+  run.
 - The tunnel runs as a daemon outside the plugin's process group, so the plugin stops it itself:
   on `shutdown`, when agent-qa closes the plugin's stdin and on `SIGTERM`. A tunnel still starting
   then is aborted: the plugin kills the launch and runs the binary's `--daemon stop` for the

@@ -1,4 +1,4 @@
-import { execFile, type ChildProcess } from 'node:child_process'
+import { execFile, spawnSync, type ChildProcess } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
 import { writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -8,6 +8,7 @@ import { PluginError, type PluginProgress } from '@vostride/agent-qa-plugin-kit'
 import { Local } from 'browserstack-local'
 
 const STOP_BOUND_MS = 3_000
+const CHECK_BOUND_MS = 5_000
 
 export interface TunnelRequest {
   accessKey: string
@@ -33,6 +34,42 @@ interface WrapperState {
   retriesLeft: number
   tunnel?: ChildProcess
   binaryPath?: string
+  key?: string
+  getBinaryPath(found: (path: string | undefined) => void): void
+}
+
+// browserstack-local downloads BrowserStack's Intel build on every Mac, and only a Mac has Rosetta.
+export function localBinaryFix(platform: NodeJS.Platform): string {
+  if (platform === 'darwin') {
+    return 'Install Rosetta (softwareupdate --install-rosetta --agree-to-license) or set localBinary to a binary this machine can run'
+  }
+  return 'Set localBinary to a binary this machine can run'
+}
+
+function wrapperBinary(wrapper: WrapperState, accessKey: string): Promise<string> {
+  // A download authenticates with the key, as the wrapper's own start would set it.
+  wrapper.key = accessKey
+  return new Promise<string>((resolve, reject) => {
+    wrapper.getBinaryPath((path) => {
+      if (path) {
+        resolve(path)
+        return
+      }
+      reject(
+        new Error('browserstack-local found no BrowserStack Local binary and could not download one'),
+      )
+    })
+  })
+}
+
+// spawnSync returns a spawn failure, such as BrowserStack's Intel build on an Apple Silicon Mac
+// without Rosetta, where the wrapper's own launch throws it from a callback no caller can catch.
+function cannotRun(binary: string): string | undefined {
+  const { error } = spawnSync(binary, ['--version'], { stdio: 'ignore', timeout: CHECK_BOUND_MS })
+  if (error === undefined) return undefined
+  const code = (error as NodeJS.ErrnoException).code
+  if (code === 'ETIMEDOUT') return undefined
+  return code ?? error.message
 }
 
 // The binary's own stop for a daemon by identifier; it runs whatever state the launch reached.
@@ -79,28 +116,44 @@ export const browserStackLocalFactory: TunnelFactory = {
       wrapper.retriesLeft = 0
     }
     const unmask = maskConsole(request.accessKey)
-    const running = new Promise<RunningTunnel>((resolve, reject) => {
-      local.start(
-        {
-          key: request.accessKey,
-          localIdentifier: request.identifier,
-          logFile,
-          ...(request.binary === undefined ? {} : { binarypath: request.binary }),
-        },
-        (error) => {
-          unmask()
-          if (error) {
-            const [first] = error.message.split('\n')
-            reject(new Error(`${first} (its log is ${logFile})`))
-            return
-          }
-          resolve({ stop: () => new Promise<void>((done) => local.stop(() => done())) })
-        },
-      )
-    })
+    let aborted = false
+    // The launch waits for the check, so it always runs from this promise and nothing it throws
+    // escapes.
+    const running = (async (): Promise<RunningTunnel> => {
+      const binary = request.binary ?? (await wrapperBinary(wrapper, request.accessKey))
+      const failure = cannotRun(binary)
+      if (failure !== undefined) {
+        throw new Error(
+          `this machine cannot run ${binary} (${failure}). ${localBinaryFix(process.platform)} (its log is ${logFile})`,
+        )
+      }
+      if (aborted) throw new Error('it was stopped while it was starting')
+      // Its own find, so a launch that fails still deletes it and downloads another, as the
+      // wrapper does.
+      if (request.binary === undefined) wrapper.binaryPath = binary
+      return new Promise<RunningTunnel>((resolve, reject) => {
+        local.start(
+          {
+            key: request.accessKey,
+            localIdentifier: request.identifier,
+            logFile,
+            ...(request.binary === undefined ? {} : { binarypath: request.binary }),
+          },
+          (error) => {
+            if (error) {
+              const [first] = error.message.split('\n')
+              reject(new Error(`${first} (its log is ${logFile})`))
+              return
+            }
+            resolve({ stop: () => new Promise<void>((done) => local.stop(() => done())) })
+          },
+        )
+      })
+    })().finally(unmask)
     return {
       running,
       async abort() {
+        aborted = true
         // A killed launch must not be retried with a fresh download.
         wrapper.retriesLeft = 0
         wrapper.tunnel?.kill()
