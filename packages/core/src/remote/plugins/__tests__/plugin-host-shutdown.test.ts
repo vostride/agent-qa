@@ -45,6 +45,7 @@ function request(remote: string, entry: string) {
 interface StubbornBehaviour {
   answersShutdown: boolean
   releaseDelayMs?: number
+  exitsOnTerm?: boolean
 }
 
 type StubbornEvent = { event: string; at: number; pid?: number }
@@ -61,7 +62,10 @@ const note = (entry) => appendFileSync(ledgerFile, JSON.stringify({ ...entry, at
 const send = (message) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', ...message }) + '\\n')
 
 process.on('SIGINT', () => note({ event: 'SIGINT' }))
-process.on('SIGTERM', () => note({ event: 'SIGTERM' }))
+process.on('SIGTERM', () => {
+  note({ event: 'SIGTERM' })
+  if (behaviour.exitsOnTerm) process.exit(0)
+})
 process.stdin.on('end', () => note({ event: 'stdin-end' }))
 setInterval(() => {}, 1_000)
 
@@ -201,6 +205,24 @@ describe.skipIf(process.platform === 'win32')('the plugin host pool shutting a p
     expect(shutDownAt - at(events, 'SIGTERM')).toBeGreaterThanOrEqual(killAfterMs - SLACK_MS)
     expect(isAlive(pid)).toBe(false)
     await waitFor(() => !isAlive(pidOf(events, 'grandchild')), 2_000)
+    expect(groupAlive(pid)).toBe(false)
+  })
+
+  it('sends SIGKILL to the group after the grace when the plugin exits on SIGTERM but its child does not', async () => {
+    const p = host()
+    const stubborn = stubbornEntry(p, { answersShutdown: true, exitsOnTerm: true })
+    const killAfterMs = 300
+    const pool = p.pool([stubborn], { bounds: { killAfterMs, cancelGraceMs: 1_000 } })
+
+    await pool.acquire(request('lab-a', 'stubborn'))
+    const pid = pidOf(eventsOf(stubborn), 'initialize')
+    strays.push(pid)
+    await pool.shutdown()
+
+    const events = eventsOf(stubborn)
+    expect(events.map((line) => line.event)).toContain('SIGTERM')
+    expect(isAlive(pid)).toBe(false)
+    await waitFor(() => !isAlive(pidOf(events, 'grandchild')), 1_000)
     expect(groupAlive(pid)).toBe(false)
   })
 

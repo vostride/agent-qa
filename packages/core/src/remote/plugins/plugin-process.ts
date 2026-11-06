@@ -60,7 +60,8 @@ export interface PluginProcess {
     params: unknown,
     options: PluginRequestOptions,
   ): Promise<PluginCallOutcome>
-  // stdin closes, then SIGTERM after killAfterMs, then SIGKILL after termMs.
+  // stdin closes; after killAfterMs whatever is left of the group gets SIGTERM, then SIGKILL
+  // after termMs, even when the plugin itself has exited.
   stop(killAfterMs?: number, termMs?: number): Promise<void>
 }
 
@@ -78,6 +79,8 @@ interface Pending {
 const STDIO_DRAIN_MS = 250
 // stderr and stdout are separate pipes, so a reason logged before an answer can arrive after it.
 const STDERR_REASON_WAIT_MS = 150
+// How often a stop looks for the plugin's group after SIGTERM.
+const GROUP_POLL_MS = 50
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -273,6 +276,28 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
     }
   }
 
+  // A grandchild the plugin started stays in its group after the plugin itself exits.
+  const groupAlive = (): boolean => {
+    const pid = child.pid
+    if (pid === undefined || process.platform === 'win32') return !gone
+    try {
+      process.kill(-pid, 0)
+      return true
+    } catch (error) {
+      return (error as NodeJS.ErrnoException).code === 'EPERM'
+    }
+  }
+
+  const groupGoneWithin = async (ms: number): Promise<boolean> => {
+    const until = Date.now() + ms
+    while (groupAlive()) {
+      const remaining = until - Date.now()
+      if (remaining <= 0) return false
+      await new Promise((resolve) => setTimeout(resolve, Math.min(GROUP_POLL_MS, remaining)))
+    }
+    return true
+  }
+
   const exitsWithin = async (ms: number): Promise<boolean> => {
     if (gone) return true
     let timer: ReturnType<typeof setTimeout> | undefined
@@ -319,13 +344,10 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
     },
     async stop(killAfterMs = input.killAfterMs, termMs = killAfterMs) {
       if (!child.stdin.destroyed) child.stdin.end()
-      if (await exitsWithin(killAfterMs)) {
-        // A grandchild the plugin started can outlive it in its group.
-        signalGroup('SIGTERM')
-        return
-      }
+      await exitsWithin(killAfterMs)
+      if (!groupAlive()) return
       signalGroup('SIGTERM')
-      if (await exitsWithin(termMs)) return
+      if (await groupGoneWithin(termMs)) return
       signalGroup('SIGKILL')
       await exitsWithin(termMs)
     },
