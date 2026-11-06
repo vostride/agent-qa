@@ -165,16 +165,16 @@ function parseParams<Schema extends z.ZodType>(
   )
 }
 
-function refuse(schema: z.ZodType, value: unknown, prefix: string): unknown {
+// A refusal's path starts with options. or settings., naming the block that holds the field.
+function refuse(schema: z.ZodType, value: unknown, prefix: 'options' | 'settings'): unknown {
   const parsed = schema.safeParse(value)
   if (parsed.success) return parsed.data
   const issue = parsed.error.issues[0]
   const inner = issue === undefined ? '' : issuePath(issue)
-  const path = [prefix, inner].filter((part) => part !== '').join('.')
-  const label = path === '' ? 'options' : path
-  throw new PluginError(`${label}: ${issue?.message ?? 'invalid'}`, {
+  const path = inner === '' ? undefined : `${prefix}.${inner}`
+  throw new PluginError(`${path ?? prefix}: ${issue?.message ?? 'invalid'}`, {
     kind: 'refused',
-    ...(path === '' ? {} : { path }),
+    ...(path === undefined ? {} : { path }),
   })
 }
 
@@ -290,8 +290,8 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
         }),
     )
 
-  const settings = (value: unknown, prefix: string) =>
-    refuse(definition.settings, value, prefix) as z.output<SettingsSchema>
+  const settings = (value: unknown) =>
+    refuse(definition.settings, value, 'settings') as z.output<SettingsSchema>
 
   const leave = async (boundMs: number) => {
     if (leaving) return
@@ -346,7 +346,7 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
         },
       )
     }
-    const parsedOptions = refuse(definition.options, input.options, '') as z.output<OptionsSchema>
+    const parsedOptions = refuse(definition.options, input.options, 'options') as z.output<OptionsSchema>
     initializing = true
     try {
       await definition.initialize?.(
@@ -400,7 +400,7 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
       case 'acquire': {
         const input = parseParams(AcquireParamsSchema, params, method)
         const result = await definition.acquire(
-          { ...input, settings: settings(input.settings, 'settings'), options: current },
+          { ...input, settings: settings(input.settings), options: current },
           ctx,
         )
         return checkedResult(AcquireResultSchema, result, method)
@@ -421,7 +421,7 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
         const input = parseParams(CheckParamsSchema, params, method)
         const remotes = input.remotes.map((remote) => ({
           name: remote.name,
-          settings: settings(remote.settings, 'settings'),
+          settings: settings(remote.settings),
         }))
         const result = await definition.check?.({ remotes, options: current }, ctx)
         return checkedResult(CheckResultSchema, result, method)
@@ -429,7 +429,7 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
       case 'uploadApp': {
         const input = parseParams(UploadAppParamsSchema, params, method)
         const result = await definition.uploadApp?.(
-          { ...input, settings: settings(input.settings, 'settings'), options: current },
+          { ...input, settings: settings(input.settings), options: current },
           ctx,
         )
         return checkedResult(UploadAppResultSchema, result, method)

@@ -81,7 +81,7 @@ describe('a plugin built with the kit, spoken to over stdio', () => {
     const refused = await plugin.initialize({ ledgerFile: 5 })
 
     expect(refused.error?.code).toBe(-32000)
-    expect(refused.error?.data).toEqual({ kind: 'refused', path: 'ledgerFile' })
+    expect(refused.error?.data).toEqual({ kind: 'refused', path: 'options.ledgerFile' })
     expect(refused.error?.message).not.toContain('\n')
   })
 })

@@ -125,9 +125,11 @@ runPlugin(plugin)
   every request. `ctx.progress({ message, queued?, percent? })` reports a queue position or an upload
   percentage, which agent-qa shows as it waits. `ctx.runFacts` holds the run facts the plugin declared.
 - Throw `PluginError` with one line and a failure kind: `unreachable`, `auth`, `capacity`, `timeout`,
-  `version`, `refused`, `ended` or `lost`. Add `path` (for example `settings.region`) when an option or a
-  setting is at fault, so the refusal points at the config line. Add `handle` when the service had already
-  created something.
+  `version`, `refused`, `ended` or `lost`. Add `path` when an option or a setting is at fault, so the
+  refusal points at the config line. Start it with `options.` for a field of the `plugins` entry's
+  options or `settings.` for a field of the remote's settings, as in `options.apiKey` or
+  `settings.region`, from any handler. The kit names the fields its own schema checks refuse the same
+  way. Add `handle` when the service had already created something.
 - The kit checks what `acquire`, `check`, `uploadApp` and `started` return against the protocol. A
   malformed result is answered as a `refused` failure naming the field, and a malformed `acquire` result
   keeps its handle, so the session is still released.
