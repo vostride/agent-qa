@@ -224,7 +224,9 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
   let hostPoll: NodeJS.Timeout | undefined
   const startPpid = process.ppid
   const pending = new Map<RequestId, PendingCall>()
+  const inFlight = new Set<Promise<void>>()
   const held = new Map<string, Json>()
+  const releasing = new Map<string, Promise<void>>()
 
   const detachedContext = (): PluginCallContext => ({
     signal: new AbortController().signal,
@@ -234,13 +236,32 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
 
   const hold = (handle: Json) => held.set(handleKey(handle), handle)
 
-  const releaseHeld = async (handle: Json) => {
-    await definition.release(
-      { handle, options: options as z.output<OptionsSchema> },
-      detachedContext(),
-    )
-    held.delete(handleKey(handle))
+  // One release per handle at a time, whether the host or the kit asked for it.
+  const releaseOnce = (handle: Json, ctx: PluginCallContext): Promise<void> => {
+    const key = handleKey(handle)
+    const running = releasing.get(key)
+    if (running !== undefined) return running
+    const work = (async () => {
+      try {
+        await definition.release({ handle, options: options as z.output<OptionsSchema> }, ctx)
+        held.delete(key)
+      } finally {
+        releasing.delete(key)
+      }
+    })()
+    releasing.set(key, work)
+    return work
   }
+
+  const releaseHeld = (attempted: Set<string>) =>
+    Promise.allSettled(
+      [...held]
+        .filter(([key]) => !attempted.has(key))
+        .map(([key, handle]) => {
+          attempted.add(key)
+          return releaseOnce(handle, detachedContext())
+        }),
+    )
 
   const settings = (value: unknown, prefix: string) =>
     refuse(definition.settings, value, prefix) as z.output<SettingsSchema>
@@ -251,7 +272,13 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
     clearInterval(hostPoll)
     const sequence = async () => {
       if (!initialized) return
-      await Promise.allSettled([...held.values()].map((handle) => releaseHeld(handle)))
+      for (const entry of pending.values()) {
+        if (entry.method !== 'release' && entry.method !== 'shutdown') entry.controller.abort()
+      }
+      // A call still running may yet create a session; it lands in held and is released here.
+      const attempted = new Set<string>()
+      await Promise.allSettled([releaseHeld(attempted), ...inFlight])
+      await releaseHeld(attempted)
       if (shutdownRan) return
       shutdownRan = true
       await definition.shutdown?.(
@@ -352,8 +379,7 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
       }
       case 'release': {
         const input = parseParams(ReleaseParamsSchema, params, method)
-        await definition.release({ handle: input.handle, options: current }, ctx)
-        held.delete(handleKey(input.handle))
+        await releaseOnce(input.handle, ctx)
         return {}
       }
       case 'shutdown': {
@@ -440,9 +466,10 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
     if (tracked !== undefined) hold(tracked)
     if (entry.answered) {
       // The cancel was already answered without this handle, so nobody else will release it.
-      if (tracked !== undefined) void releaseHeld(tracked).catch(() => {})
+      if (tracked !== undefined) await releaseOnce(tracked, detachedContext()).catch(() => {})
       return
     }
+    if (leaving) return
     entry.answered = true
     if (outcome.ok) {
       answer(id, outcome.value)
@@ -502,7 +529,10 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
       fail(null, PLUGIN_ERROR_CODES.invalidRequest, 'a request id is a string or a number')
       return
     }
-    void dispatch(id, message.method, message.params)
+    if (leaving) return
+    const run = dispatch(id, message.method, message.params)
+    inFlight.add(run)
+    void run.catch(() => {}).finally(() => inFlight.delete(run))
   }
 
   const decoder = createLineDecoder({

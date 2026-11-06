@@ -230,8 +230,10 @@ reports. The full protocol, with every field, deadline and error code, is agent-
   the grace, otherwise with a cancel error that carries the handle if one exists. A handle that arrives
   later is released by the kit.
 - **The kit releases on its own.** When stdin closes, agent-qa's pid dies or the process gets SIGTERM, the
-  kit releases every handle it still holds, runs `shutdown` once and exits. It ignores SIGINT, because
-  agent-qa runs the shutdown.
+  kit stops answering and aborts the `ctx.signal` of every call still running, except `release` and
+  `shutdown`. It waits for those calls within its bound and releases every handle it still holds,
+  including one a running call returns. Then it runs `shutdown` once and exits. It ignores SIGINT,
+  because agent-qa runs the shutdown.
 - **Secrets arrive only in messages.** The plugin's environment is only the path, home, temp, locale,
   time zone, proxy and certificate variables. Read credentials from `options` and `settings`, never from
   environment variables.

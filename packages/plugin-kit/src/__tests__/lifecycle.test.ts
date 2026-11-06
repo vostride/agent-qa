@@ -1,7 +1,13 @@
 import { spawn } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it } from 'vitest'
-import { hostIdentity, spawnScriptedPlugin, stopSpawnedPlugins, waitFor } from './spawned-plugin.js'
+import {
+  hostIdentity,
+  spawnScriptedPlugin,
+  stopSpawnedPlugins,
+  waitFor,
+  type SpawnedPlugin,
+} from './spawned-plugin.js'
 
 const answer = { protocol: 'playwright', url: 'ws://127.0.0.1:9222/lab' }
 const acquireParams = {
@@ -16,6 +22,12 @@ const releasesOf = (ledger: Record<string, unknown>[]) =>
 afterEach(() => {
   stopSpawnedPlugins()
 })
+
+// Sends an acquire nobody waits on, and returns once the handler is running.
+async function acquireStarted(plugin: SpawnedPlugin): Promise<void> {
+  plugin.send('acquire', acquireParams).answered.catch(() => {})
+  await waitFor(() => (plugin.ledger().some((line) => line.method === 'acquire') || undefined))
+}
 
 describe('cancels', () => {
   it('answers a cancelled acquire with -32800 and the handle it had already created', async () => {
@@ -157,6 +169,36 @@ describe('leaving', () => {
     expect(plugin.ledger().slice(-2)).toEqual([
       { method: 'release', handle: { n: 1 } },
       { method: 'shutdown' },
+    ])
+  })
+
+  it('cancels an acquire still running when stdin closes and releases the handle it returns, before shutting down', async () => {
+    const plugin = spawnScriptedPlugin()
+    await plugin.initialize({ answer, script: { acquire: { delayMs: 5000 } } })
+    await acquireStarted(plugin)
+
+    expect(await plugin.close()).toBe(0)
+    expect(plugin.ledger().slice(-2)).toEqual([
+      { method: 'release', handle: { n: 1 } },
+      { method: 'shutdown' },
+    ])
+  })
+
+  it('waits for an acquire that finishes after stdin closed and releases its session', async () => {
+    const plugin = spawnScriptedPlugin()
+    await plugin.initialize({
+      answer,
+      script: { acquire: { delayMs: 300, ignoreCancel: true } },
+    })
+    await acquireStarted(plugin)
+
+    expect(await plugin.close()).toBe(0)
+    expect(plugin.ledger().slice(-2)).toEqual([
+      { method: 'release', handle: { n: 1 } },
+      { method: 'shutdown' },
+    ])
+    expect(plugin.stdoutLines().map((line) => JSON.parse(line) as { id?: number })).toEqual([
+      expect.objectContaining({ id: 1 }),
     ])
   })
 
