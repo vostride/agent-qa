@@ -45,7 +45,8 @@ registry:
 - `timeoutMinutes` (default `720`, 1 to 720): minutes before Hyperbrowser stops the session. It
   overrides the team default in Hyperbrowser's settings. The plugin never asks for keep-alive, so
   Hyperbrowser also stops a session whose connection drops, and agent-qa stops every session after
-  its test.
+  its test. A session whose create was in flight when the job was killed was never connected, so
+  it runs until `timeoutMinutes`.
 - `recording` (unset by default): Hyperbrowser's web recording. Unset keeps the account's default,
   which records. `recording: false` turns it off.
 - `stealth`, `solveCaptchas`, `adblock`, `trackers`, `annoyances`, `acceptCookies` (each default
