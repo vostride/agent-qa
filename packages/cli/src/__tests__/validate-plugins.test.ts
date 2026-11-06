@@ -61,6 +61,19 @@ async function installPlugin(
   )
 }
 
+async function writeInProcessPlugin(dir: string, name: string, kind: string): Promise<void> {
+  await mkdir(dir, { recursive: true })
+  await writeFile(
+    path.join(dir, 'package.json'),
+    JSON.stringify({
+      name,
+      version: '1.0.0',
+      'agent-qa': { plugin: { kind, runs: 'in-process', entry: './index.js' } },
+    }),
+  )
+  await writeFile(path.join(dir, 'index.js'), markerScript())
+}
+
 // `phone` adds an Android device on the plugin remote; `browserRemote: false` drops the web pick.
 async function writeConfig(
   plugins: readonly string[],
@@ -236,17 +249,11 @@ describe('validate checks plugins entries', () => {
 
   it('refuses a path entry whose manifest declares model auth, without running it', async () => {
     await installPlugin(THIRD_PARTY)
-    const localDir = path.join(workspaceDir, 'tools', 'local-auth')
-    await mkdir(localDir, { recursive: true })
-    await writeFile(
-      path.join(localDir, 'package.json'),
-      JSON.stringify({
-        name: 'local-auth',
-        version: '1.0.0',
-        'agent-qa': { plugin: { kind: 'model-auth', runs: 'in-process', entry: './index.js' } },
-      }),
+    await writeInProcessPlugin(
+      path.join(workspaceDir, 'tools', 'local-auth'),
+      'local-auth',
+      'model-auth',
     )
-    await writeFile(path.join(localDir, 'index.js'), markerScript())
     await writeConfig([
       '  - name: kit',
       `    package: '${THIRD_PARTY}'`,
@@ -261,6 +268,26 @@ describe('validate checks plugins entries', () => {
         + '@vostride/agent-qa-* packages load inside agent-qa. Remove the entry.',
     )
     expect(output()).toMatch(/error\s+Plugin entry local names/)
+    expect(existsSync(path.join(workspaceDir, 'plugin-ran.marker'))).toBe(false)
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('refuses a model-auth path entry that a used remote names once, at config load', async () => {
+    await writeInProcessPlugin(
+      path.join(workspaceDir, 'tools', 'local-auth'),
+      'local-auth',
+      'model-auth',
+    )
+    await writeConfig(['  - name: kit', '    path: ./tools/local-auth'])
+
+    await runValidate()
+
+    expect(output()).toContain(
+      'Plugin entry kit names ./tools/local-auth, which declares a model-auth plugin; only '
+        + '@vostride/agent-qa-* packages load inside agent-qa. Remove the entry.',
+    )
+    expect(output().split('Plugin entry kit names').length).toBe(2)
+    expect(output()).not.toContain('cannot start')
     expect(existsSync(path.join(workspaceDir, 'plugin-ran.marker'))).toBe(false)
     expect(process.exitCode).toBe(1)
   })

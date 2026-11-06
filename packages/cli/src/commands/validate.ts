@@ -219,11 +219,14 @@ async function pluginDiagnostics(
   const unused = resolvePluginEntries({ plugins, remotes }, options).filter(
     (entry) => entry.state === 'unused',
   )
+  const loadRefusals = configLoadRefusals(plugins, remotes, options)
+  // Run stops at config load, so an entry refused there never reaches run start.
+  const loadRefused = new Set(loadRefusals.map(({ entry }) => entry))
   return [
-    ...configLoadRefusals(plugins, remotes, options).map(({ reason }) =>
-      diagnostic(reason, 'error'),
-    ),
-    ...refusals.map(({ message }) => diagnostic(message, 'error')),
+    ...loadRefusals.map(({ reason }) => diagnostic(reason, 'error')),
+    ...refusals
+      .filter(({ entry }) => !loadRefused.has(entry))
+      .map(({ message }) => diagnostic(message, 'error')),
     ...unused.map(({ reason }) => diagnostic(reason ?? '', 'warning')),
   ]
 }
