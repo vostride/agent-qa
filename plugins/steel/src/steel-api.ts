@@ -1,4 +1,4 @@
-import { createVendorApi, z } from '@vostride/agent-qa-plugin-kit'
+import { createVendorApi, PluginError, z } from '@vostride/agent-qa-plugin-kit'
 
 export const SteelSessionSchema = z.object({
   id: z.string().min(1),
@@ -7,6 +7,18 @@ export const SteelSessionSchema = z.object({
   sessionViewerUrl: z.string().min(1).optional(),
   timeout: z.number().optional(),
 })
+
+const SessionStatusSchema = z.object({ status: z.string() })
+
+// Keeps the status of a refused create, so the plugin can name the setting that may cause it.
+export class SteelCreateFailure extends PluginError {
+  constructor(
+    failure: PluginError,
+    readonly status: number,
+  ) {
+    super(failure.message, { kind: failure.kind })
+  }
+}
 
 interface SteelApiInput {
   apiUrl: string
@@ -29,13 +41,41 @@ export function createSteelApi(input: SteelApiInput): SteelApi {
 
   const sessionPath = (id: string) => `v1/sessions/${encodeURIComponent(id)}`
 
+  async function session(id: string, signal?: AbortSignal): Promise<unknown> {
+    const response = await api.send('GET', sessionPath(id), {
+      headers: { accept: 'application/json' },
+      signal,
+    })
+    if (response.status === 404) {
+      await response.body?.cancel()
+      return undefined
+    }
+    if (!response.ok) throw await api.failure(response, 'GET /v1/sessions/{id}')
+    return api.json(response)
+  }
+
+  async function released(id: string, signal?: AbortSignal): Promise<boolean> {
+    let current: unknown
+    try {
+      current = await session(id, signal)
+    } catch {
+      return false
+    }
+    if (current === undefined) return true
+    const parsed = SessionStatusSchema.safeParse(current)
+    return parsed.success && parsed.data.status !== 'live'
+  }
+
   return {
     async createSession(body) {
       const response = await api.send('POST', 'v1/sessions', {
         headers: { 'content-type': 'application/json', accept: 'application/json' },
         body: JSON.stringify(body),
       })
-      if (!response.ok) throw await api.failure(response, 'POST /v1/sessions')
+      if (!response.ok) {
+        const failure = await api.failure(response, 'POST /v1/sessions')
+        throw new SteelCreateFailure(failure, response.status)
+      }
       return api.json(response)
     },
 
@@ -48,21 +88,12 @@ export function createSteelApi(input: SteelApiInput): SteelApi {
         await response.body?.cancel()
         return
       }
-      throw await api.failure(response, 'POST /v1/sessions/{id}/release')
+      const failure = await api.failure(response, 'POST /v1/sessions/{id}/release')
+      if (await released(id, signal)) return
+      throw failure
     },
 
-    async session(id, signal) {
-      const response = await api.send('GET', sessionPath(id), {
-        headers: { accept: 'application/json' },
-        signal,
-      })
-      if (response.status === 404) {
-        await response.body?.cancel()
-        return undefined
-      }
-      if (!response.ok) throw await api.failure(response, 'GET /v1/sessions/{id}')
-      return api.json(response)
-    },
+    session,
 
     async listSessions(signal) {
       const response = await api.send('GET', 'v1/sessions?limit=1', {
