@@ -38,6 +38,7 @@ COPY packages/safety-local/package.json packages/safety-local/
 COPY packages/schema/package.json packages/schema/
 COPY packages/web/package.json packages/web/
 COPY plugins/browserstack/package.json plugins/browserstack/
+COPY plugins/hyperbrowser/package.json plugins/hyperbrowser/
 COPY plugins/kernel/package.json plugins/kernel/
 COPY plugins/steel/package.json plugins/steel/
 
