@@ -132,10 +132,10 @@ function lifetimeMayBeRefused(error: unknown, timeoutMinutes: number): boolean {
 function createFailure(error: unknown, sessionId: string, timeoutMinutes: number): PluginError {
   const message = error instanceof Error ? error.message : String(error)
   const kind = error instanceof PluginError ? error.kind : 'refused'
-  const lifetime = lifetimeMayBeRefused(error, timeoutMinutes)
-    ? `; if your Steel plan caps sessions below ${String(timeoutMinutes)} minutes, set settings.timeoutMinutes to the cap`
-    : ''
-  return new PluginError(`${message}${lifetime}`, {
+  const text = lifetimeMayBeRefused(error, timeoutMinutes)
+    ? `${message.replace(/[\s.;,]+$/, '')}; if your Steel plan caps sessions below ${String(timeoutMinutes)} minutes, set settings.timeoutMinutes to the cap`
+    : message
+  return new PluginError(text, {
     kind,
     ...(mayHaveCreated(error) ? { handle: { sessionId } } : {}),
   })
