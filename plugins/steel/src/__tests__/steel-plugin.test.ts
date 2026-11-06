@@ -1,7 +1,9 @@
+import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   CREATE_ROUTE,
   RELEASE_ROUTE,
+  SESSION_ROUTE,
   startFakeSteelApi,
   type FakeSteelApi,
 } from './fake-steel-api.js'
@@ -25,10 +27,18 @@ async function startApi(input?: Parameters<typeof startFakeSteelApi>[0]) {
   return api
 }
 
-async function steelPlugin(api: FakeSteelApi) {
+async function initialized(options: Record<string, unknown>) {
   const plugin = spawnSteelPlugin()
   hosts.push(plugin)
-  const answer = await initializeSteel(plugin, { apiKey: API_KEY, apiUrl: api.url })
+  const answer = await initializeSteel(plugin, options)
+  return { plugin, answer }
+}
+
+async function steelPlugin(
+  api: FakeSteelApi,
+  options: Record<string, unknown> = { apiKey: API_KEY },
+) {
+  const { plugin, answer } = await initialized({ ...options, apiUrl: api.url })
   expect(answer.error).toBeUndefined()
   return plugin
 }
@@ -244,5 +254,175 @@ describe('releasing a Steel session', () => {
 
     expect(api.releasedIds()).toEqual([id, id])
     expect(api.routeCalls(RELEASE_ROUTE)[0]?.headers['steel-api-key']).toBe(API_KEY)
+  })
+})
+
+describe('Steel failures', () => {
+  it.each([422, 400])(
+    'a %i to the create names settings.timeoutMinutes and keeps the session id',
+    async (status) => {
+      const api = await startApi({ create: [{ status, json: { message: 'timeout too long' } }] })
+      const plugin = await steelPlugin(api)
+
+      const answer = await acquire(plugin)
+
+      const [body] = createBodies(api) as [{ sessionId: string }]
+      expect(answer.error?.message).toBe(
+        `Steel answered ${String(status)} to POST /v1/sessions: timeout too long; if your Steel plan caps sessions below 1440 minutes, set settings.timeoutMinutes to the cap`,
+      )
+      expect(answer.error?.data).toMatchObject({
+        kind: 'refused',
+        handle: { sessionId: body.sessionId },
+      })
+    },
+  )
+
+  it.each([
+    [401, 'auth'],
+    [403, 'refused'],
+    [500, 'refused'],
+  ])('a %i to the create fails as %s and keeps the session id', async (status, kind) => {
+    const api = await startApi({ create: [{ status, json: { message: 'no' } }] })
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin)
+
+    const [body] = createBodies(api) as [{ sessionId: string }]
+    expect(answer.error?.message).toBe(`Steel answered ${String(status)} to POST /v1/sessions: no`)
+    expect(answer.error?.data).toMatchObject({ kind, handle: { sessionId: body.sessionId } })
+    expect(answer.error?.message).not.toContain(API_KEY)
+  })
+
+  it('a 429 to the create fails as capacity with the wait Steel asked for', async () => {
+    const api = await startApi({
+      create: [{ status: 429, headers: { 'retry-after': '3' }, json: { message: 'busy' } }],
+    })
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin)
+
+    expect(answer.error?.data?.kind).toBe('capacity')
+    expect(answer.error?.message).toMatch(/, retry after 3 s$/)
+    expect(answer.error?.message).not.toContain(API_KEY)
+    expect(answer.error?.message).not.toContain('\n')
+  })
+
+  it('fails as unreachable, keeping the session id, without naming the key when nothing answers', async () => {
+    const api = await startApi()
+    const url = api.url
+    await api.close()
+    const { plugin } = await initialized({ apiKey: API_KEY, apiUrl: url })
+
+    const answer = await acquire(plugin)
+
+    expect(answer.error?.data?.kind).toBe('unreachable')
+    expect(answer.error?.data?.handle).toEqual({ sessionId: expect.stringMatching(UUID) })
+    expect(answer.error?.message).not.toContain(API_KEY)
+    expect(plugin.stderr()).not.toContain(API_KEY)
+  })
+
+  it('names a granted lifetime below the one asked for on stderr', async () => {
+    const api = await startApi({ grantedTimeoutMs: 900_000 })
+    const plugin = await steelPlugin(api)
+
+    expect((await acquire(plugin)).error).toBeUndefined()
+
+    expect(plugin.stderr()).toContain(
+      'Steel granted a 15-minute session; 1440 minutes were asked for',
+    )
+    expect(plugin.stderr()).not.toContain(API_KEY)
+  })
+
+  it('writes nothing about the lifetime when Steel grants the one asked for', async () => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api)
+
+    expect((await acquire(plugin)).error).toBeUndefined()
+
+    expect(plugin.stderr()).not.toContain('Steel granted')
+  })
+})
+
+describe('a failed Steel release', () => {
+  const handle = { sessionId: 'session-1' }
+
+  it('succeeds when Steel no longer reports the session live', async () => {
+    const api = await startApi({
+      release: [{ status: 500, json: { message: 'try later' } }],
+      session: [{ status: 200, json: { id: 'session-1', status: 'released' } }],
+    })
+    const plugin = await steelPlugin(api)
+
+    expect(await plugin.call('release', { handle })).toMatchObject({ result: {} })
+
+    expect(api.routeCalls(SESSION_ROUTE).map((request) => request.params.id)).toEqual(['session-1'])
+  })
+
+  it('succeeds when Steel no longer has the session', async () => {
+    const api = await startApi({
+      release: [{ status: 500, json: { message: 'try later' } }],
+      session: [{ status: 404, json: { message: 'session not found' } }],
+    })
+    const plugin = await steelPlugin(api)
+
+    expect(await plugin.call('release', { handle })).toMatchObject({ result: {} })
+  })
+
+  it('fails with the release answer when the session is still live', async () => {
+    const api = await startApi({
+      release: [{ status: 500, json: { message: 'try later' } }],
+      session: [{ status: 200, json: { id: 'session-1', status: 'live' } }],
+    })
+    const plugin = await steelPlugin(api)
+
+    const answer = await plugin.call('release', { handle })
+
+    expect(answer.error?.message).toBe(
+      'Steel answered 500 to POST /v1/sessions/{id}/release: try later',
+    )
+    expect(answer.error?.data?.kind).toBe('refused')
+  })
+})
+
+describe('a self-hosted Steel without an API key', () => {
+  it('sends no key header and puts no key in the connect url', async () => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api, {})
+
+    const answer = await acquire(plugin)
+
+    expect(answer.error).toBeUndefined()
+    expect(api.routeCalls(CREATE_ROUTE)[0]?.headers).not.toHaveProperty('steel-api-key')
+    const { url } = answer.result as { url: string }
+    expect(new URL(url).searchParams.has('apiKey')).toBe(false)
+  })
+
+  it('declares apiKey a credential it does not require', () => {
+    const schema = JSON.parse(
+      readFileSync(new URL('../../dist/options.schema.json', import.meta.url), 'utf8'),
+    ) as { properties: { apiKey: { credential?: boolean } }; required?: string[] }
+
+    expect(schema.properties.apiKey.credential).toBe(true)
+    expect(schema.required ?? []).not.toContain('apiKey')
+  })
+})
+
+describe('the Steel apiUrl', () => {
+  it.each(['http://steel.example.com', 'https://user:secret@api.steel.dev'])(
+    'refuses %s at initialize, pointing at apiUrl',
+    async (apiUrl) => {
+      const { answer } = await initialized({ apiKey: API_KEY, apiUrl })
+
+      expect(answer.error?.data).toMatchObject({ kind: 'refused', path: 'apiUrl' })
+      expect(answer.error?.message).toBe(
+        'apiUrl must use https:// with no user or password, unless it points at this machine.',
+      )
+    },
+  )
+
+  it.each(['https://api.steel.dev', 'http://127.0.0.1:9'])('accepts %s', async (apiUrl) => {
+    const { answer } = await initialized({ apiKey: API_KEY, apiUrl })
+
+    expect(answer.error).toBeUndefined()
   })
 })
