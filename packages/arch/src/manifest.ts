@@ -22,6 +22,7 @@ import { AGENT_QA_SCHEMA_OWNERSHIP_CONTRACT } from '../../schema/src/ownership-c
 import { AGENT_QA_WEB_OWNERSHIP_CONTRACT } from '../../web/src/ownership-contract.js'
 import { AGENT_QA_PLUGIN_KERNEL_OWNERSHIP_CONTRACT } from '../../../plugins/kernel/src/ownership-contract.js'
 import { AGENT_QA_PLUGIN_BROWSERSTACK_OWNERSHIP_CONTRACT } from '../../../plugins/browserstack/src/ownership-contract.js'
+import { AGENT_QA_PLUGIN_STEEL_OWNERSHIP_CONTRACT } from '../../../plugins/steel/src/ownership-contract.js'
 import { PACKAGE_CLASS_RULES } from './contract-types.js'
 import type { OwnershipContract } from './contract-types.js'
 import { AGENT_QA_ARCH_OWNERSHIP_CONTRACT } from './ownership-contract.js'
@@ -54,6 +55,7 @@ export const ARCH_MANIFEST = {
     AGENT_QA_PLUGIN_KIT_OWNERSHIP_CONTRACT,
     AGENT_QA_PLUGIN_KERNEL_OWNERSHIP_CONTRACT,
     AGENT_QA_PLUGIN_BROWSERSTACK_OWNERSHIP_CONTRACT,
+    AGENT_QA_PLUGIN_STEEL_OWNERSHIP_CONTRACT,
   ],
   taxonomy: PACKAGE_CLASS_RULES,
 } as const satisfies {
