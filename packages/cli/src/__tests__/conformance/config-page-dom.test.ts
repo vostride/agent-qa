@@ -69,7 +69,7 @@ const COMMENT_SENTINELS = {
 } as const
 // A plain MCP leaf, which the file view must show in clear and untagged.
 const MCP_PORT = '3471'
-const PLUGIN_PACKAGE = '@example/agent-qa-auth'
+const PLUGIN_PACKAGE = '@vostride/agent-qa-example-auth'
 const LONG_TARGET = 'checkout-staging-with-a-deliberately-long-target-name'
 
 const TASK1_CONFIG = [
@@ -145,11 +145,19 @@ function writeProject(label: string, config: string, auth?: Record<string, unkno
   return { root, configPath, authPath }
 }
 
-/** The declared plugin must resolve or the dashboard refuses to start; this one registers nothing. */
+/** The declared plugin must load or the dashboard refuses to start; this one registers nothing. */
 function plantEmptyAuthPlugin(root: string) {
   const dir = join(root, 'node_modules', ...PLUGIN_PACKAGE.split('/'))
   mkdirSync(dir, { recursive: true })
-  writeFileSync(join(dir, 'package.json'), `${JSON.stringify({ name: PLUGIN_PACKAGE, version: '0.0.0', type: 'module', exports: './index.js' })}\n`, 'utf8')
+  const manifest = { plugin: { kind: 'model-auth', runs: 'in-process', entry: './index.js' } }
+  const pkg = {
+    name: PLUGIN_PACKAGE,
+    version: '0.0.0',
+    type: 'module',
+    exports: './index.js',
+    'agent-qa': manifest,
+  }
+  writeFileSync(join(dir, 'package.json'), `${JSON.stringify(pkg)}\n`, 'utf8')
   writeFileSync(join(dir, 'index.js'), 'export const providers = []\n', 'utf8')
 }
 
