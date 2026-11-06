@@ -1,7 +1,14 @@
 // agent-qa run drives tests through the built BrowserStack plugin, installed in the project as a
 // user installs it, against loopback fakes of BrowserStack's REST APIs and its Appium hub.
 
-import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { join } from 'node:path'
 
 import { Command } from 'commander'
@@ -112,7 +119,7 @@ interface Scene {
   readonly model: StubModelServer
 }
 
-async function onBrowserStack(): Promise<Scene> {
+async function onBrowserStack(extraOptions: Record<string, unknown> = {}): Promise<Scene> {
   const hub = await startFakeAppiumServer()
   opened.push(() => hub.close())
   const api = await startFakeBrowserStackApi()
@@ -151,6 +158,7 @@ async function onBrowserStack(): Promise<Scene> {
         appApiUrl: api.url,
         hubUrl: hub.url,
         playwrightUrl: UNUSED_PLAYWRIGHT_URL,
+        ...extraOptions,
       },
     },
   ]
@@ -336,6 +344,25 @@ describe('tests on remotes served by the built BrowserStack plugin', () => {
       )
       expect(model.requests, run.log).toEqual([])
       expect(api.webMarks(), run.log).toEqual([])
+    },
+    RUN_BUDGET_MS,
+  )
+
+  // A directory stands in for a binary this machine cannot run: spawning it fails with EACCES.
+  it.skipIf(process.platform === 'win32')(
+    "agent-qa run refuses a device test whose BrowserStack Local binary this machine cannot run, pointing at the plugins entry's localBinary",
+    async () => {
+      const binary = mkdtempSync(join(pinnedTmpdir!.root, 'unrunnable-'))
+      const { project, hub } = await onBrowserStack({ local: true, localBinary: binary })
+
+      const run = await runAgentQa(project, project.testPattern)
+
+      const refusals = run.lines.filter((line) => line.includes('BrowserStack Local did not start'))
+      expect(refusals, run.log).not.toEqual([])
+      expect(refusals[0]?.trim(), run.log).toMatch(
+        /^Remote bs-pixel: BrowserStack Local did not start: .*\. Check options\.localBinary in plugins entry browserstack\.$/,
+      )
+      expect(hub.sessionsCreated(), run.log).toEqual([])
     },
     RUN_BUDGET_MS,
   )

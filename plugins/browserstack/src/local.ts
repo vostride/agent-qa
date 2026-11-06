@@ -181,13 +181,14 @@ function freshLocalIdentifier(): string {
   return `agent-qa-${randomBytes(8).toString('hex')}`
 }
 
-function startFailure(error: unknown, accessKey: string): PluginError {
+// The tunnel starts from acquire, where a bare path would name a remote setting.
+function startFailure(error: unknown, accessKey: string, binarySet: boolean): PluginError {
   if (error instanceof PluginError) return error
   const text = error instanceof Error ? error.message : String(error)
   const shown = accessKey === '' ? text : text.split(accessKey).join('***')
   return new PluginError(`BrowserStack Local did not start: ${shown}`, {
     kind: 'unreachable',
-    path: 'local',
+    path: binarySet ? 'options.localBinary' : 'options.local',
   })
 }
 
@@ -203,6 +204,7 @@ export function createTunnelManager(input: TunnelManagerInput): TunnelManager {
   const identifier = input.local
     ? (input.localIdentifier ?? freshLocalIdentifier())
     : input.localIdentifier
+  const binarySet = input.localBinary !== undefined
   let starting: StartingTunnel | undefined
   let stopped = false
   let connected = false
@@ -217,11 +219,11 @@ export function createTunnelManager(input: TunnelManagerInput): TunnelManager {
         binary: input.localBinary,
       })
     } catch (error) {
-      return Promise.reject(startFailure(error, input.accessKey))
+      return Promise.reject(startFailure(error, input.accessKey, binarySet))
     }
     const attempt: StartingTunnel = {
       running: begun.running.catch((error: unknown) => {
-        throw startFailure(error, input.accessKey)
+        throw startFailure(error, input.accessKey, binarySet)
       }),
       abort: () => begun.abort(),
     }
@@ -246,7 +248,7 @@ export function createTunnelManager(input: TunnelManagerInput): TunnelManager {
       if (stopped) {
         throw new PluginError('BrowserStack Local was already stopped for this run.', {
           kind: 'unreachable',
-          path: 'local',
+          path: 'options.local',
         })
       }
       signal.throwIfAborted()

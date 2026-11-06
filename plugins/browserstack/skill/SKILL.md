@@ -113,8 +113,8 @@ plugins:
 - The tunnel comes from BrowserStack's `browserstack-local` package, which finds or downloads
   BrowserStack's binary. `localBinary` names a binary to run instead and needs `local: true`.
 - The tunnel logs to a fresh file under the temp directory, never into the project.
-- A tunnel that cannot start refuses the session with kind `unreachable` at path `local`; the line
-  names the tunnel's log.
+- A tunnel that cannot start refuses the session with kind `unreachable` at path `options.local`,
+  or `options.localBinary` when that is set; the line names the tunnel's log.
 - Before it starts the tunnel, the plugin checks that this machine can run the binary.
   `browserstack-local` downloads BrowserStack's Intel build on every Mac, which an Apple Silicon
   Mac runs only under Rosetta. A binary this machine cannot run refuses the session the same way.
@@ -146,9 +146,9 @@ plugins:
   why.
 - `refused` with no path: BrowserStack answered another error. The line has its status and
   message.
-- `unreachable`: BrowserStack could not be reached. Check the network. At path `local`, the
-  BrowserStack Local tunnel did not start; its log is named in the line, and when this machine
-  cannot run the binary, the line also says how to fix it.
+- `unreachable`: BrowserStack could not be reached. Check the network. At path `options.local` or
+  `options.localBinary`, the BrowserStack Local tunnel did not start; its log is named in the
+  line, and when this machine cannot run the binary, the line also says how to fix it.
 
 ## Check and describe
 

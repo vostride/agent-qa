@@ -185,7 +185,8 @@ for devices. A lookup or a mark that fails is one stderr line and never fails th
 Each failure is one line naming the status, the request and BrowserStack's message, with
 `retry after` on a `429`. A Playwright version BrowserStack does not list is kind `version`. A
 setting or option that is wrong is kind `refused` with its path. A BrowserStack Local tunnel that
-cannot start is kind `unreachable` at path `local`.
+cannot start is kind `unreachable` at path `options.local`, or `options.localBinary` when that is
+set.
 
 ## Account check
 
@@ -219,12 +220,12 @@ this machine can reach, such as `localhost` or a staging host behind a VPN.
   deletes the binary or downloads another one.
 - The tunnel logs to a fresh file under the temp directory,
   `agent-qa-browserstack-local-<pid>-<random>.log`, readable only by you. Nothing is written to
-  the project. When the tunnel cannot start, the refusal has kind `unreachable` at path `local`
-  and names that log.
+  the project. When the tunnel cannot start, the refusal has kind `unreachable` at path
+  `options.local`, or `options.localBinary` when that is set, and names that log.
 - Before it starts the tunnel, the plugin runs the binary once with `--version` to check that
   this machine can run it. `browserstack-local` downloads BrowserStack's Intel build on every Mac,
   which an Apple Silicon Mac runs only under Rosetta. A binary this machine cannot run refuses
-  the session the same way, with kind `unreachable` at path `local`, naming the binary, the fix
+  the session the same way, with kind `unreachable` at the same path, naming the binary, the fix
   and the log. On macOS the fix is to install Rosetta
   (`softwareupdate --install-rosetta --agree-to-license`) or set `localBinary` to a binary this
   machine can run; on any other system it is to set `localBinary` to a binary this machine can
