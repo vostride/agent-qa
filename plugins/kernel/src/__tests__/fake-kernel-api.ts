@@ -26,6 +26,8 @@ export interface FakeKernelApiInput {
   limits?: readonly LoopbackReply[]
   // The pools GET /browser_pools/{pool} finds; any other pool answers 404.
   pools?: readonly string[]
+  // The cdp_ws_url every created browser answers, such as a loopback CDP browser's endpoint.
+  cdpUrl?: string
 }
 
 export interface FakeKernelApi extends LoopbackFake {
@@ -33,10 +35,10 @@ export interface FakeKernelApi extends LoopbackFake {
   deletedIds(): string[]
 }
 
-function kernelBrowser(id: string, headless: boolean) {
+function kernelBrowser(id: string, headless: boolean, cdpUrl?: string) {
   return {
     session_id: id,
-    cdp_ws_url: `wss://cdp.example.invalid/${id}?jwt=${id}-jwt`,
+    cdp_ws_url: cdpUrl ?? `wss://cdp.example.invalid/${id}?jwt=${id}-jwt`,
     webdriver_ws_url: `wss://bidi.example.invalid/${id}?jwt=${id}-jwt`,
     headless,
     timeout_seconds: 60,
@@ -67,7 +69,7 @@ export async function startFakeKernelApi(input: FakeKernelApiInput = {}): Promis
         const id = `browser-${String(created.length + 1)}`
         created.push(id)
         live.add(id)
-        return { status: 200, json: kernelBrowser(id, sentHeadless(request)) }
+        return { status: 200, json: kernelBrowser(id, sentHeadless(request), input.cdpUrl) }
       },
       // Like Kernel, a browser deleted once is gone, so a second delete answers 404.
       [DELETE_ROUTE]:
