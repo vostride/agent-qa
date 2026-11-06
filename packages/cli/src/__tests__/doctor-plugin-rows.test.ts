@@ -164,7 +164,11 @@ function ledgerMethods(project: Project): string[] {
 
 // Speaks the protocol by hand; its check asks the vendor named in its options, as a real one would.
 function writeVendorPlugin(dir: string): void {
-  writeScriptedPlugin(dir, { serves: ['playwright'], methods: ['check'] })
+  writeScriptedPlugin(dir, {
+    packageName: '@acme/agent-qa-plugin-vendor',
+    serves: ['playwright'],
+    methods: ['check'],
+  })
   writeFileSync(
     join(dir, 'main.mjs'),
     `let options = {}
