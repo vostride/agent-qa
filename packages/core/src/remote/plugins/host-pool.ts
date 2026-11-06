@@ -155,7 +155,7 @@ async function fileFacts(path: string): Promise<{ sha256: string; size: number }
   return { sha256: hash.digest('hex'), size }
 }
 
-type ErrorScope = { call: 'initialize'; entry: string } | { call: 'remote'; remote: string }
+type ErrorScope = { call: 'initialize' | 'remote'; entry: string }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -289,10 +289,13 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     const data = PluginErrorDataSchema.safeParse(outcome.data)
     const path = data.success ? input.mask(data.data.path ?? '').split(/\r?\n/, 1)[0]?.trim() : ''
     if (path === undefined || path === '') return line
-    if (scope.call === 'initialize') {
-      return `${line} Check options.${path.replace(/^options\./, '')} in plugins entry ${scope.entry}.`
-    }
-    return `${line} Check settings.${path.replace(/^settings\./, '')} in remote ${scope.remote}.`
+    const options = `in plugins entry ${scope.entry}.`
+    const settings = `in remote ${remote}.`
+    // A prefix names the block in any call; a path without one belongs to the call's own block.
+    if (path.startsWith('options.')) return `${line} Check ${path} ${options}`
+    if (path.startsWith('settings.')) return `${line} Check ${path} ${settings}`
+    if (scope.call === 'initialize') return `${line} Check options.${path} ${options}`
+    return `${line} Check settings.${path} ${settings}`
   }
 
   // A progress report reaches its own request's listener and the pool's; neither touches the
@@ -800,7 +803,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     if (outcome.status === 'error') {
       await releaseCarried(running, outcome)
       throw new RemoteRefusalError(
-        pluginErrorLine(remote, outcome, { call: 'remote', remote }),
+        pluginErrorLine(remote, outcome, { call: 'remote', entry }),
         { remote, kind: pluginErrorKind(outcome) },
       )
     }
@@ -903,7 +906,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     }
     if (outcome.status === 'error') {
       throw new RemoteRefusalError(
-        pluginErrorLine(remote, outcome, { call: 'remote', remote }),
+        pluginErrorLine(remote, outcome, { call: 'remote', entry }),
         { remote, kind: pluginErrorKind(outcome) },
       )
     }
@@ -950,7 +953,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     }
     if (outcome.status === 'error' && !outcome.cancelled) {
       throw new RemoteRefusalError(
-        pluginErrorLine(remote, outcome, { call: 'remote', remote }),
+        pluginErrorLine(remote, outcome, { call: 'remote', entry }),
         { remote, kind: pluginErrorKind(outcome) },
       )
     }

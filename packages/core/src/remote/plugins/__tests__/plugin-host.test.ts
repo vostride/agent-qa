@@ -447,6 +447,25 @@ describe('refusals from the plugin host pool', () => {
     expect(methodsOf(p.ledger(lab))).toEqual(['initialize', 'acquire', 'release', 'shutdown'])
   })
 
+  it('points a prefixed path at its own block, whichever call refused it', async () => {
+    const p = host()
+    const keyRejected = { kind: 'auth', message: 'key rejected', path: 'options.apiKey' }
+    const noSuchRegion = { kind: 'refused', message: 'no such region', path: 'settings.region' }
+    const acquiring = p.entry('keyed', { script: { acquire: { error: keyRejected } } })
+    const starting = p.entry('regional', { script: { initialize: { error: noSuchRegion } } })
+    const pool = p.pool([acquiring, starting])
+
+    const fromAcquire = await refusalOf(pool.acquire(request('lab-a', 'keyed')))
+    const fromInitialize = await refusalOf(pool.acquire(request('lab-b', 'regional')))
+
+    expect(fromAcquire.message).toBe(
+      'Remote lab-a: key rejected. Check options.apiKey in plugins entry keyed.',
+    )
+    expect(fromInitialize.message).toBe(
+      'Remote lab-b: no such region. Check settings.region in remote lab-b.',
+    )
+  })
+
   it('refuses every remote naming an entry whose initialize failed, pointing at its option', async () => {
     const p = host()
     const lab = p.entry('lab', {
