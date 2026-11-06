@@ -40,10 +40,10 @@ A test runs there with `use.browser.remote: kernel` in the config, a suite or th
 
 Options belong to the `plugins` entry and describe the account.
 
-| Option   | Default                    | Meaning                                                                        |
-| -------- | -------------------------- | ------------------------------------------------------------------------------ |
-| `apiKey` | required                   | The Kernel API key, a credential. Write it as a `{{secret:<name>}}` reference. |
-| `apiUrl` | `https://api.onkernel.com` | Kernel's API. It must use `https://` unless it points at this machine.         |
+| Option   | Default                    | Meaning                                                                                          |
+| -------- | -------------------------- | ------------------------------------------------------------------------------------------------ |
+| `apiKey` | required                   | The Kernel API key, a credential. Write it as a `{{secret:<name>}}` reference.                   |
+| `apiUrl` | `https://api.onkernel.com` | Kernel's API. It must use `https://` with no user or password, unless it points at this machine. |
 
 The key is sent only as the `Authorization: Bearer` header. It never appears in a message, a log or
 an answer.
