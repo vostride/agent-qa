@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   CREATE_ROUTE,
@@ -242,4 +243,112 @@ describe('stopping a Hyperbrowser session', () => {
     expect(api.stoppedIds()).toEqual([id, id])
     expect(api.routeCalls(STOP_ROUTE)[0]?.headers['x-api-key']).toBe(API_KEY)
   })
+})
+
+describe('Hyperbrowser failures', () => {
+  it.each([
+    [401, 'auth'],
+    [500, 'refused'],
+  ])('a %i to the create fails as %s with no handle', async (status, kind) => {
+    const api = await startApi({ create: [{ status, json: { message: 'no' } }] })
+    const plugin = await hyperbrowserPlugin(api)
+
+    const answer = await acquire(plugin)
+
+    expect(answer.error?.message).toBe(
+      `Hyperbrowser answered ${String(status)} to POST /api/session: no`,
+    )
+    expect(answer.error?.data?.kind).toBe(kind)
+    expect(answer.error?.data).not.toHaveProperty('handle')
+    expect(answer.error?.message).not.toContain(API_KEY)
+    expect(answer.error?.message).not.toContain('\n')
+  })
+
+  it("a 403 to the create fails as refused with Hyperbrowser's reason", async () => {
+    const api = await startApi({
+      create: [{ status: 403, json: { error: 'Proxy usage requires a paid plan' } }],
+    })
+    const plugin = await hyperbrowserPlugin(api)
+
+    const answer = await acquire(plugin, { proxy: true })
+
+    expect(answer.error?.message).toBe(
+      'Hyperbrowser answered 403 to POST /api/session: Proxy usage requires a paid plan',
+    )
+    expect(answer.error?.data?.kind).toBe('refused')
+    expect(answer.error?.message).not.toContain(API_KEY)
+  })
+
+  it('a 429 to the create fails as capacity with the wait Hyperbrowser asked for', async () => {
+    const api = await startApi({
+      create: [{ status: 429, headers: { 'retry-after': '5' }, json: { message: 'busy' } }],
+    })
+    const plugin = await hyperbrowserPlugin(api)
+
+    const answer = await acquire(plugin)
+
+    expect(answer.error?.data?.kind).toBe('capacity')
+    expect(answer.error?.message).toMatch(/, retry after 5 s$/)
+    expect(answer.error?.message).not.toContain(API_KEY)
+    expect(answer.error?.message).not.toContain('\n')
+  })
+
+  it('fails as unreachable without naming the key when nothing answers', async () => {
+    const api = await startApi()
+    const url = api.url
+    await api.close()
+    const { plugin } = await initialized({ apiKey: API_KEY, apiUrl: url })
+
+    const answer = await acquire(plugin)
+
+    expect(answer.error?.data?.kind).toBe('unreachable')
+    expect(answer.error?.message).not.toContain(API_KEY)
+    expect(answer.error?.message).not.toContain('\n')
+    expect(plugin.stderr()).not.toContain(API_KEY)
+  })
+
+  it('refuses an answer without a wsEndpoint, keeping its id as the handle so it is stopped', async () => {
+    const api = await startApi({ create: [{ status: 200, json: { id: 'h-9', status: 'active' } }] })
+    const plugin = await hyperbrowserPlugin(api)
+
+    const answer = await acquire(plugin)
+
+    expect(answer.error?.message).toBe(
+      'Hyperbrowser answered a session without an id and a wsEndpoint.',
+    )
+    expect(answer.error?.data).toMatchObject({ kind: 'refused', handle: { sessionId: 'h-9' } })
+  })
+})
+
+describe('the Hyperbrowser options', () => {
+  it('declares apiKey a required credential', () => {
+    const schema = JSON.parse(
+      readFileSync(new URL('../../dist/options.schema.json', import.meta.url), 'utf8'),
+    ) as { properties: { apiKey: { credential?: boolean } }; required?: string[] }
+
+    expect(schema.properties.apiKey.credential).toBe(true)
+    expect(schema.required ?? []).toContain('apiKey')
+  })
+
+  it.each(['http://hb.example.com', 'https://user:secret@api.hyperbrowser.ai'])(
+    'refuses apiUrl %s at initialize, pointing at apiUrl',
+    async (apiUrl) => {
+      const { answer } = await initialized({ apiKey: API_KEY, apiUrl })
+
+      expect(answer.error?.data).toMatchObject({ kind: 'refused', path: 'apiUrl' })
+      expect(answer.error?.message).toBe(
+        'apiUrl must use https:// with no user or password, unless it points at this machine.',
+      )
+      expect(answer.error?.message).not.toContain(API_KEY)
+    },
+  )
+
+  it.each(['https://api.hyperbrowser.ai', 'http://127.0.0.1:9'])(
+    'accepts apiUrl %s',
+    async (apiUrl) => {
+      const { answer } = await initialized({ apiKey: API_KEY, apiUrl })
+
+      expect(answer.error).toBeUndefined()
+    },
+  )
 })
