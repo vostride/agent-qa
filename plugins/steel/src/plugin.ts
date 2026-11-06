@@ -7,10 +7,11 @@ import {
   z,
   type AcquireInput,
 } from '@vostride/agent-qa-plugin-kit'
-import { createSteelApi, SteelSessionSchema } from './steel-api.js'
+import { createSteelApi, SteelCreateFailure, SteelSessionSchema } from './steel-api.js'
 
 const STEEL_API_URL = 'https://api.steel.dev'
 const MINUTE_MS = 60_000
+const LIFETIME_REFUSALS: readonly number[] = [400, 422]
 
 const options = z.strictObject({
   apiKey: credential('The Steel API key; leave it out for a self-hosted steel-browser').optional(),
@@ -103,10 +104,22 @@ function createBody(sessionId: string, input: SteelSettings): Record<string, unk
   }
 }
 
-function withHandle(error: unknown, sessionId: string): PluginError {
+function withHandle(error: unknown, sessionId: string, timeoutMinutes: number): PluginError {
   const message = error instanceof Error ? error.message : String(error)
   const kind = error instanceof PluginError ? error.kind : 'refused'
-  return new PluginError(message, { kind, handle: { sessionId } })
+  const lifetime =
+    error instanceof SteelCreateFailure && LIFETIME_REFUSALS.includes(error.status)
+      ? `; if your Steel plan caps sessions below ${String(timeoutMinutes)} minutes, set settings.timeoutMinutes to the cap`
+      : ''
+  return new PluginError(`${message}${lifetime}`, { kind, handle: { sessionId } })
+}
+
+function noteGrantedLifetime(granted: number | undefined, timeoutMinutes: number): void {
+  if (granted === undefined || granted >= timeoutMinutes * MINUTE_MS) return
+  const minutes = Number((granted / MINUTE_MS).toFixed(1))
+  process.stderr.write(
+    `Steel granted a ${String(minutes)}-minute session; ${String(timeoutMinutes)} minutes were asked for\n`,
+  )
 }
 
 function viewerLink(url: string | undefined): string | undefined {
@@ -142,7 +155,7 @@ export default definePlugin({
     try {
       created = await api.createSession(createBody(sessionId, settings))
     } catch (error) {
-      throw withHandle(error, sessionId)
+      throw withHandle(error, sessionId, settings.timeoutMinutes)
     }
     const answer = SteelSessionSchema.safeParse(created)
     const url = answer.success ? URL.parse(answer.data.websocketUrl) : null
@@ -152,7 +165,8 @@ export default definePlugin({
         handle: { sessionId: answer.success ? answer.data.id : sessionId },
       })
     }
-    const { id, debugUrl, sessionViewerUrl } = answer.data
+    const { id, debugUrl, sessionViewerUrl, timeout } = answer.data
+    noteGrantedLifetime(timeout, settings.timeoutMinutes)
     if (options.apiKey !== undefined) url.searchParams.set('apiKey', options.apiKey)
     const link = viewerLink(sessionViewerUrl)
     return {
