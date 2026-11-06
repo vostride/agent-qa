@@ -374,6 +374,28 @@ describe("a plugin's progress", () => {
     )
   })
 
+  it('reaches every listener without escape sequences or control characters', async () => {
+    const p = host()
+    const titled = '\u001b]0;owned title\u0007\u001b[2Jqueued\rfor 3s'
+    const coloured = '\u001b[31m red\u001b[0m\u009b'
+    const lab = p.entry('lab', {
+      progress: [{ message: titled + coloured }, { message: 'abc\u001b[0m123 is next' }],
+    })
+    const heard: PluginHostProgress[] = []
+    const pool = p.pool([lab], { mask, onProgress: (event) => heard.push(event) })
+    const seen: RemoteProgress[] = []
+
+    await pool.acquire(
+      request('lab-a', 'lab', { onProgress: (update: RemoteProgress) => seen.push(update) }),
+    )
+
+    expect(seen).toEqual([
+      { message: 'queued for 3s red' },
+      { message: '[secret:LAB_TOKEN] is next' },
+    ])
+    expect(heard.map((event) => event.message)).toEqual(seen.map((event) => event.message))
+  })
+
   it('is masked and cut to its first line of at most 200 characters', async () => {
     const p = host()
     const long = 'x'.repeat(300)

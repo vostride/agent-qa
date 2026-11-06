@@ -70,10 +70,20 @@ export const DEFAULT_PLUGIN_HOST_BOUNDS: PluginHostBounds = {
 
 // On a signal, once SIGTERM is sent, how long a plugin's group has before SIGKILL.
 const SIGNAL_KILL_AFTER_MS = 500
-// What the session registry waits past signalMs, so SIGTERM and SIGKILL are sent before it gives up.
+// What the session registry waits past signalMs, so SIGTERM and SIGKILL go out before it stops.
 const SIGNAL_KILL_RESERVE_MS = SIGNAL_KILL_AFTER_MS + 500
 
 const PROGRESS_LINE_MAX = 200
+
+// Terminal escape sequences: CSI, OSC to its terminator or the end, and two-character escapes.
+const ESCAPE_SEQUENCE = /\x1b(?:\[[0-?]*[ -\/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\|$)|[ -\/]*[0-~])/g
+const CONTROL_CHARACTER = /[\x00-\x1f\x7f-\x9f]/g
+
+// One line a terminal or a page shows as plain text: no escape sequence and no C0 or C1 control.
+function plainFirstLine(text: string): string {
+  const first = text.replace(ESCAPE_SEQUENCE, '').split(/\r?\n/, 1)[0] ?? ''
+  return first.replace(CONTROL_CHARACTER, ' ').trim()
+}
 
 export interface PluginHostProgress extends RemoteProgress {
   remote: string
@@ -94,7 +104,7 @@ export interface PluginHostPoolInput {
   mask: (text: string) => string
   // Values an acquire answer asks to mask; they reach the run's mask before the session is used.
   onMask?: (entry: string, values: readonly string[]) => void
-  // Every call's progress, masked and cut to one line, after the call's own onProgress.
+  // Every call's progress, masked and cut to one plain line, after the call's own onProgress.
   onProgress?: (event: PluginHostProgress) => void
   debugLog?: (line: string) => void
   sessions?: RemoteSessionRegistry
@@ -303,10 +313,10 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
   const progressRelay =
     (remote: string, entry: string, own: ((progress: RemoteProgress) => void) | undefined) =>
     (update: ProgressParams): void => {
+      // Masked again once plain, in case an escape sequence split a secret.
+      const message = input.mask(plainFirstLine(input.mask(update.message)))
       const progress: RemoteProgress = {
-        message: (input.mask(update.message).split(/\r?\n/, 1)[0] ?? '')
-          .trim()
-          .slice(0, PROGRESS_LINE_MAX),
+        message: message.slice(0, PROGRESS_LINE_MAX),
         ...(update.queued === undefined ? {} : { queued: update.queued }),
         ...(update.percent === undefined ? {} : { percent: update.percent }),
       }
