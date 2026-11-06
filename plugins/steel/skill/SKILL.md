@@ -67,6 +67,7 @@ registry:
   ```
 
 - `extra`: any other Steel request field. It is merged last, so it overrides the settings above.
+  It cannot set `sessionId`, which the plugin chooses to release the session.
 
 ## When a remote is refused
 
@@ -79,6 +80,7 @@ registry:
   names another field ends without this, so fix the field it names.
 - `refused` with path `settings.profile`: the remote sets `profile` without `context: reuse`. Add
   `context: reuse` to the remote.
+- `refused` with path `settings.extra.sessionId`: `extra` sets `sessionId`. Remove it.
 - `refused` with path `settings.proxyUrl`: the remote sets both `proxy` and `proxyUrl`. Keep one.
 - `refused` naming a browser or platform: Steel runs Chromium web tests only. Use
   `use.browser.name: chromium`, or another remote.
