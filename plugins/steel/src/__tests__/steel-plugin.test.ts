@@ -149,6 +149,19 @@ describe('the Steel settings', () => {
     expect(createBodies(api)[0]).toMatchObject({ blockAds: true, headless: true })
   })
 
+  it('refuses extra.sessionId before any create, because the plugin releases by its own id', async () => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin, { extra: { sessionId: 'mine' } })
+
+    expect(answer.error?.message).toBe(
+      'extra cannot set sessionId; the plugin chooses it to release the session.',
+    )
+    expect(answer.error?.data).toMatchObject({ kind: 'refused', path: 'settings.extra.sessionId' })
+    expect(createBodies(api)).toEqual([])
+  })
+
   it('sends proxyUrl instead of useProxy', async () => {
     const api = await startApi()
     const plugin = await steelPlugin(api)
@@ -390,6 +403,24 @@ describe('Steel failures', () => {
       'Steel granted a 15-minute session; 1440 minutes were asked for',
     )
     expect(plugin.stderr()).not.toContain(API_KEY)
+  })
+
+  it('compares the granted lifetime with the timeout extra sent', async () => {
+    const api = await startApi({ grantedTimeoutMs: 900_000 })
+    const plugin = await steelPlugin(api)
+
+    expect((await acquire(plugin, { extra: { timeout: 1_800_000 } })).error).toBeUndefined()
+
+    expect(plugin.stderr()).toContain('Steel granted a 15-minute session; 30 minutes were asked for')
+  })
+
+  it('writes nothing about the lifetime when Steel grants the timeout extra sent', async () => {
+    const api = await startApi({ grantedTimeoutMs: 900_000 })
+    const plugin = await steelPlugin(api)
+
+    expect((await acquire(plugin, { extra: { timeout: 900_000 } })).error).toBeUndefined()
+
+    expect(plugin.stderr()).not.toContain('Steel granted')
   })
 
   it('writes nothing about the lifetime when Steel grants the one asked for', async () => {

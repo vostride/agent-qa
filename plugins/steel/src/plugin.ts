@@ -80,6 +80,12 @@ function checkSettings(input: SteelSettings, session: Session): void {
       { kind: 'refused', path: 'settings.profile' },
     )
   }
+  if (input.extra !== undefined && Object.hasOwn(input.extra, 'sessionId')) {
+    throw new PluginError(
+      'extra cannot set sessionId; the plugin chooses it to release the session.',
+      { kind: 'refused', path: 'settings.extra.sessionId' },
+    )
+  }
   if (input.proxyUrl !== undefined && input.proxy !== false) {
     throw new PluginError('proxy and proxyUrl both choose a proxy; set one of them.', {
       kind: 'refused',
@@ -135,11 +141,14 @@ function createFailure(error: unknown, sessionId: string, timeoutMinutes: number
   })
 }
 
-function noteGrantedLifetime(granted: number | undefined, timeoutMinutes: number): void {
-  if (granted === undefined || granted >= timeoutMinutes * MINUTE_MS) return
-  const minutes = Number((granted / MINUTE_MS).toFixed(1))
+function minutesOf(ms: number): string {
+  return String(Number((ms / MINUTE_MS).toFixed(1)))
+}
+
+function noteGrantedLifetime(granted: number | undefined, asked: unknown): void {
+  if (granted === undefined || typeof asked !== 'number' || granted >= asked) return
   process.stderr.write(
-    `Steel granted a ${String(minutes)}-minute session; ${String(timeoutMinutes)} minutes were asked for\n`,
+    `Steel granted a ${minutesOf(granted)}-minute session; ${minutesOf(asked)} minutes were asked for\n`,
   )
 }
 
@@ -196,11 +205,12 @@ export default definePlugin({
     checkSettings(settings, session)
     const api = createSteelApi(options)
     const sessionId = randomUUID()
+    const body = createBody(sessionId, settings)
     let created: unknown
     // The create is not cancelled: once Steel has a session, the handle must come back to be
     // released, and the kit releases a handle that arrives after a cancel was answered.
     try {
-      created = await api.createSession(createBody(sessionId, settings))
+      created = await api.createSession(body)
     } catch (error) {
       throw createFailure(error, sessionId, settings.timeoutMinutes)
     }
@@ -213,7 +223,7 @@ export default definePlugin({
       })
     }
     const { id, debugUrl, sessionViewerUrl, timeout } = answer.data
-    noteGrantedLifetime(timeout, settings.timeoutMinutes)
+    noteGrantedLifetime(timeout, body.timeout)
     if (options.apiKey !== undefined) url.searchParams.set('apiKey', options.apiKey)
     const link = viewerLink(sessionViewerUrl)
     return {

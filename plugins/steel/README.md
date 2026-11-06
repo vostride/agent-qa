@@ -83,7 +83,9 @@ before:
 4. the other settings above, in Steel's field names. With `proxyUrl` the plugin sends your proxy
    and no `useProxy`. A remote that sets both `proxyUrl` and `proxy` is refused with path
    `settings.proxyUrl`;
-5. `extra`, last, so a pass-through key overrides both a default and a setting.
+5. `extra`, last, so a pass-through key overrides both a default and a setting. It cannot set
+   `sessionId`, which the plugin releases the session by; a remote whose `extra` sets it is refused
+   with path `settings.extra.sessionId`.
 
 For example, `settings: { extra: { solveCaptcha: true, headless: true } }` turns CAPTCHA solving on
 and asks for a headless browser.
