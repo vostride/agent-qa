@@ -164,8 +164,8 @@ the same endpoints and fails with the same lines.
 - `failure(response, request, { handle? })` answers a `PluginError` to throw. It reads
   `<vendor> answered <status> to <request>: <reason>`. The reason is the body's `message`, then its
   `error`, on one line of at most 200 characters. With neither, the line has no reason. A 429 with
-  `Retry-After` adds `, retry after <s> s`. Pass `handle` when the service had already created
-  something.
+  `Retry-After` adds `, retry after <s> s` for a number of seconds, or `, retry after <date>` for a
+  date. Pass `handle` when the service had already created something.
 - `json(response)` answers the parsed body, or `undefined` when the body is not JSON.
 - A call nothing answers fails `unreachable` with `<vendor> could not be reached at <origin>: <cause>`.
   It names the origin only, never the path or a header. A call whose signal aborted rethrows its abort.
