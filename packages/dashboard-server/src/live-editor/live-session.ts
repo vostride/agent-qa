@@ -465,6 +465,8 @@ export interface LiveSessionDeps {
   appiumEnvUrl?: string
   // REMOTE_INACTIVITY_TIMEOUT_MS when unset.
   remoteInactivityMs?: number
+  // A plugin's stderr and the host's own lines, masked; the dashboard gives one only at debug.
+  pluginDebugLog?: (line: string) => void
 }
 
 // The plugins entries the strict config parse accepts; an entry it refuses refuses the session.
@@ -1085,6 +1087,7 @@ export class LiveSession {
       onMask: (entry, masked) =>
         redactor.addMaskExtras(masked.map((value) => [pluginMaskName(entry), value] as const)),
       ...(this.deps.remoteSessions === undefined ? {} : { sessions: this.deps.remoteSessions }),
+      ...(this.deps.pluginDebugLog === undefined ? {} : { debugLog: this.deps.pluginDebugLog }),
     })
     return this.pluginPool
   }

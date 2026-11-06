@@ -72,6 +72,7 @@ import {
   withRunDoor,
 } from '../composition/local-agent-host.js'
 import { createDeclaredSecretMask } from '../composition/declared-secrets.js'
+import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
 import { composeRunOwnership } from '../composition/run-owner-probe.js'
 import type { ComposeCliLocalAgentInput } from '../composition/local-agent-host.js'
 import {
@@ -677,11 +678,17 @@ async function startDashboardBackedServices(
 ): Promise<void> {
   try {
     const program = command.parent!
-    const globalOpts = program.opts<{ config?: string; verbose?: boolean }>()
+    const globalOpts = program.opts<{
+      config?: string
+      verbose?: boolean
+      quiet?: boolean
+      logLevel?: string
+    }>()
 
     const config = await resolveConfig({
       configPath: globalOpts.config,
     })
+    const pluginLog = pluginDebugLog(doorLogLevel(globalOpts, config))
 
     const configFilePath = resolve(globalOpts.config ?? 'agent-qa.config.yaml')
     const configDir = dirname(configFilePath)
@@ -834,6 +841,7 @@ async function startDashboardBackedServices(
       runService: runService.ports,
       // The registry every run door here uses, so a shutdown releases the live editor's remote too.
       remoteSessions: processRemoteSessions,
+      ...(pluginLog === undefined ? {} : { pluginDebugLog: pluginLog }),
     })
 
     // Loopback rather than a hostname, matching where this server binds.

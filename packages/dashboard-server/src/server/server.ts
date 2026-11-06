@@ -102,6 +102,8 @@ interface StartServerOptions {
   db: DashboardDatabase
   // The host process's registry, handed to every live-editor adapter so a shutdown releases it.
   remoteSessions?: RemoteSessionRegistry
+  // A plugin's stderr and the host's own lines, masked; the dashboard gives one only at debug.
+  pluginDebugLog?: (line: string) => void
   port?: number
   /** Defaults to loopback; any other value is refused before anything listens. */
   host?: string
@@ -358,6 +360,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
     // Each created session registers here, which is what the frame socket attaches.
     ...(liveEditorSubjects === undefined ? {} : { liveEditorSubjects }),
     ...(opts.remoteSessions === undefined ? {} : { remoteSessions: opts.remoteSessions }),
+    ...(opts.pluginDebugLog === undefined ? {} : { pluginDebugLog: opts.pluginDebugLog }),
   })
 
   // The proxy dispatches on the token's signed kind, so a missing registry only answers nothing.

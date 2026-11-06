@@ -17,6 +17,8 @@ export interface SessionManagerDeps {
   listDevicesHere?: LiveDevicesHereLister
   appiumEnvUrl?: string
   remoteInactivityMs?: number
+  // A plugin's stderr and the host's own lines, masked; the dashboard gives one only at debug.
+  pluginDebugLog?: (line: string) => void
 }
 
 export class SessionManager {

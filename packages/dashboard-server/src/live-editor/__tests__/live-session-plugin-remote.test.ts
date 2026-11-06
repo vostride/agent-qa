@@ -113,7 +113,10 @@ interface PluginProject {
   readonly deps: SessionManagerDeps
 }
 
-function pluginProject(answer: Record<string, unknown> = ANSWER): PluginProject {
+function pluginProject(
+  answer: Record<string, unknown> = ANSWER,
+  options: Record<string, unknown> = {},
+): PluginProject {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'live-plugin-')))
   roots.push(root)
   writeScriptedPlugin(join(root, 'tools', ENTRY_NAME))
@@ -129,6 +132,7 @@ function pluginProject(answer: Record<string, unknown> = ANSWER): PluginProject 
           answer,
           ledgerFile,
           recordProcess: true,
+          ...options,
         },
       },
     ],
@@ -297,6 +301,25 @@ describe("a live-editor session and its plugin's answer mask", () => {
     for (const value of [token, encodeURIComponent(token)]) {
       expect(shown.includes(value), 'the session showed a mask value').toBe(false)
     }
+  }, 60_000)
+})
+
+describe("a live-editor session and its plugin's stderr", () => {
+  it("sends its plugin's stderr, masked and under its entry, to the debug log the dashboard gives it", async () => {
+    const TOKEN = 'lab-token-7f2c9e'
+    const project = pluginProject(ANSWER, { stderr: { acquire: 'signed in with ' + TOKEN } })
+    const logged: string[] = []
+
+    await openSession(
+      { ...project.deps, pluginDebugLog: (line) => logged.push(line) },
+      new RunSecretRedactor(new SecretStore({ LAB_TOKEN: TOKEN })),
+    )
+
+    await vi.waitFor(
+      () => expect(logged).toContain('plugin lab: signed in with [secret:LAB_TOKEN]'),
+      { timeout: EXIT_BUDGET_MS, interval: 25 },
+    )
+    expect(logged.join('\n')).not.toContain(TOKEN)
   }, 60_000)
 })
 
