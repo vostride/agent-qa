@@ -259,38 +259,64 @@ describe('releasing a Steel session', () => {
 
 describe('Steel failures', () => {
   it.each([422, 400])(
-    'a %i to the create names settings.timeoutMinutes and keeps the session id',
+    'a %i to the create names settings.timeoutMinutes and carries no handle',
     async (status) => {
       const api = await startApi({ create: [{ status, json: { message: 'timeout too long' } }] })
       const plugin = await steelPlugin(api)
 
       const answer = await acquire(plugin)
 
-      const [body] = createBodies(api) as [{ sessionId: string }]
       expect(answer.error?.message).toBe(
         `Steel answered ${String(status)} to POST /v1/sessions: timeout too long; if your Steel plan caps sessions below 1440 minutes, set settings.timeoutMinutes to the cap`,
       )
-      expect(answer.error?.data).toMatchObject({
-        kind: 'refused',
-        handle: { sessionId: body.sessionId },
-      })
+      expect(answer.error?.data?.kind).toBe('refused')
+      expect(answer.error?.data).not.toHaveProperty('handle')
     },
   )
 
   it.each([
     [401, 'auth'],
     [403, 'refused'],
-    [500, 'refused'],
-  ])('a %i to the create fails as %s and keeps the session id', async (status, kind) => {
+  ])('a %i to the create fails as %s and carries no handle', async (status, kind) => {
     const api = await startApi({ create: [{ status, json: { message: 'no' } }] })
     const plugin = await steelPlugin(api)
 
     const answer = await acquire(plugin)
 
-    const [body] = createBodies(api) as [{ sessionId: string }]
     expect(answer.error?.message).toBe(`Steel answered ${String(status)} to POST /v1/sessions: no`)
-    expect(answer.error?.data).toMatchObject({ kind, handle: { sessionId: body.sessionId } })
+    expect(answer.error?.data?.kind).toBe(kind)
+    expect(answer.error?.data).not.toHaveProperty('handle')
     expect(answer.error?.message).not.toContain(API_KEY)
+  })
+
+  it.each([400, 401, 403, 422, 429])(
+    'a %i to the create sends Steel no release, not even at shutdown',
+    async (status) => {
+      const api = await startApi({ create: [{ status, json: { message: 'no' } }] })
+      const plugin = await steelPlugin(api)
+
+      expect((await acquire(plugin)).error?.data).not.toHaveProperty('handle')
+      expect((await plugin.call('shutdown')).error).toBeUndefined()
+
+      expect(api.routeCalls(RELEASE_ROUTE)).toEqual([])
+      expect(api.routeCalls(SESSION_ROUTE)).toEqual([])
+    },
+  )
+
+  it('a 500 to the create fails as refused, keeps the session id and releases it at shutdown', async () => {
+    const api = await startApi({ create: [{ status: 500, json: { message: 'no' } }] })
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin)
+
+    const [body] = createBodies(api) as [{ sessionId: string }]
+    expect(answer.error?.message).toBe('Steel answered 500 to POST /v1/sessions: no')
+    expect(answer.error?.data).toMatchObject({
+      kind: 'refused',
+      handle: { sessionId: body.sessionId },
+    })
+    expect((await plugin.call('shutdown')).error).toBeUndefined()
+    expect(api.releasedIds()).toEqual([body.sessionId])
   })
 
   it('a 429 to the create fails as capacity with the wait Steel asked for', async () => {

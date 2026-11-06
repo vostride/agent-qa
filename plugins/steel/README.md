@@ -155,8 +155,11 @@ use:
 | any other non-success | `refused`     |
 
 Each failure is one line naming the status, the request and Steel's message, with `Retry-After` on
-a `429`. A create refused with `400` or `422` also names `settings.timeoutMinutes`, as above. Every
-create failure carries the session's id, so agent-qa releases whatever Steel made.
+a `429`. A create refused with `400` or `422` also names `settings.timeoutMinutes`, as above.
+
+A create Steel refuses with a `4xx` made no session, so it carries no handle and nothing is
+released. Every other create failure (no answer, a `5xx`, or an answer the plugin cannot read)
+carries the session's id, so agent-qa releases whatever Steel may have made.
 
 On release, `2xx` and `404` both count as released. On any other answer the plugin reads the
 session back, and counts it released when Steel no longer has it or no longer reports it live.
