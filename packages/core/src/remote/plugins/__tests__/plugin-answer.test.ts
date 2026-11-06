@@ -34,6 +34,24 @@ describe('checkPluginAnswer', () => {
     expect(refused?.remote).toBe('lab-a')
   })
 
+  it('refuses cdp for a web session that asked for another engine than Chromium', () => {
+    const firefox = { ...web, engine: 'firefox' }
+    const refused = checkPluginAnswer({ protocol: 'cdp', url: 'wss://lab.example.com/s' }, firefox)
+
+    expect(refused?.kind).toBe('refused')
+    expect(refused?.message).toBe(
+      'Remote lab-a: plugin entry lab answered with cdp for a firefox test; cdp drives Chromium '
+        + 'only.',
+    )
+    const chromium = { ...web, engine: 'chromium' }
+    expect(
+      checkPluginAnswer({ protocol: 'cdp', url: 'wss://lab.example.com/s' }, chromium),
+    ).toBeUndefined()
+    expect(
+      checkPluginAnswer({ protocol: 'playwright', url: 'wss://lab.example.com/s' }, firefox),
+    ).toBeUndefined()
+  })
+
   it('refuses a protocol the manifest does not serve', () => {
     const refused = checkPluginAnswer(
       { protocol: 'cdp', url: 'wss://browsers.example.com/s' },

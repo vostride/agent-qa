@@ -329,6 +329,21 @@ describe('refusals from the plugin host pool', () => {
     expect(releasesOf(p.ledger(lab))).toEqual([{ n: 1 }])
   })
 
+  it('refuses a cdp answer to a firefox session and releases its session', async () => {
+    const p = host()
+    const lab = p.entry('lab', { answer: { protocol: 'cdp', url: 'wss://lab.example.com/s' } })
+    const pool = p.pool([lab])
+    const firefox = { ...webSession, engine: 'firefox' }
+
+    const refused = await refusalOf(pool.acquire(request('lab-a', 'lab', { session: firefox })))
+
+    expect(refused.message).toBe(
+      'Remote lab-a: plugin entry lab answered with cdp for a firefox test; cdp drives Chromium '
+        + 'only.',
+    )
+    expect(releasesOf(p.ledger(lab))).toEqual([{ n: 1 }])
+  })
+
   it("refuses only the remotes naming an entry that is not installed, with the entry's line", async () => {
     const p = host()
     const gone = p.missingEntry('gone')

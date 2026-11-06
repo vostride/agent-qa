@@ -4,6 +4,8 @@ import { formatRemoteOrigin, isLoopbackHost, remoteOrigin } from '@vostride/agen
 export interface PluginAnswerContext {
   serves: readonly string[]
   place: 'web' | 'device'
+  // The browser a web session asked for; cdp drives Chromium only.
+  engine?: string
   remote: string
   entry: string
 }
@@ -47,6 +49,9 @@ export function checkPluginAnswer(
     || !PLACE_PROTOCOLS[context.place].includes(answer.protocol)
   ) {
     return refuse(`${answer.protocol}, which it does not serve for this test.`)
+  }
+  if (answer.protocol === 'cdp' && context.engine !== undefined && context.engine !== 'chromium') {
+    return refuse(`cdp for a ${context.engine} test; cdp drives Chromium only.`)
   }
 
   const origin = remoteOrigin(answer.url)

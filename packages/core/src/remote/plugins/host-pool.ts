@@ -814,9 +814,11 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       )
     }
     input.onMask?.(entry, parsed.data.mask ?? [])
+    const session = request.session
     const unsafe = checkPluginAnswer(parsed.data, {
       serves: running.manifest.serves,
-      place: request.session.platform === 'web' ? 'web' : 'device',
+      place: session.platform === 'web' ? 'web' : 'device',
+      ...(session.platform === 'web' ? { engine: session.engine } : {}),
       remote,
       entry,
     })
