@@ -68,6 +68,20 @@ describe('acquiring from a Kernel pool', () => {
     expect(api.routeCalls(CREATE_ROUTE)).toEqual([])
   })
 
+  it('waits a second between pool acquires that Kernel answers 204 at once', async () => {
+    const { api, plugin } = await kernelWith({ poolEmpty: true })
+
+    const { id, answer } = plugin.request('acquire', acquireParams({ pool: 'warm' }))
+    await delay(1_500)
+    const polled = api.routeCalls(POOL_ACQUIRE_ROUTE).length
+    plugin.notify('$/cancel', { id })
+    await answer
+
+    expect(polled).toBeGreaterThanOrEqual(1)
+    expect(polled).toBeLessThanOrEqual(2)
+    expect(progressMessages(plugin).length).toBeLessThanOrEqual(2)
+  })
+
   it('stops polling on a cancel and answers it with no handle', async () => {
     const { api, plugin } = await kernelWith({ poolEmpty: true })
 

@@ -1,3 +1,4 @@
+import { setTimeout as delay } from 'node:timers/promises'
 import {
   credential,
   definePlugin,
@@ -14,6 +15,8 @@ import {
 } from './kernel-api.js'
 
 const KERNEL_API_URL = 'https://api.onkernel.com'
+// Kernel answers 204 at once when the acquire timeout is short, so a poll waits at least this long.
+const POOL_POLL_FLOOR_MS = 1_000
 const LOOPBACK_HOSTS = new Set(['localhost', '[::1]'])
 
 const options = z.strictObject({
@@ -151,6 +154,7 @@ async function acquireFromPool(
   const stopped = () => new PluginError(`stopped waiting for pool ${pool}`, { kind: 'timeout' })
   // Unlike a create, a wait that ends in 204 holds no browser, so the cancel stops the wait.
   for (;;) {
+    const began = Date.now()
     let answer: PoolAcquireAnswer
     try {
       answer = await api.acquireFromPool(pool, body, ctx.signal)
@@ -161,6 +165,9 @@ async function acquireFromPool(
     if (answer.acquired) return cdpAnswer(answer.browser, { pool, reuse })
     if (ctx.signal.aborted) throw stopped()
     ctx.progress({ message: `waiting for pool ${pool}` })
+    const rest = POOL_POLL_FLOOR_MS - (Date.now() - began)
+    if (rest > 0) await delay(rest, undefined, { signal: ctx.signal }).catch(() => {})
+    if (ctx.signal.aborted) throw stopped()
   }
 }
 

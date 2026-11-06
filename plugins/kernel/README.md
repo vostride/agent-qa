@@ -84,8 +84,9 @@ headful browser in kiosk mode.
 
 With `pool`, the plugin acquires a browser with `POST /browser_pools/{pool}/acquire`. Kernel holds
 that request open while the pool is empty and answers `204` when it times out. The plugin then asks
-again, and reports `waiting for pool <pool>` to agent-qa after each `204`. The wait ends when a
-browser is free or when agent-qa cancels it at the remote's `connectTimeout`.
+again, and reports `waiting for pool <pool>` to agent-qa after each `204`. Asks are at least a
+second apart, so a short `acquire_timeout_seconds` in `extra` does not become a busy loop. The wait
+ends when a browser is free or when agent-qa cancels it at the remote's `connectTimeout`.
 
 - The acquire body holds only `profile` and `extra`. The pool's own configuration sets the browser,
   so `stealth`, `region`, `proxy` and `viewport` are refused on a remote with `pool`, and
