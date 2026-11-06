@@ -10,6 +10,7 @@ import {
   SuiteDefinitionSchema,
   TestDefinitionSchema,
   TimeoutConfigSchema,
+  configShapeScan,
   connectionSecretMisuse,
   createPluginHostPool,
   getAgentQaVersion,
@@ -328,19 +329,42 @@ async function findEntityFile(
   }
 }
 
+interface LiveParseIssue {
+  readonly path: readonly PropertyKey[]
+  readonly message: string
+}
+
+// The CLI's sentence for a shape neither form takes comes first, before the strict parse's own.
+function liveParseRefusal(
+  key: 'registry.remotes' | 'plugins',
+  shapeIssues: readonly LiveParseIssue[],
+  parseIssues: readonly LiveParseIssue[],
+): LiveRemotesRefusedError {
+  const prefix = key.split('.').length
+  const shaped = shapeIssues[0]
+  const issue =
+    shaped === undefined ? parseIssues[0] : { ...shaped, path: shaped.path.slice(prefix) }
+  const at = (issue?.path ?? [])
+    .map((part) => (typeof part === 'number' ? `[${part}]` : `.${String(part)}`))
+    .join('')
+  return new LiveRemotesRefusedError(
+    `project config sets ${key}${at}: ${(issue?.message ?? 'invalid value').replace(/\.$/, '')}. The CLI refuses this file too.`,
+  )
+}
+
+function shapeIssues(config: unknown): readonly LiveParseIssue[] {
+  const scanned = configShapeScan.safeParse(config)
+  return scanned.success ? [] : scanned.error.issues
+}
+
 // The remotes the strict config parse accepts; an entry it refuses refuses every session, as a run.
 function liveRemoteEntries(registry: unknown): RemoteEntry[] {
   const remotes = isConfigRecord(registry) ? registry.remotes : undefined
   if (remotes === undefined) return []
+  const shaped = shapeIssues({ registry: { remotes } })
   const parsed = RemoteEntrySchema.array().safeParse(remotes)
-  if (parsed.success) return parsed.data
-  const issue = parsed.error.issues[0]
-  const at = (issue?.path ?? [])
-    .map((key) => (typeof key === 'number' ? `[${key}]` : `.${String(key)}`))
-    .join('')
-  throw new LiveRemotesRefusedError(
-    `project config sets registry.remotes${at}: ${(issue?.message ?? 'invalid value').replace(/\.$/, '')}. The CLI refuses this file too.`,
-  )
+  if (parsed.success && shaped.length === 0) return parsed.data
+  throw liveParseRefusal('registry.remotes', shaped, parsed.success ? [] : parsed.error.issues)
 }
 
 function memberFile(file: string): string {
@@ -447,15 +471,10 @@ export interface LiveSessionDeps {
 // The plugins entries the strict config parse accepts; an entry it refuses refuses the session.
 function livePluginEntries(plugins: unknown): PluginHostPoolInput['plugins'] {
   if (plugins === undefined) return []
+  const shaped = shapeIssues({ plugins })
   const parsed = PluginsSchema.safeParse(plugins)
-  if (parsed.success) return parsed.data
-  const issue = parsed.error.issues[0]
-  const at = (issue?.path ?? [])
-    .map((key) => (typeof key === 'number' ? `[${key}]` : `.${String(key)}`))
-    .join('')
-  throw new LiveRemotesRefusedError(
-    `project config sets plugins${at}: ${(issue?.message ?? 'invalid value').replace(/\.$/, '')}. The CLI refuses this file too.`,
-  )
+  if (parsed.success && shaped.length === 0) return parsed.data
+  throw liveParseRefusal('plugins', shaped, parsed.success ? [] : parsed.error.issues)
 }
 
 export interface LiveStepExecutionResult extends StepResult {

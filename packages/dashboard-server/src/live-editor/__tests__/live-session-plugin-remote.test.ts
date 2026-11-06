@@ -79,6 +79,7 @@ vi.mock('@vostride/agent-qa-model', async (importOriginal) => ({
   createModel: vi.fn().mockReturnValue({ modelId: 'test-model' }),
 }))
 
+import { resolveLivePlace } from '../live-session.js'
 import { SessionManager } from '../session-manager.js'
 import type { SessionManagerDeps } from '../session-manager.js'
 
@@ -286,4 +287,44 @@ describe("a live-editor session and its plugin's answer mask", () => {
       expect(shown.includes(value), 'the session showed a mask value').toBe(false)
     }
   }, 60_000)
+})
+
+function configDeps(config: Record<string, unknown>): SessionManagerDeps {
+  return {
+    configPath: join(tmpdir(), 'agent-qa.config.yaml'),
+    configManager: {
+      readWithRevision: vi
+        .fn()
+        .mockResolvedValue({ kind: 'ok', config, raw: '', revision: 'fixture' }),
+      mask: (text: string) => text,
+    } as never,
+  }
+}
+
+describe('a project config the CLI refuses for its shape', () => {
+  it("refuses a remote with both plugin and url in the CLI's sentence", async () => {
+    const deps = configDeps({
+      registry: {
+        remotes: [{ name: REMOTE_NAME, plugin: ENTRY_NAME, url: 'ws://127.0.0.1:9/playwright' }],
+      },
+      plugins: [{ name: ENTRY_NAME, path: `./tools/${ENTRY_NAME}` }],
+    })
+
+    await expect(resolveLivePlace(deps.configManager, undefined, {})).rejects.toThrow(
+      `project config sets registry.remotes[0]: Remote ${REMOTE_NAME} has both plugin and url; a remote has one or the other. The CLI refuses this file too.`,
+    )
+  })
+
+  it("refuses a plugins entry with both package and path in the CLI's sentence", async () => {
+    const deps = configDeps({
+      registry: { remotes: [{ name: REMOTE_NAME, plugin: ENTRY_NAME }] },
+      plugins: [
+        { name: ENTRY_NAME, package: '@acme/agent-qa-plugin-lab', path: `./tools/${ENTRY_NAME}` },
+      ],
+    })
+
+    await expect(openSession(deps)).rejects.toThrow(
+      `project config sets plugins[0]: Plugin entry ${ENTRY_NAME} names both package and path; an entry names one or the other. The CLI refuses this file too.`,
+    )
+  })
 })

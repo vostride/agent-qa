@@ -58,6 +58,8 @@ export {
 
 export { leftoverLocalFileRefusal } from './leftover-local-file.js'
 
+export { configShapeScan } from './config-shape-scan.js'
+
 export {
   CaptureConfigSchema,
   TestStepSchema,
