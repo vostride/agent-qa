@@ -6,7 +6,7 @@ import { existsSync, mkdirSync, symlinkSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
-export type FirstPartyPluginId = 'kernel' | 'browserstack'
+export type FirstPartyPluginId = 'kernel' | 'browserstack' | 'steel' | 'hyperbrowser'
 
 const PLUGINS_DIR = fileURLToPath(new URL('../../../../../plugins/', import.meta.url))
 
