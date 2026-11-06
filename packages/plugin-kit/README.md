@@ -179,11 +179,13 @@ and anything else is `refused`. `kinds` adds statuses or overrides these, as in
 status map of your own.
 
 `checkEndpoints(options, [{ path, scheme }])` checks the options that name an endpoint. Call it from
-`initialize`. An option must use `https`, or `wss` for a `wss` option, with no user or password. Plain
-`http` or `ws` is allowed only to this machine: `localhost`, `127.x.x.x` or `[::1]`. An option that is
-not set is skipped. The first option that breaks the rule is refused, kind `refused`, with the option's
-name as its path and `<path> must use <scheme>:// with no user or password, unless it points at this
-machine.`
+`initialize` only. An option must use `https`, or `wss` for a `wss` option, with no user or password.
+Plain `http` or `ws` is allowed only to this machine: `localhost`, `127.x.x.x` or `[::1]`. An option
+that is not set is skipped. The first option that breaks the rule is refused, kind `refused`, with the
+option's bare name as its path, as in `apiUrl`, and `<path> must use <scheme>:// with no user or
+password, unless it points at this machine.` agent-qa reads a path without a prefix as a field of the
+call's own block, so from `initialize` it points at `options.<path>`; from another handler it would
+point at a setting.
 
 ## Build
 
