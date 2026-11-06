@@ -1,4 +1,4 @@
-import { definePlugin, PluginError, z } from '@vostride/agent-qa-plugin-kit'
+import { checkEndpoints, definePlugin, PluginError, z } from '@vostride/agent-qa-plugin-kit'
 import { checkAccount } from './check.js'
 import { deviceAnswer, DeviceHandleSchema, deviceStarted, markAppSession } from './devices.js'
 import {
@@ -7,7 +7,7 @@ import {
   type TunnelFactory,
   type TunnelManager,
 } from './local.js'
-import { checkEndpoints, checkLocal, options, settings } from './options.js'
+import { BROWSERSTACK_ENDPOINTS, checkLocal, options, settings } from './options.js'
 import { uploadApp } from './upload.js'
 import { markWebSession, playwrightAnswer, WebHandleSchema, webStarted } from './web.js'
 
@@ -32,7 +32,7 @@ export function createBrowserStackPlugin(input: BrowserStackPluginInput = {}) {
     skill: './skill',
 
     initialize({ options, host }) {
-      checkEndpoints(options)
+      checkEndpoints(options, BROWSERSTACK_ENDPOINTS)
       checkLocal(options)
       playwrightVersion = host.playwrightVersion
       tunnel = createTunnelManager({
