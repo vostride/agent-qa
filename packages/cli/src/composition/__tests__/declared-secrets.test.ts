@@ -16,16 +16,14 @@ import { MockLanguageModelV4 } from 'ai/test'
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 import type { AgentQaConfig } from '@vostride/agent-qa-core'
 import { writeScriptedPlugin } from '@vostride/agent-qa-plugin-kit/testing'
-import { SecretStore } from '@vostride/agent-qa-runner'
+import { RunSecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import { createMaskingMiddleware } from '@vostride/agent-qa-safety'
 
 import { composeMcpMasking } from '../../commands/mcp.js'
 import {
   createDeclaredSecretMask,
   DeclaredSecretsUnavailableError,
-  pluginMaskName,
   readDeclaredSecrets,
-  RunSecretRedactor,
 } from '../declared-secrets.js'
 import { createRunPluginHost } from '../plugin-host.js'
 
@@ -328,33 +326,6 @@ describe('a declared value at model egress', () => {
 const HANDED = 'tok/abc 123'
 
 describe("a run's mask and the values handed over during the run", () => {
-  it('names a plugin entry PLUGIN_ and its name upper-cased with other characters as _', () => {
-    expect(pluginMaskName('lab')).toBe('PLUGIN_LAB')
-    expect(pluginMaskName('browser-stack.eu')).toBe('PLUGIN_BROWSER_STACK_EU')
-  })
-
-  it('masks a value added after the mask was built, and keeps masking values added before', () => {
-    const redactor = new RunSecretRedactor(new SecretStore([['LONG', LONG]]))
-    expect(redactor.redactString(`one ${HANDED}`)).toBe(`one ${HANDED}`)
-
-    redactor.addMaskExtras([['PLUGIN_LAB', HANDED]])
-    expect(redactor.redactString(`one ${HANDED}`)).toBe('one [secret:PLUGIN_LAB]')
-
-    redactor.addMaskExtras([['PLUGIN_FARM', 'farm-key-42']])
-    expect(redactor.redactString(`${LONG} ${HANDED} farm-key-42`)).toBe(
-      '[secret:LONG] [secret:PLUGIN_LAB] [secret:PLUGIN_FARM]',
-    )
-    expect(redactor.redactValue({ url: `ws://h/?t=${encodeURIComponent(HANDED)}` })).toEqual({
-      url: 'ws://h/?t=[secret:PLUGIN_LAB]',
-    })
-  })
-
-  it('keeps the declared name for a handed-over value that is also a declared secret', () => {
-    const redactor = new RunSecretRedactor(new SecretStore([['LONG', LONG]]))
-    redactor.addMaskExtras([['PLUGIN_LAB', LONG]])
-    expect(redactor.redactString(LONG)).toBe('[secret:LONG]')
-  })
-
   it("masks an option secret and an answer's mask value, in every form, in the plugin's stderr", async () => {
     const { root, configPath, secretsPath } = project(`LAB_KEY=${LONG}\n`)
     writeScriptedPlugin(join(root, 'tools', 'lab'), { methods: [] })

@@ -7,16 +7,15 @@ import {
   pluginSecretResolver,
 } from '@vostride/agent-qa-core'
 import type { AgentQaConfig, PluginHostPool, PluginHostProgress } from '@vostride/agent-qa-core'
+import { pluginMaskName } from '@vostride/agent-qa-runner'
 import type {
+  MaskExtra,
   RemoteLeaseSource,
   RemoteProgress,
   RemoteProgressRelay,
   RemoteSessionRegistry,
   SecretResolver,
 } from '@vostride/agent-qa-runner'
-
-import { pluginMaskName } from './declared-secrets.js'
-import type { MaskExtra } from './declared-secrets.js'
 
 export interface RunPluginHostInput {
   readonly config: AgentQaConfig

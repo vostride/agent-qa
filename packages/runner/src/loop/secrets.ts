@@ -358,3 +358,42 @@ export class SecretRedactor implements SecretRedactorPort {
     return value
   }
 }
+
+export type MaskExtra = readonly [name: string, value: string]
+
+export function pluginMaskName(entry: string): string {
+  return `PLUGIN_${entry.toUpperCase().replace(/\W/g, '_')}`
+}
+
+// A run's or session's redactor. Values handed over while it runs, such as a plugin's answer mask,
+// are masked from the moment they are added; a declared secret keeps its own name.
+export class RunSecretRedactor extends SecretRedactor {
+  private readonly declared: SecretStore
+  private readonly extras: MaskExtra[]
+  private generation = 0
+  private widened: { generation: number; redactor: SecretRedactor } | undefined
+
+  constructor(store: SecretStore, extras: readonly MaskExtra[] = []) {
+    super(store, extras)
+    this.declared = store
+    this.extras = [...extras]
+  }
+
+  addMaskExtras(entries: readonly MaskExtra[]): void {
+    const added = entries.filter(([, value]) => value.length > 0)
+    if (added.length === 0) return
+    this.extras.push(...added)
+    this.generation += 1
+  }
+
+  override redactString(value: string): string {
+    if (this.generation === 0) return super.redactString(value)
+    if (this.widened?.generation !== this.generation) {
+      this.widened = {
+        generation: this.generation,
+        redactor: new SecretRedactor(this.declared, this.extras),
+      }
+    }
+    return this.widened.redactor.redactString(value)
+  }
+}

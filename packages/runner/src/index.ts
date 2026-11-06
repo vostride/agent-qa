@@ -327,6 +327,8 @@ export {
 export {
   SecretStore,
   SecretRedactor,
+  RunSecretRedactor,
+  pluginMaskName,
   SecretConfigError,
   MissingSecretError,
   findSecretTemplates,
@@ -338,7 +340,7 @@ export {
   containsRedactedSecretMarker,
   literalSecretMarkerRefusal,
 } from './loop/secrets.js'
-export type { SecretTemplate, SecretFileMetadata } from './loop/secrets.js'
+export type { MaskExtra, SecretTemplate, SecretFileMetadata } from './loop/secrets.js'
 
 // Re-exporting runs registerAllActions on defaultRegistry; nothing here shrinks the tool slice.
 export {

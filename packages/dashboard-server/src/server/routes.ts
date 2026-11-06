@@ -84,7 +84,12 @@ import { createConnectInFlight, registerLlmConnectRoute } from './llm-connect-ro
 import type { PostProcessingRelay } from '../execution/post-processing-relay.js'
 import type { LLMAuthProviderPlugin, OAuthTokens } from '@vostride/agent-qa-core'
 import { AuthStateNameSchema, buildInternalRunAttributes, DEFAULT_AGENT_QA_CACHE_DIR, mergeRunAttributes, readAuth, writeAuth, removeAuth, getAgentQaVersion, getAgentQaUpdateStatus, getLLMAuthProviderPlugin, listAuthStateMetadata, listLLMAuthProviderPlugins, ModelConfigSchema, NameSlugSchema, TimeoutConfigSchema, AgentQaConfigSchema, TestDefinitionSchema, SuiteDefinitionSchema, parseEnvFile, serializeEnvFile, parseHooksFile, hookRunnerImage, validateUserRunAttributes, discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, SizeString, splitConnectionSecrets } from '@vostride/agent-qa-core'
-import { SecretStore, SecretRedactor, basicAuthMaskEntries } from '@vostride/agent-qa-runner'
+import {
+  SecretStore,
+  SecretRedactor,
+  RunSecretRedactor,
+  basicAuthMaskEntries,
+} from '@vostride/agent-qa-runner'
 import { DockerHookExecutor, purgeActionCache } from '@vostride/agent-qa-runner-local'
 import type { ResolvedWorkspacePaths, RunAttributes, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, fetchLiveModels, getModelCatalog, listProviders, mergeCatalog, resolveVisionConfig, type ProviderDescriptor } from '@vostride/agent-qa-model'
@@ -4431,7 +4436,11 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             secretStore = split.stepStore
             connectionSecretStore = declared
             connectionSecretNames = split.connectionNames
-            secretRedactor = new SecretRedactor(declared, basicAuthMaskEntries(remotes, declared))
+            // The session's own redactor: a plugin's answer mask values join it at acquire.
+            secretRedactor = new RunSecretRedactor(
+              declared,
+              basicAuthMaskEntries(remotes, declared),
+            )
             replyRedactor = secretRedactor
           } catch {
             json(res, { error: `workspace.secretsFile file could not be loaded: ${workspacePaths.secretsFile.workspaceRelativePath}` }, 400)

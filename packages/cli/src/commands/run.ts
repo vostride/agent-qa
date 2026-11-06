@@ -43,7 +43,7 @@ import type {
 import type { SecretStore, SecretRedactor, SecretRedactorPort, SecretResolver, HookDefinition, NonActionToolMap, SandboxRunnerOptions } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
 import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteDeviceConfig, RemoteFailureKind, RemotePlaceEvidence, RemoteLease, RemoteLeaseOutcome, RemoteLeaseSource, RemotePluginBrowserConfig, RemoteProtocol, RemoteRefusalMemory, RemoteSessionRegistry } from '@vostride/agent-qa-runner'
-import { isPluginRemote, WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, memberStepText, redactSecretValue, RemoteRefusalError } from '@vostride/agent-qa-runner'
+import { isPluginRemote, WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, memberStepText, redactSecretValue, RemoteRefusalError, RunSecretRedactor } from '@vostride/agent-qa-runner'
 import { createCliStepModelScopeFactory } from '../composition/step-model-scope.js'
 import type { CliStepModelScopeOptions } from '../composition/step-model-scope.js'
 import type { RunMemberDescriptor, ConfigDigests, MemberTestRunContext, MemberTestExecutor, StepModelScopeFactory, RemoteProgressRelay } from '@vostride/agent-qa-runner'
@@ -64,7 +64,6 @@ import {
 import {
   DeclaredSecretsUnavailableError,
   readDeclaredSecrets,
-  RunSecretRedactor,
 } from '../composition/declared-secrets.js'
 import {
   createRemoteProgressRelay,

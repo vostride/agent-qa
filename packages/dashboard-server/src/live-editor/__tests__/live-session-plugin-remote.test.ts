@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 
 import { writeScriptedPlugin } from '@vostride/agent-qa-plugin-kit/testing'
+import { RunSecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import type {
   RemoteLease,
   RemoteLeaseSource,
@@ -12,7 +13,7 @@ import type {
 } from '@vostride/agent-qa-runner'
 
 const { adapters } = vi.hoisted(() => ({
-  adapters: { connectFails: false },
+  adapters: { connectFails: false, connectedUrl: undefined as string | undefined },
 }))
 
 // Leases as the real adapter does: acquire at setup, release at cleanup or on a failed connect.
@@ -36,6 +37,7 @@ vi.mock('@vostride/agent-qa-web', async (importOriginal) => ({
           deadlineMs: remote.connectTimeoutMs,
           session: { platform: 'web', engine: 'chromium', context: 'new' },
         })
+        adapters.connectedUrl = lease.connection.url
         if (adapters.connectFails) {
           await lease.release()
           lease = undefined
@@ -51,7 +53,12 @@ vi.mock('@vostride/agent-qa-web', async (importOriginal) => ({
       observe: vi
         .fn()
         .mockResolvedValue({ tree: 'main', elements: [], timestamp: 0, metadata: {} }),
-      drainConsoleLogs: vi.fn(() => []),
+      // The page logs the address it was served from, as a page can.
+      drainConsoleLogs: vi.fn(() =>
+        adapters.connectedUrl === undefined
+          ? []
+          : [{ level: 'log', text: `served from ${adapters.connectedUrl}`, timestamp: 0 }],
+      ),
       drainNetworkLogs: vi.fn(() => []),
     }
   }),
@@ -75,6 +82,7 @@ vi.mock('@vostride/agent-qa-model', async (importOriginal) => ({
 import { SessionManager } from '../session-manager.js'
 import type { SessionManagerDeps } from '../session-manager.js'
 
+const ANSWER = { protocol: 'playwright', url: 'ws://127.0.0.1:9/playwright' }
 const REMOTE_NAME = 'lab-chrome'
 const ENTRY_NAME = 'lab'
 const EXIT_BUDGET_MS = 20_000
@@ -84,6 +92,7 @@ let managers: SessionManager[] = []
 
 afterEach(async () => {
   adapters.connectFails = false
+  adapters.connectedUrl = undefined
   await Promise.all(managers.map((manager) => manager.cleanupAll()))
   managers = []
 })
@@ -103,7 +112,7 @@ interface PluginProject {
   readonly deps: SessionManagerDeps
 }
 
-function pluginProject(): PluginProject {
+function pluginProject(answer: Record<string, unknown> = ANSWER): PluginProject {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'live-plugin-')))
   roots.push(root)
   writeScriptedPlugin(join(root, 'tools', ENTRY_NAME))
@@ -116,7 +125,7 @@ function pluginProject(): PluginProject {
         name: ENTRY_NAME,
         path: `./tools/${ENTRY_NAME}`,
         options: {
-          answer: { protocol: 'playwright', url: 'ws://127.0.0.1:9/playwright' },
+          answer,
           ledgerFile,
           recordProcess: true,
         },
@@ -146,10 +155,12 @@ const place: RemotePluginBrowserConfig = {
 
 async function openSession(
   deps: SessionManagerDeps,
+  secretRedactor?: RunSecretRedactor,
 ): Promise<{ manager: SessionManager; sessionId: string }> {
   const manager = new SessionManager(deps)
   managers.push(manager)
   const { sessionId } = await manager.createSession({
+    ...(secretRedactor === undefined ? {} : { secretRedactor }),
     platform: 'web',
     llmConfig: {
       provider: 'anthropic-compatible',
@@ -243,5 +254,36 @@ describe('a live-editor session on a plugin remote', () => {
 
     await expectPluginGone(project)
     expect(methodsOf(project)).toEqual(['initialize', 'acquire', 'release', 'shutdown'])
+  }, 60_000)
+})
+
+describe("a live-editor session and its plugin's answer mask", () => {
+  it("masks an answer's mask value in the session's output, events and records from acquire on", async () => {
+    const token = 'tok/live 9f3a'
+    const project = pluginProject({
+      protocol: 'playwright',
+      url: `ws://127.0.0.1:9/playwright?token=${encodeURIComponent(token)}`,
+      mask: [token],
+    })
+    const { manager, sessionId } = await openSession(
+      project.deps,
+      new RunSecretRedactor(new SecretStore([])),
+    )
+    const session = manager.getSession(sessionId)!
+    const messages: unknown[] = []
+    session.attachMessageSink((message) => messages.push(message))
+
+    const consoleLines = await session.drainDeviceLogs()
+    const hookLog = await session.executeHookCommand('teardown', `notify ${token}`)
+
+    expect(consoleLines.map((line) => line.message)).toEqual([
+      'served from ws://127.0.0.1:9/playwright?token=[secret:PLUGIN_LAB]',
+    ])
+    expect(hookLog.hookId).toBe('notify [secret:PLUGIN_LAB]')
+    const shown = JSON.stringify([consoleLines, hookLog, messages, session.getState()])
+    expect(messages.length).toBeGreaterThan(0)
+    for (const value of [token, encodeURIComponent(token)]) {
+      expect(shown.includes(value), 'the session showed a mask value').toBe(false)
+    }
   }, 60_000)
 })

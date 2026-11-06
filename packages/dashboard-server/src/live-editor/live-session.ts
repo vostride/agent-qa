@@ -39,6 +39,8 @@ import {
   createRemoteRefusalMemory,
   isPluginRemote,
   liveStreamFor,
+  pluginMaskName,
+  RunSecretRedactor,
 } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
 import {
@@ -1042,6 +1044,12 @@ export class LiveSession {
     if (configManager === undefined || configPath === undefined) return undefined
     const values = await readConfigValues(configManager)
     const redactor = config.secretRedactor
+    // An answer's mask values join the session's redactor before the session is used.
+    const onMask =
+      redactor instanceof RunSecretRedactor
+        ? (entry: string, masked: readonly string[]) =>
+            redactor.addMaskExtras(masked.map((value) => [pluginMaskName(entry), value] as const))
+        : undefined
     this.pluginPool = createPluginHostPool({
       configDir: dirname(resolvePath(configPath)),
       plugins: livePluginEntries(values.plugins),
@@ -1052,6 +1060,7 @@ export class LiveSession {
         config.secretsFile ?? 'workspace.secretsFile',
       ),
       mask: redactor === undefined ? configManager.mask : (text) => redactor.redactString(text),
+      ...(onMask === undefined ? {} : { onMask }),
       ...(this.deps.remoteSessions === undefined ? {} : { sessions: this.deps.remoteSessions }),
     })
     return this.pluginPool
