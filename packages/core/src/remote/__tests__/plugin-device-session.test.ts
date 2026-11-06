@@ -1,4 +1,4 @@
-import { SecretStore } from '@vostride/agent-qa-runner'
+import { RemoteRefusalError, SecretStore } from '@vostride/agent-qa-runner'
 import type {
   RemoteLease,
   RemoteLeaseAnswer,
@@ -18,7 +18,10 @@ const REMOTE: RemotePluginDeviceConfig = {
   uploadTimeoutMs: 30_000,
 }
 
-function leaseSource(answer: RemoteLeaseAnswer): RemoteLeaseSource {
+function leaseSource(
+  answer: RemoteLeaseAnswer,
+  release: () => Promise<void> = async () => undefined,
+): RemoteLeaseSource {
   return {
     async acquire() {
       const lease: RemoteLease = {
@@ -26,7 +29,7 @@ function leaseSource(answer: RemoteLeaseAnswer): RemoteLeaseSource {
         plugin: { entry: 'lab', version: '1.0.0', protocol: 1, origin: 'path' },
         started: async () => ({}),
         end: async () => undefined,
-        release: async () => undefined,
+        release,
         onEnded: () => () => undefined,
       }
       return lease
@@ -41,7 +44,11 @@ interface Opened {
 
 async function openOn(
   answer: RemoteLeaseAnswer,
-  options: { capabilities?: CapabilityMap; secrets?: Record<string, string> } = {},
+  options: {
+    capabilities?: CapabilityMap
+    secrets?: Record<string, string>
+    release?: () => Promise<void>
+  } = {},
 ): Promise<Opened> {
   const open = vi.fn(async (session: Opened) => session)
   const opened = await createPluginDeviceSession({
@@ -53,7 +60,7 @@ async function openOn(
     derived: { platformName: 'Android' },
     remote: { ...REMOTE, ...(options.capabilities ? { capabilities: options.capabilities } : {}) },
     options: {
-      pluginSessions: leaseSource(answer),
+      pluginSessions: leaseSource(answer, options.release),
       connectionSecrets: new SecretStore(options.secrets ?? {}),
     },
     open,
@@ -108,5 +115,36 @@ describe('a plugin device session', () => {
       'vendor:a': 'answer',
       'vendor:b': 'remote',
     })
+  })
+
+  it("connects with the answer url's query and scheme", async () => {
+    const opened = await openOn({
+      protocol: 'appium',
+      url: 'http://127.0.0.1:4723/wd/hub?token=t%2F1&region=eu',
+    })
+
+    expect(opened.connection).toEqual({
+      protocol: 'http',
+      hostname: '127.0.0.1',
+      port: 4723,
+      path: '/wd/hub',
+      query: { token: 't/1', region: 'eu' },
+      headers: {},
+    })
+  })
+
+  it('refuses an answer url that is neither http nor https, and releases its lease', async () => {
+    const release = vi.fn(async () => undefined)
+
+    const refused = await openOn(
+      { protocol: 'appium', url: 'ws://127.0.0.1:4723/wd/hub' },
+      { release },
+    ).catch((error: unknown) => error)
+
+    expect(refused).toBeInstanceOf(RemoteRefusalError)
+    expect((refused as Error).message).toBe(
+      'Remote farm: plugin entry lab answered with a url that an appium connection cannot use.',
+    )
+    expect(release).toHaveBeenCalledTimes(1)
   })
 })

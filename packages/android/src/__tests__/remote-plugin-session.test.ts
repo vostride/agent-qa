@@ -244,6 +244,21 @@ describe('an Android device on a plugin remote', () => {
     })
   })
 
+  it("sends the answer url's query on every request to the answered server", async () => {
+    const server = await fakeServer()
+    const leases = fakeLeases({ ...answerAt(server), url: `${server.url}?token=t%2F1&region=eu` })
+    const adapter = adapterFor({ pluginSessions: leases.source })
+
+    await adapter.setup(deviceOn(pluginRemote()))
+    await adapter.cleanup()
+
+    expect(server.requests.length).toBeGreaterThan(1)
+    for (const request of server.requests) {
+      expect(new URLSearchParams(request.search).get('token')).toBe('t/1')
+      expect(new URLSearchParams(request.search).get('region')).toBe('eu')
+    }
+  })
+
   it("tells the plugin the session's id, and records the plugin, its link and its Appium version", async () => {
     const server = await fakeServer()
     const leases = fakeLeases(answerAt(server))

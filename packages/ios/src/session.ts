@@ -146,6 +146,7 @@ async function connectRemoteIOSSession(
       hostname: connection.hostname,
       port: connection.port,
       path: connection.path,
+      ...(connection.query === undefined ? {} : { queryParams: { ...connection.query } }),
       headers: { ...connection.headers },
       connectionRetryCount: 0,
       enableDirectConnect: false,

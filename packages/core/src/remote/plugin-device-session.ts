@@ -22,6 +22,7 @@ import {
 } from '../mobile/device-plan.js'
 import type { CapabilityMap, RunStartCapabilityInput } from '../mobile/device-plan.js'
 import type { MobilePlatform } from '../mobile/launch-resolver.js'
+import { remoteDeviceEndpoint } from './remote-device-connection.js'
 import type { RemoteDeviceConnection } from './remote-device-connection.js'
 import { deviceDebugLoggingRefusal, remoteDeviceRefusalKey } from './remote-device-session.js'
 
@@ -80,19 +81,6 @@ export function refuseLeakingDeviceLogs(
     { remote, device },
   )
   if (logging !== undefined) throw new RemoteRefusalError(logging, { remote: label })
-}
-
-// A plugin's answer is already resolved: it carries values, not references.
-function answeredDeviceConnection(remoteDevice: RemoteDeviceConfig): RemoteDeviceConnection {
-  const url = new URL(remoteDevice.url)
-  const protocol = url.protocol === 'https:' ? 'https' : 'http'
-  return {
-    protocol,
-    hostname: url.hostname,
-    port: url.port === '' ? (protocol === 'https' ? 443 : 80) : Number(url.port),
-    path: url.pathname === '' ? '/' : url.pathname,
-    headers: { ...remoteDevice.headers },
-  }
 }
 
 export interface RemoteDeviceProfile {
@@ -315,6 +303,13 @@ export async function createPluginDeviceSession<Driver>(
   const label = remoteLabel({ name, plugin: entry })
   const contradictions = answerContradictions(input, label, answer.capabilities)
   if (contradictions.length > 0) return refuse(contradictions.join('\n'))
+  // The answer carries values, not references, and its query rides along on every request.
+  const endpoint = URL.canParse(answer.url) ? remoteDeviceEndpoint(new URL(answer.url)) : undefined
+  if (endpoint === undefined) {
+    return refuse(
+      `Remote ${name}: plugin entry ${entry} answered with a url that an appium connection cannot use.`,
+    )
+  }
 
   const remaining = pluginDevice.connectTimeoutMs - (Date.now() - startedAt)
   const remote: RemoteDeviceConfig = {
@@ -329,7 +324,7 @@ export async function createPluginDeviceSession<Driver>(
     const test = { ...input, appRef }
     const driver = await input.open({
       remote,
-      connection: answeredDeviceConnection(remote),
+      connection: { ...endpoint, headers: { ...answer.headers } },
       capabilities: answeredCapabilities(test, remote, options, answer.capabilities),
     })
     return { driver, lease, release, remote }

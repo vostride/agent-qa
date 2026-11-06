@@ -38,6 +38,8 @@ export interface FakeAppiumOptions {
 export interface FakeAppiumRequest {
   readonly method: string
   readonly path: string
+  // The query as sent, with its leading ?, or '' when there is none.
+  readonly search: string
   readonly headers: Readonly<Record<string, string>>
   readonly body: unknown
 }
@@ -211,10 +213,11 @@ export async function startFakeAppiumServer(
     request.on('data', (chunk: Buffer) => chunks.push(chunk))
     request.on('end', () => {
       const method = request.method ?? 'GET'
-      const path = new URL(request.url ?? '/', 'http://127.0.0.1').pathname
+      const { pathname: path, search } = new URL(request.url ?? '/', 'http://127.0.0.1')
       const record: FakeAppiumRequest = {
         method,
         path,
+        search,
         headers: lowerCasedHeaders(request),
         body: parseBody(Buffer.concat(chunks).toString('utf8')),
       }

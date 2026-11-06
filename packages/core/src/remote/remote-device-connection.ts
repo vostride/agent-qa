@@ -10,12 +10,32 @@ import {
   SECRET_REFERENCE_PATTERN,
 } from '@vostride/agent-qa-schema'
 
-export interface RemoteDeviceConnection {
+export interface RemoteDeviceEndpoint {
   readonly protocol: 'http' | 'https'
   readonly hostname: string
   readonly port: number
   readonly path: string
+  // Sent on every request; a key the url repeats keeps its last value.
+  readonly query?: Readonly<Record<string, string>>
+}
+
+export interface RemoteDeviceConnection extends RemoteDeviceEndpoint {
   readonly headers: Readonly<Record<string, string>>
+}
+
+// Undefined for a url that is neither http nor https.
+export function remoteDeviceEndpoint(url: URL): RemoteDeviceEndpoint | undefined {
+  const protocol =
+    url.protocol === 'https:' ? 'https' : url.protocol === 'http:' ? 'http' : undefined
+  if (protocol === undefined) return undefined
+  const query = Object.fromEntries(url.searchParams)
+  return {
+    protocol,
+    hostname: url.hostname,
+    port: url.port === '' ? (protocol === 'https' ? 443 : 80) : Number(url.port),
+    path: url.pathname === '' ? '/' : url.pathname,
+    ...(Object.keys(query).length === 0 ? {} : { query }),
+  }
 }
 
 export interface RemoteDeviceConnectionInput {
@@ -47,7 +67,13 @@ export function resolveRemoteDeviceConnection(
           encodeURIComponent(secrets.require(name)),
         ),
   )
-  const protocol = url.protocol === 'https:' ? 'https' : 'http'
+  const endpoint = remoteDeviceEndpoint(url)
+  if (endpoint === undefined) {
+    throw new RemoteRefusalError(
+      `Device ${device} on remote ${label}: an appium url starts with http:// or https://.`,
+      { remote: label },
+    )
+  }
   const headers: Record<string, string> = resolveSecretTemplatesInValue(
     { ...remote.headers },
     secrets,
@@ -56,11 +82,5 @@ export function resolveRemoteDeviceConnection(
     const { user, password } = resolveSecretTemplatesInValue(remote.basicAuth, secrets)
     headers.Authorization = `Basic ${basicAuthorizationValue(user, password)}`
   }
-  return {
-    protocol,
-    hostname: url.hostname,
-    port: url.port === '' ? (protocol === 'https' ? 443 : 80) : Number(url.port),
-    path: url.pathname === '' ? '/' : url.pathname,
-    headers,
-  }
+  return { ...endpoint, headers }
 }
