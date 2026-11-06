@@ -139,6 +139,25 @@ describe('runConformance', () => {
     expect(report.ok).toBe(true)
   })
 
+  it("starts the plugin with agent-qa's environment, not the runner's", async () => {
+    const { dir } = writeScriptedPlugin(tempDir())
+    const ledgerFile = join(dir, 'ledger.jsonl')
+    process.env.ACME_API_KEY = 'from-the-runner'
+    try {
+      await runConformance({
+        packageDir: dir,
+        quick: true,
+        options: { ledgerFile, answer, recordProcess: true },
+      })
+    } finally {
+      delete process.env.ACME_API_KEY
+    }
+
+    const envKeys = readLedger(ledgerFile)[0]?.envKeys
+    expect(envKeys).toContain('PATH')
+    expect(envKeys).not.toContain('ACME_API_KEY')
+  })
+
   it('fails clean-stdout for a plugin that prints to stdout', async () => {
     const { dir } = writeHandWrittenPlugin({ printHello: true })
 

@@ -241,8 +241,8 @@ reports. The full protocol, with every field, deadline and error code, is agent-
   including one a running call returns. Then it runs `shutdown` once and exits. It ignores SIGINT,
   because agent-qa runs the shutdown.
 - **Secrets arrive only in messages.** The plugin's environment is only the path, home, temp, locale,
-  time zone, proxy and certificate variables. Read credentials from `options` and `settings`, never from
-  environment variables.
+  time zone, proxy and certificate variables, as `pluginEnvironment` from the kit's `protocol` entry
+  computes them. Read credentials from `options` and `settings`, never from environment variables.
 - **Deadlines.** `initialize` gets 10 s, `check` 15 s, `acquire` the remote's `connectTimeout` (5 minutes
   by default), `uploadApp` the remote's `uploadTimeout` (10 minutes by default), and `started`, `end`,
   `release` and `shutdown` 30 s, or 5 s when agent-qa is stopping on a signal.
@@ -349,8 +349,8 @@ it('passes conformance against a loopback fake of the Acme API', async () => {
 ### runConformance
 
 `runConformance({ packageDir, options, settings?, session?, host?, quick?, timeoutMs? })` reads the
-package's manifest, starts its entry with Node and reports each check by name as
-`{ name, ok, detail? }`, with `ok` true only when every check passed:
+package's manifest, starts its entry with Node and the environment agent-qa gives a plugin, and reports
+each check by name as `{ name, ok, detail? }`, with `ok` true only when every check passed:
 
 | Check | What passes |
 |---|---|

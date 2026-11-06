@@ -7,6 +7,7 @@ import type { z } from 'zod'
 import type { PluginDefinition } from '../define-plugin.js'
 import { pluginManifest } from '../emit.js'
 import { findPackageRoot, readPackageJson } from '../package-root.js'
+import { pluginEnvironment } from '../protocol/environment.js'
 import { createLineDecoder, encodeMessage } from '../protocol/framing.js'
 import {
   PLUGIN_MANIFEST_FIELD,
@@ -190,7 +191,11 @@ function within<T>(promise: Promise<T>, ms: number, what: string): Promise<T> {
 }
 
 function startPlugin(entry: string, cwd: string): PluginProcess {
-  const child = spawn(process.execPath, [entry], { cwd, stdio: ['pipe', 'pipe', 'pipe'] })
+  const child = spawn(process.execPath, [entry], {
+    cwd,
+    env: pluginEnvironment(process.env, process.platform),
+    stdio: ['pipe', 'pipe', 'pipe'],
+  })
   const waiting = new Map<number, (answer: RpcAnswer) => void>()
   const problems: string[] = []
   let stderr = ''
