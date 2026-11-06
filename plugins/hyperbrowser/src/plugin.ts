@@ -4,6 +4,7 @@ import {
   definePlugin,
   PluginError,
   z,
+  type AcquireInput,
 } from '@vostride/agent-qa-plugin-kit'
 import { createHyperbrowserApi, HyperbrowserSessionSchema } from './hyperbrowser-api.js'
 
@@ -51,6 +52,21 @@ const settings = z.strictObject({
     .boolean()
     .default(false)
     .describe("Hyperbrowser's automatic acceptance of cookie banners"),
+  screen: z
+    .strictObject({ width: z.int().positive(), height: z.int().positive() })
+    .optional()
+    .describe('The browser screen size in pixels'),
+  region: z.string().min(1).optional().describe('The Hyperbrowser region the session runs in'),
+  profile: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('A Hyperbrowser profile id loaded read-only; needs context: reuse on the remote'),
+  extensions: z
+    .array(z.string().min(1))
+    .min(1)
+    .optional()
+    .describe('Hyperbrowser extension ids loaded into the browser'),
   extra: z
     .record(z.string(), z.unknown())
     .optional()
@@ -58,6 +74,16 @@ const settings = z.strictObject({
 })
 
 type HyperbrowserSettings = z.output<typeof settings>
+type Session = AcquireInput<unknown, unknown>['session']
+
+function checkSettings(input: HyperbrowserSettings, session: Session): void {
+  if (input.profile !== undefined && (session.platform !== 'web' || session.context !== 'reuse')) {
+    throw new PluginError(
+      'profile loads only into a reused context; set context: reuse on the remote.',
+      { kind: 'refused', path: 'settings.profile' },
+    )
+  }
+}
 
 function proxyBody(proxy: HyperbrowserSettings['proxy']): Record<string, unknown> {
   if (typeof proxy === 'boolean') return { useProxy: proxy }
@@ -80,6 +106,12 @@ function createBody(input: HyperbrowserSettings): Record<string, unknown> {
     annoyances: input.annoyances,
     acceptCookies: input.acceptCookies,
     ...(input.recording === undefined ? {} : { enableWebRecording: input.recording }),
+    ...(input.screen === undefined ? {} : { screen: input.screen }),
+    ...(input.region === undefined ? {} : { region: input.region }),
+    ...(input.profile === undefined
+      ? {}
+      : { profile: { id: input.profile, persistChanges: false } }),
+    ...(input.extensions === undefined ? {} : { extensionIds: input.extensions }),
     ...input.extra,
   }
 }
@@ -114,6 +146,7 @@ export default definePlugin({
         kind: 'refused',
       })
     }
+    checkSettings(settings, session)
     // The create is not cancelled: once Hyperbrowser has a session, the handle must come back to
     // be stopped, and the kit releases a handle that arrives after a cancel was answered.
     const created = await createHyperbrowserApi(options).createSession(createBody(settings))
