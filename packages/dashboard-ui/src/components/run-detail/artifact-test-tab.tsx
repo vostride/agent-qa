@@ -1,4 +1,4 @@
-import { ChevronRight } from "lucide-react"
+import { ChevronRight, ExternalLink } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import type { RunArtifactResponse } from "@/lib/api"
@@ -123,12 +123,14 @@ function PlaceServedBy({ place }: { place: PlaceLine }) {
       {place.link === null ? null : (
         <a
           data-place-link
-          className="text-primary hover:underline"
+          className="inline-flex items-center gap-1 text-primary underline underline-offset-2"
           href={place.link.href}
           target={place.link.target}
           rel={place.link.rel}
         >
           {place.link.label}
+          <ExternalLink className="size-3" aria-hidden="true" />
+          <span className="sr-only">{` ${DRAWER_COPY.opensInNewTab}`}</span>
         </a>
       )}
     </div>

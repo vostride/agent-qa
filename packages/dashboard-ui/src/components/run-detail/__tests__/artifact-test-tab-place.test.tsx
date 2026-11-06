@@ -289,7 +289,7 @@ describe("a test's place on the run page", () => {
     expect(line?.className).toContain('text-destructive')
   })
 
-  it('a test a plugin served names the plugin and links its session page in a new tab without a referrer', () => {
+  it('a test a plugin served names the plugin and links its session page in a new tab without a referrer, saying so', () => {
     const tab = mount(response({
       source: { kind: 'test', rawYaml: 'name: Login\n', resolvedDefinition: { name: 'Login' } },
       config: { runtime: runtime(pluginPlace) },
@@ -297,12 +297,17 @@ describe("a test's place on the run page", () => {
     const block = tab.firstElementChild?.firstElementChild
     expect(block?.firstElementChild).toBe(tab.querySelector('[data-run-place]'))
     const served = block?.querySelector('[data-place-plugin]')
-    expect(served?.textContent).toBe('Plugin kernel (@vostride/agent-qa-plugin-kernel 1.4.0)Session page')
+    expect(served?.textContent).toBe(
+      'Plugin kernel (@vostride/agent-qa-plugin-kernel 1.4.0)Session page (opens in a new tab)',
+    )
     const link = served?.querySelector('a[data-place-link]')
     expect(link?.getAttribute('href')).toBe('https://dashboard.kernel.example.com/sessions/s-81')
     expect(link?.getAttribute('target')).toBe('_blank')
     expect(link?.getAttribute('rel')).toBe('noopener noreferrer')
-    expect(link?.textContent).toBe('Session page')
+    expect(link?.textContent).toBe('Session page (opens in a new tab)')
+    expect(link?.querySelector('.sr-only')?.textContent).toBe(' (opens in a new tab)')
+    expect(link?.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true')
+    expect(link?.className.split(' ')).toContain('underline')
 
     const card = memberCard(pluginPlace)
     expect(card.querySelector('[data-place-plugin] a')?.getAttribute('rel')).toBe('noopener noreferrer')

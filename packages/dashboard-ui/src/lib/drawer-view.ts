@@ -24,6 +24,7 @@ export const DRAWER_COPY = {
   copyRunId: 'Copy run ID',
   retry: 'Retry loading run details',
   ranHere: 'Ran on this machine',
+  opensInNewTab: '(opens in a new tab)',
 } as const
 
 /** Where a test ran: the remote's name, then its protocol and origin, then its browser version. */
