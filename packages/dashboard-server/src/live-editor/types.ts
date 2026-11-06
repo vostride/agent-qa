@@ -6,8 +6,8 @@ import type {
   NetworkLogEntry,
   RemoteBrowserConfig,
   RemotePluginBrowserConfig,
+  RunSecretRedactor,
   StepAnnotation,
-  SecretRedactor,
   SecretStore,
 } from '@vostride/agent-qa-runner'
 import type { DashboardLLMConfig } from '../llm-model-mapping.js'
@@ -213,7 +213,8 @@ export interface LiveSessionConfig {
   // workspace.secretsFile as the project names it, for the adapter's credential refusals.
   secretsFile?: string
   remote?: RemoteBrowserConfig | RemotePluginBrowserConfig
-  secretRedactor?: SecretRedactor
+  // A run redactor, so a plugin's answer mask values can join it.
+  secretRedactor?: RunSecretRedactor
   setupHooks?: string[]
   teardownHooks?: string[]
   resolvedHooks?: Map<string, HookDefinition>

@@ -154,14 +154,15 @@ const place: RemotePluginBrowserConfig = {
   connectTimeoutMs: 30_000,
 }
 
+// The route always hands a session its redactor; null opens one without it.
 async function openSession(
   deps: SessionManagerDeps,
-  secretRedactor?: RunSecretRedactor,
+  secretRedactor: RunSecretRedactor | null = new RunSecretRedactor(new SecretStore([])),
 ): Promise<{ manager: SessionManager; sessionId: string }> {
   const manager = new SessionManager(deps)
   managers.push(manager)
   const { sessionId } = await manager.createSession({
-    ...(secretRedactor === undefined ? {} : { secretRedactor }),
+    ...(secretRedactor === null ? {} : { secretRedactor }),
     platform: 'web',
     llmConfig: {
       provider: 'anthropic-compatible',
@@ -245,6 +246,16 @@ describe('a live-editor session on a plugin remote', () => {
 
     await expectPluginGone(project)
     expect(methodsOf(project)).toEqual(['initialize', 'acquire', 'release', 'shutdown'])
+  }, 60_000)
+
+  it('refuses a session without a redactor before the plugin starts', async () => {
+    const project = pluginProject()
+
+    await expect(openSession(project.deps, null)).rejects.toThrow(
+      'A plugin remote needs the session redactor, which masks what the plugin answers; this session has none.',
+    )
+
+    expect(methodsOf(project)).toEqual([])
   }, 60_000)
 
   it('shuts the plugin down when the dashboard ends every session', async () => {

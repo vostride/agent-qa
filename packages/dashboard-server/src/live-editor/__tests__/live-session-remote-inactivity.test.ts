@@ -63,7 +63,7 @@ vi.mock('@vostride/agent-qa-model', async (importOriginal) => ({
   createModel: vi.fn().mockReturnValue({ modelId: 'test-model' }),
 }))
 
-import { SecretRedactor, SecretStore, createRemoteSessionRegistry } from '@vostride/agent-qa-runner'
+import { RunSecretRedactor, SecretStore, createRemoteSessionRegistry } from '@vostride/agent-qa-runner'
 import type { RemoteBrowserConfig } from '@vostride/agent-qa-runner'
 
 import { IDLE_TIMEOUT_MS, REMOTE_INACTIVITY_TIMEOUT_MS } from '../live-session.js'
@@ -283,7 +283,7 @@ describe("a live-editor session on a remote device", () => {
       {
         connectionSecretStore: declared,
         secretsFile: '.env.secrets.local',
-        secretRedactor: new SecretRedactor(declared),
+        secretRedactor: new RunSecretRedactor(declared),
       },
       remoteSessions,
     )

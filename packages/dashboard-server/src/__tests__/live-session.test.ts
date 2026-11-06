@@ -223,7 +223,7 @@ vi.mock('@vostride/agent-qa-model', async () => {
 
 import { LivePlannerLimitsRefusedError, LiveSession, resolveLivePlannerLimits } from '../live-editor/live-session.js'
 import type { ConfigManager } from '../config/index.js'
-import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
+import { RunSecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import { resolvePlannerLimits } from '@vostride/agent-qa-schema'
 
 const webConfig: LiveSessionConfig = {
@@ -328,7 +328,7 @@ describe('LiveSession', () => {
       ...webConfig,
       url: 'https://example.com/{{secret:START_URL_TOKEN}}',
       secretStore,
-      secretRedactor: new SecretRedactor(secretStore),
+      secretRedactor: new RunSecretRedactor(secretStore),
     })
 
     expect(mockExecute).toHaveBeenCalledWith({ type: 'navigate', to: 'url', url: 'https://example.com/runtime-url-token' })
@@ -444,7 +444,7 @@ describe('LiveSession', () => {
     await session.initialize({
       ...webConfig,
       secretStore,
-      secretRedactor: new SecretRedactor(secretStore),
+      secretRedactor: new RunSecretRedactor(secretStore),
     })
     const result = await session.executeStepCommand(
       'Fill password with {{secret:loginPassword}}',

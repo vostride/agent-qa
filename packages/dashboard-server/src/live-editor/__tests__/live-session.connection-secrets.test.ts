@@ -78,7 +78,7 @@ vi.mock('@vostride/agent-qa-model', async (importOriginal) => ({
 
 import { splitConnectionSecrets } from '@vostride/agent-qa-core'
 import type { HookDefinition } from '@vostride/agent-qa-core'
-import { SecretRedactor, SecretStore, basicAuthMaskEntries } from '@vostride/agent-qa-runner'
+import { RunSecretRedactor, SecretStore, basicAuthMaskEntries } from '@vostride/agent-qa-runner'
 import type { RemoteBrowserConfig } from '@vostride/agent-qa-runner'
 
 import { LiveSession } from '../live-session.js'
@@ -119,7 +119,7 @@ function sessionConfig(
     connectionSecretStore: declared,
     connectionSecretNames: connectionNames,
     secretsFile: '.env.secrets.local',
-    secretRedactor: new SecretRedactor(declared, basicAuthMaskEntries([remote], declared)),
+    secretRedactor: new RunSecretRedactor(declared, basicAuthMaskEntries([remote], declared)),
     ...extra,
   }
 }

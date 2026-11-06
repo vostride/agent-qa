@@ -41,7 +41,6 @@ import {
   isPluginRemote,
   liveStreamFor,
   pluginMaskName,
-  RunSecretRedactor,
 } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
 import {
@@ -1065,14 +1064,13 @@ export class LiveSession {
   private async openPluginPool(config: LiveSessionConfig): Promise<PluginHostPool | undefined> {
     const { configManager, configPath } = this.deps
     if (configManager === undefined || configPath === undefined) return undefined
-    const values = await readConfigValues(configManager)
     const redactor = config.secretRedactor
-    // An answer's mask values join the session's redactor before the session is used.
-    const onMask =
-      redactor instanceof RunSecretRedactor
-        ? (entry: string, masked: readonly string[]) =>
-            redactor.addMaskExtras(masked.map((value) => [pluginMaskName(entry), value] as const))
-        : undefined
+    if (redactor === undefined) {
+      throw new LiveRemotesRefusedError(
+        'A plugin remote needs the session redactor, which masks what the plugin answers; this session has none.',
+      )
+    }
+    const values = await readConfigValues(configManager)
     this.pluginPool = createPluginHostPool({
       configDir: dirname(resolvePath(configPath)),
       plugins: livePluginEntries(values.plugins),
@@ -1082,8 +1080,10 @@ export class LiveSession {
         config.connectionSecretStore,
         config.secretsFile ?? 'workspace.secretsFile',
       ),
-      mask: redactor === undefined ? configManager.mask : (text) => redactor.redactString(text),
-      ...(onMask === undefined ? {} : { onMask }),
+      mask: (text) => redactor.redactString(text),
+      // An answer's mask values join the session's redactor before the session is used.
+      onMask: (entry, masked) =>
+        redactor.addMaskExtras(masked.map((value) => [pluginMaskName(entry), value] as const)),
       ...(this.deps.remoteSessions === undefined ? {} : { sessions: this.deps.remoteSessions }),
     })
     return this.pluginPool

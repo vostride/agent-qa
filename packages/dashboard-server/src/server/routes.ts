@@ -4410,7 +4410,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           let secretStore: SecretStore | undefined
           let connectionSecretStore: SecretStore | undefined
           let connectionSecretNames: ReadonlySet<string> | undefined
-          let secretRedactor: SecretRedactor | undefined
+          let secretRedactor: RunSecretRedactor | undefined
           let resolvedHooks = new Map<string, import('@vostride/agent-qa-core').HookDefinition>()
           let hookRegistryError: string | undefined
           if (!workspacePaths) {
