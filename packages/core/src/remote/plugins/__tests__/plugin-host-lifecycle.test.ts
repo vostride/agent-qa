@@ -332,6 +332,23 @@ describe("a plugin's stderr", () => {
     await waitFor(() => debugLines.includes(`plugin lab: ${NODE_DEPRECATION}`))
   })
 
+  it('names the error of a plugin that throws where nothing catches it, not the source line Node prints first', async () => {
+    const p = host()
+    const lab = p.entry('lab', { script: { check: 'uncaught' } })
+    const pool = p.pool([lab], { mask })
+    const lease = await pool.acquire(request('lab-a', 'lab'))
+    const ended: RemoteLeaseEnded[] = []
+    lease.onEnded((value) => ended.push(value))
+
+    await refusalOf(pool.check('lab', [{ name: 'lab-a' }]))
+
+    await waitFor(() => ended.length === 1)
+    expect(ended[0]?.message).toBe(
+      'Remote lab-a: plugin entry lab stopped unexpectedly: '
+        + 'Error: check threw where nothing catches it.',
+    )
+  })
+
   it("gives a call that fails without a reason its first line after Node's runtime warnings", async () => {
     const p = host()
     const lab = p.entry('lab', {

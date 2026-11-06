@@ -224,7 +224,9 @@ reports. The full protocol, with every field, deadline and error code, is agent-
   `runPlugin` leaves the process's console, stdout and signal handlers alone.
 - **stderr is the plugin's log.** agent-qa masks it and shows it only at debug level, and its first
   line becomes a failed call's reason, skipping Node's own runtime warnings, such as
-  `(node:<pid>) [DEP0176] DeprecationWarning: ...` and the `(Use ...)` line after one.
+  `(node:<pid>) [DEP0176] DeprecationWarning: ...` and the `(Use ...)` line after one. The kit
+  writes an exception nothing catches as the error itself, such as `Error: spawn EACCES`, and exits
+  1, so a crash's reason is the error rather than the source line Node's own report starts with.
 - **A handle is self-contained JSON.** agent-qa keeps it and passes it back to `started`, `end` and
   `release`. After a crash, a fresh process with the same options releases it, so a handle carries
   everything `release` needs besides the options.

@@ -1,6 +1,6 @@
-import { realpathSync } from 'node:fs'
+import { realpathSync, writeSync } from 'node:fs'
 import { dirname } from 'node:path'
-import { format } from 'node:util'
+import { format, inspect } from 'node:util'
 import type { z } from 'zod'
 import { PluginError, type PluginCallContext, type PluginDefinition } from './define-plugin.js'
 import { findPackageRoot, readPackageJson } from './package-root.js'
@@ -223,6 +223,14 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
     process.stdout.on('error', () => {})
     process.stderr.on('error', () => {})
     process.on('SIGINT', () => {})
+    // Node's own report starts with the throwing source line, and the host takes stderr's first
+    // line as the crash's reason.
+    process.on('uncaughtException', (error) => {
+      try {
+        writeSync(2, `${inspect(error)}\n`)
+      } catch {}
+      process.exit(1)
+    })
   }
 
   const send = (message: Record<string, unknown>) => {

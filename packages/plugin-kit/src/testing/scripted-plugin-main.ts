@@ -18,7 +18,7 @@ import { runPlugin } from '../run-plugin.js'
 import type { ScriptedPluginTiming } from './scripted-plugin.js'
 
 const ScriptStepSchema = z.union([
-  z.enum(['ok', 'hold', 'crash', 'noise', 'consoleLog', 'ignoreCancel']),
+  z.enum(['ok', 'hold', 'crash', 'uncaught', 'noise', 'consoleLog', 'ignoreCancel']),
   z.object({
     error: z.object({
       kind: z.enum(PLUGIN_FAILURE_KINDS),
@@ -150,6 +150,13 @@ async function follow(
       return
     case 'crash':
       process.exit(1)
+    case 'uncaught':
+      process.emitWarning('a dependency used a deprecated API', 'DeprecationWarning', 'DEP0000')
+      setTimeout(() => {
+        throw new Error(`${method} threw where nothing catches it`)
+      }, 10)
+      await new Promise<never>(() => {})
+      return
     case 'noise':
       writeSync(1, 'noise\n')
       return

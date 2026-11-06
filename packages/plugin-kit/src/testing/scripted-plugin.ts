@@ -44,7 +44,8 @@ description: A scripted agent-qa plugin that answers each call as its options sa
 # Scripted plugin
 
 Each call follows \`options.script[method]\`: \`ok\`, \`hold\`, \`ignoreCancel\`, \`crash\`,
-\`noise\`, \`consoleLog\`, \`{ delayMs }\`, \`{ error }\` or \`{ errorAfterCreate }\`. A list of
+\`uncaught\` (a Node deprecation warning, then an exception nothing catches), \`noise\`,
+\`consoleLog\`, \`{ delayMs }\`, \`{ error }\` or \`{ errorAfterCreate }\`. A list of
 steps gives each call the next one, and the last repeats. \`options.stderr[method]\` is written
 to stderr before the step. Acquire answers \`options.answer\`, or the JSON in the file
 \`options.answerFile\` names.

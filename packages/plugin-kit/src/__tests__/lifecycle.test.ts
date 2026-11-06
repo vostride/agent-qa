@@ -180,6 +180,21 @@ describe('shutdown', () => {
   })
 })
 
+describe('an exception nothing catches', () => {
+  it("writes the error as stderr's first line after Node's warnings, not Node's source preamble, and exits 1", async () => {
+    const plugin = spawnScriptedPlugin()
+    await plugin.initialize({ answer, script: { acquire: 'uncaught' } })
+    plugin.send('acquire', acquireParams).answered.catch(() => {})
+
+    expect(await plugin.exited).toBe(1)
+    await waitFor(() => plugin.stderr().includes('threw where nothing catches it') || undefined)
+    const lines = plugin.stderr().split('\n')
+    expect(lines[0]).toMatch(/^\(node:\d+\) \[DEP0000\] DeprecationWarning: /)
+    const reason = lines.find((line) => !/^\((node:\d+\)|Use `node --trace-)/.test(line))
+    expect(reason).toBe('Error: acquire threw where nothing catches it')
+  })
+})
+
 describe('leaving', () => {
   it('releases the handle it still holds, shuts down and exits 0 when stdin closes', async () => {
     const plugin = spawnScriptedPlugin()
