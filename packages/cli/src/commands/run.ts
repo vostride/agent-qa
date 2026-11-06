@@ -6,7 +6,7 @@ import { Command, Option } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, describeAndroidHere, describeIOSHere, discoverWorkspaceFiles, findDeviceHere, isUrlRemoteEntry, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, pluginRemoteRefusals, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, describeAndroidHere, describeIOSHere, discoverWorkspaceFiles, findDeviceHere, isUrlRemoteEntry, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, projectRemotesForDisplay, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
@@ -110,6 +110,7 @@ import type { PluginHostProgress } from '@vostride/agent-qa-core'
 import { analyticsRemotePluginId } from '@vostride/agent-qa-analytics'
 import type { AnalyticsRemotePlugin } from '@vostride/agent-qa-analytics'
 import { createShutdownController } from './shutdown-controller.js'
+import { rememberPluginRemoteRefusals, webRefusalMemory } from './plugin-remote-refusals.js'
 import { buildDirectRunMembers } from './direct-run-members.js'
 import { resolveRecordingSetting, resolveRecordingStagingDir } from './recording-setting.js'
 import { printAgentQaUpdateNoticeIfNeeded, shouldPrintAgentQaUpdateNotice, type AgentQaUpdateNoticeContext } from '../version-notice.js'
@@ -565,6 +566,9 @@ export async function createPlatformAdapter(
   return new WebPlatformAdapter({
     ...(options.hostOwnsSignals === true ? { hostOwnsSignals: true as const } : {}),
     ...connection,
+    ...(options.refusalMemory === undefined
+      ? {}
+      : { refusalMemory: webRefusalMemory(options.refusalMemory) }),
     ...(options.pluginSessions === undefined ? {} : { pluginSessions: options.pluginSessions }),
   })
 }
@@ -1853,40 +1857,6 @@ function refuseRemoteSecretProblems(input: {
     }
   }
   if (lines.length > 0) throw new CliRunInputError(lines.map((line) => pc.red(line)), 2)
-}
-
-// Before any member starts, a plugin remote its plugin cannot serve is refused in the run's memory,
-// so only that remote's members fail, each with its one sentence.
-function rememberPluginRemoteRefusals(input: {
-  readonly config: AgentQaConfig
-  readonly configDir: string
-  readonly usedRemotes: Iterable<RemoteBrowserConfig | RemotePluginBrowserConfig>
-  readonly usedDevices: Iterable<DevicePlace>
-  readonly declaredSecrets: { has(name: string): boolean } | undefined
-  readonly refusalMemory: RemoteRefusalMemory
-}): void {
-  const uses = [
-    ...[...input.usedRemotes].flatMap((remote) =>
-      isPluginRemote(remote) ? [{ remote: remote.name, place: 'web' as const }] : [],
-    ),
-    ...[...input.usedDevices].flatMap((place) =>
-      place.kind === 'remote' && isPluginRemote(place.remote)
-        ? [{ remote: place.remote.name, place: 'device' as const }]
-        : [],
-    ),
-  ]
-  if (uses.length === 0) return
-  const refusals = pluginRemoteRefusals({
-    configDir: input.configDir,
-    agentQaVersion: getAgentQaVersion(),
-    plugins: input.config.plugins ?? [],
-    remotes: input.config.registry?.remotes ?? [],
-    uses,
-    ...(input.declaredSecrets === undefined ? {} : { declaredSecrets: input.declaredSecrets }),
-  })
-  for (const { remote, kind, message } of refusals) {
-    input.refusalMemory.remember(remote, new RemoteRefusalError(message, { remote, kind }))
-  }
 }
 
 // Zero runnable tests from resolved files refuses loudly, never a green `0 of 0` run.

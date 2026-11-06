@@ -218,12 +218,23 @@ describe('options and settings', () => {
 })
 
 describe('what the plugin serves', () => {
-  it('refuses a web test on a plugin that serves only appium', () => {
+  it('refuses only the web tests of a remote whose plugin serves only appium', () => {
     install(FIRST_PARTY, remoteManifest({ serves: ['appium'] }))
 
-    expect(refusals({}).map(({ message }) => message)).toEqual([
-      'Remote farm cannot start: plugin entry kit serves appium, and a web test needs playwright '
-        + 'or cdp.',
+    expect(
+      refusals({
+        uses: [
+          { remote: 'farm', place: 'web' },
+          { remote: 'farm', place: 'device' },
+        ],
+      }).map(({ message, place }) => ({ message, place })),
+    ).toEqual([
+      {
+        message:
+          'Remote farm cannot start: plugin entry kit serves appium, and a web test needs '
+          + 'playwright or cdp.',
+        place: 'web',
+      },
     ])
   })
 
@@ -238,6 +249,7 @@ describe('what the plugin serves', () => {
         message:
           'Remote farm cannot start: plugin entry kit serves playwright and cdp, and a device '
           + 'needs appium.',
+        place: 'device',
       },
     ])
   })

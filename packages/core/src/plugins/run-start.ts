@@ -18,6 +18,8 @@ export interface PluginRemoteRefusal {
   entry: string
   kind: 'version' | 'refused' | 'auth'
   message: string
+  // Set when the refusal concerns only the remote's web tests or only its devices.
+  place?: PluginRemoteUse['place']
 }
 
 export interface PluginRemoteRefusalsInput extends ResolvePluginEntryOptions {
@@ -44,20 +46,20 @@ function referenceNames(value: unknown): string[] {
   return []
 }
 
-function servesSentence(
+function servesSentences(
   resolved: ResolvedPluginEntry,
   places: ReadonlySet<PluginRemoteUse['place']>,
-): string[] {
+): { place: PluginRemoteUse['place']; sentence: string }[] {
   const manifest = resolved.manifest
   if (manifest?.kind !== 'remote') return []
   const serves: readonly string[] = manifest.serves
-  const sentences: string[] = []
+  const sentences: { place: PluginRemoteUse['place']; sentence: string }[] = []
   const what = `plugin entry ${resolved.name} serves ${listed(serves)}`
   if (places.has('web') && !WEB_PROTOCOLS.some((protocol) => serves.includes(protocol))) {
-    sentences.push(`${what}, and a web test needs playwright or cdp.`)
+    sentences.push({ place: 'web', sentence: `${what}, and a web test needs playwright or cdp.` })
   }
   if (places.has('device') && !serves.includes('appium')) {
-    sentences.push(`${what}, and a device needs appium.`)
+    sentences.push({ place: 'device', sentence: `${what}, and a device needs appium.` })
   }
   return sentences
 }
@@ -89,12 +91,17 @@ export function pluginRemoteRefusals(input: PluginRemoteRefusalsInput): PluginRe
       resolved = resolvePluginEntry(entry, options)
       resolvedEntries.set(entry.name, resolved)
     }
-    const refuse = (kind: PluginRemoteRefusal['kind'], sentence: string): void => {
+    const refuse = (
+      kind: PluginRemoteRefusal['kind'],
+      sentence: string,
+      place?: PluginRemoteUse['place'],
+    ): void => {
       refusals.push({
         remote: remoteName,
         entry: entry.name,
         kind,
         message: `Remote ${remoteName} cannot start: ${sentence}`,
+        ...(place === undefined ? {} : { place }),
       })
     }
 
@@ -113,7 +120,9 @@ export function pluginRemoteRefusals(input: PluginRemoteRefusalsInput): PluginRe
       continue
     }
 
-    for (const sentence of servesSentence(resolved, used)) refuse('refused', sentence)
+    for (const { place, sentence } of servesSentences(resolved, used)) {
+      refuse('refused', sentence, place)
+    }
 
     const issues = checkPluginConfig(resolved, {
       options: entry.options,
