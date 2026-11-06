@@ -131,8 +131,14 @@ export function startRun(config: RunConfig): RunSession {
     handles: config.members.map(memberHandleIndex),
   })
 
-  // A plugin's progress reaches the bus masked, between runStarted and the verdict.
+  // A plugin's progress reaches the bus masked, between runStarted and the verdict, and the relay
+  // is detached once, before the verdict or when the run throws.
   let detachRemoteProgress: (() => void) | undefined
+  const detachProgress = (): void => {
+    const detach = detachRemoteProgress
+    detachRemoteProgress = undefined
+    guardEmit(bus, () => detach?.())
+  }
   guardEmit(bus, () => {
     detachRemoteProgress = ports.remoteProgress?.attach((payload) => {
       guardEmit(bus, () => {
@@ -451,7 +457,7 @@ export function startRun(config: RunConfig): RunSession {
       quarantined: memberQuarantined,
     })
 
-    guardEmit(bus, () => detachRemoteProgress?.())
+    detachProgress()
     // `verdict` exactly once, before any post-processing event.
     bus.publish('verdict', { verdict })
     status = verdict
@@ -533,7 +539,7 @@ export function startRun(config: RunConfig): RunSession {
     bus.close()
 
     return { verdict, handoff }
-  })()
+  })().finally(detachProgress)
 
   return {
     id: config.runId,

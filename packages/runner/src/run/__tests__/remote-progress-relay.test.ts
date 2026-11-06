@@ -113,6 +113,21 @@ describe('a remote progress relay', () => {
     expect(log.lines.filter((event) => event.type === 'runWarning')).toEqual([])
   })
 
+  it('is detached when the run throws before its verdict', async () => {
+    const relay = scriptedRelay()
+    const log = capturingLog()
+    // A result that is not a TestResult throws while the run reads it, past the member's catch.
+    const notAResult: MemberTestExecutor = async () =>
+      null as unknown as Awaited<ReturnType<MemberTestExecutor>>
+    const session = startRun(configWith(notAResult, log.port, relay))
+    expect(relay.attached()).toBe(true)
+
+    await expect(session.done).rejects.toThrow()
+
+    expect(relay.attached()).toBe(false)
+    expect(log.lines.some((event) => event.type === 'verdict')).toBe(false)
+  })
+
   it('a run given no relay publishes no remoteProgress', async () => {
     const log = capturingLog()
 
