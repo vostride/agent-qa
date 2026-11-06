@@ -193,8 +193,8 @@ describe("a remote Android session's life", () => {
     expect(server.sessionsDeleted()).toEqual([sessionId])
   })
 
-  it('is released by the session registry while the server has not yet answered its status', async () => {
-    const server = await fakeServer({ status: 'hold' })
+  it('is released by the session registry while the server has not yet answered its first command', async () => {
+    const server = await fakeServer({ hold: /\/appium\/device\/app_state$/ })
     const sessions = createRemoteSessionRegistry()
     const adapter = new AndroidPlatformAdapter({
       connectionSecrets,
@@ -203,7 +203,7 @@ describe("a remote Android session's life", () => {
     })
     teardowns.push(() => adapter.cleanup())
     const setup = adapter.setup(deviceOn(farmAt(server)))
-    await until(() => sent(server, 'GET', '/status') === 1, 2_000)
+    await until(() => sent(server, 'POST', '/appium/device/app_state') === 1, 2_000)
 
     await sessions.releaseAll(REMOTE_RELEASE_BOUND_MS)
 
@@ -231,29 +231,21 @@ describe("a remote Android session's life", () => {
     expect(sent(server, 'DELETE', `/session/${String(server.sessionsCreated()[0])}`)).toBe(1)
   })
 
-  it("records the remote, the Appium version and the session id in the place's evidence", async () => {
-    const server = await fakeServer()
+  it("records the remote and the session id in the place's evidence, and no Appium version the server's status names", async () => {
+    const server = await fakeServer({ status: { version: '2.45.0' } })
     const adapter = await opened(server, { heartbeatIntervalMs: QUIET_HEARTBEAT_MS })
     const [sessionId] = server.sessionsCreated()
 
+    expect(sent(server, 'GET', '/status')).toBe(0)
     expect(adapter.placeEvidence).toEqual({
       place: 'remote',
       name: 'farm',
       protocol: 'appium',
       origin: server.origin,
       device: 'galaxy-farm',
-      appiumVersion: '3.4.2',
       sessionId,
       heartbeat: { sent: 0, failed: 0, suspect: false },
     })
-  })
-
-  it('runs without an Appium version when the server has no status', async () => {
-    const server = await fakeServer({ status: 'fail' })
-    const adapter = await opened(server, { heartbeatIntervalMs: QUIET_HEARTBEAT_MS })
-
-    expect(adapter.placeEvidence).not.toHaveProperty('appiumVersion')
-    expect(adapter.isBrowserDisconnected).toBe(false)
   })
 
   it("names the remote by its label in a failed command's error, never its path or session id", async () => {

@@ -1143,10 +1143,12 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
         this.remoteCommandFailed((result as { error: unknown }).error)
       }
     })
+    // A server's status describes the server, which may be a hub in front of the session's Appium,
+    // so only a plugin's started answer names the session's version.
     const lease = this.lease
-    if (lease !== undefined) this.watchLease(lease, driver)
     let appiumVersion: string | undefined
     if (lease !== undefined) {
+      this.watchLease(lease, driver)
       let started: { link?: string; appiumVersion?: string } = {}
       try {
         started = await lease.started(driver.sessionId ? { sessionId: driver.sessionId } : {})
@@ -1155,15 +1157,6 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
       }
       this.link = started.link ?? lease.link
       appiumVersion = started.appiumVersion
-    }
-    if (appiumVersion === undefined) {
-      try {
-        const status = (await driver.status()) as { build?: { version?: unknown } } | undefined
-        const version = status?.build?.version
-        if (typeof version === 'string' && version !== '') appiumVersion = version
-      } catch {
-        // A server without a status still runs the test; only the version goes unrecorded.
-      }
     }
     this.place = {
       place: 'remote',

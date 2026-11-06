@@ -469,8 +469,8 @@ describe("a remote iOS session's life", () => {
     expect(server.sessionsDeleted()).toEqual([sessionId])
   })
 
-  it('is released by the session registry while the server has not yet answered its status', async () => {
-    const server = await fakeServer({ status: 'hold' })
+  it('is released by the session registry while the server has not yet answered its first command', async () => {
+    const server = await fakeServer({ hold: /\/execute\/sync$/ })
     const sessions = createRemoteSessionRegistry()
     const adapter = adapterFor({
       sessions,
@@ -478,7 +478,7 @@ describe("a remote iOS session's life", () => {
     })
     const setup = adapter.setup(deviceOn(farmAt(server)))
     const deadline = Date.now() + 2_000
-    while (sent(server, 'GET', '/status') === 0 && Date.now() < deadline) {
+    while (sent(server, 'POST', '/execute/sync') === 0 && Date.now() < deadline) {
       await new Promise((resolve) => setTimeout(resolve, 10))
     }
 
@@ -507,18 +507,18 @@ describe("a remote iOS session's life", () => {
     expect(sent(server, 'DELETE', `/session/${String(server.sessionsCreated()[0])}`)).toBe(1)
   })
 
-  it("records the remote, the Appium version and the session id in the place's evidence", async () => {
-    const server = await fakeServer()
+  it("records the remote and the session id in the place's evidence, and no Appium version the server's status names", async () => {
+    const server = await fakeServer({ status: { version: '2.45.0' } })
     const adapter = await opened(server, { heartbeatIntervalMs: QUIET_HEARTBEAT_MS })
     const [sessionId] = server.sessionsCreated()
 
+    expect(sent(server, 'GET', '/status')).toBe(0)
     expect(adapter.placeEvidence).toEqual({
       place: 'remote',
       name: 'farm',
       protocol: 'appium',
       origin: server.origin,
       device: 'iphone-farm',
-      appiumVersion: '3.4.2',
       sessionId,
       deviceType: 'unknown',
       heartbeat: { sent: 0, failed: 0, suspect: false },

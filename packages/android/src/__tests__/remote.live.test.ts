@@ -69,8 +69,8 @@ describe.skipIf(!LIVE || APPIUM_URL === undefined)(
         origin: formatRemoteOrigin(remoteOrigin(url)!),
         device: 'live-emulator',
       })
-      const recorded = evidence as { appiumVersion?: string; sessionId?: string }
-      expect(recorded.appiumVersion).toMatch(/^\d+\.\d+/)
+      expect(evidence).not.toHaveProperty('appiumVersion')
+      const recorded = evidence as { sessionId?: string }
       expect(recorded.sessionId).toBeDefined()
 
       await adapter.cleanup()

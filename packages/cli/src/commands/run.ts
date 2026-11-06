@@ -502,14 +502,15 @@ export async function createPlatformAdapter(
     ...(options.refusalMemory === undefined ? {} : { refusalMemory: options.refusalMemory }),
     sessions: options.sessions ?? processRemoteSessions,
   }
-  const mobile = { ...connection, ...(options.mask === undefined ? {} : { mask: options.mask }) }
+  const mobile = {
+    ...connection,
+    ...(options.mask === undefined ? {} : { mask: options.mask }),
+    ...(options.pluginSessions === undefined ? {} : { pluginSessions: options.pluginSessions }),
+  }
   if (platform === 'android') {
     try {
       const { AndroidPlatformAdapter } = await import('@vostride/agent-qa-android')
-      return new AndroidPlatformAdapter({
-        ...mobile,
-        ...(options.pluginSessions === undefined ? {} : { pluginSessions: options.pluginSessions }),
-      })
+      return new AndroidPlatformAdapter(mobile)
     } catch {
       throw new Error(
         'Android adapter not available. Install @vostride/agent-qa-android: pnpm add @vostride/agent-qa-android',

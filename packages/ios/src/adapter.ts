@@ -14,6 +14,8 @@ import type {
   PlatformConfig,
   RemoteDeviceConfig,
   RemoteHeartbeat,
+  RemoteLease,
+  RemoteLeaseEnded,
   RemotePlaceEvidence,
   ScrollPrimitives,
   SwipeSignal,
@@ -60,7 +62,7 @@ import {
   IOS_SNAPSHOT_MAX_DEPTH,
   browserModeName,
   createIOSSession,
-  pluginRemoteRefusal,
+  createPluginIOSSession,
   resolveIOSSnapshotDepth,
 } from './session.js'
 import type { IOSAdapterConfig, IOSAdapterOptions } from './types.js'
@@ -172,6 +174,11 @@ function actionVerb(action: ActionsFor<'ios'>): string {
 function remoteOriginText(url: string): string {
   const origin = remoteOrigin(url)
   return origin ? formatRemoteOrigin(origin) : 'invalid url'
+}
+
+function releasingOnce(lease: RemoteLease): () => Promise<void> {
+  let released: Promise<void> | undefined
+  return () => (released ??= lease.release().catch(() => undefined))
 }
 
 // A healthy server's delete may take longer than a signal's release, but far less than a command.
@@ -398,6 +405,12 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   // Set by the first command a remote leaves unanswered or ends; nothing is sent again after it.
   private disconnectKind: 'lost' | 'ended' | undefined
   private disconnectError: unknown
+  private lease: RemoteLease | undefined
+  private releaseLease: (() => Promise<void>) | undefined
+  private unwatchLease: (() => void) | undefined
+  // Set when the plugin that leased this session stopped under the test.
+  private leaseEnded: RemoteLeaseEnded | undefined
+  private link: string | undefined
 
   async setup(config: PlatformConfig): Promise<void> {
     this.config = config as IOSAdapterConfig
@@ -408,24 +421,35 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     this.readsAtLoweredDepth = 0
     this.snapshotDepthWarned = false
     this.deviceName = config.device?.name ?? 'ios'
-    const configured = config.device?.remote
-    if (configured !== undefined && isPluginRemote(configured)) {
-      this.remote = undefined
-      throw pluginRemoteRefusal(this.deviceName, configured.name)
-    }
-    this.remote = configured
     this.disconnectKind = undefined
     this.disconnectError = undefined
     this.released = undefined
     this.deviceType = undefined
+    this.leaseEnded = undefined
+    this.link = undefined
+    this.remote = undefined
 
-    this.driver = await createIOSSession(this.config, {
+    const sessionOptions = {
       connectionSecrets: this.options.connectionSecrets,
       secretsFile: this.options.secretsFile,
       refusalMemory: this.options.refusalMemory,
       mask: this.options.mask,
       commandBoundMs: this.options.timing?.commandBoundMs,
-    })
+    }
+    const configured = config.device?.remote
+    if (configured !== undefined && isPluginRemote(configured)) {
+      const leased = await createPluginIOSSession(this.config, configured, {
+        ...sessionOptions,
+        pluginSessions: this.options.pluginSessions,
+      })
+      this.driver = leased.driver
+      this.remote = leased.remote
+      this.lease = leased.lease
+      this.releaseLease = releasingOnce(leased.lease)
+    } else {
+      this.remote = configured
+      this.driver = await createIOSSession(this.config, sessionOptions)
+    }
     const remote = this.remote
     if (remote === undefined) {
       this.place = { place: 'here' }
@@ -497,6 +521,8 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     this.heartbeat?.stop()
     this.unregisterRelease?.()
     this.unregisterRelease = undefined
+    this.unwatchLease?.()
+    this.unwatchLease = undefined
     const driver = this.driver
     if (driver && this.remote !== undefined) {
       // An ended session has nothing to delete; a lost one gets only the release bound.
@@ -515,6 +541,13 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
         // session may already be closed
       }
     }
+    // A leased device goes back to its plugin after its session is deleted.
+    const releaseLease = this.releaseLease
+    this.lease = undefined
+    this.releaseLease = undefined
+    this.link = undefined
+    this.leaseEnded = undefined
+    await releaseLease?.()
     this.driver = null
     this.heartbeat = undefined
     this.place = undefined
@@ -668,13 +701,27 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     if (place.place === 'here') return deviceType === undefined ? place : { ...place, deviceType }
     if (place.protocol !== 'appium') return place
     const notes = this.appDataNotes()
+    const plugin = this.lease?.plugin
+    const failureKind = this.leaseEnded?.kind ?? this.disconnectKind
     return {
       ...place,
       ...(deviceType !== undefined ? { deviceType } : {}),
+      ...(plugin !== undefined ? { plugin } : {}),
+      ...(plugin !== undefined && this.link !== undefined ? { link: this.link } : {}),
       ...(this.heartbeat !== undefined ? { heartbeat: this.heartbeat.counts() } : {}),
-      ...(this.disconnectKind !== undefined ? { failureKind: this.disconnectKind } : {}),
+      ...(failureKind !== undefined ? { failureKind } : {}),
       ...(notes.length > 0 ? { notes } : {}),
     }
+  }
+
+  // The device a plugin leased for this test; undefined on a url remote, here, and after cleanup.
+  get remoteLease(): RemoteLease | undefined {
+    return this.lease
+  }
+
+  // The session's page at the plugin's vendor, from started or else the acquire's answer.
+  get remoteLink(): string | undefined {
+    return this.link
   }
 
   get isBrowserDisconnected(): boolean {
@@ -686,6 +733,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     const remote = this.remote
     const kind = this.disconnectKind
     if (remote === undefined || kind === undefined) return undefined
+    if (this.leaseEnded !== undefined) return this.leaseEnded.message
     return remoteDeviceLostSentence(kind, {
       remote,
       device: this.deviceName,
@@ -697,10 +745,16 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     driver: WebdriverIO.Browser,
     remote: RemoteDeviceConfig,
   ): Promise<void> {
-    // Registered before any further request, so a signal releases a session that just opened.
+    // Registered before any further request, so a signal releases a session that just opened;
+    // a leased device goes back to its plugin after its session is deleted.
     const sessions = this.options.sessions
+    const releaseLease = this.releaseLease
     if (sessions !== undefined) {
-      this.unregisterRelease = sessions.register(() => this.releaseRemote(driver))
+      this.unregisterRelease = sessions.register(() =>
+        releaseLease === undefined
+          ? this.releaseRemote(driver)
+          : this.releaseRemote(driver).then(releaseLease, releaseLease),
+      )
     }
     driver.on('result', (event: { command?: string; result?: unknown }) => {
       if (this.driver !== driver) return
@@ -710,13 +764,20 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
         this.remoteCommandFailed((result as { error: unknown }).error)
       }
     })
+    // A server's status describes the server, which may be a hub in front of the session's Appium,
+    // so only a plugin's started answer names the session's version.
+    const lease = this.lease
     let appiumVersion: string | undefined
-    try {
-      const status = (await driver.status()) as { build?: { version?: unknown } } | undefined
-      const version = status?.build?.version
-      if (typeof version === 'string' && version !== '') appiumVersion = version
-    } catch {
-      // A server without a status still runs the test; only the version goes unrecorded.
+    if (lease !== undefined) {
+      this.watchLease(lease, driver)
+      let started: { link?: string; appiumVersion?: string } = {}
+      try {
+        started = await lease.started(driver.sessionId ? { sessionId: driver.sessionId } : {})
+      } catch {
+        // A plugin's started is a courtesy; the session it leased is already open.
+      }
+      this.link = started.link ?? lease.link
+      appiumVersion = started.appiumVersion
     }
     this.place = {
       place: 'remote',
@@ -732,6 +793,17 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     this.heartbeat = createRemoteHeartbeat({
       ...(intervalMs !== undefined ? { intervalMs } : {}),
       beat: () => driver.getTimeouts(),
+    })
+  }
+
+  // A plugin that stopped took its device with it, so the test ends as if the session was lost.
+  private watchLease(lease: RemoteLease, driver: WebdriverIO.Browser): void {
+    this.unwatchLease?.()
+    this.unwatchLease = lease.onEnded((ended) => {
+      if (this.driver !== driver || this.leaseEnded !== undefined) return
+      this.leaseEnded = ended
+      this.disconnectKind = 'lost'
+      this.heartbeat?.stop()
     })
   }
 

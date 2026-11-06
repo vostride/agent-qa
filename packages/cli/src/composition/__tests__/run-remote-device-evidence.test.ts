@@ -52,7 +52,6 @@ const RUN_BUDGET_MS = 180_000
 const FARM_TOKEN = 'farm-token-value-4be1'
 const PATH_TOKEN = 'path-token-value-0d97'
 const BASE_PATH = `/wd/hub/${PATH_TOKEN}`
-const APPIUM_VERSION = '3.4.2'
 const REAL_IPHONE = {
   'mobile: deviceInfo': { isSimulator: false, lockdownInfo: { ProductType: 'iPhone17,3' } },
 }
@@ -182,7 +181,7 @@ function expectNothingHidden(stored: StoredRun, log: string): void {
 
 describe("a remote device run's evidence", () => {
   it(
-    'a direct test names the remote by its origin, with the Appium version and session id',
+    'a direct test names the remote by its origin, with the session id and no Appium version',
     async () => {
       const server = await fakeFarm({ requireHeader: ['x-farm-token', FARM_TOKEN] })
       const project = onFarm(server, FARM_TOKEN)
@@ -198,9 +197,9 @@ describe("a remote device run's evidence", () => {
         protocol: 'appium',
         origin: server.origin,
         device: REMOTE_DEVICE_NAME,
-        appiumVersion: APPIUM_VERSION,
         sessionId,
       })
+      expect(stored.payload.config?.runtime?.place, log).not.toHaveProperty('appiumVersion')
       expect(server.origin).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/)
       expectNothingHidden(stored, log)
     },
@@ -255,7 +254,6 @@ describe("a remote device run's evidence", () => {
         protocol: 'appium',
         origin: server.origin,
         device: REMOTE_DEVICE_NAME,
-        appiumVersion: APPIUM_VERSION,
         sessionId,
       })
       expectNothingHidden(stored, log)
@@ -301,7 +299,6 @@ describe("a remote device run's evidence", () => {
           protocol: 'appium',
           origin: server.origin,
           device: REMOTE_DEVICE_NAME,
-          appiumVersion: APPIUM_VERSION,
         })
       }
       expect(places.map((place) => place?.sessionId), log).toEqual([

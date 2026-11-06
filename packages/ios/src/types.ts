@@ -1,5 +1,6 @@
 import type {
   PlatformConfig,
+  RemoteLeaseSource,
   RemoteRefusalMemory,
   RemoteSessionRegistry,
   SecretResolver,
@@ -22,6 +23,8 @@ export interface IOSAdapterOptions {
   readonly sessions?: RemoteSessionRegistry
   // The run's declared mask, applied to a server's reason before it reaches a refusal.
   readonly mask?: (text: string) => string
+  // The run's plugin hosts, which lease a device for a remote that names a plugins entry.
+  readonly pluginSessions?: RemoteLeaseSource
   // Shorter bounds for tests; the CLI never sets them.
   readonly timing?: {
     readonly heartbeatIntervalMs?: number
@@ -36,4 +39,5 @@ export interface IOSSessionOptions {
   readonly refusalMemory?: RemoteRefusalMemory | undefined
   readonly mask?: ((text: string) => string) | undefined
   readonly commandBoundMs?: number | undefined
+  readonly pluginSessions?: RemoteLeaseSource | undefined
 }

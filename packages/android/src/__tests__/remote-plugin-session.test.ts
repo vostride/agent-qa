@@ -268,15 +268,16 @@ describe('an Android device on a plugin remote', () => {
     })
   })
 
-  it("asks the server for its Appium version when the plugin's started names none", async () => {
-    const server = await fakeServer({ status: { version: '3.4.2' } })
+  it("records no Appium version when the plugin's started names none, whatever the server's status says", async () => {
+    const server = await fakeServer({ status: { version: '2.45.0' } })
     const leases = fakeLeases(answerAt(server), { started: {} })
     const adapter = adapterFor({ pluginSessions: leases.source })
 
     await adapter.setup(deviceOn(pluginRemote()))
 
-    expect(adapter.placeEvidence).toMatchObject({ appiumVersion: '3.4.2' })
+    expect(adapter.placeEvidence).not.toHaveProperty('appiumVersion')
     expect(adapter.placeEvidence).not.toHaveProperty('link')
+    expect(server.requests.some((request) => request.path.endsWith('/status'))).toBe(false)
   })
 
   it('deletes its session on cleanup before it gives the device back to the plugin', async () => {
