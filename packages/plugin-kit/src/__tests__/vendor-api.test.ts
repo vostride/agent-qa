@@ -95,6 +95,26 @@ describe('createVendorApi send', () => {
     expect(request?.body).toEqual({ region: 'eu' })
   })
 
+  it('refuses a credential header a header cannot carry on one line that leaves the value out', async () => {
+    const fake = await start({ 'GET /session': () => ({ status: 200, json: {} }) })
+    const api = createVendorApi({
+      vendor: 'Acme',
+      baseUrl: fake.url,
+      headers: { authorization: 'Bearer k-secret-1\nk-secret-2' },
+    })
+
+    const failure = await api.send('GET', 'session').then(
+      () => undefined,
+      (error: unknown) => error,
+    )
+
+    expect(failure).toBeInstanceOf(PluginError)
+    const error = failure as PluginError
+    expect(error.message).toBe('Acme credentials hold a character a header cannot carry.')
+    expect(error.kind).toBe('auth')
+    expect(fake.routeCalls('GET /session')).toEqual([])
+  })
+
   it('fails unreachable naming only the origin when nothing answers', async () => {
     const fake = await startLoopbackFake({ routes: {} })
     await fake.close()

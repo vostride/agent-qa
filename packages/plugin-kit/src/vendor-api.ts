@@ -88,7 +88,17 @@ export function createVendorApi(input: VendorApiInput): VendorApi {
       const url = new URL(path, base)
       // Headers match names case-insensitively, so a fixed credential always wins.
       const headers = new Headers(init.headers)
-      for (const [name, value] of Object.entries(input.headers ?? {})) headers.set(name, value)
+      for (const [name, value] of Object.entries(input.headers ?? {})) {
+        try {
+          headers.set(name, value)
+        } catch {
+          // The runtime's error echoes the refused value, which is a credential.
+          throw new PluginError(
+            `${input.vendor} credentials hold a character a header cannot carry.`,
+            { kind: 'auth' },
+          )
+        }
+      }
       try {
         return await fetch(url, {
           method,
