@@ -149,7 +149,8 @@ registry:
   `package`, the exact npm package name installed in the project, or by `path`, a folder inside
   the config file's folder. agent-qa never adds a prefix or guesses a package from a short id.
 - `options` hold the account's values and `settings` hold one remote's. Both are checked against
-  the plugin's own schemas, and a remote whose values they refuse stops the run before it starts.
+  the plugin's own schemas before any test starts. A remote whose values they refuse fails each of
+  its tests with one sentence; the run's other tests still run, and the run exits 2.
 - A plugin remote has no `url`, `query`, `headers` or `basicAuth`: the plugin supplies the
   connection. Pick it like any remote, with `use.browser.remote` for a web test or a device's
   `remote` for a mobile one. The plugin must serve that kind of test.
