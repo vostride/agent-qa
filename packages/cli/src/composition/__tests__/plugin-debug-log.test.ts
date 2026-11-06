@@ -1,5 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
+
 import { doorLogLevel, pluginDebugLog } from '../plugin-host.js'
 
 const LINE = 'plugin lab: ready with [secret:LAB_KEY]'
@@ -20,6 +22,12 @@ function captureStreams(): { stderr: string[]; stdout: string[] } {
     return true
   })
   return { stderr, stdout }
+}
+
+function expectGuarded(written: string): void {
+  const token = /^::stop-commands::([0-9a-f]+)\n/.exec(written)?.[1]
+  expect(token, written).toBeDefined()
+  expect(written).toContain(`DEBUG [adapter] ${LINE}\n::${token}::\n`)
 }
 
 afterEach(() => {
@@ -49,17 +57,30 @@ describe('the plugin debug log', () => {
     expect(streams.stdout).toEqual([])
   })
 
-  it('keeps the line on stderr under GitHub Actions', () => {
+  it("under GitHub Actions, prints the guarded line on stdout, the stream the run's own blocks use", () => {
     vi.stubEnv('GITHUB_ACTIONS', 'true')
     const debugLog = pluginDebugLog('debug')
     const streams = captureStreams()
 
     debugLog?.(LINE)
 
-    const written = streams.stderr.join('')
-    const token = /^::stop-commands::([0-9a-f]+)\n/.exec(written)?.[1]
-    expect(token, written).toBeDefined()
-    expect(written).toContain(`DEBUG [adapter] ${LINE}\n::${token}::\n`)
+    expectGuarded(streams.stdout.join(''))
+    expect(streams.stderr).toEqual([])
+  })
+
+  it('under GitHub Actions, prints the guarded line on stderr while a --json action holds stdout', () => {
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+    const debugLog = pluginDebugLog('debug')
+    const streams = captureStreams()
+    const release = reserveStdoutForData()
+
+    try {
+      debugLog?.(LINE)
+    } finally {
+      release()
+    }
+
+    expectGuarded(streams.stderr.join(''))
     expect(streams.stdout).toEqual([])
   })
 

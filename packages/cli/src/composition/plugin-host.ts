@@ -39,8 +39,8 @@ function secretsFileOf(config: AgentQaConfig): string {
   return typeof file === 'string' && file.trim() !== '' ? file : 'workspace.secretsFile'
 }
 
-// The host has masked and named each line already; it goes only to stderr because a door's stdout
-// may carry JSON or a protocol.
+// The host has masked and named each line already. It prints on stderr; under GitHub Actions its
+// guarded block shares the run's stream, which is stderr only while an action reserves stdout.
 export function pluginDebugLog(logLevel: string): ((line: string) => void) | undefined {
   if (logLevel !== 'debug') return undefined
   return (line) => {
@@ -54,7 +54,7 @@ export function pluginDebugLog(logLevel: string): ((line: string) => void) | und
       data: {},
       timestamp: new Date().toISOString(),
     })
-    printRunText(text, (shown) => process.stderr.write(shown + '\n'), { stdoutIsData: true })
+    printRunText(text, (shown) => process.stderr.write(shown + '\n'))
   }
 }
 
