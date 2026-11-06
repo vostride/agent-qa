@@ -404,6 +404,26 @@ describe('the plugin host pool on the session registry', () => {
     expect(releases.map((line) => line.handle)).toEqual([{ n: 1 }])
   })
 
+  it('keeps its signal hook through a normal shutdown, so a signal then stops a stuck plugin in its bound', async () => {
+    const p = host()
+    const stubborn = stubbornEntry(p, { answersShutdown: false })
+    const sessions = createRemoteSessionRegistry()
+    const pool = p.pool([stubborn], {
+      sessions,
+      bounds: { shutdownMs: 30_000, killAfterMs: 30_000, signalMs: 300 },
+    })
+
+    await pool.acquire(request('lab-a', 'stubborn'))
+    const pid = pidOf(eventsOf(stubborn), 'initialize')
+    strays.push(pid)
+    const closing = pool.shutdown()
+    await waitFor(() => eventsOf(stubborn).some((line) => line.event === 'shutdown'))
+    await sessions.releaseAll(REMOTE_RELEASE_BOUND_MS)
+
+    await waitFor(() => !groupAlive(pid), 500)
+    await closing
+  })
+
   it('registers nothing before an entry starts, and leaves nothing registered after a normal shutdown', async () => {
     const p = host()
     const lab = p.entry('lab')

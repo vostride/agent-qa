@@ -972,8 +972,9 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
 
   // On a signal every step shares one bound: calls, waits and the release-only restart get what
   // is left of it, and whatever still runs when it is spent is killed.
+  // The signal hook stays registered until shutdown settles, so a signal during a slow normal
+  // shutdown still reaches the bounded path.
   function shutdown(options: { signal?: boolean } = {}): Promise<void> {
-    unregisterShutdown?.()
     const signal = options.signal === true
     if (signal) signalDeadline ??= Date.now() + bounds.signalMs
     const closed = (closing ??= (async () => {
@@ -982,7 +983,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
         started.map((start) => (start.ok ? stopEntry(start.running, signal) : undefined)),
       )
       while (background.size > 0) await Promise.all(background)
-    })())
+    })().finally(() => unregisterShutdown?.()))
     if (signalDeadline === undefined) return closed
     signalClosing ??= (async () => {
       await settledWithinLeft(closed)
