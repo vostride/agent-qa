@@ -222,8 +222,9 @@ reports. The full protocol, with every field, deadline and error code, is agent-
   `console.log`, `console.info`, `console.debug`, `console.warn` and `process.stdout.write` to stderr. A
   child process the plugin starts, such as a tunnel, must not inherit stdout. Given its own `stdout`,
   `runPlugin` leaves the process's console, stdout and signal handlers alone.
-- **stderr is the plugin's log.** agent-qa masks it and shows it only at debug level, and its first line
-  becomes a failed call's reason.
+- **stderr is the plugin's log.** agent-qa masks it and shows it only at debug level, and its first
+  line becomes a failed call's reason, skipping Node's own runtime warnings, such as
+  `(node:<pid>) [DEP0176] DeprecationWarning: ...` and the `(Use ...)` line after one.
 - **A handle is self-contained JSON.** agent-qa keeps it and passes it back to `started`, `end` and
   `release`. After a crash, a fresh process with the same options releases it, so a handle carries
   everything `release` needs besides the options.

@@ -239,6 +239,10 @@ describe('a plugin that writes to stdout outside the protocol', () => {
   })
 })
 
+const NODE_DEPRECATION =
+  '(node:4242) [DEP0176] DeprecationWarning: fs.R_OK is deprecated, use fs.constants.R_OK instead.'
+const NODE_HINT = '(Use `node --trace-deprecation ...` to show where the warning was created)'
+
 describe("a plugin's stderr", () => {
   it("reaches the debug log masked, under its entry's name, and nowhere else", async () => {
     const p = host()
@@ -304,6 +308,61 @@ describe("a plugin's stderr", () => {
       'Remote lab-a: plugin entry lab stopped unexpectedly: '
         + 'tunnel died for token=[secret:LAB_TOKEN].',
     )
+  })
+
+  it("names a crashed plugin's first line after Node's runtime warnings, which still reach the debug log", async () => {
+    const p = host()
+    const lab = p.entry('lab', {
+      stderr: { check: [NODE_DEPRECATION, NODE_HINT, 'tunnel died for token=abc123'].join('\n') },
+      script: { check: 'crash' },
+    })
+    const debugLines: string[] = []
+    const pool = p.pool([lab], { mask, debugLog: (line) => debugLines.push(line) })
+    const lease = await pool.acquire(request('lab-a', 'lab'))
+    const ended: RemoteLeaseEnded[] = []
+    lease.onEnded((value) => ended.push(value))
+
+    await refusalOf(pool.check('lab', [{ name: 'lab-a' }]))
+
+    await waitFor(() => ended.length === 1)
+    expect(ended[0]?.message).toBe(
+      'Remote lab-a: plugin entry lab stopped unexpectedly: '
+        + 'tunnel died for token=[secret:LAB_TOKEN].',
+    )
+    await waitFor(() => debugLines.includes(`plugin lab: ${NODE_DEPRECATION}`))
+  })
+
+  it("gives a call that fails without a reason its first line after Node's runtime warnings", async () => {
+    const p = host()
+    const lab = p.entry('lab', {
+      stderr: {
+        acquire: [NODE_DEPRECATION, NODE_HINT, 'token=abc123 has no free browser'].join('\n'),
+      },
+      script: { acquire: { error: { kind: 'capacity', message: '' } } },
+    })
+    const pool = p.pool([lab], { mask })
+
+    const refused = await refusalOf(pool.acquire(request('lab-a', 'lab')))
+
+    expect(refused.kind).toBe('capacity')
+    expect(refused.message).toBe('Remote lab-a: token=[secret:LAB_TOKEN] has no free browser.')
+  })
+
+  it("names no reason for a crashed plugin that wrote only Node's runtime warnings", async () => {
+    const p = host()
+    const lab = p.entry('lab', {
+      stderr: { check: [NODE_DEPRECATION, NODE_HINT].join('\n') },
+      script: { check: 'crash' },
+    })
+    const pool = p.pool([lab], { mask })
+    const lease = await pool.acquire(request('lab-a', 'lab'))
+    const ended: RemoteLeaseEnded[] = []
+    lease.onEnded((value) => ended.push(value))
+
+    await refusalOf(pool.check('lab', [{ name: 'lab-a' }]))
+
+    await waitFor(() => ended.length === 1)
+    expect(ended[0]?.message).toBe('Remote lab-a: plugin entry lab stopped unexpectedly.')
   })
 })
 

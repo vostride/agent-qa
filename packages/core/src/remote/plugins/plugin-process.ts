@@ -24,7 +24,8 @@ export interface PluginProcessInput {
   killAfterMs: number
 }
 
-// `stderr` is the first stderr line, masked, written while the call was open.
+// `stderr` is the first stderr line that is not a Node runtime warning, masked, written while the
+// call was open.
 export type PluginCallOutcome =
   | { status: 'result'; result: unknown; cancelled: boolean }
   | {
@@ -53,7 +54,8 @@ export interface PluginRequestOptions {
 export interface PluginProcess {
   readonly pid: number | undefined
   readonly exited: Promise<void>
-  // The first stderr line, masked, since the last request was sent.
+  // The first stderr line that is not a Node runtime warning, masked, since the last request was
+  // sent.
   readonly stderrLine: string | undefined
   request(
     method: string,
@@ -81,6 +83,9 @@ const STDIO_DRAIN_MS = 250
 const STDERR_REASON_WAIT_MS = 150
 // How often a stop looks for the plugin's group after SIGTERM.
 const GROUP_POLL_MS = 50
+// Node's own runtime warnings, such as a dependency's deprecation, never explain a failure.
+const NODE_WARNING_LINE =
+  /^\(node:\d+\) |^\(Use `[^`]* --trace-[a-z-]+ [^`]*` to show where the warning was created\)$/
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -243,6 +248,7 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
     const line = input.mask(raw.replace(/\r$/, ''))
     if (line.trim() === '') return
     input.debugLog?.(line)
+    if (NODE_WARNING_LINE.test(line.trim())) return
     stderrLine ??= line.trim()
     for (const [id, call] of pending) {
       if (call.stderr !== undefined) continue
