@@ -13,14 +13,18 @@ import {
   pluginRemoteRefusals,
   resolvePluginEntries,
   resolveWorkspacePaths,
+  selectSuiteDevice,
   selectSuitePlace,
+  selectTestDevice,
   selectWebPlace,
   validateProject,
 } from '@vostride/agent-qa-core'
 import type {
   AgentQaConfig,
   BrowserEngine,
+  DeviceTarget,
   PluginRemoteUse,
+  SelectDevicePlaceResult,
   ResolvedWorkspacePaths,
   SelectWebPlaceResult,
   TestDefinition,
@@ -44,6 +48,19 @@ async function testsIn(filePath: string): Promise<TestDefinition[]> {
   }
 }
 
+// The target a mobile test runs on, as the device selectors read it.
+function deviceTarget(config: AgentQaConfig, name: string | undefined): DeviceTarget | undefined {
+  const targets = config.registry?.targets
+  if (name === undefined || targets === undefined || !Object.hasOwn(targets, name)) return undefined
+  const target = targets[name]
+  if (target?.platform !== 'android' && target?.platform !== 'ios') return undefined
+  return {
+    name,
+    platform: target.platform,
+    ...(target.device === undefined ? {} : { device: target.device }),
+  }
+}
+
 // The plugin remotes a run of this workspace would use, picked as `agent-qa run` picks them.
 async function pluginRemoteUses(
   config: AgentQaConfig,
@@ -60,20 +77,31 @@ async function pluginRemoteUses(
     const name = selected.place.remote.name
     if (pluginRemotes.has(name)) uses.push({ remote: name, place: 'web' })
   }
+  const useDevice = (selected: SelectDevicePlaceResult): void => {
+    if (!('place' in selected) || selected.place.kind !== 'remote') return
+    const name = selected.place.remote.name
+    if (pluginRemotes.has(name)) uses.push({ remote: name, place: 'device' })
+  }
   const runsInBrowser = (target: string | undefined): boolean =>
     target !== undefined && config.registry?.targets?.[target]?.platform === 'web'
-
-  if (configBrowser?.remote !== undefined && pluginRemotes.has(configBrowser.remote)) {
-    uses.push({ remote: configBrowser.remote, place: 'web' })
-  }
-  for (const profile of Object.values(config.registry?.devices ?? {})) {
-    if (profile.remote !== undefined && pluginRemotes.has(profile.remote)) {
-      uses.push({ remote: profile.remote, place: 'device' })
-    }
-  }
+  const devices = config.registry?.devices ?? {}
+  const relative = (file: string): string => path.relative(configDir, file).split(path.sep).join('/')
 
   for (const file of await discoverWorkspaceFiles({ workspace, kind: 'test' })) {
     for (const test of await testsIn(file.absolutePath)) {
+      const target = deviceTarget(config, test.target)
+      if (target !== undefined) {
+        useDevice(
+          selectTestDevice({
+            devices,
+            remotes,
+            target,
+            ...(test.use?.device === undefined ? {} : { test: test.use.device }),
+            file: relative(file.absolutePath),
+          }),
+        )
+        continue
+      }
       if (!runsInBrowser(test.target)) continue
       useWeb(
         selectWebPlace({
@@ -92,12 +120,34 @@ async function pluginRemoteUses(
     } catch {
       continue
     }
-    const members: { file: string; pick?: string; target?: string }[] = []
+    const members: { file: string; pick?: string; device?: string; target?: string }[] = []
     for (const entry of suite.tests) {
       if (!isPathInsideDir(entry.test, configDir)) continue
       const [member] = await testsIn(path.resolve(configDir, entry.test))
       if (member === undefined) continue
-      members.push({ file: entry.test, pick: member.use?.browser?.remote, target: member.target })
+      members.push({
+        file: entry.test,
+        pick: member.use?.browser?.remote,
+        ...(member.use?.device === undefined ? {} : { device: member.use.device }),
+        target: member.target ?? suite.target,
+      })
+    }
+    if (deviceTarget(config, suite.target ?? members[0]?.target) !== undefined) {
+      useDevice(
+        selectSuiteDevice({
+          devices,
+          remotes,
+          suiteName: suite.name,
+          suiteFile: relative(file.absolutePath),
+          ...(suite.use?.device === undefined ? {} : { suite: suite.use.device }),
+          members: members.flatMap(({ file: memberFile, device, target: name }) => {
+            const target = deviceTarget(config, name)
+            if (target === undefined) return []
+            return [{ file: memberFile, ...(device === undefined ? {} : { pick: device }), target }]
+          }),
+        }),
+      )
+      continue
     }
     if (!runsInBrowser(suite.target ?? members[0]?.target)) continue
     useWeb(

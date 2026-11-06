@@ -7,6 +7,7 @@ import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getAgentQaVersion } from '@vostride/agent-qa-core'
+import { generateSuiteId, generateTestId } from '@vostride/agent-qa-ids'
 
 import { createValidateCommand } from '../commands/validate.js'
 
@@ -14,6 +15,7 @@ const FIRST_PARTY = '@vostride/agent-qa-plugin-scripted'
 const THIRD_PARTY = '@acme/agent-qa-plugin-grid'
 const SPARE = '@acme/agent-qa-plugin-spare'
 const DRAFT = 'https://json-schema.org/draft/2020-12/schema'
+const cartTestId = generateTestId()
 
 let workspaceDir: string
 let originalCwd: string
@@ -58,7 +60,11 @@ async function installPlugin(
   )
 }
 
-async function writeConfig(plugins: readonly string[]): Promise<void> {
+// `phone` adds an Android device on the plugin remote; `browserRemote: false` drops the web pick.
+async function writeConfig(
+  plugins: readonly string[],
+  input: { phone?: boolean; browserRemote?: boolean } = {},
+): Promise<void> {
   await writeFile(
     path.join(workspaceDir, 'agent-qa.config.yaml'),
     [
@@ -71,10 +77,16 @@ async function writeConfig(plugins: readonly string[]): Promise<void> {
       '  envFile: .env',
       '  secretsFile: .env.secrets.local',
       'registry:',
+      ...(input.phone === true
+        ? ['  devices:', '    phone:', '      platform: android', '      remote: farm']
+        : []),
       '  targets:',
       '    demo-app:',
       '      platform: web',
       '      url: http://127.0.0.1:1/',
+      ...(input.phone === true
+        ? ['    shop:', '      platform: android', '      appPackage: com.example.shop']
+        : []),
       '  remotes:',
       '    - name: farm',
       '      plugin: kit',
@@ -84,7 +96,7 @@ async function writeConfig(plugins: readonly string[]): Promise<void> {
       '  browser:',
       '    name: chromium',
       '    headless: true',
-      '    remote: farm',
+      ...(input.browserRemote === false ? [] : ['    remote: farm']),
       '  mobile:',
       '    appState: preserve',
       '',
@@ -211,5 +223,94 @@ describe('validate checks plugins entries', () => {
         + 'or cdp.',
     )
     expect(process.exitCode).toBe(1)
+  })
+
+  it('refuses a device on a remote whose plugin is not installed when a test runs on it', async () => {
+    await writeConfig(['  - name: kit', `    package: '${FIRST_PARTY}'`], {
+      phone: true,
+      browserRemote: false,
+    })
+    await writeFile(
+      path.join(workspaceDir, 'tests', 'cart.yaml'),
+      [
+        `test-id: ${cartTestId}`,
+        'name: Cart',
+        'target: shop',
+        'use:',
+        '  device: phone',
+        'steps:',
+        '  - Open the cart',
+        '',
+      ].join('\n'),
+    )
+
+    await runValidate()
+
+    expect(output()).toContain(
+      `Remote farm cannot start: Plugin entry kit names ${FIRST_PARTY}, which is not installed.`,
+    )
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('refuses a device on that remote when a suite runs on it', async () => {
+    await writeConfig(['  - name: kit', `    package: '${FIRST_PARTY}'`], {
+      phone: true,
+      browserRemote: false,
+    })
+    await writeFile(
+      path.join(workspaceDir, 'tests', 'cart.yaml'),
+      [
+        `test-id: ${cartTestId}`,
+        'name: Cart',
+        'target: shop',
+        'steps:',
+        '  - Open the cart',
+        '',
+      ].join('\n'),
+    )
+    await mkdir(path.join(workspaceDir, 'suites'), { recursive: true })
+    await writeFile(
+      path.join(workspaceDir, 'suites', 'shop.suite.yaml'),
+      [
+        `suite-id: ${generateSuiteId()}`,
+        'name: Shop',
+        'target: shop',
+        'use:',
+        '  device: phone',
+        'tests:',
+        '  - test: tests/cart.yaml',
+        `    id: ${cartTestId}`,
+        '',
+      ].join('\n'),
+    )
+
+    await runValidate()
+
+    expect(output()).toContain(
+      `Remote farm cannot start: Plugin entry kit names ${FIRST_PARTY}, which is not installed.`,
+    )
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('leaves alone a device on that remote that no test or suite runs on', async () => {
+    await writeConfig(['  - name: kit', `    package: '${FIRST_PARTY}'`], {
+      phone: true,
+      browserRemote: false,
+    })
+
+    await runValidate()
+
+    expect(output()).not.toContain('cannot start')
+    expect(process.exitCode).toBe(0)
+  })
+
+  it('leaves alone a browser pick of that remote when no web test runs', async () => {
+    await writeConfig(['  - name: kit', `    package: '${FIRST_PARTY}'`])
+    await rm(path.join(workspaceDir, 'tests', 'login.yaml'))
+
+    await runValidate()
+
+    expect(output()).not.toContain('cannot start')
+    expect(process.exitCode).toBe(0)
   })
 })
