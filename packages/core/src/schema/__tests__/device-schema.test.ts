@@ -209,6 +209,30 @@ describe('capabilities the strict parse refuses', () => {
     ])
   })
 
+  it("refuses a plugin remote's capability that contradicts a device on it", async () => {
+    const { AgentQaConfigSchema } = await import('../config-schema.js')
+    const stack = { name: 'stack', plugin: 'bs', capabilities: { platformName: 'iOS', bad: 1 } }
+    const device = { ...galaxyFarm, remote: 'stack' }
+    const result = AgentQaConfigSchema.safeParse({
+      workspace,
+      plugins: [{ name: 'bs', package: '@vostride/agent-qa-plugin-browserstack' }],
+      registry: { remotes: [stack], devices: { 'galaxy-stack': device } },
+    })
+
+    const found = result.error?.issues.map(issue => ({ path: issue.path, message: issue.message }))
+    expect(found).toEqual([
+      {
+        path: ['registry', 'remotes', 0, 'capabilities'],
+        message: 'Remote stack capabilities "bad" needs a vendor prefix, such as appium:bad.',
+      },
+      {
+        path: ['registry', 'remotes', 0, 'capabilities'],
+        message:
+          'Remote stack sets platformName "iOS" in its capabilities; device galaxy-stack is android.',
+      },
+    ])
+  })
+
   it('refuses a driver for the other platform and a contradicting os or id on a device here', async () => {
     const rack = {
       platform: 'android',

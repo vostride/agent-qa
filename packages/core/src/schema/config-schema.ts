@@ -165,7 +165,7 @@ const AgentQaConfigSchemaInner = z.strictObject({
     const at = remotes.findIndex(remote => remote.name === profile.remote)
     const listed = at >= 0 ? remotes[at]! : undefined
     const remote =
-      listed !== undefined && isUrlRemoteEntry(listed) && listed.protocol === 'appium'
+      listed !== undefined && (isPluginRemoteEntry(listed) || listed.protocol === 'appium')
         ? listed
         : undefined
     const stated = {
@@ -192,7 +192,8 @@ const AgentQaConfigSchemaInner = z.strictObject({
     for (const issue of capabilityCredentialIssues(profile.capabilities, path)) {
       report([...issue.path], `Device ${device}: ${issue.message}`)
     }
-    const host = remote === undefined ? undefined : cleartextHost(remote.url)
+    const host =
+      remote !== undefined && isUrlRemoteEntry(remote) ? cleartextHost(remote.url) : undefined
     if (host !== undefined && carriesSecret(profile.capabilities)) {
       report(
         path,
