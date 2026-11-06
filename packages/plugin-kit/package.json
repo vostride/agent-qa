@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-plugin-kit",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": false,
   "description": "Build agent-qa plugins: the protocol, definePlugin, the stdio loop and a conformance suite.",
   "keywords": [
