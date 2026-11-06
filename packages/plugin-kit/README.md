@@ -159,7 +159,8 @@ the same endpoints and fails with the same lines.
   `Response`. Pass `ctx.signal` as `signal` to every call except one that creates a billed resource,
   such as a session create, which is never cancelled once sent.
 - `headers` are sent with every call and win over a per-call header of the same name, so put
-  credentials there.
+  credentials there. A value a header cannot carry, such as a key with a newline, fails `auth` with
+  `<vendor> credentials hold a character a header cannot carry.`, which leaves the value out.
 - One client has one base URL. A service with two bases gets two clients.
 - `failure(response, request, { handle? })` answers a `PluginError` to throw. It reads
   `<vendor> answered <status> to <request>: <reason>`. The reason is the body's `message`, then its
