@@ -280,21 +280,36 @@ describe('the Remotes section', () => {
     }
   })
 
-  it("shows a plugin remote's row by its name and plugins entry, and none of its settings", () => {
+  it("shows a plugin remote's row by its name, plugins entry and that entry's package or path, and none of its settings", () => {
     const section = show({
-      plugins: [{ name: 'kernel', package: '@vostride/agent-qa-plugin-kernel' }],
+      plugins: [
+        {
+          name: 'kernel',
+          package: '@vostride/agent-qa-plugin-kernel',
+          options: { project: 'option-value-44' },
+        },
+        { name: 'lab', path: './tools/lab' },
+      ],
       registry: {
         remotes: [
           { name: 'cloud', plugin: 'kernel', settings: { region: 'setting-region-31' } },
+          { name: 'bench', plugin: 'lab' },
+          { name: 'ghost', plugin: 'missing' },
           TWO_REMOTES.registry.remotes[0],
         ],
       },
     })
+    const table = section.querySelector('[data-remote]')?.closest('table')
+    const headers = Array.from(table?.querySelectorAll('th') ?? [])
+    expect(headers.map((cell) => cell.textContent)).toEqual(['Name', 'Kind', 'Origin'])
     expect(rows(section)).toEqual([
-      ['cloud', 'plugin kernel', REMOTES_COPY.missingValue],
+      ['cloud', 'plugin kernel', '@vostride/agent-qa-plugin-kernel'],
+      ['bench', 'plugin lab', './tools/lab'],
+      ['ghost', 'plugin missing', 'not declared under plugins'],
       ['grid', 'playwright', 'wss://grid.example.com:443'],
     ])
     expect(section.textContent).not.toContain('setting-region-31')
+    expect(section.textContent).not.toContain('option-value-44')
   })
 
   it('renders no control and no field mark beside plugins entries or plugin remotes, so neither is edited here', () => {

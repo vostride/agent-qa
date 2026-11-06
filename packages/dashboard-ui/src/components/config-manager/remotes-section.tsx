@@ -27,7 +27,7 @@ interface RemotesSectionProps {
 
 interface RemoteRow {
   name: string
-  protocol: string
+  kind: string
   origin: string
 }
 
@@ -44,7 +44,7 @@ const REMOTE_DEFAULT_FIELD: ConfigFieldTarget = {
   pattern: "use.browser.remote",
 }
 
-// Only an origin is long enough to break anywhere; a name or protocol stays whole.
+// Only an origin is long enough to break anywhere; a name or kind stays whole.
 const CELL_CLASS = "font-mono text-xs"
 const ORIGIN_CELL_CLASS = "whitespace-normal font-mono text-xs [overflow-wrap:anywhere]"
 const EXAMPLE_CLASS =
@@ -152,13 +152,18 @@ function pluginEntryOf(remote: Record<string, unknown>): string | undefined {
   return typeof remote.plugin === "string" && remote.plugin !== "" ? remote.plugin : undefined
 }
 
-function remotesOf(config: Record<string, unknown>): RemoteRow[] {
+// A plugin remote has no url, so its plugins entry's package or path stands in for the origin.
+function remotesOf(config: Record<string, unknown>, plugins: readonly PluginRow[]): RemoteRow[] {
   return remoteEntries(config).map((remote) => {
     const entry = pluginEntryOf(remote)
+    if (entry === undefined) {
+      return { name: text(remote.name), kind: text(remote.protocol), origin: text(remote.url) }
+    }
+    const source = plugins.find((plugin) => plugin.name === entry)?.source
     return {
       name: text(remote.name),
-      protocol: entry === undefined ? text(remote.protocol) : pluginRemoteText(entry),
-      origin: text(remote.url),
+      kind: pluginRemoteText(entry),
+      origin: source ?? REMOTES_COPY.pluginNotDeclared,
     }
   })
 }
@@ -241,8 +246,8 @@ function PluginsList({ plugins }: { plugins: PluginRow[] }) {
 }
 
 export function RemotesSection({ config }: RemotesSectionProps) {
-  const remotes = remotesOf(config)
   const plugins = pluginsOf(config)
+  const remotes = remotesOf(config, plugins)
   const pick = defaultRemoteOf(config)
   const unlisted = pick !== undefined && !remotes.some((remote) => remote.name === pick)
   return (
@@ -274,7 +279,7 @@ export function RemotesSection({ config }: RemotesSectionProps) {
             <TableHeader>
               <TableRow>
                 <TableHead>{REMOTES_COPY.columns.name}</TableHead>
-                <TableHead>{REMOTES_COPY.columns.protocol}</TableHead>
+                <TableHead>{REMOTES_COPY.columns.kind}</TableHead>
                 <TableHead>{REMOTES_COPY.columns.origin}</TableHead>
               </TableRow>
             </TableHeader>
@@ -291,7 +296,7 @@ export function RemotesSection({ config }: RemotesSectionProps) {
                       ) : null}
                     </span>
                   </TableCell>
-                  <TableCell className={CELL_CLASS}>{remote.protocol}</TableCell>
+                  <TableCell className={CELL_CLASS}>{remote.kind}</TableCell>
                   <TableCell className={ORIGIN_CELL_CLASS}>{remote.origin}</TableCell>
                 </TableRow>
               ))}

@@ -650,8 +650,10 @@ export const REMOTES_COPY = {
   thisMachine: 'This machine',
   runsOnLabel: 'Runs on',
   suiteWinsHint: "When a suite picks where it runs, the suite's choice wins.",
-  columns: { name: 'Name', protocol: 'Protocol', origin: 'Origin' },
+  // A url remote's protocol or a plugin remote's plugins entry, and its origin or plugin source.
+  columns: { name: 'Name', kind: 'Kind', origin: 'Origin' },
   missingValue: '—',
+  pluginNotDeclared: 'not declared under plugins',
   empty: 'No remotes are listed. Add one under registry.remotes in agent-qa.config.yaml:',
   example: [
     'registry:',
