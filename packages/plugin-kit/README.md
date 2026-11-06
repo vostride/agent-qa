@@ -89,10 +89,11 @@ export default definePlugin({
   async acquire({ options, settings }, ctx) {
     ctx.progress({ message: 'creating a browser' })
     const api = acmeApi(options)
+    // The create is not cancelled: once Acme has a browser, its handle must come back to be
+    // released, and the kit releases a handle that arrives after a cancel was answered.
     const response = await api.send('POST', 'browsers', {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ region: settings.region }),
-      signal: ctx.signal,
     })
     if (!response.ok) throw await api.failure(response, 'POST /browsers')
     const browser = (await api.json(response)) as { id: string; cdpUrl: string }
@@ -132,8 +133,11 @@ runPlugin(plugin)
 - `acquire` and `release` are required. `initialize`, `shutdown`, `check`, `uploadApp`, `started` and
   `end` are optional, and the methods you implement are the methods the manifest declares.
 - Every handler takes `(input, ctx)`. `ctx.signal` aborts when agent-qa cancels the call, so pass it to
-  every request. `ctx.progress({ message, queued?, percent? })` reports a queue position or an upload
-  percentage, which agent-qa shows as it waits. `ctx.runFacts` holds the run facts the plugin declared.
+  every request except one that creates a billed resource. Never cancel a create once sent:
+  cancelling it loses the answer that names what the service made, so nothing can release it. The
+  kit releases a handle that arrives after a cancel was answered.
+  `ctx.progress({ message, queued?, percent? })` reports a queue position or an upload percentage,
+  which agent-qa shows as it waits. `ctx.runFacts` holds the run facts the plugin declared.
 - Throw `PluginError` with one line and a failure kind: `unreachable`, `auth`, `capacity`, `timeout`,
   `version`, `refused`, `ended` or `lost`. Add `path` when an option or a setting is at fault, so the
   refusal points at the config line. Start it with `options.` for a field of the `plugins` entry's
@@ -152,7 +156,8 @@ the same endpoints and fails with the same lines.
 `createVendorApi({ vendor, baseUrl, headers?, kinds? })` builds a client for one API:
 
 - `send(method, path, { headers?, body?, signal? })` resolves `path` against `baseUrl` and answers the
-  `Response`. Pass `ctx.signal` as `signal`.
+  `Response`. Pass `ctx.signal` as `signal` to every call except one that creates a billed resource,
+  such as a session create, which is never cancelled once sent.
 - `headers` are sent with every call and win over a per-call header of the same name, so put
   credentials there.
 - One client has one base URL. A service with two bases gets two clients.
