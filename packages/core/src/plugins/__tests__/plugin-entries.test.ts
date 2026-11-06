@@ -75,6 +75,45 @@ describe('resolving a package entry', () => {
     )
   })
 
+  it('never walks out of node_modules through a .. in a first-party name', () => {
+    writePluginPackage(join(fixture.configDir, 'evil'), {
+      name: '@vostride/agent-qa-x',
+      version: VERSION,
+      'agent-qa': { plugin: inProcessManifest('model-provider') },
+    })
+
+    const resolved = resolvePluginEntry(
+      { name: 'x', package: '@vostride/agent-qa-x/../../../evil' },
+      options,
+    )
+
+    expect(resolved).toMatchObject({ state: 'not_installed', origin: 'third-party' })
+    expect(resolved.packageJsonPath).toBeUndefined()
+  })
+
+  it('refuses a package installed under the declared name that names another package', () => {
+    const dir = join(fixture.configDir, 'node_modules', '@vostride', 'agent-qa-provider-acme')
+    writePluginPackage(dir, {
+      name: 'other-pkg',
+      version: '9.0.0',
+      'agent-qa': { plugin: inProcessManifest('model-provider') },
+    })
+
+    const resolved = resolvePluginEntry(
+      { name: 'acme', package: '@vostride/agent-qa-provider-acme' },
+      options,
+    )
+
+    expect(resolved).toMatchObject({
+      state: 'bad_manifest',
+      reason:
+        'Plugin entry acme names @vostride/agent-qa-provider-acme, but the package installed '
+        + 'under that name is other-pkg. Install @vostride/agent-qa-provider-acme itself, not an '
+        + 'alias.',
+    })
+    expect(resolved.inProcess).toBe(false)
+  })
+
   it('resolves a package whose entry throws on import, because nothing is imported', () => {
     installPluginPackage(fixture.configDir, ACME, '2.0.0', remoteManifest(), {
       exports: { '.': './dist/main.js' },

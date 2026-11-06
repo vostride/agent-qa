@@ -9,6 +9,7 @@ import {
 import {
   declarationLabel,
   findPackageJson,
+  isNpmPackageName,
   packageDeclarationValue,
   pathDeclarationValue,
 } from '../plugin-loader-util.js'
@@ -92,7 +93,9 @@ export function pluginInstallLine(
 function pluginOrigin(entry: PluginEntryInput): PluginOrigin {
   const packageName = packageDeclarationValue(entry)
   if (!packageName) return 'path'
-  return packageName.startsWith(FIRST_PARTY_PREFIX) ? 'first-party' : 'third-party'
+  return packageName.startsWith(FIRST_PARTY_PREFIX) && isNpmPackageName(packageName)
+    ? 'first-party'
+    : 'third-party'
 }
 
 function packageJsonInsideProject(declaredPath: string, configDir: string): string | undefined {
@@ -146,6 +149,17 @@ export function resolvePluginEntry(
     packageDir: read.packageDir,
     packageJsonPath,
     ...(read.version === undefined ? {} : { version: read.version }),
+  }
+
+  // An npm alias installs another package under the declared name; its origin is not the name's.
+  if (origin !== 'path' && read.name !== undefined && read.name !== label) {
+    return {
+      ...found,
+      state: 'bad_manifest',
+      reason:
+        `Plugin entry ${entry.name} names ${label}, but the package installed under that name is `
+        + `${read.name === '' ? 'unnamed' : read.name}. Install ${label} itself, not an alias.`,
+    }
   }
 
   if (

@@ -21,13 +21,18 @@ import { isPluginRemoteEntry, isUrlRemoteEntry } from './remote-schema.js'
 import { RegistrySchema } from './registry-schema.js'
 import { UseSchema } from './use-schema.js'
 import { AnalyticsSchema } from './analytics-schema.js'
+import { isNpmPackageName } from '../plugin-loader-util.js'
 
 const PluginOptionsSchema = z.record(z.string(), z.unknown()).optional()
 
 export const PluginEntrySchema = z.union([
   z.strictObject({
     name: NameSlugSchema,
-    package: z.string().trim().min(1),
+    package: z.string().trim().min(1).refine(isNpmPackageName, {
+      error:
+        'package must be an npm package name, such as @vostride/agent-qa-plugin-kernel; '
+        + 'name a folder with path instead',
+    }),
     options: PluginOptionsSchema,
   }),
   z.strictObject({

@@ -218,10 +218,8 @@ describe('an installed package that fails to load is not called missing', () => 
 
 describe('the install suggestion is a command only when the name is one', () => {
   it('a package string carrying shell metacharacters composes NO command line', () => {
-    // NOT RCE, AND THE CELL DOES NOT PRETEND IT IS: the config is the person's own file and nothing
-    // here executes anything. What it is, is a string from a DATA FILE arriving inside a command the
-    // CLI tells a person to paste — and the schema behind that string is
-    // `z.string().trim().min(1)`, which accepts every byte below.
+    // Nothing here executes anything. The string comes from a data file, or from a caller that
+    // never ran the config schema's npm-name check, and arrives inside a command a person pastes.
     const hostile = 'evil; rm -rf ~ #'
 
     const message = new PluginNotInstalledError({ name: 'acme', package: hostile }, 'auth').message
@@ -256,8 +254,13 @@ describe('the install suggestion is a command only when the name is one', () => 
     expect(composes('lodash')).toBe(true)
     expect(composes('@scope/name')).toBe(true)
     expect(composes('some.pkg_name-2~x')).toBe(true)
-    // Refused: every byte class that could turn a suggestion into a second command.
-    for (const hostile of ['a b', 'a;b', 'a&&b', 'a|b', 'a`b`', 'a$(b)', 'a\nb', '../../etc/passwd']) {
+    // Refused: every byte class that could turn a suggestion into a second command, and names npm
+    // refuses because they start with a dot or an underscore.
+    const hostiles = [
+      ...['a b', 'a;b', 'a&&b', 'a|b', 'a`b`', 'a$(b)', 'a\nb', '../../etc/passwd'],
+      ...['..', '@scope/..', '.hidden', '_private'],
+    ]
+    for (const hostile of hostiles) {
       expect(composes(hostile), `"${hostile}" must not be composed into a command line`).toBe(false)
     }
   })
