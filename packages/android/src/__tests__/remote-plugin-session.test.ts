@@ -40,9 +40,14 @@ async function fakeServer(options: FakeAppiumOptions = {}): Promise<FakeAppiumSe
   return server
 }
 
+type UploadRequest = Parameters<NonNullable<RemoteLeaseSource['uploadApp']>>[0]
+
 interface FakeLeases {
   readonly source: RemoteLeaseSource
   readonly requests: RemoteLeaseRequest[]
+  readonly uploads: UploadRequest[]
+  // Each call in order: an upload, then an acquire.
+  readonly calls: string[]
   readonly release: Mock<() => Promise<void>>
   readonly started: Mock<RemoteLease['started']>
   end(ended: RemoteLeaseEnded): void
@@ -50,9 +55,15 @@ interface FakeLeases {
 
 function fakeLeases(
   answer: RemoteLeaseAnswer,
-  options: { onRelease?: () => void; started?: { link?: string; appiumVersion?: string } } = {},
+  options: {
+    onRelease?: () => void
+    started?: { link?: string; appiumVersion?: string }
+    uploads?: false
+  } = {},
 ): FakeLeases {
   const requests: RemoteLeaseRequest[] = []
+  const uploads: UploadRequest[] = []
+  const calls: string[] = []
   const listeners = new Set<(ended: RemoteLeaseEnded) => void>()
   const release = vi.fn<() => Promise<void>>(() => {
     options.onRelease?.()
@@ -62,8 +73,18 @@ function fakeLeases(
     Promise.resolve(options.started ?? { link: LINK, appiumVersion: '3.5.2' }),
   )
   const source: RemoteLeaseSource = {
+    ...(options.uploads === false
+      ? {}
+      : {
+          uploadApp(request: UploadRequest) {
+            uploads.push(request)
+            calls.push('uploadApp')
+            return Promise.resolve({ ref: 'bs://shop-1' })
+          },
+        }),
     acquire(request) {
       requests.push(request)
+      calls.push('acquire')
       return Promise.resolve({
         connection: answer,
         plugin: {
@@ -88,7 +109,7 @@ function fakeLeases(
   const end = (ended: RemoteLeaseEnded) => {
     for (const listener of [...listeners]) listener(ended)
   }
-  return { source, requests, release, started, end }
+  return { source, requests, uploads, calls, release, started, end }
 }
 
 function answerAt(
@@ -111,6 +132,7 @@ function pluginRemote(extra: Partial<RemotePluginDeviceConfig> = {}): RemotePlug
 function deviceOn(
   remote: RemotePluginDeviceConfig,
   capabilities?: Record<string, unknown>,
+  extra: Partial<AndroidAdapterConfig> = {},
 ): AndroidAdapterConfig {
   return {
     platform: 'android',
@@ -118,6 +140,7 @@ function deviceOn(
     appPackage: 'com.example.shop',
     appState: 'preserve',
     runFacts: { testName: 'checkout' },
+    ...extra,
     device: {
       name: 'galaxy-stack',
       platform: 'android',
@@ -372,5 +395,79 @@ describe('an Android device on a plugin remote', () => {
     expect(adapter.isBrowserDisconnected).toBe(true)
     expect(adapter.disconnectSummary).toBe('Remote stack: plugin entry stack stopped unexpectedly.')
     expect(adapter.placeEvidence).toMatchObject({ failureKind: 'lost' })
+  })
+})
+
+describe('the app an Android device on a plugin remote installs', () => {
+  const APP_PATH = '/builds/shop-android/shop.apk'
+
+  it("uploads a target's app.path through the plugin before the acquire, and sends the ref as appium:app, never the path", async () => {
+    const server = await fakeServer()
+    const leases = fakeLeases(answerAt(server))
+    const adapter = adapterFor({ pluginSessions: leases.source })
+
+    await adapter.setup(deviceOn(pluginRemote(), undefined, { appPath: APP_PATH }))
+
+    expect(leases.calls).toEqual(['uploadApp', 'acquire'])
+    expect(leases.uploads).toEqual([
+      {
+        remote: 'stack',
+        plugin: { entry: 'stack', settings: { project: 'shop' } },
+        platform: 'android',
+        path: APP_PATH,
+        deadlineMs: 600_000,
+      },
+    ])
+    expect(alwaysMatch(server)['appium:app']).toBe('bs://shop-1')
+    expect(JSON.stringify(server.requests)).not.toContain(APP_PATH)
+    expect(JSON.stringify(leases.requests)).not.toContain(APP_PATH)
+  })
+
+  it('sends a set app.ref and uploads nothing', async () => {
+    const server = await fakeServer()
+    const leases = fakeLeases(answerAt(server))
+    const adapter = adapterFor({ pluginSessions: leases.source })
+
+    await adapter.setup(
+      deviceOn(pluginRemote(), undefined, {
+        appPath: APP_PATH,
+        appRef: 'https://builds.example.com/shop.apk',
+      }),
+    )
+
+    expect(leases.uploads).toHaveLength(0)
+    expect(alwaysMatch(server)['appium:app']).toBe('https://builds.example.com/shop.apk')
+  })
+
+  it('uploads nothing when the capabilities already name the app', async () => {
+    const server = await fakeServer()
+    const leases = fakeLeases(answerAt(server))
+    const adapter = adapterFor({ pluginSessions: leases.source })
+
+    await adapter.setup(
+      deviceOn(pluginRemote(), { 'appium:app': 'bs://kept' }, { appPath: APP_PATH }),
+    )
+
+    expect(leases.uploads).toHaveLength(0)
+    expect(alwaysMatch(server)['appium:app']).toBe('bs://kept')
+  })
+
+  it('refuses an app.path alone when its plugin uploads no apps, before any acquire', async () => {
+    const leases = fakeLeases(
+      { protocol: 'appium', url: 'http://127.0.0.1:9/wd/hub' },
+      { uploads: false },
+    )
+    const adapter = adapterFor({ pluginSessions: leases.source })
+
+    const error = await refusalOf(
+      adapter,
+      deviceOn(pluginRemote(), undefined, { appPath: APP_PATH }),
+    )
+
+    expect(error.kind).toBe('refused')
+    expect(error.message).toBe(
+      'Remote stack: plugin entry stack uploads no apps; set app.ref on the target to an app the service already has.',
+    )
+    expect(leases.requests).toHaveLength(0)
   })
 })

@@ -1,3 +1,6 @@
+import { createHash } from 'node:crypto'
+import { createReadStream } from 'node:fs'
+import { stat } from 'node:fs/promises'
 import { resolve } from 'node:path'
 
 import {
@@ -7,6 +10,7 @@ import {
   PLUGIN_ERROR_CODES,
   PluginErrorDataSchema,
   StartedResultSchema,
+  UploadAppResultSchema,
   type AcquireResult,
   type CheckResult,
   type OptionalPluginMethod,
@@ -95,12 +99,15 @@ export interface PluginHostPoolInput {
   bounds?: Partial<PluginHostBounds>
 }
 
+export type PluginUploadRequest = Parameters<NonNullable<RemoteLeaseSource['uploadApp']>>[0]
+
 export interface PluginCheckRemote {
   name: string
   settings?: Record<string, unknown>
 }
 
 export interface PluginHostPool extends RemoteLeaseSource {
+  uploadApp(request: PluginUploadRequest): Promise<{ ref: string }>
   // Undefined when the plugin declares no check.
   check(entry: string, remotes: readonly PluginCheckRemote[]): Promise<CheckResult | undefined>
   shutdown(options?: { signal?: boolean }): Promise<void>
@@ -138,6 +145,13 @@ interface RunningEntry {
 }
 
 type EntryStart = { ok: true; running: RunningEntry } | { ok: false; refusal: Refusal }
+
+async function fileFacts(path: string): Promise<{ sha256: string; size: number }> {
+  const { size } = await stat(path)
+  const hash = createHash('sha256')
+  for await (const chunk of createReadStream(path)) hash.update(chunk as Buffer)
+  return { sha256: hash.digest('hex'), size }
+}
 
 type ErrorScope = { call: 'initialize'; entry: string } | { call: 'remote'; remote: string }
 
@@ -178,6 +192,8 @@ function carriedHandle(answer: PluginLateAnswer): unknown {
 export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool {
   const bounds: PluginHostBounds = { ...DEFAULT_PLUGIN_HOST_BOUNDS, ...input.bounds }
   const starts = new Map<string, Promise<EntryStart>>()
+  // One upload per plugins entry, platform and content for the pool's life, refusals included.
+  const uploads = new Map<string, Promise<{ ref: string }>>()
   const background = new Set<Promise<void>>()
   const live = new Set<PluginProcess>()
   // Stops under way, and whether each already fits in a signal's bound.
@@ -802,6 +818,89 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     return openLease(running, remote, parsed.data)
   }
 
+  async function uploadApp(request: PluginUploadRequest): Promise<{ ref: string }> {
+    const { remote, path, platform } = request
+    const entry = request.plugin.entry
+    if (closing !== undefined) {
+      throw new RemoteRefusalError(`Remote ${remote}: the plugin host has shut down.`, {
+        remote,
+        kind: 'ended',
+      })
+    }
+    let facts: { sha256: string; size: number }
+    try {
+      facts = await fileFacts(path)
+    } catch {
+      throw new RemoteRefusalError(`Remote ${remote}: the app at ${path} could not be read.`, {
+        remote,
+        kind: 'refused',
+      })
+    }
+    const key = JSON.stringify([entry, platform, facts.sha256])
+    let upload = uploads.get(key)
+    if (upload === undefined) {
+      upload = sendUpload(request, facts)
+      uploads.set(key, upload)
+    }
+    return upload
+  }
+
+  async function sendUpload(
+    request: PluginUploadRequest,
+    facts: { sha256: string; size: number },
+  ): Promise<{ ref: string }> {
+    const { remote, path, platform } = request
+    const entry = request.plugin.entry
+    const start = await entryStart(entry)
+    if (!start.ok) throw start.refusal(remote)
+    const running = start.running
+    if (running.fault !== undefined) throw stoppedRefusal(running, remote)
+    if (!declares(running, 'uploadApp')) {
+      throw new RemoteRefusalError(
+        `Remote ${remote}: plugin entry ${entry} uploads no apps; set app.ref on the target to an app the service already has.`,
+        { remote, kind: 'refused' },
+      )
+    }
+    let settings: Record<string, unknown>
+    try {
+      settings = input.resolveSecrets(request.plugin.settings ?? {})
+    } catch (error) {
+      throw asRefusal(error, remote, entry)
+    }
+    const outcome = await running.process.request(
+      'uploadApp',
+      { remote, settings, platform, path, sha256: facts.sha256, size: facts.size },
+      {
+        timeoutMs: request.deadlineMs,
+        onProgress: progressRelay(remote, entry, request.onProgress?.bind(request)),
+      },
+    )
+    if (outcome.status === 'silent') throw silentRefusal(running, remote, request.deadlineMs)
+    if (outcome.status === 'exited' || outcome.status === 'stray') {
+      throw stoppedRefusal(running, remote, outcome)
+    }
+    if (outcome.cancelled) {
+      throw new RemoteRefusalError(
+        `Remote ${remote}: plugin entry ${entry} did not answer uploadApp within ${formatMs(request.deadlineMs)}.`,
+        { remote, kind: 'timeout' },
+      )
+    }
+    if (outcome.status === 'error') {
+      throw new RemoteRefusalError(
+        pluginErrorLine(remote, outcome, { call: 'remote', remote }),
+        { remote, kind: pluginErrorKind(outcome) },
+      )
+    }
+    const parsed = UploadAppResultSchema.safeParse(outcome.result)
+    if (!parsed.success || parsed.data.ref.trim() === '') {
+      throw new RemoteRefusalError(
+        `Remote ${remote}: plugin entry ${entry} answered uploadApp with something that is not an app ref.`,
+        { remote, kind: 'refused' },
+      )
+    }
+    return { ref: parsed.data.ref }
+  }
+
   async function check(
     entry: string,
     remotes: readonly PluginCheckRemote[],
@@ -890,5 +989,5 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     return signalClosing
   }
 
-  return { acquire, check, shutdown }
+  return { acquire, uploadApp, check, shutdown }
 }

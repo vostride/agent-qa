@@ -324,16 +324,29 @@ export async function createPluginAndroidSession(
     memory?.remember(remoteDeviceRefusalKey(pluginDevice, device, error.kind), error) ?? error
 
   const capabilities = statedRemoteCapabilities(config, pluginDevice.capabilities)
-  if (!browserModeName(config)) {
-    const app = remoteAppCapability({
-      device,
+  // A set app.ref, or an app the capabilities name, wins; only an app.path alone uploads.
+  let sessionConfig = config
+  const appPath = config.appPath?.trim()
+  if (
+    !browserModeName(config) &&
+    capabilityValue(capabilities, 'app') === undefined &&
+    !config.appRef?.trim() &&
+    appPath
+  ) {
+    if (sessions.uploadApp === undefined) {
+      throw new RemoteRefusalError(
+        `Remote ${name}: plugin entry ${entry} uploads no apps; set app.ref on the target to an app the service already has.`,
+        { remote: name, kind: 'refused' },
+      )
+    }
+    const uploaded = await sessions.uploadApp({
       remote: name,
-      target: config.targetName ?? 'android',
-      ...(config.appRef !== undefined ? { appRef: config.appRef } : {}),
-      ...(config.appPath !== undefined ? { appPath: config.appPath } : {}),
-      capabilities,
+      plugin: pluginDevice.plugin,
+      platform: 'android',
+      path: appPath,
+      deadlineMs: pluginDevice.uploadTimeoutMs,
     })
-    if ('refusal' in app) throw new RemoteRefusalError(app.refusal, { remote: name })
+    sessionConfig = { ...config, appRef: uploaded.ref }
   }
 
   const startedAt = Date.now()
@@ -375,7 +388,7 @@ export async function createPluginAndroidSession(
     capabilities: mergeCapabilities(answer.capabilities, pluginDevice.capabilities),
   }
   try {
-    const driver = await createRemoteAndroidSession(config, remote, options, true)
+    const driver = await createRemoteAndroidSession(sessionConfig, remote, options, true)
     return { driver, lease, remote }
   } catch (error) {
     await release()

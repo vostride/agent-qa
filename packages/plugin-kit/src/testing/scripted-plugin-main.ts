@@ -252,11 +252,38 @@ export function startScriptedPlugin(timing: ScriptedPluginTiming = {}): void {
     ...(declares('uploadApp')
       ? {
           async uploadApp(
-            { options, remote }: { options: ScriptedOptions; remote: string },
+            {
+              options,
+              remote,
+              settings,
+              platform,
+              path,
+              sha256,
+              size,
+            }: {
+              options: ScriptedOptions
+              remote: string
+              settings: unknown
+              platform: string
+              path: string
+              sha256: string
+              size: number
+            },
             ctx: PluginCallContext,
           ) {
-            ledger(options, { method: 'uploadApp', remote })
-            await follow(options, 'uploadApp', ctx)
+            ledger(options, {
+              method: 'uploadApp',
+              remote,
+              ...(options.recordParams === true
+                ? { settings, platform, path, sha256, size }
+                : {}),
+            })
+            const stopProgress = reportProgress(options, remote, ctx)
+            try {
+              await follow(options, 'uploadApp', ctx)
+            } finally {
+              stopProgress()
+            }
             return options.upload ?? { ref: 'scripted-app' }
           },
         }

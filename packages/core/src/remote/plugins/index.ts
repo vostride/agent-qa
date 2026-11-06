@@ -12,6 +12,7 @@ export {
   type PluginHostPool,
   type PluginHostPoolInput,
   type PluginHostProgress,
+  type PluginUploadRequest,
 } from './host-pool.js'
 export {
   installedPackageVersion,

@@ -71,6 +71,7 @@ function farmConfig(input: {
   app?: Record<string, unknown>
   capabilities?: Record<string, unknown>
   remoteCapabilities?: Record<string, unknown>
+  plugin?: string
 }) {
   const config = makeConfig({
     targets: {
@@ -96,8 +97,9 @@ function farmConfig(input: {
       remotes: [
         {
           name: 'farm',
-          protocol: 'appium',
-          url: 'https://farm.example.com/wd/hub',
+          ...(input.plugin === undefined
+            ? { protocol: 'appium', url: 'https://farm.example.com/wd/hub' }
+            : { plugin: input.plugin }),
           ...(input.remoteCapabilities ? { capabilities: input.remoteCapabilities } : {}),
         },
       ],
@@ -594,6 +596,20 @@ describe('resolveMobileRunConfig', () => {
             'Set app.ref to the app the server installs.',
         )
         expect(err.remote).toBe('farm')
+      }))
+
+    it('keeps the app.path of a target whose device is on a plugin remote, for its plugin to upload', () =>
+      withTempDir((dir) => {
+        const resolved = resolveMobileRunConfig({
+          config: farmConfig({ app: { path: 'builds/shop.apk' }, plugin: 'stack' }),
+          targetName: 'shop-android',
+          useDeviceName: 'galaxy-farm',
+          configFilePath: join(dir, 'agent-qa.config.yaml'),
+        })
+
+        expect(resolved.plan.kind).toBe('remote')
+        expect(resolved.app.ref).toBeUndefined()
+        expect(resolved.app.install?.path).toBe(join(dir, 'builds/shop.apk'))
       }))
 
     it('accepts app.ref with no app file on this machine', () =>

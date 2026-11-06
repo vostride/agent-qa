@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs'
 import { dirname, resolve as resolvePath } from 'node:path'
 import {
+  isPluginRemote,
   RemoteRefusalError,
   type RemoteDeviceConfig,
   type RemotePluginDeviceConfig,
@@ -384,7 +385,8 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     throw new RemoteRefusalError(contradictions.join('\n'), refusalDetails)
   }
 
-  if (remote !== undefined && !browserMode) {
+  // A plugin remote may upload the target's app.path; its plugin refuses when it cannot.
+  if (remote !== undefined && !isPluginRemote(remote) && !browserMode) {
     const pathValue = asOptionalString(target.app?.path)
     const remoteApp = remoteAppCapability({
       device: deviceName,

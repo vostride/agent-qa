@@ -50,10 +50,11 @@ to stderr before the step. Acquire answers \`options.answer\`, or the JSON in th
 \`options.answerFile\` names.
 With \`options.recordProcess\`, the initialize ledger line also records the process, its
 environment's names, its options, the host and the run facts. With \`options.recordParams\`, the
-acquire line also records the session and run, the started line the session id, and the end line
-the outcome and reason. Acquire sends \`options.progress\`, or \`options.progressByRemote[remote]\`,
-as progress before its step, and with \`options.progressEveryMs\` sends them again, one each
-interval, until it answers.
+acquire line also records the session and run, the uploadApp line the settings, platform, path,
+sha256 and size, the started line the session id, and the end line the outcome and reason.
+Acquire and uploadApp send \`options.progress\`, or \`options.progressByRemote[remote]\`, as
+progress before their step, and with \`options.progressEveryMs\` send them again, one each
+interval, until they answer. uploadApp answers \`options.upload\`.
 `
 
 function scriptedMainFile(): string {
