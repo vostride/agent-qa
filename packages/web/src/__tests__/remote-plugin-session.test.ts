@@ -72,6 +72,7 @@ function fakeLeases(
         },
         started,
         end: () => Promise.resolve(),
+        beforeRelease: () => undefined,
         release: releaseOnce,
         onEnded(listener) {
           listeners.add(listener)

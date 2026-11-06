@@ -107,6 +107,10 @@ export interface RemoteLease {
   link?: string
   started(input: { sessionId?: string }): Promise<{ link?: string; appiumVersion?: string }>
   end(outcome: RemoteLeaseOutcome, reason?: string): Promise<void>
+  // Work the release waits for, such as deleting the session the lease opened, so the plugin
+  // gets its session back only after it. It runs once, whoever asks for the release first, and
+  // gets at most REMOTE_RELEASE_BOUND_MS; a step added once the release has begun never runs.
+  beforeRelease(step: () => Promise<void>): void
   release(): Promise<void>
   // The session ended under the test, because its plugin stopped. A listener added after the
   // end is called at once.

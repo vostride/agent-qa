@@ -29,6 +29,7 @@ function leaseSource(
         plugin: { entry: 'lab', version: '1.0.0', protocol: 1, origin: 'path' },
         started: async () => ({}),
         end: async () => undefined,
+        beforeRelease: () => undefined,
         release,
         onEnded: () => () => undefined,
       }

@@ -59,6 +59,7 @@ function fakeLeases(
     onRelease?: () => void
     started?: { link?: string; appiumVersion?: string }
     uploads?: false
+    sessions?: RemoteSessionRegistry
   } = {},
 ): FakeLeases {
   const requests: RemoteLeaseRequest[] = []
@@ -85,6 +86,16 @@ function fakeLeases(
     acquire(request) {
       requests.push(request)
       calls.push('acquire')
+      // As the plugin host does: one release, after the holder's own step, and with sessions
+      // that release registered there too.
+      let before: (() => Promise<void>) | undefined
+      let releasing: Promise<void> | undefined
+      const releaseOnce = () =>
+        (releasing ??= (async () => {
+          await before?.()
+          await release()
+        })())
+      options.sessions?.register(releaseOnce)
       return Promise.resolve({
         connection: answer,
         plugin: {
@@ -96,7 +107,10 @@ function fakeLeases(
         },
         started,
         end: () => Promise.resolve(),
-        release,
+        beforeRelease(step) {
+          if (releasing === undefined) before = step
+        },
+        release: releaseOnce,
         onEnded(listener) {
           listeners.add(listener)
           return () => {
@@ -314,15 +328,16 @@ describe('an Android device on a plugin remote', () => {
     expect(adapter.remoteLease).toBeUndefined()
   })
 
-  it('on a signal deletes the session, then releases the lease', async () => {
+  it('on a signal deletes the session, then releases the lease the plugin host also registered', async () => {
     const server = await fakeServer()
     let deletedAtRelease: number | undefined
+    const sessions = createRemoteSessionRegistry()
     const leases = fakeLeases(answerAt(server), {
+      sessions,
       onRelease: () => {
         deletedAtRelease = server.sessionsDeleted().length
       },
     })
-    const sessions = createRemoteSessionRegistry()
     const adapter = adapterFor({ pluginSessions: leases.source, sessions })
     await adapter.setup(deviceOn(pluginRemote()))
 

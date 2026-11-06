@@ -19,6 +19,7 @@ import {
 } from '@vostride/agent-qa-plugin-kit/protocol'
 import {
   PLUGIN_RELEASE_BOUND_MS,
+  REMOTE_RELEASE_BOUND_MS,
   RemoteRefusalError,
   type RemoteFailureKind,
   type RemoteLease,
@@ -237,22 +238,23 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     }
   }
 
-  const settledWithinLeft = async (work: Promise<unknown>): Promise<void> => {
-    const remaining = left()
+  const settledWithin = async (work: Promise<unknown>, boundMs: number): Promise<void> => {
     const settled = work.then(
       () => undefined,
       () => undefined,
     )
-    if (remaining === Number.POSITIVE_INFINITY) return settled
+    if (boundMs === Number.POSITIVE_INFINITY) return settled
     let timer: ReturnType<typeof setTimeout> | undefined
     await Promise.race([
       settled,
       new Promise<void>((done) => {
-        timer = setTimeout(done, remaining)
+        timer = setTimeout(done, boundMs)
       }),
     ])
     clearTimeout(timer)
   }
+
+  const settledWithinLeft = (work: Promise<unknown>): Promise<void> => settledWithin(work, left())
 
   const stopChild = (child: PluginProcess, killAfterMs = bounds.killAfterMs): Promise<void> => {
     const remaining = left()
@@ -656,6 +658,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     let releasing: Promise<void> | undefined
     let ending: Promise<void> | undefined
     let unregister: (() => void) | undefined
+    let before: (() => Promise<void>) | undefined
     let ended: RemoteLeaseEnded | undefined
     const listeners = new Set<(ended: RemoteLeaseEnded) => void>()
     const tell = (listener: (ended: RemoteLeaseEnded) => void, value: RemoteLeaseEnded) => {
@@ -693,7 +696,16 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
           signalDeadline !== undefined && input.marksSessions === true
             ? end('cancelled')
             : Promise.resolve()
-        const sent = marked.then(() => releaseHandle(running, answer.handle, boundMs))
+        // Whoever asks first, the holder's own teardown, such as deleting its session, goes first.
+        const held = marked.then(() =>
+          before === undefined
+            ? undefined
+            : settledWithin(
+                Promise.resolve().then(before),
+                Math.min(REMOTE_RELEASE_BOUND_MS, left()),
+              ),
+        )
+        const sent = held.then(() => releaseHandle(running, answer.handle, boundMs))
         releasing = sent
         running.releasing.add(sent)
         void sent.finally(() => running.releasing.delete(sent))
@@ -745,6 +757,9 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
         }
       },
       end,
+      beforeRelease(step) {
+        if (releasing === undefined) before = step
+      },
       release: () => release(bounds.releaseMs),
       onEnded(listener) {
         if (ended !== undefined) {

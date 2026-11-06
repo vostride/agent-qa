@@ -751,6 +751,11 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
           : this.releaseRemote(driver).then(releaseLease, releaseLease),
       )
     }
+    // The plugin host registers the lease's release too, so the lease itself waits for the delete
+    // whichever path releases it first. An ended session has nothing to delete.
+    this.lease?.beforeRelease(() =>
+      this.disconnectKind === 'ended' ? Promise.resolve() : this.releaseRemote(driver),
+    )
     driver.on('result', (event: { command?: string; result?: unknown }) => {
       if (this.driver !== driver) return
       if (event.command === 'deleteSession' || event.command === 'status') return

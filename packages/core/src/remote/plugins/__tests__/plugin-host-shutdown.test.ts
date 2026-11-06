@@ -405,6 +405,39 @@ describe('the plugin host pool on the session registry', () => {
     expect(methodsOf(p.ledger(marks))).toEqual(['initialize', 'acquire', 'release', 'shutdown'])
   })
 
+  it("on a signal runs its holder's step once, then sends the lease's release", async () => {
+    const p = host()
+    const lab = p.entry('lab')
+    const sessions = createRemoteSessionRegistry()
+    const pool = p.pool([lab], { sessions })
+
+    const lease = await pool.acquire(request('lab-a', 'lab'))
+    const seenAtStepEnd: string[][] = []
+    lease.beforeRelease(async () => {
+      await new Promise((done) => setTimeout(done, 200))
+      seenAtStepEnd.push(methodsOf(p.ledger(lab)))
+    })
+    await sessions.releaseAll(REMOTE_RELEASE_BOUND_MS)
+
+    expect(seenAtStepEnd).toEqual([['initialize', 'acquire']])
+    expect(methodsOf(p.ledger(lab))).toEqual(['initialize', 'acquire', 'release', 'shutdown'])
+  })
+
+  it("releases the lease once its holder's step has had REMOTE_RELEASE_BOUND_MS", async () => {
+    const p = host()
+    const lab = p.entry('lab')
+    const sessions = createRemoteSessionRegistry()
+    const pool = p.pool([lab], { sessions })
+
+    const lease = await pool.acquire(request('lab-a', 'lab'))
+    lease.beforeRelease(() => new Promise<void>(() => undefined))
+    const startedAt = Date.now()
+    await sessions.releaseAll(REMOTE_RELEASE_BOUND_MS)
+
+    expect(Date.now() - startedAt).toBeGreaterThanOrEqual(REMOTE_RELEASE_BOUND_MS - SLACK_MS)
+    expect(methodsOf(p.ledger(lab))).toEqual(['initialize', 'acquire', 'release', 'shutdown'])
+  }, 15_000)
+
   it('sends one release for a lease that the adapter and the pool both registered', async () => {
     const p = host()
     const lab = p.entry('lab')
