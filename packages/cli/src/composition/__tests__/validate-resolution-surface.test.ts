@@ -253,6 +253,7 @@ describe('a project the product scaffolds is validated, not attested over an emp
   it('the workspace-match gate is BACK in the init-scaffolded project — the amplifier road is closed', () => {
     // `hooks.yaml` matches neither `testMatch` nor `suiteMatch`, so the workspace gate answers.
     scaffoldWithShippedInit()
+    installDeclaredPlugin()
     writeFileUnder(
       'hooks.yaml',
       `${readFileSync(join(root, 'hooks.yaml'), 'utf-8')}
