@@ -13,6 +13,7 @@ import {
   pluginRemoteRefusals,
   resolvePluginEntries,
   resolveWorkspacePaths,
+  selectInProcessPluginEntries,
   selectSuiteDevice,
   selectSuitePlace,
   selectTestDevice,
@@ -23,7 +24,12 @@ import type {
   AgentQaConfig,
   BrowserEngine,
   DeviceTarget,
+  InProcessPluginKind,
+  InProcessRefusal,
+  PluginEntryInput,
+  PluginRemoteInput,
   PluginRemoteUse,
+  ResolvePluginEntryOptions,
   SelectDevicePlaceResult,
   ResolvedWorkspacePaths,
   SelectWebPlaceResult,
@@ -165,7 +171,24 @@ async function pluginRemoteUses(
   return uses
 }
 
-// The run-start refusals and the unused entries, read from manifests and schemas only.
+const IN_PROCESS_KINDS: readonly InProcessPluginKind[] = ['model-auth', 'model-provider']
+
+function configLoadRefusals(
+  plugins: readonly PluginEntryInput[],
+  remotes: readonly PluginRemoteInput[],
+  options: ResolvePluginEntryOptions,
+): InProcessRefusal[] {
+  // An entry whose kind cannot be read is refused by both kinds with the same reason.
+  const refusals = new Map<string, InProcessRefusal>()
+  for (const kind of IN_PROCESS_KINDS) {
+    for (const refusal of selectInProcessPluginEntries(plugins, kind, options, remotes).refusals) {
+      if (!refusals.has(refusal.entry)) refusals.set(refusal.entry, refusal)
+    }
+  }
+  return [...refusals.values()]
+}
+
+// What run refuses at config load and run start, and unused entries, from manifests and schemas.
 async function pluginDiagnostics(
   config: AgentQaConfig,
   workspace: ResolvedWorkspacePaths,
@@ -197,6 +220,9 @@ async function pluginDiagnostics(
     (entry) => entry.state === 'unused',
   )
   return [
+    ...configLoadRefusals(plugins, remotes, options).map(({ reason }) =>
+      diagnostic(reason, 'error'),
+    ),
     ...refusals.map(({ message }) => diagnostic(message, 'error')),
     ...unused.map(({ reason }) => diagnostic(reason ?? '', 'warning')),
   ]
@@ -222,7 +248,7 @@ export function createValidateCommand(): Command {
       let resolutionFailure: string | undefined
 
       try {
-        // No auth plugins: validation reads config values, and a missing plugin would fail it.
+        // No in-process plugin loads here: pluginDiagnostics reports what loading would refuse.
         config = await resolveConfig({ configPath, loadAuthPlugins: false })
         workspace = resolveWorkspacePaths({ config, configPath })
       } catch (err) {

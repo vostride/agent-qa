@@ -212,6 +212,27 @@ describe('validate checks plugins entries', () => {
     expect(process.exitCode).toBe(0)
   })
 
+  it('refuses an entry that no remote names and that is not installed, with its install line', async () => {
+    await installPlugin(THIRD_PARTY)
+    await writeConfig([
+      '  - name: kit',
+      `    package: '${THIRD_PARTY}'`,
+      '  - name: gone',
+      `    package: '${FIRST_PARTY}'`,
+    ])
+
+    await runValidate()
+
+    expect(output()).toContain(
+      `Plugin entry gone names ${FIRST_PARTY}, which is not installed. `
+        + `Run npm install --save-dev --save-exact ${FIRST_PARTY}@${getAgentQaVersion()}.`,
+    )
+    expect(output()).toMatch(/error\s+Plugin entry gone names/)
+    expect(output().split('Plugin entry gone names').length).toBe(2)
+    expect(output()).not.toContain('All files valid')
+    expect(process.exitCode).toBe(1)
+  })
+
   it('refuses a web pick of a remote whose plugin serves only appium', async () => {
     await installPlugin(THIRD_PARTY, { serves: ['appium'] })
     await writeConfig(['  - name: kit', `    package: '${THIRD_PARTY}'`])

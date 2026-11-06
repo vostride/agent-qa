@@ -339,6 +339,13 @@ function buildV1Workspace(): string {
     private: true,
     devDependencies: { '@vostride/agent-qa-subscription-auth': '*' },
   }, null, 2)}\n`)
+  // The declared devDependency is installed, as in a project that ran its install; validate reads
+  // only its manifest.
+  write(root, 'node_modules/@vostride/agent-qa-subscription-auth/package.json', `${JSON.stringify({
+    name: '@vostride/agent-qa-subscription-auth',
+    version: '0.0.0',
+    'agent-qa': { plugin: { kind: 'model-auth', runs: 'in-process', entry: './dist/index.js' } },
+  })}\n`)
   write(root, '.env', 'OWN_ENV=kept-value\n')
   write(root, '.env.secrets.local', '', 0o600)
   for (const path of USER_TESTS) {

@@ -1,4 +1,5 @@
-// Validates what the shipped `init --platform web` writes, its declared auth plugin uninstalled.
+// Validates what the shipped `init --platform web` writes, with its declared auth plugin installed
+// and without it.
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
@@ -124,6 +125,18 @@ function writeFileUnder(relativePath: string, text: string): void {
   writeFileSync(absolute, text)
 }
 
+// validate reads only the manifest, so the package carries no code.
+function installDeclaredPlugin(): void {
+  writeFileUnder(
+    join('node_modules', '@vostride', 'agent-qa-subscription-auth', 'package.json'),
+    JSON.stringify({
+      name: SUBSCRIPTION_AUTH_PACKAGE,
+      version: '0.0.0',
+      'agent-qa': { plugin: { kind: 'model-auth', runs: 'in-process', entry: './dist/index.js' } },
+    }),
+  )
+}
+
 /** The scaffolded config, made SCHEMA-INVALID at a field the schema names, carrying a credential. */
 function makeConfigUnresolvable(configText: string): void {
   const broken = configText
@@ -148,6 +161,7 @@ afterEach(() => {
 describe('a project the product scaffolds is validated, not attested over an empty set', () => {
   it('bare `validate` in an init-scaffolded project CHECKS FILES', () => {
     scaffoldWithShippedInit()
+    installDeclaredPlugin()
     writeFileUnder(join('tests', 'z1-added.yaml'), VALID_TEST)
 
     const expected = discoveredFileCount()
@@ -172,6 +186,23 @@ describe('a project the product scaffolds is validated, not attested over an emp
       `the discovered set does not contain the added member:\n${second.combined}`,
     ).toContain('z1-membership.yaml')
     expect(second.status, `a member with errors is an error exit:\n${second.combined}`).toBe(1)
+  }, 180_000)
+
+  it('bare `validate` refuses the declared plugin the scaffold has not installed, with its install line', () => {
+    scaffoldWithShippedInit()
+
+    const { status, combined } = runShippedCli('validate')
+
+    expect(status, `a project missing its declared plugin is an error exit:\n${combined}`).toBe(1)
+    expect(combined, `validate did not name the missing entry:\n${combined}`).toContain(
+      `Plugin entry subscription names ${SUBSCRIPTION_AUTH_PACKAGE}, which is not installed.`,
+    )
+    expect(combined, `validate did not print the install line:\n${combined}`).toContain(
+      `Run npm install --save-dev ${SUBSCRIPTION_AUTH_PACKAGE}.`,
+    )
+    expect(combined, `validate attested a project run refuses:\n${combined}`).not.toContain(
+      SUCCESS_SENTENCE,
+    )
   }, 180_000)
 
   it('a config that cannot be resolved is named LOUDLY, exits non-zero, and leaks nothing', () => {
@@ -273,6 +304,7 @@ apiToken: ${PLANTED_HOOKS_CREDENTIAL}
 
   it('`--config staging.yaml validate` validates STAGING.YAML — the flag is not ignored', () => {
     const configText = scaffoldWithShippedInit()
+    installDeclaredPlugin()
     // THE NON-DEFAULT NAME, AND NO DEFAULT FILE AT ALL. With `agent-qa.config.yaml` still present the
     // cell could pass on the defect: the fallback would find a valid config and report a real count.
     // Removing it makes the flag load-bearing.
