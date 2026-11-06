@@ -209,7 +209,9 @@ Finding a device on this machine:
   nothing matches, the test is refused before it starts with one line listing what this machine
   has.
 - `npx agent-qa devices` shows each device and what this machine has (attached phones with their
-  model, AVDs and simulators), so you can copy the `model` to write.
+  model, AVDs and simulators), so you can copy the `model` to write. A device on a remote shows
+  the remote's name and origin, or its name and plugins entry.
+  `npx agent-qa devices list --json` prints the same as JSON.
 
 Picking a device:
 

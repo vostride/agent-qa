@@ -7,7 +7,7 @@ import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import type { AgentQaConfig, AndroidHere, IOSHere, SimulatorHere } from '@vostride/agent-qa-core'
 
-import { describeDevicesHere, type DevicesHereLister } from '../commands/run.js'
+import { describeDevices, describeDevicesHere, type DevicesHereLister } from '../commands/run.js'
 import {
   CLI_ENTRY,
   REBUILD_INSTRUCTION,
@@ -17,16 +17,25 @@ import {
   spawnCollecting,
 } from './conformance/spawned-chat.js'
 
+const LAB_SETTING = 'lab-setting-value'
+
 function devicesProject(label: string): string {
   const { root, configPath } = fixtureProject(`devices-${label}`)
   const config = JSON.parse(readFileSync(configPath, 'utf8')) as Record<string, unknown>
   config.registry = {
-    remotes: [{ name: 'farm', protocol: 'appium', url: 'https://farm.example.com/wd/hub' }],
+    remotes: [
+      { name: 'farm', protocol: 'appium', url: 'https://farm.example.com/wd/hub' },
+      { name: 'lab', plugin: 'lab-devices', settings: { project: LAB_SETTING } },
+    ],
     devices: {
       pixel: { platform: 'android', model: 'Pixel 8' },
       'galaxy-farm': { platform: 'android', model: 'Galaxy S24', remote: 'farm' },
+      'galaxy-lab': { platform: 'android', model: 'Galaxy S24', remote: 'lab' },
     },
   }
+  config.plugins = [
+    { name: 'lab-devices', path: './tools/lab-devices', options: { region: LAB_SETTING } },
+  ]
   writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
   writeFileSync(join(root, '.env'), '', 'utf8')
   writeFileSync(join(root, 'hooks.yaml'), 'hooks: []\n', 'utf8')
@@ -61,6 +70,7 @@ function config(registry: Record<string, unknown>): AgentQaConfig {
 }
 
 const FARM = { name: 'farm', protocol: 'appium', url: 'https://farm.example.com/wd/hub' }
+const LAB = { name: 'lab', plugin: 'lab-devices', settings: { project: LAB_SETTING } }
 
 describe('describeDevicesHere', () => {
   it('says what each local profile finds here and where a remote one runs', async () => {
@@ -220,6 +230,80 @@ describe('describeDevicesHere', () => {
       expect(text).not.toContain(hidden)
     }
   })
+
+  it('prints a device on a plugin remote by its remote and plugins entry, never its settings', async () => {
+    const { list, calls } = lister({ attached: [], avds: [] }, { simulators: [] })
+    const lines = await describeDevicesHere(
+      config({
+        remotes: [LAB],
+        devices: { 'galaxy-lab': { platform: 'android', remote: 'lab', model: 'Galaxy S24' } },
+      }),
+      { listDevicesHere: list },
+    )
+
+    expect(lines[0]).toBe('galaxy-lab  remote lab (plugin lab-devices)')
+    expect(lines.join('\n')).not.toContain(LAB_SETTING)
+    expect(calls.filter((platform) => platform === 'android')).toEqual(['android'])
+  })
+})
+
+describe('describeDevices', () => {
+  it('gives each profile what it finds here, or its remote by name and origin or by plugins entry', async () => {
+    const { list } = lister(
+      {
+        attached: [{ serial: 'R58M41ABCDE', state: 'device', model: 'Pixel 8', os: '15' }],
+        avds: [],
+      },
+      { simulators: [simulator('iPhone 15', '17.5')] },
+    )
+    const view = await describeDevices(
+      config({
+        remotes: [FARM, LAB],
+        devices: {
+          pixel: { platform: 'android', model: 'Pixel 8' },
+          iphone: { platform: 'ios', model: 'iPhone 16', os: '18.4' },
+          'galaxy-farm': { platform: 'android', remote: 'farm', model: 'Galaxy S24' },
+          'galaxy-lab': { platform: 'android', remote: 'lab', model: 'Galaxy S24' },
+        },
+      }),
+      { listDevicesHere: list },
+    )
+
+    expect(view.devices).toEqual([
+      { name: 'pixel', platform: 'android', here: 'Pixel 8 phone R58M41ABCDE' },
+      { name: 'iphone', platform: 'ios', notHere: 'wants an iPhone 16 simulator on iOS 18.4' },
+      {
+        name: 'galaxy-farm',
+        platform: 'android',
+        remote: { name: 'farm', protocol: 'appium', url: 'https://farm.example.com:443' },
+      },
+      {
+        name: 'galaxy-lab',
+        platform: 'android',
+        remote: { name: 'lab', plugin: 'lab-devices' },
+      },
+    ])
+    expect(view.here.android.attached).toHaveLength(1)
+    expect(view.here.ios.simulators).toHaveLength(1)
+    const json = JSON.stringify(view)
+    for (const hidden of [LAB_SETTING, '/wd/hub']) expect(json).not.toContain(hidden)
+  })
+
+  it("keeps a missing model's sentence whole", async () => {
+    const { list } = lister({ attached: [], avds: [] }, { simulators: [] })
+    const view = await describeDevices(config({ devices: { pixel: { platform: 'android' } } }), {
+      listDevicesHere: list,
+    })
+
+    expect(view.devices).toEqual([
+      {
+        name: 'pixel',
+        platform: 'android',
+        notHere:
+          'names no model, and this machine runs no Android device. Start one, or set model in registry.devices.pixel.',
+      },
+    ])
+  })
 })
 
 describe('agent-qa devices', () => {
@@ -257,6 +341,39 @@ describe('agent-qa devices', () => {
     expect(outcome.stdout).toMatch(/^ {2}Attached: {3}adb not found \(set ANDROID_HOME\)$/mu)
     expect(outcome.stdout).toMatch(/^ {2}Emulators: {2}none$/mu)
     expect(outcome.stdout).toMatch(/^ {2}Simulators: /mu)
+    expect(outcome.stdout).toMatch(/^ {2}galaxy-lab {3}remote lab \(plugin lab-devices\)$/mu)
+    expect(outcome.stdout).not.toContain(LAB_SETTING)
+  })
+
+  it('devices --json gives each profile its place, a plugin remote by name and entry only', async () => {
+    const root = devicesProject('json')
+
+    const outcome = await spawnCollecting(
+      root,
+      [CLI_ENTRY, 'devices', '--json'],
+      withoutDeviceTools(root),
+    )
+
+    expect(outcome.code).toBe(0)
+    const view = JSON.parse(outcome.stdout) as {
+      devices: Array<Record<string, unknown>>
+      here: { android: { problem?: string } }
+    }
+    expect(view.devices).toEqual([
+      { name: 'pixel', platform: 'android', notHere: 'wants a Pixel 8' },
+      {
+        name: 'galaxy-farm',
+        platform: 'android',
+        remote: { name: 'farm', protocol: 'appium', url: 'https://farm.example.com:443' },
+      },
+      {
+        name: 'galaxy-lab',
+        platform: 'android',
+        remote: { name: 'lab', plugin: 'lab-devices' },
+      },
+    ])
+    expect(view.here.android.problem).toBe('adb not found (set ANDROID_HOME)')
+    expect(outcome.stdout).not.toContain(LAB_SETTING)
   })
 
   it('bare devices with no profile says so and still lists this machine', async () => {

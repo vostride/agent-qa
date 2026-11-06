@@ -7,7 +7,7 @@ import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
 import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, describeAndroidHere, describeIOSHere, discoverWorkspaceFiles, findDeviceHere, isUrlRemoteEntry, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, pluginRemoteRefusals, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
-import { formatRemoteOrigin, projectConfigRemotes, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
+import { formatRemoteOrigin, projectConfigRemotes, projectRemotesForDisplay, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
@@ -28,6 +28,7 @@ import type {
   MaskFn,
   ModelCapabilities,
   QuarantineAppliedEntry,
+  RemoteDisplay,
   RunArtifactStageInput,
   RunEventEnvelope,
   RunFinishedPayload,
@@ -324,13 +325,26 @@ export interface DescribeDevicesHereOptions {
   readonly listDevicesHere?: DevicesHereLister
 }
 
-// A refusal that wants a model this machine lacks reads `not here: wants ...`; a tie or a missing
-// model reads as the finder's sentence, without what this machine has.
+// Where one profile runs: what it finds here, why it finds nothing here, or its remote shown by
+// name and origin or by plugins entry, never by path, query, headers or settings.
+export type DevicePlaceView = { readonly name: string; readonly platform: 'android' | 'ios' } & (
+  | { readonly here: string }
+  | { readonly notHere: string }
+  | { readonly remote: RemoteDisplay }
+)
+
+export interface DevicesView {
+  readonly devices: readonly DevicePlaceView[]
+  readonly here: { readonly android: AndroidHere; readonly ios: IOSHere }
+}
+
+// A refusal that wants a model this machine lacks is `wants ...`; a tie or a missing model is the
+// finder's sentence, without what this machine has.
 function deviceNotHere(device: string, refusal: string): string {
   const prefix = `Device ${device} `
   const reason = refusal.startsWith(prefix) ? refusal.slice(prefix.length) : refusal
   const wants = /^wants ([^;]*);/u.exec(reason)
-  if (wants !== null) return `not here: wants ${wants[1]}`
+  if (wants !== null) return `wants ${wants[1]}`
   return reason.replace(/ This (?:machine|Mac)(?: has|'s) .*$/u, '')
 }
 
@@ -339,24 +353,51 @@ async function deviceWhere(
   profile: DeviceProfile,
   remotes: readonly RemoteEntry[],
   list: DevicesHereLister,
-): Promise<string> {
+): Promise<DevicePlaceView> {
+  const platform = profile.platform
   if (profile.remote !== undefined) {
     const remote = remotes.find((entry) => entry.name === profile.remote)
-    return `remote ${remote === undefined ? profile.remote : remoteLabel(remote)}`
+    const [shown] = remote === undefined ? [] : projectRemotesForDisplay([remote])
+    return { name, platform, remote: shown ?? { name: profile.remote } }
   }
-  const listing = await list(profile.platform)
+  const listing = await list(platform)
   const finder = findDeviceHere({
     device: name,
-    platform: profile.platform,
+    platform,
     ...(profile.model === undefined ? {} : { model: profile.model }),
     ...(profile.os === undefined ? {} : { os: profile.os }),
     ...(profile.id === undefined ? {} : { id: profile.id }),
-    ...(profile.platform === 'ios'
-      ? { ios: listing as IOSHere }
-      : { android: listing as AndroidHere }),
+    ...(platform === 'ios' ? { ios: listing as IOSHere } : { android: listing as AndroidHere }),
   })
-  if ('refusal' in finder) return deviceNotHere(name, finder.refusal)
-  return `here: ${finder.found.description}`
+  if ('refusal' in finder) return { name, platform, notHere: deviceNotHere(name, finder.refusal) }
+  return { name, platform, here: finder.found.description }
+}
+
+function placeText(place: DevicePlaceView): string {
+  if ('here' in place) return `here: ${place.here}`
+  if ('remote' in place) {
+    const { name, plugin, protocol, url } = place.remote
+    if (plugin !== undefined) return `remote ${remoteLabel({ name, plugin })}`
+    if (protocol === undefined || url === undefined) return `remote ${name}`
+    return `remote ${remoteLabel({ name, protocol, url })}`
+  }
+  return place.notHere.startsWith('wants ') ? `not here: ${place.notHere}` : place.notHere
+}
+
+// Each profile's place, then this machine's phones, AVDs and simulators as listed.
+export async function describeDevices(
+  config: AgentQaConfig,
+  options: DescribeDevicesHereOptions = {},
+): Promise<DevicesView> {
+  const devices = Object.entries(config.registry?.devices ?? {})
+  const remotes = config.registry?.remotes ?? []
+  const list = listDevicesHereOncePerRun(options.listDevicesHere ?? listDevicesHereByDefault)
+  const [places, android, ios] = await Promise.all([
+    Promise.all(devices.map(([name, profile]) => deviceWhere(name, profile, remotes, list))),
+    list('android'),
+    list('ios'),
+  ])
+  return { devices: places, here: { android: android as AndroidHere, ios: ios as IOSHere } }
 }
 
 // The `agent-qa devices` view: one line per profile saying what it finds here or where it runs,
@@ -365,19 +406,12 @@ export async function describeDevicesHere(
   config: AgentQaConfig,
   options: DescribeDevicesHereOptions = {},
 ): Promise<string[]> {
-  const devices = Object.entries(config.registry?.devices ?? {})
-  const remotes = config.registry?.remotes ?? []
-  const list = listDevicesHereOncePerRun(options.listDevicesHere ?? listDevicesHereByDefault)
-  const width = Math.max(0, ...devices.map(([name]) => name.length))
-  const [places, android, ios] = await Promise.all([
-    Promise.all(devices.map(([name, profile]) => deviceWhere(name, profile, remotes, list))),
-    list('android'),
-    list('ios'),
-  ])
+  const view = await describeDevices(config, options)
+  const width = Math.max(0, ...view.devices.map((place) => place.name.length))
   return [
-    ...devices.map(([name], index) => `${name.padEnd(width)}  ${places[index]}`),
-    ...describeAndroidHere(android as AndroidHere),
-    ...describeIOSHere(ios as IOSHere),
+    ...view.devices.map((place) => `${place.name.padEnd(width)}  ${placeText(place)}`),
+    ...describeAndroidHere(view.here.android),
+    ...describeIOSHere(view.here.ios),
   ]
 }
 
