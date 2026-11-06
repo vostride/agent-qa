@@ -188,7 +188,9 @@ describe('a web test on a remote served by the built Kernel plugin', () => {
       expect(log.includes(API_KEY), 'the output holds the API key').toBe(false)
       const records = filesUnder(project.agentQaRoot)
       expect(records.length, log).toBeGreaterThan(0)
-      const holders = records.filter((path) => readFileSync(path).toString('latin1').includes(API_KEY))
+      const holders = records.filter((path) =>
+        readFileSync(path).toString('latin1').includes(API_KEY),
+      )
       expect(holders, 'a record holds the API key').toEqual([])
     } finally {
       await api.close()
