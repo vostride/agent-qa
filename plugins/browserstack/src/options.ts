@@ -88,18 +88,12 @@ export const settings = z.strictObject({
 
 export type BrowserStackSettings = z.output<typeof settings>
 
-const ENDPOINTS = [
-  { path: 'apiUrl', secure: 'https:', plain: 'http:' },
-  { path: 'appApiUrl', secure: 'https:', plain: 'http:' },
-  { path: 'hubUrl', secure: 'https:', plain: 'http:' },
-  { path: 'playwrightUrl', secure: 'wss:', plain: 'ws:' },
+export const BROWSERSTACK_ENDPOINTS = [
+  { path: 'apiUrl', scheme: 'https' },
+  { path: 'appApiUrl', scheme: 'https' },
+  { path: 'hubUrl', scheme: 'https' },
+  { path: 'playwrightUrl', scheme: 'wss' },
 ] as const
-
-function isLoopback(hostname: string): boolean {
-  return (
-    hostname === 'localhost' || hostname === '[::1]' || /^127(?:\.\d{1,3}){3}$/.test(hostname)
-  )
-}
 
 export function checkLocal(input: BrowserStackOptions): void {
   if (input.localBinary !== undefined && !input.local) {
@@ -107,23 +101,5 @@ export function checkLocal(input: BrowserStackOptions): void {
       'localBinary names the tunnel the plugin starts, so it needs local: true.',
       { kind: 'refused', path: 'localBinary' },
     )
-  }
-}
-
-export function checkEndpoints(input: BrowserStackOptions): void {
-  for (const endpoint of ENDPOINTS) {
-    const url = new URL(input[endpoint.path])
-    const allowed =
-      url.username === '' &&
-      url.password === '' &&
-      (url.protocol === endpoint.secure ||
-        (url.protocol === endpoint.plain && isLoopback(url.hostname)))
-    if (!allowed) {
-      const scheme = endpoint.secure.slice(0, -1)
-      throw new PluginError(
-        `${endpoint.path} must use ${scheme}:// with no user or password, unless it points at this machine.`,
-        { kind: 'refused', path: endpoint.path },
-      )
-    }
   }
 }
