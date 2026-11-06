@@ -128,6 +128,9 @@ runPlugin(plugin)
   `version`, `refused`, `ended` or `lost`. Add `path` (for example `settings.region`) when an option or a
   setting is at fault, so the refusal points at the config line. Add `handle` when the service had already
   created something.
+- The kit checks what `acquire`, `check`, `uploadApp` and `started` return against the protocol. A
+  malformed result is answered as a `refused` failure naming the field, and a malformed `acquire` result
+  keeps its handle, so the session is still released.
 
 ## Build
 

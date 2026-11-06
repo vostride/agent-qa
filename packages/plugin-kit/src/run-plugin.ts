@@ -7,9 +7,11 @@ import { findPackageRoot, readPackageJson } from './package-root.js'
 import { createLineDecoder, encodeMessage } from './protocol/framing.js'
 import {
   AcquireParamsSchema,
+  AcquireResultSchema,
   CANCEL_METHOD,
   CancelParamsSchema,
   CheckParamsSchema,
+  CheckResultSchema,
   EndParamsSchema,
   InitializeParamsSchema,
   MAX_MESSAGE_BYTES,
@@ -20,7 +22,9 @@ import {
   PROGRESS_METHOD,
   ReleaseParamsSchema,
   StartedParamsSchema,
+  StartedResultSchema,
   UploadAppParamsSchema,
+  UploadAppResultSchema,
   type InitializeParams,
   type InitializeResult,
   type OptionalPluginMethod,
@@ -172,6 +176,21 @@ function refuse(schema: z.ZodType, value: unknown, prefix: string): unknown {
     kind: 'refused',
     ...(path === '' ? {} : { path }),
   })
+}
+
+function checkedResult(schema: z.ZodType, value: unknown, method: string): unknown {
+  const parsed = schema.safeParse(value)
+  if (parsed.success) return value
+  const issue = parsed.error.issues[0]
+  const where = issue === undefined ? '' : issuePath(issue)
+  const handle =
+    method === 'acquire' && isRecord(value) && value.handle !== undefined
+      ? (value.handle as Json)
+      : undefined
+  throw new PluginError(
+    `${method} answered a malformed result${where === '' ? '' : ` at ${where}`}: ${issue?.message ?? 'invalid'}`,
+    { kind: 'refused', ...(handle === undefined ? {} : { handle }) },
+  )
 }
 
 function pluginIdentity(entryPath: string | undefined): InitializeResult['plugin'] {
@@ -380,10 +399,11 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
     switch (method) {
       case 'acquire': {
         const input = parseParams(AcquireParamsSchema, params, method)
-        return definition.acquire(
+        const result = await definition.acquire(
           { ...input, settings: settings(input.settings, 'settings'), options: current },
           ctx,
         )
+        return checkedResult(AcquireResultSchema, result, method)
       }
       case 'release': {
         const input = parseParams(ReleaseParamsSchema, params, method)
@@ -403,18 +423,21 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
           name: remote.name,
           settings: settings(remote.settings, 'settings'),
         }))
-        return definition.check?.({ remotes, options: current }, ctx)
+        const result = await definition.check?.({ remotes, options: current }, ctx)
+        return checkedResult(CheckResultSchema, result, method)
       }
       case 'uploadApp': {
         const input = parseParams(UploadAppParamsSchema, params, method)
-        return definition.uploadApp?.(
+        const result = await definition.uploadApp?.(
           { ...input, settings: settings(input.settings, 'settings'), options: current },
           ctx,
         )
+        return checkedResult(UploadAppResultSchema, result, method)
       }
       case 'started': {
         const input = parseParams(StartedParamsSchema, params, method)
-        return definition.started?.({ ...input, options: current }, ctx)
+        const result = await definition.started?.({ ...input, options: current }, ctx)
+        return checkedResult(StartedResultSchema, result, method)
       }
       case 'end': {
         const input = parseParams(EndParamsSchema, params, method)
