@@ -1001,13 +1001,16 @@ export class LiveSession {
     let adapter: PlatformAdapter | null = null
     try {
       const platformConfig = await this.resolveMobilePlatformConfig(config)
-      this.onRemote = platformConfig.device?.remote !== undefined
+      const remote = platformConfig.device?.remote
+      this.onRemote = remote !== undefined
       const platformLabel = platform === 'android' ? 'Android' : 'iOS'
       const redactor = config.secretRedactor
       const mask =
         redactor === undefined
           ? this.deps.configManager?.mask
           : (text: string) => redactor.redactString(text)
+      const pluginSessions =
+        remote !== undefined && isPluginRemote(remote) ? await this.openPluginPool(config) : undefined
       // The same connection options the web adapter gets, plus the declared mask.
       const options = {
         refusalMemory: createRemoteRefusalMemory(),
@@ -1017,6 +1020,7 @@ export class LiveSession {
         ...(config.secretsFile === undefined ? {} : { secretsFile: config.secretsFile }),
         ...(this.deps.remoteSessions === undefined ? {} : { sessions: this.deps.remoteSessions }),
         ...(mask === undefined ? {} : { mask }),
+        ...(pluginSessions === undefined ? {} : { pluginSessions }),
       }
       try {
         if (platform === 'android') {
@@ -1057,7 +1061,7 @@ export class LiveSession {
   }
 
   // One process per plugins entry the session uses, started on first acquire. Without the project
-  // config there is no plugins list, and the web adapter refuses the plugin remote itself.
+  // config there is no plugins list, and the adapter refuses the plugin remote itself.
   private async openPluginPool(config: LiveSessionConfig): Promise<PluginHostPool | undefined> {
     const { configManager, configPath } = this.deps
     if (configManager === undefined || configPath === undefined) return undefined
