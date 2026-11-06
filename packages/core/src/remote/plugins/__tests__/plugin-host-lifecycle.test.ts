@@ -161,7 +161,7 @@ describe('a plugin that stays silent after a cancel', () => {
     expect(afterRestart(ledger)[1]?.handle).toEqual({ n: 1 })
   })
 
-  it('releases through the restart a session the plugin answered with after its call was refused', async () => {
+  it('still releases a session a kit plugin creates after its call was refused, as it leaves', async () => {
     const p = host()
     const lab = p.entry('lab', {
       script: { acquire: { delayMs: 300, ignoreCancel: true }, shutdown: { delayMs: 600 } },
@@ -171,9 +171,9 @@ describe('a plugin that stays silent after a cancel', () => {
     const refused = await refusalOf(pool.acquire(request('lab-a', 'lab', { deadlineMs: 100 })))
 
     expect(refused.kind).toBe('timeout')
-    await waitFor(() => methodsOf(afterRestart(p.ledger(lab))).length === 3)
-    expect(methodsOf(afterRestart(p.ledger(lab)))).toEqual(['initialize', 'release', 'shutdown'])
-    expect(afterRestart(p.ledger(lab))[1]?.handle).toEqual({ n: 1 })
+    await waitFor(() => methodsOf(p.ledger(lab)).includes('shutdown'))
+    expect(methodsOf(p.ledger(lab))).toEqual(['initialize', 'acquire', 'release', 'shutdown'])
+    expect(p.ledger(lab)[2]?.handle).toEqual({ n: 1 })
   })
 })
 
