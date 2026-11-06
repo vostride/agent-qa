@@ -1,3 +1,5 @@
+import { resolve } from 'node:path'
+
 import { Command } from 'commander'
 import pc from 'picocolors'
 import {
@@ -15,10 +17,15 @@ export interface DevicesCommandOptions {
   readonly listDevicesHere?: DevicesHereLister
 }
 
-async function listDevices(options: DevicesCommandOptions, json: boolean): Promise<void> {
+async function listDevices(
+  options: DevicesCommandOptions,
+  json: boolean,
+  configPath: string,
+): Promise<void> {
   let config
   try {
-    config = await resolveConfig({})
+    // No in-process plugins: listing devices needs none, and a missing one would fail it.
+    config = await resolveConfig({ configPath, loadAuthPlugins: false })
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     printRunText(pc.red(`Config error: ${message}`), (text) => console.error(text))
@@ -56,7 +63,13 @@ export function createDevicesCommand(options: DevicesCommandOptions = {}): Comma
     .command('list', { isDefault: true })
     .description('Show what each configured device finds here or the remote it runs on')
     .option('--json', 'emit each device and what this machine has as JSON')
-    .action((flags: { json?: boolean }) => listDevices(options, flags.json === true))
+    .action((flags: { json?: boolean }, command: Command) =>
+      listDevices(
+        options,
+        flags.json === true,
+        resolve(command.optsWithGlobals<{ config?: string }>().config ?? 'agent-qa.config.yaml'),
+      ),
+    )
 
   cmd.command('init', { hidden: true }).action(() => {
     console.error(DEVICES_INIT_REMOVED)

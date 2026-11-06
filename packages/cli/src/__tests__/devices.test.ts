@@ -376,6 +376,39 @@ describe('agent-qa devices', () => {
     expect(outcome.stdout).not.toContain(LAB_SETTING)
   })
 
+  it("devices --json reads the config --config names, not the working folder's", async () => {
+    const project = devicesProject('config-flag')
+    const { root: elsewhere } = fixtureProject('devices-elsewhere')
+
+    const outcome = await spawnCollecting(
+      elsewhere,
+      [CLI_ENTRY, '--config', join(project, 'agent-qa.config.yaml'), 'devices', '--json'],
+      withoutDeviceTools(elsewhere),
+    )
+
+    expect(outcome.code, outcome.stderr).toBe(0)
+    const view = JSON.parse(outcome.stdout) as { devices: Array<{ name: string }> }
+    expect(view.devices.map(({ name }) => name)).toEqual(['pixel', 'galaxy-farm', 'galaxy-lab'])
+  })
+
+  it('devices --json lists the devices without loading a model-auth plugin that is not installed', async () => {
+    const root = devicesProject('auth-plugin')
+    const configPath = join(root, 'agent-qa.config.yaml')
+    const config = JSON.parse(readFileSync(configPath, 'utf8')) as { plugins: unknown[] }
+    config.plugins.push({ name: 'subscription', package: '@vostride/agent-qa-subscription-auth' })
+    writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
+
+    const outcome = await spawnCollecting(
+      root,
+      [CLI_ENTRY, 'devices', '--json'],
+      withoutDeviceTools(root),
+    )
+
+    expect(outcome.code, outcome.stderr).toBe(0)
+    const view = JSON.parse(outcome.stdout) as { devices: Array<{ name: string }> }
+    expect(view.devices.map(({ name }) => name)).toEqual(['pixel', 'galaxy-farm', 'galaxy-lab'])
+  })
+
   it('bare devices with no profile says so and still lists this machine', async () => {
     const { root } = fixtureProject('devices-none')
     writeFileSync(join(root, '.env'), '', 'utf8')
