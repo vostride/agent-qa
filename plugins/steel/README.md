@@ -93,9 +93,12 @@ and asks for a headless browser.
 By default the plugin asks for a 1440-minute session that ends after 5 idle minutes.
 
 - Steel's plans cap the session lifetime: Launch at 15 minutes, Scale at 60 minutes and Enterprise
-  at up to 1440 minutes. When Steel refuses the create with `400` or `422`, the failure line ends
+  at up to 1440 minutes. When Steel refuses the create with `400` or `422` while more than 15
+  minutes were asked for, and its reason mentions a timeout, lifetime, duration, minutes, plan or
+  limit, or gives no reason, the failure line ends
   `if your Steel plan caps sessions below <n> minutes, set settings.timeoutMinutes to the cap`.
-  Set `timeoutMinutes` to your plan's cap.
+  Set `timeoutMinutes` to your plan's cap. A refusal whose reason is about another field does not
+  name `timeoutMinutes`.
 - When Steel grants a shorter session than was asked for, the plugin writes
   `Steel granted a <n>-minute session; <m> minutes were asked for` to its log.
 - Any CDP command resets the idle time. agent-qa's heartbeat keeps a running test from going idle.
@@ -155,7 +158,7 @@ use:
 | any other non-success | `refused`     |
 
 Each failure is one line naming the status, the request and Steel's message, with `Retry-After` on
-a `429`. A create refused with `400` or `422` also names `settings.timeoutMinutes`, as above.
+a `429`. A create refused with `400` or `422` may also name `settings.timeoutMinutes`, as above.
 
 A create Steel refuses with a `4xx` made no session, so it carries no handle and nothing is
 released. Every other create failure (no answer, a `5xx`, or an answer the plugin cannot read)

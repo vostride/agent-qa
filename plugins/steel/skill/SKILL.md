@@ -73,8 +73,10 @@ registry:
 - `auth`: Steel refused the API key. Check the secret's value.
 - `capacity`: Steel answered 429. The account has no free sessions, or is rate limited. Wait, or
   lower the run's concurrency.
-- `refused` whose line ends `set settings.timeoutMinutes to the cap`: the plan caps sessions below
-  the lifetime asked for. Set `timeoutMinutes` to the plan's cap, for example `15` on Launch.
+- `refused` whose line ends `set settings.timeoutMinutes to the cap`: Steel refused the create with
+  `400` or `422`, and its reason may be the plan capping sessions below the lifetime asked for. Set
+  `timeoutMinutes` to the plan's cap, for example `15` on Launch. A `400` or `422` whose reason
+  names another field ends without this, so fix the field it names.
 - `refused` with path `settings.profile`: the remote sets `profile` without `context: reuse`. Add
   `context: reuse` to the remote.
 - `refused` with path `settings.proxyUrl`: the remote sets both `proxy` and `proxyUrl`. Keep one.
