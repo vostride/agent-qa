@@ -16,6 +16,8 @@ import { buildAnalyticsRunSubscriber } from '../../run-session-composition.js'
 const plugins = [
   { name: 'kernel', package: '@vostride/agent-qa-plugin-kernel' },
   { name: 'stack', package: '@vostride/agent-qa-plugin-browserstack' },
+  { name: 'steel', package: '@vostride/agent-qa-plugin-steel' },
+  { name: 'hyper', package: '@vostride/agent-qa-plugin-hyperbrowser' },
   { name: 'grid', package: '@acme/agent-qa-plugin-grid' },
   { name: 'lab', path: './tools/lab' },
 ] as AgentQaConfig['plugins']
@@ -34,6 +36,8 @@ describe('the plugins a run reports to analytics', () => {
       pluginPlace('grid'),
       pluginPlace('lab'),
       pluginPlace('stack'),
+      pluginPlace('steel'),
+      pluginPlace('hyper'),
       { kind: 'local' },
       {
         kind: 'remote',
@@ -47,6 +51,8 @@ describe('the plugins a run reports to analytics', () => {
       'third_party',
       'third_party',
       'browserstack',
+      'steel',
+      'hyperbrowser',
     ])
     expect(runRemotePlugins({}, [pluginPlace('kernel')])).toEqual([])
   })

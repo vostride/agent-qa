@@ -100,12 +100,20 @@ export const ANALYTICS_RUN_STATUSES = [
 export const ANALYTICS_SUITE_EXECUTION_MODES = ['sequential', 'parallel', 'unknown'] as const
 
 // The first-party plugins by id; any other package, and every path, is third_party.
-export const ANALYTICS_REMOTE_PLUGINS = ['kernel', 'browserstack', 'third_party'] as const
+export const ANALYTICS_REMOTE_PLUGINS = [
+  'kernel',
+  'browserstack',
+  'steel',
+  'hyperbrowser',
+  'third_party',
+] as const
 export type AnalyticsRemotePlugin = (typeof ANALYTICS_REMOTE_PLUGINS)[number]
 
 const FIRST_PARTY_REMOTE_PLUGINS: ReadonlyMap<string, AnalyticsRemotePlugin> = new Map([
   ['@vostride/agent-qa-plugin-kernel', 'kernel'],
   ['@vostride/agent-qa-plugin-browserstack', 'browserstack'],
+  ['@vostride/agent-qa-plugin-steel', 'steel'],
+  ['@vostride/agent-qa-plugin-hyperbrowser', 'hyperbrowser'],
 ])
 
 export function analyticsRemotePluginId(declared: {

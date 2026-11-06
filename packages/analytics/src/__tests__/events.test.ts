@@ -316,6 +316,10 @@ describe('the remote plugins a run used', () => {
     expect(analyticsRemotePluginId({ package: '@vostride/agent-qa-plugin-browserstack' })).toBe(
       'browserstack',
     )
+    expect(analyticsRemotePluginId({ package: '@vostride/agent-qa-plugin-steel' })).toBe('steel')
+    expect(analyticsRemotePluginId({ package: '@vostride/agent-qa-plugin-hyperbrowser' })).toBe(
+      'hyperbrowser',
+    )
     for (const declared of [
       { package: '@acme/agent-qa-plugin-grid' },
       { package: '@vostride/agent-qa-plugin-other' },
@@ -332,7 +336,9 @@ describe('the remote plugins a run used', () => {
       expect(
         AgentQaAnalyticsEventSchema.safeParse({
           name,
-          properties: { remote_plugins: ['kernel', 'third_party'] },
+          properties: {
+            remote_plugins: ['kernel', 'browserstack', 'steel', 'hyperbrowser', 'third_party'],
+          },
         }).success,
       ).toBe(true)
       for (const planted of ['@acme/agent-qa-plugin-grid', './tools/lab', 'Kernel']) {
