@@ -1135,3 +1135,87 @@ describe('projectRemotesInConfigText', () => {
     })
   })
 })
+
+describe('projectRemotesInConfigText on a plugins list', () => {
+  const OPTION_PATH = 'optionpath-4d2e'
+  const OPTION_VALUE = 'optionvalue-b81f'
+  const PLUGINS = [
+    '# the farm account',
+    'plugins:',
+    '  - name: kernel',
+    '    package: "@vostride/agent-qa-plugin-kernel"',
+    '    options: # the team account',
+    `      endpoint: https://api.kernel.example.com/${OPTION_PATH}`,
+    `      project: ${OPTION_VALUE}`,
+    '  - name: lab',
+    '    path: ./tools/lab',
+    'registry:',
+    '  remotes:',
+    '    - name: cloud',
+    '      plugin: kernel',
+    '',
+  ]
+
+  it('shows each entry by name and package or path, and keeps the comments outside the list', () => {
+    const shown = projectRemotesInConfigText(PLUGINS.join('\n'))
+
+    expect(shown).toContain('# the farm account')
+    for (const hidden of [OPTION_PATH, OPTION_VALUE, 'options', '# the team account']) {
+      expect(shown).not.toContain(hidden)
+    }
+    expect(parseYaml(shown)).toEqual({
+      plugins: [
+        { name: 'kernel', package: '@vostride/agent-qa-plugin-kernel' },
+        { name: 'lab', path: './tools/lab' },
+      ],
+      registry: { remotes: [{ name: 'cloud', plugin: 'kernel' }] },
+    })
+  })
+
+  it('replaces an option anchored in the list with null wherever it is aliased', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'plugins:',
+        '  - name: lab',
+        '    path: ./tools/lab',
+        `    options: &opts { project: ${OPTION_VALUE} }`,
+        'use:',
+        '  browser:',
+        '    copied: *opts',
+        '',
+      ].join('\n'),
+    )
+
+    expect(shown).not.toContain(OPTION_VALUE)
+    expect(parseYaml(shown)).toEqual({
+      plugins: [{ name: 'lab', path: './tools/lab' }],
+      use: { browser: { copied: null } },
+    })
+  })
+
+  it('shows a config whose root merges in its plugins through a merge tag as one unshowable line', () => {
+    const raw = [
+      'use:',
+      '  extra: &base',
+      '    plugins:',
+      '      - name: lab',
+      '        path: ./tools/lab',
+      `        options: { project: ${OPTION_VALUE} }`,
+      '!!merge <<: *base',
+      '',
+    ].join('\n')
+
+    expect(JSON.stringify(parseYaml(raw).plugins)).toContain(OPTION_VALUE)
+    expect(projectRemotesInConfigText(raw)).toBe(
+      '# This config cannot be shown without its plugin options.\n',
+    )
+  })
+
+  it('shows text that does not parse and holds a plugins key as one unshowable line', () => {
+    const shown = projectRemotesInConfigText(
+      ['plugins:', '  - name: lab', `    options: { project: ${OPTION_VALUE}`, ''].join('\n'),
+    )
+
+    expect(shown).toBe('# This config cannot be shown without its plugin options.\n')
+  })
+})

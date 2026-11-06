@@ -58,6 +58,32 @@ describe('drawer view', () => {
     ])
   })
 
+  it('names the plugin that served a session by its entry, then its package or path and version', () => {
+    const line = drawer().pluginLine as (plugin: unknown) => string | null
+    expect(line({ entry: 'kernel', package: '@vostride/agent-qa-plugin-kernel', version: '1.4.0' })).toBe(
+      'Plugin kernel (@vostride/agent-qa-plugin-kernel 1.4.0)',
+    )
+    expect(line({ entry: 'lab', path: './tools/lab', version: 'unknown' })).toBe('Plugin lab (./tools/lab)')
+    expect(line({ entry: 'lab' })).toBe('Plugin lab')
+    for (const plugin of [undefined, null, {}, 'kernel', { package: '@acme/agent-qa-plugin-grid' }]) {
+      expect(line(plugin)).toBeNull()
+    }
+  })
+
+  it("links a session's page in a new tab without a referrer, and only over http or https", () => {
+    const link = drawer().sessionLink as (link: unknown) => Record<string, string> | null
+    expect(link('https://dashboard.kernel.example.com/sessions/s-81')).toEqual({
+      href: 'https://dashboard.kernel.example.com/sessions/s-81',
+      label: 'Session page',
+      target: '_blank',
+      rel: 'noopener noreferrer',
+    })
+    expect(link('http://127.0.0.1:9323/s')?.href).toBe('http://127.0.0.1:9323/s')
+    for (const value of ['javascript:alert(1)', 'data:text/html,x', 'not a url', '', undefined, 42]) {
+      expect(link(value)).toBeNull()
+    }
+  })
+
   it('DRAWER-KIND-NARROWED', () => {
     expect(drawer().RUN_ARTIFACT_KIND_LABELS).toEqual({ test: 'Test', unknown: 'Not recorded' })
   })

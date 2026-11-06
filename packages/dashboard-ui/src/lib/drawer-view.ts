@@ -87,6 +87,35 @@ export function ranHereLine(deviceType: string | null): string {
     : DRAWER_COPY.ranHere
 }
 
+/** The plugins entry that served a session: its entry, then its package or path and version. */
+export function pluginLine(plugin: unknown): string | null {
+  const shown = record(plugin)
+  const entry = text(shown.entry)
+  if (entry === undefined) return null
+  const source = [text(shown.package) ?? text(shown.path), text(shown.version)].filter(Boolean)
+  return source.length > 0 ? `Plugin ${entry} (${source.join(' ')})` : `Plugin ${entry}`
+}
+
+export interface SessionLink {
+  href: string
+  label: 'Session page'
+  target: '_blank'
+  rel: 'noopener noreferrer'
+}
+
+/** A plugin's page for the session, opened in a new tab without a referrer; only http and https. */
+export function sessionLink(link: unknown): SessionLink | null {
+  if (typeof link !== 'string') return null
+  let url: URL
+  try {
+    url = new URL(link)
+  } catch {
+    return null
+  }
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
+  return { href: url.href, label: 'Session page', target: '_blank', rel: 'noopener noreferrer' }
+}
+
 export const RUN_ARTIFACT_KIND_LABELS = {
   test: 'Test',
   unknown: 'Not recorded',

@@ -75,6 +75,7 @@ export type {
   PlannerLimits,
   PlannerLimitsPerTest,
   PlannerLimitsRecord,
+  PluginEntryDisplay,
   RemoteDisplay,
   RemoteEntryIssue,
   RemoteEntryLike,

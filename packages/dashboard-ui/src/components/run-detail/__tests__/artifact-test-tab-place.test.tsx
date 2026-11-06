@@ -58,6 +58,20 @@ const refusedDevicePlace = {
   failureKind: 'refused',
 }
 
+const pluginPlace = {
+  ...remotePlace,
+  name: 'cloud',
+  origin: 'wss://connect.kernel.example.com:443',
+  plugin: {
+    entry: 'kernel',
+    package: '@vostride/agent-qa-plugin-kernel',
+    version: '1.4.0',
+    protocol: 1,
+    origin: 'first-party',
+  },
+  link: 'https://dashboard.kernel.example.com/sessions/s-81',
+}
+
 const run: RunRow = {
   id: generateRunId(), name: 'Login', filePath: null, status: 'passed', duration: 1,
   attributes: {}, environment: null, metadata: null, startedAt: null, endedAt: null,
@@ -273,6 +287,37 @@ describe("a test's place on the run page", () => {
     const line = tab.querySelector('[data-run-place]')
     expect(line?.textContent).toBe(text)
     expect(line?.className).toContain('text-destructive')
+  })
+
+  it('a test a plugin served names the plugin and links its session page in a new tab without a referrer', () => {
+    const tab = mount(response({
+      source: { kind: 'test', rawYaml: 'name: Login\n', resolvedDefinition: { name: 'Login' } },
+      config: { runtime: runtime(pluginPlace) },
+    }))
+    const block = tab.firstElementChild?.firstElementChild
+    expect(block?.firstElementChild).toBe(tab.querySelector('[data-run-place]'))
+    const served = block?.querySelector('[data-place-plugin]')
+    expect(served?.textContent).toBe('Plugin kernel (@vostride/agent-qa-plugin-kernel 1.4.0)Session page')
+    const link = served?.querySelector('a[data-place-link]')
+    expect(link?.getAttribute('href')).toBe('https://dashboard.kernel.example.com/sessions/s-81')
+    expect(link?.getAttribute('target')).toBe('_blank')
+    expect(link?.getAttribute('rel')).toBe('noopener noreferrer')
+    expect(link?.textContent).toBe('Session page')
+
+    const card = memberCard(pluginPlace)
+    expect(card.querySelector('[data-place-plugin] a')?.getAttribute('rel')).toBe('noopener noreferrer')
+  })
+
+  it('a session link that is not http or https shows no link', () => {
+    const card = memberCard({ ...pluginPlace, link: 'javascript:alert(1)' })
+    expect(card.querySelector('[data-place-plugin]')?.textContent).toBe(
+      'Plugin kernel (@vostride/agent-qa-plugin-kernel 1.4.0)',
+    )
+    expect(card.querySelector('[data-place-plugin] a')).toBeNull()
+  })
+
+  it('a test on a url remote shows no plugin line', () => {
+    expect(memberCard(remotePlace).querySelector('[data-place-plugin]')).toBeNull()
   })
 
   it('a one-test run without a place shows no place line', () => {

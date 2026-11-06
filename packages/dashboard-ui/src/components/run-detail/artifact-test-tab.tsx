@@ -8,9 +8,12 @@ import {
   DRAWER_COPY,
   droppedOnLine,
   isDroppedSessionKind,
+  pluginLine,
   ranAgainstParts,
   ranHereLine,
   ranOnLine,
+  sessionLink,
+  type SessionLink,
 } from "@/lib/drawer-view"
 import { routes } from "@/lib/routes"
 import { ArtifactAttributeRows } from "./artifact-attribute-rows"
@@ -64,6 +67,8 @@ interface PlaceLine {
   // The remote refused the test or dropped its session.
   failed: boolean
   notes: string[]
+  plugin: string | null
+  link: SessionLink | null
 }
 
 function placeNotes(place: Record<string, unknown> | null): string[] {
@@ -76,25 +81,58 @@ function placeLine(runtime: unknown): PlaceLine | null {
   const kind = textAt(place, "place")
   const notes = placeNotes(place)
   if (kind === "here") {
-    return { text: ranHereLine(textAt(place, "deviceType")), failed: false, notes }
+    return {
+      text: ranHereLine(textAt(place, "deviceType")),
+      failed: false,
+      notes,
+      plugin: null,
+      link: null,
+    }
   }
   const name = textAt(place, "name")
   if (kind !== "remote" || !name) return null
+  const served = {
+    plugin: pluginLine(valueAt(place, "plugin")),
+    link: sessionLink(valueAt(place, "link")),
+  }
   const protocol = textAt(place, "protocol")
   const where = [protocol, textAt(place, "origin")].filter(Boolean).join(" ")
   const version = protocol === "appium"
     ? deviceDetail(textAt(place, "appiumVersion"), textAt(place, "deviceType"))
     : textAt(place, "browserVersion")
   const failureKind = textAt(place, "failureKind")
-  if (failureKind === null) return { text: ranOnLine(name, where, version), failed: false, notes }
-  if (isDroppedSessionKind(failureKind)) {
-    return { text: droppedOnLine(name, where, version, failureKind), failed: true, notes }
+  if (failureKind === null) {
+    return { text: ranOnLine(name, where, version), failed: false, notes, ...served }
   }
-  return { text: couldNotRunOnLine(name, where, failureKind), failed: true, notes }
+  if (isDroppedSessionKind(failureKind)) {
+    const text = droppedOnLine(name, where, version, failureKind)
+    return { text, failed: true, notes, ...served }
+  }
+  return { text: couldNotRunOnLine(name, where, failureKind), failed: true, notes, ...served }
 }
 
 function placeClass(place: PlaceLine): string {
   return place.failed ? "text-destructive" : "text-foreground"
+}
+
+function PlaceServedBy({ place }: { place: PlaceLine }) {
+  if (place.plugin === null && place.link === null) return null
+  return (
+    <div data-place-plugin className="flex flex-wrap gap-x-2 pb-1.5 text-xs text-muted-foreground">
+      {place.plugin === null ? null : <span>{place.plugin}</span>}
+      {place.link === null ? null : (
+        <a
+          data-place-link
+          className="text-primary hover:underline"
+          href={place.link.href}
+          target={place.link.target}
+          rel={place.link.rel}
+        >
+          {place.link.label}
+        </a>
+      )}
+    </div>
+  )
 }
 
 function PlaceNotes({ notes }: { notes: string[] }) {
@@ -117,6 +155,7 @@ function MemberConfig({ config }: { config: Record<string, unknown> }) {
           <div data-member-place className={`py-1.5 text-xs ${placeClass(place)}`}>
             {place.text}
           </div>
+          <PlaceServedBy place={place} />
           <PlaceNotes notes={place.notes} />
         </>
       ) : null}
@@ -233,6 +272,7 @@ export function ArtifactTestTab({ response }: { response: RunArtifactResponse })
           <div data-run-place className={`py-1.5 text-xs ${placeClass(runPlace)}`}>
             {runPlace.text}
           </div>
+          <PlaceServedBy place={runPlace} />
           <PlaceNotes notes={runPlace.notes} />
         </div>
       ) : null}

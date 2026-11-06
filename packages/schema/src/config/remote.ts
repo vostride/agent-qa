@@ -798,33 +798,143 @@ function shownKey(key: string, hidden: Hidden): string {
   return typeof shown === 'string' ? shown : displayOrigin(key)
 }
 
-export function projectConfigRemotes<T>(config: T): T {
-  if (!isRecord(config) || !isRecord(config.registry)) return config
-  const remotes = config.registry.remotes
-  if (remotes === undefined || remotes === null) return config
+// A served config shows a plugins entry by name and package or path; its options stay in the file.
+export interface PluginEntryDisplay {
+  name: string
+  package?: string
+  path?: string
+}
+
+const PACKAGE_NAME_PATTERN = /^(?:@[a-z0-9-._~]+\/)?[a-z0-9-._~]+$/i
+const SHOWN_PLUGIN_KEYS = new Set(['name', 'package', 'path'])
+
+function isPlainRecord(value: unknown): value is Record<string, unknown> {
+  return isRecord(value) && !(value instanceof Map) && !(value instanceof Set)
+}
+
+function pluginEntryDisplay(entry: unknown): PluginEntryDisplay {
+  const record = isPlainRecord(entry) ? entry : {}
+  const shown: PluginEntryDisplay = { name: displayName(record.name) as string }
+  if (Object.hasOwn(record, 'package')) {
+    const name = record.package
+    shown.package =
+      typeof name === 'string' && PACKAGE_NAME_PATTERN.test(name) ? name : 'invalid package'
+  }
+  if (Object.hasOwn(record, 'path')) {
+    shown.path = typeof record.path === 'string' ? record.path : 'invalid path'
+  }
+  return shown
+}
+
+function withoutOptions(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(withoutOptions)
+  if (!isPlainRecord(value)) return isRecord(value) ? {} : value
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => key !== 'options')
+      .map(([key, child]) => [key, withoutOptions(child)]),
+  )
+}
+
+function optionValues(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value.flatMap(optionValues)
+  if (!isPlainRecord(value)) return isRecord(value) ? [value] : []
+  return Object.entries(value).flatMap(([key, child]) =>
+    key === 'options' ? [child] : optionValues(child),
+  )
+}
+
+// Everything an entry holds beyond its name, package and path stays in the file.
+function pluginHeldValues(plugins: unknown): unknown[] {
+  if (!Array.isArray(plugins)) return optionValues(plugins)
+  return plugins.flatMap((entry) =>
+    isPlainRecord(entry)
+      ? Object.entries(entry).flatMap(([key, child]) => (SHOWN_PLUGIN_KEYS.has(key) ? [] : [child]))
+      : [entry],
+  )
+}
+
+function remotesDisplay(remotes: unknown): RemoteDisplay[] {
   // A block that is not a list is invalid config, still served, and may hold an endpoint anywhere.
-  const shown: RemoteDisplay[] = Array.isArray(remotes)
-    ? remotes.map((entry) => {
-        const record: Record<string, unknown> = isRecord(entry) ? entry : {}
-        if (Object.hasOwn(record, 'plugin')) {
-          return {
-            name: displayName(record.name) as string,
-            plugin: displayName(record.plugin) ?? 'invalid name',
-          }
-        }
-        return {
-          name: displayName(record.name) as string,
-          protocol: displayProtocol(record.protocol) as string,
-          url: displayOrigin(record.url),
-        }
-      })
-    : []
+  if (!Array.isArray(remotes)) return []
+  return remotes.map((entry) => {
+    const record: Record<string, unknown> = isRecord(entry) ? entry : {}
+    if (Object.hasOwn(record, 'plugin')) {
+      return {
+        name: displayName(record.name) as string,
+        plugin: displayName(record.plugin) ?? 'invalid name',
+      }
+    }
+    return {
+      name: displayName(record.name) as string,
+      protocol: displayProtocol(record.protocol) as string,
+      url: displayOrigin(record.url),
+    }
+  })
+}
+
+function addHeldCopies(copies: Map<string, unknown>, held: readonly unknown[]): void {
+  const add = (value: unknown, replacement: unknown) => {
+    if (typeof value !== 'string' && children(value).length === 0) return
+    copies.set(fingerprint(value), replacement)
+  }
+  const visit = (value: unknown) => {
+    for (const [key, child] of children(value)) {
+      if (typeof key === 'string' && remoteOrigin(key) !== undefined) add(key, displayOrigin(key))
+      if (typeof child === 'string' && remoteOrigin(child) !== undefined) {
+        add(child, displayOrigin(child))
+      }
+      if (children(child).length > 0) add(child, null)
+      visit(child)
+    }
+  }
+  for (const value of held) {
+    if (typeof value === 'string' && remoteOrigin(value) !== undefined) {
+      add(value, displayOrigin(value))
+    } else if (children(value).length > 0) {
+      add(value, null)
+    }
+    visit(value)
+  }
+}
+
+export function projectConfigRemotes<T>(config: T): T {
+  if (!isRecord(config)) return config
+  const registry = isRecord(config.registry) ? config.registry : undefined
+  const remotes = registry?.remotes
+  const plugins = config.plugins
+  const showsRemotes = remotes !== undefined && remotes !== null
+  const showsPlugins = plugins !== undefined && plugins !== null
+  if (!showsRemotes && !showsPlugins) return config
+
+  const shownRemotes = showsRemotes ? remotesDisplay(remotes) : []
+  const shownPlugins = Array.isArray(plugins)
+    ? plugins.map(pluginEntryDisplay)
+    : withoutOptions(plugins)
+  const held = showsPlugins ? pluginHeldValues(plugins) : []
+  const copies = showsRemotes ? remoteCopies(remotes, shownRemotes) : new Map<string, unknown>()
+  addHeldCopies(copies, held)
+  if (Array.isArray(plugins)) {
+    plugins.forEach((entry) => {
+      if (children(entry).length > 0) copies.set(fingerprint(entry), pluginEntryDisplay(entry))
+    })
+  }
+  if (showsPlugins) copies.set(fingerprint(plugins), shownPlugins)
+  const hidden = hiddenText([...(showsRemotes ? [remotes] : []), ...held], copies)
+
   const rest = withoutCopies(
-    { ...config, registry: { ...config.registry, remotes: [] } },
-    hiddenText(remotes, remoteCopies(remotes, shown)),
+    {
+      ...config,
+      ...(showsRemotes ? { registry: { ...registry, remotes: [] } } : {}),
+      ...(showsPlugins ? { plugins: [] } : {}),
+    },
+    hidden,
   ) as Record<string, unknown>
   return {
     ...rest,
-    registry: { ...(rest.registry as Record<string, unknown>), remotes: shown },
+    ...(showsRemotes
+      ? { registry: { ...(rest.registry as Record<string, unknown>), remotes: shownRemotes } }
+      : {}),
+    ...(showsPlugins ? { plugins: shownPlugins } : {}),
   } as T
 }

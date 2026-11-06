@@ -592,3 +592,111 @@ describe('a remote that names a plugins entry', () => {
     expect(names).toEqual(['BASIC_PASS', 'KERNEL_ACCOUNT', 'KERNEL_API_KEY', 'SETTING_TOKEN'])
   })
 })
+
+describe('a plugins entry in a served config', () => {
+  const KERNEL = {
+    name: 'kernel',
+    package: '@vostride/agent-qa-plugin-kernel',
+    options: {
+      apiKey: '{{secret:KERNEL_API_KEY}}',
+      endpoint: 'https://api.kernel.example.com/v1/acct-OPTION_PATH',
+      project: 'OPTION_VALUE',
+    },
+  }
+  const LAB = { name: 'lab', path: './tools/lab', options: { region: 'OPTION_REGION' } }
+  const SHOWN_NOWHERE = ['KERNEL_API_KEY', 'OPTION_PATH', 'OPTION_VALUE', 'OPTION_REGION', 'apiKey']
+
+  it('shows each entry by its name and package or path, and none of its options', () => {
+    const config = {
+      plugins: [KERNEL, LAB],
+      registry: { remotes: [{ name: 'cloud', plugin: 'kernel', settings: { region: 'eu' } }] },
+    }
+
+    const shown = projectConfigRemotes(config)
+
+    expect(shown.plugins).toEqual([
+      { name: 'kernel', package: '@vostride/agent-qa-plugin-kernel' },
+      { name: 'lab', path: './tools/lab' },
+    ])
+    expect(shown.registry.remotes).toEqual([{ name: 'cloud', plugin: 'kernel' }])
+    expect(config.plugins[0]).toBe(KERNEL)
+    for (const text of SHOWN_NOWHERE) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+
+  it('projects plugins in a config with no remotes and keeps the rest of it', () => {
+    const shown = projectConfigRemotes({
+      plugins: [LAB],
+      registry: { targets: { shop: { platform: 'web', url: 'https://shop.example.com/' } } },
+    })
+
+    expect(shown).toEqual({
+      plugins: [{ name: 'lab', path: './tools/lab' }],
+      registry: { targets: { shop: { platform: 'web', url: 'https://shop.example.com/' } } },
+    })
+  })
+
+  it('shows a name that is not a slug as invalid name and a package that is no package name as invalid package', () => {
+    const shown = projectConfigRemotes({
+      plugins: [
+        { name: 'Lab OPTION_VALUE', package: 'https://registry.example.com/OPTION_PATH.tgz' },
+        { name: 'lab', path: 42 },
+        'OPTION_VALUE',
+      ],
+    })
+
+    expect(shown.plugins).toEqual([
+      { name: 'invalid name', package: 'invalid package' },
+      { name: 'lab', path: 'invalid path' },
+      {},
+    ])
+    for (const text of SHOWN_NOWHERE) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+
+  it('drops every key of an entry but its name, package and path', () => {
+    const shown = projectConfigRemotes({
+      plugins: [{ ...LAB, settings: { token: 'OPTION_VALUE' } }],
+    })
+
+    expect(shown.plugins).toEqual([{ name: 'lab', path: './tools/lab' }])
+  })
+
+  it('hides a copy of an entry or its options found elsewhere in the config, and shows a url in them by its origin', () => {
+    const shown = projectConfigRemotes({
+      plugins: [KERNEL, LAB],
+      registry: {
+        devices: {
+          tablet: {
+            capabilities: {
+              'appium:options': KERNEL.options,
+              'appium:entry': LAB,
+              'appium:url': KERNEL.options.endpoint,
+            },
+          },
+        },
+      },
+    })
+
+    expect(shown.registry.devices.tablet.capabilities).toEqual({
+      'appium:options': null,
+      'appium:entry': { name: 'lab', path: './tools/lab' },
+      'appium:url': 'https://api.kernel.example.com:443',
+    })
+    for (const text of SHOWN_NOWHERE) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+
+  it('serves a plugins block that is not a list as written, without options in any object inside', () => {
+    const shown = projectConfigRemotes({
+      plugins: { auth: [KERNEL], providers: { lab: LAB } },
+      use: { browser: { copied: LAB.options } },
+    })
+
+    expect(shown).toEqual({
+      plugins: {
+        auth: [{ name: 'kernel', package: '@vostride/agent-qa-plugin-kernel' }],
+        providers: { lab: { name: 'lab', path: './tools/lab' } },
+      },
+      use: { browser: { copied: null } },
+    })
+    for (const text of SHOWN_NOWHERE) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+})

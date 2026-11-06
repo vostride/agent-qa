@@ -244,6 +244,68 @@ describe('the Remotes section', () => {
     ).toBeNull()
   })
 
+  it('lists each plugins entry by name and package or path above the remotes, and none of its options', () => {
+    const section = show({
+      plugins: [
+        {
+          name: 'kernel',
+          package: '@vostride/agent-qa-plugin-kernel',
+          options: { apiKey: '{{secret:KERNEL_API_KEY}}', project: 'option-value-77' },
+        },
+        { name: 'lab', path: './tools/lab', options: { region: 'option-region-12' } },
+      ],
+      ...TWO_REMOTES,
+    })
+    const plugins = Array.from(section.querySelectorAll('[data-plugin]')).map((row) =>
+      Array.from(row.querySelectorAll('td')).map((cell) => cell.textContent ?? ''),
+    )
+    expect(plugins).toEqual([
+      ['kernel', '@vostride/agent-qa-plugin-kernel'],
+      ['lab', './tools/lab'],
+    ])
+    const list = section.querySelector('[data-plugins]')
+    const table = section.querySelector('[data-remote]')
+    expect(list?.compareDocumentPosition(table!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING)
+    expect(section.querySelector('[data-plugins-listed]')?.textContent).toBe(
+      'Plugins are declared under plugins in agent-qa.config.yaml; their options stay in the file.',
+    )
+    for (const hidden of ['apiKey', 'KERNEL_API_KEY', 'option-value-77', 'option-region-12']) {
+      expect(section.textContent).not.toContain(hidden)
+    }
+  })
+
+  it('shows no plugins list when the config declares no plugins entry', () => {
+    for (const config of [TWO_REMOTES, { plugins: [] }, {}]) {
+      expect(show(config).querySelector('[data-plugins]')).toBeNull()
+    }
+  })
+
+  it("shows a plugin remote's row by its name and plugins entry, and none of its settings", () => {
+    const section = show({
+      plugins: [{ name: 'kernel', package: '@vostride/agent-qa-plugin-kernel' }],
+      registry: {
+        remotes: [
+          { name: 'cloud', plugin: 'kernel', settings: { region: 'setting-region-31' } },
+          TWO_REMOTES.registry.remotes[0],
+        ],
+      },
+    })
+    expect(rows(section)).toEqual([
+      ['cloud', 'plugin kernel', REMOTES_COPY.missingValue],
+      ['grid', 'playwright', 'wss://grid.example.com:443'],
+    ])
+    expect(section.textContent).not.toContain('setting-region-31')
+  })
+
+  it('renders no control and no field mark beside plugins entries or plugin remotes, so neither is edited here', () => {
+    const section = show({
+      plugins: [{ name: 'lab', path: './tools/lab' }],
+      registry: { remotes: [{ name: 'cloud', plugin: 'lab' }] },
+    })
+    expect(section.querySelector('input, select, button, textarea, [role="combobox"], [contenteditable]')).toBeNull()
+    expect(section.querySelector('[data-field-path], [data-field-list], [data-config-field]')).toBeNull()
+  })
+
   it('the list and the how-to render no control and no field mark, so no remote entry is edited here', () => {
     for (const config of [{ ...TWO_REMOTES, use: { browser: { remote: 'grid' } } }, {}]) {
       const section = show(config)

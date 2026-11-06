@@ -664,7 +664,14 @@ export const REMOTES_COPY = {
   ].join('\n'),
   pick: 'Pick one with use.browser.remote: <name> in agent-qa.config.yaml, a suite or a test. Use local to run on this machine.',
   listed: 'Remotes are defined under registry.remotes in agent-qa.config.yaml and picked with use.browser.remote.',
+  pluginsTitle: 'Plugins',
+  pluginColumns: { name: 'Name', source: 'Package or path' },
+  pluginsListed: 'Plugins are declared under plugins in agent-qa.config.yaml; their options stay in the file.',
 } as const
+
+export function pluginRemoteText(entry: string): string {
+  return `plugin ${entry}`
+}
 
 // The strict parse refuses this default, but the page still shows a config that fails to parse.
 export function remoteNotListedParts<T>(name: T): [T, string] {

@@ -1,4 +1,5 @@
-// The default is picked here; a remote entry is written in the config file, never from this page.
+// The default is picked here; a remote or plugins entry is written in the config file, never from
+// this page.
 
 import { NAME_SLUG_PATTERN, projectConfigRemotes } from "@vostride/agent-qa-schema"
 import type { ReactNode } from "react"
@@ -12,6 +13,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   DEFAULT_BADGE,
+  pluginRemoteText,
   REMOTES_COPY,
   remoteChoiceParts,
   remoteCredentialsLine,
@@ -27,6 +29,11 @@ interface RemoteRow {
   name: string
   protocol: string
   origin: string
+}
+
+interface PluginRow {
+  name: string
+  source: string
 }
 
 const LOCAL_PLACE = "local"
@@ -49,6 +56,7 @@ const CODE_TERMS = [
   "use.browser.remote: <name>",
   "use.browser.remote",
   "registry.remotes",
+  "plugins",
   "workspace.secretsFile",
   "agent-qa.config.yaml",
   "{{secret:NAME}}",
@@ -121,20 +129,38 @@ function text(value: unknown): string {
   return typeof value === "string" && value !== "" ? value : REMOTES_COPY.missingValue
 }
 
-// The server already serves origins; projecting again keeps a path or query off the page regardless.
+function records(list: unknown): Record<string, unknown>[] {
+  if (!Array.isArray(list)) return []
+  return list.map((entry) => (isRecord(entry) ? entry : {}))
+}
+
+// The server already serves origins and drops plugin options; projecting again keeps a path, query
+// or option off the page regardless.
 function remoteEntries(config: Record<string, unknown>): Record<string, unknown>[] {
   const registry = projectConfigRemotes(config).registry
-  const remotes = isRecord(registry) ? registry.remotes : undefined
-  if (!Array.isArray(remotes)) return []
-  return remotes.map((entry) => (isRecord(entry) ? entry : {}))
+  return records(isRecord(registry) ? registry.remotes : undefined)
+}
+
+function pluginsOf(config: Record<string, unknown>): PluginRow[] {
+  return records(projectConfigRemotes(config).plugins).map((entry) => ({
+    name: text(entry.name),
+    source: text(entry.package ?? entry.path),
+  }))
+}
+
+function pluginEntryOf(remote: Record<string, unknown>): string | undefined {
+  return typeof remote.plugin === "string" && remote.plugin !== "" ? remote.plugin : undefined
 }
 
 function remotesOf(config: Record<string, unknown>): RemoteRow[] {
-  return remoteEntries(config).map((remote) => ({
-    name: text(remote.name),
-    protocol: text(remote.protocol),
-    origin: text(remote.url),
-  }))
+  return remoteEntries(config).map((remote) => {
+    const entry = pluginEntryOf(remote)
+    return {
+      name: text(remote.name),
+      protocol: entry === undefined ? text(remote.protocol) : pluginRemoteText(entry),
+      origin: text(remote.url),
+    }
+  })
 }
 
 // Only a listed browser remote can be the default, and a name the strict parse refuses is served
@@ -146,7 +172,13 @@ function defaultChoices(config: Record<string, unknown>): ConfigFieldOption[] {
     if (typeof name !== "string" || !NAME_SLUG_PATTERN.test(name)) continue
     if (protocol === "appium") continue
     if (choices.some((choice) => choice.value === name)) continue
-    const known = typeof protocol === "string" && protocol !== "" ? protocol : undefined
+    const entry = pluginEntryOf(remote)
+    const known =
+      entry !== undefined
+        ? pluginRemoteText(entry)
+        : typeof protocol === "string" && protocol !== ""
+          ? protocol
+          : undefined
     choices.push({ value: name, label: <RemoteChoice name={name} protocol={known} /> })
   }
   const pick = defaultRemoteOf(config)
@@ -181,12 +213,41 @@ export function RemoteDefaultField({ config }: RemotesSectionProps) {
   )
 }
 
+function PluginsList({ plugins }: { plugins: PluginRow[] }) {
+  return (
+    <div data-plugins className="space-y-2">
+      <h3 className="text-xs font-medium text-muted-foreground">{REMOTES_COPY.pluginsTitle}</h3>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>{REMOTES_COPY.pluginColumns.name}</TableHead>
+            <TableHead>{REMOTES_COPY.pluginColumns.source}</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {plugins.map((plugin, index) => (
+            <TableRow key={`${index}:${plugin.name}`} data-plugin={plugin.name}>
+              <TableCell className={CELL_CLASS}>{plugin.name}</TableCell>
+              <TableCell className={ORIGIN_CELL_CLASS}>{plugin.source}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <p data-plugins-listed className={NOTE_CLASS}>
+        {withCode(REMOTES_COPY.pluginsListed)}
+      </p>
+    </div>
+  )
+}
+
 export function RemotesSection({ config }: RemotesSectionProps) {
   const remotes = remotesOf(config)
+  const plugins = pluginsOf(config)
   const pick = defaultRemoteOf(config)
   const unlisted = pick !== undefined && !remotes.some((remote) => remote.name === pick)
   return (
     <div data-remotes className="space-y-4">
+      {plugins.length === 0 ? null : <PluginsList plugins={plugins} />}
       {unlisted ? (
         <p data-remote-unlisted className="text-sm text-destructive">
           {withName(remoteNotListedParts(nameMark(pick)))}
