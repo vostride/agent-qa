@@ -393,6 +393,34 @@ describe('Steel failures', () => {
     expect(plugin.stderr()).not.toContain(API_KEY)
   })
 
+  it('refuses an answer without an id, keeping its own session id as the handle', async () => {
+    const api = await startApi({
+      create: [{ status: 200, json: { websocketUrl: 'wss://connect.example.invalid/' } }],
+    })
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin)
+
+    const [body] = createBodies(api) as [{ sessionId: string }]
+    expect(answer.error?.message).toBe('Steel answered a session without an id.')
+    expect(answer.error?.data).toMatchObject({
+      kind: 'refused',
+      handle: { sessionId: body.sessionId },
+    })
+  })
+
+  it('refuses an answer with an id but no usable websocketUrl, keeping that id as the handle', async () => {
+    const api = await startApi({
+      create: [{ status: 200, json: { id: 's-9', websocketUrl: 'not a url' } }],
+    })
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin)
+
+    expect(answer.error?.message).toBe('Steel answered a session without a usable websocketUrl.')
+    expect(answer.error?.data).toMatchObject({ kind: 'refused', handle: { sessionId: 's-9' } })
+  })
+
   it('names a granted lifetime below the one asked for on stderr', async () => {
     const api = await startApi({ grantedTimeoutMs: 900_000 })
     const plugin = await steelPlugin(api)

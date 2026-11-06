@@ -183,7 +183,8 @@ export default definePlugin({
     const answer = HyperbrowserSessionSchema.safeParse(created)
     if (!answer.success) {
       const sessionId = sessionIdOf(created)
-      throw new PluginError('Hyperbrowser answered a session without an id and a wsEndpoint.', {
+      const missing = sessionId === undefined ? 'an id' : 'a usable wsEndpoint'
+      throw new PluginError(`Hyperbrowser answered a session without ${missing}.`, {
         kind: 'refused',
         ...(sessionId === undefined ? {} : { handle: { sessionId } }),
       })

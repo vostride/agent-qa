@@ -159,6 +159,11 @@ function viewerLink(url: string | undefined): string | undefined {
 
 const HandleSchema = z.object({ sessionId: z.string().min(1) })
 
+function hasId(answer: unknown): boolean {
+  if (typeof answer !== 'object' || answer === null || !('id' in answer)) return false
+  return typeof answer.id === 'string' && answer.id !== ''
+}
+
 function refusedKey(error: unknown): boolean {
   return error instanceof PluginError && error.kind === 'auth'
 }
@@ -217,7 +222,8 @@ export default definePlugin({
     const answer = SteelSessionSchema.safeParse(created)
     const url = answer.success ? URL.parse(answer.data.websocketUrl) : null
     if (!answer.success || url === null) {
-      throw new PluginError('Steel answered a session without an id and a websocketUrl.', {
+      const missing = hasId(created) ? 'a usable websocketUrl' : 'an id'
+      throw new PluginError(`Steel answered a session without ${missing}.`, {
         kind: 'refused',
         handle: { sessionId: answer.success ? answer.data.id : sessionId },
       })
