@@ -2639,6 +2639,7 @@ async function executeSuites(
       terminal: RUN_TERMINAL,
       hostOwnsSignals: true,
       refusalMemory,
+      runCancelled: () => shutdownRequested,
       listDevicesHere,
       ...(variableContext === undefined ? {} : { variableContext }),
       ...(hooksContext === undefined ? {} : { hooksContext }),
@@ -2984,6 +2985,8 @@ export interface SuiteRunMemberProductionInput {
   readonly hostOwnsSignals?: true
   // Absent, the run makes its own; `agent-qa run` shares one between its suite and direct halves.
   readonly refusalMemory?: RemoteRefusalMemory
+  // True once the host's signal stopped the run, whose plugin hosts then end their calls.
+  readonly runCancelled?: () => boolean
 }
 
 export interface SuiteVariableContext {
@@ -3696,6 +3699,11 @@ export async function produceSuiteRunMembers(
     try {
       await suiteConfig.adapter.setup(suiteConfig.platformConfig)
     } catch (err) {
+      // A signal ends the plugin calls a setup waits on; that is the run's cancel, not a refusal.
+      if (input.runCancelled?.() === true) {
+        prepared.bootstrapFailure = 'The run was cancelled before this suite started.'
+        return
+      }
       // A refused remote ends this suite's members with its sentence; later suites still run.
       if (!isRemoteRefusal(err)) throw err
       suiteRemoteRefusal ??= err
@@ -4618,7 +4626,8 @@ export async function produceDirectRunMembers(
           await adapter.setup(platformConfig)
         } catch (err) {
           // The refused remote's kind is this test's evidence; the refusal still fails the member.
-          if (isRemoteRefusal(err)) {
+          // A signal ends the plugin calls setup waits on, which is no refusal of the remote.
+          if (isRemoteRefusal(err) && !ctx.abortSignal.aborted) {
             emitDirectSnapshot(refusedArtifactPlace(testRemote ?? testDevicePlace, err))
           }
           throw err
@@ -4967,6 +4976,16 @@ export async function produceDirectRunMembers(
     try {
       return await binding(ctx)
     } catch (err) {
+      if (ctx.abortSignal.aborted) {
+        return {
+          runId: member.testId,
+          name: member.name,
+          filePath: member.filePath,
+          status: 'cancelled',
+          steps: [],
+          duration: 0,
+        }
+      }
       const failed = failedToStartResult(member, err)
       const refusal = failed.remoteRefusal === true
       if (frameworkError === undefined || (!refusal && isRemoteRefusal(frameworkError))) {
@@ -5082,6 +5101,8 @@ export function createRunCommand(
       let _crashSecretRedactor: SecretRedactor | undefined
       // The run this invocation started, so a framework error names the id it recorded.
       let _startedRunId: string | undefined
+      // Set by the direct half's first signal; read again by the catch.
+      let shutdownRequested = false
 
       // Awaited before each terminal exit, as `process.exit` skips `finally`; cancels skip it.
       let composedAnalytics: CliAnalyticsHost | undefined
@@ -5347,7 +5368,6 @@ export function createRunCommand(
         // Each discovered test file is a member of one RunSession. Members carry no failFastGroup,
         // so every member runs and the run then aggregates. The run-level SIGINT routes into
         // session.cancel(), and the verdict map owns the exit code.
-        let shutdownRequested = false
         let frozenExitCode: number | undefined
         let activeRunSession: { cancel(): void } | undefined
         const curationAbortController = new AbortController()
@@ -5568,6 +5588,13 @@ export function createRunCommand(
           )
           await drainAnalytics()
           process.exit(2)
+        }
+        // A signal ends the plugin calls a remote waits on; the run was cancelled, not refused.
+        if (isRemoteRefusal(err) && shutdownRequested) {
+          if (_startedRunId !== undefined) printRunId(_startedRunId)
+          try { _crashRecord?.close() } catch {}
+          await drainAnalytics()
+          process.exit(130)
         }
         // A remote refused before its test started: its one sentence, exit 2.
         if (isRemoteRefusal(err)) {

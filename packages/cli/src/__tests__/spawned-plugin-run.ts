@@ -1,5 +1,6 @@
 // A spawned `agent-qa run` whose web test sits on a session leased from a scripted path plugin,
-// parked in its first step by a model that never answers.
+// parked in its first step by a model that never answers. Its test can instead run on an Android
+// device whose app the plugin uploads, and it can run as the only member of a suite.
 
 import { execFileSync, spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
@@ -11,7 +12,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { generateTestId } from '@vostride/agent-qa-ids'
+import { generateSuiteId, generateTestId } from '@vostride/agent-qa-ids'
 import { writeScriptedPlugin } from '@vostride/agent-qa-plugin-kit/testing'
 import type { ScriptedPluginInput } from '@vostride/agent-qa-plugin-kit/testing'
 
@@ -98,6 +99,10 @@ export interface PluginRunRigInput {
   // What the plugin declares beyond the required methods; nothing when absent.
   readonly methods?: ScriptedPluginInput['methods']
   readonly runFacts?: ScriptedPluginInput['runFacts']
+  // `suite` runs the test as the one member of a suite.
+  readonly door?: 'test' | 'suite'
+  // `device` runs the test on an Android device on the plugin remote, with an app to upload.
+  readonly place?: 'web' | 'device'
 }
 
 export async function startPluginRunRig(input: PluginRunRigInput): Promise<PluginRunRig> {
@@ -138,8 +143,10 @@ export async function startPluginRunRig(input: PluginRunRigInput): Promise<Plugi
     const endpoint = await startRemoteBrowserEndpoint()
     closers.push(() => endpoint.close())
 
+    const onDevice = input.place === 'device'
+    const remote = onDevice ? 'lab-phones' : 'lab-chrome'
     writeScriptedPlugin(join(root, 'tools', 'lab'), {
-      methods: input.methods ?? [],
+      methods: input.methods ?? (onDevice ? ['uploadApp'] : []),
       ...(input.runFacts === undefined ? {} : { runFacts: input.runFacts }),
     })
     const ledgerFile = join(root, 'plugin-ledger.jsonl')
@@ -157,10 +164,25 @@ export async function startPluginRunRig(input: PluginRunRigInput): Promise<Plugi
         '  envFile: .env',
         '  secretsFile: .env.secrets.local',
         'registry:',
+        ...(onDevice
+          ? [
+              '  devices:',
+              '    phone:',
+              '      platform: android',
+              '      model: Pixel 9',
+              `      remote: ${remote}`,
+            ]
+          : []),
         '  targets:',
         '    held:',
-        '      platform: web',
-        `      url: ${origin}/held`,
+        ...(onDevice
+          ? [
+              '      platform: android',
+              '      appPackage: com.example.held',
+              '      app:',
+              '        path: apps/held.apk',
+            ]
+          : ['      platform: web', `      url: ${origin}/held`]),
         '      environment: local',
         '      product: held-pages',
         '  llms:',
@@ -169,7 +191,7 @@ export async function startPluginRunRig(input: PluginRunRigInput): Promise<Plugi
         '      model: hanging-model',
         `      baseURL: ${modelBaseUrl}`,
         '  remotes:',
-        '    - name: lab-chrome',
+        `    - name: ${remote}`,
         '      plugin: lab',
         'plugins:',
         '  - name: lab',
@@ -180,7 +202,7 @@ export async function startPluginRunRig(input: PluginRunRigInput): Promise<Plugi
         '      recordParams: true',
         ...(input.script === undefined ? [] : [`      script: ${JSON.stringify(input.script)}`]),
         '      answer:',
-        '        protocol: playwright',
+        `        protocol: ${onDevice ? 'appium' : 'playwright'}`,
         `        url: ${JSON.stringify(endpoint.wsEndpoint)}`,
         'use:',
         '  browser:',
@@ -193,20 +215,43 @@ export async function startPluginRunRig(input: PluginRunRigInput): Promise<Plugi
     writeFileSync(join(root, 'hooks.yaml'), 'hooks: []\n')
     writeFileSync(join(root, '.env'), '')
     writeFileSync(join(root, '.env.secrets.local'), '')
+    const testId = generateTestId()
     writeFileSync(
       join(root, 'tests', 'held.yaml'),
       [
-        `test-id: ${generateTestId()}`,
+        `test-id: ${testId}`,
         'name: the held test',
         'target: held',
         'use:',
-        '  browser:',
-        '    remote: lab-chrome',
+        ...(onDevice
+          ? ['  device: phone', '  mobile:', '    appState: preserve']
+          : ['  browser:', `    remote: ${remote}`]),
         'steps:',
         '  - Click the Go button',
         '',
       ].join('\n'),
     )
+    if (onDevice) {
+      mkdirSync(join(root, 'apps'))
+      writeFileSync(join(root, 'apps', 'held.apk'), 'held app')
+    }
+    const runPattern = input.door === 'suite' ? 'suites/held.suite.yaml' : 'tests/held.yaml'
+    if (input.door === 'suite') {
+      mkdirSync(join(root, 'suites'))
+      writeFileSync(
+        join(root, 'suites', 'held.suite.yaml'),
+        [
+          `suite-id: ${generateSuiteId()}`,
+          'name: the held suite',
+          'target: held',
+          ...(onDevice ? ['use:', '  mobile:', '    appState: preserve'] : []),
+          'tests:',
+          '  - test: tests/held.yaml',
+          `    id: ${testId}`,
+          '',
+        ].join('\n'),
+      )
+    }
 
     const ledger = (): LedgerLine[] => {
       if (!existsSync(ledgerFile)) return []
@@ -230,7 +275,7 @@ export async function startPluginRunRig(input: PluginRunRigInput): Promise<Plugi
       spawnRun: (options = {}) => {
         const child = spawn(
           process.execPath,
-          [CLI_DIST, '--config', configPath, 'run', 'tests/held.yaml'],
+          [CLI_DIST, '--config', configPath, 'run', runPattern],
           {
             cwd: root,
             env: {
