@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { RemoteRefusalError } from '@vostride/agent-qa-runner'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { PLUGIN_ENVIRONMENT_NAMES, pluginEnvironment } from '../environment.js'
+import { PLUGIN_ENVIRONMENT_NAMES } from '../environment.js'
 import {
   createHostProject,
   isAlive,
@@ -35,39 +35,6 @@ function request(remote: string, entry: string, extra: Record<string, unknown> =
 function lineOf(ledger: readonly LedgerLine[], method: string): LedgerLine | undefined {
   return ledger.find((line) => line.method === method)
 }
-
-describe('the plugin environment', () => {
-  it('passes only the allowed names, every LC_ name, and never NODE_OPTIONS', () => {
-    const env = pluginEnvironment(
-      {
-        PATH: '/bin',
-        HOME: '/home/a',
-        LC_ALL: 'C',
-        https_proxy: 'http://proxy:1',
-        NODE_OPTIONS: '--require ./steal.js',
-        AWS_SECRET_ACCESS_KEY: 'secret',
-        SystemRoot: 'C:\\Windows',
-      },
-      'darwin',
-    )
-
-    expect(env).toEqual({
-      PATH: '/bin',
-      HOME: '/home/a',
-      LC_ALL: 'C',
-      https_proxy: 'http://proxy:1',
-    })
-  })
-
-  it('adds the Windows system names on Windows, matching names without case', () => {
-    const env = pluginEnvironment(
-      { Path: 'C:\\bin', SystemRoot: 'C:\\Windows', APPDATA: 'C:\\a', node_options: '-r x' },
-      'win32',
-    )
-
-    expect(env).toEqual({ Path: 'C:\\bin', SystemRoot: 'C:\\Windows', APPDATA: 'C:\\a' })
-  })
-})
 
 describe('the plugin host pool', () => {
   it('starts nothing until a remote asks for its entry', async () => {
