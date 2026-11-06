@@ -14,7 +14,11 @@ import {
   serverReasonLine,
 } from '@vostride/agent-qa-core'
 import type { CapabilityMap } from '@vostride/agent-qa-core'
-import { RemoteRefusalError, resolveSecretTemplatesInValue } from '@vostride/agent-qa-runner'
+import {
+  isPluginRemote,
+  RemoteRefusalError,
+  resolveSecretTemplatesInValue,
+} from '@vostride/agent-qa-runner'
 import type { RemoteDeviceConfig } from '@vostride/agent-qa-runner'
 import { connectionSecretNames, remoteLabel, secretReferenceNames } from '@vostride/agent-qa-schema'
 import type { IOSAdapterConfig, IOSSessionOptions } from './types.js'
@@ -228,11 +232,21 @@ async function createRemoteIOSSession(
   return driver
 }
 
+export function pluginRemoteRefusal(device: string, remote: string): RemoteRefusalError {
+  return new RemoteRefusalError(
+    `Device ${device} is on remote ${remote}, a plugin remote, and iOS devices run only on url remotes; give this device a url remote with protocol: appium.`,
+    { remote, kind: 'refused' },
+  )
+}
+
 export async function createIOSSession(
   config: IOSAdapterConfig,
   options: IOSSessionOptions = {},
 ) {
   const remoteDevice = config.device?.remote
+  if (remoteDevice !== undefined && isPluginRemote(remoteDevice)) {
+    throw pluginRemoteRefusal(config.device?.name ?? 'ios', remoteDevice.name)
+  }
   if (remoteDevice !== undefined) return createRemoteIOSSession(config, remoteDevice, options)
 
   const profile = config.device

@@ -31,7 +31,15 @@ const grid = RemoteEntrySchema.parse({
   url: 'wss://grid.example.com/playwright',
 })
 const cloud = RemoteEntrySchema.parse({ name: 'cloud', plugin: 'kernel' })
-const remotes = [farm, lab, grid, cloud]
+const stack = RemoteEntrySchema.parse({
+  name: 'stack',
+  plugin: 'browserstack',
+  settings: { project: 'shop' },
+  connectTimeout: '2m',
+  uploadTimeout: '20m',
+  capabilities: { 'bstack:options': { sessionName: 'checkout' } },
+})
+const remotes = [farm, lab, grid, cloud, stack]
 const devices = {
   pixel: {},
   'galaxy-farm': { remote: 'farm' },
@@ -89,7 +97,7 @@ describe('where a device runs', () => {
 
   it('refuses a device whose remote is not listed or is not an appium remote', () => {
     expect(refusal(select({ devices: { phone: { remote: 'fram' } }, device: 'phone' }))).toBe(
-      'Device phone names remote "fram", which registry.remotes does not list. registry.remotes lists: farm, lab, grid, cloud.',
+      'Device phone names remote "fram", which registry.remotes does not list. registry.remotes lists: farm, lab, grid, cloud, stack.',
     )
     expect(
       refusal(select({ devices: { phone: { remote: 'farm' } }, remotes: [], device: 'phone' })),
@@ -101,10 +109,35 @@ describe('where a device runs', () => {
     )
   })
 
-  it('refuses a device on a plugin remote, naming what a device remote needs', () => {
-    expect(refusal(select({ devices: { phone: { remote: 'cloud' } }, device: 'phone' }))).toBe(
-      "Device phone names remote cloud, a plugin remote; a device's remote needs protocol: appium or a plugin that serves appium.",
-    )
+  it('runs a device on a plugin remote there, with a 5-minute connect and a 10-minute upload timeout', () => {
+    expect(select({ devices: { phone: { remote: 'cloud' } }, device: 'phone' })).toEqual({
+      place: {
+        kind: 'remote',
+        device: 'phone',
+        remote: {
+          name: 'cloud',
+          plugin: { entry: 'kernel' },
+          connectTimeoutMs: 300000,
+          uploadTimeoutMs: 600000,
+        },
+      },
+    })
+  })
+
+  it("gives a plugin device the remote's settings, timeouts and capabilities", () => {
+    expect(select({ devices: { phone: { remote: 'stack' } }, device: 'phone' })).toEqual({
+      place: {
+        kind: 'remote',
+        device: 'phone',
+        remote: {
+          name: 'stack',
+          plugin: { entry: 'browserstack', settings: { project: 'shop' } },
+          connectTimeoutMs: 120000,
+          uploadTimeoutMs: 1200000,
+          capabilities: { 'bstack:options': { sessionName: 'checkout' } },
+        },
+      },
+    })
   })
 })
 
@@ -116,6 +149,12 @@ describe('the runner a run on devices records', () => {
     expect(runnerForPlaces([remote.place])).toBe('remote')
     expect(runnerForPlaces([here.place, remote.place])).toBe('remote')
     expect(runnerForPlaces([here.place])).toBe('local')
+  })
+
+  it('is remote when a device runs on a plugin remote', () => {
+    const plugin = select({ devices: { phone: { remote: 'cloud' } }, device: 'phone' })
+    if ('refusal' in plugin) throw new Error(plugin.refusal)
+    expect(runnerForPlaces([plugin.place])).toBe('remote')
   })
 })
 

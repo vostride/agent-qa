@@ -1,11 +1,19 @@
 import {
   DEFAULT_REMOTE_CONNECT_TIMEOUT_MS,
+  DEFAULT_REMOTE_UPLOAD_TIMEOUT_MS,
   type RemoteDeviceConfig,
+  type RemotePluginDeviceConfig,
 } from '@vostride/agent-qa-runner'
-import { isUrlRemoteEntry, type RemoteEntry, type UrlRemoteEntry } from '../schema/remote-schema.js'
+import {
+  isUrlRemoteEntry,
+  type PluginRemoteEntry,
+  type RemoteEntry,
+  type UrlRemoteEntry,
+} from '../schema/remote-schema.js'
 
 export type DevicePlace =
-  { kind: 'local'; device: string } | { kind: 'remote'; device: string; remote: RemoteDeviceConfig }
+  | { kind: 'local'; device: string }
+  | { kind: 'remote'; device: string; remote: RemoteDeviceConfig | RemotePluginDeviceConfig }
 
 export interface SelectDevicePlaceInput {
   devices: Record<string, { remote?: string }>
@@ -25,6 +33,19 @@ export function toRemoteDeviceConfig(entry: UrlRemoteEntry): RemoteDeviceConfig 
     ...(entry.headers ? { headers: entry.headers } : {}),
     ...(entry.basicAuth ? { basicAuth: entry.basicAuth } : {}),
     connectTimeoutMs: entry.connectTimeout ?? DEFAULT_REMOTE_CONNECT_TIMEOUT_MS,
+    ...(entry.capabilities ? { capabilities: entry.capabilities } : {}),
+  }
+}
+
+export function toRemotePluginDeviceConfig(entry: PluginRemoteEntry): RemotePluginDeviceConfig {
+  return {
+    name: entry.name,
+    plugin: {
+      entry: entry.plugin,
+      ...(entry.settings ? { settings: entry.settings } : {}),
+    },
+    connectTimeoutMs: entry.connectTimeout ?? DEFAULT_REMOTE_CONNECT_TIMEOUT_MS,
+    uploadTimeoutMs: entry.uploadTimeout ?? DEFAULT_REMOTE_UPLOAD_TIMEOUT_MS,
     ...(entry.capabilities ? { capabilities: entry.capabilities } : {}),
   }
 }
@@ -52,10 +73,9 @@ export function selectDevicePlace(input: SelectDevicePlaceInput): SelectDevicePl
       refusal: `Device ${device} names remote "${profile.remote}", which registry.remotes does not list. ${listed}`,
     }
   }
+  // What a plugin remote serves is checked at run start, when its manifest is read.
   if (!isUrlRemoteEntry(entry)) {
-    return {
-      refusal: `Device ${device} names remote ${entry.name}, a plugin remote; a device's remote needs protocol: appium or a plugin that serves appium.`,
-    }
+    return { place: { kind: 'remote', device, remote: toRemotePluginDeviceConfig(entry) } }
   }
   if (entry.protocol !== 'appium') {
     return {

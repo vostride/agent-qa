@@ -42,7 +42,7 @@ import type {
 } from '@vostride/agent-qa-dashboard'
 import type { SecretStore, SecretRedactor, SecretRedactorPort, SecretResolver, HookDefinition, NonActionToolMap, SandboxRunnerOptions } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
-import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteDeviceConfig, RemoteFailureKind, RemotePlaceEvidence, RemoteLease, RemoteLeaseOutcome, RemoteLeaseSource, RemotePluginBrowserConfig, RemoteProtocol, RemoteRefusalMemory, RemoteSessionRegistry } from '@vostride/agent-qa-runner'
+import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteDeviceConfig, RemoteFailureKind, RemotePlaceEvidence, RemoteLease, RemoteLeaseOutcome, RemoteLeaseSource, RemotePluginBrowserConfig, RemotePluginDeviceConfig, RemoteProtocol, RemoteRefusalMemory, RemoteSessionRegistry } from '@vostride/agent-qa-runner'
 import { isPluginRemote, WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, memberStepText, redactSecretValue, RemoteRefusalError, RunSecretRedactor } from '@vostride/agent-qa-runner'
 import { createCliStepModelScopeFactory } from '../composition/step-model-scope.js'
 import type { CliStepModelScopeOptions } from '../composition/step-model-scope.js'
@@ -392,7 +392,7 @@ export interface PrepareMobileDeviceInput {
 }
 
 export interface PreparedMobileDevice {
-  readonly remote?: RemoteDeviceConfig
+  readonly remote?: RemoteDeviceConfig | RemotePluginDeviceConfig
   readonly here?: { udid?: string; avd?: string; name?: string; os?: string }
   readonly appiumUrl?: string
   // True only when this process started the Appium it talks to.
@@ -506,7 +506,10 @@ export async function createPlatformAdapter(
   if (platform === 'android') {
     try {
       const { AndroidPlatformAdapter } = await import('@vostride/agent-qa-android')
-      return new AndroidPlatformAdapter(mobile)
+      return new AndroidPlatformAdapter({
+        ...mobile,
+        ...(options.pluginSessions === undefined ? {} : { pluginSessions: options.pluginSessions }),
+      })
     } catch {
       throw new Error(
         'Android adapter not available. Install @vostride/agent-qa-android: pnpm add @vostride/agent-qa-android',
@@ -1784,8 +1787,9 @@ function refuseRemoteSecretProblems(input: {
   readonly connectionSecretStore: SecretStore
 }): void {
   const secretsFile = configuredSecretsFile(input.config)
+  // A plugin device's own capabilities are checked here; its plugin's values at its host's start.
   const devices = [...input.usedDevices].map(({ place, target }) =>
-    place.kind === 'remote'
+    place.kind === 'remote' && !isPluginRemote(place.remote)
       ? { device: place.device, remote: place.remote, appRef: targetAppRef(input.config, target) }
       : { device: place.device },
   )
@@ -1822,12 +1826,20 @@ function rememberPluginRemoteRefusals(input: {
   readonly config: AgentQaConfig
   readonly configDir: string
   readonly usedRemotes: Iterable<RemoteBrowserConfig | RemotePluginBrowserConfig>
+  readonly usedDevices: Iterable<DevicePlace>
   readonly declaredSecrets: { has(name: string): boolean } | undefined
   readonly refusalMemory: RemoteRefusalMemory
 }): void {
-  const uses = [...input.usedRemotes].flatMap((remote) =>
-    isPluginRemote(remote) ? [{ remote: remote.name, place: 'web' as const }] : [],
-  )
+  const uses = [
+    ...[...input.usedRemotes].flatMap((remote) =>
+      isPluginRemote(remote) ? [{ remote: remote.name, place: 'web' as const }] : [],
+    ),
+    ...[...input.usedDevices].flatMap((place) =>
+      place.kind === 'remote' && isPluginRemote(place.remote)
+        ? [{ remote: place.remote.name, place: 'device' as const }]
+        : [],
+    ),
+  ]
   if (uses.length === 0) return
   const refusals = pluginRemoteRefusals({
     configDir: input.configDir,
@@ -2143,6 +2155,8 @@ type RunArtifactPlace =
       place: 'remote'
       name: string
       plugin: string
+      protocol?: 'appium'
+      device?: string
       failureKind?: RemoteFailureKind
     }
 
@@ -2159,6 +2173,15 @@ function selectedArtifactPlace(selected: SelectedPlace): RunArtifactPlace {
   if ('kind' in selected) {
     if (selected.kind === 'local') return { place: 'here' }
     const { remote, device } = selected
+    if (isPluginRemote(remote)) {
+      return {
+        place: 'remote',
+        name: remote.name,
+        plugin: remote.plugin.entry,
+        protocol: 'appium',
+        device,
+      }
+    }
     return {
       place: 'remote',
       name: remote.name,
@@ -3003,6 +3026,7 @@ export async function produceSuiteRunMembers(
     config,
     configDir,
     usedRemotes: suiteRemotes,
+    usedDevices: placedSuites.flatMap(({ device }) => (device === undefined ? [] : [device])),
     declaredSecrets: suiteConnectionSecrets,
     refusalMemory: suiteRefusalMemory,
   })
@@ -4241,6 +4265,7 @@ export async function produceDirectRunMembers(
     config,
     configDir,
     usedRemotes: directRemotes.values(),
+    usedDevices: directDevicePlaces.values(),
     declaredSecrets: runtimeSecrets.connectionSecretStore,
     refusalMemory: directRefusalMemory,
   })

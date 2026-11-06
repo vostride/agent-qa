@@ -24,6 +24,7 @@ import {
   compareFillReread,
   createRemoteHeartbeat,
   createSnapshotLiveStream,
+  isPluginRemote,
   REMOTE_RELEASE_BOUND_MS,
   resolveAppName,
   runDirectionScroll,
@@ -59,6 +60,7 @@ import {
   IOS_SNAPSHOT_MAX_DEPTH,
   browserModeName,
   createIOSSession,
+  pluginRemoteRefusal,
   resolveIOSSnapshotDepth,
 } from './session.js'
 import type { IOSAdapterConfig, IOSAdapterOptions } from './types.js'
@@ -405,8 +407,13 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     this.snapshotDepth = this.sessionSnapshotDepth
     this.readsAtLoweredDepth = 0
     this.snapshotDepthWarned = false
-    this.remote = config.device?.remote
     this.deviceName = config.device?.name ?? 'ios'
+    const configured = config.device?.remote
+    if (configured !== undefined && isPluginRemote(configured)) {
+      this.remote = undefined
+      throw pluginRemoteRefusal(this.deviceName, configured.name)
+    }
+    this.remote = configured
     this.disconnectKind = undefined
     this.disconnectError = undefined
     this.released = undefined

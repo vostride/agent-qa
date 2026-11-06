@@ -1,6 +1,10 @@
 import { existsSync } from 'node:fs'
 import { dirname, resolve as resolvePath } from 'node:path'
-import { RemoteRefusalError, type RemoteDeviceConfig } from '@vostride/agent-qa-runner'
+import {
+  RemoteRefusalError,
+  type RemoteDeviceConfig,
+  type RemotePluginDeviceConfig,
+} from '@vostride/agent-qa-runner'
 import type { RemoteEntry } from '../schema/remote-schema.js'
 import {
   capabilityValue,
@@ -61,7 +65,7 @@ export interface ResolvedMobileDevice {
   os?: string
   id?: string
   capabilities?: Record<string, unknown>
-  remote?: RemoteDeviceConfig
+  remote?: RemoteDeviceConfig | RemotePluginDeviceConfig
 }
 
 export interface ResolvedMobileAppInstall {
@@ -81,7 +85,7 @@ export interface ResolvedMobileApp {
 
 // A device on a remote connects there; a device here is searched for on this machine.
 export type MobileDevicePlan =
-  | { kind: 'remote'; remote: RemoteDeviceConfig }
+  | { kind: 'remote'; remote: RemoteDeviceConfig | RemotePluginDeviceConfig }
   | { kind: 'here'; search: { model?: string; os?: string; id?: string } }
 
 export interface ResolvedMobileRunConfig {
@@ -300,7 +304,7 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     )
   }
 
-  let remote: RemoteDeviceConfig | undefined
+  let remote: RemoteDeviceConfig | RemotePluginDeviceConfig | undefined
   if (deviceProfile.remote !== undefined) {
     const selected = selectDevicePlace({
       devices: devices ?? {},
