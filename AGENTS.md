@@ -15,6 +15,7 @@ agent-qa runs plain-English tests against real web, Android and iOS apps, keeps 
 - MCP server (`agent_qa_*` tools): `packages/mcp`
 - Dashboard: `packages/dashboard-server` and `packages/dashboard-ui`
 - Web, Android and iOS adapters: `packages/web`, `packages/android` and `packages/ios`
+- Plugin kit: `packages/plugin-kit`; first-party plugins: `plugins/`
 - Packaged skills: `skills/`; Docker images: `docker/`
 - Each package's `AGENTS.md` says what it does.
 

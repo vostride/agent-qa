@@ -121,8 +121,57 @@ Picking a remote:
 - The suite's pick wins, then the test's, then the config's; with none, the test runs here. A suite
   runs in one place, so when it names none, its members must agree.
 - No run flag or environment variable moves a test; the files decide.
-- `agent_qa_change_config` can set `use.browser.remote` but never changes `registry.remotes` or
-  `plugins`; a person edits those in the file.
+- `agent_qa_change_config` can set `use.browser.remote` but never changes `registry.remotes`; a
+  person edits it in the file. What it may do to `plugins` is under Plugin remotes.
+
+## Plugin remotes
+
+A plugin connects agent-qa to a browser or device service that needs more than a url, for example
+one that creates the session, signs the connection or runs a tunnel. A project enables the plugin
+once in the `plugins` list, and each remote names that entry instead of a url.
+
+```yaml
+plugins:
+  - name: lab
+    package: "@acme/agent-qa-plugin-lab"
+    options:
+      token: "{{secret:LAB_TOKEN}}"
+
+registry:
+  remotes:
+    - name: lab-chrome
+      plugin: lab
+      settings:
+        region: eu
+```
+
+- An entry's `name` is a lowercase slug, unique in the list. The entry names its plugin by
+  `package`, the exact npm package name installed in the project, or by `path`, a folder inside
+  the config file's folder. agent-qa never adds a prefix or guesses a package from a short id.
+- `options` hold the account's values and `settings` hold one remote's. Both are checked against
+  the plugin's own schemas, and a remote whose values they refuse stops the run before it starts.
+- A plugin remote has no `url`, `query`, `headers` or `basicAuth`: the plugin supplies the
+  connection. Pick it like any remote, with `use.browser.remote` for a web test or a device's
+  `remote` for a mobile one. The plugin must serve that kind of test.
+- Write every credential in `options` or `settings` as a quoted `{{secret:<name>}}` reference to a
+  name in the file `workspace.secretsFile` names. The strict parse refuses a literal under a
+  credential name such as `token` or `key`, and a run refuses a reference that file does not
+  declare.
+- `npx agent-qa plugins list --json` shows each entry's state (`ok`, `not_installed`,
+  `version_mismatch`, `protocol_mismatch`, `bad_manifest` or `unused`) with the remotes that name
+  it and, when it is not `ok`, the reason and the install line that fixes it. It reads manifests
+  and runs no plugin code.
+- `npx agent-qa plugins describe <name> --json` documents what the entry's plugin serves and every
+  option and setting it takes: the type, whether it is required, the default, whether it is a
+  credential and the description. Read it before you write `options` or `settings`; never guess a
+  key.
+- `npx agent-qa plugin validate <target>` checks a plugin folder (`./path`) or an installed package:
+  its manifest, schemas, credential marks and skill, then a quick conformance pass that starts the
+  plugin without options and acquires nothing.
+- A plugin may ship its own skill with the service's details; `plugins describe` names its folder.
+- `agent_qa_change_config` adds, edits and removes no `plugins` entry and no plugin remote, with
+  one exception: `config.auth.set` appends the `subscription` entry for
+  `@vostride/agent-qa-subscription-auth`. A person edits the rest in the file.
 
 ## Devices
 
