@@ -26,6 +26,11 @@ function objectSchema(properties: Record<string, unknown>): Record<string, unkno
 }
 
 // The entry leaves a marker and throws, so a validate that ran plugin code shows it.
+function markerScript(): string {
+  const marker = JSON.stringify(path.join(workspaceDir, 'plugin-ran.marker'))
+  return `require('node:fs').writeFileSync(${marker}, 'ran')\nthrow new Error('plugin code ran')\n`
+}
+
 async function installPlugin(
   name: string,
   manifest: Record<string, unknown> = {},
@@ -48,11 +53,7 @@ async function installPlugin(
     path.join(dir, 'package.json'),
     JSON.stringify({ name, version: '1.0.0', 'agent-qa': { plugin } }),
   )
-  const marker = JSON.stringify(path.join(workspaceDir, 'plugin-ran.marker'))
-  await writeFile(
-    path.join(dir, 'dist', 'main.js'),
-    `require('node:fs').writeFileSync(${marker}, 'ran')\nthrow new Error('plugin code ran')\n`,
-  )
+  await writeFile(path.join(dir, 'dist', 'main.js'), markerScript())
   await writeFile(path.join(dir, 'dist', 'options.schema.json'), JSON.stringify(options))
   await writeFile(
     path.join(dir, 'dist', 'settings.schema.json'),
@@ -230,6 +231,37 @@ describe('validate checks plugins entries', () => {
     expect(output()).toMatch(/error\s+Plugin entry gone names/)
     expect(output().split('Plugin entry gone names').length).toBe(2)
     expect(output()).not.toContain('All files valid')
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('refuses a path entry whose manifest declares model auth, without running it', async () => {
+    await installPlugin(THIRD_PARTY)
+    const localDir = path.join(workspaceDir, 'tools', 'local-auth')
+    await mkdir(localDir, { recursive: true })
+    await writeFile(
+      path.join(localDir, 'package.json'),
+      JSON.stringify({
+        name: 'local-auth',
+        version: '1.0.0',
+        'agent-qa': { plugin: { kind: 'model-auth', runs: 'in-process', entry: './index.js' } },
+      }),
+    )
+    await writeFile(path.join(localDir, 'index.js'), markerScript())
+    await writeConfig([
+      '  - name: kit',
+      `    package: '${THIRD_PARTY}'`,
+      '  - name: local',
+      '    path: ./tools/local-auth',
+    ])
+
+    await runValidate()
+
+    expect(output()).toContain(
+      'Plugin entry local names ./tools/local-auth, which declares a model-auth plugin; only '
+        + '@vostride/agent-qa-* packages load inside agent-qa. Remove the entry.',
+    )
+    expect(output()).toMatch(/error\s+Plugin entry local names/)
+    expect(existsSync(path.join(workspaceDir, 'plugin-ran.marker'))).toBe(false)
     expect(process.exitCode).toBe(1)
   })
 
