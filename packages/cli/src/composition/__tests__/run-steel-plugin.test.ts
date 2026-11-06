@@ -179,7 +179,7 @@ describe('a web test on a remote served by the built Steel plugin', () => {
       })
       expect(body?.sessionId, log).toMatch(UUID)
       expect(api.createdIds(), log).toEqual([body?.sessionId])
-      expect(api.createdIds(), log).toEqual([...new Set(api.releasedIds())])
+      expect(api.releasedIds(), log).toEqual(api.createdIds())
 
       const runs = storedRuns(project)
       expect(runs.map((run) => run.outcomes), log).toEqual([['passed']])
