@@ -15,6 +15,7 @@ it, so a change here changes the protocol for both sides. It carries no vendor c
 - `src/protocol/framing.ts`
 - `src/define-plugin.ts`
 - `src/run-plugin.ts`
+- `src/vendor-api.ts`
 - `src/testing/scripted-plugin.ts`
 - `src/__tests__/stdio-loop.test.ts`
 
