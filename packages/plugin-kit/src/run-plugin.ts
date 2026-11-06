@@ -197,9 +197,13 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
   const io = resolveIo(ioInput)
   const write = io.stdout.write.bind(io.stdout)
   routeStrayOutputToStderr()
+  // Once the host is gone its pipes have no reader; EPIPE must not stop the releases.
+  process.stdout.on('error', () => {})
+  process.stderr.on('error', () => {})
   process.on('SIGINT', () => {})
 
   const send = (message: Record<string, unknown>) => {
+    if (leaving) return
     write(encodeMessage(message))
   }
   const answer = (id: RequestId, result: unknown) => send({ jsonrpc: '2.0', id, result })

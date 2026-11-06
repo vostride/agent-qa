@@ -45,6 +45,7 @@ export interface SpawnedPlugin {
   stderr(): string
   ledger(): Record<string, unknown>[]
   signal(name: NodeJS.Signals): void
+  dropOutput(): void
   exited: Promise<number | null>
   close(): Promise<number | null>
   kill(): void
@@ -162,6 +163,10 @@ export function spawnScriptedPlugin(input?: ScriptedPluginInput): SpawnedPlugin 
     },
     signal(name) {
       child.kill(name)
+    },
+    dropOutput() {
+      child.stdout.destroy()
+      child.stderr.destroy()
     },
     close() {
       child.stdin.end()

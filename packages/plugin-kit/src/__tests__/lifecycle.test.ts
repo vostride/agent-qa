@@ -222,6 +222,27 @@ describe('leaving', () => {
     ])
   })
 
+  it('still releases and shuts down when the dead host closed its pipes and release logs', async () => {
+    const host = spawn(process.execPath, ['-e', 'setTimeout(() => {}, 60_000)'], {
+      stdio: 'ignore',
+    })
+    const hostExited = new Promise((resolve) => host.on('exit', resolve))
+    const plugin = spawnScriptedPlugin({ timing: { hostPidPollMs: 50 } })
+    const script = { release: 'consoleLog' }
+    await plugin.initialize({ answer, script }, [1], hostIdentity(host.pid))
+    await plugin.request('acquire', acquireParams)
+
+    plugin.dropOutput()
+    host.kill('SIGKILL')
+    await hostExited
+
+    expect(await plugin.exited).toBe(0)
+    expect(plugin.ledger().slice(-2)).toEqual([
+      { method: 'release', handle: { n: 1 } },
+      { method: 'shutdown' },
+    ])
+  })
+
   it('keeps answering after SIGINT', async () => {
     const plugin = spawnScriptedPlugin()
     await plugin.initialize({ answer, script: { acquire: { delayMs: 100 } } })
