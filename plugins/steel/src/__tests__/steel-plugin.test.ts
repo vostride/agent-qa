@@ -33,8 +33,12 @@ async function steelPlugin(api: FakeSteelApi) {
   return plugin
 }
 
-function acquire(plugin: SpawnedSteel, settings: Record<string, unknown> = {}) {
-  return plugin.call('acquire', { remote: 'steel', settings, session: WEB_SESSION })
+function acquire(
+  plugin: SpawnedSteel,
+  settings: Record<string, unknown> = {},
+  session: Record<string, unknown> = WEB_SESSION,
+) {
+  return plugin.call('acquire', { remote: 'steel', settings, session })
 }
 
 function createBodies(api: FakeSteelApi) {
@@ -78,6 +82,152 @@ describe('creating a Steel session', () => {
       link: `https://app.example.invalid/sessions/${String(id)}`,
     })
     expect(id).toBe((createBodies(api)[0] as { sessionId: string }).sessionId)
+  })
+})
+
+describe('the Steel settings', () => {
+  it('lowers the lifetime and the idle timeout', async () => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api)
+
+    expect((await acquire(plugin, { timeoutMinutes: 60, idleMinutes: 10 })).error).toBeUndefined()
+
+    expect(createBodies(api)[0]).toMatchObject({ timeout: 3_600_000, inactivityTimeout: 600_000 })
+  })
+
+  it.each([0, 1441])('refuses timeoutMinutes %i before any create', async (timeoutMinutes) => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin, { timeoutMinutes })
+
+    expect(answer.error?.data).toMatchObject({ kind: 'refused', path: 'settings.timeoutMinutes' })
+    expect(createBodies(api)).toEqual([])
+  })
+
+  it('turns each page-changing feature on when its setting is true', async () => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api)
+
+    const settings = { solveCaptcha: true, blockAds: true, fingerprint: true, proxy: true }
+    expect((await acquire(plugin, settings)).error).toBeUndefined()
+
+    expect(createBodies(api)[0]).toMatchObject({
+      solveCaptcha: true,
+      blockAds: true,
+      stealthConfig: { skipFingerprintInjection: false },
+      useProxy: true,
+    })
+  })
+
+  it("sends Steel's proxy object as useProxy", async () => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api)
+
+    expect((await acquire(plugin, { proxy: { geolocation: 'US' } })).error).toBeUndefined()
+
+    expect(createBodies(api)[0]).toMatchObject({ useProxy: { geolocation: 'US' } })
+  })
+
+  it('merges extra last, so it overrides a curated setting and adds its own fields', async () => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api)
+
+    const settings = { blockAds: false, extra: { blockAds: true, headless: true } }
+    expect((await acquire(plugin, settings)).error).toBeUndefined()
+
+    expect(createBodies(api)[0]).toMatchObject({ blockAds: true, headless: true })
+  })
+
+  it('sends proxyUrl instead of useProxy', async () => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api)
+    const proxyUrl = 'http://user:password@proxy.example.invalid:8080'
+
+    expect((await acquire(plugin, { proxyUrl })).error).toBeUndefined()
+
+    const [body] = createBodies(api)
+    expect(body).toMatchObject({ proxyUrl })
+    expect(body).not.toHaveProperty('useProxy')
+  })
+
+  it('refuses proxyUrl together with proxy before any create, pointing at proxyUrl', async () => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin, {
+      proxyUrl: 'http://proxy.example.invalid:8080',
+      proxy: true,
+    })
+
+    expect(answer.error?.message).toBe('proxy and proxyUrl both choose a proxy; set one of them.')
+    expect(answer.error?.data).toMatchObject({ kind: 'refused', path: 'settings.proxyUrl' })
+    expect(createBodies(api)).toEqual([])
+  })
+
+  it('sends the window size, the region and the extensions it is given', async () => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api)
+
+    const settings = {
+      dimensions: { width: 1280, height: 800 },
+      region: 'us-east',
+      extensions: ['ext-1'],
+    }
+    expect((await acquire(plugin, settings)).error).toBeUndefined()
+
+    expect(createBodies(api)[0]).toMatchObject({
+      dimensions: { width: 1280, height: 800 },
+      region: 'us-east',
+      extensionIds: ['ext-1'],
+    })
+  })
+
+  it('loads a profile read-only into a reused context', async () => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin, { profile: 'p-1' }, { ...WEB_SESSION, context: 'reuse' })
+    expect(answer.error).toBeUndefined()
+
+    const [body] = createBodies(api)
+    expect(body).toMatchObject({ profileId: 'p-1' })
+    expect(body).not.toHaveProperty('persistProfile')
+  })
+
+  it('refuses a profile for a new context before any create, pointing at profile', async () => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin, { profile: 'p-1' })
+
+    expect(answer.error?.message).toBe(
+      'profile loads only into a reused context; set context: reuse on the remote.',
+    )
+    expect(answer.error?.data).toMatchObject({ kind: 'refused', path: 'settings.profile' })
+    expect(createBodies(api)).toEqual([])
+  })
+
+  it('refuses a session that is not Chromium before any create', async () => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin, {}, { ...WEB_SESSION, engine: 'firefox' })
+
+    expect(answer.error?.message).toBe('Steel runs Chromium web sessions only, not firefox.')
+    expect(answer.error?.data?.kind).toBe('refused')
+    expect(createBodies(api)).toEqual([])
+  })
+
+  it('refuses a recording setting before any create, because Steel has no switch for it', async () => {
+    const api = await startApi()
+    const plugin = await steelPlugin(api)
+
+    const answer = await acquire(plugin, { recording: false })
+
+    expect(answer.error?.data?.kind).toBe('refused')
+    expect(answer.error?.message).toContain('recording')
+    expect(createBodies(api)).toEqual([])
   })
 })
 
