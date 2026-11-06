@@ -9,7 +9,7 @@ import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, bu
 import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, describeAndroidHere, describeIOSHere, discoverWorkspaceFiles, findDeviceHere, isUrlRemoteEntry, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, projectRemotesForDisplay, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
-import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
+import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, RemoteConnectionFields, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
 import { resolveLLMModels, resolveModelAuth, toModelProfileAndAuth } from '../llm-utils.js'
@@ -1826,12 +1826,21 @@ function refuseRemoteSecretProblems(input: {
   readonly connectionSecretStore: SecretStore
 }): void {
   const secretsFile = configuredSecretsFile(input.config)
-  // A plugin device's own capabilities are checked here; its plugin's values at its host's start.
-  const devices = [...input.usedDevices].map(({ place, target }) =>
-    place.kind === 'remote' && !isPluginRemote(place.remote)
-      ? { device: place.device, remote: place.remote, appRef: targetAppRef(input.config, target) }
-      : { device: place.device },
-  )
+  // A plugin remote's options and settings are checked when its plugin host starts; its
+  // capabilities, the device's and the target's app.ref are checked here.
+  const devices = [...input.usedDevices].map(({ place, target }) => {
+    if (place.kind !== 'remote') return { device: place.device }
+    const appRef = targetAppRef(input.config, target)
+    if (!isPluginRemote(place.remote)) return { device: place.device, remote: place.remote, appRef }
+    const { name, plugin, capabilities } = place.remote
+    // Read as a plugin remote by its label, and for its capabilities by the secret scan.
+    const remote = {
+      name,
+      plugin: plugin.entry,
+      ...(capabilities === undefined ? {} : { capabilities }),
+    } as unknown as RemoteConnectionFields
+    return { device: place.device, remote, appRef }
+  })
   // A plugin remote's options and settings secrets are checked when its plugin host starts.
   const urlRemotes = [...input.usedRemotes].flatMap((remote) =>
     isPluginRemote(remote) ? [] : [remote],

@@ -121,7 +121,11 @@ interface DeviceScene {
 
 // The fixture's url remote becomes a remote that names a path plugins entry, which answers with
 // the fake server.
-function placeOnPlugin(project: InProcessFixture, server: FakeAppiumServer): string {
+function placeOnPlugin(
+  project: InProcessFixture,
+  server: FakeAppiumServer,
+  remoteCapabilities?: Record<string, unknown>,
+): string {
   writeScriptedPlugin(join(project.project, 'tools', ENTRY_NAME), {
     serves: ['appium'],
     methods: ['started', 'end'],
@@ -131,7 +135,13 @@ function placeOnPlugin(project: InProcessFixture, server: FakeAppiumServer): str
     registry: { remotes?: unknown }
     plugins?: unknown
   }
-  config.registry.remotes = [{ name: REMOTE_DEVICE_REMOTE_NAME, plugin: ENTRY_NAME }]
+  config.registry.remotes = [
+    {
+      name: REMOTE_DEVICE_REMOTE_NAME,
+      plugin: ENTRY_NAME,
+      ...(remoteCapabilities === undefined ? {} : { capabilities: remoteCapabilities }),
+    },
+  ]
   config.plugins = [
     {
       name: ENTRY_NAME,
@@ -152,6 +162,7 @@ function placeOnPlugin(project: InProcessFixture, server: FakeAppiumServer): str
 async function onPluginDevice(
   drive: (scene: DeviceScene) => Promise<void>,
   device: Partial<NonNullable<InProcessFixtureInput['remoteDevice']>> = {},
+  remoteCapabilities?: Record<string, unknown>,
 ): Promise<void> {
   const server = await startFakeAppiumServer({ status: { version: HUB_APPIUM_VERSION } })
   opened.push(() => server.close())
@@ -160,7 +171,7 @@ async function onPluginDevice(
     environment: 'local',
     remoteDevice: { url: server.url, model: MODEL, os: '14', ...device },
   })
-  const ledgerFile = placeOnPlugin(project, server)
+  const ledgerFile = placeOnPlugin(project, server, remoteCapabilities)
   vi.stubEnv('HOME', freshUpdateCheckHome())
   const printed: string[] = []
   const keep = (...args: unknown[]): void => {
@@ -640,6 +651,46 @@ describe('a test on a device on a plugin remote runs there from every door', () 
 
         await expectRanOnPlugin(scene, { ledger: LEASED_ONCE, recordsRun: false })
       })
+    },
+    RUN_BUDGET_MS,
+  )
+
+  it.each([
+    [
+      "its remote's capabilities",
+      'FARM_KEY',
+      {},
+      { 'farm:options': { accessKey: '{{secret:FARM_KEY}}' } },
+    ],
+    [
+      "its target's app.ref",
+      'SHOP_BUILD_REF',
+      { appRef: 'farm://{{secret:SHOP_BUILD_REF}}' },
+      undefined,
+    ],
+  ] as const)(
+    'agent-qa run refuses a device on a plugin remote with an undeclared secret in %s, before the plugin is asked for a session',
+    async (_what, secret, device, remoteCapabilities) => {
+      await onPluginDevice(
+        async (scene) => {
+          await runThroughCli(scene.project)
+
+          const log = scene.printed.join('\n')
+          expect(
+            scene.printed.filter((line) =>
+              line.includes(
+                `Device ${REMOTE_DEVICE_NAME} on remote ${REMOTE_DEVICE_REMOTE_NAME} (plugin ${ENTRY_NAME}) needs ${secret}, which .env.secrets.local does not declare. Add it there.`,
+              ),
+            ),
+            log,
+          ).toHaveLength(1)
+          expect(ledgerOf(scene).map((line) => line.method), log).not.toContain('acquire')
+          expect(scene.server.requests, log).toEqual([])
+          expect(storedRuns(scene.project), log).toEqual([])
+        },
+        device,
+        remoteCapabilities,
+      )
     },
     RUN_BUDGET_MS,
   )
