@@ -503,7 +503,7 @@ describe("doctor's plugin rows for setup problems", () => {
     process.exitCode = 0
   })
 
-  it('gives a missing first-party plugin the exact pinned install line', async () => {
+  it('tells a missing first-party plugin to run plugins add', async () => {
     const project = await newProject()
     const raw = config([{ name: 'lab', package: FIRST_PARTY }], [{ name: 'farm', plugin: 'lab' }])
 
@@ -511,11 +511,11 @@ describe("doctor's plugin rows for setup problems", () => {
 
     expect(row?.status).toBe('warn')
     expect(row?.message).toContain(
-      `Run npm install --save-dev --save-exact ${FIRST_PARTY}@${getAgentQaVersion()}.`,
+      `Run npx agent-qa plugins add ${FIRST_PARTY}.`,
     )
   })
 
-  it('gives a first-party plugin at another version the exact pinned install line', async () => {
+  it('tells a first-party plugin at another version to run plugins add', async () => {
     const project = await newProject()
     installFirstParty(project, { version: '0.0.1' })
     const raw = config([{ name: 'lab', package: FIRST_PARTY }], [{ name: 'farm', plugin: 'lab' }])
@@ -525,11 +525,11 @@ describe("doctor's plugin rows for setup problems", () => {
     expect(row?.status).toBe('warn')
     expect(row?.message).toContain('version 0.0.1')
     expect(row?.message).toContain(
-      `Run npm install --save-dev --save-exact ${FIRST_PARTY}@${getAgentQaVersion()}.`,
+      `Run npx agent-qa plugins add ${FIRST_PARTY}.`,
     )
   })
 
-  it('gives a missing third-party package its install line without a version', async () => {
+  it('tells a missing third-party package to run plugins add, with no version', async () => {
     const project = await newProject()
     const raw = config(
       [{ name: 'grid', package: '@acme/agent-qa-plugin-grid' }],
@@ -540,8 +540,8 @@ describe("doctor's plugin rows for setup problems", () => {
 
     expect(row?.status).toBe('warn')
     expect(row?.message).toContain('third-party')
-    expect(row?.message).toContain('Run npm install --save-dev @acme/agent-qa-plugin-grid.')
-    expect(row?.message).not.toContain('--save-exact')
+    expect(row?.message).toContain('Run npx agent-qa plugins add @acme/agent-qa-plugin-grid.')
+    expect(row?.message).not.toContain('@acme/agent-qa-plugin-grid@')
   })
 
   it('names the path of a path plugin that is missing', async () => {
@@ -552,7 +552,7 @@ describe("doctor's plugin rows for setup problems", () => {
 
     expect(row?.status).toBe('warn')
     expect(row?.message).toContain('names the path ./plugins/lab, which has no package.json')
-    expect(row?.message).not.toContain('npm install')
+    expect(row?.message).not.toContain('plugins add')
   })
 
   it('warns about secrets its options and its remotes\' settings name that the secrets file does not declare, and runs no check', async () => {

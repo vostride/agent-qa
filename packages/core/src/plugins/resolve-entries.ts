@@ -78,17 +78,11 @@ export function supportedPluginProtocols(current: number = PLUGIN_PROTOCOL_VERSI
   return [current, current - 1].filter((protocol) => protocol >= 1)
 }
 
-export function pluginInstallLine(
-  entry: PluginEntryInput,
-  agentQaVersion: string,
-): string | undefined {
+export function pluginInstallLine(entry: PluginEntryInput): string | undefined {
   const packageName = packageDeclarationValue(entry)
   // A person runs this line, so it is only ever built from an npm name.
   if (!isNpmPackageName(packageName)) return undefined
-  if (packageName.startsWith(FIRST_PARTY_PLUGIN_PREFIX)) {
-    return `npm install --save-dev --save-exact ${packageName}@${agentQaVersion}`
-  }
-  return `npm install --save-dev ${packageName}`
+  return `npx agent-qa plugins add ${packageName}`
 }
 
 function pluginOrigin(entry: PluginEntryInput): PluginOrigin {
@@ -115,7 +109,7 @@ export function resolvePluginEntry(
   const { configDir, agentQaVersion } = options
   const origin = pluginOrigin(entry)
   const label = declarationLabel(entry, configDir)
-  const install = pluginInstallLine(entry, agentQaVersion)
+  const install = pluginInstallLine(entry)
   const base = { name: entry.name, label, origin, inProcess: false }
 
   let packageJsonPath: string | undefined

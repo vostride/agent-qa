@@ -192,7 +192,7 @@ describe('a project the product scaffolds is validated, not attested over an emp
     expect(second.status, `a member with errors is an error exit:\n${second.combined}`).toBe(1)
   }, 180_000)
 
-  it('bare `validate` refuses the declared plugin the scaffold has not installed, with its install line', () => {
+  it('bare `validate` refuses the declared plugin the scaffold has not installed, with its plugins add line', () => {
     scaffoldWithShippedInit()
 
     const { status, combined } = runShippedCli('validate')
@@ -201,8 +201,8 @@ describe('a project the product scaffolds is validated, not attested over an emp
     expect(combined, `validate did not name the missing entry:\n${combined}`).toContain(
       `Plugin entry subscription names ${SUBSCRIPTION_AUTH_PACKAGE}, which is not installed.`,
     )
-    expect(combined, `validate did not print the install line:\n${combined}`).toContain(
-      `Run npm install --save-dev ${SUBSCRIPTION_AUTH_PACKAGE}.`,
+    expect(combined, `validate did not print the plugins add line:\n${combined}`).toContain(
+      `Run npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}.`,
     )
     expect(combined, `validate attested a project run refuses:\n${combined}`).not.toContain(
       SUCCESS_SENTENCE,

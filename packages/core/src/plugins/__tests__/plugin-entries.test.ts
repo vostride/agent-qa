@@ -54,16 +54,16 @@ describe('resolving a package entry', () => {
     expect(resolvePluginEntry({ name: 'acme', package: ACME }, options).state).toBe('ok')
   })
 
-  it('reports a missing package as not installed with its install line', () => {
+  it('reports a missing package as not installed with its plugins add line', () => {
     const resolved = resolvePluginEntry({ name: 'acme', package: ACME }, options)
 
     expect(resolved).toMatchObject({
       state: 'not_installed',
       origin: 'third-party',
-      install: `npm install --save-dev ${ACME}`,
+      install: `npx agent-qa plugins add ${ACME}`,
       reason:
         `Plugin entry acme names ${ACME}, which is not installed. `
-        + `Run npm install --save-dev ${ACME}.`,
+        + `Run npx agent-qa plugins add ${ACME}.`,
     })
   })
 

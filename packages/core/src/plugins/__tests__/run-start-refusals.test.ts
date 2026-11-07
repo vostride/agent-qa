@@ -59,7 +59,7 @@ function refusals(input: Partial<PluginRemoteRefusalsInput>) {
 }
 
 describe('an entry the run cannot start', () => {
-  it('refuses a missing first-party plugin with its pinned install line', () => {
+  it('refuses a missing first-party plugin and names plugins add', () => {
     expect(refusals({})).toEqual([
       {
         remote: 'farm',
@@ -67,18 +67,18 @@ describe('an entry the run cannot start', () => {
         kind: 'refused',
         message:
           `Remote farm cannot start: Plugin entry kit names ${FIRST_PARTY}, which is not `
-          + `installed. Run npm install --save-dev --save-exact ${FIRST_PARTY}@${VERSION}.`,
+          + `installed. Run npx agent-qa plugins add ${FIRST_PARTY}.`,
       },
     ])
   })
 
-  it('refuses a missing third-party plugin with its unpinned install line', () => {
+  it('refuses a missing third-party plugin and names plugins add', () => {
     const [refusal] = refusals({ plugins: [{ name: 'kit', package: THIRD_PARTY }] })
 
     expect(refusal?.kind).toBe('refused')
     expect(refusal?.message).toBe(
       `Remote farm cannot start: Plugin entry kit names ${THIRD_PARTY}, which is not installed. `
-        + `Run npm install --save-dev ${THIRD_PARTY}.`,
+        + `Run npx agent-qa plugins add ${THIRD_PARTY}.`,
     )
   })
 
@@ -92,8 +92,7 @@ describe('an entry the run cannot start', () => {
         kind: 'version',
         message:
           `Remote farm cannot start: Plugin entry kit names ${FIRST_PARTY} at 1.3.0, and `
-          + `agent-qa is at ${VERSION}. Run npm install --save-dev --save-exact `
-          + `${FIRST_PARTY}@${VERSION}.`,
+          + `agent-qa is at ${VERSION}. Run npx agent-qa plugins add ${FIRST_PARTY}.`,
       },
     ])
   })
