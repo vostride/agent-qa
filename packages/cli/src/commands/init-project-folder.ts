@@ -3,9 +3,6 @@ import { homedir } from 'node:os'
 import * as nodePath from 'node:path'
 import type { PlatformPath } from 'node:path'
 import type { Command } from 'commander'
-import pc from 'picocolors'
-
-import { CliRefusal } from '../composition/cli-refusal.js'
 
 export interface InitFolderIo {
   homedir(): string
@@ -33,21 +30,14 @@ export async function initFolderRefusal(
   const real = await realPathIfPresent(io, projectDir)
   if (real === undefined) return undefined
   if (io.path.dirname(real) === real) {
-    return `agent-qa init does not set up the filesystem root (${real}). Run it in the project's folder, or pass --dir <folder>.`
+    return `agent-qa init does not set up the filesystem root (${real}). Run it in the project's folder.`
   }
   const home = io.homedir()
   const realHome = await realPathIfPresent(io, home)
   if (real === realHome) {
-    return `agent-qa init does not set up your home folder (${home}). Run it in the project's folder, or pass --dir <folder>.`
+    return `agent-qa init does not set up your home folder (${home}). Run it in the project's folder.`
   }
   return undefined
-}
-
-const DEFAULT_CONFIG_FILE = 'agent-qa.config.yaml'
-
-export interface InitProject {
-  readonly projectDir: string
-  readonly configPath: string
 }
 
 function given(command: Command, option: string): boolean {
@@ -61,35 +51,15 @@ function rootCommand(command: Command): Command {
   return node
 }
 
-async function sameFolder(io: InitFolderIo, left: string, right: string): Promise<boolean> {
-  if (left === right) return true
-  const [realLeft, realRight] = await Promise.all([
-    realPathIfPresent(io, left),
-    realPathIfPresent(io, right),
-  ])
-  return (realLeft ?? left) === (realRight ?? right)
-}
-
-// An explicit `--config` names the config file and its folder is the project; parents are never read.
-export async function resolveInitProject(
+export function initFolderOptionRefusal(
   command: Command,
-  dirOption: string,
-  io: InitFolderIo = defaultInitFolderIo,
-): Promise<InitProject> {
-  const root = rootCommand(command)
-  const supplied = root.opts<{ config?: string }>().config
-  if (supplied === undefined || !given(root, 'config')) {
-    const projectDir = io.path.resolve(dirOption)
-    return { projectDir, configPath: io.path.join(projectDir, DEFAULT_CONFIG_FILE) }
+  opts: { dir?: string; config?: string },
+): string | undefined {
+  if (opts.dir !== undefined) {
+    return "agent-qa init sets up the folder it runs in and takes no --dir. Run it in the project's folder."
   }
-  const configPath = io.path.resolve(supplied)
-  const projectDir = io.path.dirname(configPath)
-  if (given(command, 'dir')) {
-    const dir = io.path.resolve(dirOption)
-    if (!(await sameFolder(io, dir, projectDir))) {
-      const line = `agent-qa init does not take --dir ${dir} with --config ${configPath}, which is in another folder. Pass --config alone, or put the --config file directly in --dir.`
-      throw new CliRefusal([pc.red(line)], 2)
-    }
+  if (opts.config !== undefined || given(rootCommand(command), 'config')) {
+    return "agent-qa init sets up the folder it runs in and takes no --config. Run it in the project's folder."
   }
-  return { projectDir, configPath }
+  return undefined
 }

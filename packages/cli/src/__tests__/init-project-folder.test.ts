@@ -1,24 +1,20 @@
-import { mkdirSync, mkdtempSync, rmSync, symlinkSync } from 'node:fs'
-import { tmpdir } from 'node:os'
-import { join, posix, win32, type PlatformPath } from 'node:path'
+import { posix, win32, type PlatformPath } from 'node:path'
 
-import { Command } from 'commander'
-import { afterEach, describe, expect, it } from 'vitest'
+import { Command, Option } from 'commander'
+import { describe, expect, it } from 'vitest'
 
 import {
+  initFolderOptionRefusal,
   initFolderRefusal,
-  resolveInitProject,
   type InitFolderIo,
-  type InitProject,
 } from '../commands/init-project-folder.js'
-import { CliRefusal } from '../composition/cli-refusal.js'
 
 function homeLine(home: string): string {
-  return `agent-qa init does not set up your home folder (${home}). Run it in the project's folder, or pass --dir <folder>.`
+  return `agent-qa init does not set up your home folder (${home}). Run it in the project's folder.`
 }
 
 function rootLine(root: string): string {
-  return `agent-qa init does not set up the filesystem root (${root}). Run it in the project's folder, or pass --dir <folder>.`
+  return `agent-qa init does not set up the filesystem root (${root}). Run it in the project's folder.`
 }
 
 function failure(code: string): NodeJS.ErrnoException {
@@ -99,92 +95,47 @@ describe('the project folder init refuses', () => {
   })
 })
 
-const roots: string[] = []
-
-afterEach(() => {
-  for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
-})
-
-function tempRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-init-project-'))
-  roots.push(root)
-  return root
-}
-
-async function resolveFrom(
-  args: readonly string[],
-  options: { cwd: string; rootConfigOption?: boolean },
-): Promise<InitProject> {
+function optionRefusalFor(args: readonly string[]): string | undefined {
   const root = new Command().enablePositionalOptions().exitOverride()
-  if (options.rootConfigOption !== false) {
-    root.option('--config <path>', 'config file path', 'agent-qa.config.yaml')
-  }
-  let resolved: InitProject | undefined
+  root.option('--config <path>', 'config file path', 'agent-qa.config.yaml')
+  let refusal: string | undefined
+  let ran = false
   root
     .command('init')
-    .option('--dir <path>', 'target directory', options.cwd)
-    .action(async (opts: { dir: string }, command: Command) => {
-      resolved = await resolveInitProject(command, opts.dir)
+    .addOption(new Option('--dir <path>').hideHelp())
+    .addOption(new Option('--config <path>').hideHelp())
+    .action((opts: { dir?: string; config?: string }, command: Command) => {
+      ran = true
+      refusal = initFolderOptionRefusal(command, opts)
     })
-  await root.parseAsync([...args], { from: 'user' })
-  if (resolved === undefined) throw new Error('init did not run')
-  return resolved
+  root.parse([...args], { from: 'user' })
+  if (!ran) throw new Error('init did not run')
+  return refusal
 }
 
-describe('the project folder and config init resolve', () => {
-  it('with no --config the config is agent-qa.config.yaml in --dir', async () => {
-    const root = tempRoot()
-    const dir = join(root, 'app')
-    expect(await resolveFrom(['init'], { cwd: root })).toEqual({
-      projectDir: root,
-      configPath: join(root, 'agent-qa.config.yaml'),
-    })
-    expect(
-      await resolveFrom(['init', '--dir', dir], { cwd: root, rootConfigOption: false }),
-    ).toEqual({ projectDir: dir, configPath: join(dir, 'agent-qa.config.yaml') })
+const DIR_LINE =
+  "agent-qa init sets up the folder it runs in and takes no --dir. Run it in the project's folder."
+const CONFIG_LINE =
+  "agent-qa init sets up the folder it runs in and takes no --config. Run it in the project's folder."
+
+describe('the options init refuses', () => {
+  it('a given --dir is refused', () => {
+    expect(optionRefusalFor(['init', '--dir', '/work/app'])).toBe(DIR_LINE)
   })
 
-  it('a --config left at its default does not name the config', async () => {
-    const root = tempRoot()
-    const dir = join(root, 'app')
-    expect(await resolveFrom(['init', '--dir', dir], { cwd: root })).toEqual({
-      projectDir: dir,
-      configPath: join(dir, 'agent-qa.config.yaml'),
-    })
+  it("init's own --config is refused", () => {
+    expect(optionRefusalFor(['init', '--config', 'custom.yaml'])).toBe(CONFIG_LINE)
   })
 
-  it('--config names the config file and its folder is the project folder', async () => {
-    const root = tempRoot()
-    const config = join(root, 'sub', 'custom.yaml')
-    expect(await resolveFrom(['--config', config, 'init'], { cwd: root })).toEqual({
-      projectDir: join(root, 'sub'),
-      configPath: config,
-    })
+  it('a --config given before init is refused', () => {
+    expect(optionRefusalFor(['--config', 'custom.yaml', 'init'])).toBe(CONFIG_LINE)
   })
 
-  it("--dir naming another folder than the --config file's folder is refused with both paths", async () => {
-    const root = tempRoot()
-    const config = join(root, 'custom.yaml')
-    const dir = join(root, 'e2e')
-    const refused = resolveFrom(['--config', config, 'init', '--dir', dir], { cwd: root })
-    await expect(refused).rejects.toBeInstanceOf(CliRefusal)
-    await expect(refused).rejects.toMatchObject({
-      exitCode: 2,
-      message: `agent-qa init does not take --dir ${dir} with --config ${config}, which is in another folder. Pass --config alone, or put the --config file directly in --dir.`,
-    })
+  it('a --config given as its default value before init is refused', () => {
+    expect(optionRefusalFor(['--config', 'agent-qa.config.yaml', 'init'])).toBe(CONFIG_LINE)
   })
 
-  it("--dir naming the --config file's folder is accepted, with a trailing slash too", async () => {
-    const root = tempRoot()
-    const sub = join(root, 'sub')
-    mkdirSync(sub)
-    symlinkSync(sub, join(root, 'link'), 'dir')
-    const config = join(sub, 'custom.yaml')
-    const expected = { projectDir: sub, configPath: config }
-    for (const dir of [sub, `${sub}/`, join(root, 'link')]) {
-      expect(await resolveFrom(['--config', config, 'init', '--dir', dir], { cwd: root })).toEqual(
-        expected,
-      )
-    }
+  it('a --config left at its default is not refused', () => {
+    expect(optionRefusalFor(['init'])).toBeUndefined()
   })
 })
