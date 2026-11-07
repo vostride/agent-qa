@@ -1,10 +1,15 @@
+import { writeSync } from 'node:fs'
+
 import type { Command } from 'commander'
 import { printRunText, type RunTextEnv } from '@vostride/agent-qa-core/run-text-output'
 
-import { CliRefusal } from './composition/cli-refusal.js'
+import { CANCELLED_LINE, CliRefusal, isPromptCancel } from './composition/cli-refusal.js'
+import { createDeclaredSecretMask } from './composition/declared-secrets.js'
 
 export interface CliFailureDeps {
   readonly print: (text: string) => void
+  readonly printFixed: (line: string) => void
+  readonly mask: (text: string) => string
   readonly setExitCode: (code: number) => void
   readonly flush: () => Promise<void>
   readonly exit: (code: number) => void
@@ -19,9 +24,22 @@ function drain(stream: NodeJS.WriteStream): Promise<void> {
   })
 }
 
-export function defaultCliFailureDeps(_program: Command): CliFailureDeps {
+export function defaultCliFailureDeps(program: Command): CliFailureDeps {
   return {
     print: (text) => console.error(text),
+    // Synchronous, so the line still lands when a prompt was rejected while the process exits.
+    printFixed: (line) => {
+      writeSync(2, `${line}\n`)
+    },
+    // Read at call time, after parsing has set the root --config.
+    mask: (text) => {
+      const configPath = program.opts<{ config?: string }>().config ?? 'agent-qa.config.yaml'
+      try {
+        return createDeclaredSecretMask(configPath).mask(text)
+      } catch {
+        return text
+      }
+    },
     setExitCode: (code) => {
       process.exitCode = code
     },
@@ -34,14 +52,20 @@ export function defaultCliFailureDeps(_program: Command): CliFailureDeps {
 }
 
 export function reportCliFailure(error: unknown, deps: CliFailureDeps): number {
+  if (isPromptCancel(error)) {
+    deps.printFixed(CANCELLED_LINE)
+    return 130
+  }
   if (error instanceof CliRefusal) {
-    if (error.lines.length > 0) printRunText(error.lines.join('\n'), deps.print, { env: deps.env })
+    if (error.lines.length > 0) {
+      printRunText(deps.mask(error.lines.join('\n')), deps.print, { env: deps.env })
+    }
     return error.exitCode === 0 ? 1 : error.exitCode
   }
   const message = error instanceof Error ? error.message : String(error)
   const stack = error instanceof Error && error.stack !== undefined ? error.stack.split('\n') : []
   const frames = stack.filter((line) => FRAME.test(line))
-  printRunText([`Unexpected error: ${message}`, ...frames].join('\n'), deps.print, {
+  printRunText(deps.mask([`Unexpected error: ${message}`, ...frames].join('\n')), deps.print, {
     env: deps.env,
   })
   return 1

@@ -10,6 +10,7 @@ commands, validation commands, and packaged skills.
 
 - `package.json`
 - `src/cli.ts`
+- `src/cli-error-handler.ts`
 - `src/config.ts`
 - `src/commands/init.ts`
 - `src/commands/auth.ts`
