@@ -145,7 +145,7 @@ function setEntry(text: string, block: string, name: string, version: string): s
   )
 }
 
-function isNonRegistrySpec(spec: string): boolean {
+export function isNonRegistrySpec(spec: string): boolean {
   return spec.includes(':') || spec.includes('/')
 }
 

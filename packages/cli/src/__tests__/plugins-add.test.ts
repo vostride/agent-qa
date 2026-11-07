@@ -696,6 +696,100 @@ describe('plugins add with a third-party plugin', () => {
   })
 })
 
+describe('plugins add reports and checks the version package.json keeps', () => {
+  function declarePlugin(root: string, name: string, spec: string): void {
+    writeJson(join(root, 'package.json'), {
+      name: 'app',
+      private: true,
+      devDependencies: { [name]: spec },
+    })
+  }
+
+  it('a bare third-party package declared newer than latest is checked and kept at that version', async () => {
+    const folders = project()
+    declarePlugin(folders.root, GRID, '2.0.0')
+    const run = machine({
+      lookup: registry({
+        [`${GRID}@latest`]: published('1.4.2'),
+        [`${GRID}@2.0.0`]: published('2.0.0'),
+      }),
+    })
+
+    await add(folders, run, [GRID])
+
+    expect(lookups(run)).toEqual([
+      `npm view ${GRID}@latest --json`,
+      `npm view ${GRID}@2.0.0 --json`,
+    ])
+    expect(declaredDependencies(folders.root)).toEqual({ [GRID]: '2.0.0' })
+    expect(stdout()).toContain(`✓ Added the plugins entry grid for ${GRID} 2.0.0.`)
+  })
+
+  it('a newer declared version than the one given exits 2 and changes nothing', async () => {
+    const folders = project()
+    declarePlugin(folders.root, GRID, '2.0.0')
+    const before = snapshot(folders.root)
+    const run = machine({ lookup: registry({ [`${GRID}@1.2.3`]: published('1.2.3') }) })
+
+    const error = await refusal(add(folders, run, [`${GRID}@1.2.3`]))
+
+    expect(error.exitCode).toBe(2)
+    expect(error.message).toBe(
+      `package.json declares ${GRID} at 2.0.0, newer than 1.2.3; nothing was changed. ` +
+        'Change that entry, then run this again.',
+    )
+    expect(snapshot(folders.root)).toEqual(before)
+    expect(installs(run)).toEqual([])
+  })
+
+  it('a third-party package declared from a non-registry source exits 2 before any lookup', async () => {
+    const folders = project()
+    declarePlugin(folders.root, GRID, 'file:../grid')
+    const before = snapshot(folders.root)
+    const run = machine()
+
+    const error = await refusal(add(folders, run, [GRID]))
+
+    expect(error.exitCode).toBe(2)
+    expect(error.message).toBe(
+      `package.json declares ${GRID} as file:../grid, which plugins add cannot check; nothing ` +
+        'was changed. Add the entry by hand: under plugins in ' +
+        `${join(folders.root, 'agent-qa.config.yaml')}, write - name: grid with package: "${GRID}".`,
+    )
+    expect(snapshot(folders.root)).toEqual(before)
+    expect(run.calls).toEqual([])
+  })
+
+  it('a first-party plugin declared newer than agent-qa exits 2 and is not reported as installed', async () => {
+    const folders = project()
+    declarePlugin(folders.root, KERNEL, '99.0.0')
+    writeInstalledPackage(folders.root, KERNEL, '99.0.0')
+    const before = snapshot(folders.root)
+    const run = machine()
+
+    const error = await refusal(add(folders, run, [KERNEL, '--pm', 'npm']))
+
+    expect(error.exitCode).toBe(2)
+    expect(error.message).toBe(
+      `package.json declares ${KERNEL} at 99.0.0, newer than agent-qa ${VERSION}, the version ` +
+        'it must match; nothing was changed. Change that entry, then run this again.',
+    )
+    expect(snapshot(folders.root)).toEqual(before)
+    expect(run.calls).toEqual([])
+    expect(stdout()).not.toContain('✓')
+  })
+
+  it('a first-party plugin declared from a non-registry source keeps it and says so', async () => {
+    const folders = project()
+    declarePlugin(folders.root, KERNEL, 'file:../kernel')
+
+    await add(folders, machine(), [KERNEL, '--pm', 'npm'])
+
+    expect(declaredDependencies(folders.root)).toEqual({ [KERNEL]: 'file:../kernel' })
+    expect(stdout()).toContain(`✓ Added the plugins entry kernel for ${KERNEL} (file:../kernel).`)
+  })
+})
+
 describe('plugins add entry names', () => {
   it.each([
     [KERNEL, 'kernel'],
