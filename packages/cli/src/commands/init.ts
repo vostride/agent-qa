@@ -676,6 +676,18 @@ function incompleteScaffoldError(error: unknown): Error {
   )
 }
 
+// The managed-block classes are matched by name: the unit tests mock their modules without them.
+const INIT_REFUSAL_NAMES = new Set(['Error', 'ManagedBlockRefusal', 'ManagedBlockLockRefusal'])
+
+// A refusal exits 2 with its message alone; a bug or a prompt cancel passes through unchanged.
+function asInitRefusal(error: unknown): unknown {
+  if (error instanceof CliRefusal) return error
+  if (error instanceof Error && INIT_REFUSAL_NAMES.has(error.name)) {
+    return new CliRefusal([pc.red(error.message)], 2, { cause: error })
+  }
+  return error
+}
+
 // Printed flush left: an indented marker line is not a marker, and the writer would refuse it.
 function printAgentInstructionPointer(): void {
   console.log('')
@@ -877,257 +889,262 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         return
       }
 
-      const initStartedAt = Date.now()
-      const dir = resolve(opts.dir)
-      const force = opts.force ?? false
-      // The one path the opt-out read consults: `--dir`-relative unless `--config` is given.
-      const analyticsConfigPath =
-        command.parent?.opts<{ config?: string }>().config ?? join(dir, 'agent-qa.config.yaml')
+      try {
+        const initStartedAt = Date.now()
+        const dir = resolve(opts.dir)
+        const force = opts.force ?? false
+        // The one path the opt-out read consults: `--dir`-relative unless `--config` is given.
+        const analyticsConfigPath =
+          command.parent?.opts<{ config?: string }>().config ?? join(dir, 'agent-qa.config.yaml')
 
-      const tty = hooks.isTTY ?? process.stdin.isTTY === true
-      let asked = false
+        const tty = hooks.isTTY ?? process.stdin.isTTY === true
+        let asked = false
 
-      // Derives the outcome from file outcomes; a scaffold that throws reaches neither call site.
-      const emitInitCompleted = async (
-        results: readonly { readonly outcome: InitFileResult['outcome'] }[],
-      ): Promise<void> => {
-        const { analyticsEvent, composeAnalyticsHost } = await import(
-          '../composition/analytics-host.js'
-        )
-        // Reads this command's own config for the opt-out; an absent config yields `undefined`.
-        const { readAnalyticsPrivacyDeclaration, resolveConfig } = await import('../config.js')
-        let config: Awaited<ReturnType<typeof resolveConfig>> | undefined
-        try {
-          config = await resolveConfig({
-            configPath: analyticsConfigPath,
-            loadAuthPlugins: false,
+        // Derives the outcome from file outcomes; a scaffold that throws reaches neither call site.
+        const emitInitCompleted = async (
+          results: readonly { readonly outcome: InitFileResult['outcome'] }[],
+        ): Promise<void> => {
+          const { analyticsEvent, composeAnalyticsHost } = await import(
+            '../composition/analytics-host.js'
+          )
+          // Reads this command's own config for the opt-out; an absent config yields `undefined`.
+          const { readAnalyticsPrivacyDeclaration, resolveConfig } = await import('../config.js')
+          let config: Awaited<ReturnType<typeof resolveConfig>> | undefined
+          try {
+            config = await resolveConfig({
+              configPath: analyticsConfigPath,
+              loadAuthPlugins: false,
+            })
+          } catch {
+            config = undefined
+          }
+          // Reuses `analyticsConfigPath`, so the declaration comes from the file already chosen.
+          const analyticsConfig =
+            config ?? (await readAnalyticsPrivacyDeclaration(analyticsConfigPath))
+          const analytics = await (hooks.composeAnalytics ?? composeAnalyticsHost)({
+            surface: 'cli',
+            ...(analyticsConfig === undefined ? {} : { config: analyticsConfig }),
           })
-        } catch {
-          config = undefined
+          try {
+            const createdCount = results.filter((result) => result.outcome === 'created').length
+            const updatedCount = results.filter((result) => result.outcome === 'updated').length
+            analytics.port.capture(analyticsEvent(analytics, 'agent-qa.init.completed', {
+              init_mode: asked ? 'interactive' : 'scaffold',
+              outcome: createdCount > 0 ? 'created' : updatedCount > 0 ? 'updated' : 'unchanged',
+              created_file_count: createdCount,
+              duration_ms: Date.now() - initStartedAt,
+            }))
+          } finally {
+            await analytics.shutdown()
+          }
         }
-        // Reuses `analyticsConfigPath`, so the declaration comes from the file already chosen.
-        const analyticsConfig = config ?? await readAnalyticsPrivacyDeclaration(analyticsConfigPath)
-        const analytics = await (hooks.composeAnalytics ?? composeAnalyticsHost)({
-          surface: 'cli',
-          ...(analyticsConfig === undefined ? {} : { config: analyticsConfig }),
-        })
-        try {
-          const createdCount = results.filter((result) => result.outcome === 'created').length
-          const updatedCount = results.filter((result) => result.outcome === 'updated').length
-          analytics.port.capture(analyticsEvent(analytics, 'agent-qa.init.completed', {
-            init_mode: asked ? 'interactive' : 'scaffold',
-            outcome: createdCount > 0 ? 'created' : updatedCount > 0 ? 'updated' : 'unchanged',
-            created_file_count: createdCount,
-            duration_ms: Date.now() - initStartedAt,
-          }))
-        } finally {
-          await analytics.shutdown()
+
+        const refuseBaseUrl = (provider: string): boolean => {
+          const refusal = opts.baseUrl === undefined ? undefined : baseUrlRefusal(provider, opts.baseUrl)
+          if (refusal) {
+            console.error(pc.red(refusal))
+            process.exitCode = 1
+          }
+          return refusal !== undefined
         }
-      }
+        const askLlm = tty && opts.llm === undefined
+        const flaggedLlm = (opts.llm ?? 'claude-code') as InitLLMChoice
+        if (!askLlm && refuseBaseUrl(INIT_LLM_ENTRIES[flaggedLlm].provider)) return
 
-      const refuseBaseUrl = (provider: string): boolean => {
-        const refusal = opts.baseUrl === undefined ? undefined : baseUrlRefusal(provider, opts.baseUrl)
-        if (refusal) {
-          console.error(pc.red(refusal))
-          process.exitCode = 1
+        let platform: InitPlatformInput
+        if (tty && opts.platform === undefined) {
+          asked = true
+          const capabilities = await checkbox<PlatformCapability>({
+            message: 'What platform will you test?',
+            choices: [
+              { value: 'web', name: 'Web', description: 'Test web apps with Playwright', checked: true },
+              { value: 'mobile', name: 'Mobile', description: 'Test Android or iOS apps with Appium', checked: false },
+            ],
+            required: true,
+            validate: (value) => value.length > 0 || 'Select at least one platform.',
+          }) as PlatformCapability[]
+
+          const mobileRuntimes: MobileRuntime[] = capabilities.includes('mobile') ? ['android', 'ios'] : []
+
+          platform = { capabilities, mobileRuntimes }
+        } else {
+          platform = (opts.platform ?? 'web') as Platform
         }
-        return refusal !== undefined
-      }
-      const askLlm = tty && opts.llm === undefined
-      const flaggedLlm = (opts.llm ?? 'claude-code') as InitLLMChoice
-      if (!askLlm && refuseBaseUrl(INIT_LLM_ENTRIES[flaggedLlm].provider)) return
 
-      let platform: InitPlatformInput
-      if (tty && opts.platform === undefined) {
-        asked = true
-        const capabilities = await checkbox<PlatformCapability>({
-          message: 'What platform will you test?',
-          choices: [
-            { value: 'web', name: 'Web', description: 'Test web apps with Playwright', checked: true },
-            { value: 'mobile', name: 'Mobile', description: 'Test Android or iOS apps with Appium', checked: false },
-          ],
-          required: true,
-          validate: (value) => value.length > 0 || 'Select at least one platform.',
-        }) as PlatformCapability[]
-
-        const mobileRuntimes: MobileRuntime[] = capabilities.includes('mobile') ? ['android', 'ios'] : []
-
-        platform = { capabilities, mobileRuntimes }
-      } else {
-        platform = (opts.platform ?? 'web') as Platform
-      }
-
-      let llm: InitLLMChoice = opts.llm ?? 'claude-code'
-      if (askLlm) {
-        asked = true
-        llm = await select<InitLLMChoice>({
-          message: 'Which model connection?',
-          choices: INIT_LLM_CHOICES.map(value => ({ value, name: INIT_LLM_NAMES[value] })),
-          default: 'claude-code',
-        })
-      }
-      const { name: llmName, provider } = INIT_LLM_ENTRIES[llm]
-      if (askLlm && refuseBaseUrl(provider)) return
-
-      let model: string = opts.model ?? defaultModelForProvider(provider)
-      if (tty && opts.model === undefined && !isSubscriptionProvider(provider)) {
-        asked = true
-        model = (await input({
-          message: 'Model:',
-          default: model,
-          validate: (value) => value.trim().length > 0 || 'Enter a model id.',
-        })).trim()
-      }
-
-      const needsBaseURL = getProvider(provider)?.needsBaseURL === true
-      let baseURL: string | undefined = needsBaseURL
-        ? opts.baseUrl ?? INIT_BASE_URL_DEFAULTS[provider]
-        : undefined
-      if (tty && opts.baseUrl === undefined && needsBaseURL) {
-        asked = true
-        baseURL = (await input({
-          message: 'Base URL:',
-          default: baseURL,
-          validate: (value) => baseUrlFormRefusal(value.trim()) ?? true,
-        })).trim()
-      }
-
-      const configPath = join(dir, 'agent-qa.config.yaml')
-      const configClassification = classifyInitPath(configPath, dir)
-      if (configClassification === 'regular' && !force) {
-        const completed = [{ path: configPath, outcome: 'preserved' }] as const
-        console.log(pc.yellow(`Project is already initialized at ${dir}. Use --force to rebuild it.`))
-        printOutcomeSummary(dir, completed)
-        hooks.onComplete?.(completed)
-        await emitInitCompleted(completed)
-        return
-      }
-
-      const config = buildDefaultConfig(platform, [{ name: llmName, provider, model, baseURL }])
-      const usesSubscriptionAuth = configUsesSubscriptionAuth(config)
-      const subscriptionAuthDependency = usesSubscriptionAuth
-        ? buildSubscriptionAuthPackageDependencyPlan(dir)
-        : null
-      const filePlans = buildScaffoldFilePlans(dir, platform, force)
-      const targetGitignorePath = join(dir, '.gitignore')
-      const targetGitignorePlan: InitPathPlan = {
-        root: dir,
-        path: targetGitignorePath,
-        content: '',
-      }
-      const configPlan: InitPathPlan = {
-        root: dir,
-        path: configPath,
-        content: renderScaffoldConfigYaml(config),
-        force,
-      }
-      const agentInstructionsPlan: ManagedBlockUpsertPlan | null = opts.writeAgentInstructions === true
-        ? {
-          root: dir,
-          path: join(dir, ROOT_AGENT_INSTRUCTIONS_FILE),
-          content: agentInstructionPointerContent(),
-        }
-        : null
-      const completePlan = [
-        ...filePlans,
-        ...(subscriptionAuthDependency ? [subscriptionAuthDependency.plan] : []),
-        targetGitignorePlan,
-        ...(agentInstructionsPlan ? [{ root: dir, path: agentInstructionsPlan.path, content: '' }] : []),
-        configPlan,
-      ]
-      const preflight = preflightInitPlan(completePlan)
-      if (agentInstructionsPlan) preflightManagedBlock(agentInstructionsPlan)
-
-      const knowledgeGitignorePath = join(dir, KNOWLEDGE_ROOT_DIR, '.gitignore')
-      const knowledgeGitignoreWasPresent = preflight.some(
-        result => result.path === knowledgeGitignorePath
-          && result.classification === 'regular',
-      )
-      if (knowledgeGitignoreWasPresent) {
-        // The refusal prints its message only, never a stack trace.
-        try {
-          warnForMissingKnowledgeGitignoreRules(knowledgeGitignorePath)
-          verifyEffectiveGitignore({
-            cwd: join(dir, KNOWLEDGE_ROOT_DIR),
-            label: 'existing agent-qa-knowledge/.gitignore',
-            probes: KNOWLEDGE_GITIGNORE_PROBES,
-            // Nothing has been written yet at this point in the run.
-            written: 'nothing',
+        let llm: InitLLMChoice = opts.llm ?? 'claude-code'
+        if (askLlm) {
+          asked = true
+          llm = await select<InitLLMChoice>({
+            message: 'Which model connection?',
+            choices: INIT_LLM_CHOICES.map(value => ({ value, name: INIT_LLM_NAMES[value] })),
+            default: 'claude-code',
           })
-        } catch (error) {
-          console.error(pc.red(error instanceof Error ? error.message : String(error)))
-          process.exitCode = 1
+        }
+        const { name: llmName, provider } = INIT_LLM_ENTRIES[llm]
+        if (askLlm && refuseBaseUrl(provider)) return
+
+        let model: string = opts.model ?? defaultModelForProvider(provider)
+        if (tty && opts.model === undefined && !isSubscriptionProvider(provider)) {
+          asked = true
+          model = (await input({
+            message: 'Model:',
+            default: model,
+            validate: (value) => value.trim().length > 0 || 'Enter a model id.',
+          })).trim()
+        }
+
+        const needsBaseURL = getProvider(provider)?.needsBaseURL === true
+        let baseURL: string | undefined = needsBaseURL
+          ? opts.baseUrl ?? INIT_BASE_URL_DEFAULTS[provider]
+          : undefined
+        if (tty && opts.baseUrl === undefined && needsBaseURL) {
+          asked = true
+          baseURL = (await input({
+            message: 'Base URL:',
+            default: baseURL,
+            validate: (value) => baseUrlFormRefusal(value.trim()) ?? true,
+          })).trim()
+        }
+
+        const configPath = join(dir, 'agent-qa.config.yaml')
+        const configClassification = classifyInitPath(configPath, dir)
+        if (configClassification === 'regular' && !force) {
+          const completed = [{ path: configPath, outcome: 'preserved' }] as const
+          console.log(pc.yellow(`Project is already initialized at ${dir}. Use --force to rebuild it.`))
+          printOutcomeSummary(dir, completed)
+          hooks.onComplete?.(completed)
+          await emitInitCompleted(completed)
           return
         }
-      }
 
-      const outcomes: InitFileResult[] = []
-      let boundary = 0
-      const recordOutcome = (result: InitFileResult): void => {
-        outcomes.push(result)
-        if (result.outcome === 'preserved') return
-        boundary += 1
-        hooks.afterWrite?.(result, boundary)
-      }
-
-      // Written first, so no later scaffold temporary exists before its ignore rule does.
-      recordOutcome(upsertManagedGitignoreBlock(
-        targetGitignorePath,
-        buildGitignoreEntries(),
-      ))
-      verifyEffectiveGitignore({
-        cwd: dir,
-        label: 'target .gitignore',
-        probes: TARGET_GITIGNORE_PROBES,
-        // The managed block is on disk by now — the refusal must not say otherwise.
-        written: 'managed-gitignore',
-      })
-
-      for (const plan of filePlans) {
-        recordOutcome(writeScaffoldFileAtomic(plan, {}))
-      }
-
-      if (!knowledgeGitignoreWasPresent) {
-        verifyEffectiveGitignore({
-          cwd: join(dir, KNOWLEDGE_ROOT_DIR),
-          label: 'agent-qa-knowledge/.gitignore',
-          probes: KNOWLEDGE_GITIGNORE_PROBES,
-          // This one runs AFTER the scaffold loop: the whole scaffold is published.
-          written: 'managed-gitignore-and-scaffold',
-        })
-      }
-
-      if (subscriptionAuthDependency) {
-        recordOutcome(writeScaffoldFileAtomic(subscriptionAuthDependency.plan, {}))
-      }
-
-      if (agentInstructionsPlan) {
-        try {
-          recordOutcome(upsertManagedBlock(agentInstructionsPlan))
-        } catch (error) {
-          throw incompleteScaffoldError(error)
+        const config = buildDefaultConfig(platform, [{ name: llmName, provider, model, baseURL }])
+        const usesSubscriptionAuth = configUsesSubscriptionAuth(config)
+        const subscriptionAuthDependency = usesSubscriptionAuth
+          ? buildSubscriptionAuthPackageDependencyPlan(dir)
+          : null
+        const filePlans = buildScaffoldFilePlans(dir, platform, force)
+        const targetGitignorePath = join(dir, '.gitignore')
+        const targetGitignorePlan: InitPathPlan = {
+          root: dir,
+          path: targetGitignorePath,
+          content: '',
         }
+        const configPlan: InitPathPlan = {
+          root: dir,
+          path: configPath,
+          content: renderScaffoldConfigYaml(config),
+          force,
+        }
+        const agentInstructionsPlan: ManagedBlockUpsertPlan | null = opts.writeAgentInstructions === true
+          ? {
+            root: dir,
+            path: join(dir, ROOT_AGENT_INSTRUCTIONS_FILE),
+            content: agentInstructionPointerContent(),
+          }
+          : null
+        const completePlan = [
+          ...filePlans,
+          ...(subscriptionAuthDependency ? [subscriptionAuthDependency.plan] : []),
+          targetGitignorePlan,
+          ...(agentInstructionsPlan ? [{ root: dir, path: agentInstructionsPlan.path, content: '' }] : []),
+          configPlan,
+        ]
+        const preflight = preflightInitPlan(completePlan)
+        if (agentInstructionsPlan) preflightManagedBlock(agentInstructionsPlan)
+
+        const knowledgeGitignorePath = join(dir, KNOWLEDGE_ROOT_DIR, '.gitignore')
+        const knowledgeGitignoreWasPresent = preflight.some(
+          result => result.path === knowledgeGitignorePath
+            && result.classification === 'regular',
+        )
+        if (knowledgeGitignoreWasPresent) {
+          // The refusal prints its message only, never a stack trace.
+          try {
+            warnForMissingKnowledgeGitignoreRules(knowledgeGitignorePath)
+            verifyEffectiveGitignore({
+              cwd: join(dir, KNOWLEDGE_ROOT_DIR),
+              label: 'existing agent-qa-knowledge/.gitignore',
+              probes: KNOWLEDGE_GITIGNORE_PROBES,
+              // Nothing has been written yet at this point in the run.
+              written: 'nothing',
+            })
+          } catch (error) {
+            console.error(pc.red(error instanceof Error ? error.message : String(error)))
+            process.exitCode = 1
+            return
+          }
+        }
+
+        const outcomes: InitFileResult[] = []
+        let boundary = 0
+        const recordOutcome = (result: InitFileResult): void => {
+          outcomes.push(result)
+          if (result.outcome === 'preserved') return
+          boundary += 1
+          hooks.afterWrite?.(result, boundary)
+        }
+
+        // Written first, so no later scaffold temporary exists before its ignore rule does.
+        recordOutcome(upsertManagedGitignoreBlock(
+          targetGitignorePath,
+          buildGitignoreEntries(),
+        ))
+        verifyEffectiveGitignore({
+          cwd: dir,
+          label: 'target .gitignore',
+          probes: TARGET_GITIGNORE_PROBES,
+          // The managed block is on disk by now — the refusal must not say otherwise.
+          written: 'managed-gitignore',
+        })
+
+        for (const plan of filePlans) {
+          recordOutcome(writeScaffoldFileAtomic(plan, {}))
+        }
+
+        if (!knowledgeGitignoreWasPresent) {
+          verifyEffectiveGitignore({
+            cwd: join(dir, KNOWLEDGE_ROOT_DIR),
+            label: 'agent-qa-knowledge/.gitignore',
+            probes: KNOWLEDGE_GITIGNORE_PROBES,
+            // This one runs AFTER the scaffold loop: the whole scaffold is published.
+            written: 'managed-gitignore-and-scaffold',
+          })
+        }
+
+        if (subscriptionAuthDependency) {
+          recordOutcome(writeScaffoldFileAtomic(subscriptionAuthDependency.plan, {}))
+        }
+
+        if (agentInstructionsPlan) {
+          try {
+            recordOutcome(upsertManagedBlock(agentInstructionsPlan))
+          } catch (error) {
+            throw incompleteScaffoldError(error)
+          }
+        }
+
+        recordOutcome(writeConfigMarkerLast(configPlan, {}))
+        hooks.onComplete?.([...outcomes])
+
+        // AFTER the config marker — the scaffold's last write — so the event describes a
+        // project that exists rather than one being attempted.
+        await emitInitCompleted(outcomes)
+
+        console.log('')
+        console.log(pc.green(pc.bold('✓ agent-qa project initialized!')))
+        console.log('')
+        printOutcomeSummary(dir, outcomes)
+        const secretsPath = join(dir, DEFAULT_SECRETS_FILE)
+        const secretsPreserved = outcomes.some(
+          result => result.path === secretsPath && result.outcome === 'preserved',
+        )
+        if (hasWeb(platform) && secretsPreserved) printExampleSecretLine()
+        printNextSteps(platform, config, dir)
+        if (!agentInstructionsPlan) printAgentInstructionPointer()
+        console.log('')
+      } catch (error) {
+        throw asInitRefusal(error)
       }
-
-      recordOutcome(writeConfigMarkerLast(configPlan, {}))
-      hooks.onComplete?.([...outcomes])
-
-      // AFTER the config marker — the scaffold's last write — so the event describes a project
-      // that exists rather than one being attempted.
-      await emitInitCompleted(outcomes)
-
-      console.log('')
-      console.log(pc.green(pc.bold('✓ agent-qa project initialized!')))
-      console.log('')
-      printOutcomeSummary(dir, outcomes)
-      const secretsPath = join(dir, DEFAULT_SECRETS_FILE)
-      const secretsPreserved = outcomes.some(
-        result => result.path === secretsPath && result.outcome === 'preserved',
-      )
-      if (hasWeb(platform) && secretsPreserved) printExampleSecretLine()
-      printNextSteps(platform, config, dir)
-      if (!agentInstructionsPlan) printAgentInstructionPointer()
-      console.log('')
     })
 
   // Commander has printed its own line; a usage error exits 2, and help returns so commander exits 0.
