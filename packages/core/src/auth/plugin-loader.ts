@@ -21,6 +21,8 @@ export interface LoadLLMAuthPluginsOptions {
   baseDir?: string
   // The config's registry.remotes; an entry one of them names is refused at run start instead.
   remotes?: readonly PluginRemoteInput[]
+  // The config the person named; fix lines carry it when it is not the default.
+  configPath?: string
 }
 
 type AuthPluginFactory = () => AuthPluginBundle | Promise<AuthPluginBundle>
@@ -70,7 +72,11 @@ export async function loadLLMAuthPlugins(
   const { load, refusals } = selectInProcessPluginEntries(
     entries,
     'model-auth',
-    { configDir: baseDir, agentQaVersion: getAgentQaVersion() },
+    {
+      configDir: baseDir,
+      agentQaVersion: getAgentQaVersion(),
+      ...(options.configPath === undefined ? {} : { configPath: options.configPath }),
+    },
     options.remotes,
   )
   const [refused] = refusals
@@ -79,7 +85,7 @@ export async function loadLLMAuthPlugins(
     const subscription =
       entry !== undefined && packageDeclarationValue(entry) === SUBSCRIPTION_AUTH_PACKAGE
     if (refused.state === 'not_installed' && subscription) {
-      throw new PluginNotInstalledError(entry, 'auth')
+      throw new PluginNotInstalledError(entry, 'auth', options.configPath)
     }
     throw new Error(refused.reason)
   }
@@ -90,7 +96,12 @@ export async function loadLLMAuthPlugins(
     const key = declarationKey(declaration, baseDir)
     if (loadedDeclarations.has(key)) continue
 
-    const module = await importDeclaredPluginModule<AuthPluginModule>(declaration, baseDir, 'auth')
+    const module = await importDeclaredPluginModule<AuthPluginModule>(
+      declaration,
+      baseDir,
+      'auth',
+      options.configPath,
+    )
     const bundle = await resolvePluginBundle(module, resolved.label)
 
     registerLLMAuthProviderPlugins(bundle.providers)

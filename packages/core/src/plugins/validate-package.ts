@@ -25,6 +25,7 @@ export interface PluginPackageReport {
 
 export interface ValidatePluginPackageOptions {
   configDir: string
+  configPath?: string
   agentQaVersion: string
   cwd?: string
 }
@@ -84,7 +85,7 @@ function locate(
   }
   const packageJsonPath = findPackageJson(target, options.configDir)
   if (packageJsonPath !== null) return { packageJsonPath }
-  const install = pluginInstallLine({ name: target, package: target })
+  const install = pluginInstallLine({ name: target, package: target }, options.configPath)
   if (install === undefined) {
     return { check: failed('package', [`${target} is not an npm package name or a folder`]) }
   }

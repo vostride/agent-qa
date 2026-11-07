@@ -109,6 +109,35 @@ describe('plugin fix lines', () => {
     },
   )
 
+  it('names --config when the config is not agent-qa.config.yaml in the current folder', () => {
+    const cwd = process.cwd()
+
+    expect(pluginInstallLine({ name: 'acme', package: ACME }, join(cwd, 'agent-qa.config.yaml')))
+      .toBe(`npx agent-qa plugins add ${ACME}`)
+    expect(pluginInstallLine({ name: 'acme', package: ACME }, join(cwd, 'staging.yaml'))).toBe(
+      `npx agent-qa --config staging.yaml plugins add ${ACME}`,
+    )
+    expect(pluginInstallLine({ name: 'acme', package: ACME }, 'sub/agent-qa.config.yaml')).toBe(
+      `npx agent-qa --config sub/agent-qa.config.yaml plugins add ${ACME}`,
+    )
+    expect(pluginInstallLine({ name: 'acme', package: ACME }, "my app/it's.yaml")).toBe(
+      `npx agent-qa --config 'my app/it'\\''s.yaml' plugins add ${ACME}`,
+    )
+  })
+
+  it('a refusal for a config named with --config carries it in its fix line', () => {
+    const configPath = join(fixture.configDir, 'staging.yaml')
+    const resolved = resolvePluginEntry(
+      { name: 'scripted', package: SCRIPTED },
+      { ...options, configPath },
+    )
+
+    expect(resolved.install).toMatch(
+      new RegExp(`^npx agent-qa --config \\S*staging\\.yaml plugins add ${SCRIPTED}$`, 'u'),
+    )
+    expect(resolved.reason).toContain(`Run ${resolved.install}.`)
+  })
+
   it('tells a missing first-party plugin to run plugins add', () => {
     expect(resolvePluginEntry({ name: 'scripted', package: SCRIPTED }, options)).toMatchObject({
       state: 'not_installed',

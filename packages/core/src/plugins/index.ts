@@ -3,7 +3,7 @@ export {
   type PluginDescription,
   type PluginField,
 } from './describe.js'
-export { isNpmPackageName } from '../plugin-loader-util.js'
+export { isNpmPackageName, pluginsAddLine } from '../plugin-loader-util.js'
 export {
   readPluginManifest,
   SUBSCRIPTION_AUTH_PACKAGE,

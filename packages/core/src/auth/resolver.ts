@@ -1,3 +1,4 @@
+import { pluginsAddLine } from '../plugin-loader-util.js'
 import { getLLMAuthProviderPlugin, type LLMAuthProviderPlugin } from './plugin-registry.js'
 import { getCredential, writeAuth } from './store.js'
 import type { AuthCredential, LLMProviderMode, OAuthTokens, ResolvedLLMAuth } from './types.js'
@@ -21,7 +22,12 @@ function onPublicProviderApi(baseURL: string | undefined): boolean {
   return PUBLIC_PROVIDER_API_HOSTS.includes(new URL(baseURL).hostname)
 }
 
-function missingMessage(configName: string, provider: string, plugin?: LLMAuthProviderPlugin): string {
+function missingMessage(
+  configName: string,
+  provider: string,
+  plugin?: LLMAuthProviderPlugin,
+  configPath?: string,
+): string {
   if (plugin) {
     return `Sign in to "${plugin.label}" for the "${configName}" config: agent-qa auth login --config ${configName}`
   }
@@ -36,7 +42,7 @@ function missingMessage(configName: string, provider: string, plugin?: LLMAuthPr
       return `Save an API key for the "${configName}" config: ${setKey} (or --type bearer-token)`
     case 'openai-subscription':
     case 'anthropic-subscription':
-      return `Provider "${provider}" needs the subscription-auth plugin: run npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}.`
+      return `Provider "${provider}" needs the subscription-auth plugin: run ${pluginsAddLine(SUBSCRIPTION_AUTH_PACKAGE, configPath)}.`
     default:
       return `Provider "${provider}" requires an auth plugin.`
   }
@@ -67,19 +73,25 @@ function unusableCredential(
   configName: string,
   provider: string,
   plugin?: LLMAuthProviderPlugin,
+  configPath?: string,
 ): ResolvedLLMAuth {
   return isCompatibleProvider(provider)
     ? unauthenticated(configName, provider)
-    : missing(configName, provider, plugin)
+    : missing(configName, provider, plugin, configPath)
 }
 
-function missing(configName: string, provider: string, plugin?: LLMAuthProviderPlugin): ResolvedLLMAuth {
+function missing(
+  configName: string,
+  provider: string,
+  plugin?: LLMAuthProviderPlugin,
+  configPath?: string,
+): ResolvedLLMAuth {
   return {
     kind: 'missing',
     credentialKey: configName,
     provider,
     required: true,
-    message: missingMessage(configName, provider, plugin),
+    message: missingMessage(configName, provider, plugin, configPath),
   }
 }
 
@@ -131,10 +143,12 @@ function authFetch(
   }
 }
 
+// configPath is the config the person named; the plugin fix line carries it when not the default.
 export async function resolveLLMAuth(
   configName: string,
   llmConfig: LLMAuthConfig,
   authPath?: string,
+  configPath?: string,
 ): Promise<ResolvedLLMAuth> {
   const credential = await getCredential(configName, authPath)
   const plugin = getLLMAuthProviderPlugin(llmConfig.provider)
@@ -144,15 +158,15 @@ export async function resolveLLMAuth(
     if (isCompatibleProvider(llmConfig.provider) && !onPublicProviderApi(llmConfig.baseURL)) {
       return unauthenticated(configName, llmConfig.provider)
     }
-    return missing(configName, llmConfig.provider, plugin)
+    return missing(configName, llmConfig.provider, plugin, configPath)
   }
 
   if (credential.type === 'api') {
     if (credential.provider !== llmConfig.provider) {
-      return unusableCredential(configName, llmConfig.provider, plugin)
+      return unusableCredential(configName, llmConfig.provider, plugin, configPath)
     }
     if (!usesApiKey(llmConfig.provider, plugin)) {
-      return missing(configName, llmConfig.provider, plugin)
+      return missing(configName, llmConfig.provider, plugin, configPath)
     }
     return {
       kind: 'api-key',
@@ -164,7 +178,7 @@ export async function resolveLLMAuth(
 
   if (credential.type === 'bearer') {
     if (credential.provider !== llmConfig.provider || llmConfig.provider !== 'anthropic-compatible') {
-      return unusableCredential(configName, llmConfig.provider, plugin)
+      return unusableCredential(configName, llmConfig.provider, plugin, configPath)
     }
     return {
       kind: 'bearer-token',
@@ -177,12 +191,12 @@ export async function resolveLLMAuth(
   if (credential.type === 'oauth') {
     if (plugin) {
       if (credential.provider !== plugin.credentialProviderId) {
-        return missing(configName, llmConfig.provider, plugin)
+        return missing(configName, llmConfig.provider, plugin, configPath)
       }
       return authFetch(configName, plugin, credential, authPath)
     }
-    return unusableCredential(configName, llmConfig.provider)
+    return unusableCredential(configName, llmConfig.provider, undefined, configPath)
   }
 
-  return missing(configName, llmConfig.provider, plugin)
+  return missing(configName, llmConfig.provider, plugin, configPath)
 }

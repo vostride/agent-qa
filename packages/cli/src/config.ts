@@ -359,6 +359,7 @@ export async function loadConfigPlugins(config: AgentQaConfig, configPath: strin
   await loadLLMAuthPlugins(config.plugins ?? [], {
     baseDir: dirname(resolvePath(configPath)),
     remotes: config.registry?.remotes ?? [],
+    configPath,
   })
   const { loadProviderPluginsForRawConfig } = await import('./provider-plugins.js')
   await loadProviderPluginsForRawConfig(config, configPath)

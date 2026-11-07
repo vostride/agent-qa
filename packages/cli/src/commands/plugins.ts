@@ -38,6 +38,7 @@ interface JsonOption {
 interface PluginProject {
   config: AgentQaConfig
   configDir: string
+  configPath: string
 }
 
 interface PluginListRow {
@@ -60,7 +61,7 @@ function configPathOf(command: Command): string {
 async function loadProject(command: Command): Promise<PluginProject> {
   const configPath = configPathOf(command)
   const config = await resolveConfig({ configPath, loadAuthPlugins: false })
-  return { config, configDir: dirname(configPath) }
+  return { config, configDir: dirname(configPath), configPath }
 }
 
 function protocolOf(manifest: PluginManifest | undefined): number | undefined {
@@ -78,7 +79,11 @@ function pluginListRows(project: PluginProject): PluginListRow[] {
   const remotes = pluginRemotes(project.config)
   const resolved = resolvePluginEntries(
     { plugins, remotes },
-    { configDir: project.configDir, agentQaVersion: getAgentQaVersion() },
+    {
+      configDir: project.configDir,
+      configPath: project.configPath,
+      agentQaVersion: getAgentQaVersion(),
+    },
   )
   return resolved.map((entry, index) =>
     listRow(
@@ -179,6 +184,7 @@ function describeEntry(project: PluginProject, name: string): PluginDescription 
   return describePlugin(
     resolvePluginEntry(entry, {
       configDir: project.configDir,
+      configPath: project.configPath,
       agentQaVersion: getAgentQaVersion(),
     }),
   )
@@ -252,8 +258,10 @@ interface PluginValidation {
 // The static checks read files only; the quick conformance pass is the one step that runs the
 // plugin, and it sends no vendor options and never acquires.
 async function validatePlugin(command: Command, target: string): Promise<PluginValidation> {
+  const configPath = configPathOf(command)
   const report = validatePluginPackage(target, {
-    configDir: dirname(configPathOf(command)),
+    configDir: dirname(configPath),
+    configPath,
     agentQaVersion: getAgentQaVersion(),
   })
   const checks = [...report.checks]

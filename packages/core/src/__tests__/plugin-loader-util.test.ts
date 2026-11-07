@@ -249,6 +249,19 @@ describe('the install suggestion is a command only when the name is one', () => 
     expect(message).not.toContain('npm install')
   })
 
+  it('the plugins add line names a config that is not the default one', () => {
+    const message = new PluginNotInstalledError(
+      { name: 'subscription', package: '@vostride/agent-qa-subscription-auth' },
+      'auth',
+      resolve('qa', 'agent-qa.config.yaml'),
+    ).message
+
+    expect(message).toContain(
+      'Install it with npx agent-qa --config qa/agent-qa.config.yaml plugins add '
+        + '@vostride/agent-qa-subscription-auth, or remove',
+    )
+  })
+
   it('a path declaration names its path and no install command', () => {
     const message = new PluginNotInstalledError(
       { name: 'local', path: 'plugins/local-auth.js' },

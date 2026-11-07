@@ -76,6 +76,7 @@ export function createRunPluginHost(input: RunPluginHostInput): PluginHostPool {
   const { addMaskExtras, onProgress } = input
   return createPluginHostPool({
     configDir: dirname(resolve(input.configPath)),
+    configPath: input.configPath,
     plugins: input.config.plugins ?? [],
     agentQaVersion: getAgentQaVersion(),
     hostVersions: pluginHostVersions(import.meta.url),

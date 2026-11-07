@@ -7,6 +7,7 @@ import {
   isNpmPackageName,
   NameSlugSchema,
   PluginEntrySchema,
+  pluginsAddLine,
 } from '@vostride/agent-qa-core'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import {
@@ -119,11 +120,15 @@ function configPathOf(command: Command, host: ProjectHost): { given: string; pat
   return { given, path }
 }
 
-function firstPartyVersion(requested: Requested, version: string): string {
+function firstPartyVersion(
+  requested: Requested,
+  version: string,
+  config: { path: string; cwd: string },
+): string {
   if (requested.version !== undefined && requested.version !== version) {
     refuse(
       `${requested.name} runs only at agent-qa's version, ${version}. ` +
-        `Run npx agent-qa plugins add ${requested.name}.`,
+        `Run ${pluginsAddLine(requested.name, config.path, config.cwd)}.`,
     )
   }
   return version
@@ -354,6 +359,7 @@ async function addPlugin(
     ? firstPartyVersion(
         requested,
         loadingAgentQaVersion({ found, copy, range, manager, requested }),
+        { path: config.path, cwd: host.cwd },
       )
     : undefined
   const where = relative(range.start, found.path) || 'package.json'

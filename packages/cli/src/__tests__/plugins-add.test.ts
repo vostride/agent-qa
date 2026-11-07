@@ -1,6 +1,7 @@
 // plugins add: declare, install and enable, on temporary projects with a fake runner.
 import {
   existsSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   readdirSync,
@@ -512,6 +513,21 @@ describe('plugins add refusals', () => {
     expect(error.message).toContain(line)
     expect(snapshot(folders.root)).toEqual(before)
     expect(run.calls).toEqual([])
+  })
+
+  it('the version refusal for a config named with --config carries it in its fix line', async () => {
+    const { root, home } = tempProject('plugins-add')
+    mkdirSync(join(root, 'qa'))
+    writeFileSync(join(root, 'qa', 'staging.yaml'), [...WORKSPACE, 'plugins: []', ''].join('\n'))
+
+    const error = await refusal(
+      add({ root, home }, machine(), [`${KERNEL}@0.0.1`], join(root, 'qa', 'staging.yaml')),
+    )
+
+    expect(error.message).toBe(
+      `${KERNEL} runs only at agent-qa's version, ${VERSION}. ` +
+        `Run npx agent-qa --config qa/staging.yaml plugins add ${KERNEL}.`,
+    )
   })
 
   it.each(['--x', '-x', '-x@1.0.0'])(
