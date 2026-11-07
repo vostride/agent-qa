@@ -1062,15 +1062,18 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         // project that exists rather than one being attempted.
         await emitInitCompleted(outcomes)
 
-        if (opts.pm === 'none') {
-          await runInstallStep({
-            host,
+        await runInstallStep({
+          host,
+          range,
+          packageJson: packageJsonPlan,
+          manager: detectPackageManager({
             range,
-            packageJson: packageJsonPlan,
-            manager: detectPackageManager({ range, env: host.env, io: host.io }),
-            mode: 'none',
-          })
-        }
+            env: host.env,
+            io: host.io,
+            ...(opts.pm === undefined || opts.pm === 'none' ? {} : { flag: opts.pm }),
+          }),
+          mode: opts.pm === 'none' ? 'none' : 'run',
+        })
 
         console.log('')
         console.log(pc.green(pc.bold('✓ agent-qa project initialized!')))
