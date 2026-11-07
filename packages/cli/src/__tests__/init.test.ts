@@ -795,20 +795,70 @@ describe('init command', () => {
     expect((content.match(/^\.agent-qa\/auth-states\/$/gm) || []).length).toBe(2)
   })
 
-  it('skips if config exists and no --force', async () => {
-    mockExistsSync.mockImplementation((p) => {
-      if ((p as string).endsWith('agent-qa.config.yaml')) return true
-      return false
+  describe('an initialized project', () => {
+    const alreadyInitialized =
+      'Project is already initialized at /tmp/test-project. Use --force to rebuild it.'
+
+    beforeEach(() => {
+      process.exitCode = undefined
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      mockExistsSync.mockImplementation(
+        (p) => p === join('/tmp/test-project', 'agent-qa.config.yaml'),
+      )
     })
 
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+    afterEach(() => {
+      process.exitCode = undefined
+    })
 
-    // Should not write config file
-    const configCall = mockWriteFileSync.mock.calls.find(
-      (call) => (call[0] as string).endsWith('agent-qa.config.yaml'),
-    )
-    expect(configCall).toBeUndefined()
-    expect(consoleOutput()).toContain('Preserved:\n    • agent-qa.config.yaml')
+    it('an initialized project asks nothing and writes nothing without --force', async () => {
+      await runInit(['--dir', '/tmp/test-project'], { isTTY: true })
+
+      expect(mockCheckbox).not.toHaveBeenCalled()
+      expect(mockSelect).not.toHaveBeenCalled()
+      expect(mockInput).not.toHaveBeenCalled()
+      expect(mockWriteConfigMarkerLast).not.toHaveBeenCalled()
+      expect(findWriteCallEndingWith('agent-qa.config.yaml')).toBeUndefined()
+      expect(consoleOutput()).toContain(alreadyInitialized)
+      expect(consoleOutput()).toContain('Preserved:\n    • agent-qa.config.yaml')
+      expect(process.exitCode).toBeUndefined()
+    })
+
+    it('a flag init would refuse is not checked on an initialized project', async () => {
+      await runInit([
+        '--dir',
+        '/tmp/test-project',
+        '--llm',
+        'codex',
+        '--base-url',
+        'https://x.test/v1',
+      ])
+
+      expect(consoleOutput()).toContain(alreadyInitialized)
+      expect(vi.mocked(console.error)).not.toHaveBeenCalled()
+      expect(process.exitCode).toBeUndefined()
+    })
+
+    it('with --force an initialized project is asked the questions and rebuilt', async () => {
+      mockCheckbox.mockResolvedValueOnce(['web'])
+      mockSelect.mockResolvedValueOnce('gemini')
+      mockInput.mockResolvedValueOnce('gemini-3-flash-preview')
+
+      await runInit(['--dir', '/tmp/test-project', '--force'], { isTTY: true })
+
+      expect(mockCheckbox).toHaveBeenCalledTimes(1)
+      expect(consoleOutput()).not.toContain(alreadyInitialized)
+      expect(findWriteCallEndingWith(join('/tmp/test-project', 'agent-qa.config.yaml')))
+        .toBeDefined()
+    })
+
+    it('a folder inside an initialized project is set up as its own project', async () => {
+      await runInit(['--dir', '/tmp/test-project/pkg', '--platform', 'web'])
+
+      expect(findWriteCallEndingWith(join('/tmp/test-project/pkg', 'agent-qa.config.yaml')))
+        .toBeDefined()
+      expect(consoleOutput()).not.toContain('already initialized')
+    })
   })
 
   describe('the folders init refuses', () => {
