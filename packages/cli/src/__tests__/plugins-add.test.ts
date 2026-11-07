@@ -437,6 +437,59 @@ describe("plugins add runs as the project's agent-qa", () => {
   })
 })
 
+describe('plugins add pins a first-party plugin to the agent-qa the install leaves', () => {
+  function declare(root: string, spec: string): void {
+    writeJson(join(root, 'package.json'), {
+      name: 'app',
+      private: true,
+      devDependencies: { 'agent-qa': spec },
+    })
+  }
+
+  it('an exact agent-qa that package.json declares and nothing has installed sets the pin', async () => {
+    const folders = project()
+    declare(folders.root, '0.0.2')
+    const run = machine()
+
+    await add(folders, run, [KERNEL, '--pm', 'npm'])
+
+    expect(declaredDependencies(folders.root)).toEqual({ 'agent-qa': '0.0.2', [KERNEL]: '0.0.2' })
+    expect(installs(run).map(argv)).toEqual(['npm install'])
+    expect(stdout()).toContain(`✓ Added the plugins entry kernel for ${KERNEL} 0.0.2.`)
+  })
+
+  it('the declared exact version wins over an installed copy the install will replace', async () => {
+    const folders = project()
+    declare(folders.root, '0.0.2')
+    writeInstalledPackage(folders.root, 'agent-qa', '0.0.1', {
+      packageJson: { bin: { 'agent-qa': 'dist/cli.js' } },
+      files: { 'dist/cli.js': '' },
+    })
+    const run = machine()
+
+    await add(folders, run, [KERNEL, '--pm', 'npm'])
+
+    expect(declaredDependencies(folders.root)).toEqual({ 'agent-qa': '0.0.2', [KERNEL]: '0.0.2' })
+  })
+
+  it('a declared range with nothing installed exits 2, names the install to run first and changes nothing', async () => {
+    const folders = project()
+    declare(folders.root, '^0.0.2')
+    const before = snapshot(folders.root)
+    const run = machine()
+
+    const error = await refusal(add(folders, run, [KERNEL, '--pm', 'pnpm']))
+
+    expect(error.exitCode).toBe(2)
+    expect(error.message).toBe(
+      `package.json declares agent-qa as ^0.0.2, and none is installed, so the version ${KERNEL} ` +
+        'must match is not known. Run pnpm install, then run this again.',
+    )
+    expect(snapshot(folders.root)).toEqual(before)
+    expect(run.calls).toEqual([])
+  })
+})
+
 describe('plugins add refusals', () => {
   it.each([
     ['./plugins/x', 'agent-qa plugins add takes an npm package name. Add a path plugin by hand'],

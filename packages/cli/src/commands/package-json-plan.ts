@@ -89,6 +89,21 @@ function asObject(value: unknown): JsonObject | undefined {
     : undefined
 }
 
+// The spec in the first dependency block that names the package, as written.
+export function declaredSpec(text: string | undefined, name: string): string | undefined {
+  let declared: JsonObject | undefined
+  try {
+    declared = asObject(JSON.parse(text ?? ''))
+  } catch {
+    return undefined
+  }
+  for (const block of DEPENDENCY_BLOCKS) {
+    const spec = asObject(declared?.[block])?.[name]
+    if (spec !== undefined) return typeof spec === 'string' ? spec : undefined
+  }
+  return undefined
+}
+
 export function parsePackageJson(path: string, text: string): JsonObject {
   let value: unknown
   try {
