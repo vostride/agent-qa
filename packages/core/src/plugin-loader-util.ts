@@ -1,6 +1,6 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, realpathSync } from 'node:fs'
 import { createRequire } from 'node:module'
-import { dirname, isAbsolute, relative, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 export type PluginDeclarationLike = {
@@ -45,22 +45,35 @@ export function isNpmPackageName(name: string): boolean {
 
 const DEFAULT_CONFIG_FILE = 'agent-qa.config.yaml'
 
+function sameFolder(left: string, right: string): boolean {
+  if (resolve(left) === resolve(right)) return true
+  try {
+    return realpathSync(left) === realpathSync(right)
+  } catch {
+    return false
+  }
+}
+
 function shellWord(word: string): string {
   if (/^[\w@%+=:,./-]+$/u.test(word)) return word
   return `'${word.replaceAll("'", `'\\''`)}'`
 }
 
 // Run from the current folder, the line names --config unless the config is agent-qa.config.yaml
-// there, so it edits the config the refusing command read.
+// there, so it edits the config the refusing command read. The path is the shorter of the relative
+// and the absolute one.
 export function pluginsAddLine(
   packageName: string,
   configPath?: string,
   cwd: string = process.cwd(),
 ): string {
-  if (configPath === undefined) return `npx agent-qa plugins add ${packageName}`
+  const plain = `npx agent-qa plugins add ${packageName}`
+  if (configPath === undefined) return plain
   const config = resolve(cwd, configPath)
-  if (config === resolve(cwd, DEFAULT_CONFIG_FILE)) return `npx agent-qa plugins add ${packageName}`
-  return `npx agent-qa --config ${shellWord(relative(cwd, config))} plugins add ${packageName}`
+  if (basename(config) === DEFAULT_CONFIG_FILE && sameFolder(dirname(config), cwd)) return plain
+  const fromCwd = relative(cwd, config)
+  const shown = fromCwd.length <= config.length ? fromCwd : config
+  return `npx agent-qa --config ${shellWord(shown)} plugins add ${packageName}`
 }
 
 function joinsAsPackagePath(packageName: string): boolean {

@@ -6,7 +6,7 @@ import path from 'node:path'
 import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getAgentQaVersion } from '@vostride/agent-qa-core'
+import { getAgentQaVersion, pluginsAddLine } from '@vostride/agent-qa-core'
 import { writeScriptedPlugin } from '@vostride/agent-qa-plugin-kit/testing'
 
 import { createPluginCommand, createPluginsCommand } from '../commands/plugins.js'
@@ -193,8 +193,10 @@ describe('agent-qa plugins list', () => {
     })
   })
 
-  const install = (name: string) => `npx agent-qa plugins add ${name}`
-  const reasons: Record<string, string> = {
+  // The run names its config with --config from another folder, so the line carries it.
+  const install = (name: string) =>
+    pluginsAddLine(name, path.join(workspaceDir, 'agent-qa.config.yaml'))
+  const reasons = (): Record<string, string> => ({
     absent:
       `Plugin entry absent names ${missing}, which is not installed. Run ${install(missing)}.`,
     old:
@@ -209,7 +211,7 @@ describe('agent-qa plugins list', () => {
     spare:
       'Plugin entry spare is used by no remote. Name it from a remote in registry.remotes, or '
       + 'remove it.',
-  }
+  })
 
   const acme = (id: string) => `@acme/agent-qa-plugin-${id}`
   const rows = [
@@ -233,7 +235,7 @@ describe('agent-qa plugins list', () => {
       )
       expect(index).toBeGreaterThanOrEqual(0)
       if (state === 'ok') expect(lines[index + 1]?.startsWith('  ')).not.toBe(true)
-      else expect(lines[index + 1]).toBe(`  ${reasons[name]}`)
+      else expect(lines[index + 1]).toBe(`  ${reasons()[name]}`)
       expect(process.exitCode).toBe(0)
     },
   )
@@ -244,7 +246,7 @@ describe('agent-qa plugins list', () => {
     const { plugins } = jsonOut() as { plugins: Record<string, unknown>[] }
     const row = plugins.find((plugin) => plugin.name === name)
     expect(row?.state).toBe(state)
-    expect(row?.reason).toBe(reasons[name])
+    expect(row?.reason).toBe(reasons()[name])
     expect(process.exitCode).toBe(0)
   })
 
@@ -276,7 +278,7 @@ describe('agent-qa plugins list', () => {
       origin: 'first-party',
       remotes: ['gone'],
       state: 'not_installed',
-      reason: reasons.absent,
+      reason: reasons().absent,
       install: install(missing),
     })
     expect(plugins[2]?.install).toBe(install(firstParty))
@@ -456,9 +458,14 @@ describe('agent-qa plugins describe', () => {
 
     await runPlugins('describe', 'absent')
 
+    const install = pluginsAddLine(
+      '@acme/agent-qa-plugin-absent',
+      path.join(workspaceDir, 'agent-qa.config.yaml'),
+    )
+    expect(install).toMatch(/^npx agent-qa --config \S+ plugins add @acme\/agent-qa-plugin-absent$/u)
     expect(stderr()).toBe(
-      'Plugin entry absent names @acme/agent-qa-plugin-absent, which is not installed. Run npx '
-        + 'agent-qa plugins add @acme/agent-qa-plugin-absent.',
+      'Plugin entry absent names @acme/agent-qa-plugin-absent, which is not installed. '
+        + `Run ${install}.`,
     )
     expect(process.exitCode).toBe(1)
   })

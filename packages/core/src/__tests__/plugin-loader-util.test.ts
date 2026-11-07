@@ -1,6 +1,6 @@
 // Fixtures are built on disk: the messages turn on what `findPackageJson` finds walking up.
 
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
@@ -13,6 +13,7 @@ import {
   declarationKey,
   declarationLabel,
   importDeclaredPluginModule,
+  pluginsAddLine,
   resolveModuleSpecifier,
   resolvePackageImportFromBase,
 } from '../plugin-loader-util.js'
@@ -259,6 +260,29 @@ describe('the install suggestion is a command only when the name is one', () => 
     expect(message).toContain(
       'Install it with npx agent-qa --config qa/agent-qa.config.yaml plugins add '
         + '@vostride/agent-qa-subscription-auth, or remove',
+    )
+  })
+
+  it('a default config reached through a symlinked folder needs no --config', () => {
+    const real = mkdtempSync(join(tmpdir(), 'agent-qa-plugins-add-line-'))
+    const link = `${real}-link`
+    symlinkSync(real, link)
+    try {
+      expect(pluginsAddLine('left-pad', join(link, 'agent-qa.config.yaml'), real)).toBe(
+        'npx agent-qa plugins add left-pad',
+      )
+    } finally {
+      rmSync(link, { force: true })
+      rmSync(real, { recursive: true, force: true })
+    }
+  })
+
+  it('a config far from the current folder is named by its absolute path, the shorter one', () => {
+    expect(pluginsAddLine('left-pad', '/srv/qa/agent-qa.config.yaml', '/a/b/c/d/e/f')).toBe(
+      'npx agent-qa --config /srv/qa/agent-qa.config.yaml plugins add left-pad',
+    )
+    expect(pluginsAddLine('left-pad', '/a/b/staging.yaml', '/a/b/c')).toBe(
+      'npx agent-qa --config ../staging.yaml plugins add left-pad',
     )
   })
 

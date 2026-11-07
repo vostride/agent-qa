@@ -163,7 +163,9 @@ export async function resolveModelAuth(
       configPath?: string,
     ) => Promise<ResolvedLLMAuth>
   }
-  return resolveLLMAuth(configName, llmConfig, undefined, configPath)
+  return configPath === undefined
+    ? resolveLLMAuth(configName, llmConfig)
+    : resolveLLMAuth(configName, llmConfig, undefined, configPath)
 }
 
 export function applyResolvedAuthToModelConfig(
