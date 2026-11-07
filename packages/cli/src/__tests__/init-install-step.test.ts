@@ -820,6 +820,16 @@ describe("a Yarn Plug'n'Play project installs into node_modules", () => {
     )
   })
 
+  it('a Yarn that nothing in the project dates takes the line of the yarn on PATH', async () => {
+    const { root, home } = tempProject('yarn-line-from-path')
+    const run = onMachine({ yarn: '4.5.0' }, writes('agent-qa'))
+
+    await init(root, home, run, ['--platform', 'web', '--llm', 'gemini', '--pm', 'yarn'])
+
+    expect(installs(run).map(argv)).toEqual(['yarn install'])
+    expect(readFileSync(join(root, '.yarnrc.yml'), 'utf8')).toBe('nodeLinker: node-modules\n')
+  })
+
   it('a Yarn 1 project gets no .yarnrc.yml', async () => {
     const run = onMachine({ yarn: '1.22.22' }, writes('agent-qa'))
     const { root, input } = await declaredProject('yarn-classic-linker', {}, run, {
