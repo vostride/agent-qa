@@ -181,7 +181,7 @@ async function spawnAgentManifest(
   args: readonly string[],
   extraEnv: Readonly<Record<string, string>> = {},
 ): Promise<SpawnOutcome> {
-  return await spawnCollecting(root, [CLI_ENTRY, 'init', '--agent', '--dir', root, ...args], extraEnv)
+  return await spawnCollecting(root, [CLI_ENTRY, 'init', '--agent', ...args], extraEnv)
 }
 
 /** Run a one-liner in a child with the same constructed environment — the sentinel's own control. */

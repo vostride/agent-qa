@@ -38,7 +38,7 @@ function tempDir(): string {
 
 function init(dir: string, ...extra: string[]): void {
   expect(existsSync(CLI_ENTRY), `the built CLI entry is missing at ${CLI_ENTRY}; run \`pnpm build\` first`).toBe(true)
-  const result = spawnSync(process.execPath, [CLI_ENTRY, 'init', '--dir', dir, '--platform', 'web', ...extra], {
+  const result = spawnSync(process.execPath, [CLI_ENTRY, 'init', '--platform', 'web', ...extra], {
     cwd: dir, env: childEnv(), input: '', encoding: 'utf8', timeout: 120_000,
   })
   expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0)
