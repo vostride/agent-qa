@@ -24,9 +24,9 @@ plugins:
   names in the file `workspace.secretsFile` names. Never write the values in the config.
 - `apiUrl`, `appApiUrl`, `hubUrl` and `playwrightUrl` default to BrowserStack's own endpoints.
   Leave them unset unless BrowserStack tells you otherwise.
-- Install the package at the exact version of agent-qa the project runs:
-  `npm install --save-dev --save-exact @vostride/agent-qa-plugin-browserstack@<agent-qa version>`.
-  `agent-qa plugins list` prints that line when the package is missing or the version differs.
+- Add the plugin with `npx agent-qa plugins add @vostride/agent-qa-plugin-browserstack`: it pins the
+  package at the project's agent-qa version and writes the `plugins` entry. `agent-qa plugins list`
+  prints that line when the package is missing or the version differs.
 
 ## A web remote
 
