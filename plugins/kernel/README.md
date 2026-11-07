@@ -7,14 +7,15 @@ Chromium only.
 
 ## Install
 
-Install the plugin at exactly the version of agent-qa the project runs:
+Add the plugin from the project's folder:
 
 ```bash
-npm install --save-dev --save-exact @vostride/agent-qa-plugin-kernel@<agent-qa version>
+npx agent-qa plugins add @vostride/agent-qa-plugin-kernel
 ```
 
-`agent-qa plugins list` prints this line, with the version filled in, when the package is missing
-or its version differs from agent-qa's.
+It installs the plugin at the version of agent-qa the project runs, through the project's package
+manager, and adds its `plugins` entry. `agent-qa plugins list` prints this line when the package is
+missing or its version differs from agent-qa's.
 
 ## Configure
 
