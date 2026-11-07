@@ -409,7 +409,7 @@ describe('INIT-PREFLIGHT-NO-WRITES: an unsafe root AGENTS.md refuses before any 
   })
 })
 
-describe('INIT-MARKER-LAST: the root block publishes after the scaffold and before the config marker', () => {
+describe('the root block publishes after the scaffold and before the config marker', () => {
   it('writes the .gitignore block first, AGENTS.md next to last and the config marker last', async () => {
     const dir = tempProject()
     const order: string[] = []
