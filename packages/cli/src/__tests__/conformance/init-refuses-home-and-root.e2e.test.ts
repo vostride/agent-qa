@@ -59,7 +59,10 @@ function expectHomeRefusal(outcome: SpawnOutcome & { text: string }, home: strin
   expect(outcome.code, outcome.text).toBe(2)
   expect(outcome.text).toContain(homeLine(home))
   const lines = outcome.text.split('\n')
-  expect(lines.filter((line) => /^\s+at\s/u.test(line)), outcome.text).toEqual([])
+  expect(
+    lines.filter((line) => /^\s+at\s/u.test(line)),
+    outcome.text,
+  ).toEqual([])
 }
 
 describe('init and the home folder', () => {
