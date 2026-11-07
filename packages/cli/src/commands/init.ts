@@ -60,12 +60,14 @@ import { InitRefusal, isInitRefusal } from './init-refusal.js'
 import { initFolderOptionRefusal, initFolderRefusal } from './init-project-folder.js'
 import {
   installedAgentQaVersion,
+  parsePackageJson,
   planPackageJson,
   projectDependencies,
   readProjectPackageJson,
 } from './package-json-plan.js'
 import { runInstallStep } from './package-install.js'
 import { detectPackageManager } from './package-manager.js'
+import { handOffToProjectAgentQa } from './project-agent-qa.js'
 import { projectHost, type ProjectHost } from './project-host.js'
 import { projectRange } from './project-range.js'
 
@@ -815,6 +817,20 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         const dir = projectDir
         const folderRefusal = await initFolderRefusal(dir)
         if (folderRefusal !== undefined) throw new CliRefusal([pc.red(folderRefusal)], 2)
+        const host = projectHost({ cwd: dir, ...hooks.host })
+        const range = await projectRange(dir, host)
+        const packageJson = readProjectPackageJson(range, host.io)
+        if (packageJson.text !== undefined) parsePackageJson(packageJson.path, packageJson.text)
+        const runningVersion = installedAgentQaVersion()
+        const handedOff = await handOffToProjectAgentQa({
+          host,
+          range,
+          packageJson,
+          runningVersion,
+          pm: opts.pm,
+          install: async () => false,
+        })
+        if (handedOff) return
         const initStartedAt = Date.now()
         const force = opts.force ?? false
 
@@ -937,14 +953,11 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         }
 
         const config = buildDefaultConfig(platform, [{ name: llmName, provider, model, baseURL }])
-        const host = projectHost({ cwd: dir, ...hooks.host })
-        const range = await projectRange(dir, host)
-        const packageJson = readProjectPackageJson(range, host.io)
         const packageJsonPlan = planPackageJson({
           ...packageJson,
           folderName: basename(range.start),
           dependencies: projectDependencies({
-            runningVersion: installedAgentQaVersion(),
+            runningVersion,
             usesSubscription: usesSubscriptionModel(config),
             plugins: (config.plugins ?? []) as readonly { package?: unknown }[],
           }),
