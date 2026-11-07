@@ -1,6 +1,6 @@
 import { Command, Option } from 'commander'
-import { existsSync, readFileSync } from 'node:fs'
-import { basename, dirname, join, relative, resolve, sep } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { basename, dirname, join, relative, sep } from 'node:path'
 import pc from 'picocolors'
 import select from '@inquirer/select'
 import input from '@inquirer/input'
@@ -68,8 +68,8 @@ import {
 import { runInstallStep } from './package-install.js'
 import { detectPackageManager } from './package-manager.js'
 import { declaredAgentQaVersion, handOffToProjectAgentQa } from './project-agent-qa.js'
-import { projectHost, type ProjectHost } from './project-host.js'
-import { projectRange } from './project-range.js'
+import { projectHost, type ProjectHost, type ProjectIo } from './project-host.js'
+import { nearestInstalledPackage, projectRange, type ProjectRange } from './project-range.js'
 
 // Re-exported because this module is their public door.
 export { SUPPORTED_INIT_PLATFORMS, parseInitPlatform } from './scaffold-content.js'
@@ -467,22 +467,6 @@ function warnForMissingKnowledgeGitignoreRules(path: string): void {
 
 type InitNextStep = { command: string; description: string }
 
-function subscriptionAuthInstalled(dir: string): boolean {
-  let current = resolve(dir)
-  while (true) {
-    const manifest = join(
-      current,
-      'node_modules',
-      ...SUBSCRIPTION_AUTH_PACKAGE.split('/'),
-      'package.json',
-    )
-    if (existsSync(manifest)) return true
-    const parent = dirname(current)
-    if (parent === current) return false
-    current = parent
-  }
-}
-
 function configuredLlms(config: Record<string, unknown>): InitLLMConfig[] {
   const registry = config.registry as Record<string, unknown> | undefined
   return (registry?.llms ?? []) as InitLLMConfig[]
@@ -492,13 +476,24 @@ function usesSubscriptionModel(config: Record<string, unknown>): boolean {
   return configuredLlms(config).some(llm => isSubscriptionProvider(String(llm.provider)))
 }
 
-function connectionSteps(config: Record<string, unknown>, dir: string): InitNextStep[] {
+interface InitPackageFolder {
+  range: ProjectRange
+  dir: string
+  io: ProjectIo
+}
+
+function connectionSteps(
+  config: Record<string, unknown>,
+  { range, dir, io }: InitPackageFolder,
+): InitNextStep[] {
   const llms = configuredLlms(config)
   const steps: InitNextStep[] = []
-  const usesSubscription = usesSubscriptionModel(config)
-  if (usesSubscription && !subscriptionAuthInstalled(dir)) {
+  if (
+    usesSubscriptionModel(config)
+    && nearestInstalledPackage(range, dir, SUBSCRIPTION_AUTH_PACKAGE, io) === undefined
+  ) {
     steps.push({
-      command: `npm install -D ${SUBSCRIPTION_AUTH_PACKAGE}`,
+      command: `npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}`,
       description: 'Install the subscription sign-in plugin',
     })
   }
@@ -530,7 +525,7 @@ function connectionSteps(config: Record<string, unknown>, dir: string): InitNext
 function initNextSteps(
   platform: InitPlatformInput,
   config: Record<string, unknown>,
-  dir: string,
+  packageFolder: InitPackageFolder,
 ): InitNextStep[] {
   const steps: InitNextStep[] = []
   if (hasWeb(platform)) {
@@ -545,7 +540,7 @@ function initNextSteps(
       description: 'Install mobile driver support',
     })
   }
-  steps.push(...connectionSteps(config, dir))
+  steps.push(...connectionSteps(config, packageFolder))
   steps.push({ command: 'npx agent-qa validate', description: 'Check the config and the tests' })
   if (hasWeb(platform)) {
     steps.push({
@@ -744,11 +739,11 @@ function printExampleSecretLine(): void {
 function printNextSteps(
   platform: InitPlatformInput,
   config: Record<string, unknown>,
-  dir: string,
+  packageFolder: InitPackageFolder,
 ): void {
   console.log('')
   console.log('  Next steps:')
-  for (const [index, step] of initNextSteps(platform, config, dir).entries()) {
+  for (const [index, step] of initNextSteps(platform, config, packageFolder).entries()) {
     console.log(`    ${index + 1}. ${pc.cyan(step.command)}  ${step.description}`)
   }
 }
@@ -1124,7 +1119,11 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           result => result.path === secretsPath && result.outcome === 'preserved',
         )
         if (hasWeb(platform) && secretsPreserved) printExampleSecretLine()
-        printNextSteps(platform, config, dir)
+        printNextSteps(platform, config, {
+          range,
+          dir: dirname(packageJsonPlan.path),
+          io: host.io,
+        })
         if (!agentInstructionsPlan) printAgentInstructionPointer()
         console.log('')
         if (installStep.outcome === 'failed') throw new CliRefusal([], 3)
