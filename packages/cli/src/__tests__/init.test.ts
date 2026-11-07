@@ -161,6 +161,11 @@ const mockUpsertManagedGitignoreBlock = vi.mocked(upsertManagedGitignoreBlock)
 const mockVerifyEffectiveGitignore = vi.mocked(verifyEffectiveGitignore)
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
 
+// No test starts a package manager: init declares the dependencies and runs no install.
+function withoutInstall(args: readonly string[]): string[] {
+  return args.includes('--pm') || args.includes('--agent') ? [...args] : [...args, '--pm', 'none']
+}
+
 async function runInit(
   args: string[] = [],
   hooks: Parameters<typeof createInitCommand>[0] = {},
@@ -170,7 +175,7 @@ async function runInit(
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)
-  await parent.parseAsync(['node', 'test', 'init', ...args])
+  await parent.parseAsync(['node', 'test', 'init', ...withoutInstall(args)])
 }
 
 async function runInitUnderRootConfig(args: string[]): Promise<void> {
@@ -1624,6 +1629,8 @@ skills/.staging/
         'init',
         '--platform',
         'web',
+        '--pm',
+        'none',
       ])
     }
     const createRepository = (): string => {
@@ -1729,6 +1736,8 @@ skills/.staging/
         'init',
         '--platform',
         'web',
+        '--pm',
+        'none',
       ], {
         cwd: projectDir,
         stdio: 'pipe',
@@ -1782,7 +1791,7 @@ skills/.staging/
     const runRealInit = async (args: string[]): Promise<void> => {
       const parent = new Command()
       parent.addCommand(actualInit.createInitCommand({ cwd: dir, composeAnalytics }))
-      await parent.parseAsync(['node', 'test', 'init', ...args])
+      await parent.parseAsync(['node', 'test', 'init', ...withoutInstall(args)])
     }
 
     try {
@@ -1842,7 +1851,7 @@ skills/.staging/
     try {
       const parent = new Command()
       parent.addCommand(actualInit.createInitCommand({ cwd: dir }))
-      await parent.parseAsync(['node', 'test', 'init', '--platform', 'web'])
+      await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', '--pm', 'none'])
 
       const readme = actualFs.readFileSync(join(dir, 'agent-qa-knowledge', 'README.md'), 'utf8')
       const guide = actualFs.readFileSync(join(dir, 'agent-qa-knowledge', 'AGENTS.md'), 'utf8')

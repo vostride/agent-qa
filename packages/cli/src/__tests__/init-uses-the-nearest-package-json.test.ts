@@ -21,7 +21,7 @@ import { defaultProjectIo } from '../commands/project-host.js'
 import { projectRange } from '../commands/project-range.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 
-const WEB_GEMINI = ['--platform', 'web', '--llm', 'gemini']
+const WEB_GEMINI = ['--platform', 'web', '--llm', 'gemini', '--pm', 'none']
 const roots: string[] = []
 let log: MockInstance<typeof console.log>
 
