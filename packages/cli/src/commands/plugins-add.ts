@@ -1,6 +1,6 @@
 // A CLI-only edit: no MCP tool, chat directive or dashboard route enables a plugin.
 
-import { basename, dirname, resolve } from 'node:path'
+import { basename, dirname, relative, resolve } from 'node:path'
 
 import { isNpmPackageName, PluginEntrySchema } from '@vostride/agent-qa-core'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
@@ -35,6 +35,7 @@ import {
   type DetectedManager,
   type PackageManagerName,
 } from './package-manager.js'
+import { findProjectAgentQa, HANDED_OFF_ENV, runAsProjectAgentQa } from './project-agent-qa.js'
 import { projectHost, type ProjectHost } from './project-host.js'
 import { projectRange, type ProjectRange } from './project-range.js'
 import { SUBSCRIPTION_AUTH_PACKAGE } from './scaffold-content.js'
@@ -230,6 +231,24 @@ async function thirdPartyVersion(input: Lookup): Promise<string> {
   return version
 }
 
+// Decided by real path, never by version, so a first-party pin always equals the agent-qa that
+// will load it.
+async function ranAsProjectAgentQa(
+  host: ProjectHost,
+  range: ProjectRange,
+  found: { path: string; text: string | undefined },
+): Promise<boolean> {
+  if ((host.env[HANDED_OFF_ENV] ?? '') !== '') return false
+  const fromDir = found.text === undefined ? range.start : dirname(found.path)
+  const copy = await findProjectAgentQa(range, fromDir, host.io)
+  if (copy === undefined) return false
+  if (copy.realDir === (await host.io.realpath(host.runningPackageDir))) return false
+  const where = relative(range.start, copy.dir) || '.'
+  const line = `Running the project's agent-qa ${copy.version} (${where}) for plugins add.`
+  await runAsProjectAgentQa(copy, host, line)
+  return true
+}
+
 async function addPlugin(
   argument: string,
   opts: AddOptions,
@@ -239,15 +258,16 @@ async function addPlugin(
   const host = projectHost(deps.host)
   const requested = requestedPackage(argument)
   const firstParty = isFirstParty(requested.name)
-  const pinned = firstParty ? firstPartyVersion(requested) : undefined
   if (!firstParty && requested.version !== undefined && !EXACT_SEMVER.test(requested.version)) {
     refuse(`Give an exact version, such as ${requested.name}@1.2.3, or none to install the latest.`)
   }
   const config = configPathOf(command, host)
-  const edit = configWithEntry(host.io.readText(config.path) ?? '', config.given, requested.name)
-
   const range = await projectRange(dirname(config.path), host)
   const found = readProjectPackageJson(range, host.io)
+  if (await ranAsProjectAgentQa(host, range, found)) return
+
+  const pinned = firstParty ? firstPartyVersion(requested) : undefined
+  const edit = configWithEntry(host.io.readText(config.path) ?? '', config.given, requested.name)
   if (found.text !== undefined) parsePackageJson(found.path, found.text)
   const manager = detectPackageManager({
     range,
