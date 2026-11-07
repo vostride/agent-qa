@@ -58,6 +58,7 @@ import {
   type ManagedBlockContent,
 } from './managed-block.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
+import { initFolderRefusal } from './init-project-folder.js'
 
 // Re-exported because this module is their public door.
 export { SUPPORTED_INIT_PLATFORMS, parseInitPlatform } from './scaffold-content.js'
@@ -901,8 +902,10 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       }
 
       try {
-        const initStartedAt = Date.now()
         const dir = resolve(opts.dir)
+        const folderRefusal = await initFolderRefusal(dir)
+        if (folderRefusal !== undefined) throw new CliRefusal([pc.red(folderRefusal)], 2)
+        const initStartedAt = Date.now()
         const force = opts.force ?? false
         // The one path the opt-out read consults: `--dir`-relative unless `--config` is given.
         const analyticsConfigPath =
