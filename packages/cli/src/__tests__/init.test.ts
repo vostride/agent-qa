@@ -163,7 +163,7 @@ async function runInit(
   hooks: Parameters<typeof createInitCommand>[0] = {},
 ): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand(hooks)
+  const init = createInitCommand({ cwd: '/tmp/test-project', ...hooks })
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)
@@ -218,7 +218,7 @@ describe('init command', () => {
   })
 
   it('creates config file with correct YAML structure', async () => {
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+    await runInit(['--platform', 'web'])
 
     const configCall = mockWriteFileSync.mock.calls.find(
       (call) => (call[0] as string).endsWith('agent-qa.config.yaml'),
@@ -493,8 +493,6 @@ describe('init command', () => {
 
   it('rejects an invalid Commander platform before preflight or filesystem writes', async () => {
     await expect(runInit([
-      '--dir',
-      '/tmp/test-project',
       '--platform',
       'bogus',
     ])).rejects.toMatchObject({ code: 'commander.invalidArgument' })
@@ -519,8 +517,6 @@ describe('init command', () => {
       mockGetAgentQaVersion.mockReturnValueOnce(version)
 
       await expect(runInit([
-        '--dir',
-        '/tmp/test-project',
         '--platform',
         'web',
       ])).rejects.toThrow('installed agent-qa version')
@@ -539,7 +535,7 @@ describe('init command', () => {
       .mockResolvedValueOnce('claude-remote')
       .mockResolvedValueOnce('https://anthropic-proxy.example/messages')
 
-    await runInit(['--dir', '/tmp/test-project'], { isTTY: true })
+    await runInit([], { isTTY: true })
 
     expect(mockCheckbox).toHaveBeenCalledTimes(1)
     expect(mockCheckbox).toHaveBeenNthCalledWith(1, expect.objectContaining({
@@ -578,7 +574,7 @@ describe('init command', () => {
   it('scaffolds both mobile runtimes when Mobile is selected', async () => {
     mockCheckbox.mockResolvedValueOnce(['web', 'mobile'])
 
-    await runInit(['--dir', '/tmp/test-project', '--llm', 'codex'], { isTTY: true })
+    await runInit(['--llm', 'codex'], { isTTY: true })
 
     expect(mockCheckbox).toHaveBeenCalledTimes(1)
     const platformValidate = mockCheckbox.mock.calls[0]?.[0].validate
@@ -598,7 +594,7 @@ describe('init command', () => {
   it('writes OpenAI subscription config during interactive init', async () => {
     mockCheckbox.mockResolvedValueOnce(['web'])
 
-    await runInit(['--dir', '/tmp/test-project', '--llm', 'codex'], { isTTY: true })
+    await runInit(['--llm', 'codex'], { isTTY: true })
 
     const configCall = mockWriteFileSync.mock.calls.find(
       (call) => (call[0] as string).endsWith('agent-qa.config.yaml'),
@@ -618,7 +614,7 @@ describe('init command', () => {
     mockSelect.mockResolvedValueOnce('gemini')
     mockInput.mockResolvedValueOnce('gemini-3-flash-preview')
 
-    await runInit(['--dir', '/tmp/test-project'], { isTTY: true })
+    await runInit([], { isTTY: true })
 
     expect(mockInput).toHaveBeenCalledTimes(1)
     expect(mockInput).toHaveBeenCalledWith(expect.objectContaining({
@@ -638,7 +634,7 @@ describe('init command', () => {
   })
 
   it('generates schema-valid demo artifact YAML for web init', async () => {
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+    await runInit(['--platform', 'web'])
     const { parseTestFile, SuiteDefinitionSchema, HooksFileSchema } = await loadCoreYamlValidators()
 
     for (const [suffix, target] of [
@@ -677,7 +673,7 @@ describe('init command', () => {
   })
 
   it('does not create web demo tests for mobile-only init', async () => {
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'android'])
+    await runInit(['--platform', 'android'])
 
     expect(findWriteCallEndingWith('tests/examples/komazon-checkout.yaml')).toBeUndefined()
     expect(findWriteCallEndingWith('tests/examples/komazon-cart-total-bug.yaml')).toBeUndefined()
@@ -695,7 +691,7 @@ describe('init command', () => {
   })
 
   it('an Android scaffold keeps the optional accessibility example after the cache block', async () => {
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'android'])
+    await runInit(['--platform', 'android'])
 
     const content = String(findWriteCallEndingWith('agent-qa.config.yaml')?.[1])
     const cache = content.indexOf('\n  cache:\n')
@@ -707,7 +703,7 @@ describe('init command', () => {
   })
 
   it('creates an empty local secrets file', async () => {
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+    await runInit(['--platform', 'web'])
 
     const secretsCall = mockWriteFileSync.mock.calls.find(
       (call) => (call[0] as string).endsWith('.env.secrets.local'),
@@ -716,7 +712,7 @@ describe('init command', () => {
     expect(String(secretsCall![1]).split('\n')).toContain('KOMAZON_PASSWORD=komazon123')
 
     mockWriteFileSync.mockClear()
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'android'])
+    await runInit(['--platform', 'android'])
     const mobileSecretsCall = mockWriteFileSync.mock.calls.find(
       (call) => (call[0] as string).endsWith('.env.secrets.local'),
     )
@@ -725,7 +721,7 @@ describe('init command', () => {
   })
 
   it('creates explicit workspace support files', async () => {
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+    await runInit(['--platform', 'web'])
 
     expect(mockWriteFileSync.mock.calls.some((call) => (call[0] as string).endsWith('hooks.yaml'))).toBe(true)
     expect(mockWriteFileSync.mock.calls.some((call) => (call[0] as string).endsWith('agent-rules.md'))).toBe(false)
@@ -736,7 +732,7 @@ describe('init command', () => {
   it.each(['web', 'android', 'ios'] as const)(
     'a %s init writes no agent-qa.local.yaml and prints no step to edit one',
     async (platform) => {
-      await runInit(['--dir', '/tmp/test-project', '--platform', platform])
+      await runInit(['--platform', platform])
 
       expect(findWriteCallEndingWith('agent-qa.local.yaml')).toBeUndefined()
       const plannedPaths = mockPreflightInitPlan.mock.calls[0]![0].map(plan => plan.path)
@@ -752,7 +748,7 @@ describe('init command', () => {
     })
     mockReadFileSync.mockReturnValue('node_modules/\n')
 
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+    await runInit(['--platform', 'web'])
 
     const gitignoreCall = mockWriteFileSync.mock.calls.find(
       (call) => (call[0] as string).endsWith('.gitignore'),
@@ -782,7 +778,7 @@ describe('init command', () => {
     })
     mockReadFileSync.mockReturnValue('node_modules/\n.agent-qa/auth-states/\n')
 
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+    await runInit(['--platform', 'web'])
 
     const gitignoreCall = mockWriteFileSync.mock.calls.find(
       (call) => (call[0] as string).endsWith('.gitignore'),
@@ -813,7 +809,7 @@ describe('init command', () => {
     })
 
     it('an initialized project asks nothing and writes nothing without --force', async () => {
-      await runInit(['--dir', '/tmp/test-project'], { isTTY: true })
+      await runInit([], { isTTY: true })
 
       expect(mockCheckbox).not.toHaveBeenCalled()
       expect(mockSelect).not.toHaveBeenCalled()
@@ -827,8 +823,6 @@ describe('init command', () => {
 
     it('a flag init would refuse is not checked on an initialized project', async () => {
       await runInit([
-        '--dir',
-        '/tmp/test-project',
         '--llm',
         'codex',
         '--base-url',
@@ -845,7 +839,7 @@ describe('init command', () => {
       mockSelect.mockResolvedValueOnce('gemini')
       mockInput.mockResolvedValueOnce('gemini-3-flash-preview')
 
-      await runInit(['--dir', '/tmp/test-project', '--force'], { isTTY: true })
+      await runInit(['--force'], { isTTY: true })
 
       expect(mockCheckbox).toHaveBeenCalledTimes(1)
       expect(consoleOutput()).not.toContain(alreadyInitialized)
@@ -854,7 +848,7 @@ describe('init command', () => {
     })
 
     it('a folder inside an initialized project is set up as its own project', async () => {
-      await runInit(['--dir', '/tmp/test-project/pkg', '--platform', 'web'])
+      await runInit(['--platform', 'web'], { cwd: '/tmp/test-project/pkg' })
 
       expect(findWriteCallEndingWith(join('/tmp/test-project/pkg', 'agent-qa.config.yaml')))
         .toBeDefined()
@@ -875,7 +869,7 @@ describe('init command', () => {
       mockWriteScaffoldFileAtomic.mockImplementationOnce(() => {
         throw thrown
       })
-      const error = await runInit(['--dir', '/tmp/test-project', '--platform', 'web']).catch(
+      const error = await runInit(['--platform', 'web']).catch(
         (error) => error,
       )
       const printed: string[] = []
@@ -910,7 +904,7 @@ describe('init command', () => {
     }
 
     it('the filesystem root is refused with exit 2 before any prompt', async () => {
-      const error = await runInit(['--dir', '/'], { isTTY: true }).catch((error) => error)
+      const error = await runInit([], { cwd: '/', isTTY: true }).catch((error) => error)
 
       expect(error).toMatchObject({ name: 'CliRefusal', exitCode: 2 })
       expect(error.message).toBe(
@@ -924,7 +918,7 @@ describe('init command', () => {
       vi.stubEnv('HOME', home)
       vi.stubEnv('USERPROFILE', home)
 
-      const error = await runInit(['--dir', home], { isTTY: true }).catch((error) => error)
+      const error = await runInit([], { cwd: home, isTTY: true }).catch((error) => error)
 
       expect(error).toMatchObject({ name: 'CliRefusal', exitCode: 2 })
       expect(error.message).toBe(
@@ -941,7 +935,7 @@ describe('init command', () => {
       return false
     })
 
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web', '--force'])
+    await runInit(['--platform', 'web', '--force'])
 
     const configCall = mockWriteFileSync.mock.calls.find(
       (call) => (call[0] as string).endsWith('agent-qa.config.yaml'),
@@ -956,7 +950,7 @@ describe('init command', () => {
       return false
     })
 
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web', '--force'])
+    await runInit(['--platform', 'web', '--force'])
 
     expect(findWriteCallEndingWith('agent-qa.local.yaml')).toBeUndefined()
     expect(findWriteCallEndingWith('agent-qa.config.yaml')).toBeDefined()
@@ -977,6 +971,7 @@ describe('init command', () => {
       const outcomes: { path: string; outcome: string }[] = []
       const written: string[] = []
       await runInit(args, {
+        cwd: projectDir,
         afterWrite: (result) => { written.push(result.path) },
         onComplete: (results) => {
           outcomes.push(...results.map(result => ({
@@ -989,7 +984,7 @@ describe('init command', () => {
     }
 
     it('declares preservation for both env files and mode 0600 only for the secrets file', async () => {
-      await runInit(['--dir', projectDir, '--platform', 'web'])
+      await runInit(['--platform', 'web'], { cwd: projectDir })
 
       const envPlan = scaffoldPlanFor(envPath)
       const secretsPlan = scaffoldPlanFor(secretsPath)
@@ -1002,7 +997,7 @@ describe('init command', () => {
     it('keeps the same credential policy under --force', async () => {
       mockExistsSync.mockImplementation((p) => (p as string).endsWith('agent-qa.config.yaml'))
 
-      await runInit(['--dir', projectDir, '--platform', 'web', '--force'])
+      await runInit(['--platform', 'web', '--force'], { cwd: projectDir })
 
       const envPlan = scaffoldPlanFor(envPath)
       const secretsPlan = scaffoldPlanFor(secretsPath)
@@ -1029,7 +1024,7 @@ describe('init command', () => {
         })
 
         const { outcomes, written } = await runInitCollectingOutcomes(
-          ['--dir', projectDir, '--platform', 'web', '--force'],
+          ['--platform', 'web', '--force'],
         )
 
         expect(mockWriteFileSync.mock.calls.some(call => call[0] === envPath)).toBe(false)
@@ -1051,7 +1046,7 @@ describe('init command', () => {
 
     it('still creates both absent credential files empty and in scaffold order', async () => {
       const { outcomes } = await runInitCollectingOutcomes(
-        ['--dir', projectDir, '--platform', 'web'],
+        ['--platform', 'web'],
       )
 
       // Scaffold order is a RELATIVE property between the two credential files. Their
@@ -1077,7 +1072,7 @@ describe('init command', () => {
           || path.endsWith('hooks.yaml')
       })
 
-      await runInit(['--dir', projectDir, '--platform', 'web', '--force'])
+      await runInit(['--platform', 'web', '--force'], { cwd: projectDir })
 
       expect(findWriteCallEndingWith('hooks.yaml')).toBeDefined()
       expect(findWriteCallEndingWith('agent-qa.config.yaml')).toBeDefined()
@@ -1085,7 +1080,7 @@ describe('init command', () => {
   })
 
   it('does not auto-install browser support for web projects', async () => {
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+    await runInit(['--platform', 'web'])
 
     expect(mockRunBrowserInstall).not.toHaveBeenCalled()
     expect(mockExecSync).not.toHaveBeenCalledWith('npx playwright install chromium', { stdio: 'inherit' })
@@ -1095,7 +1090,7 @@ describe('init command', () => {
   })
 
   it('does not auto-install Appium or drivers for Android projects', async () => {
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'android'])
+    await runInit(['--platform', 'android'])
 
     expect(mockExecSync).not.toHaveBeenCalled()
     expect(mockExecFileSync).not.toHaveBeenCalled()
@@ -1106,7 +1101,7 @@ describe('init command', () => {
   })
 
   it('prints all-driver mobile setup guidance for iOS projects', async () => {
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'ios'])
+    await runInit(['--platform', 'ios'])
 
     const output = consoleOutput()
     expect(output).toContain('agent-qa install-mobile-drivers --all')
@@ -1115,7 +1110,7 @@ describe('init command', () => {
   })
 
   it('prints both web and mobile setup guidance for mixed projects', async () => {
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web+android'])
+    await runInit(['--platform', 'web+android'])
 
     const output = consoleOutput()
     expect(output).toContain('agent-qa install-browsers --chromium')
@@ -1126,7 +1121,7 @@ describe('init command', () => {
   it('prints all-drivers setup guidance when both mobile platforms are selected interactively', async () => {
     mockCheckbox.mockResolvedValueOnce(['mobile'])
 
-    await runInit(['--dir', '/tmp/test-project', '--llm', 'codex'], { isTTY: true })
+    await runInit(['--llm', 'codex'], { isTTY: true })
 
     const output = consoleOutput()
     expect(output).toContain('agent-qa install-mobile-drivers --all')
@@ -1136,7 +1131,7 @@ describe('init command', () => {
   })
 
   it('routes nested test files through the safe filesystem writer', async () => {
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+    await runInit(['--platform', 'web'])
 
     expect(mockWriteScaffoldFileAtomic).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -1148,7 +1143,7 @@ describe('init command', () => {
   })
 
   it('config includes mobile note for mobile platform', async () => {
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'android'])
+    await runInit(['--platform', 'android'])
 
     const configCall = mockWriteFileSync.mock.calls.find(
       (call) => (call[0] as string).endsWith('agent-qa.config.yaml'),
@@ -1189,7 +1184,7 @@ describe('init command', () => {
     }
 
     it('fresh init creates exactly AGENTS.md, README.md, .gitignore, and policies/global.md under the root', async () => {
-      await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+      await runInit(['--platform', 'web'])
 
       expect(knowledgeWritePaths()).toEqual([
         `${KNOWLEDGE_ROOT}/.gitignore`,
@@ -1210,7 +1205,7 @@ describe('init command', () => {
     })
 
     it('scaffolded knowledge .gitignore carries the spec lines plus the init-tool rule', async () => {
-      await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+      await runInit(['--platform', 'web'])
 
       const gitignoreCall = findWriteCallEndingWith('agent-qa-knowledge/.gitignore')
       expect(gitignoreCall).toBeDefined()
@@ -1233,7 +1228,7 @@ describe('init command', () => {
       const actualChildProcess =
         await vi.importActual<typeof import('node:child_process')>('node:child_process')
 
-      await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+      await runInit(['--platform', 'web'])
       const gitignoreCall = findWriteCallEndingWith('agent-qa-knowledge/.gitignore')
       expect(gitignoreCall).toBeDefined()
 
@@ -1292,7 +1287,7 @@ describe('init command', () => {
     })
 
     it('scaffolded policies/global.md is comment-only — zero active rules', async () => {
-      await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+      await runInit(['--platform', 'web'])
 
       const policyCall = findWriteCallEndingWith('policies/global.md')
       expect(policyCall).toBeDefined()
@@ -1311,7 +1306,7 @@ describe('init command', () => {
     it('re-init never overwrites hand-edited README.md or policies/global.md, even with --force', async () => {
       mockExistsSync.mockImplementation((p) => String(p).includes('agent-qa-knowledge'))
 
-      await runInit(['--dir', '/tmp/test-project', '--platform', 'web', '--force'])
+      await runInit(['--platform', 'web', '--force'])
 
       expect(findWriteCallEndingWith('agent-qa-knowledge/README.md')).toBeUndefined()
       expect(findWriteCallEndingWith('policies/global.md')).toBeUndefined()
@@ -1338,7 +1333,7 @@ skills/.staging/
         return ''
       })
 
-      await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+      await runInit(['--platform', 'web'])
 
       expect(findWriteCallEndingWith('agent-qa-knowledge/.gitignore')).toBeUndefined()
       expect(vi.mocked(console.warn)).toHaveBeenCalledTimes(2)
@@ -1353,7 +1348,7 @@ skills/.staging/
     })
 
     it('target-project .gitignore entries include .agent-qa/ and never the v1 memory directory', async () => {
-      await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+      await runInit(['--platform', 'web'])
 
       const gitignoreCall = mockWriteFileSync.mock.calls.find(
         (call) => (call[0] as string) === '/tmp/test-project/.gitignore',
@@ -1369,7 +1364,7 @@ skills/.staging/
   it('preflights the complete web inventory before writing and writes the config marker last', async () => {
     const onComplete = vi.fn()
     await runInit(
-      ['--dir', '/tmp/test-project', '--platform', 'web'],
+      ['--platform', 'web'],
       { onComplete },
     )
 
@@ -1443,7 +1438,7 @@ skills/.staging/
       return 'user-owned sentinel\n'
     })
 
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+    await runInit(['--platform', 'web'])
 
     const generatedResults = mockWriteScaffoldFileAtomic.mock.results
       .map(result => result.value)
@@ -1479,8 +1474,6 @@ skills/.staging/
     })
 
     await expect(runInit([
-      '--dir',
-      '/tmp/test-project',
       '--platform',
       'web',
     ])).rejects.toThrow('late generated path is a symbolic link')
@@ -1510,13 +1503,11 @@ skills/.staging/
 
     const runRealInit = async (dir: string, hooks: Hooks = {}): Promise<void> => {
       const parent = new Command()
-      parent.addCommand(actualInit.createInitCommand(hooks))
+      parent.addCommand(actualInit.createInitCommand({ cwd: dir, ...hooks }))
       await parent.parseAsync([
         'node',
         'test',
         'init',
-        '--dir',
-        dir,
         '--platform',
         'web',
       ])
@@ -1622,12 +1613,10 @@ skills/.staging/
       actualChildProcess.execFileSync(process.execPath, [
         join(bundleDir, 'cli.js'),
         'init',
-        '--dir',
-        projectDir,
         '--platform',
         'web',
       ], {
-        cwd: repoRoot,
+        cwd: projectDir,
         stdio: 'pipe',
       })
 
@@ -1678,12 +1667,12 @@ skills/.staging/
     const dir = actualFs.mkdtempSync(join(tmpdir(), 'agent-qa-init-analytics-'))
     const runRealInit = async (args: string[]): Promise<void> => {
       const parent = new Command()
-      parent.addCommand(actualInit.createInitCommand({ composeAnalytics }))
+      parent.addCommand(actualInit.createInitCommand({ cwd: dir, composeAnalytics }))
       await parent.parseAsync(['node', 'test', 'init', ...args])
     }
 
     try {
-      await runRealInit(['--dir', dir, '--platform', 'web'])
+      await runRealInit(['--platform', 'web'])
       const first = sent.filter((event) => event.name === 'agent-qa.init.completed')
       expect(first).toHaveLength(1)
       expect(first[0]?.properties).toMatchObject({
@@ -1698,7 +1687,7 @@ skills/.staging/
       // only fired on the write path would count first-time scaffolds and silently drop every
       // re-run, which is the shape of a usage number that flatters itself.
       sent.length = 0
-      await runRealInit(['--dir', dir, '--platform', 'web'])
+      await runRealInit(['--platform', 'web'])
       const second = sent.filter((event) => event.name === 'agent-qa.init.completed')
       expect(second).toHaveLength(1)
       expect(second[0]?.properties).toMatchObject({
@@ -1712,7 +1701,7 @@ skills/.staging/
       sent.length = 0
       const log = vi.spyOn(console, 'log').mockImplementation(() => {})
       try {
-        await runRealInit(['--dir', dir, '--agent'])
+        await runRealInit(['--agent'])
       } finally {
         log.mockRestore()
       }
@@ -1738,8 +1727,8 @@ skills/.staging/
     const dir = actualFs.mkdtempSync(join(tmpdir(), 'agent-qa-init-'))
     try {
       const parent = new Command()
-      parent.addCommand(actualInit.createInitCommand())
-      await parent.parseAsync(['node', 'test', 'init', '--dir', dir, '--platform', 'web'])
+      parent.addCommand(actualInit.createInitCommand({ cwd: dir }))
+      await parent.parseAsync(['node', 'test', 'init', '--platform', 'web'])
 
       const readme = actualFs.readFileSync(join(dir, 'agent-qa-knowledge', 'README.md'), 'utf8')
       const guide = actualFs.readFileSync(join(dir, 'agent-qa-knowledge', 'AGENTS.md'), 'utf8')
