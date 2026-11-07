@@ -1788,6 +1788,7 @@ skills/.staging/
       })
 
     const dir = actualFs.mkdtempSync(join(tmpdir(), 'agent-qa-init-analytics-'))
+    actualFs.mkdirSync(join(dir, '.git'))
     const runRealInit = async (args: string[]): Promise<void> => {
       const parent = new Command()
       parent.addCommand(actualInit.createInitCommand({ cwd: dir, composeAnalytics }))
@@ -1848,6 +1849,7 @@ skills/.staging/
       await vi.importActual<typeof import('../commands/knowledge-guide.js')>('../commands/knowledge-guide.js')
 
     const dir = actualFs.mkdtempSync(join(tmpdir(), 'agent-qa-init-'))
+    actualFs.mkdirSync(join(dir, '.git'))
     try {
       const parent = new Command()
       parent.addCommand(actualInit.createInitCommand({ cwd: dir }))

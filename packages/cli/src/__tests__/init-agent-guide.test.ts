@@ -51,6 +51,7 @@ let log: MockInstance<typeof console.log>
 function tempProject(): string {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-guide-'))
   roots.push(root)
+  mkdirSync(join(root, '.git'))
   return root
 }
 

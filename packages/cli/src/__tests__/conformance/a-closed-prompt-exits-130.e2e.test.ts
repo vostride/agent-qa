@@ -1,6 +1,6 @@
 // A prompt whose input is closed before an answer ends the command as a cancel: Cancelled. and 130.
 
-import { mkdtempSync, readdirSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -35,6 +35,7 @@ describe('a closed prompt', () => {
         `these cells drive the built CLI: ${REBUILD_INSTRUCTION}`,
       ).toEqual({ missing: [], stale: [] })
       const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-closed-prompt-')))
+      mkdirSync(join(root, '.git'))
       const home = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-closed-prompt-home-')))
       const env = { HOME: home, USERPROFILE: home }
 
