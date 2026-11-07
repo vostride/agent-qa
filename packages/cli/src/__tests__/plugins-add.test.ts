@@ -1,12 +1,16 @@
 // plugins add: declare, install and enable, on temporary projects with a fake runner.
 import {
   existsSync,
+  mkdtempSync,
   readFileSync,
   readdirSync,
   realpathSync,
+  rmSync,
   statSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 
@@ -17,7 +21,7 @@ import { parse } from 'yaml'
 
 import { parsePackageView } from '../commands/package-manager.js'
 import { createPluginsCommand } from '../commands/plugins.js'
-import type { RunOptions, RunResult } from '../commands/project-host.js'
+import type { ProjectHost, RunOptions, RunResult } from '../commands/project-host.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
 import { resolveConfig } from '../config.js'
 import {
@@ -145,14 +149,18 @@ async function add(
   run: FakeRunner,
   args: readonly string[],
   config = join(folders.root, 'agent-qa.config.yaml'),
+  host: Partial<ProjectHost> = {},
 ): Promise<void> {
+  const argv = ['--config', config, 'plugins', 'add', ...args]
   const program = new Command()
   program.exitOverride()
   program.option('--config <path>', 'config file path', 'agent-qa.config.yaml')
   program.addCommand(
-    createPluginsCommand({ host: { cwd: folders.root, homedir: folders.home, env: {}, run } }),
+    createPluginsCommand({
+      host: { cwd: folders.root, homedir: folders.home, env: {}, run, argv, ...host },
+    }),
   )
-  await program.parseAsync(['node', 'agent-qa', '--config', config, 'plugins', 'add', ...args])
+  await program.parseAsync(['node', 'agent-qa', ...argv])
 }
 
 function stdout(): string {
@@ -240,6 +248,153 @@ describe('plugins add with a first-party plugin', () => {
 
     expect(configOf(folders.root)).toBe(before)
     expect(declaredDependencies(folders.root)).toEqual({ [KERNEL]: VERSION })
+  })
+})
+
+describe("plugins add runs as the project's agent-qa", () => {
+  const NODE = '/fake/node'
+  const PROJECT_VERSION = '0.3.2'
+  const RUNNING_AS =
+    `Running the project's agent-qa ${PROJECT_VERSION} (node_modules/agent-qa) for plugins add.`
+  const others: string[] = []
+
+  afterEach(() => {
+    for (const folder of others.splice(0)) rmSync(folder, { recursive: true, force: true })
+  })
+
+  function elsewhere(): string {
+    const folder = mkdtempSync(join(tmpdir(), 'agent-qa-plugins-add-running-'))
+    others.push(folder)
+    return folder
+  }
+
+  function writeCopy(root: string, version: string): string {
+    writeInstalledPackage(root, 'agent-qa', version, {
+      packageJson: { bin: { 'agent-qa': 'dist/cli.js' } },
+      files: { 'dist/cli.js': '' },
+    })
+    return join(root, 'node_modules', 'agent-qa')
+  }
+
+  function projectCopy(code: number) {
+    return machine({
+      install: (call) =>
+        call.command === NODE ? { code, signal: null, output: '' } : installsDeclared(call),
+    })
+  }
+
+  function handOffs(run: FakeRunner): RunnerCall[] {
+    return run.calls.filter((call) => call.command === NODE)
+  }
+
+  it('another installed copy runs the same arguments, and its exit code 0 is the result', async () => {
+    const folders = project()
+    writeCopy(folders.root, PROJECT_VERSION)
+    const before = snapshot(folders.root)
+    const run = projectCopy(0)
+    const config = join(folders.root, 'agent-qa.config.yaml')
+
+    await add(folders, run, [KERNEL], config, { execPath: NODE, runningPackageDir: elsewhere() })
+
+    const bin = join(realpathSync(folders.root), 'node_modules', 'agent-qa', 'dist', 'cli.js')
+    expect(run.calls).toHaveLength(1)
+    expect(run.calls[0]).toMatchObject({
+      command: NODE,
+      args: [bin, '--config', config, 'plugins', 'add', KERNEL],
+      cwd: folders.root,
+      stdio: 'inherit',
+    })
+    expect(run.calls[0]?.env.AGENT_QA_HANDED_OFF).toBe('1')
+    expect(stdout()).toBe(RUNNING_AS)
+    expect(snapshot(folders.root)).toEqual(before)
+  })
+
+  it("the project's copy exiting 3 makes plugins add exit 3", async () => {
+    const folders = project()
+    writeCopy(folders.root, PROJECT_VERSION)
+    const before = snapshot(folders.root)
+    const run = projectCopy(3)
+    const host = { execPath: NODE, runningPackageDir: elsewhere() }
+
+    const error = await refusal(add(folders, run, [KERNEL], undefined, host))
+
+    expect(error.exitCode).toBe(3)
+    expect(handOffs(run)).toHaveLength(1)
+    expect(snapshot(folders.root)).toEqual(before)
+  })
+
+  it('a copy at the running version but at another real path also runs it', async () => {
+    const folders = project()
+    writeCopy(folders.root, VERSION)
+    const run = projectCopy(0)
+    const host = { execPath: NODE, runningPackageDir: elsewhere() }
+
+    await add(folders, run, [KERNEL], undefined, host)
+
+    expect(handOffs(run)).toHaveLength(1)
+    expect(stdout()).toBe(
+      `Running the project's agent-qa ${VERSION} (node_modules/agent-qa) for plugins add.`,
+    )
+    expect(existsSync(join(folders.root, 'package.json'))).toBe(false)
+  })
+
+  it("a version the project's copy runs at is passed to it rather than refused here", async () => {
+    const folders = project()
+    writeCopy(folders.root, PROJECT_VERSION)
+    const run = projectCopy(0)
+    const host = { execPath: NODE, runningPackageDir: elsewhere() }
+
+    await add(folders, run, [`${KERNEL}@${PROJECT_VERSION}`], undefined, host)
+
+    expect(handOffs(run).map((call) => call.args.at(-1))).toEqual([
+      `${KERNEL}@${PROJECT_VERSION}`,
+    ])
+  })
+
+  it('the copy that is running adds the plugin in this process at its version', async () => {
+    const folders = project()
+    const copy = writeCopy(folders.root, VERSION)
+    const link = join(elsewhere(), 'agent-qa')
+    symlinkSync(copy, link)
+    const run = projectCopy(0)
+
+    await add(folders, run, [KERNEL, '--pm', 'npm'], undefined, {
+      execPath: NODE,
+      runningPackageDir: link,
+    })
+
+    expect(handOffs(run)).toEqual([])
+    expect(declaredDependencies(folders.root)).toEqual({ [KERNEL]: VERSION })
+    expect(stdout()).toContain(`✓ Added the plugins entry kernel for ${KERNEL} ${VERSION}.`)
+  })
+
+  it('an agent-qa started by a hand-off adds the plugin itself', async () => {
+    const folders = project()
+    writeCopy(folders.root, PROJECT_VERSION)
+    const run = projectCopy(0)
+
+    await add(folders, run, [KERNEL, '--pm', 'npm'], undefined, {
+      execPath: NODE,
+      runningPackageDir: elsewhere(),
+      env: { AGENT_QA_HANDED_OFF: '1' },
+    })
+
+    expect(handOffs(run)).toEqual([])
+    expect(declaredDependencies(folders.root)).toEqual({ [KERNEL]: VERSION })
+  })
+
+  it('with no agent-qa installed this one adds the plugin at its own version', async () => {
+    const folders = project()
+    const run = projectCopy(0)
+
+    await add(folders, run, [KERNEL, '--pm', 'npm'], undefined, {
+      execPath: NODE,
+      runningPackageDir: elsewhere(),
+    })
+
+    expect(handOffs(run)).toEqual([])
+    expect(declaredDependencies(folders.root)).toEqual({ [KERNEL]: VERSION })
+    expect(stdout()).not.toContain("Running the project's agent-qa")
   })
 })
 
