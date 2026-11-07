@@ -129,10 +129,24 @@ function output(leg: Leg | undefined): string {
   return leg === undefined ? '' : `${leg.stdout}${leg.stderr}`
 }
 
+let home: string | undefined
+
+// init refuses the home folder, so the CLI's home is a folder apart from the project.
+function cliHome(): string {
+  home ??= trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-hard-cut-home-')))
+  return home
+}
+
 function cli(root: string, args: readonly string[]): Leg {
   const result = spawnSync(process.execPath, [CLI_ENTRY, ...args], {
     cwd: root,
-    env: { ...hermeticEnv(root), CI: 'true', NO_COLOR: '1' },
+    env: {
+      ...hermeticEnv(root),
+      HOME: cliHome(),
+      USERPROFILE: cliHome(),
+      CI: 'true',
+      NO_COLOR: '1',
+    },
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'pipe'],
   })

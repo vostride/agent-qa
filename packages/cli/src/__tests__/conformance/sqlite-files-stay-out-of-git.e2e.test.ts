@@ -105,11 +105,21 @@ function porcelain(root: string): string[] {
   return result.stdout.split('\n').filter((line) => line !== '')
 }
 
+let home: string | undefined
+
+// init refuses the home folder, so the CLI's home is a folder apart from the project.
+function cliHome(): string {
+  home ??= trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-sqlite-home-')))
+  return home
+}
+
 async function cli(root: string, args: readonly string[]): Promise<Leg> {
   const child = spawn(process.execPath, [CLI_ENTRY, ...args], {
     cwd: root,
     env: {
       ...hermeticEnv(root),
+      HOME: cliHome(),
+      USERPROFILE: cliHome(),
       ...populatedRunSpawnEnv(),
       CI: 'true',
       NO_COLOR: '1',
