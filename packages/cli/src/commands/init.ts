@@ -57,6 +57,7 @@ import {
   renderManagedBlock,
   type ManagedBlockContent,
 } from './managed-block.js'
+import { CliRefusal } from '../composition/cli-refusal.js'
 
 // Re-exported because this module is their public door.
 export { SUPPORTED_INIT_PLATFORMS, parseInitPlatform } from './scaffold-content.js'
@@ -1128,6 +1129,11 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       if (!agentInstructionsPlan) printAgentInstructionPointer()
       console.log('')
     })
+
+  // Commander has printed its own line; a usage error exits 2, and help returns so commander exits 0.
+  cmd.exitOverride((error) => {
+    if (error.exitCode !== 0) throw new CliRefusal([], 2, { cause: error })
+  })
 
   return cmd
 }
