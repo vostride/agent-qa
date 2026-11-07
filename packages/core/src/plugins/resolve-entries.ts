@@ -12,6 +12,7 @@ import {
   isNpmPackageName,
   packageDeclarationValue,
   pathDeclarationValue,
+  pluginsAddLine,
 } from '../plugin-loader-util.js'
 import { isPathInsideDir } from '../utils/path-validation.js'
 import { readPluginManifest } from './manifest.js'
@@ -40,6 +41,8 @@ export interface PluginRemoteInput {
 
 export interface ResolvePluginEntryOptions {
   configDir: string
+  // The config the person named; fix lines carry it when it is not the default.
+  configPath?: string
   agentQaVersion: string
   protocols?: { current: number }
 }
@@ -78,11 +81,14 @@ export function supportedPluginProtocols(current: number = PLUGIN_PROTOCOL_VERSI
   return [current, current - 1].filter((protocol) => protocol >= 1)
 }
 
-export function pluginInstallLine(entry: PluginEntryInput): string | undefined {
+export function pluginInstallLine(
+  entry: PluginEntryInput,
+  configPath?: string,
+): string | undefined {
   const packageName = packageDeclarationValue(entry)
   // A person runs this line, so it is only ever built from an npm name.
   if (!isNpmPackageName(packageName)) return undefined
-  return `npx agent-qa plugins add ${packageName}`
+  return pluginsAddLine(packageName, configPath)
 }
 
 function pluginOrigin(entry: PluginEntryInput): PluginOrigin {
@@ -109,7 +115,7 @@ export function resolvePluginEntry(
   const { configDir, agentQaVersion } = options
   const origin = pluginOrigin(entry)
   const label = declarationLabel(entry, configDir)
-  const install = pluginInstallLine(entry)
+  const install = pluginInstallLine(entry, options.configPath)
   const base = { name: entry.name, label, origin, inProcess: false }
 
   let packageJsonPath: string | undefined

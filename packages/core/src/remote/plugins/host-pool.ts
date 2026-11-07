@@ -97,6 +97,8 @@ export interface PluginHostProgress extends RemoteProgress {
 
 export interface PluginHostPoolInput {
   configDir: string
+  // The config the person named; fix lines carry it when it is not the default.
+  configPath?: string
   plugins: readonly PluginEntryInput[]
   agentQaVersion: string
   hostVersions: { playwright: string; webdriverio: string }
@@ -514,6 +516,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
 
     const resolved = resolvePluginEntry(entry, {
       configDir: input.configDir,
+      ...(input.configPath === undefined ? {} : { configPath: input.configPath }),
       agentQaVersion: input.agentQaVersion,
     })
     if (resolved.state !== 'ok') {

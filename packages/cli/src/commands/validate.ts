@@ -196,7 +196,11 @@ async function pluginDiagnostics(
   const plugins = config.plugins ?? []
   if (plugins.length === 0) return []
   const remotes = config.registry?.remotes ?? []
-  const options = { configDir: workspace.configDir, agentQaVersion: getAgentQaVersion() }
+  const options = {
+    configDir: workspace.configDir,
+    configPath: workspace.configPath,
+    agentQaVersion: getAgentQaVersion(),
+  }
   let declaredSecrets: { has(name: string): boolean } | undefined
   try {
     declaredSecrets = readDeclaredSecrets(workspace.secretsFile.absolutePath)

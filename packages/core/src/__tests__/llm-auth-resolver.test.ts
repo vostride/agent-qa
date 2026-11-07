@@ -581,6 +581,21 @@ describe('a missing credential names the auth command to run', () => {
     }
   })
 
+  it('the plugins add line names a config that is not the default one', async () => {
+    const result = await resolveLLMAuth(
+      'claude-code',
+      { provider: 'anthropic-subscription', model: 'any-model' },
+      authPath,
+      join(process.cwd(), 'staging.yaml'),
+    )
+
+    if (result.kind !== 'missing') throw new Error('Expected missing result')
+    expect(result.message).toBe(
+      'Provider "anthropic-subscription" needs the subscription-auth plugin: run npx agent-qa '
+        + '--config staging.yaml plugins add @vostride/agent-qa-subscription-auth.',
+    )
+  })
+
   it('an API-key config with no key is told to run auth set with its name', async () => {
     const unusable = { type: 'session', provider: 'any', key: 'sk-unusable-not-a-key' }
     await writeAuth('compat', unusable as unknown as AuthCredential, authPath)

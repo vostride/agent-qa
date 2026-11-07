@@ -19,6 +19,7 @@ export const PLUGIN_CHECK_TIMEOUT_MS = 15_000
 export interface PluginChecksInput {
   config: Record<string, unknown> | null
   configDir: string
+  configPath?: string
   secretsFile?: { configuredPath: string; absolutePath: string }
   only?: string
   checkTimeoutMs?: number
@@ -163,7 +164,11 @@ async function pluginRow(
   // Resolved against every plugin remote, so an entry none of them names is flagged unused.
   const resolved = resolvePluginEntries(
     { plugins: [entry], remotes },
-    { configDir: input.configDir, agentQaVersion: getAgentQaVersion() },
+    {
+      configDir: input.configDir,
+      ...(input.configPath === undefined ? {} : { configPath: input.configPath }),
+      agentQaVersion: getAgentQaVersion(),
+    },
   )[0]!
   const parts = [identity(resolved)]
   const problems: string[] = []

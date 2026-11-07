@@ -382,7 +382,7 @@ describe('doctor command', () => {
     expect(mockResolveLLMAuth).toHaveBeenCalledWith('default', expect.objectContaining({
       provider: 'anthropic-subscription',
       model: 'claude-sonnet-5-5',
-    }))
+    }), undefined, 'agent-qa.config.yaml')
   })
 
   it('uses the parent global config path when loading config', async () => {
@@ -485,7 +485,7 @@ use:
       provider: 'anthropic-compatible',
       model: 'claude-remote',
       baseURL: 'https://remote.example/messages',
-    }))
+    }), undefined, 'agent-qa.config.yaml')
     expect(output).not.toContain('ANTHROPIC_API_KEY')
     expect(output).not.toContain('OPENAI_API_KEY')
     expect(output).not.toContain('GOOGLE_GENERATIVE_AI_KEY')
@@ -585,7 +585,7 @@ use:
     expect(mockResolveLLMAuth).toHaveBeenCalledWith('planner', expect.objectContaining({
       provider: 'anthropic-compatible',
       providerHeaders: { 'x-workspace': 'agent-qa' },
-    }))
+    }), undefined, 'agent-qa.config.yaml')
     expect(mockCreateModel).toHaveBeenCalledWith(
       expect.objectContaining({
         provider: 'anthropic-compatible',
@@ -685,7 +685,7 @@ use:
     expect(mockResolveLLMAuth).toHaveBeenCalledWith('sixth', expect.objectContaining({
       provider: 'sixth-subscription',
       model: 'hosted-sixth',
-    }))
+    }), undefined, 'agent-qa.config.yaml')
   })
 
   it('classifies a registered sixth provider as requiring baseURL through registry metadata', async () => {
@@ -1660,6 +1660,23 @@ describe('the LLM auth rows', () => {
         + '`agent-qa auth login --config claude-code`',
     )
     expect(row.fixInstructions).not.toContain('npm install')
+  })
+
+  it('the Subscription Auth fix names a config that is not the default one', () => {
+    const row = checkSubscriptionAuth(
+      {
+        registry: {
+          llms: [{ name: 'claude-code', provider: 'anthropic-subscription', model: 'claude-sonnet-4-6' }],
+        },
+        use: { llm: 'claude-code' },
+      },
+      resolve(process.cwd(), 'staging.yaml'),
+    )
+
+    expect(row.fixInstructions).toBe(
+      'Run `npx agent-qa --config staging.yaml plugins add @vostride/agent-qa-subscription-auth`, '
+        + 'then run `agent-qa auth login --config claude-code`',
+    )
   })
 
   it('a compatible config with no key on the public provider API fails the credential row with auth set', async () => {

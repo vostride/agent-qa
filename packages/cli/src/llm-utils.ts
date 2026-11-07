@@ -90,6 +90,7 @@ export async function loadAuthPluginsForRawConfig(raw: unknown, configPath = 'ag
   await loadLLMAuthPlugins(entries as Parameters<typeof loadLLMAuthPlugins>[0], {
     baseDir: dirname(resolvePath(configPath)),
     remotes: pluginRemotesOfRawConfig(raw),
+    configPath,
   })
 }
 
@@ -152,11 +153,17 @@ export function resolveLLMModels(config: {
 export async function resolveModelAuth(
   configName: string,
   llmConfig: LLMConfigLike,
+  configPath?: string,
 ): Promise<ResolvedLLMAuth> {
   const { resolveLLMAuth } = await import('@vostride/agent-qa-core') as unknown as {
-    resolveLLMAuth: (configName: string, llmConfig: LLMConfigLike) => Promise<ResolvedLLMAuth>
+    resolveLLMAuth: (
+      configName: string,
+      llmConfig: LLMConfigLike,
+      authPath?: string,
+      configPath?: string,
+    ) => Promise<ResolvedLLMAuth>
   }
-  return resolveLLMAuth(configName, llmConfig)
+  return resolveLLMAuth(configName, llmConfig, undefined, configPath)
 }
 
 export function applyResolvedAuthToModelConfig(

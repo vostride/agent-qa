@@ -68,6 +68,7 @@ function servesSentences(
 export function pluginRemoteRefusals(input: PluginRemoteRefusalsInput): PluginRemoteRefusal[] {
   const options = {
     configDir: input.configDir,
+    ...(input.configPath === undefined ? {} : { configPath: input.configPath }),
     agentQaVersion: input.agentQaVersion,
     ...(input.protocols === undefined ? {} : { protocols: input.protocols }),
   }

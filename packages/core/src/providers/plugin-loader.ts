@@ -23,6 +23,8 @@ export interface LoadProviderPluginsOptions {
   baseDir?: string
   // The config's registry.remotes; an entry one of them names is refused at run start instead.
   remotes?: readonly PluginRemoteInput[]
+  // The config the person named; fix lines carry it when it is not the default.
+  configPath?: string
 }
 
 type ProviderPluginModule = {
@@ -104,7 +106,11 @@ export async function loadProviderPlugins(
   const { load, refusals } = selectInProcessPluginEntries(
     entries,
     'model-provider',
-    { configDir: baseDir, agentQaVersion: getAgentQaVersion() },
+    {
+      configDir: baseDir,
+      agentQaVersion: getAgentQaVersion(),
+      ...(options.configPath === undefined ? {} : { configPath: options.configPath }),
+    },
     options.remotes,
   )
   const [refused] = refusals
@@ -120,6 +126,7 @@ export async function loadProviderPlugins(
       declaration,
       baseDir,
       'provider',
+      options.configPath,
     )
     const descriptors = extractDescriptors(module, resolved.label)
 
