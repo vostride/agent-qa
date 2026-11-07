@@ -6,19 +6,27 @@ import { basicAuthMaskEntries, SecretRedactor, SecretStore } from '@vostride/age
 import type { MaskFn } from '@vostride/agent-qa-schema'
 import { loadEnvOverrides, mergeConfigs } from '../config.js'
 
+// 'required' and 'missing' mean no secrets are declared; 'unreadable' and 'invalid' mean some may be.
+export type DeclaredSecretsGap = 'required' | 'missing' | 'unreadable' | 'invalid'
+
 export class DeclaredSecretsUnavailableError extends Error {
   readonly lines: readonly string[]
+  readonly gap: DeclaredSecretsGap
 
-  constructor(lines: readonly string[]) {
+  constructor(lines: readonly string[], gap: DeclaredSecretsGap) {
     super(lines.join(' '))
     this.name = 'DeclaredSecretsUnavailableError'
     this.lines = lines
+    this.gap = gap
   }
 
   static required(): DeclaredSecretsUnavailableError {
-    return new DeclaredSecretsUnavailableError([
-      'Error: workspace.secretsFile is required. Run `agent-qa init` or set it in agent-qa.config.yaml.',
-    ])
+    return new DeclaredSecretsUnavailableError(
+      [
+        'Error: workspace.secretsFile is required. Run `agent-qa init` or set it in agent-qa.config.yaml.',
+      ],
+      'required',
+    )
   }
 }
 
@@ -29,25 +37,34 @@ export interface DeclaredSecretMask {
 
 export function readDeclaredSecrets(secretsPath: string): SecretStore {
   if (!existsSync(secretsPath)) {
-    throw new DeclaredSecretsUnavailableError([
-      `Error: Secrets file not found: ${secretsPath}`,
-      'Create the file before running tests. It may be empty, but it must exist.',
-    ])
+    throw new DeclaredSecretsUnavailableError(
+      [
+        `Error: Secrets file not found: ${secretsPath}`,
+        'Create the file before running tests. It may be empty, but it must exist.',
+      ],
+      'missing',
+    )
   }
   let content: string
   try {
     content = readFileSync(secretsPath, 'utf-8')
   } catch {
-    throw new DeclaredSecretsUnavailableError([
-      `Error: Secrets file could not be read: ${secretsPath}`,
-      'Check the path and file permissions before running tests.',
-    ])
+    throw new DeclaredSecretsUnavailableError(
+      [
+        `Error: Secrets file could not be read: ${secretsPath}`,
+        'Check the path and file permissions before running tests.',
+      ],
+      'unreadable',
+    )
   }
   try {
     return SecretStore.fromEnvContent(content)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    throw new DeclaredSecretsUnavailableError([`Error: Secrets file is invalid: ${message}`])
+    throw new DeclaredSecretsUnavailableError(
+      [`Error: Secrets file is invalid: ${message}`],
+      'invalid',
+    )
   }
 }
 

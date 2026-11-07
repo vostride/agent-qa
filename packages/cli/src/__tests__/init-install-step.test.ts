@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 
 import { reportCliFailure } from '../cli-error-handler.js'
 import { createInitCommand } from '../commands/init.js'
-import { runInstallStep } from '../commands/package-install.js'
+import { installOutputMask, OUTPUT_HIDDEN, runInstallStep } from '../commands/package-install.js'
 import { planPackageJson, readProjectPackageJson } from '../commands/package-json-plan.js'
 import { detectPackageManager, managerEnv } from '../commands/package-manager.js'
 import { projectHost, type RunOptions, type RunResult } from '../commands/project-host.js'
@@ -370,6 +370,69 @@ describe('a failed install is a failed step', () => {
     for (const secret of ['s3cret', 'abc123', 'abc.def', 'declared-v4lue-9x7']) {
       expect(out).not.toContain(secret)
     }
+  })
+})
+
+describe('failure output and the declared-secret mask', () => {
+  const SECRET = 'reg1stry-t0ken-only-in-output'
+  const CONFIG = [
+    'workspace:',
+    '  testMatch:',
+    '    - tests/**/*.yaml',
+    '  suiteMatch:',
+    '    - suites/**/*.suite.yaml',
+    '  hooksFile: hooks.yaml',
+    '  envFile: .env',
+    '  secretsFile: .env.secrets.local',
+    '',
+  ].join('\n')
+
+  beforeEach(() => {
+    log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    cleanupTempProjects()
+  })
+
+  async function failedStep(root: string, home: string) {
+    const input = await stepInput(root, home, failing(1, `npm error fetch failed ${SECRET}\n`))
+    const mask = installOutputMask(join(root, 'agent-qa.config.yaml'), input.host.io)
+    return runInstallStep({ ...input, mode: 'run', mask })
+  }
+
+  it('a secrets file that exists but cannot be read hides the output and keeps the command', async () => {
+    const { root, home } = tempProject('install-mask-unreadable')
+    writeFileSync(join(root, 'agent-qa.config.yaml'), CONFIG)
+    mkdirSync(join(root, '.env.secrets.local'))
+
+    const result = await failedStep(root, home)
+
+    expect(result.outcome).toBe('failed')
+    const out = stdout()
+    expect(out).toContain(`  ${OUTPUT_HIDDEN}`)
+    expect(out).toContain('  Run: npm install')
+    expect(out).not.toContain(SECRET)
+  })
+
+  it('a config that is not there yet declares nothing, so the output prints', async () => {
+    const { root, home } = tempProject('install-mask-no-config')
+
+    await failedStep(root, home)
+
+    expect(stdout()).toContain(`  npm error fetch failed ${SECRET}`)
+    expect(stdout()).not.toContain(OUTPUT_HIDDEN)
+  })
+
+  it('a config whose secrets file does not exist declares nothing, so the output prints', async () => {
+    const { root, home } = tempProject('install-mask-no-secrets')
+    writeFileSync(join(root, 'agent-qa.config.yaml'), CONFIG)
+
+    await failedStep(root, home)
+
+    expect(stdout()).toContain(`  npm error fetch failed ${SECRET}`)
   })
 })
 

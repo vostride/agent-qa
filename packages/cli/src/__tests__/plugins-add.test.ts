@@ -712,6 +712,21 @@ describe('plugins add with a third-party plugin', () => {
     expect(installs(run)).toEqual([])
   })
 
+  it('a failed lookup hides its output when the declared secrets cannot be read', async () => {
+    const folders = project()
+    mkdirSync(join(folders.root, '.env.secrets.local'))
+    const run = machine({ lookup: registry({}) })
+
+    const error = await refusal(add(folders, run, [GRID]))
+
+    expect(error.exitCode).toBe(3)
+    expect(stdout()).toContain(
+      "  The manager's output is not shown: the declared secrets that would mask it could not be read.",
+    )
+    expect(stdout()).not.toContain('npm error 404')
+    expect(stdout()).toContain(`  Run: npm view ${GRID}@latest --json`)
+  })
+
   it('a failed lookup prints its last lines and the command, exits 3 and changes nothing', async () => {
     const folders = project()
     const before = snapshot(folders.root)

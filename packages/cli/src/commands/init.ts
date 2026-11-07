@@ -65,7 +65,7 @@ import {
   projectDependencies,
   readProjectPackageJson,
 } from './package-json-plan.js'
-import { runInstallStep } from './package-install.js'
+import { installOutputMask, runInstallStep } from './package-install.js'
 import { detectPackageManager } from './package-manager.js'
 import { declaredAgentQaVersion, handOffToProjectAgentQa } from './project-agent-qa.js'
 import { projectHost, type ProjectHost, type ProjectIo } from './project-host.js'
@@ -824,14 +824,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             io: host.io,
             ...(opts.pm === undefined || opts.pm === 'none' ? {} : { flag: opts.pm }),
           })
-        const maskInstallOutput = async (text: string): Promise<string> => {
-          try {
-            const secrets = await import('../composition/declared-secrets.js')
-            return secrets.createDeclaredSecretMask(configPath).mask(text)
-          } catch {
-            return text
-          }
-        }
+        const maskInstallOutput = installOutputMask(configPath, host.io)
         const handedOff = await handOffToProjectAgentQa({
           host,
           range,
