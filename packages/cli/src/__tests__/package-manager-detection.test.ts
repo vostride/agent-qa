@@ -277,41 +277,67 @@ describe("the manager's environment", () => {
     npm_lifecycle_script: 'agent-qa',
     npm_package_name: 'x',
     npm_package_json: '/x/package.json',
+    npm_config_user_agent: 'npm/11.19.1 node/v24.22.2 darwin arm64 workspaces/false',
+    npm_config_local_prefix: '/x',
+    npm_config_global_prefix: '/usr/local',
+    npm_config_node_gyp: '/node-gyp.js',
+    npm_config_npm_version: '11.19.1',
     npm_config_allow_scripts: '',
+    npm_config_package: 'agent-qa',
+    npm_config_yes: 'true',
     npm_config_registry: 'r',
+    'npm_config_@acme:registry': 'https://npm.acme.test/',
+    npm_config_strict_ssl: 'false',
+    NPM_CONFIG_USERCONFIG: '/u',
+  }
+  const settings = {
+    npm_config_registry: 'r',
+    'npm_config_@acme:registry': 'https://npm.acme.test/',
+    npm_config_strict_ssl: 'false',
     NPM_CONFIG_USERCONFIG: '/u',
   }
 
-  it('npm keeps its npm_config settings but loses NODE_ENV, the npx variables and allow_scripts', () => {
+  it("npm keeps the person's npm_config settings but loses NODE_ENV and what npx set for itself", () => {
     expect(managerEnv('npm', 'path', inherited)).toEqual({
       PATH: '/usr/bin',
       HOME: '/home/someone',
-      npm_config_registry: 'r',
-      NPM_CONFIG_USERCONFIG: '/u',
+      ...settings,
     })
   })
 
-  it('pnpm loses every npm_config setting and gets both spellings of the lockfile freeze off', () => {
+  it("pnpm keeps the person's npm_config settings and gets both spellings of the lockfile freeze off", () => {
     expect(managerEnv('pnpm', 'path', inherited)).toEqual({
       PATH: '/usr/bin',
       HOME: '/home/someone',
+      ...settings,
       PNPM_CONFIG_FROZEN_LOCKFILE: 'false',
       npm_config_frozen_lockfile: 'false',
     })
   })
 
-  it('yarn loses every npm_config setting and gets immutable installs off', () => {
+  it('a lockfile freeze the environment set in another spelling case is replaced, not doubled', () => {
+    const env = { NPM_CONFIG_FROZEN_LOCKFILE: 'true', pnpm_config_frozen_lockfile: 'true' }
+
+    expect(managerEnv('pnpm', 'path', env)).toEqual({
+      PNPM_CONFIG_FROZEN_LOCKFILE: 'false',
+      npm_config_frozen_lockfile: 'false',
+    })
+  })
+
+  it("yarn keeps the person's npm_config settings and gets immutable installs off", () => {
     expect(managerEnv('yarn', 'path', inherited)).toEqual({
       PATH: '/usr/bin',
       HOME: '/home/someone',
+      ...settings,
       YARN_ENABLE_IMMUTABLE_INSTALLS: 'false',
     })
   })
 
-  it('bun loses every npm_config setting and gets nothing added', () => {
+  it("the npx fallback keeps the person's registry settings, so npx can fetch the manager", () => {
     expect(managerEnv('bun', 'npx', inherited)).toEqual({
       PATH: '/usr/bin',
       HOME: '/home/someone',
+      ...settings,
     })
   })
 
@@ -319,6 +345,7 @@ describe("the manager's environment", () => {
     expect(managerEnv('yarn', 'corepack', inherited)).toEqual({
       PATH: '/usr/bin',
       HOME: '/home/someone',
+      ...settings,
       YARN_ENABLE_IMMUTABLE_INSTALLS: 'false',
       COREPACK_ENABLE_DOWNLOAD_PROMPT: '0',
     })
