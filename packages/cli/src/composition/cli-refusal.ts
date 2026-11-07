@@ -11,3 +11,19 @@ export class CliRefusal extends Error {
     this.exitCode = exitCode
   }
 }
+
+export const CANCELLED_LINE = 'Cancelled.'
+
+export class PromptCancelled extends Error {
+  constructor() {
+    super(CANCELLED_LINE)
+    this.name = 'PromptCancelled'
+  }
+}
+
+// `@inquirer/core`'s ExitPromptError is recognised by name, so the CLI needs no import of it.
+export function isPromptCancel(error: unknown): boolean {
+  return (
+    error instanceof PromptCancelled || (error instanceof Error && error.name === 'ExitPromptError')
+  )
+}
