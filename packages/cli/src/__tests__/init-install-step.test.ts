@@ -783,3 +783,52 @@ describe('a pnpm install denies the build scripts pnpm would stop on', () => {
     expect(existsSync(join(root, 'pnpm-workspace.yaml'))).toBe(false)
   })
 })
+
+describe("a Yarn Plug'n'Play project installs into node_modules", () => {
+  beforeEach(() => {
+    log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    cleanupTempProjects()
+  })
+
+  it('init sets nodeLinker in the Yarn 4 root .yarnrc.yml before the install', async () => {
+    const { root, home } = tempProject('yarn-berry-linker')
+    writeJson(join(root, 'package.json'), {
+      name: 'berry',
+      private: true,
+      packageManager: 'yarn@4.18.1',
+    })
+    writeFileSync(join(root, 'yarn.lock'), '__metadata:\n  version: 8\n')
+    const seen: (string | undefined)[] = []
+    const run = onMachine({ yarn: '4.18.1' }, ({ options }) => {
+      const file = join(options.cwd, '.yarnrc.yml')
+      seen.push(existsSync(file) ? readFileSync(file, 'utf8') : undefined)
+      writeInstalledPackage(options.cwd, 'agent-qa', VERSION)
+      return { code: 0, signal: null, output: '' }
+    })
+
+    await init(root, home, run)
+
+    expect(installs(run).map(argv)).toEqual(['yarn install'])
+    expect(seen).toEqual(['nodeLinker: node-modules\n'])
+    expect(stdout()).toContain(
+      `✓ Installed agent-qa ${VERSION} with yarn; set nodeLinker: node-modules in .yarnrc.yml`,
+    )
+  })
+
+  it('a Yarn 1 project gets no .yarnrc.yml', async () => {
+    const run = onMachine({ yarn: '1.22.22' }, writes('agent-qa'))
+    const { root, input } = await declaredProject('yarn-classic-linker', {}, run, {
+      'yarn.lock': '# yarn lockfile v1\n',
+    })
+
+    const result = await runInstallStep({ ...input, mode: 'run' })
+
+    expect(result.outcome).toBe('installed')
+    expect(existsSync(join(root, '.yarnrc.yml'))).toBe(false)
+  })
+})
