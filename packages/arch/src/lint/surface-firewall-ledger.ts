@@ -148,6 +148,12 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: "init's package.json plan reads the running agent-qa version from core; joins the config mutation class with init",
   },
   {
+    file: 'packages/cli/src/commands/package-manager.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: "manager detection reads Yarn's line from a declared range's floor with core's semver helper; joins the config mutation class with init",
+  },
+  {
     file: 'packages/cli/src/commands/plugin-remote-refusals.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '386',
