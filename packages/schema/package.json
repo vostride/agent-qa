@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-schema",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": false,
   "description": "Browser-safe schema and DTO contracts for agent-qa.",
   "keywords": [

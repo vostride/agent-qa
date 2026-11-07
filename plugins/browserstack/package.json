@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-plugin-browserstack",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": false,
   "description": "agent-qa plugin for BrowserStack: runs web tests on BrowserStack browsers over the Playwright protocol and device tests on BrowserStack devices over Appium.",
   "keywords": [

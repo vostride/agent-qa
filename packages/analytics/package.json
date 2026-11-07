@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-analytics",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "private": false,
   "description": "Product analytics port, closed event union, and transports for agent-qa hosts.",
   "keywords": [
