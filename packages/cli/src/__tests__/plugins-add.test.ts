@@ -264,9 +264,10 @@ describe('plugins add with a first-party plugin', () => {
 
 describe("plugins add runs as the project's agent-qa", () => {
   const NODE = '/fake/node'
-  const PROJECT_VERSION = '0.3.2'
+  const NEWER = '99.0.0'
+  const OLDER = '0.0.1'
   const RUNNING_AS =
-    `Running the project's agent-qa ${PROJECT_VERSION} (node_modules/agent-qa) for plugins add.`
+    `Running the project's agent-qa ${NEWER} (node_modules/agent-qa) for plugins add.`
   const others: string[] = []
 
   afterEach(() => {
@@ -298,9 +299,9 @@ describe("plugins add runs as the project's agent-qa", () => {
     return run.calls.filter((call) => call.command === NODE)
   }
 
-  it('another installed copy runs the same arguments, and its exit code 0 is the result', async () => {
+  it('a newer installed copy runs the same arguments, and its exit code 0 is the result', async () => {
     const folders = project()
-    writeCopy(folders.root, PROJECT_VERSION)
+    writeCopy(folders.root, NEWER)
     const before = snapshot(folders.root)
     const run = projectCopy(0)
     const config = join(folders.root, 'agent-qa.config.yaml')
@@ -322,7 +323,7 @@ describe("plugins add runs as the project's agent-qa", () => {
 
   it("the project's copy exiting 3 makes plugins add exit 3", async () => {
     const folders = project()
-    writeCopy(folders.root, PROJECT_VERSION)
+    writeCopy(folders.root, NEWER)
     const before = snapshot(folders.root)
     const run = projectCopy(3)
     const host = { execPath: NODE, runningPackageDir: elsewhere() }
@@ -351,15 +352,42 @@ describe("plugins add runs as the project's agent-qa", () => {
 
   it("a version the project's copy runs at is passed to it rather than refused here", async () => {
     const folders = project()
-    writeCopy(folders.root, PROJECT_VERSION)
+    writeCopy(folders.root, NEWER)
     const run = projectCopy(0)
     const host = { execPath: NODE, runningPackageDir: elsewhere() }
 
-    await add(folders, run, [`${KERNEL}@${PROJECT_VERSION}`], undefined, host)
+    await add(folders, run, [`${KERNEL}@${NEWER}`], undefined, host)
 
-    expect(handOffs(run).map((call) => call.args.at(-1))).toEqual([
-      `${KERNEL}@${PROJECT_VERSION}`,
-    ])
+    expect(handOffs(run).map((call) => call.args.at(-1))).toEqual([`${KERNEL}@${NEWER}`])
+  })
+
+  it('an older copy, which may have no plugins add, is not run: this one pins to its version', async () => {
+    const folders = project()
+    writeCopy(folders.root, OLDER)
+    const run = projectCopy(0)
+    const host = { execPath: NODE, runningPackageDir: elsewhere() }
+
+    await add(folders, run, [`${KERNEL}@${OLDER}`, '--pm', 'npm'], undefined, host)
+
+    expect(handOffs(run)).toEqual([])
+    expect(declaredDependencies(folders.root)).toEqual({ [KERNEL]: OLDER })
+    expect(stdout()).not.toContain("Running the project's agent-qa")
+    expect(stdout()).toContain(`✓ Added the plugins entry kernel for ${KERNEL} ${OLDER}.`)
+  })
+
+  it("an older copy refuses a version other than its own, naming the copy's version", async () => {
+    const folders = project()
+    writeCopy(folders.root, OLDER)
+    const run = projectCopy(0)
+    const host = { execPath: NODE, runningPackageDir: elsewhere() }
+
+    const error = await refusal(add(folders, run, [`${KERNEL}@${VERSION}`], undefined, host))
+
+    expect(error.exitCode).toBe(2)
+    expect(error.message).toBe(
+      `${KERNEL} runs only at agent-qa's version, ${OLDER}. Run npx agent-qa plugins add ${KERNEL}.`,
+    )
+    expect(run.calls).toEqual([])
   })
 
   it('the copy that is running adds the plugin in this process at its version', async () => {
@@ -379,9 +407,9 @@ describe("plugins add runs as the project's agent-qa", () => {
     expect(stdout()).toContain(`✓ Added the plugins entry kernel for ${KERNEL} ${VERSION}.`)
   })
 
-  it('an agent-qa started by a hand-off adds the plugin itself', async () => {
+  it('an agent-qa started by a hand-off adds the plugin itself, at the installed version', async () => {
     const folders = project()
-    writeCopy(folders.root, PROJECT_VERSION)
+    writeCopy(folders.root, NEWER)
     const run = projectCopy(0)
 
     await add(folders, run, [KERNEL, '--pm', 'npm'], undefined, {
@@ -391,7 +419,7 @@ describe("plugins add runs as the project's agent-qa", () => {
     })
 
     expect(handOffs(run)).toEqual([])
-    expect(declaredDependencies(folders.root)).toEqual({ [KERNEL]: VERSION })
+    expect(declaredDependencies(folders.root)).toEqual({ [KERNEL]: NEWER })
   })
 
   it('with no agent-qa installed this one adds the plugin at its own version', async () => {
