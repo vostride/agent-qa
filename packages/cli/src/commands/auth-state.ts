@@ -288,7 +288,7 @@ export function createAuthStateCommand(deps: AuthStateCommandDeps = {}): Command
           if (confirmation === 'cancelled') {
             await closeBrowser(browser)
             console.log('Auth-state capture cancelled.')
-            process.exitCode = 1
+            process.exitCode = 130
             return
           }
 
