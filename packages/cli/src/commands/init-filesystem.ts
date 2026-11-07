@@ -932,9 +932,6 @@ export function writeConfigMarkerLast(
   plan: InitPathPlan,
   hooks: InitFilesystemHooks = {},
 ): InitFileResult {
-  if (basename(plan.path) !== 'agent-qa.config.yaml') {
-    throw new Error('Init completion marker must be agent-qa.config.yaml')
-  }
   return writeScaffoldFileAtomic(plan, hooks)
 }
 

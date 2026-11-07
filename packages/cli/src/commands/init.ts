@@ -1,6 +1,6 @@
 import { Command, Option } from 'commander'
 import { existsSync, readFileSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { basename, dirname, join, relative, resolve } from 'node:path'
 import pc from 'picocolors'
 import select from '@inquirer/select'
 import input from '@inquirer/input'
@@ -68,6 +68,7 @@ const INIT_CACHE_DIR = DEFAULT_AGENT_QA_CACHE_DIR || '.agent-qa/cache'
 const INIT_AUTH_STATES_DIR = DEFAULT_AGENT_QA_AUTH_STATES_DIR || '.agent-qa/auth-states'
 
 const PACKAGE_JSON_FILE = 'package.json'
+const DEFAULT_CONFIG_FILE_NAME = 'agent-qa.config.yaml'
 // Kept here rather than moved: it feeds `buildGitignoreEntries`, the deliberate literal
 // copy this file keeps pinned against `init-filesystem.ts`'s own — see scaffold-content.ts.
 const INIT_RUNTIME_DIR = DEFAULT_AGENT_QA_RUNTIME_DIR || '.agent-qa'
@@ -629,11 +630,27 @@ function connectionSteps(config: Record<string, unknown>, dir: string): InitNext
   return steps
 }
 
+const AGENT_QA_COMMAND = 'npx agent-qa '
+
+// A config under another name is only found when every agent-qa command names it.
+function withConfigName(steps: readonly InitNextStep[], configName: string): InitNextStep[] {
+  if (configName === DEFAULT_CONFIG_FILE_NAME) return [...steps]
+  return steps.map((step) =>
+    step.command.startsWith(AGENT_QA_COMMAND)
+      ? {
+          ...step,
+          command: `${AGENT_QA_COMMAND}--config ${configName} ${step.command.slice(AGENT_QA_COMMAND.length)}`,
+        }
+      : step,
+  )
+}
+
 // The same commands, in the same order, as the published quickstart.
 function initNextSteps(
   platform: InitPlatformInput,
   config: Record<string, unknown>,
   dir: string,
+  configName: string,
 ): InitNextStep[] {
   const steps: InitNextStep[] = []
   if (hasWeb(platform)) {
@@ -660,7 +677,7 @@ function initNextSteps(
     command: GETTING_STARTED_URL,
     description: 'The rest of the route: the hook sample, the dashboard and what the run taught agent-qa',
   })
-  return steps
+  return withConfigName(steps, configName)
 }
 
 const ROOT_AGENT_INSTRUCTIONS_FILE = 'AGENTS.md'
@@ -678,10 +695,10 @@ function agentInstructionPointerBlock(): string {
 }
 
 // The config marker records completion, so a failed root block reports the scaffold incomplete.
-function incompleteScaffoldError(error: unknown): Error {
+function incompleteScaffoldError(error: unknown, configName: string): Error {
   const reason = error instanceof Error ? error.message : String(error)
   return new Error(
-    `${reason}\nThe other scaffold files were written, but agent-qa.config.yaml was not written, `
+    `${reason}\nThe other scaffold files were written, but ${configName} was not written, `
     + 'so this project is not initialized. Fix the cause above and rerun agent-qa init; '
     + 'files it already wrote are kept.',
     { cause: error },
@@ -838,10 +855,11 @@ function printNextSteps(
   platform: InitPlatformInput,
   config: Record<string, unknown>,
   dir: string,
+  configName: string,
 ): void {
   console.log('')
   console.log('  Next steps:')
-  for (const [index, step] of initNextSteps(platform, config, dir).entries()) {
+  for (const [index, step] of initNextSteps(platform, config, dir, configName).entries()) {
     console.log(`    ${index + 1}. ${pc.cyan(step.command)}  ${step.description}`)
   }
 }
@@ -1082,6 +1100,13 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           }
         }
 
+        // The config must stay commit-visible under whatever name it has.
+        const targetGitignoreProbes = TARGET_GITIGNORE_PROBES.map((probe) =>
+          probe.path === DEFAULT_CONFIG_FILE_NAME
+            ? { ...probe, path: basename(configPath) }
+            : probe,
+        )
+
         const outcomes: InitFileResult[] = []
         let boundary = 0
         const recordOutcome = (result: InitFileResult): void => {
@@ -1099,7 +1124,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         verifyEffectiveGitignore({
           cwd: dir,
           label: 'target .gitignore',
-          probes: TARGET_GITIGNORE_PROBES,
+          probes: targetGitignoreProbes,
           // The managed block is on disk by now — the refusal must not say otherwise.
           written: 'managed-gitignore',
         })
@@ -1126,7 +1151,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           try {
             recordOutcome(upsertManagedBlock(agentInstructionsPlan))
           } catch (error) {
-            throw incompleteScaffoldError(error)
+            throw incompleteScaffoldError(error, basename(configPath))
           }
         }
 
@@ -1146,7 +1171,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           result => result.path === secretsPath && result.outcome === 'preserved',
         )
         if (hasWeb(platform) && secretsPreserved) printExampleSecretLine()
-        printNextSteps(platform, config, dir)
+        printNextSteps(platform, config, dir, basename(configPath))
         if (!agentInstructionsPlan) printAgentInstructionPointer()
         console.log('')
       } catch (error) {

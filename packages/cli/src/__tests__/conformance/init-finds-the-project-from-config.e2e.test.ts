@@ -1,4 +1,4 @@
-// init reads --config as its config file: the lookup, --agent and the --dir mismatch refusal.
+// init reads --config as its config file: the lookup, a fresh write, --agent and the --dir refusal.
 
 import {
   existsSync,
@@ -8,6 +8,7 @@ import {
   realpathSync,
   writeFileSync,
 } from 'node:fs'
+import { spawnSync } from 'node:child_process'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -57,6 +58,18 @@ async function agentQa(
 function plantConfig(root: string, path: string): void {
   mkdirSync(join(root, path, '..'), { recursive: true })
   writeFileSync(join(root, path), 'workspace: {}\n')
+}
+
+async function freshInitAtNamedConfig(): Promise<{
+  root: string
+  outcome: SpawnOutcome & { text: string }
+}> {
+  const root = tempFolder('fresh')
+  const git = spawnSync('git', ['init', '--quiet'], { cwd: root, encoding: 'utf8' })
+  expect(git.status, git.stderr).toBe(0)
+  const outcome = await agentQa(root, ['--config', 'sub/custom.yaml', 'init', ...WEB_GEMINI])
+  expect(outcome.code, outcome.text).toBe(0)
+  return { root, outcome }
 }
 
 function configuration(outcome: SpawnOutcome & { text: string }): unknown {
@@ -127,6 +140,43 @@ describe('init and the --config file', () => {
       plantConfig(root, join('sub', 'custom.yaml'))
       const outcome = await agentQa(root, ['--config', 'sub/custom.yaml', 'init', '--agent'])
       expect(configuration(outcome)).not.toBe('absent')
+    },
+    CELL_BUDGET_MS,
+  )
+
+  it(
+    'a fresh init with --config writes the config at that path and the scaffold in its folder',
+    async () => {
+      expectFresh()
+      const { root } = await freshInitAtNamedConfig()
+      for (const path of [
+        'custom.yaml',
+        '.env.secrets.local',
+        '.gitignore',
+        join('agent-qa-knowledge', 'AGENTS.md'),
+      ]) {
+        expect(existsSync(join(root, 'sub', path)), path).toBe(true)
+      }
+      expect(existsSync(join(root, 'sub', 'agent-qa.config.yaml'))).toBe(false)
+      expect(existsSync(join(root, 'agent-qa.config.yaml'))).toBe(false)
+    },
+    CELL_BUDGET_MS,
+  )
+
+  it(
+    'the next steps for a named config carry --config before each agent-qa command',
+    async () => {
+      expectFresh()
+      const { outcome } = await freshInitAtNamedConfig()
+      expect(outcome.stdout).toContain('npx agent-qa --config custom.yaml validate')
+      expect(outcome.stdout).toContain(
+        'npx agent-qa --config custom.yaml auth set --config default --type api-key',
+      )
+      expect(outcome.stdout).toContain('npx agent-qa --config custom.yaml run')
+      const bare = outcome.stdout
+        .split('\n')
+        .filter((line) => line.includes('npx agent-qa validate'))
+      expect(bare).toEqual([])
     },
     CELL_BUDGET_MS,
   )
