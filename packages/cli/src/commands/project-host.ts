@@ -56,14 +56,16 @@ export type CommandRunner = (
   options: RunOptions,
 ) => Promise<RunResult>
 
-function windowsArgument(arg: string): string {
-  return `"${arg.replaceAll('"', '\\"')}"`
+// cmd.exe splits on spaces, so the command is one word only when quoted like its arguments.
+export function windowsShellWord(word: string): string {
+  return `"${word.replaceAll('"', '\\"')}"`
 }
 
 // On Windows the managers are .cmd shims that only a shell can start.
 export const spawnRunner: CommandRunner = (command, args, options) => {
   const windows = process.platform === 'win32'
-  const child = spawn(command, windows ? args.map(windowsArgument) : [...args], {
+  const file = windows ? windowsShellWord(command) : command
+  const child = spawn(file, windows ? args.map(windowsShellWord) : [...args], {
     cwd: options.cwd,
     env: options.env,
     stdio: options.stdio === 'capture' ? ['ignore', 'pipe', 'pipe'] : 'inherit',
