@@ -7,6 +7,7 @@ import { createInterface } from 'node:readline'
 import { MARKER_WRITTEN_BACK_SENTENCE, type MaskFn } from '@vostride/agent-qa-schema'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 
+import { PromptCancelled } from '../composition/cli-refusal.js'
 import {
   createDeclaredSecretMask,
   DeclaredSecretsUnavailableError,
@@ -61,10 +62,32 @@ async function readStdin(): Promise<string> {
   return Buffer.concat(chunks).toString('utf-8').trim()
 }
 
-function plainPrompt(question: string): Promise<string> {
-  const rl = createInterface({ input: process.stdin, output: process.stdout })
-  return new Promise((resolve) => {
+export interface PromptStreams {
+  readonly input: NodeJS.ReadableStream
+  readonly output: NodeJS.WritableStream
+  readonly terminal?: boolean
+}
+
+// Without a SIGINT listener, Ctrl-C closes the interface and the process drains to exit 0.
+export function plainPrompt(
+  question: string,
+  streams: PromptStreams = { input: process.stdin, output: process.stdout },
+): Promise<string> {
+  const rl = createInterface({
+    input: streams.input,
+    output: streams.output,
+    ...(streams.terminal === undefined ? {} : { terminal: streams.terminal }),
+  })
+  return new Promise((resolve, reject) => {
+    let answered = false
+    rl.on('SIGINT', () => {
+      rl.close()
+    })
+    rl.on('close', () => {
+      if (!answered) reject(new PromptCancelled())
+    })
     rl.question(question, (answer) => {
+      answered = true
       rl.close()
       resolve(answer.trim())
     })
@@ -84,6 +107,7 @@ async function setAction(key: string, value: string | undefined, command: Comman
   const resolved = await getValue(key, value)
   if (!resolved) {
     console.error(pc.red('No value provided.'))
+    process.exitCode = 1
     return
   }
   // Refused before the file is read; the value is never echoed.

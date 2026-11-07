@@ -4,7 +4,9 @@ import { MARKER_WRITTEN_BACK_SENTENCE } from '@vostride/agent-qa-schema'
 import { formatConfigDebug, loadConfigFile, loadRequiredConfigFile, loadEnvOverrides, mergeConfigs, mergeWithTestConfig, mergeUseBlocks, resolveConfig } from '../config.js'
 import { HARD_CUT_STEPS, INVALID_CONFIG_FIX } from '../hard-cut.js'
 import { createDeclaredSecretMask } from '../composition/declared-secrets.js'
+import { isPromptCancel, PromptCancelled } from '../composition/cli-refusal.js'
 import { readFile, writeFile, mkdir, rm } from 'node:fs/promises'
+import { PassThrough } from 'node:stream'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
@@ -656,6 +658,58 @@ describe('config set refuses a shown marker', () => {
     expect(stderr).toContain(MARKER_WRITTEN_BACK_SENTENCE)
     expect(stdout).not.toContain('saved to')
     expect(await readFile(join(dir, 'agent-qa.config.yaml'), 'utf-8')).toBe(before)
+  })
+})
+
+describe('the config value prompt', () => {
+  function promptStreams(): { input: PassThrough; output: PassThrough; terminal: boolean } {
+    const output = new PassThrough()
+    output.resume()
+    return { input: new PassThrough(), output, terminal: true }
+  }
+
+  it('Ctrl-C at the prompt rejects as a cancel', async () => {
+    const { plainPrompt } = await import('../commands/config.js')
+    const streams = promptStreams()
+
+    const answer = plainPrompt('Enter value for x: ', streams)
+    streams.input.write('\x03')
+
+    const error = await answer.then(
+      () => undefined,
+      (err: unknown) => err,
+    )
+    expect(isPromptCancel(error)).toBe(true)
+  })
+
+  it('input that ends before an answer rejects as a cancel', async () => {
+    const { plainPrompt } = await import('../commands/config.js')
+    const streams = promptStreams()
+
+    const answer = plainPrompt('Enter value for x: ', streams)
+    streams.input.end()
+
+    await expect(answer).rejects.toBeInstanceOf(PromptCancelled)
+  })
+
+  it('an answer resolves trimmed', async () => {
+    const { plainPrompt } = await import('../commands/config.js')
+    const streams = promptStreams()
+
+    const answer = plainPrompt('Enter value for x: ', streams)
+    streams.input.write('  value  \n')
+
+    await expect(answer).resolves.toBe('value')
+  })
+
+  it('config set with an empty value prints No value provided. and exits 1', async () => {
+    const dir = join(TMP_DIR, 'set-empty')
+    await mkdir(dir, { recursive: true })
+
+    const { stderr, exitCode } = await runConfigCommand(dir, ['set', 'x', ''])
+
+    expect(stderr).toContain('No value provided.')
+    expect(exitCode).toBe(1)
   })
 })
 
