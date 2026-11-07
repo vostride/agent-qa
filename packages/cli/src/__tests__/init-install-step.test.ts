@@ -836,6 +836,11 @@ describe("a Yarn Plug'n'Play project installs into node_modules", () => {
 const PLUGIN_STEP = `npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}`
 const PLUGIN_STEP_DESCRIPTION = 'Install the subscription sign-in plugin'
 const CLAUDE_CODE = ['--platform', 'web', '--llm', 'claude-code']
+// Any npm install, i or add command that names the plugin, whatever its flags.
+const NPM_PLUGIN_INSTALL = new RegExp(
+  `npm (?:install|i|add)\\b.*${SUBSCRIPTION_AUTH_PACKAGE.replace(/[.*+?^${}()|[\]\\/]/gu, '\\$&')}`,
+  'u',
+)
 
 function pluginStepLine(): string | undefined {
   return stdout()
@@ -872,7 +877,7 @@ describe("init's subscription next step", () => {
 
     expect(error.exitCode).toBe(3)
     expect(pluginStepLine()).toContain(PLUGIN_STEP_DESCRIPTION)
-    expect(stdout()).not.toContain(`npm install -D ${SUBSCRIPTION_AUTH_PACKAGE}`)
+    expect(stdout()).not.toMatch(NPM_PLUGIN_INSTALL)
   })
 
   it('--pm none is followed by the plugins add next step', async () => {
@@ -881,7 +886,7 @@ describe("init's subscription next step", () => {
     await init(root, home, installing(), [...CLAUDE_CODE, '--pm', 'none'])
 
     expect(pluginStepLine()).toContain(PLUGIN_STEP_DESCRIPTION)
-    expect(stdout()).not.toContain(`npm install -D ${SUBSCRIPTION_AUTH_PACKAGE}`)
+    expect(stdout()).not.toMatch(NPM_PLUGIN_INSTALL)
   })
 
   it('a plugin installed above the git root does not hide the next step', async () => {
