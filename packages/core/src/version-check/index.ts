@@ -41,12 +41,35 @@ interface VersionCheckCacheFile {
 interface SemverApi {
   valid(version: string): string | null
   gt(version: string, otherVersion: string): boolean
+  compare(version: string, otherVersion: string): -1 | 0 | 1
+  minVersion(range: string): { version: string } | null
+  validRange(range: string): string | null
 }
 
 let semverApi: SemverApi | undefined
 
 export function getAgentQaVersionCheckCachePath(homeDir?: string): string {
   return join(homeDir ?? homedir(), '.agent-qa', 'version-check.json')
+}
+
+export function compareSemverVersions(left: string, right: string): -1 | 0 | 1 | undefined {
+  const semver = getSemverApi()
+  if (!semver) return undefined
+  const leftVersion = getValidVersion(left, semver)
+  const rightVersion = getValidVersion(right, semver)
+  if (leftVersion === undefined || rightVersion === undefined) return undefined
+  return semver.compare(leftVersion, rightVersion)
+}
+
+export function semverRangeFloor(range: string): string | undefined {
+  const semver = getSemverApi()
+  if (!semver) return undefined
+  try {
+    if (semver.validRange(range) === null) return undefined
+    return semver.minVersion(range)?.version
+  } catch {
+    return undefined
+  }
 }
 
 export async function getAgentQaUpdateStatus(
