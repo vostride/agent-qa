@@ -46,11 +46,13 @@ function tempFolder(label: string): string {
 async function agentQa(
   cwd: string,
   args: readonly string[],
+  env: Record<string, string> = {},
 ): Promise<SpawnOutcome & { text: string }> {
   const home = tempFolder('home')
   const outcome = await spawnCollecting(cwd, [CLI_ENTRY, ...args], {
     HOME: home,
     USERPROFILE: home,
+    ...env,
   })
   return { ...outcome, text: `${outcome.stdout}\n${outcome.stderr}` }
 }
@@ -140,6 +142,25 @@ describe('init and the --config file', () => {
       plantConfig(root, join('sub', 'custom.yaml'))
       const outcome = await agentQa(root, ['--config', 'sub/custom.yaml', 'init', '--agent'])
       expect(configuration(outcome)).not.toBe('absent')
+    },
+    CELL_BUDGET_MS,
+  )
+
+  it(
+    'a refused init --agent under GitHub Actions prints its block on stderr and nothing on stdout',
+    async () => {
+      expectFresh()
+      const root = tempFolder('agent-refused')
+      const outcome = await agentQa(
+        root,
+        ['--config', 'custom.yaml', 'init', '--agent', '--dir', 'e2e'],
+        { GITHUB_ACTIONS: 'true' },
+      )
+      expect(outcome.code, outcome.text).toBe(2)
+      expect(outcome.stdout).toBe('')
+      expect(outcome.stderr).toMatch(
+        /^::stop-commands::([0-9a-f]{32})\n[\s\S]*custom\.yaml[\s\S]*\n::\1::\n$/u,
+      )
     },
     CELL_BUDGET_MS,
   )
