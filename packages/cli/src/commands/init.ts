@@ -953,6 +953,17 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           }
         }
 
+        const configPath = join(dir, 'agent-qa.config.yaml')
+        const configClassification = classifyInitPath(configPath, dir)
+        if (configClassification === 'regular' && !force) {
+          const completed = [{ path: configPath, outcome: 'preserved' }] as const
+          console.log(pc.yellow(`Project is already initialized at ${dir}. Use --force to rebuild it.`))
+          printOutcomeSummary(dir, completed)
+          hooks.onComplete?.(completed)
+          await emitInitCompleted(completed)
+          return
+        }
+
         const refuseBaseUrl = (provider: string): boolean => {
           const refusal = opts.baseUrl === undefined ? undefined : baseUrlRefusal(provider, opts.baseUrl)
           if (refusal) {
@@ -1018,17 +1029,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             default: baseURL,
             validate: (value) => baseUrlFormRefusal(value.trim()) ?? true,
           })).trim()
-        }
-
-        const configPath = join(dir, 'agent-qa.config.yaml')
-        const configClassification = classifyInitPath(configPath, dir)
-        if (configClassification === 'regular' && !force) {
-          const completed = [{ path: configPath, outcome: 'preserved' }] as const
-          console.log(pc.yellow(`Project is already initialized at ${dir}. Use --force to rebuild it.`))
-          printOutcomeSummary(dir, completed)
-          hooks.onComplete?.(completed)
-          await emitInitCompleted(completed)
-          return
         }
 
         const config = buildDefaultConfig(platform, [{ name: llmName, provider, model, baseURL }])
