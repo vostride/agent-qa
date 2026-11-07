@@ -28,6 +28,9 @@ export async function initFolderRefusal(
 ): Promise<string | undefined> {
   const real = await realPathIfPresent(io, projectDir)
   if (real === undefined) return undefined
+  if (io.path.dirname(real) === real) {
+    return `agent-qa init does not set up the filesystem root (${real}). Run it in the project's folder, or pass --dir <folder>.`
+  }
   const home = io.homedir()
   const realHome = await realPathIfPresent(io, home)
   if (real === realHome) {
