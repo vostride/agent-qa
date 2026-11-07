@@ -2,7 +2,7 @@ import { dirname, relative, resolve } from 'node:path'
 import pc from 'picocolors'
 import { compareSemverVersions, isPathInsideDir } from '@vostride/agent-qa-core'
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
-import { declaredSpec } from './package-json-plan.js'
+import { declaredSpec, withoutBom } from './package-json-plan.js'
 import { wasCancelled } from './package-manager.js'
 import type { ProjectHost, ProjectIo } from './project-host.js'
 import { nearestInstalledPackage, type ProjectRange } from './project-range.js'
@@ -28,7 +28,7 @@ function asObject(value: unknown): JsonObject | undefined {
 
 function parsed(text: string | undefined): JsonObject | undefined {
   try {
-    return asObject(JSON.parse(text ?? ''))
+    return asObject(JSON.parse(withoutBom(text ?? '')))
   } catch {
     return undefined
   }

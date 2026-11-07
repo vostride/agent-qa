@@ -108,6 +108,17 @@ describe('package manager detection', () => {
     })
   })
 
+  it('a package.json that starts with a byte-order mark is still read', async () => {
+    const { app, home } = project()
+    writeFileSync(join(app, 'package.json'), '\uFEFF{"packageManager":"pnpm@12.16.1"}\n')
+
+    expect(await detect(app, home)).toEqual({
+      name: 'pnpm',
+      version: '12.16.1',
+      source: 'packageManager',
+    })
+  })
+
   it('devEngines.packageManager as an array names its first known manager', async () => {
     const { app, home } = project()
     writeJson(app, { devEngines: { packageManager: [{ name: 'deno' }, { name: 'bun' }] } })

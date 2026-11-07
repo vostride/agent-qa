@@ -215,6 +215,23 @@ describe('plugins add with a first-party plugin', () => {
     expect(stdout()).toContain('Next: npx agent-qa plugins describe kernel')
   })
 
+  it('a package.json that starts with a byte-order mark is updated and keeps the mark', async () => {
+    const folders = project()
+    writeFileSync(join(folders.root, 'package.json'), '\uFEFF{\n  "name": "app"\n}\n')
+    const run = machine({
+      install: ({ options }) => {
+        writeInstalledPackage(options.cwd, KERNEL, VERSION)
+        return { code: 0, signal: null, output: '' }
+      },
+    })
+
+    await add(folders, run, [KERNEL, '--pm', 'npm'])
+
+    const text = readFileSync(join(folders.root, 'package.json'), 'utf-8')
+    expect(text.startsWith('\uFEFF{')).toBe(true)
+    expect(JSON.parse(text.slice(1))).toEqual({ name: 'app', devDependencies: { [KERNEL]: VERSION } })
+  })
+
   it('creates plugins when the config has none, and the result is a valid config', async () => {
     const folders = project([])
 

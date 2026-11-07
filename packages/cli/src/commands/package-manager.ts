@@ -1,6 +1,7 @@
 import { join, relative } from 'node:path'
 import { semverRangeFloor } from '@vostride/agent-qa-core'
 import { PromptCancelled } from '../composition/cli-refusal.js'
+import { withoutBom } from './package-json-plan.js'
 import type { ProjectHost, ProjectIo, RunResult } from './project-host.js'
 import { nearestFile, type ProjectRange } from './project-range.js'
 
@@ -60,7 +61,7 @@ function readManifest(folder: string, io: ProjectIo): JsonObject | undefined {
   const text = io.readText(path)
   if (text === undefined) return undefined
   try {
-    return asObject(JSON.parse(text))
+    return asObject(JSON.parse(withoutBom(text)))
   } catch {
     return undefined
   }

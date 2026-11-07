@@ -89,11 +89,18 @@ function asObject(value: unknown): JsonObject | undefined {
     : undefined
 }
 
+const BOM = '\uFEFF'
+
+// npm, pnpm and Yarn read a package.json that starts with a byte-order mark.
+export function withoutBom(text: string): string {
+  return text.startsWith(BOM) ? text.slice(BOM.length) : text
+}
+
 // The spec in the first dependency block that names the package, as written.
 export function declaredSpec(text: string | undefined, name: string): string | undefined {
   let declared: JsonObject | undefined
   try {
-    declared = asObject(JSON.parse(text ?? ''))
+    declared = asObject(JSON.parse(withoutBom(text ?? '')))
   } catch {
     return undefined
   }
@@ -107,7 +114,7 @@ export function declaredSpec(text: string | undefined, name: string): string | u
 export function parsePackageJson(path: string, text: string): JsonObject {
   let value: unknown
   try {
-    value = JSON.parse(text)
+    value = JSON.parse(withoutBom(text))
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
     throw new InitRefusal(`Refusing to update ${path}: it is not valid JSON (${message}).`)
@@ -162,9 +169,9 @@ export function planPackageJson(input: {
   dependencies: readonly DeclaredDependency[]
 }): PackageJsonPlan {
   const { path, text, dependencies } = input
-  const base =
-    text ??
-    `${JSON.stringify({ name: sanitizedPackageName(input.folderName), private: true }, null, 2)}\n`
+  const bom = text?.startsWith(BOM) === true ? BOM : ''
+  const fresh = { name: sanitizedPackageName(input.folderName), private: true }
+  const base = text === undefined ? `${JSON.stringify(fresh, null, 2)}\n` : text.slice(bom.length)
   const declared = parsePackageJson(path, base)
   const newEntryBlock = declared[NEW_ENTRY_BLOCK]
   if (newEntryBlock !== undefined && asObject(newEntryBlock) === undefined) {
@@ -206,8 +213,8 @@ export function planPackageJson(input: {
     root: dirname(path),
     existed: text !== undefined,
     before: text,
-    content,
-    changed: content !== text,
+    content: bom + content,
+    changed: bom + content !== text,
     entries,
   }
 }
