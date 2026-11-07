@@ -144,6 +144,9 @@ describe('loadLLMAuthPlugins', () => {
     const error = await loadLLMAuthPlugins(entries, { baseDir: tempDir }).catch((err) => err)
 
     expect(error).toBeInstanceOf(PluginNotInstalledError)
-    expect(error.message).toContain('remove the plugins entry subscription.')
+    expect(error.message).toContain(
+      'Install it with npx agent-qa plugins add @vostride/agent-qa-subscription-auth, or remove '
+        + 'the plugins entry subscription.',
+    )
   })
 })

@@ -246,7 +246,7 @@ describe('a project the product scaffolds is validated, not attested over an emp
     expect(combined, `the failure did not name the package:\n${combined}`)
       .toContain(SUBSCRIPTION_AUTH_PACKAGE)
     expect(combined, `the failure did not name the remedy:\n${combined}`)
-      .toMatch(/npm install @vostride\/agent-qa-subscription-auth/)
+      .toContain(`npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}`)
     // A message still carrying Node's loader boilerplate means the typed error replaced nothing.
     expect(combined, `the failure still speaks Node's loader dialect:\n${combined}`)
       .not.toContain('Require stack')

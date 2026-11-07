@@ -36,7 +36,7 @@ function missingMessage(configName: string, provider: string, plugin?: LLMAuthPr
       return `Save an API key for the "${configName}" config: ${setKey} (or --type bearer-token)`
     case 'openai-subscription':
     case 'anthropic-subscription':
-      return `Provider "${provider}" needs the subscription-auth plugin: run npm install -D ${SUBSCRIPTION_AUTH_PACKAGE}, and add it to plugins in agent-qa.config.yaml as name: subscription with package: ${SUBSCRIPTION_AUTH_PACKAGE}.`
+      return `Provider "${provider}" needs the subscription-auth plugin: run npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}.`
     default:
       return `Provider "${provider}" requires an auth plugin.`
   }
