@@ -433,6 +433,22 @@ describe('plugins add refusals', () => {
     expect(run.calls).toEqual([])
   })
 
+  it.each(['--x', '-x', '-x@1.0.0'])(
+    '%s after -- starts with a hyphen, exits 2, changes no file and runs nothing',
+    async (argument) => {
+      const folders = project()
+      const before = snapshot(folders.root)
+      const run = machine()
+
+      const error = await refusal(add(folders, run, ['--pm', 'npm', '--', argument]))
+
+      expect(error.exitCode).toBe(2)
+      expect(error.message).toBe(`${argument} is not an npm package name: it starts with a hyphen.`)
+      expect(snapshot(folders.root)).toEqual(before)
+      expect(run.calls).toEqual([])
+    },
+  )
+
   it('the path refusal says how to add a path plugin by hand', async () => {
     const error = await refusal(add(project(), machine(), ['./plugins/x']))
     expect(error.message).toBe(
