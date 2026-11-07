@@ -12,6 +12,7 @@ import {
   wasCancelled,
   type DetectedManager,
 } from './package-manager.js'
+import { ignoredBuildNames, prepareManagerSettings } from './package-manager-settings.js'
 import type { ProjectHost } from './project-host.js'
 import { nearestInstalledPackage, type ProjectRange } from './project-range.js'
 
@@ -85,10 +86,14 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
   const command = runFromHere(commandLine(plain.command, plain.args), packageDir, range.start)
   const where = relative(range.start, packageJson.path) || 'package.json'
   const list = declaredList(packageJson.entries)
+  const prepare = (deny?: readonly string[]) =>
+    prepareManagerSettings({ manager, range, packageDir, host, ...(deny ? { deny } : {}) })
 
   if (input.mode === 'none') {
-    print(`Declared ${list} in ${where}. Install with: ${command}`)
-    return { outcome: 'declared', command, notes: [] }
+    const settings = await prepare()
+    const noted = settings.map((note) => `; ${note}`).join('')
+    print(`Declared ${list} in ${where}. Install with: ${command}${noted}`)
+    return { outcome: 'declared', command, notes: settings }
   }
 
   const notes: string[] = []
@@ -102,6 +107,7 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
     return { outcome: 'skipped', command, notes }
   }
 
+  const settings = await prepare()
   print(`Installing ${list} with ${manager.name}…`)
   const resolved = await resolveInstallCommand(manager, { ...host, cwd: packageDir })
   if (resolved.via !== 'path') notes.push(`through ${resolved.via}`)
@@ -124,6 +130,18 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
     args = [...resolved.args, '--legacy-peer-deps']
     result = await install(args)
   }
+  const ignoredBuilds =
+    manager.name === 'pnpm' &&
+    result.code !== null &&
+    result.code !== 0 &&
+    result.output.includes('ERR_PNPM_IGNORED_BUILDS')
+  if (ignoredBuilds) {
+    // A refused file yields an "add …" note rather than a denial; the later note replaces it.
+    const again = await prepare(ignoredBuildNames(result.output))
+    const written = (note: string) => note.startsWith('denied ')
+    settings.splice(0, settings.length, ...settings.filter(written), ...again)
+    if (again.some(written)) result = await install(args)
+  }
   const ran = runFromHere(commandLine(resolved.command, args), packageDir, range.start)
   const missing = result.missing === true || result.code !== 0 ? [] : unverified()
   if (result.missing === true || result.code !== 0 || missing.length > 0) {
@@ -137,7 +155,7 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
           : result.code !== 0
             ? `${name} exited ${result.code}`
             : `${name} exited 0, but ${notInstalled} not installed`
-    print(`✗ Install failed: ${reason}`)
+    print(`✗ Install failed: ${reason}${settings.map((note) => `; ${note}`).join('')}`)
     if (result.missing !== true && result.code !== 0) {
       const masked = await (input.mask ?? ((text: string) => text))(result.output)
       const lines = redactInstallOutput(masked)
@@ -149,9 +167,10 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
       }
     }
     print(`  Run: ${ran}`)
-    return { outcome: 'failed', command: ran, notes }
+    return { outcome: 'failed', command: ran, notes: [...notes, ...settings] }
   }
   if (peerConflict) notes.push('installed with --legacy-peer-deps: npm found a peer conflict')
+  notes.push(...settings)
   const noted = notes.map((note) => `; ${note}`).join('')
   print(`✓ Installed ${list} with ${manager.name}${noted}`)
   return { outcome: 'installed', command: ran, notes }
