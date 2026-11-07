@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url'
 import { CHAT_HELP_ENTRIES } from '@vostride/agent-qa-agent'
 import { createJsonlSessionLog } from '@vostride/agent-qa-agent-local'
 import type { ChatSessionEvent } from '@vostride/agent-qa-schema'
+import { MockLanguageModelV4 } from 'ai/test'
 import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -467,6 +468,75 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
     const sessions = sent.filter((event) => event.name === 'agent-qa.chat.session.completed')
     expect(sessions).toHaveLength(1)
     expect(sessions[0]?.properties).toMatchObject({ end_reason: 'interrupt', turn_count: 0 })
+  })
+
+  it('Ctrl-C while a turn runs prints Cancelled. once, exits 130 at once and shows no turn result', async () => {
+    const configPath = fixtureWorkspace(roots)
+    let planning: () => void = () => {}
+    const planned = new Promise<void>((resolve) => {
+      planning = resolve
+    })
+    let release: () => void = () => {}
+    const model = new MockLanguageModelV4({
+      doGenerate: () => {
+        planning()
+        return new Promise((_resolve, reject) => {
+          release = () => reject(new Error('the model call ended'))
+        })
+      },
+    })
+    const exits: number[] = []
+    const stdout: string[] = []
+    const stderr: string[] = []
+    const log = vi.spyOn(console, 'log').mockImplementation((...values: unknown[]) => {
+      stdout.push(values.map(String).join(' '))
+    })
+    const error = vi.spyOn(console, 'error').mockImplementation((...values: unknown[]) => {
+      stderr.push(values.map(String).join(' '))
+    })
+    process.exitCode = undefined
+    const input = new PassThrough()
+    const output = new PassThrough()
+    output.resume()
+
+    try {
+      const program = new Command().option('--config <path>', 'config file path').addCommand(
+        createChatCommand({
+          input,
+          output,
+          terminal: true,
+          onInterruptHandler: () => {},
+          chatCapabilities: async () => ({
+            model,
+            modelFor: async () => model,
+            accounting: undefined as never,
+          }),
+          exit: (code) => {
+            exits.push(code)
+            // Only once the exit is taken does the turn end, so the exit came while it ran.
+            release()
+          },
+        }),
+      )
+      program.exitOverride()
+      const parsed = program.parseAsync(['node', 'agent-qa', '--config', configPath, 'chat'])
+      await Promise.resolve()
+      input.write('tell me something about this project\n')
+      await planned
+      const before = stdout.length
+      input.write('\x03')
+      input.write('\x03')
+      await parsed
+
+      expect(exits).toEqual([130])
+      expect(stderr).toEqual(['Cancelled.'])
+      expect(stdout.slice(before)).toEqual([])
+      expect(process.exitCode).toBe(130)
+    } finally {
+      log.mockRestore()
+      error.mockRestore()
+      input.end()
+    }
   })
 
   it('end of input at the idle prompt ends the session with exit 0', async () => {
