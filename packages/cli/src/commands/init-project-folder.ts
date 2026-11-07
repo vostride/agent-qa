@@ -87,7 +87,7 @@ export async function resolveInitProject(
   if (given(command, 'dir')) {
     const dir = io.path.resolve(dirOption)
     if (!(await sameFolder(io, dir, projectDir))) {
-      const line = `agent-qa init does not take --dir ${dir} with --config ${configPath}, which is in another folder. Pass --config alone, or a --config path inside --dir.`
+      const line = `agent-qa init does not take --dir ${dir} with --config ${configPath}, which is in another folder. Pass --config alone, or put the --config file directly in --dir.`
       throw new CliRefusal([pc.red(line)], 2)
     }
   }

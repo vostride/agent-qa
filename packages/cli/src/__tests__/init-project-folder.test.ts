@@ -170,7 +170,7 @@ describe('the project folder and config init resolve', () => {
     await expect(refused).rejects.toBeInstanceOf(CliRefusal)
     await expect(refused).rejects.toMatchObject({
       exitCode: 2,
-      message: `agent-qa init does not take --dir ${dir} with --config ${config}, which is in another folder. Pass --config alone, or a --config path inside --dir.`,
+      message: `agent-qa init does not take --dir ${dir} with --config ${config}, which is in another folder. Pass --config alone, or put the --config file directly in --dir.`,
     })
   })
 
