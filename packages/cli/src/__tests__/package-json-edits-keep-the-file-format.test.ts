@@ -134,6 +134,34 @@ describe('package.json edits keep the file format', () => {
     expect(Object.keys(after)).toEqual(['name', 'private', 'scripts', 'devDependencies'])
   })
 
+  it('a file that starts with a byte-order mark is edited and keeps the mark', () => {
+    const before = '\uFEFF{\n  "name": "shop",\n  "devDependencies": {\n    "agent-qa": "0.1.0"\n  }\n}\n'
+
+    const plan = planPackageJson({
+      path: PATH,
+      text: before,
+      folderName: 'project',
+      dependencies: [{ name: 'agent-qa', version: VERSION }],
+    })
+
+    expect(plan.content).toBe(before.replace('0.1.0', VERSION))
+    expect(plan.changed).toBe(true)
+  })
+
+  it('a file with a byte-order mark that already pins the version is unchanged', () => {
+    const before = `\uFEFF{\n  "devDependencies": {\n    "agent-qa": "${VERSION}"\n  }\n}\n`
+
+    const plan = planPackageJson({
+      path: PATH,
+      text: before,
+      folderName: 'project',
+      dependencies: [{ name: 'agent-qa', version: VERSION }],
+    })
+
+    expect(plan.content).toBe(before)
+    expect(plan.changed).toBe(false)
+  })
+
   it('a file that is not valid JSON is refused with the parser message', () => {
     const text = '{ "name": "shop",'
     let parserMessage = ''
