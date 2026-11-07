@@ -105,6 +105,8 @@ vi.mock('@vostride/agent-qa-core', () => ({
   DEFAULT_AGENT_QA_CACHE_DIR: '.agent-qa/cache',
   DEFAULT_AGENT_QA_RUNTIME_DIR: '.agent-qa',
   getAgentQaVersion: vi.fn(() => '0.1.1'),
+  compareSemverVersions: vi.fn(() => undefined),
+  semverRangeFloor: vi.fn(() => undefined),
 }))
 
 // Suppress console output in tests

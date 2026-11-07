@@ -1,6 +1,10 @@
 import { dirname, join } from 'node:path'
 import { applyEdits, modify, type FormattingOptions } from 'jsonc-parser'
-import { getAgentQaVersion } from '@vostride/agent-qa-core'
+import {
+  compareSemverVersions,
+  getAgentQaVersion,
+  semverRangeFloor,
+} from '@vostride/agent-qa-core'
 import { InitRefusal } from './init-refusal.js'
 import type { ProjectIo } from './project-host.js'
 import { nearestFile, type ProjectRange } from './project-range.js'
@@ -130,6 +134,12 @@ function isNonRegistrySpec(spec: string): boolean {
   return spec.includes(':') || spec.includes('/')
 }
 
+function isNewer(spec: string, version: string): boolean {
+  if (compareSemverVersions(spec, version) === 1) return true
+  const floor = semverRangeFloor(spec)
+  return floor !== undefined && compareSemverVersions(floor, version) === 1
+}
+
 export function planPackageJson(input: {
   path: string
   text: string | undefined
@@ -166,6 +176,10 @@ export function planPackageJson(input: {
     }
     if (typeof current === 'string' && isNonRegistrySpec(current)) {
       entries.push({ name, version, spec: current, block, outcome: 'kept' })
+      continue
+    }
+    if (typeof current === 'string' && isNewer(current, version)) {
+      entries.push({ name, version, spec: current, block, outcome: 'newer' })
       continue
     }
     content = setEntry(content, block, name, version)
