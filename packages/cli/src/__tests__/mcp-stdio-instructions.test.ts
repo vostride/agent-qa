@@ -1,7 +1,7 @@
 // The shipped `agent-qa mcp` binary's stdio instructions forbid every path init's guide forbids.
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -38,8 +38,16 @@ function tempDir(): string {
 
 function init(dir: string, ...extra: string[]): void {
   expect(existsSync(CLI_ENTRY), `the built CLI entry is missing at ${CLI_ENTRY}; run \`pnpm build\` first`).toBe(true)
-  const result = spawnSync(process.execPath, [CLI_ENTRY, 'init', '--platform', 'web', ...extra], {
-    cwd: dir, env: childEnv(), input: '', encoding: 'utf8', timeout: 120_000,
+  mkdirSync(join(dir, '.git'), { recursive: true })
+  const home = tempDir()
+  const pm = extra.includes('--pm') ? [] : ['--pm', 'none']
+  const args = ['init', '--platform', 'web', ...extra, ...pm]
+  const result = spawnSync(process.execPath, [CLI_ENTRY, ...args], {
+    cwd: dir,
+    env: { ...childEnv(), HOME: home, USERPROFILE: home },
+    input: '',
+    encoding: 'utf8',
+    timeout: 120_000,
   })
   expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0)
 }

@@ -91,7 +91,7 @@ describe('the folder init runs in', () => {
       const root = projectFolder('existing')
       plantConfig(root)
       const before = listing(root)
-      const outcome = await agentQa(root, ['init', ...WEB_GEMINI])
+      const outcome = await agentQa(root, ['init', ...WEB_GEMINI, '--pm', 'none'])
       expect(outcome.code, outcome.text).toBe(0)
       expect(outcome.text).toContain('Project is already initialized at')
       expect(listing(root)).toEqual(before)

@@ -114,7 +114,8 @@ function cliHome(): string {
 }
 
 async function cli(root: string, args: readonly string[]): Promise<Leg> {
-  const child = spawn(process.execPath, [CLI_ENTRY, ...args], {
+  const pm = args[0] === 'init' && !args.includes('--pm') ? ['--pm', 'none'] : []
+  const child = spawn(process.execPath, [CLI_ENTRY, ...args, ...pm], {
     cwd: root,
     env: {
       ...hermeticEnv(root),
