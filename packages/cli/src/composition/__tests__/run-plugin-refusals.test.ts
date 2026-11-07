@@ -8,6 +8,7 @@ import { Command } from 'commander'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 
+import { pluginsAddLine } from '@vostride/agent-qa-core'
 import { DashboardDatabase } from '@vostride/agent-qa-dashboard'
 
 import { createRunCommand, failedToStartResult } from '../../commands/run.js'
@@ -135,7 +136,7 @@ describe('a remote whose plugin cannot serve the run', () => {
 
       const log = printed.join('\n')
       expect(exit.mock.calls[0]?.[0], log).toBe(2)
-      const install = `npx agent-qa plugins add ${UNINSTALLED_PLUGIN}`
+      const install = pluginsAddLine(UNINSTALLED_PLUGIN, project.configPath)
       const refusalLines = log
         .split('\n')
         .filter((line) => line.includes(`Remote ${REMOTE_NAME} cannot start`))
