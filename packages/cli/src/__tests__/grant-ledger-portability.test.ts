@@ -47,6 +47,7 @@ function gitIgnores(cwd: string, path: string): boolean {
 }
 
 async function runRealInit(dir: string): Promise<void> {
+  mkdirSync(join(dir, '.git'), { recursive: true })
   const parent = new Command()
   parent.addCommand(createInitCommand({ cwd: dir }))
   await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', '--pm', 'none'])

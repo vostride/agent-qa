@@ -1,6 +1,6 @@
 // The project key ships blank, so `transportKind` is `none` anyway; cells assert `optOutReasons`.
 
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -298,6 +298,7 @@ async function runInit(
   const error = vi.spyOn(console, 'error').mockImplementation(() => {})
   const previousExitCode = process.exitCode
   process.exitCode = undefined
+  mkdirSync(join(dir, '.git'), { recursive: true })
   try {
     const parent = new Command().option('--config <path>', 'config file path')
     parent.addCommand(createInitCommand({ cwd: dir, ...extraHooks }))
