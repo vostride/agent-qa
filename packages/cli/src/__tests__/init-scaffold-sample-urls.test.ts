@@ -74,7 +74,7 @@ const URL_PATTERN = /https?:\/\/[^\s"'<>)\]]+/g
 
 async function runInit(args: string[]): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand({})
+  const init = createInitCommand({ cwd: '/tmp/hosts' })
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)
@@ -83,7 +83,7 @@ async function runInit(args: string[]): Promise<void> {
 
 async function writesFor(platform: string): Promise<Array<{ path: string; content: string }>> {
   mockWriteFileSync.mockClear()
-  await runInit(['--dir', '/tmp/hosts', '--platform', platform])
+  await runInit(['--platform', platform])
   return mockWriteFileSync.mock.calls.map(call => ({
     path: String(call[0]),
     content: String(call[1]),
