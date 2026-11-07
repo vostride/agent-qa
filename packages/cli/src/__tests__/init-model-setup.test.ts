@@ -194,7 +194,7 @@ describe('init model connection flags', () => {
     expectNoPrompt()
   })
 
-  it('--llm anthropic-compatible writes a default entry with the Anthropic API base URL and no plugin', async () => {
+  it('--llm anthropic-compatible writes a default entry with the Anthropic API base URL and declares no plugin', async () => {
     await initOk(['--platform', 'web', '--llm', 'anthropic-compatible'])
 
     const config = writtenConfig()
@@ -208,8 +208,7 @@ describe('init model connection flags', () => {
     ])
     expect(config.use.llm).toBe('default')
     expect(config).not.toHaveProperty('plugins')
-    expect(mockWriteFileSync.mock.calls.some(call => String(call[0]).endsWith('package.json')))
-      .toBe(false)
+    expect(JSON.parse(writtenText('package.json')).devDependencies).toEqual({ 'agent-qa': '0.1.1' })
     expectNoPrompt()
   })
 

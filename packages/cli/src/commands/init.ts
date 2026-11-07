@@ -1,6 +1,6 @@
 import { Command, Option } from 'commander'
 import { existsSync, readFileSync } from 'node:fs'
-import { dirname, join, relative, resolve } from 'node:path'
+import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import pc from 'picocolors'
 import select from '@inquirer/select'
 import input from '@inquirer/input'
@@ -9,7 +9,6 @@ import {
   DEFAULT_AGENT_QA_AUTH_STATES_DIR,
   DEFAULT_AGENT_QA_CACHE_DIR,
   DEFAULT_AGENT_QA_RUNTIME_DIR,
-  getAgentQaVersion,
 } from '@vostride/agent-qa-core'
 import { guardJsonText, reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
 import { getProvider, listProviders } from '@vostride/agent-qa-model'
@@ -43,7 +42,6 @@ import {
   writeConfigMarkerLast,
   writeScaffoldFileAtomic,
   type InitFileResult,
-  type InitFilesystemHooks,
   type InitPathPlan,
   type ManagedBlockUpsertPlan,
 } from './init-filesystem.js'
@@ -60,6 +58,14 @@ import {
 import { CliRefusal } from '../composition/cli-refusal.js'
 import { InitRefusal, isInitRefusal } from './init-refusal.js'
 import { initFolderOptionRefusal, initFolderRefusal } from './init-project-folder.js'
+import {
+  installedAgentQaVersion,
+  planPackageJson,
+  projectDependencies,
+  readProjectPackageJson,
+} from './package-json-plan.js'
+import { projectHost, type ProjectHost } from './project-host.js'
+import { projectRange } from './project-range.js'
 
 // Re-exported because this module is their public door.
 export { SUPPORTED_INIT_PLATFORMS, parseInitPlatform } from './scaffold-content.js'
@@ -68,7 +74,6 @@ export { SUPPORTED_INIT_PLATFORMS, parseInitPlatform } from './scaffold-content.
 const INIT_CACHE_DIR = DEFAULT_AGENT_QA_CACHE_DIR || '.agent-qa/cache'
 const INIT_AUTH_STATES_DIR = DEFAULT_AGENT_QA_AUTH_STATES_DIR || '.agent-qa/auth-states'
 
-const PACKAGE_JSON_FILE = 'package.json'
 const DEFAULT_CONFIG_FILE_NAME = 'agent-qa.config.yaml'
 // Kept here rather than moved: it feeds `buildGitignoreEntries`, the deliberate literal
 // copy this file keeps pinned against `init-filesystem.ts`'s own — see scaffold-content.ts.
@@ -252,130 +257,6 @@ steps:
   - Type {{env:SHIPPING_ADDRESS}} into the Street address field, enter city Portland and postal code 97205, then continue to delivery.
   - Select Express delivery and continue with Review order. Verify the review shows {{env:SHIPPING_ADDRESS}} as the street address.
 `
-}
-
-export function installedAgentQaVersion(): string {
-  const version = getAgentQaVersion().trim()
-  const exactSemver =
-    /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u
-  if (!exactSemver.test(version) || version === '0.0.0') {
-    throw new Error(
-      'Unable to resolve the installed agent-qa version; refusing to write a dependency range.',
-    )
-  }
-  return version
-}
-
-function subscriptionAuthDependencyRange(): string {
-  return installedAgentQaVersion()
-}
-
-function objectRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null
-}
-
-function configUsesSubscriptionAuth(config: Record<string, unknown>): boolean {
-  if (!Array.isArray(config.plugins)) return false
-  return config.plugins.some(entry => objectRecord(entry)?.package === SUBSCRIPTION_AUTH_PACKAGE)
-}
-
-type SubscriptionAuthDependencyPlan = {
-  plan: InitPathPlan
-  range: string
-}
-
-type SubscriptionAuthDependencyResult = InitFileResult & {
-  range: string
-}
-
-function parsePackageJson(packageJsonPath: string, text: string): Record<string, unknown> {
-  try {
-    return JSON.parse(text) as Record<string, unknown>
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new InitRefusal(
-      `Refusing to update ${packageJsonPath}: it is not valid JSON (${message}).`,
-    )
-  }
-}
-
-function buildSubscriptionAuthPackageDependencyPlan(
-  dir: string,
-): SubscriptionAuthDependencyPlan {
-  const packageJsonPath = join(dir, PACKAGE_JSON_FILE)
-  const classification = classifyInitPath(packageJsonPath, dir)
-  const existing = classification === 'regular'
-    ? readFileSync(packageJsonPath, 'utf-8')
-    : null
-  const pkg = existing === null
-    ? { private: true } as Record<string, unknown>
-    : parsePackageJson(packageJsonPath, existing)
-
-  if (!objectRecord(pkg)) {
-    throw new InitRefusal(
-      `${packageJsonPath} must contain a JSON object to add ${SUBSCRIPTION_AUTH_PACKAGE}`,
-    )
-  }
-
-  const dependencyBlocks = [
-    'devDependencies',
-    'dependencies',
-    'optionalDependencies',
-    'peerDependencies',
-  ] as const
-  const existingBlock = dependencyBlocks.find(blockName => {
-    const block = objectRecord(pkg[blockName])
-    return block && Object.prototype.hasOwnProperty.call(block, SUBSCRIPTION_AUTH_PACKAGE)
-  })
-  const targetBlock = existingBlock ?? 'devDependencies'
-  const range = subscriptionAuthDependencyRange()
-  let changed = existing === null
-  const existingTargetDependencies = objectRecord(pkg[targetBlock])
-  if (existingTargetDependencies?.[SUBSCRIPTION_AUTH_PACKAGE] !== range) {
-    changed = true
-  }
-  const targetDependencies = {
-    ...(existingTargetDependencies ?? {}),
-    [SUBSCRIPTION_AUTH_PACKAGE]: range,
-  }
-
-  pkg[targetBlock] = targetDependencies
-  for (const blockName of dependencyBlocks) {
-    if (blockName === targetBlock) continue
-    const block = objectRecord(pkg[blockName])
-    if (!block || !Object.prototype.hasOwnProperty.call(block, SUBSCRIPTION_AUTH_PACKAGE)) continue
-    changed = true
-    const nextBlock = { ...block }
-    delete nextBlock[SUBSCRIPTION_AUTH_PACKAGE]
-    if (Object.keys(nextBlock).length > 0) pkg[blockName] = nextBlock
-    else delete pkg[blockName]
-  }
-
-  const content = existing !== null && !changed
-    ? existing
-    : `${JSON.stringify(pkg, null, 2)}\n`
-  return {
-    plan: {
-      path: packageJsonPath,
-      root: dir,
-      content,
-      force: existing !== null && changed,
-    },
-    range,
-  }
-}
-
-export function upsertSubscriptionAuthPackageDependency(
-  dir: string,
-  hooks: InitFilesystemHooks = {},
-): SubscriptionAuthDependencyResult {
-  const dependency = buildSubscriptionAuthPackageDependencyPlan(dir)
-  return {
-    ...writeScaffoldFileAtomic(dependency.plan, hooks),
-    range: dependency.range,
-  }
 }
 
 export function defaultModelForProvider(provider: string): string {
@@ -598,11 +479,19 @@ function subscriptionAuthInstalled(dir: string): boolean {
   }
 }
 
-function connectionSteps(config: Record<string, unknown>, dir: string): InitNextStep[] {
+function configuredLlms(config: Record<string, unknown>): InitLLMConfig[] {
   const registry = config.registry as Record<string, unknown> | undefined
-  const llms = (registry?.llms ?? []) as InitLLMConfig[]
+  return (registry?.llms ?? []) as InitLLMConfig[]
+}
+
+function usesSubscriptionModel(config: Record<string, unknown>): boolean {
+  return configuredLlms(config).some(llm => isSubscriptionProvider(String(llm.provider)))
+}
+
+function connectionSteps(config: Record<string, unknown>, dir: string): InitNextStep[] {
+  const llms = configuredLlms(config)
   const steps: InitNextStep[] = []
-  const usesSubscription = llms.some(llm => isSubscriptionProvider(String(llm.provider)))
+  const usesSubscription = usesSubscriptionModel(config)
   if (usesSubscription && !subscriptionAuthInstalled(dir)) {
     steps.push({
       command: `npm install -D ${SUBSCRIPTION_AUTH_PACKAGE}`,
@@ -717,6 +606,7 @@ export interface InitCommandHooks {
   composeAnalytics?: typeof ComposeAnalyticsHost
   isTTY?: boolean
   cwd?: string
+  host?: Partial<ProjectHost>
 }
 
 function scaffoldFilePlan(
@@ -808,12 +698,22 @@ function buildScaffoldFilePlans(
   return plans
 }
 
-function displayInitPath(dir: string, path: string): string {
-  const localPath = relative(dir, path)
+function isOutside(relativePath: string): boolean {
+  return relativePath === '..' || relativePath.startsWith(`..${sep}`)
+}
+
+// A file above the folder, such as the project's package.json, is found by its real path.
+function displayInitPath(dir: string, realDir: string, path: string): string {
+  const fromDir = relative(dir, path)
+  const localPath = isOutside(fromDir) && realDir !== dir ? relative(realDir, path) : fromDir
   return localPath.length > 0 ? localPath : path
 }
 
-function printOutcomeSummary(dir: string, outcomes: readonly InitFileResult[]): void {
+function printOutcomeSummary(
+  dir: string,
+  outcomes: readonly InitFileResult[],
+  realDir = dir,
+): void {
   const groups = [
     ['created', 'Created'],
     ['updated', 'Updated'],
@@ -825,7 +725,7 @@ function printOutcomeSummary(dir: string, outcomes: readonly InitFileResult[]): 
     if (matching.length === 0) continue
     console.log(`  ${label}:`)
     for (const result of matching) {
-      console.log(`    ${pc.dim('•')} ${displayInitPath(dir, result.path)}`)
+      console.log(`    ${pc.dim('•')} ${displayInitPath(dir, realDir, result.path)}`)
     }
   }
 }
@@ -1029,10 +929,24 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         }
 
         const config = buildDefaultConfig(platform, [{ name: llmName, provider, model, baseURL }])
-        const usesSubscriptionAuth = configUsesSubscriptionAuth(config)
-        const subscriptionAuthDependency = usesSubscriptionAuth
-          ? buildSubscriptionAuthPackageDependencyPlan(dir)
-          : null
+        const host = projectHost({ cwd: dir, ...hooks.host })
+        const range = await projectRange(dir, host)
+        const packageJson = readProjectPackageJson(range, host.io)
+        const packageJsonPlan = planPackageJson({
+          ...packageJson,
+          folderName: basename(range.start),
+          dependencies: projectDependencies({
+            runningVersion: installedAgentQaVersion(),
+            usesSubscription: usesSubscriptionModel(config),
+            plugins: (config.plugins ?? []) as readonly { package?: unknown }[],
+          }),
+        })
+        const packageJsonFilePlan: InitPathPlan = {
+          root: packageJsonPlan.root,
+          path: packageJsonPlan.path,
+          content: packageJsonPlan.content,
+          force: packageJsonPlan.existed && packageJsonPlan.changed,
+        }
         const filePlans = buildScaffoldFilePlans(dir, platform, force)
         const targetGitignorePath = join(dir, '.gitignore')
         const targetGitignorePlan: InitPathPlan = {
@@ -1055,7 +969,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           : null
         const completePlan = [
           ...filePlans,
-          ...(subscriptionAuthDependency ? [subscriptionAuthDependency.plan] : []),
+          packageJsonFilePlan,
           targetGitignorePlan,
           ...(agentInstructionsPlan ? [{ root: dir, path: agentInstructionsPlan.path, content: '' }] : []),
           configPlan,
@@ -1109,6 +1023,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           written: 'managed-gitignore',
         })
 
+        recordOutcome(writeScaffoldFileAtomic(packageJsonFilePlan, {}))
+
         for (const plan of filePlans) {
           recordOutcome(writeScaffoldFileAtomic(plan, {}))
         }
@@ -1121,10 +1037,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             // This one runs AFTER the scaffold loop: the whole scaffold is published.
             written: 'managed-gitignore-and-scaffold',
           })
-        }
-
-        if (subscriptionAuthDependency) {
-          recordOutcome(writeScaffoldFileAtomic(subscriptionAuthDependency.plan, {}))
         }
 
         if (agentInstructionsPlan) {
@@ -1145,7 +1057,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         console.log('')
         console.log(pc.green(pc.bold('✓ agent-qa project initialized!')))
         console.log('')
-        printOutcomeSummary(dir, outcomes)
+        printOutcomeSummary(dir, outcomes, range.start)
         const secretsPath = join(dir, DEFAULT_SECRETS_FILE)
         const secretsPreserved = outcomes.some(
           result => result.path === secretsPath && result.outcome === 'preserved',
