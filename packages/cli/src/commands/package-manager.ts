@@ -248,6 +248,55 @@ export async function resolveInstallCommand(
   return { command: 'npx', args: ['-y', ...npxPackage(manager), 'install'], via: 'npx' }
 }
 
+// A read-only registry lookup through the same command the install resolved, so it honours the
+// project's registry settings. A Yarn whose line is unknown is asked as Yarn 1.
+export function viewCommand(
+  resolved: ResolvedCommand,
+  manager: DetectedManager,
+  spec: string,
+): { command: string; args: string[] } {
+  const lookup =
+    manager.name === 'yarn'
+      ? manager.yarnLine === 'berry'
+        ? ['npm', 'info', spec, '--json']
+        : ['info', spec, '--json']
+      : manager.name === 'bun'
+        ? ['pm', 'view', spec, '--json']
+        : ['view', spec, '--json']
+  const prefix = resolved.args.at(-1) === 'install' ? resolved.args.slice(0, -1) : resolved.args
+  return { command: resolved.command, args: [...prefix, ...lookup] }
+}
+
+function parseJson(text: string): unknown {
+  try {
+    return JSON.parse(text)
+  } catch {
+    return undefined
+  }
+}
+
+function unwrapView(value: unknown): JsonObject | undefined {
+  const object = asObject(Array.isArray(value) ? value.at(-1) : value)
+  return object?.type === 'inspect' ? asObject(object.data) : object
+}
+
+// Yarn 1 answers one JSON object per line, and a manager may print warnings before its answer.
+export function parsePackageView(output: string): Record<string, unknown> | undefined {
+  const whole = parseJson(output.trim())
+  if (whole !== undefined) return unwrapView(whole)
+  const lines = output.split(/\r?\n/u)
+  for (const line of lines) {
+    const value = parseJson(line.trim())
+    if (asObject(value)?.type === 'inspect') return unwrapView(value)
+  }
+  for (const [index, line] of lines.entries()) {
+    if (!/^\s*[[{]/u.test(line)) continue
+    const value = parseJson(lines.slice(index).join('\n'))
+    if (value !== undefined) return unwrapView(value)
+  }
+  return undefined
+}
+
 function shellWord(word: string): string {
   if (/^[\w@%+=:,./-]+$/u.test(word)) return word
   return `'${word.replaceAll("'", `'\\''`)}'`

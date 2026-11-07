@@ -4,29 +4,48 @@ import { basename, dirname, resolve } from 'node:path'
 
 import { isNpmPackageName, PluginEntrySchema } from '@vostride/agent-qa-core'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
+import {
+  PLUGIN_MANIFEST_FIELD,
+  PluginManifestSchema,
+} from '@vostride/agent-qa-plugin-kit/protocol'
 import { SUBSCRIPTION_AUTH_ENTRY_NAME } from '@vostride/agent-qa-schema'
 import { Command, Option } from 'commander'
 import pc from 'picocolors'
 import { isMap, isScalar, isSeq, parseDocument, Scalar, YAMLSeq, type YAMLMap } from 'yaml'
 
-import { CliRefusal } from '../composition/cli-refusal.js'
+import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import { classifyInitPath, writeScaffoldFileAtomic } from './init-filesystem.js'
 import { isInitRefusal } from './init-refusal.js'
-import { runInstallStep } from './package-install.js'
+import { redactInstallOutput, runInstallStep } from './package-install.js'
 import {
   installedAgentQaVersion,
+  parsePackageJson,
   planPackageJson,
   readProjectPackageJson,
 } from './package-json-plan.js'
-import { detectPackageManager, type PackageManagerName } from './package-manager.js'
+import {
+  commandLine,
+  detectPackageManager,
+  managerEnv,
+  parsePackageView,
+  resolveInstallCommand,
+  runFromHere,
+  viewCommand,
+  wasCancelled,
+  type DetectedManager,
+  type PackageManagerName,
+} from './package-manager.js'
 import { projectHost, type ProjectHost } from './project-host.js'
-import { projectRange } from './project-range.js'
+import { projectRange, type ProjectRange } from './project-range.js'
 import { SUBSCRIPTION_AUTH_PACKAGE } from './scaffold-content.js'
 
 const DEFAULT_CONFIG = 'agent-qa.config.yaml'
 const FIRST_PARTY_PREFIX = '@vostride/agent-qa-plugin-'
 const PATH_ARGUMENT = /^[./~]|\\|^[A-Za-z]:/u
 const PLUGIN_PACKAGE = /^agent-qa-plugin-(.+)$/u
+const EXACT_SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u
+const MANIFEST_POSITION = `${PLUGIN_MANIFEST_FIELD}.plugin`
+const LOOKUP_OUTPUT_LINES = 20
 
 const PATH_REFUSAL =
   'agent-qa plugins add takes an npm package name. Add a path plugin by hand: under plugins in ' +
@@ -132,6 +151,85 @@ async function maskWith(configPath: string, text: string): Promise<string> {
   }
 }
 
+interface Lookup {
+  host: ProjectHost
+  range: ProjectRange
+  packageDir: string
+  manager: DetectedManager
+  requested: Requested
+  mask: (text: string) => Promise<string>
+}
+
+async function lookupFailed(input: Lookup, reason: string, output: string, ran: string) {
+  const name = input.requested.name
+  console.log(`✗ Could not look up ${name}: ${reason}`)
+  const lines = redactInstallOutput(await input.mask(output))
+    .split(/\r?\n/u)
+    .filter((line) => line.trim() !== '')
+    .slice(-LOOKUP_OUTPUT_LINES)
+  if (lines.length > 0) {
+    printRunText(lines.map((line) => `  ${line}`).join('\n'), undefined, { env: input.host.env })
+  }
+  console.log(`  Run: ${ran}`)
+  return new CliRefusal([], 3)
+}
+
+// The manifest is checked from the lookup's answer, so a package that is no valid out-of-process
+// plugin never reaches package.json, node_modules or the config.
+async function thirdPartyVersion(input: Lookup): Promise<string> {
+  const { host, range, packageDir, manager, requested } = input
+  const spec = `${requested.name}@${requested.version ?? 'latest'}`
+  const resolved = await resolveInstallCommand(manager, { ...host, cwd: packageDir })
+  const view = viewCommand(resolved, manager, spec)
+  const ran = runFromHere(commandLine(view.command, view.args), packageDir, range.start)
+  const result = await host.run(view.command, view.args, {
+    cwd: packageDir,
+    env: managerEnv(manager.name, resolved.via, host.env),
+    stdio: 'capture',
+  })
+  if (wasCancelled(result)) throw new PromptCancelled()
+  if (result.missing === true) {
+    throw await lookupFailed(input, `${view.command} was not found`, '', ran)
+  }
+  if (result.code !== 0) {
+    const reason =
+      result.code === null
+        ? `${manager.name} stopped on ${result.signal ?? 'an unknown signal'}`
+        : `${manager.name} exited ${result.code}`
+    throw await lookupFailed(input, reason, result.output, ran)
+  }
+  const answer = parsePackageView(result.output)
+  const version = answer?.version
+  if (answer === undefined || typeof version !== 'string' || !EXACT_SEMVER.test(version)) {
+    const reason = `${manager.name} answered without an exact version`
+    throw await lookupFailed(input, reason, result.output, ran)
+  }
+
+  const field = answer[PLUGIN_MANIFEST_FIELD]
+  const declared =
+    field !== null && typeof field === 'object' && !Array.isArray(field)
+      ? (field as Record<string, unknown>).plugin
+      : undefined
+  const parsed = declared === undefined ? undefined : PluginManifestSchema.safeParse(declared)
+  if (parsed === undefined || !parsed.success) {
+    const issue =
+      parsed === undefined
+        ? `${MANIFEST_POSITION} is missing`
+        : [MANIFEST_POSITION, ...(parsed.error.issues[0]?.path ?? []).map(String)].join('.')
+    refuse(
+      `${requested.name}@${version} has no valid agent-qa plugin manifest (${issue}); ` +
+        'nothing was changed.',
+    )
+  }
+  if (parsed.data.runs === 'in-process') {
+    refuse(
+      `${requested.name} asks to run inside agent-qa's process, which only first-party plugins ` +
+        'may do; nothing was changed.',
+    )
+  }
+  return version
+}
+
 async function addPlugin(
   argument: string,
   opts: AddOptions,
@@ -140,16 +238,37 @@ async function addPlugin(
 ): Promise<void> {
   const host = projectHost(deps.host)
   const requested = requestedPackage(argument)
-  if (!isFirstParty(requested.name)) {
-    refuse(`${requested.name} is not a first-party plugin.`)
+  const firstParty = isFirstParty(requested.name)
+  const pinned = firstParty ? firstPartyVersion(requested) : undefined
+  if (!firstParty && requested.version !== undefined && !EXACT_SEMVER.test(requested.version)) {
+    refuse(`Give an exact version, such as ${requested.name}@1.2.3, or none to install the latest.`)
   }
-  const version = firstPartyVersion(requested)
   const config = configPathOf(command, host)
   const edit = configWithEntry(host.io.readText(config.path) ?? '', config.given, requested.name)
 
   const range = await projectRange(dirname(config.path), host)
+  const found = readProjectPackageJson(range, host.io)
+  if (found.text !== undefined) parsePackageJson(found.path, found.text)
+  const manager = detectPackageManager({
+    range,
+    env: host.env,
+    io: host.io,
+    ...(opts.pm === undefined ? {} : { flag: opts.pm }),
+  })
+  const mask = (text: string) => maskWith(config.path, text)
+  const version =
+    pinned ??
+    (await thirdPartyVersion({
+      host,
+      range,
+      packageDir: dirname(found.path),
+      manager,
+      requested,
+      mask,
+    }))
+
   const packageJson = planPackageJson({
-    ...readProjectPackageJson(range, host.io),
+    ...found,
     folderName: basename(range.start),
     dependencies: [{ name: requested.name, version }],
   })
@@ -161,19 +280,13 @@ async function addPlugin(
       force: packageJson.existed,
     })
   }
-  const manager = detectPackageManager({
-    range,
-    env: host.env,
-    io: host.io,
-    ...(opts.pm === undefined ? {} : { flag: opts.pm }),
-  })
   const step = await runInstallStep({
     host,
     range,
     packageJson,
     manager,
     mode: 'run',
-    mask: (text) => maskWith(config.path, text),
+    mask,
   })
   if (step.outcome === 'failed') throw new CliRefusal([], 3)
 
