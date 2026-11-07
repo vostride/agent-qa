@@ -156,7 +156,7 @@ vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => {
 })
 
 import pc from 'picocolors'
-import { createDoctorCommand, type CheckStatus } from '../commands/doctor.js'
+import { checkSubscriptionAuth, createDoctorCommand, type CheckStatus } from '../commands/doctor.js'
 import {
   DEFAULT_TERMINAL_WIDTH,
   IDENTITY_DECORATION,
@@ -1637,6 +1637,29 @@ describe('the LLM auth rows', () => {
     expect(subscriptionFix).toContain('agent-qa auth login --config claude-code')
     expect(subscriptionFix).not.toContain('from `agent-qa dashboard`')
     expect(getOutput()).not.toContain('from `agent-qa dashboard`')
+  })
+
+  it('the Subscription Auth fix adds the plugin with plugins add, then signs in', async () => {
+    mockResolveLLMAuth.mockResolvedValue({
+      kind: 'missing',
+      credentialKey: 'claude-code',
+      provider: 'anthropic-subscription',
+      required: true,
+      message: 'Provider "anthropic-subscription" needs the subscription-auth plugin.',
+    })
+    const row = checkSubscriptionAuth({
+      registry: {
+        llms: [{ name: 'claude-code', provider: 'anthropic-subscription', model: 'claude-sonnet-4-6' }],
+      },
+      use: { llm: 'claude-code' },
+    })
+
+    expect((await row.check()).status).toBe('warn')
+    expect(row.fixInstructions).toBe(
+      'Run `npx agent-qa plugins add @vostride/agent-qa-subscription-auth`, then run '
+        + '`agent-qa auth login --config claude-code`',
+    )
+    expect(row.fixInstructions).not.toContain('npm install')
   })
 
   it('a compatible config with no key on the public provider API fails the credential row with auth set', async () => {
