@@ -223,7 +223,7 @@ describe('auth-state capture command', () => {
 
     expect(mocks.writeAuthStateFiles).not.toHaveBeenCalled()
     expect(mockBrowser.close).toHaveBeenCalled()
-    expect(process.exitCode).toBe(1)
+    expect(process.exitCode).toBe(130)
     expect(getOutput()).toContain('Auth-state capture cancelled.')
     expect(getOutput()).not.toContain(paths.payloadPath)
   })
