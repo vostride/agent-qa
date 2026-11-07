@@ -54,7 +54,7 @@ function tempFolder(label: string): string {
 }
 
 function homeLine(home: string): string {
-  return `agent-qa init does not set up your home folder (${home}). Run it in the project's folder, or pass --dir <folder>.`
+  return `agent-qa init does not set up your home folder (${home}). Run it in the project's folder.`
 }
 
 function seen(outcome: SpawnOutcome): string {

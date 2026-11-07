@@ -135,6 +135,7 @@ import { getAgentQaVersion, resolveAppiumExecutable, writeAuth } from '@vostride
 import { clearProviderRegistry, registerProvider, type ProviderDescriptor } from '@vostride/agent-qa-model'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { reportCliFailure } from '../cli-error-handler.js'
+import { CliRefusal } from '../composition/cli-refusal.js'
 
 const mockWriteFileSync = vi.mocked(writeFileSync)
 const mockExistsSync = vi.mocked(existsSync)
@@ -168,6 +169,26 @@ async function runInit(
   init.exitOverride()
   parent.addCommand(init)
   await parent.parseAsync(['node', 'test', 'init', ...args])
+}
+
+async function runInitUnderRootConfig(args: string[]): Promise<void> {
+  const parent = new Command().enablePositionalOptions()
+  parent.option('--config <path>', 'config file path', 'agent-qa.config.yaml')
+  const init = createInitCommand({ cwd: '/tmp/test-project', isTTY: true })
+  parent.exitOverride()
+  parent.addCommand(init)
+  await parent.parseAsync(['node', 'test', ...args])
+}
+
+function expectNothingAskedOrWritten(): void {
+  expect(mockCheckbox).not.toHaveBeenCalled()
+  expect(mockSelect).not.toHaveBeenCalled()
+  expect(mockInput).not.toHaveBeenCalled()
+  expect(mockPreflightInitPlan).not.toHaveBeenCalled()
+  expect(mockWriteScaffoldFileAtomic).not.toHaveBeenCalled()
+  expect(mockWriteConfigMarkerLast).not.toHaveBeenCalled()
+  expect(mockUpsertManagedGitignoreBlock).not.toHaveBeenCalled()
+  expect(mockWriteFileSync).not.toHaveBeenCalled()
 }
 
 function findWriteCallEndingWith(pathSuffix: string) {
@@ -501,6 +522,39 @@ describe('init command', () => {
     expect(mockWriteScaffoldFileAtomic).not.toHaveBeenCalled()
     expect(mockWriteConfigMarkerLast).not.toHaveBeenCalled()
     expect(mockWriteFileSync).not.toHaveBeenCalled()
+  })
+
+  it('a given --dir is refused with exit 2 before any prompt or write', async () => {
+    const refused = runInit(['--dir', '/tmp/x'], { isTTY: true })
+    await expect(refused).rejects.toBeInstanceOf(CliRefusal)
+    await expect(refused).rejects.toMatchObject({
+      exitCode: 2,
+      message:
+        "agent-qa init sets up the folder it runs in and takes no --dir. Run it in the project's folder.",
+    })
+    expectNothingAskedOrWritten()
+  })
+
+  it('a --config given before init is refused with exit 2 before any prompt or write', async () => {
+    const refused = runInitUnderRootConfig(['--config', 'x', 'init'])
+    await expect(refused).rejects.toBeInstanceOf(CliRefusal)
+    await expect(refused).rejects.toMatchObject({
+      exitCode: 2,
+      message:
+        "agent-qa init sets up the folder it runs in and takes no --config. Run it in the project's folder.",
+    })
+    expectNothingAskedOrWritten()
+  })
+
+  it('a --config given after init is refused with exit 2 before any prompt or write', async () => {
+    const refused = runInitUnderRootConfig(['init', '--config', 'x'])
+    await expect(refused).rejects.toBeInstanceOf(CliRefusal)
+    await expect(refused).rejects.toMatchObject({
+      exitCode: 2,
+      message:
+        "agent-qa init sets up the folder it runs in and takes no --config. Run it in the project's folder.",
+    })
+    expectNothingAskedOrWritten()
   })
 
   it('rejects an invalid programmatic platform with a closed diagnostic', () => {
@@ -908,7 +962,7 @@ describe('init command', () => {
 
       expect(error).toMatchObject({ name: 'CliRefusal', exitCode: 2 })
       expect(error.message).toBe(
-        "agent-qa init does not set up the filesystem root (/). Run it in the project's folder, or pass --dir <folder>.",
+        "agent-qa init does not set up the filesystem root (/). Run it in the project's folder.",
       )
       expectNothingAskedOrWritten()
     })
@@ -922,7 +976,7 @@ describe('init command', () => {
 
       expect(error).toMatchObject({ name: 'CliRefusal', exitCode: 2 })
       expect(error.message).toBe(
-        `agent-qa init does not set up your home folder (${home}). Run it in the project's folder, or pass --dir <folder>.`,
+        `agent-qa init does not set up your home folder (${home}). Run it in the project's folder.`,
       )
       expectNothingAskedOrWritten()
     })

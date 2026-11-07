@@ -1,6 +1,6 @@
 import { Command, Option } from 'commander'
 import { existsSync, readFileSync } from 'node:fs'
-import { basename, dirname, join, relative, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import pc from 'picocolors'
 import select from '@inquirer/select'
 import input from '@inquirer/input'
@@ -59,7 +59,7 @@ import {
 } from './managed-block.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
 import { InitRefusal, isInitRefusal } from './init-refusal.js'
-import { initFolderRefusal, resolveInitProject } from './init-project-folder.js'
+import { initFolderOptionRefusal, initFolderRefusal } from './init-project-folder.js'
 
 // Re-exported because this module is their public door.
 export { SUPPORTED_INIT_PLATFORMS, parseInitPlatform } from './scaffold-content.js'
@@ -633,33 +633,11 @@ function connectionSteps(config: Record<string, unknown>, dir: string): InitNext
   return steps
 }
 
-const AGENT_QA_COMMAND = 'npx agent-qa '
-
-// Quoted only when a shell would split or expand it, so a plain name prints as it is.
-function shellWord(word: string): string {
-  return /^[\w.-]+$/u.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`
-}
-
-// A config under another name is only found when every agent-qa command names it.
-function withConfigName(steps: readonly InitNextStep[], configName: string): InitNextStep[] {
-  if (configName === DEFAULT_CONFIG_FILE_NAME) return [...steps]
-  const name = shellWord(configName)
-  return steps.map((step) =>
-    step.command.startsWith(AGENT_QA_COMMAND)
-      ? {
-          ...step,
-          command: `${AGENT_QA_COMMAND}--config ${name} ${step.command.slice(AGENT_QA_COMMAND.length)}`,
-        }
-      : step,
-  )
-}
-
 // The same commands, in the same order, as the published quickstart.
 function initNextSteps(
   platform: InitPlatformInput,
   config: Record<string, unknown>,
   dir: string,
-  configName: string,
 ): InitNextStep[] {
   const steps: InitNextStep[] = []
   if (hasWeb(platform)) {
@@ -686,7 +664,7 @@ function initNextSteps(
     command: GETTING_STARTED_URL,
     description: 'The rest of the route: the hook sample, the dashboard and what the run taught agent-qa',
   })
-  return withConfigName(steps, configName)
+  return steps
 }
 
 const ROOT_AGENT_INSTRUCTIONS_FILE = 'AGENTS.md'
@@ -863,11 +841,10 @@ function printNextSteps(
   platform: InitPlatformInput,
   config: Record<string, unknown>,
   dir: string,
-  configName: string,
 ): void {
   console.log('')
   console.log('  Next steps:')
-  for (const [index, step] of initNextSteps(platform, config, dir, configName).entries()) {
+  for (const [index, step] of initNextSteps(platform, config, dir).entries()) {
     console.log(`    ${index + 1}. ${pc.cyan(step.command)}  ${step.description}`)
   }
 }
@@ -875,7 +852,8 @@ function printNextSteps(
 export function createInitCommand(hooks: InitCommandHooks = {}): Command {
   const cmd = new Command('init')
     .description('Initialize a new agent-qa project')
-    .option('--dir <path>', 'target directory', hooks.cwd ?? process.cwd())
+    .addOption(new Option('--dir <path>').hideHelp())
+    .addOption(new Option('--config <path>').hideHelp())
     .addOption(
       new Option('--platform <type>', 'platform to configure')
         .choices([...SUPPORTED_INIT_PLATFORMS]),
@@ -901,7 +879,10 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
     .action(async (opts, command: Command) => {
       // Taken first and released only after the document: a failure's block must go to stderr.
       const releaseStdout = opts.agent === true ? reserveStdoutForData() : undefined
-      const { projectDir, configPath } = await resolveInitProject(command, opts.dir)
+      const optionRefusal = initFolderOptionRefusal(command, opts)
+      if (optionRefusal !== undefined) throw new CliRefusal([pc.red(optionRefusal)], 2)
+      const projectDir = hooks.cwd ?? process.cwd()
+      const configPath = join(projectDir, DEFAULT_CONFIG_FILE_NAME)
       // `--agent` is a read that returns before any prompt or file, so no branch below can write.
       if (opts.agent === true) {
         // IMPORTED HERE AND NOT AT THE TOP, deliberately. The manifest reads the local
@@ -912,8 +893,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         // `init.test.ts`, whose partial `node:fs` mock the durable-store module underneath that
         // graph needs more of.
         const { buildAgentManifest } = await import('../capability-catalog/manifest.js')
-        // The posture is read from the config init resolved: the `--config` file, or the one in
-        // `--dir`, never the caller's shell folder.
+        // The posture is read from agent-qa.config.yaml in the folder init runs in.
         const manifest = await buildAgentManifest({ configPath })
         // STDOUT AND NOTHING ELSE ON IT. The whole of this command's output under `--agent` is
         // one JSON document, so it pipes into a parser without a filter in between.
@@ -1107,13 +1087,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           }
         }
 
-        // The config must stay commit-visible under whatever name it has.
-        const targetGitignoreProbes = TARGET_GITIGNORE_PROBES.map((probe) =>
-          probe.path === DEFAULT_CONFIG_FILE_NAME
-            ? { ...probe, path: basename(configPath) }
-            : probe,
-        )
-
         const outcomes: InitFileResult[] = []
         let boundary = 0
         const recordOutcome = (result: InitFileResult): void => {
@@ -1131,7 +1104,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         verifyEffectiveGitignore({
           cwd: dir,
           label: 'target .gitignore',
-          probes: targetGitignoreProbes,
+          probes: TARGET_GITIGNORE_PROBES,
           // The managed block is on disk by now — the refusal must not say otherwise.
           written: 'managed-gitignore',
         })
@@ -1158,7 +1131,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           try {
             recordOutcome(upsertManagedBlock(agentInstructionsPlan))
           } catch (error) {
-            throw incompleteScaffoldError(error, basename(configPath))
+            throw incompleteScaffoldError(error, DEFAULT_CONFIG_FILE_NAME)
           }
         }
 
@@ -1178,7 +1151,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           result => result.path === secretsPath && result.outcome === 'preserved',
         )
         if (hasWeb(platform) && secretsPreserved) printExampleSecretLine()
-        printNextSteps(platform, config, dir, basename(configPath))
+        printNextSteps(platform, config, dir)
         if (!agentInstructionsPlan) printAgentInstructionPointer()
         console.log('')
       } catch (error) {
