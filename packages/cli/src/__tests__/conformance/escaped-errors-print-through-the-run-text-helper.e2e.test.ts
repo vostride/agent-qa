@@ -54,7 +54,7 @@ function tempFolder(label: string): string {
 }
 
 function homeLine(home: string): string {
-  return `agent-qa init does not set up your home folder (${home}). Run it in the project's folder, or pass --dir <folder>.`
+  return `agent-qa init does not set up your home folder (${home}). Run it in the project's folder.`
 }
 
 function seen(outcome: SpawnOutcome): string {
@@ -122,17 +122,9 @@ async function initHittingABug(
   mkdirSync(bugFolder)
   const home = tempFolder('bug-home')
   const outcome = await spawnCollecting(
-    root,
-    [
-      '--import',
-      pathToFileURL(bugPreload()).href,
-      CLI_ENTRY,
-      'init',
-      '--dir',
-      BUG_FOLDER,
-      ...WEB_GEMINI,
-    ],
-    { HOME: home, USERPROFILE: home, ...extraEnv },
+    bugFolder,
+    ['--import', pathToFileURL(bugPreload()).href, CLI_ENTRY, 'init', ...WEB_GEMINI],
+    { HOME: home, USERPROFILE: home, TMPDIR: join(root, '.agent-qa'), ...extraEnv },
   )
   return { ...outcome, bugFolder }
 }

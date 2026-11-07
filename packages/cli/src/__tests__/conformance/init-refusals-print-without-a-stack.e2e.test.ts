@@ -3,6 +3,7 @@
 import { spawnSync } from 'node:child_process'
 import {
   appendFileSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   realpathSync,
@@ -28,7 +29,7 @@ import {
 const CELL_BUDGET_MS = 60_000
 const WEB_GEMINI = ['--platform', 'web', '--llm', 'gemini']
 const WEB_CLAUDE_CODE = ['--platform', 'web', '--llm', 'claude-code']
-const NOT_AN_OBJECT = 'must contain a JSON object to add @vostride/agent-qa-subscription-auth'
+const NOT_AN_OBJECT = 'must contain a JSON object to declare agent-qa.'
 
 afterEach(() => {
   cleanupTempRoots()
@@ -43,8 +44,10 @@ function expectFresh(): void {
 }
 
 function folders(): { root: string; home: string } {
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-init-refusal-')))
+  mkdirSync(join(root, '.git'))
   return {
-    root: trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-init-refusal-'))),
+    root,
     home: trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-init-refusal-home-'))),
   }
 }
@@ -54,7 +57,8 @@ async function init(
   home: string,
   args: readonly string[],
 ): Promise<SpawnOutcome & { text: string }> {
-  const outcome = await spawnCollecting(root, [CLI_ENTRY, 'init', ...args], {
+  const pm = args.includes('--pm') ? [] : ['--pm', 'none']
+  const outcome = await spawnCollecting(root, [CLI_ENTRY, 'init', ...args, ...pm], {
     HOME: home,
     USERPROFILE: home,
   })

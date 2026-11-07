@@ -48,6 +48,7 @@ apiToken: ${PLANTED_TEST_CREDENTIAL}
 `
 
 let root: string
+let home: string
 
 function git(...args: string[]): void {
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
@@ -81,10 +82,11 @@ function runShippedCli(...args: string[]): { status: number | null; combined: st
  * cells below validate.
  */
 function scaffoldWithShippedInit(): string {
-  const run = spawnSync(process.execPath, [CLI_DIST, 'init', '--platform', 'web', '--dir', root], {
+  const args = ['init', '--platform', 'web', '--pm', 'none']
+  const run = spawnSync(process.execPath, [CLI_DIST, ...args], {
     cwd: root,
     encoding: 'utf8',
-    env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
+    env: { ...process.env, HOME: home, USERPROFILE: home, NO_COLOR: '1', FORCE_COLOR: '0' },
   })
   const combined = `${run.stdout ?? ''}${run.stderr ?? ''}`
   expect(run.status, `the product's own init must succeed:\n${combined}`).toBe(0)
@@ -148,6 +150,7 @@ function makeConfigUnresolvable(configText: string): void {
 
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'validate-resolution-'))
+  home = mkdtempSync(join(tmpdir(), 'validate-resolution-home-'))
   git('init', '--quiet')
   git('config', 'user.name', 'agent-qa validate resolution test')
   git('config', 'user.email', 'validate-resolution-test@example.invalid')
@@ -156,6 +159,7 @@ beforeEach(() => {
 
 afterEach(() => {
   rmSync(root, { recursive: true, force: true })
+  rmSync(home, { recursive: true, force: true })
 })
 
 describe('a project the product scaffolds is validated, not attested over an empty set', () => {
@@ -188,7 +192,7 @@ describe('a project the product scaffolds is validated, not attested over an emp
     expect(second.status, `a member with errors is an error exit:\n${second.combined}`).toBe(1)
   }, 180_000)
 
-  it('bare `validate` refuses the declared plugin the scaffold has not installed, with its install line', () => {
+  it('bare `validate` refuses the declared plugin the scaffold has not installed, with its plugins add line', () => {
     scaffoldWithShippedInit()
 
     const { status, combined } = runShippedCli('validate')
@@ -197,8 +201,8 @@ describe('a project the product scaffolds is validated, not attested over an emp
     expect(combined, `validate did not name the missing entry:\n${combined}`).toContain(
       `Plugin entry subscription names ${SUBSCRIPTION_AUTH_PACKAGE}, which is not installed.`,
     )
-    expect(combined, `validate did not print the install line:\n${combined}`).toContain(
-      `Run npm install --save-dev ${SUBSCRIPTION_AUTH_PACKAGE}.`,
+    expect(combined, `validate did not print the plugins add line:\n${combined}`).toContain(
+      `Run npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}.`,
     )
     expect(combined, `validate attested a project run refuses:\n${combined}`).not.toContain(
       SUCCESS_SENTENCE,
@@ -242,7 +246,7 @@ describe('a project the product scaffolds is validated, not attested over an emp
     expect(combined, `the failure did not name the package:\n${combined}`)
       .toContain(SUBSCRIPTION_AUTH_PACKAGE)
     expect(combined, `the failure did not name the remedy:\n${combined}`)
-      .toMatch(/npm install @vostride\/agent-qa-subscription-auth/)
+      .toContain(`npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}`)
     // A message still carrying Node's loader boilerplate means the typed error replaced nothing.
     expect(combined, `the failure still speaks Node's loader dialect:\n${combined}`)
       .not.toContain('Require stack')

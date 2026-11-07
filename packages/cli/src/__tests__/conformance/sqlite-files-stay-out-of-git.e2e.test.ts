@@ -114,7 +114,8 @@ function cliHome(): string {
 }
 
 async function cli(root: string, args: readonly string[]): Promise<Leg> {
-  const child = spawn(process.execPath, [CLI_ENTRY, ...args], {
+  const pm = args[0] === 'init' && !args.includes('--pm') ? ['--pm', 'none'] : []
+  const child = spawn(process.execPath, [CLI_ENTRY, ...args, ...pm], {
     cwd: root,
     env: {
       ...hermeticEnv(root),
@@ -211,10 +212,10 @@ async function driveRefusal(): Promise<void> {
   const root = workspace('refusal')
   const knowledgeGitignore = join(root, 'agent-qa-knowledge', '.gitignore')
   const configPath = join(root, 'agent-qa.config.yaml')
-  refusal.init = await cli(root, ['init', '--platform', 'web', '--dir', root])
+  refusal.init = await cli(root, ['init', '--platform', 'web'])
   writeFileSync(knowledgeGitignore, [...LEGACY_KNOWLEDGE_RULES, ''].join('\n'), 'utf8')
   const config = readFileSync(configPath, 'utf8')
-  refusal.missing = await cli(root, ['init', '--force', '--platform', 'web', '--dir', root])
+  refusal.missing = await cli(root, ['init', '--force', '--platform', 'web'])
   refusal.configKeptAfterMissing = readFileSync(configPath, 'utf8') === config
   const negated = [
     ...LEGACY_KNOWLEDGE_RULES,
@@ -222,7 +223,7 @@ async function driveRefusal(): Promise<void> {
     '!.writer-authority.sqlite',
   ]
   writeFileSync(knowledgeGitignore, [...negated, ''].join('\n'), 'utf8')
-  refusal.negated = await cli(root, ['init', '--force', '--platform', 'web', '--dir', root])
+  refusal.negated = await cli(root, ['init', '--force', '--platform', 'web'])
   refusal.configKeptAfterNegated = readFileSync(configPath, 'utf8') === config
 }
 
@@ -231,7 +232,7 @@ async function drive(): Promise<void> {
   model = await startStubModelServer()
   const root = workspace('sc3')
   const knowledgeRoot = join(root, 'agent-qa-knowledge')
-  scene.init = await cli(root, ['init', '--platform', 'web', '--dir', root])
+  scene.init = await cli(root, ['init', '--platform', 'web'])
   pointConfigAtStubs(root, model.baseUrl, target.url)
   scene.run = await cli(root, ['run', 'tests/sc3.yaml'])
   scene.rebuildIndex = await cli(root, ['knowledge', 'rebuild-index'])

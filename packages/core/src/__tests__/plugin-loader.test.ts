@@ -134,7 +134,7 @@ describe('loadLLMAuthPlugins', () => {
 
     await expect(loadLLMAuthPlugins(entries, { baseDir: tempDir })).rejects.toThrow(
       'Plugin entry acme names @vostride/agent-qa-acme-missing-auth, which is not installed. Run '
-        + 'npm install --save-dev @vostride/agent-qa-acme-missing-auth.',
+        + 'npx agent-qa plugins add @vostride/agent-qa-acme-missing-auth.',
     )
   })
 
@@ -144,6 +144,9 @@ describe('loadLLMAuthPlugins', () => {
     const error = await loadLLMAuthPlugins(entries, { baseDir: tempDir }).catch((err) => err)
 
     expect(error).toBeInstanceOf(PluginNotInstalledError)
-    expect(error.message).toContain('remove the plugins entry subscription.')
+    expect(error.message).toContain(
+      'Install it with npx agent-qa plugins add @vostride/agent-qa-subscription-auth, or remove '
+        + 'the plugins entry subscription.',
+    )
   })
 })

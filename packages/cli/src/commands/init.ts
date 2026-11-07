@@ -1,6 +1,6 @@
 import { Command, Option } from 'commander'
-import { existsSync, readFileSync } from 'node:fs'
-import { basename, dirname, join, relative, resolve } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { basename, dirname, join, relative, sep } from 'node:path'
 import pc from 'picocolors'
 import select from '@inquirer/select'
 import input from '@inquirer/input'
@@ -9,7 +9,6 @@ import {
   DEFAULT_AGENT_QA_AUTH_STATES_DIR,
   DEFAULT_AGENT_QA_CACHE_DIR,
   DEFAULT_AGENT_QA_RUNTIME_DIR,
-  getAgentQaVersion,
 } from '@vostride/agent-qa-core'
 import { guardJsonText, reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
 import { getProvider, listProviders } from '@vostride/agent-qa-model'
@@ -43,7 +42,6 @@ import {
   writeConfigMarkerLast,
   writeScaffoldFileAtomic,
   type InitFileResult,
-  type InitFilesystemHooks,
   type InitPathPlan,
   type ManagedBlockUpsertPlan,
 } from './init-filesystem.js'
@@ -59,7 +57,19 @@ import {
 } from './managed-block.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
 import { InitRefusal, isInitRefusal } from './init-refusal.js'
-import { initFolderRefusal, resolveInitProject } from './init-project-folder.js'
+import { initFolderOptionRefusal, initFolderRefusal } from './init-project-folder.js'
+import {
+  installedAgentQaVersion,
+  parsePackageJson,
+  planPackageJson,
+  projectDependencies,
+  readProjectPackageJson,
+} from './package-json-plan.js'
+import { installOutputMask, runInstallStep } from './package-install.js'
+import { detectPackageManager } from './package-manager.js'
+import { declaredAgentQaVersion, handOffToProjectAgentQa } from './project-agent-qa.js'
+import { projectHost, type ProjectHost, type ProjectIo } from './project-host.js'
+import { nearestInstalledPackage, projectRange, type ProjectRange } from './project-range.js'
 
 // Re-exported because this module is their public door.
 export { SUPPORTED_INIT_PLATFORMS, parseInitPlatform } from './scaffold-content.js'
@@ -68,7 +78,6 @@ export { SUPPORTED_INIT_PLATFORMS, parseInitPlatform } from './scaffold-content.
 const INIT_CACHE_DIR = DEFAULT_AGENT_QA_CACHE_DIR || '.agent-qa/cache'
 const INIT_AUTH_STATES_DIR = DEFAULT_AGENT_QA_AUTH_STATES_DIR || '.agent-qa/auth-states'
 
-const PACKAGE_JSON_FILE = 'package.json'
 const DEFAULT_CONFIG_FILE_NAME = 'agent-qa.config.yaml'
 // Kept here rather than moved: it feeds `buildGitignoreEntries`, the deliberate literal
 // copy this file keeps pinned against `init-filesystem.ts`'s own — see scaffold-content.ts.
@@ -252,130 +261,6 @@ steps:
   - Type {{env:SHIPPING_ADDRESS}} into the Street address field, enter city Portland and postal code 97205, then continue to delivery.
   - Select Express delivery and continue with Review order. Verify the review shows {{env:SHIPPING_ADDRESS}} as the street address.
 `
-}
-
-export function installedAgentQaVersion(): string {
-  const version = getAgentQaVersion().trim()
-  const exactSemver =
-    /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u
-  if (!exactSemver.test(version) || version === '0.0.0') {
-    throw new Error(
-      'Unable to resolve the installed agent-qa version; refusing to write a dependency range.',
-    )
-  }
-  return version
-}
-
-function subscriptionAuthDependencyRange(): string {
-  return installedAgentQaVersion()
-}
-
-function objectRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === 'object' && !Array.isArray(value)
-    ? value as Record<string, unknown>
-    : null
-}
-
-function configUsesSubscriptionAuth(config: Record<string, unknown>): boolean {
-  if (!Array.isArray(config.plugins)) return false
-  return config.plugins.some(entry => objectRecord(entry)?.package === SUBSCRIPTION_AUTH_PACKAGE)
-}
-
-type SubscriptionAuthDependencyPlan = {
-  plan: InitPathPlan
-  range: string
-}
-
-type SubscriptionAuthDependencyResult = InitFileResult & {
-  range: string
-}
-
-function parsePackageJson(packageJsonPath: string, text: string): Record<string, unknown> {
-  try {
-    return JSON.parse(text) as Record<string, unknown>
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw new InitRefusal(
-      `Refusing to update ${packageJsonPath}: it is not valid JSON (${message}).`,
-    )
-  }
-}
-
-function buildSubscriptionAuthPackageDependencyPlan(
-  dir: string,
-): SubscriptionAuthDependencyPlan {
-  const packageJsonPath = join(dir, PACKAGE_JSON_FILE)
-  const classification = classifyInitPath(packageJsonPath, dir)
-  const existing = classification === 'regular'
-    ? readFileSync(packageJsonPath, 'utf-8')
-    : null
-  const pkg = existing === null
-    ? { private: true } as Record<string, unknown>
-    : parsePackageJson(packageJsonPath, existing)
-
-  if (!objectRecord(pkg)) {
-    throw new InitRefusal(
-      `${packageJsonPath} must contain a JSON object to add ${SUBSCRIPTION_AUTH_PACKAGE}`,
-    )
-  }
-
-  const dependencyBlocks = [
-    'devDependencies',
-    'dependencies',
-    'optionalDependencies',
-    'peerDependencies',
-  ] as const
-  const existingBlock = dependencyBlocks.find(blockName => {
-    const block = objectRecord(pkg[blockName])
-    return block && Object.prototype.hasOwnProperty.call(block, SUBSCRIPTION_AUTH_PACKAGE)
-  })
-  const targetBlock = existingBlock ?? 'devDependencies'
-  const range = subscriptionAuthDependencyRange()
-  let changed = existing === null
-  const existingTargetDependencies = objectRecord(pkg[targetBlock])
-  if (existingTargetDependencies?.[SUBSCRIPTION_AUTH_PACKAGE] !== range) {
-    changed = true
-  }
-  const targetDependencies = {
-    ...(existingTargetDependencies ?? {}),
-    [SUBSCRIPTION_AUTH_PACKAGE]: range,
-  }
-
-  pkg[targetBlock] = targetDependencies
-  for (const blockName of dependencyBlocks) {
-    if (blockName === targetBlock) continue
-    const block = objectRecord(pkg[blockName])
-    if (!block || !Object.prototype.hasOwnProperty.call(block, SUBSCRIPTION_AUTH_PACKAGE)) continue
-    changed = true
-    const nextBlock = { ...block }
-    delete nextBlock[SUBSCRIPTION_AUTH_PACKAGE]
-    if (Object.keys(nextBlock).length > 0) pkg[blockName] = nextBlock
-    else delete pkg[blockName]
-  }
-
-  const content = existing !== null && !changed
-    ? existing
-    : `${JSON.stringify(pkg, null, 2)}\n`
-  return {
-    plan: {
-      path: packageJsonPath,
-      root: dir,
-      content,
-      force: existing !== null && changed,
-    },
-    range,
-  }
-}
-
-export function upsertSubscriptionAuthPackageDependency(
-  dir: string,
-  hooks: InitFilesystemHooks = {},
-): SubscriptionAuthDependencyResult {
-  const dependency = buildSubscriptionAuthPackageDependencyPlan(dir)
-  return {
-    ...writeScaffoldFileAtomic(dependency.plan, hooks),
-    range: dependency.range,
-  }
 }
 
 export function defaultModelForProvider(provider: string): string {
@@ -582,30 +467,33 @@ function warnForMissingKnowledgeGitignoreRules(path: string): void {
 
 type InitNextStep = { command: string; description: string }
 
-function subscriptionAuthInstalled(dir: string): boolean {
-  let current = resolve(dir)
-  while (true) {
-    const manifest = join(
-      current,
-      'node_modules',
-      ...SUBSCRIPTION_AUTH_PACKAGE.split('/'),
-      'package.json',
-    )
-    if (existsSync(manifest)) return true
-    const parent = dirname(current)
-    if (parent === current) return false
-    current = parent
-  }
+function configuredLlms(config: Record<string, unknown>): InitLLMConfig[] {
+  const registry = config.registry as Record<string, unknown> | undefined
+  return (registry?.llms ?? []) as InitLLMConfig[]
 }
 
-function connectionSteps(config: Record<string, unknown>, dir: string): InitNextStep[] {
-  const registry = config.registry as Record<string, unknown> | undefined
-  const llms = (registry?.llms ?? []) as InitLLMConfig[]
+function usesSubscriptionModel(config: Record<string, unknown>): boolean {
+  return configuredLlms(config).some(llm => isSubscriptionProvider(String(llm.provider)))
+}
+
+interface InitPackageFolder {
+  range: ProjectRange
+  dir: string
+  io: ProjectIo
+}
+
+function connectionSteps(
+  config: Record<string, unknown>,
+  { range, dir, io }: InitPackageFolder,
+): InitNextStep[] {
+  const llms = configuredLlms(config)
   const steps: InitNextStep[] = []
-  const usesSubscription = llms.some(llm => isSubscriptionProvider(String(llm.provider)))
-  if (usesSubscription && !subscriptionAuthInstalled(dir)) {
+  if (
+    usesSubscriptionModel(config)
+    && nearestInstalledPackage(range, dir, SUBSCRIPTION_AUTH_PACKAGE, io) === undefined
+  ) {
     steps.push({
-      command: `npm install -D ${SUBSCRIPTION_AUTH_PACKAGE}`,
+      command: `npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}`,
       description: 'Install the subscription sign-in plugin',
     })
   }
@@ -633,33 +521,11 @@ function connectionSteps(config: Record<string, unknown>, dir: string): InitNext
   return steps
 }
 
-const AGENT_QA_COMMAND = 'npx agent-qa '
-
-// Quoted only when a shell would split or expand it, so a plain name prints as it is.
-function shellWord(word: string): string {
-  return /^[\w.-]+$/u.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`
-}
-
-// A config under another name is only found when every agent-qa command names it.
-function withConfigName(steps: readonly InitNextStep[], configName: string): InitNextStep[] {
-  if (configName === DEFAULT_CONFIG_FILE_NAME) return [...steps]
-  const name = shellWord(configName)
-  return steps.map((step) =>
-    step.command.startsWith(AGENT_QA_COMMAND)
-      ? {
-          ...step,
-          command: `${AGENT_QA_COMMAND}--config ${name} ${step.command.slice(AGENT_QA_COMMAND.length)}`,
-        }
-      : step,
-  )
-}
-
 // The same commands, in the same order, as the published quickstart.
 function initNextSteps(
   platform: InitPlatformInput,
   config: Record<string, unknown>,
-  dir: string,
-  configName: string,
+  packageFolder: InitPackageFolder,
 ): InitNextStep[] {
   const steps: InitNextStep[] = []
   if (hasWeb(platform)) {
@@ -674,7 +540,7 @@ function initNextSteps(
       description: 'Install mobile driver support',
     })
   }
-  steps.push(...connectionSteps(config, dir))
+  steps.push(...connectionSteps(config, packageFolder))
   steps.push({ command: 'npx agent-qa validate', description: 'Check the config and the tests' })
   if (hasWeb(platform)) {
     steps.push({
@@ -686,7 +552,7 @@ function initNextSteps(
     command: GETTING_STARTED_URL,
     description: 'The rest of the route: the hook sample, the dashboard and what the run taught agent-qa',
   })
-  return withConfigName(steps, configName)
+  return steps
 }
 
 const ROOT_AGENT_INSTRUCTIONS_FILE = 'AGENTS.md'
@@ -738,6 +604,8 @@ export interface InitCommandHooks {
   // A seam so a suite observes the one event without touching a home directory.
   composeAnalytics?: typeof ComposeAnalyticsHost
   isTTY?: boolean
+  cwd?: string
+  host?: Partial<ProjectHost>
 }
 
 function scaffoldFilePlan(
@@ -829,12 +697,22 @@ function buildScaffoldFilePlans(
   return plans
 }
 
-function displayInitPath(dir: string, path: string): string {
-  const localPath = relative(dir, path)
+function isOutside(relativePath: string): boolean {
+  return relativePath === '..' || relativePath.startsWith(`..${sep}`)
+}
+
+// A file above the folder, such as the project's package.json, is found by its real path.
+function displayInitPath(dir: string, realDir: string, path: string): string {
+  const fromDir = relative(dir, path)
+  const localPath = isOutside(fromDir) && realDir !== dir ? relative(realDir, path) : fromDir
   return localPath.length > 0 ? localPath : path
 }
 
-function printOutcomeSummary(dir: string, outcomes: readonly InitFileResult[]): void {
+function printOutcomeSummary(
+  dir: string,
+  outcomes: readonly InitFileResult[],
+  realDir = dir,
+): void {
   const groups = [
     ['created', 'Created'],
     ['updated', 'Updated'],
@@ -846,7 +724,7 @@ function printOutcomeSummary(dir: string, outcomes: readonly InitFileResult[]): 
     if (matching.length === 0) continue
     console.log(`  ${label}:`)
     for (const result of matching) {
-      console.log(`    ${pc.dim('•')} ${displayInitPath(dir, result.path)}`)
+      console.log(`    ${pc.dim('•')} ${displayInitPath(dir, realDir, result.path)}`)
     }
   }
 }
@@ -861,12 +739,11 @@ function printExampleSecretLine(): void {
 function printNextSteps(
   platform: InitPlatformInput,
   config: Record<string, unknown>,
-  dir: string,
-  configName: string,
+  packageFolder: InitPackageFolder,
 ): void {
   console.log('')
   console.log('  Next steps:')
-  for (const [index, step] of initNextSteps(platform, config, dir, configName).entries()) {
+  for (const [index, step] of initNextSteps(platform, config, packageFolder).entries()) {
     console.log(`    ${index + 1}. ${pc.cyan(step.command)}  ${step.description}`)
   }
 }
@@ -874,7 +751,8 @@ function printNextSteps(
 export function createInitCommand(hooks: InitCommandHooks = {}): Command {
   const cmd = new Command('init')
     .description('Initialize a new agent-qa project')
-    .option('--dir <path>', 'target directory', process.cwd())
+    .addOption(new Option('--dir <path>').hideHelp())
+    .addOption(new Option('--config <path>').hideHelp())
     .addOption(
       new Option('--platform <type>', 'platform to configure')
         .choices([...SUPPORTED_INIT_PLATFORMS]),
@@ -889,6 +767,12 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       'endpoint for openai-compatible or anthropic-compatible (default: the provider API)',
     )
     .option('--force', 'overwrite existing files')
+    .addOption(
+      new Option(
+        '--pm <name>',
+        'package manager to install with (default: detected from the project)',
+      ).choices(['npm', 'pnpm', 'yarn', 'bun', 'none']),
+    )
     .option(
       WRITE_AGENT_INSTRUCTIONS_FLAG,
       'also write the agent-qa pointer block into AGENTS.md at the project root',
@@ -900,7 +784,10 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
     .action(async (opts, command: Command) => {
       // Taken first and released only after the document: a failure's block must go to stderr.
       const releaseStdout = opts.agent === true ? reserveStdoutForData() : undefined
-      const { projectDir, configPath } = await resolveInitProject(command, opts.dir)
+      const optionRefusal = initFolderOptionRefusal(command, opts)
+      if (optionRefusal !== undefined) throw new CliRefusal([pc.red(optionRefusal)], 2)
+      const projectDir = hooks.cwd ?? process.cwd()
+      const configPath = join(projectDir, DEFAULT_CONFIG_FILE_NAME)
       // `--agent` is a read that returns before any prompt or file, so no branch below can write.
       if (opts.agent === true) {
         // IMPORTED HERE AND NOT AT THE TOP, deliberately. The manifest reads the local
@@ -911,8 +798,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         // `init.test.ts`, whose partial `node:fs` mock the durable-store module underneath that
         // graph needs more of.
         const { buildAgentManifest } = await import('../capability-catalog/manifest.js')
-        // The posture is read from the config init resolved: the `--config` file, or the one in
-        // `--dir`, never the caller's shell folder.
+        // The posture is read from agent-qa.config.yaml in the folder init runs in.
         const manifest = await buildAgentManifest({ configPath })
         // STDOUT AND NOTHING ELSE ON IT. The whole of this command's output under `--agent` is
         // one JSON document, so it pipes into a parser without a filter in between.
@@ -926,6 +812,44 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         const dir = projectDir
         const folderRefusal = await initFolderRefusal(dir)
         if (folderRefusal !== undefined) throw new CliRefusal([pc.red(folderRefusal)], 2)
+        const host = projectHost({ cwd: dir, ...hooks.host })
+        const range = await projectRange(dir, host)
+        const packageJson = readProjectPackageJson(range, host.io)
+        if (packageJson.text !== undefined) parsePackageJson(packageJson.path, packageJson.text)
+        const runningVersion = installedAgentQaVersion()
+        const manager = () =>
+          detectPackageManager({
+            range,
+            env: host.env,
+            io: host.io,
+            ...(opts.pm === undefined || opts.pm === 'none' ? {} : { flag: opts.pm }),
+          })
+        const maskInstallOutput = installOutputMask(configPath, host.io)
+        const handedOff = await handOffToProjectAgentQa({
+          host,
+          range,
+          packageJson,
+          runningVersion,
+          pm: opts.pm,
+          install: async () => {
+            const version = declaredAgentQaVersion(packageJson.text)
+            if (version === undefined) return false
+            const step = await runInstallStep({
+              host,
+              range,
+              packageJson: planPackageJson({
+                ...packageJson,
+                folderName: basename(range.start),
+                dependencies: [{ name: 'agent-qa', version }],
+              }),
+              manager: manager(),
+              mode: 'run',
+              mask: maskInstallOutput,
+            })
+            return step.outcome === 'installed' || step.outcome === 'skipped'
+          },
+        })
+        if (handedOff) return
         const initStartedAt = Date.now()
         const force = opts.force ?? false
 
@@ -1048,10 +972,21 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         }
 
         const config = buildDefaultConfig(platform, [{ name: llmName, provider, model, baseURL }])
-        const usesSubscriptionAuth = configUsesSubscriptionAuth(config)
-        const subscriptionAuthDependency = usesSubscriptionAuth
-          ? buildSubscriptionAuthPackageDependencyPlan(dir)
-          : null
+        const packageJsonPlan = planPackageJson({
+          ...packageJson,
+          folderName: basename(range.start),
+          dependencies: projectDependencies({
+            runningVersion,
+            usesSubscription: usesSubscriptionModel(config),
+            plugins: (config.plugins ?? []) as readonly { package?: unknown }[],
+          }),
+        })
+        const packageJsonFilePlan: InitPathPlan = {
+          root: packageJsonPlan.root,
+          path: packageJsonPlan.path,
+          content: packageJsonPlan.content,
+          force: packageJsonPlan.existed && packageJsonPlan.changed,
+        }
         const filePlans = buildScaffoldFilePlans(dir, platform, force)
         const targetGitignorePath = join(dir, '.gitignore')
         const targetGitignorePlan: InitPathPlan = {
@@ -1074,7 +1009,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           : null
         const completePlan = [
           ...filePlans,
-          ...(subscriptionAuthDependency ? [subscriptionAuthDependency.plan] : []),
+          packageJsonFilePlan,
           targetGitignorePlan,
           ...(agentInstructionsPlan ? [{ root: dir, path: agentInstructionsPlan.path, content: '' }] : []),
           configPlan,
@@ -1106,13 +1041,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           }
         }
 
-        // The config must stay commit-visible under whatever name it has.
-        const targetGitignoreProbes = TARGET_GITIGNORE_PROBES.map((probe) =>
-          probe.path === DEFAULT_CONFIG_FILE_NAME
-            ? { ...probe, path: basename(configPath) }
-            : probe,
-        )
-
         const outcomes: InitFileResult[] = []
         let boundary = 0
         const recordOutcome = (result: InitFileResult): void => {
@@ -1130,10 +1058,12 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         verifyEffectiveGitignore({
           cwd: dir,
           label: 'target .gitignore',
-          probes: targetGitignoreProbes,
+          probes: TARGET_GITIGNORE_PROBES,
           // The managed block is on disk by now — the refusal must not say otherwise.
           written: 'managed-gitignore',
         })
+
+        recordOutcome(writeScaffoldFileAtomic(packageJsonFilePlan, {}))
 
         for (const plan of filePlans) {
           recordOutcome(writeScaffoldFileAtomic(plan, {}))
@@ -1149,15 +1079,11 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           })
         }
 
-        if (subscriptionAuthDependency) {
-          recordOutcome(writeScaffoldFileAtomic(subscriptionAuthDependency.plan, {}))
-        }
-
         if (agentInstructionsPlan) {
           try {
             recordOutcome(upsertManagedBlock(agentInstructionsPlan))
           } catch (error) {
-            throw incompleteScaffoldError(error, basename(configPath))
+            throw incompleteScaffoldError(error, DEFAULT_CONFIG_FILE_NAME)
           }
         }
 
@@ -1168,18 +1094,32 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         // project that exists rather than one being attempted.
         await emitInitCompleted(outcomes)
 
+        const installStep = await runInstallStep({
+          host,
+          range,
+          packageJson: packageJsonPlan,
+          manager: manager(),
+          mode: opts.pm === 'none' ? 'none' : 'run',
+          mask: maskInstallOutput,
+        })
+
         console.log('')
         console.log(pc.green(pc.bold('✓ agent-qa project initialized!')))
         console.log('')
-        printOutcomeSummary(dir, outcomes)
+        printOutcomeSummary(dir, outcomes, range.start)
         const secretsPath = join(dir, DEFAULT_SECRETS_FILE)
         const secretsPreserved = outcomes.some(
           result => result.path === secretsPath && result.outcome === 'preserved',
         )
         if (hasWeb(platform) && secretsPreserved) printExampleSecretLine()
-        printNextSteps(platform, config, dir, basename(configPath))
+        printNextSteps(platform, config, {
+          range,
+          dir: dirname(packageJsonPlan.path),
+          io: host.io,
+        })
         if (!agentInstructionsPlan) printAgentInstructionPointer()
         console.log('')
+        if (installStep.outcome === 'failed') throw new CliRefusal([], 3)
       } catch (error) {
         throw asInitRefusal(error)
       }

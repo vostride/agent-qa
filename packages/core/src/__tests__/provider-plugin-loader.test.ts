@@ -151,12 +151,12 @@ describe('loadProviderPlugins', () => {
     ).toBeUndefined()
   })
 
-  it('refuses a declared plugin that is not installed, naming its entry and install line', async () => {
+  it('refuses a declared plugin that is not installed, naming its entry and plugins add line', async () => {
     const entries = [{ name: 'p', package: '@vostride/agent-qa-provider-missing' }]
 
     await expect(loadProviderPlugins(entries, { baseDir: tempDir })).rejects.toThrow(
-      'Plugin entry p names @vostride/agent-qa-provider-missing, which is not installed. Run npm '
-        + 'install --save-dev @vostride/agent-qa-provider-missing.',
+      'Plugin entry p names @vostride/agent-qa-provider-missing, which is not installed. Run npx '
+        + 'agent-qa plugins add @vostride/agent-qa-provider-missing.',
     )
   })
 

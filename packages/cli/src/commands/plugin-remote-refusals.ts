@@ -30,6 +30,7 @@ export function webRefusalMemory(memory: RemoteRefusalMemory): RemoteRefusalMemo
 export function rememberPluginRemoteRefusals(input: {
   readonly config: AgentQaConfig
   readonly configDir: string
+  readonly configPath?: string
   readonly usedRemotes: Iterable<RemoteBrowserConfig | RemotePluginBrowserConfig>
   readonly usedDevices: Iterable<DevicePlace>
   readonly declaredSecrets: { has(name: string): boolean } | undefined
@@ -52,6 +53,7 @@ export function rememberPluginRemoteRefusals(input: {
   if (uses.length === 0) return
   const refusals = pluginRemoteRefusals({
     configDir: input.configDir,
+    ...(input.configPath === undefined ? {} : { configPath: input.configPath }),
     agentQaVersion: getAgentQaVersion(),
     plugins: input.config.plugins ?? [],
     remotes: input.config.registry?.remotes ?? [],

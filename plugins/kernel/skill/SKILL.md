@@ -33,9 +33,9 @@ registry:
 - The remote holds one place: `plugin` names the `plugins` entry, and `settings` hold that place's
   Kernel settings.
 - `use.browser.remote: kernel` in the config, a suite or a test runs the test there.
-- Install the package at the exact version of agent-qa the project runs:
-  `npm install --save-dev --save-exact @vostride/agent-qa-plugin-kernel@<agent-qa version>`.
-  `agent-qa plugins list` prints that line when the package is missing or the version differs.
+- Add the plugin with `npx agent-qa plugins add @vostride/agent-qa-plugin-kernel`: it pins the
+  package at the project's agent-qa version and writes the `plugins` entry. `agent-qa plugins list`
+  prints that line when the package is missing or the version differs.
 
 ## Settings
 

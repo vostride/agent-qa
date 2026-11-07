@@ -111,19 +111,24 @@ const KOMAZON_TARGETS = {
 }
 type Write = { path: string; content: string }
 
+// No test starts a package manager: init declares the dependencies and runs no install.
+function withoutInstall(args: readonly string[]): string[] {
+  return args.includes('--pm') || args.includes('--agent') ? [...args] : [...args, '--pm', 'none']
+}
+
 async function runInit(args: string[]): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand({})
+  const init = createInitCommand({ cwd: DIR, host: { env: {} } })
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)
-  await parent.parseAsync(['node', 'test', 'init', ...args])
+  await parent.parseAsync(['node', 'test', 'init', ...withoutInstall(args)])
 }
 
 async function initWrites(platform = 'web'): Promise<Write[]> {
   mockWriteFileSync.mockClear()
   vi.mocked(console.log).mockClear()
-  await runInit(['--dir', DIR, '--platform', platform])
+  await runInit(['--platform', platform])
   return mockWriteFileSync.mock.calls.map(call => ({
     path: String(call[0]).slice(DIR.length + 1),
     content: String(call[1]),
@@ -444,7 +449,7 @@ describe('the example secrets line', () => {
       return String(path) === SECRETS_PATH ? 'OWN_SECRET=owner-value-zz\n' : ''
     })
     mockWriteFileSync.mockClear()
-    await runInit(['--dir', DIR, '--platform', 'web', ...args])
+    await runInit(['--platform', 'web', ...args])
     return mockWriteFileSync.mock.calls.map(call => ({
       path: String(call[0]),
       content: String(call[1]),

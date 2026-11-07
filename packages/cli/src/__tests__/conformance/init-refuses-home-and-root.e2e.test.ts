@@ -36,7 +36,7 @@ function tempFolder(label: string): string {
 }
 
 function homeLine(home: string): string {
-  return `agent-qa init does not set up your home folder (${home}). Run it in the project's folder, or pass --dir <folder>.`
+  return `agent-qa init does not set up your home folder (${home}). Run it in the project's folder.`
 }
 
 function listing(root: string): string[] {
@@ -80,32 +80,19 @@ describe('init and the home folder', () => {
   )
 
   it(
-    '--dir naming the home folder with a trailing slash is refused',
-    async () => {
-      expectFresh()
-      const home = tempFolder('slash')
-      const cwd = tempFolder('slash-cwd')
-      const before = listing(home)
-      const refused = await init(cwd, home, ['--dir', `${home}/`, ...WEB_GEMINI])
-      expectHomeRefusal(refused, home)
-      expect(listing(home)).toEqual(before)
-    },
-    CELL_BUDGET_MS,
-  )
-
-  it(
-    '--dir through a symlink to the home folder is refused',
+    'init started in a link to the home folder is refused',
     async () => {
       expectFresh()
       const home = tempFolder('link')
-      const cwd = tempFolder('link-cwd')
-      symlinkSync(home, join(cwd, 'link'), 'dir')
+      const linkRoot = tempFolder('link-root')
+      const link = join(linkRoot, 'link')
+      symlinkSync(home, link, 'dir')
       const before = listing(home)
-      const cwdBefore = listing(cwd)
-      const refused = await init(cwd, home, ['--dir', 'link', ...WEB_GEMINI])
+      const linkRootBefore = listing(linkRoot)
+      const refused = await init(link, home, WEB_GEMINI)
       expectHomeRefusal(refused, home)
       expect(listing(home)).toEqual(before)
-      expect(listing(cwd)).toEqual(cwdBefore)
+      expect(listing(linkRoot)).toEqual(linkRootBefore)
     },
     CELL_BUDGET_MS,
   )

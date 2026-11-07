@@ -6,7 +6,6 @@ import path from 'node:path'
 import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { getAgentQaVersion } from '@vostride/agent-qa-core'
 import { generateSuiteId, generateTestId } from '@vostride/agent-qa-ids'
 
 import { createValidateCommand } from '../commands/validate.js'
@@ -170,14 +169,14 @@ describe('validate checks plugins entries', () => {
     await rm(workspaceDir, { recursive: true, force: true })
   })
 
-  it('refuses a remote whose first-party plugin is not installed, with the install line', async () => {
+  it('refuses a remote whose first-party plugin is not installed, with the plugins add line', async () => {
     await writeConfig(['  - name: kit', `    package: '${FIRST_PARTY}'`])
 
     await runValidate()
 
     expect(output()).toContain(
       `Remote farm cannot start: Plugin entry kit names ${FIRST_PARTY}, which is not installed. `
-        + `Run npm install --save-dev --save-exact ${FIRST_PARTY}@${getAgentQaVersion()}.`,
+        + `Run npx agent-qa plugins add ${FIRST_PARTY}.`,
     )
     expect(process.exitCode).toBe(1)
   })
@@ -240,7 +239,7 @@ describe('validate checks plugins entries', () => {
 
     expect(output()).toContain(
       `Plugin entry gone names ${FIRST_PARTY}, which is not installed. `
-        + `Run npm install --save-dev --save-exact ${FIRST_PARTY}@${getAgentQaVersion()}.`,
+        + `Run npx agent-qa plugins add ${FIRST_PARTY}.`,
     )
     expect(output()).toMatch(/error\s+Plugin entry gone names/)
     expect(output().split('Plugin entry gone names').length).toBe(2)

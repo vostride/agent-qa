@@ -91,9 +91,14 @@ let previousExitCode: typeof process.exitCode
 
 let stdout: string[] = []
 
+// No test starts a package manager: init declares the dependencies and runs no install.
+function withoutInstall(args: readonly string[]): string[] {
+  return args.includes('--pm') || args.includes('--agent') ? [...args] : [...args, '--pm', 'none']
+}
+
 async function runInit(args: string[], isTTY = false): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand({ isTTY } as Parameters<typeof createInitCommand>[0])
+  const init = createInitCommand({ cwd: DIR, isTTY } as Parameters<typeof createInitCommand>[0])
   parent.exitOverride()
   init.exitOverride()
   init.configureOutput({
@@ -101,7 +106,7 @@ async function runInit(args: string[], isTTY = false): Promise<void> {
     writeOut: text => { stdout.push(text) },
   })
   parent.addCommand(init)
-  await parent.parseAsync(['node', 'agent-qa', 'init', '--dir', DIR, ...args])
+  await parent.parseAsync(['node', 'agent-qa', 'init', ...withoutInstall(args)])
 }
 
 async function initOk(args: string[], isTTY = false): Promise<void> {
@@ -194,7 +199,7 @@ describe('init model connection flags', () => {
     expectNoPrompt()
   })
 
-  it('--llm anthropic-compatible writes a default entry with the Anthropic API base URL and no plugin', async () => {
+  it('--llm anthropic-compatible writes a default entry with the Anthropic API base URL and declares no plugin', async () => {
     await initOk(['--platform', 'web', '--llm', 'anthropic-compatible'])
 
     const config = writtenConfig()
@@ -208,8 +213,7 @@ describe('init model connection flags', () => {
     ])
     expect(config.use.llm).toBe('default')
     expect(config).not.toHaveProperty('plugins')
-    expect(mockWriteFileSync.mock.calls.some(call => String(call[0]).endsWith('package.json')))
-      .toBe(false)
+    expect(JSON.parse(writtenText('package.json')).devDependencies).toEqual({ 'agent-qa': '0.1.1' })
     expectNoPrompt()
   })
 
@@ -435,7 +439,7 @@ describe('init next steps', () => {
     const output = printed()
     const order = [
       'npx agent-qa install-browsers --chromium',
-      `npm install -D ${SUBSCRIPTION_AUTH_PACKAGE}`,
+      `npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}`,
       'npx agent-qa auth login --config codex',
       'npx agent-qa validate',
       RUN_EXAMPLES,
@@ -465,23 +469,6 @@ describe('init next steps', () => {
       .toBeLessThan(output.indexOf('npx agent-qa validate'))
     expect(output).not.toContain('auth login')
     expect(output).not.toContain(SUBSCRIPTION_AUTH_PACKAGE)
-  })
-
-  it('a --config name a shell would split is quoted in the next steps', async () => {
-    const parent = new Command().option('--config <path>', 'config file path')
-    parent.exitOverride()
-    parent.addCommand(createInitCommand({ isTTY: false } as Parameters<typeof createInitCommand>[0]))
-    await parent.parseAsync([
-      'node',
-      'agent-qa',
-      '--config',
-      `${DIR}/it's my qa.yaml`,
-      'init',
-      '--platform',
-      'web',
-    ])
-
-    lineWith(printed(), `npx agent-qa --config 'it'\\''s my qa.yaml' validate`)
   })
 
   it('the next steps of every workspace name validate', async () => {

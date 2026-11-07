@@ -236,7 +236,8 @@ describe('describePlugin facts', () => {
 
   it('refuses an entry with no readable manifest with its reason', () => {
     expect(() => describePlugin(resolve({ package: ACME }))).toThrow(
-      `Plugin entry acme names ${ACME}, which is not installed. Run npm install --save-dev ${ACME}.`,
+      `Plugin entry acme names ${ACME}, which is not installed. `
+        + `Run npx agent-qa plugins add ${ACME}.`,
     )
   })
 

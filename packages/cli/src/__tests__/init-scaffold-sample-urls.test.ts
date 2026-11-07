@@ -72,18 +72,23 @@ const PLAYGROUND_HOST = 'playground.vostride.dev'
 const AGENT_QA_RECIPE_URL = 'https://vostride.com/docs/agent-qa/coding-agents'
 const URL_PATTERN = /https?:\/\/[^\s"'<>)\]]+/g
 
+// No test starts a package manager: init declares the dependencies and runs no install.
+function withoutInstall(args: readonly string[]): string[] {
+  return args.includes('--pm') || args.includes('--agent') ? [...args] : [...args, '--pm', 'none']
+}
+
 async function runInit(args: string[]): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand({})
+  const init = createInitCommand({ cwd: '/tmp/hosts' })
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)
-  await parent.parseAsync(['node', 'test', 'init', ...args])
+  await parent.parseAsync(['node', 'test', 'init', ...withoutInstall(args)])
 }
 
 async function writesFor(platform: string): Promise<Array<{ path: string; content: string }>> {
   mockWriteFileSync.mockClear()
-  await runInit(['--dir', '/tmp/hosts', '--platform', platform])
+  await runInit(['--platform', platform])
   return mockWriteFileSync.mock.calls.map(call => ({
     path: String(call[0]),
     content: String(call[1]),

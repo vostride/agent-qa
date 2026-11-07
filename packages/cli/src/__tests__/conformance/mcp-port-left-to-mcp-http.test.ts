@@ -1,7 +1,7 @@
 // `agent-qa mcp --http` alone owns port 3471.
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -62,8 +62,11 @@ describe('the MCP port is left to mcp --http', () => {
     assertFreshBuild()
     const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-port-owner-')))
     const dir = join(root, 'workspace')
-    const result = spawnSync(process.execPath, [CLI_ENTRY, 'init', '--platform', 'web', '--dir', dir], {
-      cwd: root,
+    mkdirSync(dir, { recursive: true })
+    mkdirSync(join(root, '.git'))
+    const args = ['init', '--platform', 'web', '--pm', 'none']
+    const result = spawnSync(process.execPath, [CLI_ENTRY, ...args], {
+      cwd: dir,
       env: hermeticEnv(root),
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'pipe'],

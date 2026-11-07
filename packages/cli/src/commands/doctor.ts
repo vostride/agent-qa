@@ -13,8 +13,10 @@ import { loadProviderPluginsForRawConfig } from '../provider-plugins.js'
 import {
   discoverWorkspaceFiles,
   formatAppiumInstallGuidance,
+  pluginsAddLine,
   resolveAppiumExecutable,
   resolveWorkspacePaths,
+  SUBSCRIPTION_AUTH_PACKAGE,
   type AgentQaConfig,
   type ResolvedWorkspacePaths,
 } from '@vostride/agent-qa-core'
@@ -103,7 +105,10 @@ function getActiveLLMConfig(config: Record<string, unknown> | null): ActiveLLMCo
   }
 }
 
-async function resolveActiveLLMAuth(llm: ActiveLLMConfig): Promise<ResolvedDoctorAuth> {
+async function resolveActiveLLMAuth(
+  llm: ActiveLLMConfig,
+  configPath?: string,
+): Promise<ResolvedDoctorAuth> {
   const { resolveLLMAuth } = await import('@vostride/agent-qa-core') as unknown as {
     resolveLLMAuth: (
       configName: string,
@@ -113,6 +118,8 @@ async function resolveActiveLLMAuth(llm: ActiveLLMConfig): Promise<ResolvedDocto
         baseURL?: string
         providerHeaders?: Record<string, string>
       },
+      authPath?: string,
+      configPath?: string,
     ) => Promise<ResolvedDoctorAuth>
   }
   return await resolveLLMAuth(llm.name, {
@@ -120,7 +127,7 @@ async function resolveActiveLLMAuth(llm: ActiveLLMConfig): Promise<ResolvedDocto
     model: llm.model,
     ...(llm.baseURL ? { baseURL: llm.baseURL } : {}),
     ...(llm.providerHeaders ? { providerHeaders: llm.providerHeaders } : {}),
-  }) as ResolvedDoctorAuth
+  }, undefined, configPath) as ResolvedDoctorAuth
 }
 
 function checkNodeVersion(): DoctorCheck {
@@ -289,7 +296,7 @@ function configuredLLMName(config: Record<string, unknown> | null): string {
   return (llms.find(llm => llm.name === use?.llm) ?? llms[0])?.name ?? '<name>'
 }
 
-function checkLLMApiKey(config: Record<string, unknown> | null): DoctorCheck {
+function checkLLMApiKey(config: Record<string, unknown> | null, configPath?: string): DoctorCheck {
   const name = configuredLLMName(config)
   return {
     name: 'LLM credential',
@@ -297,7 +304,7 @@ function checkLLMApiKey(config: Record<string, unknown> | null): DoctorCheck {
     check: async () => {
       const llm = getActiveLLMConfig(config)
       try {
-        const auth = await resolveActiveLLMAuth(llm)
+        const auth = await resolveActiveLLMAuth(llm, configPath)
         switch (auth.kind) {
           case 'api-key':
             return { status: 'pass', message: 'Saved API key' }
@@ -317,11 +324,15 @@ function checkLLMApiKey(config: Record<string, unknown> | null): DoctorCheck {
   }
 }
 
-function checkSubscriptionAuth(config: Record<string, unknown> | null): DoctorCheck {
+export function checkSubscriptionAuth(
+  config: Record<string, unknown> | null,
+  configPath?: string,
+): DoctorCheck {
   const name = configuredLLMName(config)
+  const add = pluginsAddLine(SUBSCRIPTION_AUTH_PACKAGE, configPath)
   return {
     name: 'Subscription Auth',
-    fixInstructions: `Install \`@vostride/agent-qa-subscription-auth\` (\`npm install -D @vostride/agent-qa-subscription-auth\`), add it to plugins as name: subscription with that package, then run \`agent-qa auth login --config ${name}\``,
+    fixInstructions: `Run \`${add}\`, then run \`agent-qa auth login --config ${name}\``,
     check: async () => {
       const llm = getActiveLLMConfig(config)
       if (getProvider(llm.provider)?.subscription !== true) {
@@ -329,7 +340,7 @@ function checkSubscriptionAuth(config: Record<string, unknown> | null): DoctorCh
       }
 
       try {
-        const auth = await resolveActiveLLMAuth(llm)
+        const auth = await resolveActiveLLMAuth(llm, configPath)
         if (auth.kind === 'auth-fetch') {
           return { status: 'pass', message: 'OAuth connected' }
         }
@@ -344,7 +355,7 @@ function checkSubscriptionAuth(config: Record<string, unknown> | null): DoctorCh
   }
 }
 
-function checkLLMConnection(config: Record<string, unknown> | null): DoctorCheck {
+function checkLLMConnection(config: Record<string, unknown> | null, configPath?: string): DoctorCheck {
   return {
     name: 'LLM connection',
     fixInstructions: 'Check the saved credential, model name, and exact base URL. Run `agent-qa auth test --config <name>` for details.',
@@ -362,7 +373,7 @@ function checkLLMConnection(config: Record<string, unknown> | null): DoctorCheck
       }
 
       try {
-        const auth = await resolveActiveLLMAuth(llm)
+        const auth = await resolveActiveLLMAuth(llm, configPath)
         if (auth.kind === 'missing') {
           return { status: 'fail', message: auth.message }
         }
@@ -810,9 +821,9 @@ export function createDoctorCommand(): Command {
         checkSecretsFile(config, configPath),
         checkWorkspaceSupportFiles(config, configPath),
         checkDocker(),
-        checkLLMApiKey(config),
-        checkSubscriptionAuth(config),
-        checkLLMConnection(config),
+        checkLLMApiKey(config, configPath),
+        checkSubscriptionAuth(config, configPath),
+        checkLLMConnection(config, configPath),
         checkPlaywright(config, placement),
         ...createRemoteChecks({
           config,
@@ -824,6 +835,7 @@ export function createDoctorCommand(): Command {
         ...createPluginChecks({
           config,
           configDir: dirname(resolve(configPath)),
+          configPath,
           secretsFile: workspace?.secretsFile,
           only: options.remote,
           ...(debugLog === undefined ? {} : { debugLog }),

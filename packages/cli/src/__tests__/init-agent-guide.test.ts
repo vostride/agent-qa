@@ -51,16 +51,18 @@ let log: MockInstance<typeof console.log>
 function tempProject(): string {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-guide-'))
   roots.push(root)
+  mkdirSync(join(root, '.git'))
   return root
 }
 
 async function runInit(dir: string, extra: string[] = [], hooks: InitCommandHooks = {}): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand(hooks)
+  const init = createInitCommand({ cwd: dir, ...hooks })
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)
-  await parent.parseAsync(['node', 'test', 'init', '--dir', dir, '--platform', 'web', ...extra])
+  const pm = extra.includes('--pm') ? [] : ['--pm', 'none']
+  await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', ...extra, ...pm])
 }
 
 function stdout(): string {

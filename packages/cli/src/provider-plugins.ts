@@ -15,6 +15,7 @@ export async function loadProviderPluginsForRawConfig(
   const descriptors = await loadProviderPlugins(entries as Parameters<typeof loadProviderPlugins>[0], {
     baseDir: dirname(resolvePath(configPath)),
     remotes: pluginRemotesOfRawConfig(raw),
+    configPath,
   })
 
   for (const descriptor of descriptors) {

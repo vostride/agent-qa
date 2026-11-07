@@ -3046,6 +3046,7 @@ export async function produceSuiteRunMembers(
   rememberPluginRemoteRefusals({
     config,
     configDir,
+    configPath: configFilePath,
     usedRemotes: suiteRemotes,
     usedDevices: placedSuites.flatMap(({ device }) => (device === undefined ? [] : [device])),
     declaredSecrets: suiteConnectionSecrets,
@@ -3404,7 +3405,7 @@ export async function produceSuiteRunMembers(
 
     // Resolve LLM models
     const { planner: plannerCfg, verifier: verifierCfg, configName } = resolveLLMModels(config)
-    const resolvedAuth = await resolveModelAuth(configName, plannerCfg)
+    const resolvedAuth = await resolveModelAuth(configName, plannerCfg, configFilePath)
     const { profile: plannerProfile, auth: plannerAuth } = toModelProfileAndAuth(plannerCfg, resolvedAuth)
     const { profile: verifierProfile, auth: verifierAuth } = toModelProfileAndAuth(verifierCfg, resolvedAuth)
     const plannerCapabilities = resolveCapabilities(plannerProfile)
@@ -4291,6 +4292,7 @@ export async function produceDirectRunMembers(
   rememberPluginRemoteRefusals({
     config,
     configDir,
+    configPath: configFilePath,
     usedRemotes: directRemotes.values(),
     usedDevices: directDevicePlaces.values(),
     declaredSecrets: runtimeSecrets.connectionSecretStore,
@@ -4624,7 +4626,7 @@ export async function produceDirectRunMembers(
       }
 
       // Per-test model creation using merged LLM config
-      const resolvedAuth = await resolveModelAuth(configName, plannerCfg)
+      const resolvedAuth = await resolveModelAuth(configName, plannerCfg, configFilePath)
       const { profile: plannerProfile, auth: plannerAuth } = toModelProfileAndAuth(plannerCfg, resolvedAuth)
       const { profile: verifierProfile, auth: verifierAuth } = toModelProfileAndAuth(verifierCfg, resolvedAuth)
       // Keeps the first resolved planner identity; the post-verdict curator reuses it as is.

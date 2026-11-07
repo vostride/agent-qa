@@ -136,6 +136,18 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'spawns the v1 MCP server; rewritten with the SDK re-derivation',
   },
   {
+    file: 'packages/cli/src/commands/package-install.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: "init's install step orders installed versions with core's semver helpers; joins the config mutation class with init",
+  },
+  {
+    file: 'packages/cli/src/commands/package-json-plan.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: "init's package.json plan reads the running agent-qa version from core; joins the config mutation class with init",
+  },
+  {
     file: 'packages/cli/src/commands/plugin-remote-refusals.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '386',
@@ -148,10 +160,22 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'the run command keeps its plugin remote refusals here, split out of run.ts; relocates with the run-session composition root',
   },
   {
+    file: 'packages/cli/src/commands/plugins-add.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: 'plugins add checks the package name and writes the plugins entry with core schemas directly; joins the typed config action class',
+  },
+  {
     file: 'packages/cli/src/commands/plugins.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',
     reason: 'plugins list, describe and validate read plugin entries, manifests and shipped schemas through core directly; joins the typed config action class',
+  },
+  {
+    file: 'packages/cli/src/commands/project-agent-qa.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: "the hand-off to the project's agent-qa compares versions and checks its bin path with core helpers; joins the config mutation class with init",
   },
   {
     file: 'packages/cli/src/commands/run.ts',
