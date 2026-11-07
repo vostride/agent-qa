@@ -551,6 +551,33 @@ describe('init command', () => {
     expect(mockWriteFileSync).not.toHaveBeenCalled()
   })
 
+  it('--pm none declares the dependencies and prints the plain install without running it', async () => {
+    await runInit(['--pm', 'none', '--platform', 'web', '--llm', 'gemini'], {
+      isTTY: false,
+      host: { env: {} },
+    })
+
+    expect(consoleOutput()).toContain(
+      'Declared agent-qa 0.1.1 in package.json. Install with: npm install',
+    )
+    expect(mockExecSync).not.toHaveBeenCalled()
+    expect(mockExecFileSync).not.toHaveBeenCalled()
+  })
+
+  it('a --pm outside the five choices exits 2 before any write', async () => {
+    const parent = new Command()
+    const init = createInitCommand({ cwd: '/tmp/test-project', isTTY: false })
+    init.configureOutput({ writeErr: () => {} })
+    parent.exitOverride()
+    parent.addCommand(init)
+
+    await expect(
+      parent.parseAsync(['node', 'test', 'init', '--pm', 'bogus', '--platform', 'web']),
+    ).rejects.toMatchObject({ exitCode: 2, cause: { code: 'commander.invalidArgument' } })
+    expect(mockPreflightInitPlan).not.toHaveBeenCalled()
+    expect(mockWriteFileSync).not.toHaveBeenCalled()
+  })
+
   it('a given --dir is refused with exit 2 before any prompt or write', async () => {
     const refused = runInit(['--dir', '/tmp/x'], { isTTY: true })
     await expect(refused).rejects.toBeInstanceOf(CliRefusal)

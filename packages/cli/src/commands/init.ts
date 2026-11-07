@@ -64,6 +64,8 @@ import {
   projectDependencies,
   readProjectPackageJson,
 } from './package-json-plan.js'
+import { runInstallStep } from './package-install.js'
+import { detectPackageManager } from './package-manager.js'
 import { projectHost, type ProjectHost } from './project-host.js'
 import { projectRange } from './project-range.js'
 
@@ -768,6 +770,12 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       'endpoint for openai-compatible or anthropic-compatible (default: the provider API)',
     )
     .option('--force', 'overwrite existing files')
+    .addOption(
+      new Option(
+        '--pm <name>',
+        'package manager to install with (default: detected from the project)',
+      ).choices(['npm', 'pnpm', 'yarn', 'bun', 'none']),
+    )
     .option(
       WRITE_AGENT_INSTRUCTIONS_FLAG,
       'also write the agent-qa pointer block into AGENTS.md at the project root',
@@ -1053,6 +1061,16 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         // AFTER the config marker — the scaffold's last write — so the event describes a
         // project that exists rather than one being attempted.
         await emitInitCompleted(outcomes)
+
+        if (opts.pm === 'none') {
+          await runInstallStep({
+            host,
+            range,
+            packageJson: packageJsonPlan,
+            manager: detectPackageManager({ range, env: host.env, io: host.io }),
+            mode: 'none',
+          })
+        }
 
         console.log('')
         console.log(pc.green(pc.bold('✓ agent-qa project initialized!')))

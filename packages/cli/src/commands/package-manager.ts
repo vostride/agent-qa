@@ -1,0 +1,170 @@
+import { join, relative } from 'node:path'
+import type { ProjectIo } from './project-host.js'
+import { nearestFile, type ProjectRange } from './project-range.js'
+
+export type PackageManagerName = 'npm' | 'pnpm' | 'yarn' | 'bun'
+
+export const PACKAGE_MANAGERS: readonly PackageManagerName[] = ['npm', 'pnpm', 'yarn', 'bun']
+
+// npm goes last: a stray package-lock.json is the common duplicate.
+export const LOCKFILES: readonly { file: string; manager: PackageManagerName }[] = [
+  { file: 'pnpm-lock.yaml', manager: 'pnpm' },
+  { file: 'yarn.lock', manager: 'yarn' },
+  { file: 'bun.lock', manager: 'bun' },
+  { file: 'bun.lockb', manager: 'bun' },
+  { file: 'package-lock.json', manager: 'npm' },
+  { file: 'npm-shrinkwrap.json', manager: 'npm' },
+]
+
+export interface DetectedManager {
+  name: PackageManagerName
+  version?: string
+  yarnLine?: 'classic' | 'berry'
+  source: 'flag' | 'packageManager' | 'lockfile' | 'devEngines' | 'user-agent' | 'default'
+}
+
+interface Declared {
+  name: PackageManagerName
+  version?: string
+}
+
+type JsonObject = Record<string, unknown>
+
+const EXACT_SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u
+const PACKAGE_MANAGER_FIELD = /^(npm|pnpm|yarn|bun)@([^+]+)/u
+
+function isManager(value: unknown): value is PackageManagerName {
+  return typeof value === 'string' && (PACKAGE_MANAGERS as readonly string[]).includes(value)
+}
+
+function asObject(value: unknown): JsonObject | undefined {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as JsonObject)
+    : undefined
+}
+
+function declared(name: PackageManagerName, version: unknown): Declared {
+  return typeof version === 'string' && EXACT_SEMVER.test(version) ? { name, version } : { name }
+}
+
+function readManifest(folder: string, io: ProjectIo): JsonObject | undefined {
+  const path = join(folder, 'package.json')
+  if (!io.exists(path)) return undefined
+  const text = io.readText(path)
+  if (text === undefined) return undefined
+  try {
+    return asObject(JSON.parse(text))
+  } catch {
+    return undefined
+  }
+}
+
+function fromPackageManagerField(manifest: JsonObject): Declared | undefined {
+  const field = manifest.packageManager
+  if (typeof field !== 'string') return undefined
+  const match = PACKAGE_MANAGER_FIELD.exec(field)
+  return match ? declared(match[1] as PackageManagerName, match[2]) : undefined
+}
+
+function fromDevEngines(manifest: JsonObject): Declared | undefined {
+  const value = asObject(manifest.devEngines)?.packageManager
+  const candidates = Array.isArray(value) ? value : [value]
+  for (const candidate of candidates) {
+    const entry = asObject(candidate)
+    if (entry !== undefined && isManager(entry.name)) return declared(entry.name, entry.version)
+  }
+  return undefined
+}
+
+function firstDeclared(
+  range: ProjectRange,
+  io: ProjectIo,
+  read: (manifest: JsonObject) => Declared | undefined,
+): Declared | undefined {
+  for (const folder of range.folders) {
+    const manifest = readManifest(folder, io)
+    const found = manifest === undefined ? undefined : read(manifest)
+    if (found !== undefined) return found
+  }
+  return undefined
+}
+
+function fromLockfiles(range: ProjectRange, io: ProjectIo): PackageManagerName | undefined {
+  for (const folder of range.folders) {
+    const lockfile = LOCKFILES.find(({ file }) => io.exists(join(folder, file)))
+    if (lockfile !== undefined) return lockfile.manager
+  }
+  return undefined
+}
+
+function fromUserAgent(env: NodeJS.ProcessEnv): PackageManagerName | undefined {
+  const name = env.npm_config_user_agent?.split('/')[0]
+  return isManager(name) ? name : undefined
+}
+
+function yarnLine(
+  version: string | undefined,
+  range: ProjectRange,
+  io: ProjectIo,
+): DetectedManager['yarnLine'] {
+  if (version !== undefined) return Number(version.split('.')[0]) >= 2 ? 'berry' : 'classic'
+  const lockfile = nearestFile(range, 'yarn.lock', io)
+  const text = lockfile === undefined ? undefined : io.readText(lockfile)
+  if (text !== undefined) {
+    if (/^__metadata:/mu.test(text)) return 'berry'
+    if (/^# yarn lockfile v1\s*$/mu.test(text)) return 'classic'
+  }
+  if (nearestFile(range, '.yarnrc.yml', io) !== undefined) return 'berry'
+  if (nearestFile(range, '.yarnrc', io) !== undefined) return 'classic'
+  return undefined
+}
+
+export function detectPackageManager(input: {
+  range: ProjectRange
+  env: NodeJS.ProcessEnv
+  flag?: PackageManagerName
+  io: ProjectIo
+}): DetectedManager {
+  const { range, env, flag, io } = input
+  const packageManagerField = firstDeclared(range, io, fromPackageManagerField)
+  let found: Omit<DetectedManager, 'yarnLine'>
+  if (flag !== undefined) {
+    const version = packageManagerField?.name === flag ? packageManagerField.version : undefined
+    found = { name: flag, ...(version === undefined ? {} : { version }), source: 'flag' }
+  } else if (packageManagerField !== undefined) {
+    found = { ...packageManagerField, source: 'packageManager' }
+  } else {
+    const lockfile = fromLockfiles(range, io)
+    const devEngines = lockfile === undefined ? firstDeclared(range, io, fromDevEngines) : undefined
+    const userAgent = fromUserAgent(env)
+    found =
+      lockfile !== undefined
+        ? { name: lockfile, source: 'lockfile' }
+        : devEngines !== undefined
+          ? { ...devEngines, source: 'devEngines' }
+          : userAgent !== undefined
+            ? { name: userAgent, source: 'user-agent' }
+            : { name: 'npm', source: 'default' }
+  }
+  if (found.name !== 'yarn') return found
+  const line = yarnLine(found.version, range, io)
+  return line === undefined ? found : { ...found, yarnLine: line }
+}
+
+export function plainInstall(name: PackageManagerName): { command: string; args: string[] } {
+  return { command: name, args: ['install'] }
+}
+
+function shellWord(word: string): string {
+  if (/^[\w@%+=:,./-]+$/u.test(word)) return word
+  return `'${word.replaceAll("'", `'\\''`)}'`
+}
+
+export function commandLine(command: string, args: readonly string[]): string {
+  return [command, ...args].map(shellWord).join(' ')
+}
+
+export function runFromHere(line: string, packageDir: string, cwd: string): string {
+  const path = relative(cwd, packageDir)
+  return path === '' ? line : `cd ${shellWord(path)} && ${line}`
+}
