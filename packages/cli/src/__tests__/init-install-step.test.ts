@@ -1,5 +1,5 @@
 // init's install step: one plain install through an injected runner, on real temporary folders.
-import { existsSync, mkdirSync, realpathSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 
@@ -11,12 +11,12 @@ import { reportCliFailure } from '../cli-error-handler.js'
 import { createInitCommand } from '../commands/init.js'
 import { runInstallStep } from '../commands/package-install.js'
 import { planPackageJson, readProjectPackageJson } from '../commands/package-json-plan.js'
-import { detectPackageManager } from '../commands/package-manager.js'
+import { detectPackageManager, managerEnv } from '../commands/package-manager.js'
 import { projectHost, type RunOptions, type RunResult } from '../commands/project-host.js'
 import { projectRange } from '../commands/project-range.js'
 import { SUBSCRIPTION_AUTH_PACKAGE } from '../commands/scaffold-content.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
-import { CliRefusal } from '../composition/cli-refusal.js'
+import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import {
   cleanupTempProjects,
   fakeRunner,
@@ -37,7 +37,11 @@ const silentAnalytics: typeof composeAnalyticsHost = async () =>
     resolveIdentity: async () => ({ distinctId: 'u_init-install-step', runtimeContext: 'user' }),
   })
 
-type Install = (call: { command: string; args: readonly string[]; options: RunOptions }) => RunResult
+type Install = (call: {
+  command: string
+  args: readonly string[]
+  options: RunOptions
+}) => RunResult
 
 function isProbe(args: readonly string[]): boolean {
   return args.length === 1 && args[0] === '--version'
@@ -103,8 +107,8 @@ function writeJson(path: string, value: unknown): string {
   return text
 }
 
-async function stepInput(root: string, home: string, run: FakeRunner) {
-  const host = projectHost({ cwd: root, homedir: home, env: {}, run })
+async function stepInput(root: string, home: string, run: FakeRunner, env: NodeJS.ProcessEnv = {}) {
+  const host = projectHost({ cwd: root, homedir: home, env, run })
   const range = await projectRange(root, host)
   const packageJson = planPackageJson({
     ...readProjectPackageJson(range, host.io),
@@ -398,7 +402,8 @@ describe('a manager the machine lacks installs at the declared version', () => {
 
   it('a declared pnpm that is not on PATH runs through corepack at its version', async () => {
     const run = onMachine({ pnpm: null, corepack: '0.36.0' }, writes('agent-qa'))
-    const { input } = await declaredProject('corepack-pnpm', { packageManager: 'pnpm@12.17.0' }, run)
+    const manifest = { packageManager: 'pnpm@12.17.0' }
+    const { input } = await declaredProject('corepack-pnpm', manifest, run)
 
     const result = await runInstallStep({ ...input, mode: 'run' })
 
@@ -497,4 +502,134 @@ describe('a manager the machine lacks installs at the declared version', () => {
     expect(result.command).toBe('npx -y pnpm@12.17.0 install')
     expect(lastLine()).toBe('  Run: npx -y pnpm@12.17.0 install')
   })
+})
+
+const ERESOLVE_OUTPUT = [
+  'npm error code ERESOLVE',
+  'npm error ERESOLVE unable to resolve dependency tree',
+  'npm error Fix the upstream dependency conflict, or retry this command with --force or --legacy-peer-deps',
+].join('\n')
+
+function eresolveUntilLegacy(legacyWorks: boolean): Install {
+  return ({ args, options }) => {
+    if (legacyWorks && args.includes('--legacy-peer-deps')) {
+      writeInstalledPackage(options.cwd, 'agent-qa', VERSION)
+      return { code: 0, signal: null, output: '' }
+    }
+    return { code: 1, signal: null, output: ERESOLVE_OUTPUT }
+  }
+}
+
+describe('the install holds up under CI, npx, peer conflicts and Ctrl-C', () => {
+  beforeEach(() => {
+    log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    cleanupTempProjects()
+  })
+
+  it('the probes and the install get the filtered environment, and no value of it prints', async () => {
+    const { root, home } = tempProject('install-env')
+    writeJson(join(root, 'package.json'), { name: 'env', private: true })
+    const env: NodeJS.ProcessEnv = {
+      PATH: '/env-path-value',
+      CI: 'true',
+      NODE_ENV: 'production',
+      npm_command: 'exec',
+      npm_lifecycle_event: 'npx',
+      npm_config_allow_scripts: '',
+      npm_config_registry: 'https://env-registry-value.example',
+    }
+    const run = onMachine({ pnpm: null, corepack: '0.36.0' }, writes('agent-qa'))
+    const input = await stepInput(root, home, run, env)
+
+    await runInstallStep({ ...input, manager: { name: 'pnpm', source: 'flag' }, mode: 'run' })
+
+    expect(run.calls.map((call) => [argv(call), call.env])).toEqual([
+      ['pnpm --version', managerEnv('pnpm', 'path', env)],
+      ['corepack --version', managerEnv('pnpm', 'corepack', env)],
+      ['corepack pnpm install', managerEnv('pnpm', 'corepack', env)],
+    ])
+    expect(run.calls.at(-1)!.env).toMatchObject({
+      CI: 'true',
+      PNPM_CONFIG_FROZEN_LOCKFILE: 'false',
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0',
+    })
+    expect(run.calls.at(-1)!.env.NODE_ENV).toBeUndefined()
+    for (const value of ['/env-path-value', 'env-registry-value', 'production']) {
+      expect(stdout()).not.toContain(value)
+    }
+  })
+
+  it("npm's peer conflict is retried once with --legacy-peer-deps and nothing goes to .npmrc", async () => {
+    const { root, home } = tempProject('install-eresolve')
+    const run = onMachine({}, eresolveUntilLegacy(true))
+    const input = await stepInput(root, home, run)
+
+    const result = await runInstallStep({ ...input, mode: 'run' })
+
+    expect(result.outcome).toBe('installed')
+    expect(installs(run).map(argv)).toEqual(['npm install', 'npm install --legacy-peer-deps'])
+    expect(lastLine()).toBe(
+      `✓ Installed agent-qa ${VERSION} with npm; installed with --legacy-peer-deps: npm found a peer conflict`,
+    )
+    expect(existsSync(join(root, '.npmrc'))).toBe(false)
+  })
+
+  it('a second peer conflict is a failed step whose command carries --legacy-peer-deps', async () => {
+    const { root, home } = tempProject('install-eresolve-twice')
+    const run = onMachine({}, eresolveUntilLegacy(false))
+    const input = await stepInput(root, home, run)
+
+    const result = await runInstallStep({ ...input, mode: 'run' })
+
+    expect(result.outcome).toBe('failed')
+    expect(installs(run).map(argv)).toEqual(['npm install', 'npm install --legacy-peer-deps'])
+    expect(stdout()).toContain('✗ Install failed: npm exited 1')
+    expect(lastLine()).toBe('  Run: npm install --legacy-peer-deps')
+  })
+
+  it('ERESOLVE in the output of a manager other than npm is not retried', async () => {
+    const { root, home } = tempProject('install-eresolve-pnpm')
+    writeFileSync(join(root, 'pnpm-lock.yaml'), '')
+    const run = onMachine({ pnpm: '12.16.1' }, eresolveUntilLegacy(true))
+    const input = await stepInput(root, home, run)
+
+    const result = await runInstallStep({ ...input, mode: 'run' })
+
+    expect(result.outcome).toBe('failed')
+    expect(installs(run).map(argv)).toEqual(['pnpm install'])
+    expect(lastLine()).toBe('  Run: pnpm install')
+  })
+
+  it.each([
+    ['a cancelled run', { code: null, signal: 'SIGINT', output: '', cancelled: true }],
+    ['a run stopped by SIGINT', { code: null, signal: 'SIGINT', output: '' }],
+  ] as const)(
+    'Ctrl-C during the install prints Cancelled., exits 130 and keeps package.json declared: %s',
+    async (_label, outcome) => {
+      const { root, home } = tempProject('install-cancelled')
+      const run = onMachine({}, () => ({ ...outcome }))
+
+      const error = await init(root, home, run).then(
+        () => undefined,
+        (caught: unknown) => caught,
+      )
+
+      expect(error).toBeInstanceOf(PromptCancelled)
+      const printed: string[] = []
+      const deps = { ...failureDeps(), printFixed: (line: string) => printed.push(line) }
+      expect(reportCliFailure(error, deps)).toBe(130)
+      expect(printed).toEqual(['Cancelled.'])
+      expect(installs(run)).toHaveLength(1)
+      const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
+        devDependencies?: Record<string, string>
+      }
+      expect(manifest.devDependencies?.['agent-qa']).toBe(VERSION)
+      expect(stdout()).not.toContain('agent-qa project initialized')
+    },
+  )
 })
