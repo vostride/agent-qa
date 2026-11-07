@@ -122,17 +122,9 @@ async function initHittingABug(
   mkdirSync(bugFolder)
   const home = tempFolder('bug-home')
   const outcome = await spawnCollecting(
-    root,
-    [
-      '--import',
-      pathToFileURL(bugPreload()).href,
-      CLI_ENTRY,
-      'init',
-      '--dir',
-      BUG_FOLDER,
-      ...WEB_GEMINI,
-    ],
-    { HOME: home, USERPROFILE: home, ...extraEnv },
+    bugFolder,
+    ['--import', pathToFileURL(bugPreload()).href, CLI_ENTRY, 'init', ...WEB_GEMINI],
+    { HOME: home, USERPROFILE: home, TMPDIR: join(root, '.agent-qa'), ...extraEnv },
   )
   return { ...outcome, bugFolder }
 }
