@@ -738,6 +738,7 @@ export interface InitCommandHooks {
   // A seam so a suite observes the one event without touching a home directory.
   composeAnalytics?: typeof ComposeAnalyticsHost
   isTTY?: boolean
+  cwd?: string
 }
 
 function scaffoldFilePlan(
@@ -874,7 +875,7 @@ function printNextSteps(
 export function createInitCommand(hooks: InitCommandHooks = {}): Command {
   const cmd = new Command('init')
     .description('Initialize a new agent-qa project')
-    .option('--dir <path>', 'target directory', process.cwd())
+    .option('--dir <path>', 'target directory', hooks.cwd ?? process.cwd())
     .addOption(
       new Option('--platform <type>', 'platform to configure')
         .choices([...SUPPORTED_INIT_PLATFORMS]),
