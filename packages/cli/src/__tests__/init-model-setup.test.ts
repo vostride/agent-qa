@@ -91,6 +91,11 @@ let previousExitCode: typeof process.exitCode
 
 let stdout: string[] = []
 
+// No test starts a package manager: init declares the dependencies and runs no install.
+function withoutInstall(args: readonly string[]): string[] {
+  return args.includes('--pm') || args.includes('--agent') ? [...args] : [...args, '--pm', 'none']
+}
+
 async function runInit(args: string[], isTTY = false): Promise<void> {
   const parent = new Command()
   const init = createInitCommand({ cwd: DIR, isTTY } as Parameters<typeof createInitCommand>[0])
@@ -101,7 +106,7 @@ async function runInit(args: string[], isTTY = false): Promise<void> {
     writeOut: text => { stdout.push(text) },
   })
   parent.addCommand(init)
-  await parent.parseAsync(['node', 'agent-qa', 'init', ...args])
+  await parent.parseAsync(['node', 'agent-qa', 'init', ...withoutInstall(args)])
 }
 
 async function initOk(args: string[], isTTY = false): Promise<void> {

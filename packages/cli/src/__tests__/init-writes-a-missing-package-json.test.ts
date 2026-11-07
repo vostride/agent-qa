@@ -11,6 +11,7 @@ import { createInitCommand } from '../commands/init.js'
 import { sanitizedPackageName } from '../commands/package-json-plan.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 
+const WEB_GEMINI = ['--platform', 'web', '--llm', 'gemini', '--pm', 'none']
 const roots: string[] = []
 
 function tempFolder(prefix: string): string {
@@ -65,7 +66,7 @@ describe('init writes a missing package.json', () => {
     command.exitOverride()
     parent.addCommand(command)
 
-    await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', '--llm', 'gemini'])
+    await parent.parseAsync(['node', 'test', 'init', ...WEB_GEMINI])
 
     expect(readFileSync(join(cwd, 'package.json'), 'utf8')).toBe(
       `${JSON.stringify(

@@ -111,13 +111,18 @@ const KOMAZON_TARGETS = {
 }
 type Write = { path: string; content: string }
 
+// No test starts a package manager: init declares the dependencies and runs no install.
+function withoutInstall(args: readonly string[]): string[] {
+  return args.includes('--pm') || args.includes('--agent') ? [...args] : [...args, '--pm', 'none']
+}
+
 async function runInit(args: string[]): Promise<void> {
   const parent = new Command()
   const init = createInitCommand({ cwd: DIR })
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)
-  await parent.parseAsync(['node', 'test', 'init', ...args])
+  await parent.parseAsync(['node', 'test', 'init', ...withoutInstall(args)])
 }
 
 async function initWrites(platform = 'web'): Promise<Write[]> {
