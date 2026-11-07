@@ -811,6 +811,44 @@ describe('init command', () => {
     expect(consoleOutput()).toContain('Preserved:\n    • agent-qa.config.yaml')
   })
 
+  describe('the folders init refuses', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs()
+    })
+
+    function expectNothingAskedOrWritten(): void {
+      expect(mockCheckbox).not.toHaveBeenCalled()
+      expect(mockSelect).not.toHaveBeenCalled()
+      expect(mockInput).not.toHaveBeenCalled()
+      expect(mockPreflightInitPlan).not.toHaveBeenCalled()
+      expect(mockWriteFileSync).not.toHaveBeenCalled()
+    }
+
+    it('the filesystem root is refused with exit 2 before any prompt', async () => {
+      const error = await runInit(['--dir', '/'], { isTTY: true }).catch((error) => error)
+
+      expect(error).toMatchObject({ name: 'CliRefusal', exitCode: 2 })
+      expect(error.message).toBe(
+        "agent-qa init does not set up the filesystem root (/). Run it in the project's folder, or pass --dir <folder>.",
+      )
+      expectNothingAskedOrWritten()
+    })
+
+    it('the home folder is refused with exit 2 before any prompt', async () => {
+      const home = tmpdir()
+      vi.stubEnv('HOME', home)
+      vi.stubEnv('USERPROFILE', home)
+
+      const error = await runInit(['--dir', home], { isTTY: true }).catch((error) => error)
+
+      expect(error).toMatchObject({ name: 'CliRefusal', exitCode: 2 })
+      expect(error.message).toBe(
+        `agent-qa init does not set up your home folder (${home}). Run it in the project's folder, or pass --dir <folder>.`,
+      )
+      expectNothingAskedOrWritten()
+    })
+  })
+
   it('overwrites with --force', async () => {
     mockExistsSync.mockImplementation((p) => {
       if ((p as string).endsWith('agent-qa.config.yaml')) return true
