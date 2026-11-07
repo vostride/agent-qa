@@ -23,6 +23,7 @@ import { classifyInitPath, writeScaffoldFileAtomic } from './init-filesystem.js'
 import { isInitRefusal } from './init-refusal.js'
 import { redactInstallOutput, runInstallStep } from './package-install.js'
 import {
+  declaredSpec,
   installedAgentQaVersion,
   parsePackageJson,
   planPackageJson,
@@ -33,6 +34,7 @@ import {
   detectPackageManager,
   managerEnv,
   parsePackageView,
+  plainInstall,
   resolveInstallCommand,
   runFromHere,
   viewCommand,
@@ -124,6 +126,33 @@ function firstPartyVersion(requested: Requested, version: string): string {
     )
   }
   return version
+}
+
+// The agent-qa the install leaves in place loads the plugin: the exact version package.json
+// declares, else the installed copy, else this one when the project declares none.
+function loadingAgentQaVersion(input: {
+  found: { path: string; text: string | undefined }
+  copy: ProjectAgentQa | undefined
+  range: ProjectRange
+  manager: DetectedManager
+  requested: Requested
+}): string {
+  const { found, copy, range, manager, requested } = input
+  const declared = declaredSpec(found.text, 'agent-qa')
+  if (declared !== undefined && EXACT_SEMVER.test(declared)) return declared
+  if (copy !== undefined) return copy.version
+  if (declared === undefined) return installedAgentQaVersion()
+  const plain = plainInstall(manager.name)
+  const install = runFromHere(
+    commandLine(plain.command, plain.args),
+    dirname(found.path),
+    range.start,
+  )
+  refuse(
+    `${relative(range.start, found.path) || 'package.json'} declares agent-qa as ${declared}, ` +
+      `and none is installed, so the version ${requested.name} must match is not known. ` +
+      `Run ${install}, then run this again.`,
+  )
 }
 
 interface ConfigEdit {
@@ -307,9 +336,6 @@ async function addPlugin(
   const copy = await findProjectAgentQa(range, fromDir, host.io)
   if (await ranAsProjectAgentQa(host, range, copy)) return
 
-  const pinned = firstParty
-    ? firstPartyVersion(requested, copy?.version ?? installedAgentQaVersion())
-    : undefined
   const edit = configWithEntry(
     host.io.readText(config.path) ?? '',
     config.given,
@@ -323,6 +349,12 @@ async function addPlugin(
     io: host.io,
     ...(opts.pm === undefined ? {} : { flag: opts.pm }),
   })
+  const pinned = firstParty
+    ? firstPartyVersion(
+        requested,
+        loadingAgentQaVersion({ found, copy, range, manager, requested }),
+      )
+    : undefined
   const mask = (text: string) => maskWith(config.path, text)
   const version =
     pinned ??

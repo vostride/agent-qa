@@ -209,7 +209,7 @@ describe('init installs a declared newer agent-qa, then hands off to it', () => 
     expect(configured(root)).toBe(true)
   })
 
-  it('a failed install before the hand-off leaves init to this agent-qa, which exits 3', async () => {
+  it('a failed install before the hand-off exits 3 before anything is asked or written', async () => {
     const { root, home } = tempProject('hand-off-install-fails')
     declare(root, '99.0.0')
     const run = machine(() => ({ code: 1, signal: null, output: 'npm error 404 Not Found\n' }))
@@ -217,12 +217,13 @@ describe('init installs a declared newer agent-qa, then hands off to it', () => 
     const error = await refusal(init(root, home, run))
 
     expect(reportCliFailure(error, failureDeps())).toBe(3)
-    expect(commands(run).map(argv)).toEqual(['npm install', 'npm install'])
+    expect(commands(run).map(argv)).toEqual(['npm install'])
     const failures = stdout()
       .split('\n')
       .filter((line) => line === '✗ Install failed: npm exited 1')
-    expect(failures).toHaveLength(2)
-    expect(configured(root)).toBe(true)
+    expect(failures).toHaveLength(1)
+    expect(stdout()).toContain('  Run: npm install')
+    expect(configured(root)).toBe(false)
   })
 
   it('a malformed package.json is refused before the already-initialized check', async () => {

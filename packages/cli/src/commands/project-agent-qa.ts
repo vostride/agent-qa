@@ -2,6 +2,7 @@ import { dirname, relative, resolve } from 'node:path'
 import pc from 'picocolors'
 import { compareSemverVersions, isPathInsideDir } from '@vostride/agent-qa-core'
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
+import { declaredSpec } from './package-json-plan.js'
 import { wasCancelled } from './package-manager.js'
 import type { ProjectHost, ProjectIo } from './project-host.js'
 import { nearestInstalledPackage, type ProjectRange } from './project-range.js'
@@ -9,12 +10,6 @@ import { nearestInstalledPackage, type ProjectRange } from './project-range.js'
 export const HANDED_OFF_ENV = 'AGENT_QA_HANDED_OFF'
 
 const EXACT_SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u
-const DEPENDENCY_BLOCKS = [
-  'devDependencies',
-  'dependencies',
-  'optionalDependencies',
-  'peerDependencies',
-] as const
 
 export interface ProjectAgentQa {
   dir: string
@@ -92,13 +87,8 @@ function handOffLine(copy: ProjectAgentQa, range: ProjectRange, runningVersion: 
 }
 
 export function declaredAgentQaVersion(text: string | undefined): string | undefined {
-  const pkg = parsed(text)
-  for (const block of DEPENDENCY_BLOCKS) {
-    const spec = asObject(pkg?.[block])?.['agent-qa']
-    if (spec !== undefined)
-      return typeof spec === 'string' && EXACT_SEMVER.test(spec) ? spec : undefined
-  }
-  return undefined
+  const spec = declaredSpec(text, 'agent-qa')
+  return spec !== undefined && EXACT_SEMVER.test(spec) ? spec : undefined
 }
 
 export async function handOffToProjectAgentQa(input: {
@@ -121,7 +111,8 @@ export async function handOffToProjectAgentQa(input: {
     if (input.pm === 'none') return false
     const declared = declaredAgentQaVersion(packageJson.text)
     if (declared === undefined || !isNewer(declared, runningVersion)) return false
-    if (!(await input.install())) return false
+    // Carrying on as this older copy would pin first-party plugins to the wrong agent-qa.
+    if (!(await input.install())) throw new CliRefusal([], 3)
     copy = await newerCopy()
     if (copy === undefined) return false
   }
