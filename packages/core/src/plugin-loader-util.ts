@@ -148,8 +148,7 @@ export class PluginNotInstalledError extends Error {
     const pluginPath = pathDeclarationValue(declaration)
     const removal = `remove the plugins entry ${declaration.name}.`
     const remedy = isNpmPackageName(packageName)
-      ? `Install it with your package manager (for example: npm install ${packageName}), or `
-        + removal
+      ? `Install it with npx agent-qa plugins add ${packageName}, or ${removal}`
       : `Install it with your package manager, or ${removal}`
     // No `cause`: the wrapped error's require stack holds absolute paths `util.inspect` prints.
     super(

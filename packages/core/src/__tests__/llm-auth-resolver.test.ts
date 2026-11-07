@@ -542,9 +542,8 @@ describe('a missing credential names the auth command to run', () => {
 
     expect(withoutPlugin.kind).toBe('missing')
     if (withoutPlugin.kind !== 'missing') throw new Error('Expected missing result')
-    expect(withoutPlugin.message).toContain('npm install -D @vostride/agent-qa-subscription-auth')
     expect(withoutPlugin.message).toContain(
-      'as name: subscription with package: @vostride/agent-qa-subscription-auth.',
+      'run npx agent-qa plugins add @vostride/agent-qa-subscription-auth.',
     )
 
     registerLLMAuthProviderPlugin({
@@ -565,6 +564,21 @@ describe('a missing credential names the auth command to run', () => {
     if (result.kind !== 'missing') throw new Error('Expected missing result')
     expect(result.message).toContain('agent-qa auth login --config claude-code')
     expect(result.message).toContain('Anthropic subscription')
+  })
+
+  it('a subscription model without the plugin is told to add it with plugins add', async () => {
+    for (const provider of ['anthropic-subscription', 'openai-subscription'] as const) {
+      const result = await resolveLLMAuth('claude-code', { provider, model: 'any-model' }, authPath)
+
+      expect(result.kind).toBe('missing')
+      if (result.kind !== 'missing') throw new Error('Expected missing result')
+      expect(result.message).toBe(
+        `Provider "${provider}" needs the subscription-auth plugin: run npx agent-qa plugins add `
+          + '@vostride/agent-qa-subscription-auth.',
+      )
+      expect(result.message).not.toContain('npm install')
+      expect(result.message).not.toContain('add it to plugins')
+    }
   })
 
   it('an API-key config with no key is told to run auth set with its name', async () => {
