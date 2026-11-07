@@ -157,6 +157,24 @@ async function seedTaggedAndUntaggedSessions(configPath: string): Promise<Seeded
   return { sessions: join(root, 'sessions'), dashboardSessionId, untaggedSessionId }
 }
 
+function recordingAnalytics(
+  sent: { name: string; properties: Record<string, unknown> }[],
+): typeof composeAnalyticsHost {
+  return async () =>
+    composeAnalyticsHost({
+      surface: 'chat',
+      env: {},
+      transportOverride: {
+        capture: (payload) => {
+          sent.push(payload.event as (typeof sent)[number])
+        },
+        flush: () => {},
+        shutdown: () => {},
+      },
+      resolveIdentity: async () => ({ distinctId: 'u_chat-cell', runtimeContext: 'user' }),
+    })
+}
+
 function sessionFiles(configPath: string): string[] {
   const sessions = join(dirname(configPath), '.agent-qa', 'sessions')
   try {
@@ -433,6 +451,37 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
     // is intact and ends in a complete line — a handler that wrote an `aborted` row for a turn
     // already carrying its `turn_complete` would make the next open's repair prune a finished turn.
     expect(lines.endsWith('\n')).toBe(true)
+  })
+
+  it('Ctrl-C at the idle prompt ends the session with Cancelled. and exit 130', async () => {
+    const configPath = fixtureWorkspace(roots)
+    const sent: { name: string; properties: Record<string, unknown> }[] = []
+    const result = await runChat(configPath, [], ['\x03'], {
+      terminal: true,
+      onInterruptHandler: () => {},
+      composeAnalytics: recordingAnalytics(sent),
+    })
+
+    expect(result.stderr).toBe('Cancelled.')
+    expect(result.exitCode).toBe(130)
+    const sessions = sent.filter((event) => event.name === 'agent-qa.chat.session.completed')
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0]?.properties).toMatchObject({ end_reason: 'interrupt', turn_count: 0 })
+  })
+
+  it('end of input at the idle prompt ends the session with exit 0', async () => {
+    const configPath = fixtureWorkspace(roots)
+    const sent: { name: string; properties: Record<string, unknown> }[] = []
+    const result = await runChat(configPath, [], ['\x04'], {
+      terminal: true,
+      onInterruptHandler: () => {},
+      composeAnalytics: recordingAnalytics(sent),
+    })
+
+    expect(result.stderr).toBe('')
+    expect(result.exitCode).toBeUndefined()
+    const sessions = sent.filter((event) => event.name === 'agent-qa.chat.session.completed')
+    expect(sessions[0]?.properties).toMatchObject({ end_reason: 'exit' })
   })
 
   it('drives turns ONLY through invokeFunction on agent.ask, and builds no model', () => {
