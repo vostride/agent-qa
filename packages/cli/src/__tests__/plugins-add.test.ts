@@ -20,6 +20,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { parse } from 'yaml'
 
 import { parsePackageView } from '../commands/package-manager.js'
+import { pluginEntryName } from '../commands/plugins-add.js'
 import { createPluginsCommand } from '../commands/plugins.js'
 import type { ProjectHost, RunOptions, RunResult } from '../commands/project-host.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
@@ -240,14 +241,24 @@ describe('plugins add with a first-party plugin', () => {
     expect(stdout()).toContain('Next: npx agent-qa plugins describe subscription')
   })
 
-  it('keeps an entry that already declares the package', async () => {
-    const folders = project(['plugins:', '  - name: k', `    package: "${KERNEL}"`])
+  it('keeps an entry that already declares the package, and still pins and installs it', async () => {
+    const folders = project([
+      'plugins:',
+      '  - name: k',
+      `    package: "${KERNEL}"`,
+      '    options:',
+      '      region: eu',
+    ])
     const before = configOf(folders.root)
+    const run = machine()
 
-    await add(folders, machine(), [KERNEL, '--pm', 'npm'])
+    await add(folders, run, [KERNEL, '--pm', 'npm'])
 
     expect(configOf(folders.root)).toBe(before)
     expect(declaredDependencies(folders.root)).toEqual({ [KERNEL]: VERSION })
+    expect(installs(run).map(argv)).toEqual(['npm install'])
+    expect(existsSync(join(folders.root, 'node_modules', ...KERNEL.split('/')))).toBe(true)
+    expect(stdout()).toContain('Next: npx agent-qa plugins describe k')
   })
 })
 
@@ -585,6 +596,72 @@ describe('plugins add with a third-party plugin', () => {
     expect(stdout()).toContain(`  Run: npm view ${GRID}@latest --json`)
     expect(snapshot(folders.root)).toEqual(before)
     expect(installs(run)).toEqual([])
+  })
+})
+
+describe('plugins add entry names', () => {
+  it.each([
+    [KERNEL, 'kernel'],
+    [SUBSCRIPTION, 'subscription'],
+    ['agent-qa-plugin-grid', 'grid'],
+    [GRID, 'grid'],
+    ['@acme/Fancy_Thing', 'fancy-thing'],
+    ['left-pad', 'left-pad'],
+  ])('%s is named %s', (packageName, name) => {
+    expect(pluginEntryName(packageName)).toBe(name)
+  })
+
+  it('--name replaces the name taken from the package', async () => {
+    const folders = project()
+    const run = machine({ lookup: registry({ [`${GRID}@latest`]: published('1.4.2') }) })
+
+    await add(folders, run, [GRID, '--name', 'grid2'])
+
+    expect(configOf(folders.root)).toContain(`  - name: grid2\n    package: "${GRID}"\n`)
+    expect(stdout()).toContain('Next: npx agent-qa plugins describe grid2')
+  })
+
+  it('a name another entry uses exits 2 listing the names, and --name then adds it', async () => {
+    const folders = project([
+      'plugins:',
+      '  - name: grid',
+      '    package: "@other/grid"',
+      '  - name: local',
+      '    path: ./plugins/local',
+    ])
+    const before = snapshot(folders.root)
+    const run = machine({ lookup: registry({ [`${GRID}@latest`]: published('1.4.2') }) })
+
+    const error = await refusal(add(folders, run, [GRID]))
+
+    expect(error.exitCode).toBe(2)
+    expect(error.message).toBe(
+      'plugins already has an entry named grid. plugins lists: grid, local. ' +
+        'Pass --name <another name>.',
+    )
+    expect(snapshot(folders.root)).toEqual(before)
+    expect(run.calls).toEqual([])
+
+    await add(folders, run, [GRID, '--name', 'grid2'])
+
+    const plugins = (parse(configOf(folders.root)) as { plugins: { name: string }[] }).plugins
+    expect(plugins.map((entry) => entry.name)).toEqual(['grid', 'local', 'grid2'])
+  })
+
+  it('a name that fails the plugins name rule exits 2 and changes nothing', async () => {
+    const folders = project()
+    const before = snapshot(folders.root)
+    const run = machine()
+
+    const error = await refusal(add(folders, run, [KERNEL, '--name', 'Bad_Name']))
+
+    expect(error.exitCode).toBe(2)
+    expect(error.message).toBe(
+      'Bad_Name is not a plugins entry name: use lowercase letters, digits, hyphens and dots, ' +
+        'starting with a letter or digit. Pass --name <name>.',
+    )
+    expect(snapshot(folders.root)).toEqual(before)
+    expect(run.calls).toEqual([])
   })
 })
 
