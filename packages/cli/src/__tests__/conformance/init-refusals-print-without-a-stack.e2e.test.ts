@@ -75,8 +75,14 @@ function expectRefusal(outcome: SpawnOutcome & { text: string }, phrases: readon
   expect(outcome.code, outcome.text).toBe(2)
   for (const phrase of phrases) expect(outcome.text).toContain(phrase)
   const lines = outcome.text.split('\n')
-  expect(lines.filter((line) => /^\s+at\s/u.test(line)), outcome.text).toEqual([])
-  expect(lines.filter((line) => line.startsWith('Node.js v')), outcome.text).toEqual([])
+  expect(
+    lines.filter((line) => /^\s+at\s/u.test(line)),
+    outcome.text,
+  ).toEqual([])
+  expect(
+    lines.filter((line) => line.startsWith('Node.js v')),
+    outcome.text,
+  ).toEqual([])
 }
 
 describe('init refusals', () => {
