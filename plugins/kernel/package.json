@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-plugin-kernel",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": false,
   "description": "agent-qa plugin for Kernel: creates a Kernel browser before a test connects and deletes it after.",
   "keywords": [
