@@ -21,10 +21,11 @@ import { isMap, isScalar, isSeq, parseDocument, Scalar, YAMLSeq, type YAMLMap } 
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import { classifyInitPath, writeScaffoldFileAtomic } from './init-filesystem.js'
 import { isInitRefusal } from './init-refusal.js'
-import { redactInstallOutput, runInstallStep } from './package-install.js'
+import { declaredList, redactInstallOutput, runInstallStep } from './package-install.js'
 import {
   declaredSpec,
   installedAgentQaVersion,
+  isNonRegistrySpec,
   parsePackageJson,
   planPackageJson,
   readProjectPackageJson,
@@ -355,23 +356,57 @@ async function addPlugin(
         loadingAgentQaVersion({ found, copy, range, manager, requested }),
       )
     : undefined
+  const where = relative(range.start, found.path) || 'package.json'
+  const declared = declaredSpec(found.text, requested.name)
+  // The lookup checks a registry version, so a source the project chose by hand stays a hand edit.
+  if (!firstParty && declared !== undefined && isNonRegistrySpec(declared)) {
+    const byHand =
+      edit.content === undefined
+        ? ''
+        : ` Add the entry by hand: under plugins in ${config.given}, write - name: ` +
+          `${edit.entryName} with package: "${requested.name}".`
+    refuse(
+      `${where} declares ${requested.name} as ${declared}, which plugins add cannot check; ` +
+        `nothing was changed.${byHand}`,
+    )
+  }
   const mask = (text: string) => maskWith(config.path, text)
-  const version =
-    pinned ??
-    (await thirdPartyVersion({
+  const lookup = (wanted: Requested) =>
+    thirdPartyVersion({
       host,
       range,
       packageDir: dirname(found.path),
       manager,
-      requested,
+      requested: wanted,
       mask,
-    }))
-
-  const packageJson = planPackageJson({
-    ...found,
-    folderName: basename(range.start),
-    dependencies: [{ name: requested.name, version }],
-  })
+    })
+  const plan = (version: string) =>
+    planPackageJson({
+      ...found,
+      folderName: basename(range.start),
+      dependencies: [{ name: requested.name, version }],
+    })
+  let version = pinned ?? (await lookup(requested))
+  let packageJson = plan(version)
+  // Never lowered: a newer exact pin of a bare third-party package is checked and kept.
+  if (
+    !firstParty &&
+    packageJson.entries[0]?.outcome === 'newer' &&
+    requested.version === undefined &&
+    declared !== undefined &&
+    EXACT_SEMVER.test(declared)
+  ) {
+    version = await lookup({ name: requested.name, version: declared })
+    packageJson = plan(version)
+  }
+  const entry = packageJson.entries[0]!
+  if (entry.outcome === 'newer') {
+    const must = firstParty ? `agent-qa ${version}, the version it must match` : version
+    refuse(
+      `${where} declares ${requested.name} at ${entry.spec}, newer than ${must}; ` +
+        'nothing was changed. Change that entry, then run this again.',
+    )
+  }
   if (packageJson.changed) {
     writeScaffoldFileAtomic({
       root: packageJson.root,
@@ -398,11 +433,11 @@ async function addPlugin(
       force: true,
     })
     printRunText(
-      pc.green(`✓ Added the plugins entry ${edit.entryName} for ${requested.name} ${version}.`),
+      pc.green(`✓ Added the plugins entry ${edit.entryName} for ${declaredList([entry])}.`),
     )
   } else {
-    const kept = `✓ The plugins entry ${edit.entryName} already declares ${requested.name}`
-    printRunText(pc.green(`${kept} ${version}.`))
+    const kept = `✓ The plugins entry ${edit.entryName} already declares`
+    printRunText(pc.green(`${kept} ${declaredList([entry])}.`))
   }
   printRunText(`Next: npx agent-qa plugins describe ${edit.entryName}`)
 }
