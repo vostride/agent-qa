@@ -14,7 +14,7 @@ import {
   type DetectedManager,
 } from './package-manager.js'
 import { ignoredBuildNames, prepareManagerSettings } from './package-manager-settings.js'
-import type { ProjectHost } from './project-host.js'
+import type { ProjectHost, ProjectIo } from './project-host.js'
 import { nearestInstalledPackage, type ProjectRange } from './project-range.js'
 
 export interface InstallStepInput {
@@ -24,8 +24,11 @@ export interface InstallStepInput {
   manager: DetectedManager
   mode: 'run' | 'none'
   print?: (line: string) => void
-  mask?: (text: string) => string | Promise<string>
+  mask?: InstallOutputMask
 }
+
+// Undefined when the declared secrets cannot be read to mask the text.
+export type InstallOutputMask = (text: string) => Promise<string | undefined>
 
 export interface InstallStepResult {
   outcome: 'installed' | 'skipped' | 'declared' | 'failed'
@@ -35,6 +38,41 @@ export interface InstallStepResult {
 
 const EXACT_SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u
 const FAILURE_OUTPUT_LINES = 20
+
+export const OUTPUT_HIDDEN =
+  "The manager's output is not shown: the declared secrets that would mask it could not be read."
+
+// A config or secrets file that does not exist declares nothing; one that exists but cannot be read
+// may, so the output is withheld rather than printed unmasked.
+export function installOutputMask(configPath: string, io: ProjectIo): InstallOutputMask {
+  return async (text) => {
+    if (!io.exists(configPath)) return text
+    const secrets = await import('../composition/declared-secrets.js')
+    try {
+      return secrets.createDeclaredSecretMask(configPath).mask(text)
+    } catch (error) {
+      const declaresNothing =
+        error instanceof secrets.DeclaredSecretsUnavailableError &&
+        (error.gap === 'required' || error.gap === 'missing')
+      return declaresNothing ? text : undefined
+    }
+  }
+}
+
+// The last non-blank lines of captured output, masked and redacted, or the notice that hides them.
+export async function shownOutput(
+  output: string,
+  mask: InstallOutputMask | undefined,
+  count: number,
+): Promise<string[]> {
+  if (output.trim() === '') return []
+  const masked = mask === undefined ? output : await mask(output)
+  if (masked === undefined) return [OUTPUT_HIDDEN]
+  return redactInstallOutput(masked)
+    .split(/\r?\n/u)
+    .filter((line) => line.trim() !== '')
+    .slice(-count)
+}
 
 export function redactInstallOutput(text: string): string {
   return text
@@ -160,11 +198,7 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
             : `${name} exited 0, but ${notInstalled} not installed`
     print(`✗ Install failed: ${reason}${settings.map((note) => `; ${note}`).join('')}`)
     if (result.missing !== true && result.code !== 0) {
-      const masked = await (input.mask ?? ((text: string) => text))(result.output)
-      const lines = redactInstallOutput(masked)
-        .split(/\r?\n/u)
-        .filter((line) => line.trim() !== '')
-        .slice(-FAILURE_OUTPUT_LINES)
+      const lines = await shownOutput(result.output, input.mask, FAILURE_OUTPUT_LINES)
       if (lines.length > 0) {
         printRunText(lines.map((line) => `  ${line}`).join('\n'), print, { env: host.env })
       }

@@ -22,7 +22,13 @@ import { isMap, isScalar, isSeq, parseDocument, Scalar, YAMLSeq, type YAMLMap } 
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import { classifyInitPath, writeScaffoldFileAtomic } from './init-filesystem.js'
 import { isInitRefusal } from './init-refusal.js'
-import { declaredList, redactInstallOutput, runInstallStep } from './package-install.js'
+import {
+  declaredList,
+  installOutputMask,
+  runInstallStep,
+  shownOutput,
+  type InstallOutputMask,
+} from './package-install.js'
 import {
   declaredSpec,
   installedAgentQaVersion,
@@ -219,31 +225,19 @@ function configWithEntry(
   return { entryName, content: doc.toString() }
 }
 
-async function maskWith(configPath: string, text: string): Promise<string> {
-  try {
-    const secrets = await import('../composition/declared-secrets.js')
-    return secrets.createDeclaredSecretMask(configPath).mask(text)
-  } catch {
-    return text
-  }
-}
-
 interface Lookup {
   host: ProjectHost
   range: ProjectRange
   packageDir: string
   manager: DetectedManager
   requested: Requested
-  mask: (text: string) => Promise<string>
+  mask: InstallOutputMask
 }
 
 async function lookupFailed(input: Lookup, reason: string, output: string, ran: string) {
   const name = input.requested.name
   console.log(`✗ Could not look up ${name}: ${reason}`)
-  const lines = redactInstallOutput(await input.mask(output))
-    .split(/\r?\n/u)
-    .filter((line) => line.trim() !== '')
-    .slice(-LOOKUP_OUTPUT_LINES)
+  const lines = await shownOutput(output, input.mask, LOOKUP_OUTPUT_LINES)
   if (lines.length > 0) {
     printRunText(lines.map((line) => `  ${line}`).join('\n'), undefined, { env: input.host.env })
   }
@@ -377,7 +371,7 @@ async function addPlugin(
         `nothing was changed.${byHand}`,
     )
   }
-  const mask = (text: string) => maskWith(config.path, text)
+  const mask = installOutputMask(config.path, host.io)
   const lookup = (wanted: Requested) =>
     thirdPartyVersion({
       host,
