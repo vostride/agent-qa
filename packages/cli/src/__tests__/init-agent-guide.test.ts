@@ -56,11 +56,11 @@ function tempProject(): string {
 
 async function runInit(dir: string, extra: string[] = [], hooks: InitCommandHooks = {}): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand(hooks)
+  const init = createInitCommand({ cwd: dir, ...hooks })
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)
-  await parent.parseAsync(['node', 'test', 'init', '--dir', dir, '--platform', 'web', ...extra])
+  await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', ...extra])
 }
 
 function stdout(): string {

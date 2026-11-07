@@ -300,11 +300,9 @@ async function runInit(
   process.exitCode = undefined
   try {
     const parent = new Command().option('--config <path>', 'config file path')
-    parent.addCommand(createInitCommand(extraHooks))
+    parent.addCommand(createInitCommand({ cwd: dir, ...extraHooks }))
     parent.exitOverride()
-    await parent.parseAsync([
-      'node', 'agent-qa', 'init', '--dir', dir, '--platform', 'web',
-    ])
+    await parent.parseAsync(['node', 'agent-qa', 'init', '--platform', 'web'])
     return { exitCode: process.exitCode }
   } finally {
     process.exitCode = previousExitCode

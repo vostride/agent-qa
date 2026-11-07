@@ -31,7 +31,7 @@ describe('a cancelled init prompt', () => {
     )
     const program = new Command('agent-qa')
       .option('--config <path>', 'config file path', 'agent-qa.config.yaml')
-      .addCommand(createInitCommand({ isTTY: true }))
+      .addCommand(createInitCommand({ cwd: dir, isTTY: true }))
     const print = vi.fn<(text: string) => void>()
     const printFixed = vi.fn<(line: string) => void>()
     const setExitCode = vi.fn<(code: number) => void>()
@@ -47,7 +47,7 @@ describe('a cancelled init prompt', () => {
       env: {},
     }
 
-    await runCli(program, ['node', 'agent-qa', 'init', '--dir', dir], deps)
+    await runCli(program, ['node', 'agent-qa', 'init'], deps)
 
     expect(mockCheckbox).toHaveBeenCalledTimes(1)
     expect(printFixed.mock.calls).toEqual([['Cancelled.']])

@@ -93,7 +93,7 @@ let stdout: string[] = []
 
 async function runInit(args: string[], isTTY = false): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand({ isTTY } as Parameters<typeof createInitCommand>[0])
+  const init = createInitCommand({ cwd: DIR, isTTY } as Parameters<typeof createInitCommand>[0])
   parent.exitOverride()
   init.exitOverride()
   init.configureOutput({
@@ -101,7 +101,7 @@ async function runInit(args: string[], isTTY = false): Promise<void> {
     writeOut: text => { stdout.push(text) },
   })
   parent.addCommand(init)
-  await parent.parseAsync(['node', 'agent-qa', 'init', '--dir', DIR, ...args])
+  await parent.parseAsync(['node', 'agent-qa', 'init', ...args])
 }
 
 async function initOk(args: string[], isTTY = false): Promise<void> {
@@ -470,7 +470,9 @@ describe('init next steps', () => {
   it('a --config name a shell would split is quoted in the next steps', async () => {
     const parent = new Command().option('--config <path>', 'config file path')
     parent.exitOverride()
-    parent.addCommand(createInitCommand({ isTTY: false } as Parameters<typeof createInitCommand>[0]))
+    parent.addCommand(
+      createInitCommand({ cwd: DIR, isTTY: false } as Parameters<typeof createInitCommand>[0]),
+    )
     await parent.parseAsync([
       'node',
       'agent-qa',
