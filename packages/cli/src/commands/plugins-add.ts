@@ -2,7 +2,7 @@
 
 import { basename, dirname, relative, resolve } from 'node:path'
 
-import { isNpmPackageName, PluginEntrySchema } from '@vostride/agent-qa-core'
+import { isNpmPackageName, NameSlugSchema, PluginEntrySchema } from '@vostride/agent-qa-core'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import {
   PLUGIN_MANIFEST_FIELD,
@@ -58,6 +58,7 @@ export interface PluginsAddDeps {
 
 interface AddOptions {
   pm?: PackageManagerName
+  name?: string
 }
 
 interface Requested {
@@ -81,10 +82,16 @@ function isFirstParty(name: string): boolean {
   return name.startsWith(FIRST_PARTY_PREFIX) || name === SUBSCRIPTION_AUTH_PACKAGE
 }
 
-function entryNameOf(name: string): string {
-  if (name === SUBSCRIPTION_AUTH_PACKAGE) return SUBSCRIPTION_AUTH_ENTRY_NAME
-  const last = name.split('/').at(-1) ?? name
-  return PLUGIN_PACKAGE.exec(last)?.[1] ?? last
+export function pluginEntryName(packageName: string): string {
+  if (packageName === SUBSCRIPTION_AUTH_PACKAGE) return SUBSCRIPTION_AUTH_ENTRY_NAME
+  if (packageName.startsWith(FIRST_PARTY_PREFIX)) {
+    return packageName.slice(FIRST_PARTY_PREFIX.length)
+  }
+  const last = packageName.split('/').at(-1) ?? packageName
+  return (PLUGIN_PACKAGE.exec(last)?.[1] ?? last)
+    .toLowerCase()
+    .replace(/[^a-z0-9.-]/gu, '-')
+    .replace(/^[^a-z0-9]+/u, '')
 }
 
 function configPathOf(command: Command, host: ProjectHost): { given: string; path: string } {
@@ -113,7 +120,12 @@ interface ConfigEdit {
 }
 
 // parseDocument keeps the config's comments; an entry already declaring the package is kept.
-function configWithEntry(text: string, given: string, packageName: string): ConfigEdit {
+function configWithEntry(
+  text: string,
+  given: string,
+  packageName: string,
+  chosenName: string | undefined,
+): ConfigEdit {
   const doc = parseDocument(text)
   if (doc.errors.length > 0) refuse(`${given} is not valid YAML: ${doc.errors[0]!.message}`)
   if (!isMap(doc.contents)) refuse(`${given} must hold a YAML mapping.`)
@@ -128,7 +140,23 @@ function configWithEntry(text: string, given: string, packageName: string): Conf
   const existingName = existing?.get('name')
   if (typeof existingName === 'string') return { entryName: existingName }
 
-  const entryName = entryNameOf(packageName)
+  const entryName = chosenName ?? pluginEntryName(packageName)
+  const declared = plugins.items.flatMap((item) => {
+    const name = isMap(item) ? item.get('name') : undefined
+    return typeof name === 'string' ? [name] : []
+  })
+  if (declared.includes(entryName)) {
+    refuse(
+      `plugins already has an entry named ${entryName}. plugins lists: ${declared.join(', ')}. ` +
+        'Pass --name <another name>.',
+    )
+  }
+  if (!NameSlugSchema.safeParse(entryName).success) {
+    refuse(
+      `${entryName} is not a plugins entry name: use lowercase letters, digits, hyphens and ` +
+        'dots, starting with a letter or digit. Pass --name <name>.',
+    )
+  }
   const checked = PluginEntrySchema.safeParse({ name: entryName, package: packageName })
   if (!checked.success) {
     const issue = checked.error.issues[0]?.message
@@ -267,7 +295,12 @@ async function addPlugin(
   if (await ranAsProjectAgentQa(host, range, found)) return
 
   const pinned = firstParty ? firstPartyVersion(requested) : undefined
-  const edit = configWithEntry(host.io.readText(config.path) ?? '', config.given, requested.name)
+  const edit = configWithEntry(
+    host.io.readText(config.path) ?? '',
+    config.given,
+    requested.name,
+    opts.name,
+  )
   if (found.text !== undefined) parsePackageJson(found.path, found.text)
   const manager = detectPackageManager({
     range,
@@ -337,6 +370,7 @@ export function createPluginsAddCommand(deps: PluginsAddDeps = {}): Command {
         'package manager to install with (default: detected from the project)',
       ).choices(['npm', 'pnpm', 'yarn', 'bun']),
     )
+    .option('--name <name>', 'the plugins entry name (default: taken from the package name)')
     .action(async (argument: string, opts: AddOptions, command: Command) => {
       try {
         await addPlugin(argument, opts, command, deps)
