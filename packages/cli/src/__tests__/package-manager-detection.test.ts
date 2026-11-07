@@ -203,6 +203,30 @@ describe('package manager detection', () => {
   })
 
   describe("Yarn's line", () => {
+    it('a devEngines range for Yarn takes its line from the lowest version it allows', async () => {
+      const { app, home } = project()
+      writeJson(app, { devEngines: { packageManager: { name: 'yarn', version: '>=4' } } })
+
+      expect(await detect(app, home)).toEqual({
+        name: 'yarn',
+        yarnLine: 'berry',
+        source: 'devEngines',
+      })
+    })
+
+    it.each([
+      ['yarn/4.5.0 npm/? node/v24.22.2 darwin arm64', 'berry'],
+      ['yarn/1.22.22 npm/? node/v24.22.2 darwin arm64 x64', 'classic'],
+    ] as const)('the user agent %s in a fresh folder is %s', async (userAgent, line) => {
+      const { app, home } = project()
+
+      expect(await detect(app, home, { env: { npm_config_user_agent: userAgent } })).toEqual({
+        name: 'yarn',
+        yarnLine: line,
+        source: 'user-agent',
+      })
+    })
+
     it.each([
       ['yarn@4.18.1', 'berry'],
       ['yarn@1.22.19', 'classic'],

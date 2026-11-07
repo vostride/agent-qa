@@ -41,6 +41,7 @@ import {
   runFromHere,
   viewCommand,
   wasCancelled,
+  withResolvedYarnLine,
   type DetectedManager,
   type PackageManagerName,
 } from './package-manager.js'
@@ -256,7 +257,7 @@ async function thirdPartyVersion(input: Lookup): Promise<string> {
   const { host, range, packageDir, manager, requested } = input
   const spec = `${requested.name}@${requested.version ?? 'latest'}`
   const resolved = await resolveInstallCommand(manager, { ...host, cwd: packageDir })
-  const view = viewCommand(resolved, manager, spec)
+  const view = viewCommand(resolved, withResolvedYarnLine(manager, resolved), spec)
   const ran = runFromHere(commandLine(view.command, view.args), packageDir, range.start)
   const result = await host.run(view.command, view.args, {
     cwd: packageDir,

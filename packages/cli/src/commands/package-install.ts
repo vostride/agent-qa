@@ -10,6 +10,7 @@ import {
   resolveInstallCommand,
   runFromHere,
   wasCancelled,
+  withResolvedYarnLine,
   type DetectedManager,
 } from './package-manager.js'
 import { ignoredBuildNames, prepareManagerSettings } from './package-manager-settings.js'
@@ -79,7 +80,8 @@ function isInstalled(
 }
 
 export async function runInstallStep(input: InstallStepInput): Promise<InstallStepResult> {
-  const { host, range, packageJson, manager } = input
+  const { host, range, packageJson } = input
+  let manager = input.manager
   const print = input.print ?? ((line: string) => console.log(line))
   const plain = plainInstall(manager.name)
   const packageDir = dirname(packageJson.path)
@@ -107,9 +109,10 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
     return { outcome: 'skipped', command, notes }
   }
 
+  const resolved = await resolveInstallCommand(manager, { ...host, cwd: packageDir })
+  manager = withResolvedYarnLine(manager, resolved)
   const settings = await prepare()
   print(`Installing ${list} with ${manager.name}…`)
-  const resolved = await resolveInstallCommand(manager, { ...host, cwd: packageDir })
   if (resolved.via !== 'path') notes.push(`through ${resolved.via}`)
   const env = managerEnv(manager.name, resolved.via, host.env)
   // A Ctrl-C leaves package.json declared for the next run: nothing is rolled back.

@@ -1,4 +1,5 @@
 import { join, relative } from 'node:path'
+import { semverRangeFloor } from '@vostride/agent-qa-core'
 import { PromptCancelled } from '../composition/cli-refusal.js'
 import type { ProjectHost, ProjectIo, RunResult } from './project-host.js'
 import { nearestFile, type ProjectRange } from './project-range.js'
@@ -27,6 +28,8 @@ export interface DetectedManager {
 interface Declared {
   name: PackageManagerName
   version?: string
+  // The lowest version a declared range allows; it tells Yarn 1 from Yarn 2+, never what to run.
+  floor?: string
 }
 
 type JsonObject = Record<string, unknown>
@@ -45,7 +48,10 @@ function asObject(value: unknown): JsonObject | undefined {
 }
 
 function declared(name: PackageManagerName, version: unknown): Declared {
-  return typeof version === 'string' && EXACT_SEMVER.test(version) ? { name, version } : { name }
+  if (typeof version !== 'string') return { name }
+  if (EXACT_SEMVER.test(version)) return { name, version }
+  const floor = semverRangeFloor(version)
+  return floor === undefined ? { name } : { name, floor }
 }
 
 function readManifest(folder: string, io: ProjectIo): JsonObject | undefined {
@@ -98,17 +104,26 @@ function fromLockfiles(range: ProjectRange, io: ProjectIo): PackageManagerName |
   return undefined
 }
 
-function fromUserAgent(env: NodeJS.ProcessEnv): PackageManagerName | undefined {
-  const name = env.npm_config_user_agent?.split('/')[0]
-  return isManager(name) ? name : undefined
+// `yarn/4.5.0 npm/? node/v24.0.0 darwin arm64`: the name, and the version only when it is exact.
+function fromUserAgent(env: NodeJS.ProcessEnv): Declared | undefined {
+  const [name, version] = env.npm_config_user_agent?.split(' ')[0]?.split('/') ?? []
+  if (!isManager(name)) return undefined
+  return version !== undefined && EXACT_SEMVER.test(version) ? { name, version } : { name }
+}
+
+export function yarnLineOf(version: string): 'classic' | 'berry' | undefined {
+  const major = majorOf(version)
+  if (major === undefined) return undefined
+  return major >= 2 ? 'berry' : 'classic'
 }
 
 function yarnLine(
-  version: string | undefined,
+  hints: { version?: string; floor?: string; running?: string },
   range: ProjectRange,
   io: ProjectIo,
 ): DetectedManager['yarnLine'] {
-  if (version !== undefined) return Number(version.split('.')[0]) >= 2 ? 'berry' : 'classic'
+  const declaredLine = hints.version ?? hints.floor
+  if (declaredLine !== undefined) return yarnLineOf(declaredLine)
   const lockfile = nearestFile(range, 'yarn.lock', io)
   const text = lockfile === undefined ? undefined : io.readText(lockfile)
   if (text !== undefined) {
@@ -117,7 +132,7 @@ function yarnLine(
   }
   if (nearestFile(range, '.yarnrc.yml', io) !== undefined) return 'berry'
   if (nearestFile(range, '.yarnrc', io) !== undefined) return 'classic'
-  return undefined
+  return hints.running === undefined ? undefined : yarnLineOf(hints.running)
 }
 
 export function detectPackageManager(input: {
@@ -128,27 +143,42 @@ export function detectPackageManager(input: {
 }): DetectedManager {
   const { range, env, flag, io } = input
   const packageManagerField = firstDeclared(range, io, fromPackageManagerField)
+  const userAgent = fromUserAgent(env)
   let found: Omit<DetectedManager, 'yarnLine'>
+  let floor: string | undefined
   if (flag !== undefined) {
     const version = packageManagerField?.name === flag ? packageManagerField.version : undefined
     found = { name: flag, ...(version === undefined ? {} : { version }), source: 'flag' }
   } else if (packageManagerField !== undefined) {
-    found = { ...packageManagerField, source: 'packageManager' }
+    const { floor: declaredFloor, ...field } = packageManagerField
+    found = { ...field, source: 'packageManager' }
+    floor = declaredFloor
   } else {
     const lockfile = fromLockfiles(range, io)
     const devEngines = lockfile === undefined ? firstDeclared(range, io, fromDevEngines) : undefined
-    const userAgent = fromUserAgent(env)
-    found =
-      lockfile !== undefined
-        ? { name: lockfile, source: 'lockfile' }
-        : devEngines !== undefined
-          ? { ...devEngines, source: 'devEngines' }
-          : userAgent !== undefined
-            ? { name: userAgent, source: 'user-agent' }
-            : { name: 'npm', source: 'default' }
+    if (lockfile !== undefined) {
+      found = { name: lockfile, source: 'lockfile' }
+    } else if (devEngines !== undefined) {
+      const { floor: declaredFloor, ...engine } = devEngines
+      found = { ...engine, source: 'devEngines' }
+      floor = declaredFloor
+    } else if (userAgent !== undefined) {
+      found = { name: userAgent.name, source: 'user-agent' }
+    } else {
+      found = { name: 'npm', source: 'default' }
+    }
   }
   if (found.name !== 'yarn') return found
-  const line = yarnLine(found.version, range, io)
+  const running = userAgent?.name === 'yarn' ? userAgent.version : undefined
+  const line = yarnLine(
+    {
+      ...(found.version === undefined ? {} : { version: found.version }),
+      ...(floor === undefined ? {} : { floor }),
+      ...(running === undefined ? {} : { running }),
+    },
+    range,
+    io,
+  )
   return line === undefined ? found : { ...found, yarnLine: line }
 }
 
@@ -160,6 +190,8 @@ export interface ResolvedCommand {
   command: string
   args: string[]
   via: 'path' | 'corepack' | 'npx'
+  // What the manager on PATH answered to --version.
+  version?: string
 }
 
 type RunHost = Pick<ProjectHost, 'run' | 'env' | 'cwd'>
@@ -229,6 +261,16 @@ async function versionOf(
   return result.output.split(/\r?\n/u)[0]?.trim() ?? ''
 }
 
+// A Yarn whose line nothing in the project names takes the line of the Yarn on PATH.
+export function withResolvedYarnLine(
+  manager: DetectedManager,
+  resolved: ResolvedCommand,
+): DetectedManager {
+  if (manager.name !== 'yarn' || manager.yarnLine !== undefined) return manager
+  const line = resolved.version === undefined ? undefined : yarnLineOf(resolved.version)
+  return line === undefined ? manager : { ...manager, yarnLine: line }
+}
+
 function npxPackage(manager: DetectedManager): string[] {
   const at = manager.version === undefined ? '' : `@${manager.version}`
   // The yarn package on npm is Yarn 1 only; Yarn 2 and later publish their CLI as cli-dist.
@@ -247,7 +289,8 @@ export async function resolveInstallCommand(
   const { name, version } = manager
   const onPath = await versionOf(name, managerEnv(name, 'path', host.env), host)
   if (onPath !== undefined && (version === undefined || majorOf(onPath) === majorOf(version))) {
-    return { command: name, args: ['install'], via: 'path' }
+    const answered = onPath === '' ? {} : { version: onPath }
+    return { command: name, args: ['install'], via: 'path', ...answered }
   }
   const corepack = name === 'bun' ? undefined : managerEnv(name, 'corepack', host.env)
   if (corepack !== undefined && (await versionOf('corepack', corepack, host)) !== undefined) {
