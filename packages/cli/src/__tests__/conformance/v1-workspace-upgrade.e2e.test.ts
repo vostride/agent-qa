@@ -489,10 +489,10 @@ describe('upgrading a v1 workspace', () => {
     expect(scene.treeKeptAfterRefusal, `the refusal changed no file\n${seen()}`).toBe(true)
   })
 
-  it('the old knowledge gitignore refusal prints its message and exits 1 with no stack frame', () => {
+  it('the old knowledge gitignore refusal prints its message and exits 2 with no stack frame', () => {
     assertFreshBuild()
     expect(scene.error, seen()).toBeUndefined()
-    expect(exited(scene.refusedInit), seen()).toEqual({ code: 1, signal: null })
+    expect(exited(scene.refusedInit), seen()).toEqual({ code: 2, signal: null })
     const text = output(scene.refusedInit)
     expect(text, seen()).toContain('Add ".writer-authority.sqlite*"')
     const lines = text.split('\n')
