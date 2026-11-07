@@ -40,7 +40,7 @@ describe('a closed prompt', () => {
 
       const init = await spawnCollecting(
         root,
-        [CLI_ENTRY, 'init', '--platform', 'web', '--llm', 'gemini'],
+        [CLI_ENTRY, 'init', '--platform', 'web', '--llm', 'gemini', '--pm', 'none'],
         env,
       )
       expect(init.code, `${init.stdout}\n${init.stderr}`).toBe(0)
