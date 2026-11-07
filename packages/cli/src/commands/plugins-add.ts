@@ -71,6 +71,9 @@ function refuse(line: string): never {
 }
 
 function requestedPackage(argument: string): Requested {
+  if (argument.startsWith('-')) {
+    refuse(`${argument} is not an npm package name: it starts with a hyphen.`)
+  }
   if (PATH_ARGUMENT.test(argument)) refuse(PATH_REFUSAL)
   const at = argument.lastIndexOf('@')
   const name = at > 0 ? argument.slice(0, at) : argument
