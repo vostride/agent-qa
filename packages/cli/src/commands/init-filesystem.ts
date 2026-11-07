@@ -19,6 +19,7 @@ import {
 import { basename, dirname, relative, resolve, sep } from 'node:path'
 // The managed block's shape lives with the scaffold content; this file does the writing.
 import { composeManagedBlock, type ManagedBlockContent } from './managed-block.js'
+import { InitRefusal, isInitRefusal } from './init-refusal.js'
 import { managedGitignoreContent } from './scaffold-content.js'
 
 export type InitFileOutcome = 'created' | 'updated' | 'preserved'
@@ -225,14 +226,14 @@ function assertDirectoryComponent(file: string, component: string, root: boolean
   const stat = lstatIfPresent(component)
   if (stat === undefined) return
   if (stat.isSymbolicLink()) {
-    throw new Error(
+    throw new InitRefusal(
       root
         ? `Refusing init destination ${file}: scaffold root ${component} is a symbolic link`
         : `Refusing init destination ${file}: symbolic link parent ${component}`,
     )
   }
   if (!stat.isDirectory()) {
-    throw new Error(
+    throw new InitRefusal(
       `Refusing init destination ${file}: ${pathKind(stat)} parent ${component}`,
     )
   }
@@ -264,14 +265,14 @@ function ensureDirectoryComponent(file: string, component: string, root: boolean
     stat = lstatIfPresent(component)
   }
   if (stat?.isSymbolicLink()) {
-    throw new Error(
+    throw new InitRefusal(
       root
         ? `Refusing init destination ${file}: scaffold root ${component} is a symbolic link`
         : `Refusing init destination ${file}: symbolic link parent ${component}`,
     )
   }
   if (stat === undefined || !stat.isDirectory()) {
-    throw new Error(
+    throw new InitRefusal(
       `Refusing init destination ${file}: non-directory parent ${component}`,
     )
   }
@@ -305,7 +306,7 @@ function inspectInitPath(path: string, root?: string): InitPathInspection {
   const stat = lstatIfPresent(absolutePath)
   if (stat === undefined) return { classification: 'missing' }
   if (!stat.isFile() || stat.isSymbolicLink()) {
-    throw new Error(
+    throw new InitRefusal(
       `Refusing init destination ${absolutePath}: existing path is a ${pathKind(stat)}`,
     )
   }
@@ -332,7 +333,7 @@ export function preflightInitPlan(
   const seen = new Set<string>()
   for (const plan of normalizedPlans) {
     if (seen.has(plan.path)) {
-      throw new Error(`Init plan contains duplicate destination ${plan.path}`)
+      throw new InitRefusal(`Init plan contains duplicate destination ${plan.path}`)
     }
     seen.add(plan.path)
   }
@@ -350,7 +351,7 @@ export function preflightInitPlan(
     let ancestor = dirname(path)
     while (ancestor !== dirname(ancestor)) {
       if (seen.has(ancestor)) {
-        throw new Error(`Init plan destination ${ancestor} is a parent of ${path}`)
+        throw new InitRefusal(`Init plan destination ${ancestor} is a parent of ${path}`)
       }
       ancestor = dirname(ancestor)
     }
@@ -574,7 +575,7 @@ function publishExclusive(
       linkSync(temporary, path)
     } catch (error) {
       if (isErrno(error, 'EEXIST')) {
-        throw new Error(
+        throw new InitRefusal(
           `Refusing init destination ${path}: path appeared during exclusive create`,
         )
       }
@@ -624,7 +625,7 @@ function replaceRegularAtomic(
   try {
     const classification = classifyInitPath(path, plan.root)
     if (classification !== 'regular') {
-      throw new Error(`Refusing atomic replacement of missing init destination ${path}`)
+      throw new InitRefusal(`Refusing atomic replacement of missing init destination ${path}`)
     }
     invokeHook(hooks.beforeAtomicReplacePublish, path)
     renameSync(temporary, path)
@@ -645,7 +646,7 @@ function replaceRegularAtomic(
 }
 
 function refuseModeEnforcement(path: string, reason: string): never {
-  throw new Error(
+  throw new InitRefusal(
     `Refusing init destination ${path}: cannot enforce owner-only permissions ${reason}`,
   )
 }
@@ -748,7 +749,10 @@ function withRefusalDisposition(error: unknown, disposition: string): Error {
   // A non-`Error` throw value is converted rather than rethrown bare, so the removal path
   // can never deliver a destination-was-unlinked outcome carrying no disposition at all.
   const reason = error instanceof Error ? error.message : String(error)
-  const refusal = new Error(`${reason} ${disposition}`, { cause: error })
+  // A wrapped refusal stays a refusal, and a wrapped bug stays a bug.
+  const refusal = isInitRefusal(error)
+    ? new InitRefusal(`${reason} ${disposition}`, { cause: error })
+    : new Error(`${reason} ${disposition}`, { cause: error })
   // Recorded at the moment the sentence is appended, so the fact travels with the error object
   // rather than having to be recovered from its text later.
   dispositionedRefusals.add(refusal)
@@ -838,7 +842,7 @@ function enforceRetainedFileMode(
           refuseModeEnforcement(path, 'on a symbolic-link destination')
         }
         if (code === 'EACCES' || code === 'EPERM') {
-          throw new Error(
+          throw new InitRefusal(
             `Refusing init destination ${path}: cannot enforce owner-only permissions `
             + `(permission denied). Run \`chmod 600 ${path}\` and rerun agent-qa init.`,
           )
@@ -1018,7 +1022,7 @@ interface ManagedBlockRead {
 
 function readManagedBlockTarget(path: string, inspection: InitPathInspection): ManagedBlockRead {
   if (inspection.nlink !== 1) {
-    throw new Error(
+    throw new InitRefusal(
       `Refusing to update ${path}: it has ${inspection.nlink} hard links, and replacing it `
       + 'would leave the other names holding the old bytes',
     )
@@ -1028,13 +1032,13 @@ function readManagedBlockTarget(path: string, inspection: InitPathInspection): M
   try {
     const opened = fstatSync(fd)
     if (!opened.isFile() || opened.dev !== inspection.dev || opened.ino !== inspection.ino) {
-      throw new Error(`Refusing to update ${path}: it changed while it was being read`)
+      throw new InitRefusal(`Refusing to update ${path}: it changed while it was being read`)
     }
     const bytes = readFileSync(fd)
     const text = bytes.toString('utf8')
     // Decoding would replace invalid sequences, and writing that back rewrites user bytes.
     if (!Buffer.from(text, 'utf8').equals(bytes)) {
-      throw new Error(`Refusing to update ${path}: it is not valid UTF-8`)
+      throw new InitRefusal(`Refusing to update ${path}: it is not valid UTF-8`)
     }
     return { text, size: opened.size, mtimeMs: opened.mtimeMs }
   } finally {
@@ -1067,7 +1071,7 @@ function refuseIfChangedSinceRead(
     || now.size !== read.size || now.mtimeMs !== read.mtimeMs
     || readFileSync(path, 'utf8') !== read.text
   ) {
-    throw new Error(
+    throw new InitRefusal(
       `Refusing to update ${path}: it changed while it was being updated; rerun to apply the block`,
     )
   }
@@ -1215,12 +1219,12 @@ export function verifyEffectiveGitignore(options: {
       const fix = gitignoreHasRule(cwd, probe.requiredRule)
         ? `Move "${probe.requiredRule}" after any negation, then rerun agent-qa init`
         : `Add "${probe.requiredRule}" to ${resolve(cwd, '.gitignore')}, then rerun agent-qa init`
-      throw new Error(
+      throw new InitRefusal(
         `${options.label} is unsafe: "${probe.path}" must be ignored. ${fix}; ${unchanged}.`,
       )
     }
     if (probe.expected === 'visible' && ignored) {
-      throw new Error(
+      throw new InitRefusal(
         `${options.label} is unsafe: "${probe.path}" must remain commit-visible. `
         + `Remove the rule that ignores it, then rerun agent-qa init; ${unchanged}.`,
       )
