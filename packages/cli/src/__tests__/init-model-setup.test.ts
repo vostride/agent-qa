@@ -467,6 +467,23 @@ describe('init next steps', () => {
     expect(output).not.toContain(SUBSCRIPTION_AUTH_PACKAGE)
   })
 
+  it('a --config name a shell would split is quoted in the next steps', async () => {
+    const parent = new Command().option('--config <path>', 'config file path')
+    parent.exitOverride()
+    parent.addCommand(createInitCommand({ isTTY: false } as Parameters<typeof createInitCommand>[0]))
+    await parent.parseAsync([
+      'node',
+      'agent-qa',
+      '--config',
+      `${DIR}/it's my qa.yaml`,
+      'init',
+      '--platform',
+      'web',
+    ])
+
+    lineWith(printed(), `npx agent-qa --config 'it'\\''s my qa.yaml' validate`)
+  })
+
   it('the next steps of every workspace name validate', async () => {
     const workspaces = [
       ['--platform', 'web', '--llm', 'codex'],

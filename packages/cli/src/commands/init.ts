@@ -635,14 +635,20 @@ function connectionSteps(config: Record<string, unknown>, dir: string): InitNext
 
 const AGENT_QA_COMMAND = 'npx agent-qa '
 
+// Quoted only when a shell would split or expand it, so a plain name prints as it is.
+function shellWord(word: string): string {
+  return /^[\w.-]+$/u.test(word) ? word : `'${word.replaceAll("'", "'\\''")}'`
+}
+
 // A config under another name is only found when every agent-qa command names it.
 function withConfigName(steps: readonly InitNextStep[], configName: string): InitNextStep[] {
   if (configName === DEFAULT_CONFIG_FILE_NAME) return [...steps]
+  const name = shellWord(configName)
   return steps.map((step) =>
     step.command.startsWith(AGENT_QA_COMMAND)
       ? {
           ...step,
-          command: `${AGENT_QA_COMMAND}--config ${configName} ${step.command.slice(AGENT_QA_COMMAND.length)}`,
+          command: `${AGENT_QA_COMMAND}--config ${name} ${step.command.slice(AGENT_QA_COMMAND.length)}`,
         }
       : step,
   )
