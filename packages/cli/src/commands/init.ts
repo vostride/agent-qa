@@ -892,28 +892,26 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       'print the JSON capability manifest (catalog and local posture) and exit; writes nothing',
     )
     .action(async (opts, command: Command) => {
+      // Taken first and released only after the document: a failure's block must go to stderr.
+      const releaseStdout = opts.agent === true ? reserveStdoutForData() : undefined
       const { projectDir, configPath } = await resolveInitProject(command, opts.dir)
       // `--agent` is a read that returns before any prompt or file, so no branch below can write.
       if (opts.agent === true) {
-        const releaseStdout = reserveStdoutForData()
-        try {
-          // IMPORTED HERE AND NOT AT THE TOP, deliberately. The manifest reads the local
-          // composition's posture, so its module graph reaches the agent host, and `init`'s
-          // ordinary job is to write a scaffold into a directory where no host could compose yet.
-          // A top-level import would make every `init` run (and every test of one) evaluate a
-          // composition root that only this branch has any use for. It also breaks
-          // `init.test.ts`, whose partial `node:fs` mock the durable-store module underneath that
-          // graph needs more of.
-          const { buildAgentManifest } = await import('../capability-catalog/manifest.js')
-          // The posture is read from the config init resolved: the `--config` file, or the one in
-          // `--dir`, never the caller's shell folder.
-          const manifest = await buildAgentManifest({ configPath })
-          // STDOUT AND NOTHING ELSE ON IT. The whole of this command's output under `--agent` is
-          // one JSON document, so it pipes into a parser without a filter in between.
-          console.log(guardJsonText(JSON.stringify(manifest, null, 2)))
-        } finally {
-          releaseStdout()
-        }
+        // IMPORTED HERE AND NOT AT THE TOP, deliberately. The manifest reads the local
+        // composition's posture, so its module graph reaches the agent host, and `init`'s
+        // ordinary job is to write a scaffold into a directory where no host could compose yet.
+        // A top-level import would make every `init` run (and every test of one) evaluate a
+        // composition root that only this branch has any use for. It also breaks
+        // `init.test.ts`, whose partial `node:fs` mock the durable-store module underneath that
+        // graph needs more of.
+        const { buildAgentManifest } = await import('../capability-catalog/manifest.js')
+        // The posture is read from the config init resolved: the `--config` file, or the one in
+        // `--dir`, never the caller's shell folder.
+        const manifest = await buildAgentManifest({ configPath })
+        // STDOUT AND NOTHING ELSE ON IT. The whole of this command's output under `--agent` is
+        // one JSON document, so it pipes into a parser without a filter in between.
+        console.log(guardJsonText(JSON.stringify(manifest, null, 2)))
+        releaseStdout?.()
         // `--agent` writes nothing, so it emits no init event.
         return
       }
