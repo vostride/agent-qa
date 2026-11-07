@@ -28,7 +28,7 @@ import {
 const CELL_BUDGET_MS = 60_000
 const WEB_GEMINI = ['--platform', 'web', '--llm', 'gemini']
 const WEB_CLAUDE_CODE = ['--platform', 'web', '--llm', 'claude-code']
-const NOT_AN_OBJECT = 'must contain a JSON object to add @vostride/agent-qa-subscription-auth'
+const NOT_AN_OBJECT = 'must contain a JSON object to declare agent-qa.'
 
 afterEach(() => {
   cleanupTempRoots()

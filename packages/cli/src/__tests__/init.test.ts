@@ -341,10 +341,35 @@ describe('init command', () => {
     const packageJsonCall = findWriteCallEndingWith('package.json')
     expect(packageJsonCall).toBeDefined()
     expect(JSON.parse(packageJsonCall![1] as string)).toEqual({
+      name: 'test-project',
       private: true,
       devDependencies: {
+        'agent-qa': '0.1.1',
         '@vostride/agent-qa-subscription-auth': '0.1.1',
       },
+    })
+  })
+
+  it('an existing entry is pinned in its own block and nothing is removed from another block', async () => {
+    const packageJsonPath = '/tmp/test-project/package.json'
+    const packageJson = `${JSON.stringify({
+      name: 'shop',
+      dependencies: { 'agent-qa': '^0.1.0', react: '19.0.0' },
+      devDependencies: { vitest: '4.0.0' },
+      optionalDependencies: { '@vostride/agent-qa-subscription-auth': 'latest' },
+    }, null, 2)}\n`
+    mockExistsSync.mockImplementation(path => String(path) === packageJsonPath)
+    mockReadFileSync.mockImplementation(path => String(path) === packageJsonPath ? packageJson : '')
+
+    await runInit(['--platform', 'web', '--llm', 'claude-code'])
+
+    const packageJsonCall = findWriteCallEndingWith('package.json')
+    expect(packageJsonCall?.[0]).toBe(packageJsonPath)
+    expect(JSON.parse(packageJsonCall![1] as string)).toEqual({
+      name: 'shop',
+      dependencies: { 'agent-qa': '0.1.1', react: '19.0.0' },
+      devDependencies: { vitest: '4.0.0' },
+      optionalDependencies: { '@vostride/agent-qa-subscription-auth': '0.1.1' },
     })
   })
 
@@ -684,7 +709,11 @@ describe('init command', () => {
     expect(configCall?.[1]).not.toContain('plugins:')
     expect(configCall?.[1]).not.toContain('baseURL:')
     expect(configCall?.[1]).not.toContain('apiKey')
-    expect(findWriteCallEndingWith('package.json')).toBeUndefined()
+    expect(JSON.parse(findWriteCallEndingWith('package.json')![1] as string)).toEqual({
+      name: 'test-project',
+      private: true,
+      devDependencies: { 'agent-qa': '0.1.1' },
+    })
   })
 
   it('generates schema-valid demo artifact YAML for web init', async () => {
@@ -1479,6 +1508,7 @@ skills/.staging/
       scripts: { test: 'vitest' },
       devDependencies: {
         '@vostride/agent-qa-subscription-auth': '0.1.1',
+        'agent-qa': '0.1.1',
       },
     }, null, 2)}\n`
     mockExistsSync.mockImplementation(path => !String(path).endsWith('agent-qa.config.yaml'))
@@ -1510,6 +1540,7 @@ skills/.staging/
       scripts: { test: 'vitest' },
       devDependencies: {
         '@vostride/agent-qa-subscription-auth': '0.1.1',
+        'agent-qa': '0.1.1',
       },
     })
 
