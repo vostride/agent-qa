@@ -1062,7 +1062,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         // project that exists rather than one being attempted.
         await emitInitCompleted(outcomes)
 
-        await runInstallStep({
+        const installStep = await runInstallStep({
           host,
           range,
           packageJson: packageJsonPlan,
@@ -1073,6 +1073,14 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             ...(opts.pm === undefined || opts.pm === 'none' ? {} : { flag: opts.pm }),
           }),
           mode: opts.pm === 'none' ? 'none' : 'run',
+          mask: async (text) => {
+            try {
+              const secrets = await import('../composition/declared-secrets.js')
+              return secrets.createDeclaredSecretMask(configPath).mask(text)
+            } catch {
+              return text
+            }
+          },
         })
 
         console.log('')
@@ -1087,6 +1095,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         printNextSteps(platform, config, dir)
         if (!agentInstructionsPlan) printAgentInstructionPointer()
         console.log('')
+        if (installStep.outcome === 'failed') throw new CliRefusal([], 3)
       } catch (error) {
         throw asInitRefusal(error)
       }
