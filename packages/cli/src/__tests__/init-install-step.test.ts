@@ -832,3 +832,66 @@ describe("a Yarn Plug'n'Play project installs into node_modules", () => {
     expect(existsSync(join(root, '.yarnrc.yml'))).toBe(false)
   })
 })
+
+const PLUGIN_STEP = `npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}`
+const PLUGIN_STEP_DESCRIPTION = 'Install the subscription sign-in plugin'
+const CLAUDE_CODE = ['--platform', 'web', '--llm', 'claude-code']
+
+function pluginStepLine(): string | undefined {
+  return stdout()
+    .split('\n')
+    .find((line) => line.includes(PLUGIN_STEP))
+}
+
+describe("init's subscription next step", () => {
+  beforeEach(() => {
+    log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    cleanupTempProjects()
+  })
+
+  it('an install that adds the plugin leaves no plugin next step', async () => {
+    const { root, home } = tempProject('next-step-installed')
+    const run = installing('agent-qa', SUBSCRIPTION_AUTH_PACKAGE)
+
+    await init(root, home, run, CLAUDE_CODE)
+
+    expect(stdout()).not.toContain('plugins add')
+    expect(stdout()).not.toContain(PLUGIN_STEP_DESCRIPTION)
+    expect(stdout()).toContain('npx agent-qa auth login --config claude-code')
+  })
+
+  it('a failed install is followed by the plugins add next step', async () => {
+    const { root, home } = tempProject('next-step-failed')
+
+    const error = await refusal(init(root, home, failing(1, 'npm error boom\n'), CLAUDE_CODE))
+
+    expect(error.exitCode).toBe(3)
+    expect(pluginStepLine()).toContain(PLUGIN_STEP_DESCRIPTION)
+    expect(stdout()).not.toContain(`npm install -D ${SUBSCRIPTION_AUTH_PACKAGE}`)
+  })
+
+  it('--pm none is followed by the plugins add next step', async () => {
+    const { root, home } = tempProject('next-step-none')
+
+    await init(root, home, installing(), [...CLAUDE_CODE, '--pm', 'none'])
+
+    expect(pluginStepLine()).toContain(PLUGIN_STEP_DESCRIPTION)
+    expect(stdout()).not.toContain(`npm install -D ${SUBSCRIPTION_AUTH_PACKAGE}`)
+  })
+
+  it('a plugin installed above the git root does not hide the next step', async () => {
+    const { root: outside, home } = tempProject('next-step-above')
+    writeInstalledPackage(outside, SUBSCRIPTION_AUTH_PACKAGE, VERSION)
+    const project = join(outside, 'app')
+    mkdirSync(join(project, '.git'), { recursive: true })
+
+    await init(project, home, installing(), [...CLAUDE_CODE, '--pm', 'none'])
+
+    expect(pluginStepLine()).toContain(PLUGIN_STEP_DESCRIPTION)
+  })
+})

@@ -439,7 +439,7 @@ describe('init next steps', () => {
     const output = printed()
     const order = [
       'npx agent-qa install-browsers --chromium',
-      `npm install -D ${SUBSCRIPTION_AUTH_PACKAGE}`,
+      `npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}`,
       'npx agent-qa auth login --config codex',
       'npx agent-qa validate',
       RUN_EXAMPLES,
