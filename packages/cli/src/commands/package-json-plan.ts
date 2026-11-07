@@ -89,7 +89,7 @@ function asObject(value: unknown): JsonObject | undefined {
     : undefined
 }
 
-function parsePackageJson(path: string, text: string): JsonObject {
+export function parsePackageJson(path: string, text: string): JsonObject {
   let value: unknown
   try {
     value = JSON.parse(text)

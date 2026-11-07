@@ -2,6 +2,8 @@ import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { realpath } from 'node:fs/promises'
 import { homedir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 export interface ProjectIo {
   exists(path: string): boolean
@@ -98,14 +100,45 @@ export interface ProjectHost {
   homedir: string
   io: ProjectIo
   run: CommandRunner
+  argv: readonly string[]
+  execPath: string
+  runningPackageDir: string
 }
 
+function namesAgentQa(packageJson: string): boolean {
+  try {
+    return (JSON.parse(readFileSync(packageJson, 'utf-8')) as { name?: unknown }).name === 'agent-qa'
+  } catch {
+    return false
+  }
+}
+
+function findRunningPackageDir(): string {
+  const own = dirname(fileURLToPath(import.meta.url))
+  let folder = own
+  while (true) {
+    const packageJson = join(folder, 'package.json')
+    if (existsSync(packageJson) && namesAgentQa(packageJson)) return folder
+    const parent = dirname(folder)
+    if (parent === folder) return own
+    folder = parent
+  }
+}
+
+// runningPackageDir is found on first read, so a suite that mocks node:fs never walks for it.
 export function projectHost(overrides: Partial<ProjectHost> = {}): ProjectHost {
-  return {
+  let runningPackageDir = overrides.runningPackageDir
+  const host = {
     cwd: overrides.cwd ?? process.cwd(),
     env: overrides.env ?? process.env,
     homedir: overrides.homedir ?? homedir(),
     io: overrides.io ?? defaultProjectIo,
     run: overrides.run ?? spawnRunner,
+    argv: overrides.argv ?? process.argv.slice(2),
+    execPath: overrides.execPath ?? process.execPath,
   }
+  return Object.defineProperty(host, 'runningPackageDir', {
+    enumerable: true,
+    get: () => (runningPackageDir ??= findRunningPackageDir()),
+  }) as ProjectHost
 }
