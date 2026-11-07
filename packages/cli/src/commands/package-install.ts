@@ -1,5 +1,6 @@
 import { dirname, relative } from 'node:path'
 import { compareSemverVersions, semverRangeFloor } from '@vostride/agent-qa-core'
+import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { PackageJsonEntry, PackageJsonPlan } from './package-json-plan.js'
 import { commandLine, plainInstall, runFromHere, type DetectedManager } from './package-manager.js'
 import type { ProjectHost } from './project-host.js'
@@ -12,7 +13,7 @@ export interface InstallStepInput {
   manager: DetectedManager
   mode: 'run' | 'none'
   print?: (line: string) => void
-  mask?: (text: string) => string
+  mask?: (text: string) => string | Promise<string>
 }
 
 export interface InstallStepResult {
@@ -22,6 +23,14 @@ export interface InstallStepResult {
 }
 
 const EXACT_SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u
+const FAILURE_OUTPUT_LINES = 20
+
+export function redactInstallOutput(text: string): string {
+  return text
+    .replace(/(\b[a-z][a-z0-9+.-]*:\/\/[^\s/@:]*:)[^\s/@]+@/giu, '$1***@')
+    .replace(/(_(?:authToken|auth|password)\s*=\s*)[^\s"']+/gu, '$1***')
+    .replace(/(\bBearer\s+)[^\s"']+/giu, '$1***')
+}
 
 export function declaredList(entries: PackageJsonPlan['entries']): string {
   const items = entries.map((entry) =>
@@ -76,10 +85,10 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
   const notes: string[] = []
   if (packageDir !== range.start) notes.push(`declared in ${where}`)
   const suffix = notes.map((note) => `; ${note}`).join('')
-  const allInstalled = (): boolean =>
-    packageJson.entries.every((entry) => isInstalled(input, entry))
+  const unverified = (): PackageJsonEntry[] =>
+    packageJson.entries.filter((entry) => !isInstalled(input, entry))
 
-  if (!packageJson.changed && allInstalled()) {
+  if (!packageJson.changed && unverified().length === 0) {
     const verb = packageJson.entries.length === 1 ? 'is' : 'are'
     print(`✓ ${list} ${verb} already installed; nothing to install`)
     return { outcome: 'skipped', command, notes }
@@ -91,12 +100,30 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
     env: host.env,
     stdio: 'capture',
   })
-  if (result.missing === true || result.code !== 0 || !allInstalled()) {
+  const missing = result.missing === true || result.code !== 0 ? [] : unverified()
+  if (result.missing === true || result.code !== 0 || missing.length > 0) {
+    const name = manager.name
+    const notInstalled = `${declaredList(missing)} ${missing.length === 1 ? 'is' : 'are'}`
     const reason =
       result.missing === true
-        ? `${manager.name} was not found`
-        : `${manager.name} exited ${result.code ?? result.signal}`
+        ? `${name} was not found`
+        : result.code === null
+          ? `${name} stopped on ${result.signal ?? 'an unknown signal'}`
+          : result.code !== 0
+            ? `${name} exited ${result.code}`
+            : `${name} exited 0, but ${notInstalled} not installed`
     print(`✗ Install failed: ${reason}`)
+    if (result.missing !== true && result.code !== 0) {
+      const masked = await (input.mask ?? ((text: string) => text))(result.output)
+      const lines = redactInstallOutput(masked)
+        .split(/\r?\n/u)
+        .filter((line) => line.trim() !== '')
+        .slice(-FAILURE_OUTPUT_LINES)
+      if (lines.length > 0) {
+        printRunText(lines.map((line) => `  ${line}`).join('\n'), print, { env: host.env })
+      }
+    }
+    print(`  Run: ${command}`)
     return { outcome: 'failed', command, notes }
   }
   print(`✓ Installed ${list} with ${manager.name}${suffix}`)
