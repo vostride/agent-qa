@@ -58,7 +58,7 @@ import {
   type ManagedBlockContent,
 } from './managed-block.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
-import { initFolderRefusal } from './init-project-folder.js'
+import { initFolderRefusal, resolveInitProject } from './init-project-folder.js'
 
 // Re-exported because this module is their public door.
 export { SUPPORTED_INIT_PLATFORMS, parseInitPlatform } from './scaffold-content.js'
@@ -873,6 +873,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       'print the JSON capability manifest (catalog and local posture) and exit; writes nothing',
     )
     .action(async (opts, command: Command) => {
+      const { projectDir, configPath } = await resolveInitProject(command, opts.dir)
       // `--agent` is a read that returns before any prompt or file, so no branch below can write.
       if (opts.agent === true) {
         const releaseStdout = reserveStdoutForData()
@@ -885,11 +886,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           // `init.test.ts`, whose partial `node:fs` mock the durable-store module underneath that
           // graph needs more of.
           const { buildAgentManifest } = await import('../capability-catalog/manifest.js')
-          const globalOpts = command.parent?.opts<{ config?: string }>() ?? {}
-          // `--dir`-relative when no explicit `--config` was given: `init` is a command aimed at a
-          // directory, and reporting a posture read out of the caller's shell instead would
-          // describe the wrong workspace.
-          const configPath = globalOpts.config ?? join(resolve(opts.dir), 'agent-qa.config.yaml')
+          // The posture is read from the config init resolved: the `--config` file, or the one in
+          // `--dir`, never the caller's shell folder.
           const manifest = await buildAgentManifest({ configPath })
           // STDOUT AND NOTHING ELSE ON IT. The whole of this command's output under `--agent` is
           // one JSON document, so it pipes into a parser without a filter in between.
@@ -902,14 +900,11 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       }
 
       try {
-        const dir = resolve(opts.dir)
+        const dir = projectDir
         const folderRefusal = await initFolderRefusal(dir)
         if (folderRefusal !== undefined) throw new CliRefusal([pc.red(folderRefusal)], 2)
         const initStartedAt = Date.now()
         const force = opts.force ?? false
-        // The one path the opt-out read consults: `--dir`-relative unless `--config` is given.
-        const analyticsConfigPath =
-          command.parent?.opts<{ config?: string }>().config ?? join(dir, 'agent-qa.config.yaml')
 
         const tty = hooks.isTTY ?? process.stdin.isTTY === true
         let asked = false
@@ -926,15 +921,14 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           let config: Awaited<ReturnType<typeof resolveConfig>> | undefined
           try {
             config = await resolveConfig({
-              configPath: analyticsConfigPath,
+              configPath,
               loadAuthPlugins: false,
             })
           } catch {
             config = undefined
           }
-          // Reuses `analyticsConfigPath`, so the declaration comes from the file already chosen.
-          const analyticsConfig =
-            config ?? (await readAnalyticsPrivacyDeclaration(analyticsConfigPath))
+          // Reuses `configPath`, so the declaration comes from the file already chosen.
+          const analyticsConfig = config ?? (await readAnalyticsPrivacyDeclaration(configPath))
           const analytics = await (hooks.composeAnalytics ?? composeAnalyticsHost)({
             surface: 'cli',
             ...(analyticsConfig === undefined ? {} : { config: analyticsConfig }),
@@ -953,7 +947,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           }
         }
 
-        const configPath = join(dir, 'agent-qa.config.yaml')
         const configClassification = classifyInitPath(configPath, dir)
         if (configClassification === 'regular' && !force) {
           const completed = [{ path: configPath, outcome: 'preserved' }] as const
