@@ -1,5 +1,5 @@
 import { join, relative } from 'node:path'
-import type { ProjectIo } from './project-host.js'
+import type { ProjectHost, ProjectIo } from './project-host.js'
 import { nearestFile, type ProjectRange } from './project-range.js'
 
 export type PackageManagerName = 'npm' | 'pnpm' | 'yarn' | 'bun'
@@ -153,6 +153,56 @@ export function detectPackageManager(input: {
 
 export function plainInstall(name: PackageManagerName): { command: string; args: string[] } {
   return { command: name, args: ['install'] }
+}
+
+export interface ResolvedCommand {
+  command: string
+  args: string[]
+  via: 'path' | 'corepack' | 'npx'
+}
+
+type RunHost = Pick<ProjectHost, 'run' | 'env' | 'cwd'>
+
+function majorOf(version: string): number | undefined {
+  const match = /^v?(\d+)\./u.exec(version.trim())
+  return match === null ? undefined : Number(match[1])
+}
+
+async function versionOf(command: string, host: RunHost): Promise<string | undefined> {
+  const result = await host.run(command, ['--version'], {
+    cwd: host.cwd,
+    env: host.env,
+    stdio: 'capture',
+  })
+  if (result.missing === true || result.code !== 0) return undefined
+  return result.output.split(/\r?\n/u)[0]?.trim() ?? ''
+}
+
+function npxPackage(manager: DetectedManager): string[] {
+  const at = manager.version === undefined ? '' : `@${manager.version}`
+  // The yarn package on npm is Yarn 1 only; Yarn 2 and later publish their CLI as cli-dist.
+  if (manager.name === 'yarn' && manager.yarnLine === 'berry') {
+    return ['-p', `@yarnpkg/cli-dist${at}`, 'yarn']
+  }
+  return [`${manager.name}${at}`]
+}
+
+// A manager on PATH at another major than the declared one counts as missing: Yarn 1 would
+// install a Yarn 4 project as Yarn 1.
+export async function resolveInstallCommand(
+  manager: DetectedManager,
+  host: RunHost,
+): Promise<ResolvedCommand> {
+  const { name, version } = manager
+  const onPath = await versionOf(name, host)
+  if (onPath !== undefined && (version === undefined || majorOf(onPath) === majorOf(version))) {
+    return { command: name, args: ['install'], via: 'path' }
+  }
+  if (name !== 'bun' && (await versionOf('corepack', host)) !== undefined) {
+    const pinned = version === undefined ? name : `${name}@${version}`
+    return { command: 'corepack', args: [pinned, 'install'], via: 'corepack' }
+  }
+  return { command: 'npx', args: ['-y', ...npxPackage(manager), 'install'], via: 'npx' }
 }
 
 function shellWord(word: string): string {

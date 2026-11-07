@@ -2,7 +2,13 @@ import { dirname, relative } from 'node:path'
 import { compareSemverVersions, semverRangeFloor } from '@vostride/agent-qa-core'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { PackageJsonEntry, PackageJsonPlan } from './package-json-plan.js'
-import { commandLine, plainInstall, runFromHere, type DetectedManager } from './package-manager.js'
+import {
+  commandLine,
+  plainInstall,
+  resolveInstallCommand,
+  runFromHere,
+  type DetectedManager,
+} from './package-manager.js'
 import type { ProjectHost } from './project-host.js'
 import { nearestInstalledPackage, type ProjectRange } from './project-range.js'
 
@@ -84,7 +90,6 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
 
   const notes: string[] = []
   if (packageDir !== range.start) notes.push(`declared in ${where}`)
-  const suffix = notes.map((note) => `; ${note}`).join('')
   const unverified = (): PackageJsonEntry[] =>
     packageJson.entries.filter((entry) => !isInstalled(input, entry))
 
@@ -95,7 +100,10 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
   }
 
   print(`Installing ${list} with ${manager.name}…`)
-  const result = await host.run(plain.command, plain.args, {
+  const resolved = await resolveInstallCommand(manager, { ...host, cwd: packageDir })
+  if (resolved.via !== 'path') notes.push(`through ${resolved.via}`)
+  const ran = runFromHere(commandLine(resolved.command, resolved.args), packageDir, range.start)
+  const result = await host.run(resolved.command, resolved.args, {
     cwd: packageDir,
     env: host.env,
     stdio: 'capture',
@@ -106,7 +114,7 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
     const notInstalled = `${declaredList(missing)} ${missing.length === 1 ? 'is' : 'are'}`
     const reason =
       result.missing === true
-        ? `${name} was not found`
+        ? `${resolved.command} was not found`
         : result.code === null
           ? `${name} stopped on ${result.signal ?? 'an unknown signal'}`
           : result.code !== 0
@@ -123,9 +131,10 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
         printRunText(lines.map((line) => `  ${line}`).join('\n'), print, { env: host.env })
       }
     }
-    print(`  Run: ${command}`)
-    return { outcome: 'failed', command, notes }
+    print(`  Run: ${ran}`)
+    return { outcome: 'failed', command: ran, notes }
   }
-  print(`✓ Installed ${list} with ${manager.name}${suffix}`)
-  return { outcome: 'installed', command, notes }
+  const noted = notes.map((note) => `; ${note}`).join('')
+  print(`✓ Installed ${list} with ${manager.name}${noted}`)
+  return { outcome: 'installed', command: ran, notes }
 }
