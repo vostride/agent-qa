@@ -1,5 +1,6 @@
 import { join, relative } from 'node:path'
-import type { ProjectHost, ProjectIo } from './project-host.js'
+import { PromptCancelled } from '../composition/cli-refusal.js'
+import type { ProjectHost, ProjectIo, RunResult } from './project-host.js'
 import { nearestFile, type ProjectRange } from './project-range.js'
 
 export type PackageManagerName = 'npm' | 'pnpm' | 'yarn' | 'bun'
@@ -163,17 +164,58 @@ export interface ResolvedCommand {
 
 type RunHost = Pick<ProjectHost, 'run' | 'env' | 'cwd'>
 
+const DROPPED_KEYS = new Set([
+  'node_env',
+  'npm_command',
+  'npm_execpath',
+  'npm_node_execpath',
+  'init_cwd',
+])
+const DROPPED_PREFIXES = ['npm_package_', 'npm_lifecycle_']
+
+// npx, CI and the shell hand down variables that change what the manager installs: NODE_ENV
+// skips devDependencies under npm and Yarn 1, and CI freezes the lockfile under pnpm and Yarn.
+export function managerEnv(
+  name: PackageManagerName,
+  via: ResolvedCommand['via'],
+  env: NodeJS.ProcessEnv,
+): NodeJS.ProcessEnv {
+  const kept: NodeJS.ProcessEnv = {}
+  for (const [key, value] of Object.entries(env)) {
+    const lower = key.toLowerCase()
+    if (DROPPED_KEYS.has(lower) || DROPPED_PREFIXES.some((prefix) => lower.startsWith(prefix))) {
+      continue
+    }
+    if (name === 'npm' ? lower === 'npm_config_allow_scripts' : lower.startsWith('npm_config_')) {
+      continue
+    }
+    kept[key] = value
+  }
+  if (name === 'pnpm') {
+    kept.PNPM_CONFIG_FROZEN_LOCKFILE = 'false'
+    kept.npm_config_frozen_lockfile = 'false'
+  }
+  if (name === 'yarn') kept.YARN_ENABLE_IMMUTABLE_INSTALLS = 'false'
+  if (via === 'corepack') kept.COREPACK_ENABLE_DOWNLOAD_PROMPT = '0'
+  return kept
+}
+
+export function wasCancelled(result: RunResult): boolean {
+  return result.cancelled === true || result.signal === 'SIGINT'
+}
+
 function majorOf(version: string): number | undefined {
   const match = /^v?(\d+)\./u.exec(version.trim())
   return match === null ? undefined : Number(match[1])
 }
 
-async function versionOf(command: string, host: RunHost): Promise<string | undefined> {
-  const result = await host.run(command, ['--version'], {
-    cwd: host.cwd,
-    env: host.env,
-    stdio: 'capture',
-  })
+async function versionOf(
+  command: string,
+  env: NodeJS.ProcessEnv,
+  host: RunHost,
+): Promise<string | undefined> {
+  const result = await host.run(command, ['--version'], { cwd: host.cwd, env, stdio: 'capture' })
+  if (wasCancelled(result)) throw new PromptCancelled()
   if (result.missing === true || result.code !== 0) return undefined
   return result.output.split(/\r?\n/u)[0]?.trim() ?? ''
 }
@@ -194,11 +236,12 @@ export async function resolveInstallCommand(
   host: RunHost,
 ): Promise<ResolvedCommand> {
   const { name, version } = manager
-  const onPath = await versionOf(name, host)
+  const onPath = await versionOf(name, managerEnv(name, 'path', host.env), host)
   if (onPath !== undefined && (version === undefined || majorOf(onPath) === majorOf(version))) {
     return { command: name, args: ['install'], via: 'path' }
   }
-  if (name !== 'bun' && (await versionOf('corepack', host)) !== undefined) {
+  const corepack = name === 'bun' ? undefined : managerEnv(name, 'corepack', host.env)
+  if (corepack !== undefined && (await versionOf('corepack', corepack, host)) !== undefined) {
     const pinned = version === undefined ? name : `${name}@${version}`
     return { command: 'corepack', args: [pinned, 'install'], via: 'corepack' }
   }

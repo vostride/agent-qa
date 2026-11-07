@@ -1,12 +1,15 @@
 import { dirname, relative } from 'node:path'
 import { compareSemverVersions, semverRangeFloor } from '@vostride/agent-qa-core'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
+import { PromptCancelled } from '../composition/cli-refusal.js'
 import type { PackageJsonEntry, PackageJsonPlan } from './package-json-plan.js'
 import {
   commandLine,
+  managerEnv,
   plainInstall,
   resolveInstallCommand,
   runFromHere,
+  wasCancelled,
   type DetectedManager,
 } from './package-manager.js'
 import type { ProjectHost } from './project-host.js'
@@ -102,12 +105,26 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
   print(`Installing ${list} with ${manager.name}…`)
   const resolved = await resolveInstallCommand(manager, { ...host, cwd: packageDir })
   if (resolved.via !== 'path') notes.push(`through ${resolved.via}`)
-  const ran = runFromHere(commandLine(resolved.command, resolved.args), packageDir, range.start)
-  const result = await host.run(resolved.command, resolved.args, {
-    cwd: packageDir,
-    env: host.env,
-    stdio: 'capture',
-  })
+  const env = managerEnv(manager.name, resolved.via, host.env)
+  // A Ctrl-C leaves package.json declared for the next run: nothing is rolled back.
+  const install = async (args: readonly string[]) => {
+    const options = { cwd: packageDir, env, stdio: 'capture' } as const
+    const result = await host.run(resolved.command, args, options)
+    if (wasCancelled(result)) throw new PromptCancelled()
+    return result
+  }
+  let args = resolved.args
+  let result = await install(args)
+  const peerConflict =
+    manager.name === 'npm' &&
+    result.code !== null &&
+    result.code !== 0 &&
+    /\bERESOLVE\b/u.test(result.output)
+  if (peerConflict) {
+    args = [...resolved.args, '--legacy-peer-deps']
+    result = await install(args)
+  }
+  const ran = runFromHere(commandLine(resolved.command, args), packageDir, range.start)
   const missing = result.missing === true || result.code !== 0 ? [] : unverified()
   if (result.missing === true || result.code !== 0 || missing.length > 0) {
     const name = manager.name
@@ -134,6 +151,7 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
     print(`  Run: ${ran}`)
     return { outcome: 'failed', command: ran, notes }
   }
+  if (peerConflict) notes.push('installed with --legacy-peer-deps: npm found a peer conflict')
   const noted = notes.map((note) => `; ${note}`).join('')
   print(`✓ Installed ${list} with ${manager.name}${noted}`)
   return { outcome: 'installed', command: ran, notes }

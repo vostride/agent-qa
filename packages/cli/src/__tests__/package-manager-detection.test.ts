@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import {
   commandLine,
   detectPackageManager,
+  managerEnv,
   plainInstall,
   runFromHere,
   type PackageManagerName,
@@ -260,5 +261,74 @@ describe('the printed install', () => {
       'cd ../.. && npm install',
     )
     expect(runFromHere('npm install', '/work/my app', '/work')).toBe("cd 'my app' && npm install")
+  })
+})
+
+describe("the manager's environment", () => {
+  const inherited: NodeJS.ProcessEnv = {
+    PATH: '/usr/bin',
+    HOME: '/home/someone',
+    NODE_ENV: 'production',
+    INIT_CWD: '/x',
+    npm_command: 'exec',
+    npm_execpath: '/npm-cli.js',
+    npm_node_execpath: '/node',
+    npm_lifecycle_event: 'npx',
+    npm_lifecycle_script: 'agent-qa',
+    npm_package_name: 'x',
+    npm_package_json: '/x/package.json',
+    npm_config_allow_scripts: '',
+    npm_config_registry: 'r',
+    NPM_CONFIG_USERCONFIG: '/u',
+  }
+
+  it('npm keeps its npm_config settings but loses NODE_ENV, the npx variables and allow_scripts', () => {
+    expect(managerEnv('npm', 'path', inherited)).toEqual({
+      PATH: '/usr/bin',
+      HOME: '/home/someone',
+      npm_config_registry: 'r',
+      NPM_CONFIG_USERCONFIG: '/u',
+    })
+  })
+
+  it('pnpm loses every npm_config setting and gets both spellings of the lockfile freeze off', () => {
+    expect(managerEnv('pnpm', 'path', inherited)).toEqual({
+      PATH: '/usr/bin',
+      HOME: '/home/someone',
+      PNPM_CONFIG_FROZEN_LOCKFILE: 'false',
+      npm_config_frozen_lockfile: 'false',
+    })
+  })
+
+  it('yarn loses every npm_config setting and gets immutable installs off', () => {
+    expect(managerEnv('yarn', 'path', inherited)).toEqual({
+      PATH: '/usr/bin',
+      HOME: '/home/someone',
+      YARN_ENABLE_IMMUTABLE_INSTALLS: 'false',
+    })
+  })
+
+  it('bun loses every npm_config setting and gets nothing added', () => {
+    expect(managerEnv('bun', 'npx', inherited)).toEqual({
+      PATH: '/usr/bin',
+      HOME: '/home/someone',
+    })
+  })
+
+  it('a corepack run never stops for a download prompt', () => {
+    expect(managerEnv('yarn', 'corepack', inherited)).toEqual({
+      PATH: '/usr/bin',
+      HOME: '/home/someone',
+      YARN_ENABLE_IMMUTABLE_INSTALLS: 'false',
+      COREPACK_ENABLE_DOWNLOAD_PROMPT: '0',
+    })
+  })
+
+  it('leaves the environment it was given unchanged', () => {
+    const env = { ...inherited }
+
+    managerEnv('pnpm', 'corepack', env)
+
+    expect(env).toEqual(inherited)
   })
 })
