@@ -29,6 +29,7 @@ import { Command } from 'commander'
 import pc from 'picocolors'
 
 import { resolveConfig } from '../config.js'
+import { createPluginsAddCommand, type PluginsAddDeps } from './plugins-add.js'
 
 interface JsonOption {
   json?: boolean
@@ -235,9 +236,10 @@ function createDescribeCommand(): Command {
     })
 }
 
-export function createPluginsCommand(): Command {
+export function createPluginsCommand(deps: PluginsAddDeps = {}): Command {
   return new Command('plugins')
-    .description('Read the plugins entries without running plugin code')
+    .description('Add, list and describe the plugins entries')
+    .addCommand(createPluginsAddCommand(deps))
     .addCommand(createListCommand())
     .addCommand(createDescribeCommand())
 }
