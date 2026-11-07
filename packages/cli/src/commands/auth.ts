@@ -11,6 +11,8 @@ import {
 } from '@vostride/agent-qa-schema'
 import type { LLMAuthProviderPlugin, OAuthTokens } from '@vostride/agent-qa-core'
 
+import { isPromptCancel } from '../composition/cli-refusal.js'
+
 type ProviderMode =
   | 'openai-compatible'
   | 'anthropic-compatible'
@@ -204,6 +206,7 @@ async function runSubscriptionPluginLogin(configName: string, provider: Subscrip
     })
     console.log(pc.green(`Authenticated ${configName} with ${plugin.label}`))
   } catch (err: unknown) {
+    if (isPromptCancel(err)) throw err
     console.log(pc.red(err instanceof Error ? err.message : String(err)))
     process.exitCode = 1
   } finally {
