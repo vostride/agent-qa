@@ -1,8 +1,8 @@
-import { spawn } from 'node:child_process'
+import { spawn, type SpawnOptions } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { realpath } from 'node:fs/promises'
 import { homedir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, win32 } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export interface ProjectIo {
@@ -56,21 +56,43 @@ export type CommandRunner = (
   options: RunOptions,
 ) => Promise<RunResult>
 
-// cmd.exe splits on spaces, so the command is one word only when quoted like its arguments.
+// cmd.exe does not read \" as an escape and expands %NAME% inside quotes, so a word holding a
+// character cmd.exe acts on is refused rather than quoted.
+const CMD_ACTIVE = /["%^&|<>!\r\n]/u
+
 export function windowsShellWord(word: string): string {
-  return `"${word.replaceAll('"', '\\"')}"`
+  if (CMD_ACTIVE.test(word)) {
+    throw new Error(
+      `Refusing to pass ${JSON.stringify(word)} through cmd.exe: it holds a character cmd.exe ` +
+        'would act on.',
+    )
+  }
+  return `"${word}"`
 }
 
-// On Windows the managers are .cmd shims that only a shell can start.
+function isWindowsExecutable(command: string): boolean {
+  return win32.isAbsolute(command) && win32.extname(command).toLowerCase() === '.exe'
+}
+
+// On Windows the managers are .cmd shims that only a shell can start; an .exe such as node.exe
+// starts directly, so the arguments it is handed never meet cmd.exe. The shell gets one command
+// line, which keeps Node from warning about arguments passed with a shell.
 export const spawnRunner: CommandRunner = (command, args, options) => {
-  const windows = process.platform === 'win32'
-  const file = windows ? windowsShellWord(command) : command
-  const child = spawn(file, windows ? args.map(windowsShellWord) : [...args], {
+  const shell = process.platform === 'win32' && !isWindowsExecutable(command)
+  let line: string | undefined
+  try {
+    line = shell ? [command, ...args].map(windowsShellWord).join(' ') : undefined
+  } catch (error) {
+    return Promise.reject(error)
+  }
+  const spawnOptions: SpawnOptions = {
     cwd: options.cwd,
     env: options.env,
     stdio: options.stdio === 'capture' ? ['ignore', 'pipe', 'pipe'] : 'inherit',
-    shell: windows,
-  })
+    shell,
+  }
+  const child =
+    line === undefined ? spawn(command, [...args], spawnOptions) : spawn(line, spawnOptions)
   let output = ''
   let cancelled = false
   const collect = (chunk: Buffer): void => {
