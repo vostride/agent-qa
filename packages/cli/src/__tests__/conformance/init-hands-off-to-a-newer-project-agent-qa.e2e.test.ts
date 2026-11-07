@@ -85,7 +85,7 @@ function initialized(root: string): boolean {
 
 describe('init hands off to a newer project agent-qa', () => {
   it(
-    'a newer project agent-qa runs init with the same arguments and its exit code is init\'s',
+    "a newer project agent-qa runs init with the same arguments and its exit code is init's",
     async () => {
       expectFresh()
       const root = projectFolder('newer')

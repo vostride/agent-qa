@@ -107,7 +107,9 @@ export interface ProjectHost {
 
 function namesAgentQa(packageJson: string): boolean {
   try {
-    return (JSON.parse(readFileSync(packageJson, 'utf-8')) as { name?: unknown }).name === 'agent-qa'
+    return (
+      (JSON.parse(readFileSync(packageJson, 'utf-8')) as { name?: unknown }).name === 'agent-qa'
+    )
   } catch {
     return false
   }
