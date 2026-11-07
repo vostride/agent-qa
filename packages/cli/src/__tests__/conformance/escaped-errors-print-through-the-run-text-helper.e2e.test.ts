@@ -1,8 +1,9 @@
 // Errors that escape a command print through the run-text helper on the shipped bin.
 
-import { mkdirSync, mkdtempSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -20,6 +21,21 @@ const CELL_BUDGET_MS = 60_000
 const WEB_GEMINI = ['--platform', 'web', '--llm', 'gemini']
 const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
 const WORKFLOW_COMMAND_FOLDER = '::set-output name=x::y'
+const BUG_FOLDER = 'bug-trigger'
+const BUG_LINE = 'Unexpected error: ##[error]x from bug-trigger'
+const FRAME = /^\s+at /u
+
+// Replaces realpath in the spawned child only, and only for the bug-trigger folder.
+const BUG_PRELOAD = `import { createRequire, syncBuiltinESMExports } from 'node:module'
+const require = createRequire(import.meta.url)
+const fsPromises = require('node:fs/promises')
+const original = fsPromises.realpath
+fsPromises.realpath = (path, ...rest) =>
+  String(path).endsWith('bug-trigger')
+    ? Promise.reject(new TypeError('##[error]x from bug-trigger'))
+    : original(path, ...rest)
+syncBuiltinESMExports()
+`
 
 afterEach(() => {
   cleanupTempRoots()
@@ -87,6 +103,69 @@ describe('an escaped refusal on the shipped bin', () => {
       expect(refused.stderr.split('\n'), seen(refused)).toContain(homeLine(home))
       expect(refused.stdout).not.toContain('::stop-commands::')
       expect(refused.stderr).not.toContain('::stop-commands::')
+    },
+    CELL_BUDGET_MS,
+  )
+})
+
+function bugPreload(): string {
+  const preload = join(tempFolder('preload'), 'bug-trigger-preload.mjs')
+  writeFileSync(preload, BUG_PRELOAD, 'utf8')
+  return preload
+}
+
+async function initHittingABug(
+  extraEnv: Readonly<Record<string, string>> = {},
+): Promise<SpawnOutcome & { bugFolder: string }> {
+  const root = tempFolder('bug-root')
+  const bugFolder = join(root, BUG_FOLDER)
+  mkdirSync(bugFolder)
+  const home = tempFolder('bug-home')
+  const outcome = await spawnCollecting(
+    root,
+    [
+      '--import',
+      pathToFileURL(bugPreload()).href,
+      CLI_ENTRY,
+      'init',
+      '--dir',
+      BUG_FOLDER,
+      ...WEB_GEMINI,
+    ],
+    { HOME: home, USERPROFILE: home, ...extraEnv },
+  )
+  return { ...outcome, bugFolder }
+}
+
+describe('a bug on the shipped bin', () => {
+  it(
+    'a bug prints Unexpected error with its stack frames and exits 1',
+    async () => {
+      expectFresh()
+      const failed = await initHittingABug()
+      expect(failed.code, seen(failed)).toBe(1)
+      const lines = failed.stderr.split('\n')
+      expect(lines[0], seen(failed)).toMatch(/^Unexpected error: ##\[error\]x from bug-trigger/u)
+      expect(lines.filter((line) => FRAME.test(line)).length, seen(failed)).toBeGreaterThan(0)
+      expect(readdirSync(failed.bugFolder)).toEqual([])
+    },
+    CELL_BUDGET_MS,
+  )
+
+  it(
+    "under GitHub Actions a bug's block is one stop-commands pair",
+    async () => {
+      expectFresh()
+      const failed = await initHittingABug({ GITHUB_ACTIONS: 'true' })
+      expect(failed.code, seen(failed)).toBe(1)
+      expect(failed.stdout, seen(failed)).toMatch(PAIR)
+      expect(failed.stdout).toContain(BUG_LINE)
+      expect(
+        failed.stdout.split('\n').some((line) => FRAME.test(line)),
+        seen(failed),
+      ).toBe(true)
+      expect(failed.stderr, seen(failed)).not.toContain('##[error]')
+      expect(readdirSync(failed.bugFolder)).toEqual([])
     },
     CELL_BUDGET_MS,
   )
