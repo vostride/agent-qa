@@ -1,5 +1,5 @@
 // A newer agent-qa that package.json declares is installed first and then takes over init.
-import { existsSync, realpathSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 
@@ -131,6 +131,13 @@ function configured(root: string): boolean {
   return existsSync(join(root, 'agent-qa.config.yaml'))
 }
 
+function devDependencies(root: string): unknown {
+  const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf-8')) as {
+    devDependencies?: unknown
+  }
+  return pkg.devDependencies
+}
+
 describe('init installs a declared newer agent-qa, then hands off to it', () => {
   beforeEach(() => {
     log = vi.spyOn(console, 'log').mockImplementation(() => {})
@@ -209,7 +216,7 @@ describe('init installs a declared newer agent-qa, then hands off to it', () => 
     expect(configured(root)).toBe(true)
   })
 
-  it('a failed install before the hand-off exits 3 before anything is asked or written', async () => {
+  it('a failed install before the hand-off leaves init to this agent-qa, which sets up the folder and exits 3', async () => {
     const { root, home } = tempProject('hand-off-install-fails')
     declare(root, '99.0.0')
     const run = machine(() => ({ code: 1, signal: null, output: 'npm error 404 Not Found\n' }))
@@ -217,13 +224,60 @@ describe('init installs a declared newer agent-qa, then hands off to it', () => 
     const error = await refusal(init(root, home, run))
 
     expect(reportCliFailure(error, failureDeps())).toBe(3)
-    expect(commands(run).map(argv)).toEqual(['npm install'])
-    const failures = stdout()
-      .split('\n')
-      .filter((line) => line === '✗ Install failed: npm exited 1')
-    expect(failures).toHaveLength(1)
-    expect(stdout()).toContain('  Run: npm install')
-    expect(configured(root)).toBe(false)
+    expect(commands(run).map(argv)).toEqual(['npm install', 'npm install'])
+    const lines = stdout().split('\n')
+    expect(lines.filter((line) => line === '✗ Install failed: npm exited 1')).toHaveLength(2)
+    expect(lines).toContain(
+      `The project's agent-qa 99.0.0 is not installed, so this one (${VERSION}) sets up the folder.`,
+    )
+    expect(lines).toContain('  Run: npm install')
+    expect(stdout()).toContain('Next steps:')
+    expect(configured(root)).toBe(true)
+  })
+
+  it('first-party entries follow a declared newer agent-qa, the version the install leaves in place', async () => {
+    const { root, home } = tempProject('hand-off-pins-follow-the-declared-version')
+    declare(root, '99.0.0')
+    const run = machine(() => ({ code: 1, signal: null, output: 'npm error 404 Not Found\n' }))
+
+    const error = await refusal(init(root, home, run, ['--platform', 'web', '--llm', 'codex']))
+
+    expect(reportCliFailure(error, failureDeps())).toBe(3)
+    expect(devDependencies(root)).toEqual({
+      'agent-qa': '99.0.0',
+      '@vostride/agent-qa-subscription-auth': '99.0.0',
+    })
+  })
+
+  it('under --pm none first-party entries follow a declared newer agent-qa', async () => {
+    const { root, home } = tempProject('hand-off-pm-none-pins')
+    declare(root, '99.0.0')
+    const run = machine(installsCopy('99.0.0'))
+
+    await expect(
+      init(root, home, run, ['--platform', 'web', '--llm', 'codex', '--pm', 'none']),
+    ).resolves.toBeUndefined()
+
+    expect(run.calls).toEqual([])
+    expect(devDependencies(root)).toEqual({
+      'agent-qa': '99.0.0',
+      '@vostride/agent-qa-subscription-auth': '99.0.0',
+    })
+  })
+
+  it('an older declared agent-qa is pinned up, and first-party entries follow this one', async () => {
+    const { root, home } = tempProject('hand-off-older-declared')
+    declare(root, '0.0.1')
+    const run = machine(installsCopy('0.0.1'))
+
+    await expect(
+      init(root, home, run, ['--platform', 'web', '--llm', 'codex', '--pm', 'none']),
+    ).resolves.toBeUndefined()
+
+    expect(devDependencies(root)).toEqual({
+      'agent-qa': VERSION,
+      '@vostride/agent-qa-subscription-auth': VERSION,
+    })
   })
 
   it('a malformed package.json is refused before the already-initialized check', async () => {

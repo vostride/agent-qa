@@ -91,6 +91,12 @@ export function declaredAgentQaVersion(text: string | undefined): string | undef
   return spec !== undefined && EXACT_SEMVER.test(spec) ? spec : undefined
 }
 
+// init never lowers a declared exact version, so the project's install leaves the newer of the two.
+export function agentQaAfterInstall(text: string | undefined, runningVersion: string): string {
+  const declared = declaredAgentQaVersion(text)
+  return declared !== undefined && isNewer(declared, runningVersion) ? declared : runningVersion
+}
+
 export async function handOffToProjectAgentQa(input: {
   host: ProjectHost
   range: ProjectRange
@@ -111,8 +117,13 @@ export async function handOffToProjectAgentQa(input: {
     if (input.pm === 'none') return false
     const declared = declaredAgentQaVersion(packageJson.text)
     if (declared === undefined || !isNewer(declared, runningVersion)) return false
-    // Carrying on as this older copy would pin first-party plugins to the wrong agent-qa.
-    if (!(await input.install())) throw new CliRefusal([], 3)
+    if (!(await input.install())) {
+      console.log(
+        `The project's agent-qa ${declared} is not installed, so this one (${runningVersion}) ` +
+          'sets up the folder.',
+      )
+      return false
+    }
     copy = await newerCopy()
     if (copy === undefined) return false
   }
