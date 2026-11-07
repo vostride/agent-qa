@@ -171,7 +171,7 @@ async function runInit(
   hooks: Parameters<typeof createInitCommand>[0] = {},
 ): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand({ cwd: '/tmp/test-project', ...hooks })
+  const init = createInitCommand({ cwd: '/tmp/test-project', host: { env: {} }, ...hooks })
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)

@@ -409,7 +409,9 @@ describe('a manager the machine lacks installs at the declared version', () => {
 
     expect(result.outcome).toBe('installed')
     expect(installs(run).map(argv)).toEqual(['corepack pnpm@12.17.0 install'])
-    expect(lastLine()).toBe(`✓ Installed agent-qa ${VERSION} with pnpm; through corepack`)
+    expect(lastLine()).toBe(
+      `✓ Installed agent-qa ${VERSION} with pnpm; through corepack; ${DENIED_NOTE}`,
+    )
   })
 
   it('without corepack a declared pnpm runs through npx at its version', async () => {
@@ -420,7 +422,9 @@ describe('a manager the machine lacks installs at the declared version', () => {
 
     expect(result.outcome).toBe('installed')
     expect(installs(run).map(argv)).toEqual(['npx -y pnpm@12.17.0 install'])
-    expect(lastLine()).toBe(`✓ Installed agent-qa ${VERSION} with pnpm; through npx`)
+    expect(lastLine()).toBe(
+      `✓ Installed agent-qa ${VERSION} with pnpm; through npx; ${DENIED_NOTE}`,
+    )
   })
 
   it('Yarn 1 on PATH does not install a project that declares Yarn 4', async () => {
@@ -476,7 +480,7 @@ describe('a manager the machine lacks installs at the declared version', () => {
     await runInstallStep({ ...input, mode: 'run' })
 
     expect(installs(run).map(argv)).toEqual(['pnpm install'])
-    expect(lastLine()).toBe(`✓ Installed agent-qa ${VERSION} with pnpm`)
+    expect(lastLine()).toBe(`✓ Installed agent-qa ${VERSION} with pnpm; ${DENIED_NOTE}`)
   })
 
   it('a lockfile with no declared version runs the manager through npx without a version', async () => {
@@ -632,4 +636,150 @@ describe('the install holds up under CI, npx, peer conflicts and Ctrl-C', () => 
       expect(stdout()).not.toContain('agent-qa project initialized')
     },
   )
+})
+
+const DENIED_NOTE =
+  'denied the build scripts of edgedriver, geckodriver, onnxruntime-node and protobufjs in pnpm-workspace.yaml'
+const DENIED_FILE =
+  'allowBuilds:\n  edgedriver: false\n  geckodriver: false\n  onnxruntime-node: false\n  protobufjs: false\n'
+const IGNORED_BUILDS_OUTPUT = [
+  ' ERR_PNPM_IGNORED_BUILDS  Ignored build scripts: esbuild@0.25.0',
+  'Run "pnpm approve-builds" to pick which dependencies should be allowed to run scripts.',
+].join('\n')
+
+function ignoredBuildsUntil(installedOnCall: number): Install {
+  let call = 0
+  return ({ options }) => {
+    call += 1
+    if (call < installedOnCall) return { code: 1, signal: null, output: IGNORED_BUILDS_OUTPUT }
+    writeInstalledPackage(options.cwd, 'agent-qa', VERSION)
+    return { code: 0, signal: null, output: '' }
+  }
+}
+
+describe('a pnpm install denies the build scripts pnpm would stop on', () => {
+  beforeEach(() => {
+    log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    cleanupTempProjects()
+  })
+
+  it('init writes pnpm-workspace.yaml beside package.json before its single pnpm install', async () => {
+    const { root, home } = tempProject('pnpm-deny')
+    const seen: (string | undefined)[] = []
+    const run = onMachine({}, ({ options }) => {
+      const file = join(options.cwd, 'pnpm-workspace.yaml')
+      seen.push(existsSync(file) ? readFileSync(file, 'utf8') : undefined)
+      writeInstalledPackage(options.cwd, 'agent-qa', VERSION)
+      return { code: 0, signal: null, output: '' }
+    })
+
+    await init(root, home, run, ['--platform', 'web', '--llm', 'gemini', '--pm', 'pnpm'])
+
+    expect(installs(run).map(argv)).toEqual(['pnpm install'])
+    expect(seen).toEqual([DENIED_FILE])
+    expect(stdout()).toContain(`✓ Installed agent-qa ${VERSION} with pnpm; ${DENIED_NOTE}`)
+  })
+
+  it('the pnpm-workspace.yaml at the workspace root above package.json is the one edited', async () => {
+    const { root, home } = tempProject('pnpm-deny-workspace')
+    const workspace = 'packages:\n  - apps/*\n'
+    writeFileSync(join(root, 'pnpm-workspace.yaml'), workspace)
+    writeFileSync(join(root, 'pnpm-lock.yaml'), '')
+    const app = join(root, 'apps', 'web')
+    mkdirSync(app, { recursive: true })
+    writeJson(join(app, 'package.json'), { name: 'web', private: true })
+    const run = onMachine({ pnpm: '12.16.1' }, writes('agent-qa'))
+    const input = await stepInput(app, home, run)
+
+    const result = await runInstallStep({ ...input, mode: 'run' })
+
+    expect(result.outcome).toBe('installed')
+    expect(readFileSync(join(root, 'pnpm-workspace.yaml'), 'utf8')).toBe(
+      `${workspace}${DENIED_FILE}`,
+    )
+    expect(existsSync(join(app, 'pnpm-workspace.yaml'))).toBe(false)
+    expect(lastLine()).toBe(
+      `✓ Installed agent-qa ${VERSION} with pnpm; ${DENIED_NOTE.replace(' in pnpm-workspace.yaml', ' in ../../pnpm-workspace.yaml')}`,
+    )
+  })
+
+  it('an ignored-builds failure denies the builds pnpm named and installs once more', async () => {
+    const { root, home } = tempProject('pnpm-ignored-builds')
+    writeFileSync(join(root, 'pnpm-lock.yaml'), '')
+    const run = onMachine({ pnpm: '12.16.1' }, ignoredBuildsUntil(2))
+    const input = await stepInput(root, home, run)
+
+    const result = await runInstallStep({ ...input, mode: 'run' })
+
+    expect(result.outcome).toBe('installed')
+    expect(installs(run).map(argv)).toEqual(['pnpm install', 'pnpm install'])
+    expect(readFileSync(join(root, 'pnpm-workspace.yaml'), 'utf8')).toBe(
+      `${DENIED_FILE}  esbuild: false\n`,
+    )
+    expect(lastLine()).toBe(
+      `✓ Installed agent-qa ${VERSION} with pnpm; ${DENIED_NOTE}; denied the build scripts of esbuild in pnpm-workspace.yaml`,
+    )
+  })
+
+  it('a second ignored-builds failure is a failed step', async () => {
+    const { root, home } = tempProject('pnpm-ignored-builds-twice')
+    writeFileSync(join(root, 'pnpm-lock.yaml'), '')
+    const run = onMachine({ pnpm: '12.16.1' }, ignoredBuildsUntil(3))
+    const input = await stepInput(root, home, run)
+
+    const result = await runInstallStep({ ...input, mode: 'run' })
+
+    expect(result.outcome).toBe('failed')
+    expect(installs(run).map(argv)).toEqual(['pnpm install', 'pnpm install'])
+    expect(stdout()).toContain('✗ Install failed: pnpm exited 1')
+    expect(lastLine()).toBe('  Run: pnpm install')
+  })
+
+  it('a flow allowBuilds is not written, and the line says what to add', async () => {
+    const { root, home } = tempProject('pnpm-deny-flow')
+    const workspace = 'allowBuilds: { sharp: true }\n'
+    writeFileSync(join(root, 'pnpm-workspace.yaml'), workspace)
+    writeFileSync(join(root, 'pnpm-lock.yaml'), '')
+    const run = onMachine({ pnpm: '12.16.1' }, writes('agent-qa'))
+    const input = await stepInput(root, home, run)
+
+    await runInstallStep({ ...input, mode: 'run' })
+
+    expect(readFileSync(join(root, 'pnpm-workspace.yaml'), 'utf8')).toBe(workspace)
+    expect(lastLine()).toBe(
+      `✓ Installed agent-qa ${VERSION} with pnpm; add edgedriver: false, geckodriver: false, onnxruntime-node: false and protobufjs: false under allowBuilds in pnpm-workspace.yaml`,
+    )
+  })
+
+  it('--pm none in a pnpm project prepares pnpm-workspace.yaml and says so', async () => {
+    const { root, home } = tempProject('pnpm-deny-none')
+    writeFileSync(join(root, 'pnpm-lock.yaml'), '')
+    const run = installing('agent-qa')
+
+    await init(root, home, run, ['--platform', 'web', '--llm', 'gemini', '--pm', 'none'])
+
+    expect(run.calls).toHaveLength(0)
+    expect(readFileSync(join(root, 'pnpm-workspace.yaml'), 'utf8')).toBe(DENIED_FILE)
+    expect(stdout()).toContain(
+      `Declared agent-qa ${VERSION} in package.json. Install with: pnpm install; ${DENIED_NOTE}`,
+    )
+  })
+
+  it.each([
+    ['npm', {}],
+    ['Yarn', { 'yarn.lock': '# yarn lockfile v1\n' }],
+    ['bun', { 'bun.lock': '' }],
+  ] as const)('a %s project gets no pnpm-workspace.yaml', async (_label, files) => {
+    const run = installing('agent-qa')
+    const { root, input } = await declaredProject('no-pnpm-settings', {}, run, files)
+
+    await runInstallStep({ ...input, mode: 'run' })
+
+    expect(existsSync(join(root, 'pnpm-workspace.yaml'))).toBe(false)
+  })
 })

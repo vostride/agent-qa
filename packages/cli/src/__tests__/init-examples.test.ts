@@ -118,7 +118,7 @@ function withoutInstall(args: readonly string[]): string[] {
 
 async function runInit(args: string[]): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand({ cwd: DIR })
+  const init = createInitCommand({ cwd: DIR, host: { env: {} } })
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)
