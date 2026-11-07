@@ -170,6 +170,17 @@ const DROPPED_KEYS = new Set([
   'npm_execpath',
   'npm_node_execpath',
   'init_cwd',
+  // npx sets these for its own run; every other npm_config_* carries the person's registry, proxy
+  // and TLS settings, which pnpm, Yarn 1, Bun and an npx fallback all read.
+  'npm_config_user_agent',
+  'npm_config_local_prefix',
+  'npm_config_global_prefix',
+  'npm_config_node_gyp',
+  'npm_config_npm_version',
+  'npm_config_allow_scripts',
+  'npm_config_package',
+  'npm_config_call',
+  'npm_config_yes',
 ])
 const DROPPED_PREFIXES = ['npm_package_', 'npm_lifecycle_']
 
@@ -180,24 +191,22 @@ export function managerEnv(
   via: ResolvedCommand['via'],
   env: NodeJS.ProcessEnv,
 ): NodeJS.ProcessEnv {
+  const set: NodeJS.ProcessEnv = {}
+  if (name === 'pnpm') {
+    set.PNPM_CONFIG_FROZEN_LOCKFILE = 'false'
+    set.npm_config_frozen_lockfile = 'false'
+  }
+  if (name === 'yarn') set.YARN_ENABLE_IMMUTABLE_INSTALLS = 'false'
+  if (via === 'corepack') set.COREPACK_ENABLE_DOWNLOAD_PROMPT = '0'
+  const overridden = new Set(Object.keys(set).map((key) => key.toLowerCase()))
   const kept: NodeJS.ProcessEnv = {}
   for (const [key, value] of Object.entries(env)) {
     const lower = key.toLowerCase()
-    if (DROPPED_KEYS.has(lower) || DROPPED_PREFIXES.some((prefix) => lower.startsWith(prefix))) {
-      continue
-    }
-    if (name === 'npm' ? lower === 'npm_config_allow_scripts' : lower.startsWith('npm_config_')) {
-      continue
-    }
+    if (DROPPED_KEYS.has(lower) || overridden.has(lower)) continue
+    if (DROPPED_PREFIXES.some((prefix) => lower.startsWith(prefix))) continue
     kept[key] = value
   }
-  if (name === 'pnpm') {
-    kept.PNPM_CONFIG_FROZEN_LOCKFILE = 'false'
-    kept.npm_config_frozen_lockfile = 'false'
-  }
-  if (name === 'yarn') kept.YARN_ENABLE_IMMUTABLE_INSTALLS = 'false'
-  if (via === 'corepack') kept.COREPACK_ENABLE_DOWNLOAD_PROMPT = '0'
-  return kept
+  return { ...kept, ...set }
 }
 
 export function wasCancelled(result: RunResult): boolean {
