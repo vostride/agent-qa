@@ -47,7 +47,7 @@ export interface DeclaredDependency {
 }
 
 export function projectDependencies(input: {
-  runningVersion: string
+  version: string
   usesSubscription: boolean
   plugins: readonly { package?: unknown }[]
 }): DeclaredDependency[] {
@@ -58,7 +58,7 @@ export function projectDependencies(input: {
       names.push(plugin.package)
     }
   }
-  return [...new Set(names)].map((name) => ({ name, version: input.runningVersion }))
+  return [...new Set(names)].map((name) => ({ name, version: input.version }))
 }
 
 export type EntryOutcome = 'added' | 'pinned' | 'kept' | 'newer' | 'unchanged'

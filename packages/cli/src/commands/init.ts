@@ -67,7 +67,11 @@ import {
 } from './package-json-plan.js'
 import { installOutputMask, runInstallStep } from './package-install.js'
 import { detectPackageManager } from './package-manager.js'
-import { declaredAgentQaVersion, handOffToProjectAgentQa } from './project-agent-qa.js'
+import {
+  agentQaAfterInstall,
+  declaredAgentQaVersion,
+  handOffToProjectAgentQa,
+} from './project-agent-qa.js'
 import { projectHost, type ProjectHost, type ProjectIo } from './project-host.js'
 import { nearestInstalledPackage, projectRange, type ProjectRange } from './project-range.js'
 
@@ -976,7 +980,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           ...packageJson,
           folderName: basename(range.start),
           dependencies: projectDependencies({
-            runningVersion,
+            version: agentQaAfterInstall(packageJson.text, runningVersion),
             usesSubscription: usesSubscriptionModel(config),
             plugins: (config.plugins ?? []) as readonly { package?: unknown }[],
           }),

@@ -108,7 +108,7 @@ describe('package.json entries pin the running version', () => {
 describe('the dependencies init declares', () => {
   it('the subscription plugin is declared only for a subscription model', () => {
     const names = (usesSubscription: boolean) =>
-      projectDependencies({ runningVersion: '0.3.3', usesSubscription, plugins: [] }).map(
+      projectDependencies({ version: '0.3.3', usesSubscription, plugins: [] }).map(
         (dependency) => dependency.name,
       )
 
@@ -116,9 +116,9 @@ describe('the dependencies init declares', () => {
     expect(names(false)).toEqual(['agent-qa'])
   })
 
-  it('a first-party plugin is declared at the running version and a third-party or path plugin adds nothing', () => {
+  it('a first-party plugin is declared at the version given and a third-party or path plugin adds nothing', () => {
     const dependencies = projectDependencies({
-      runningVersion: '0.3.3',
+      version: '0.3.3',
       usesSubscription: false,
       plugins: [
         { package: '@vostride/agent-qa-plugin-kernel' },
