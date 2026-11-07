@@ -67,7 +67,7 @@ import {
 } from './package-json-plan.js'
 import { runInstallStep } from './package-install.js'
 import { detectPackageManager } from './package-manager.js'
-import { handOffToProjectAgentQa } from './project-agent-qa.js'
+import { declaredAgentQaVersion, handOffToProjectAgentQa } from './project-agent-qa.js'
 import { projectHost, type ProjectHost } from './project-host.js'
 import { projectRange } from './project-range.js'
 
@@ -822,13 +822,44 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         const packageJson = readProjectPackageJson(range, host.io)
         if (packageJson.text !== undefined) parsePackageJson(packageJson.path, packageJson.text)
         const runningVersion = installedAgentQaVersion()
+        const manager = () =>
+          detectPackageManager({
+            range,
+            env: host.env,
+            io: host.io,
+            ...(opts.pm === undefined || opts.pm === 'none' ? {} : { flag: opts.pm }),
+          })
+        const maskInstallOutput = async (text: string): Promise<string> => {
+          try {
+            const secrets = await import('../composition/declared-secrets.js')
+            return secrets.createDeclaredSecretMask(configPath).mask(text)
+          } catch {
+            return text
+          }
+        }
         const handedOff = await handOffToProjectAgentQa({
           host,
           range,
           packageJson,
           runningVersion,
           pm: opts.pm,
-          install: async () => false,
+          install: async () => {
+            const version = declaredAgentQaVersion(packageJson.text)
+            if (version === undefined) return false
+            const step = await runInstallStep({
+              host,
+              range,
+              packageJson: planPackageJson({
+                ...packageJson,
+                folderName: basename(range.start),
+                dependencies: [{ name: 'agent-qa', version }],
+              }),
+              manager: manager(),
+              mode: 'run',
+              mask: maskInstallOutput,
+            })
+            return step.outcome === 'installed' || step.outcome === 'skipped'
+          },
         })
         if (handedOff) return
         const initStartedAt = Date.now()
@@ -1079,21 +1110,9 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           host,
           range,
           packageJson: packageJsonPlan,
-          manager: detectPackageManager({
-            range,
-            env: host.env,
-            io: host.io,
-            ...(opts.pm === undefined || opts.pm === 'none' ? {} : { flag: opts.pm }),
-          }),
+          manager: manager(),
           mode: opts.pm === 'none' ? 'none' : 'run',
-          mask: async (text) => {
-            try {
-              const secrets = await import('../composition/declared-secrets.js')
-              return secrets.createDeclaredSecretMask(configPath).mask(text)
-            } catch {
-              return text
-            }
-          },
+          mask: maskInstallOutput,
         })
 
         console.log('')

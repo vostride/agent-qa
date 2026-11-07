@@ -1,7 +1,7 @@
 import { dirname, relative, resolve } from 'node:path'
 import pc from 'picocolors'
 import { compareSemverVersions, isPathInsideDir } from '@vostride/agent-qa-core'
-import { CliRefusal } from '../composition/cli-refusal.js'
+import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import { wasCancelled } from './package-manager.js'
 import type { ProjectHost, ProjectIo } from './project-host.js'
 import { nearestInstalledPackage, type ProjectRange } from './project-range.js'
@@ -9,6 +9,12 @@ import { nearestInstalledPackage, type ProjectRange } from './project-range.js'
 export const HANDED_OFF_ENV = 'AGENT_QA_HANDED_OFF'
 
 const EXACT_SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u
+const DEPENDENCY_BLOCKS = [
+  'devDependencies',
+  'dependencies',
+  'optionalDependencies',
+  'peerDependencies',
+] as const
 
 export interface ProjectAgentQa {
   dir: string
@@ -85,6 +91,16 @@ function handOffLine(copy: ProjectAgentQa, range: ProjectRange, runningVersion: 
   )
 }
 
+export function declaredAgentQaVersion(text: string | undefined): string | undefined {
+  const pkg = parsed(text)
+  for (const block of DEPENDENCY_BLOCKS) {
+    const spec = asObject(pkg?.[block])?.['agent-qa']
+    if (spec !== undefined)
+      return typeof spec === 'string' && EXACT_SEMVER.test(spec) ? spec : undefined
+  }
+  return undefined
+}
+
 export async function handOffToProjectAgentQa(input: {
   host: ProjectHost
   range: ProjectRange
@@ -96,8 +112,66 @@ export async function handOffToProjectAgentQa(input: {
   const { host, range, packageJson, runningVersion } = input
   if ((host.env[HANDED_OFF_ENV] ?? '') !== '') return false
   const fromDir = packageJson.text === undefined ? range.start : dirname(packageJson.path)
-  const copy = await findProjectAgentQa(range, fromDir, host.io)
-  if (copy === undefined || !isNewer(copy.version, runningVersion)) return false
+  const newerCopy = async (): Promise<ProjectAgentQa | undefined> => {
+    const copy = await findProjectAgentQa(range, fromDir, host.io)
+    return copy !== undefined && isNewer(copy.version, runningVersion) ? copy : undefined
+  }
+  let copy = await newerCopy()
+  if (copy === undefined) {
+    if (input.pm === 'none') return false
+    const declared = declaredAgentQaVersion(packageJson.text)
+    if (declared === undefined || !isNewer(declared, runningVersion)) return false
+    if (!(await input.install())) return false
+    copy = await newerCopy()
+    if (copy === undefined) return false
+  }
   await runAsProjectAgentQa(copy, host, handOffLine(copy, range, runningVersion))
   return true
+}
+
+export interface StepRun {
+  via: 'in-process' | 'project' | 'running'
+  ranBy: string
+  code: number
+  output: string
+}
+
+// Decided by real path, never by version: npx's tag-spec runs are another copy at the same version.
+export async function runAgentQaStep(
+  args: readonly string[],
+  ctx: {
+    host: ProjectHost
+    range: ProjectRange
+    fromDir: string
+    runningVersion: string
+    inProcess: (args: readonly string[]) => Promise<{ code: number; output: string }>
+  },
+): Promise<StepRun> {
+  const { host, range, fromDir, runningVersion } = ctx
+  const copy = await findProjectAgentQa(range, fromDir, host.io)
+  if (copy === undefined) {
+    const ranBy = `this agent-qa ${runningVersion}; the project has none installed`
+    return { via: 'running', ranBy, ...(await ctx.inProcess(args)) }
+  }
+  if (copy.realDir === (await host.io.realpath(host.runningPackageDir))) {
+    return {
+      via: 'in-process',
+      ranBy: `this agent-qa ${runningVersion}`,
+      ...(await ctx.inProcess(args)),
+    }
+  }
+  const result = await host.run(host.execPath, [copy.bin, ...args], {
+    cwd: host.cwd,
+    env: { ...host.env, [HANDED_OFF_ENV]: '1' },
+    stdio: 'capture',
+  })
+  if (wasCancelled(result)) throw new PromptCancelled()
+  const output =
+    result.missing === true ? `${host.execPath} was not found to run ${copy.bin}.\n` : result.output
+  return {
+    via: 'project',
+    ranBy: `the project's agent-qa ${copy.version}`,
+    code: result.code ?? 1,
+    output,
+  }
 }
