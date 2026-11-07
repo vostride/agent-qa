@@ -42,6 +42,7 @@ import {
   type InitFilesystemHooks,
   type InitPathPlan,
 } from '../commands/init-filesystem.js'
+import { isInitRefusal } from '../commands/init-refusal.js'
 
 const roots: string[] = []
 
@@ -2556,5 +2557,31 @@ describe('the durable temporary is invisible to a commit', () => {
       vi.doUnmock('node:child_process')
       vi.resetModules()
     }
+  })
+})
+
+describe('the writer keeps an error a refusal or a bug when it adds a disposition', () => {
+  it('a bug inside the writer comes out as a bug, with the bug as its cause', () => {
+    const root = tempRoot()
+    const error = capturedRefusal(() => {
+      writeScaffoldFileAtomic({ root, path: join(root, 'bad.yaml'), content: 42 as never })
+    })
+
+    expect(isInitRefusal(error)).toBe(false)
+    expect((error as Error).cause).toBeInstanceOf(TypeError)
+    expect(errorMessage(error)).toContain('Disposition:')
+  })
+
+  it.skipIf(isWindows)('a refusal inside the writer comes out as a refusal', () => {
+    const root = tempRoot()
+    writeFileSync(join(root, 'elsewhere.yaml'), 'version: 1\n')
+    symlinkSync(join(root, 'elsewhere.yaml'), join(root, 'linked.yaml'))
+    const error = capturedRefusal(() => {
+      writeScaffoldFileAtomic({ root, path: join(root, 'linked.yaml'), content: 'x\n' })
+    })
+
+    expect(isInitRefusal(error)).toBe(true)
+    expect(errorMessage(error)).toContain('existing path is a symbolic link')
+    expect(errorMessage(error)).toContain('Disposition:')
   })
 })

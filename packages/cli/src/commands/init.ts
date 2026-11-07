@@ -58,6 +58,7 @@ import {
   type ManagedBlockContent,
 } from './managed-block.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
+import { InitRefusal, isInitRefusal } from './init-refusal.js'
 import { initFolderRefusal, resolveInitProject } from './init-project-folder.js'
 
 // Re-exported because this module is their public door.
@@ -294,7 +295,9 @@ function parsePackageJson(packageJsonPath: string, text: string): Record<string,
     return JSON.parse(text) as Record<string, unknown>
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    throw new Error(`Refusing to update ${packageJsonPath}: it is not valid JSON (${message}).`)
+    throw new InitRefusal(
+      `Refusing to update ${packageJsonPath}: it is not valid JSON (${message}).`,
+    )
   }
 }
 
@@ -311,7 +314,7 @@ function buildSubscriptionAuthPackageDependencyPlan(
     : parsePackageJson(packageJsonPath, existing)
 
   if (!objectRecord(pkg)) {
-    throw new Error(
+    throw new InitRefusal(
       `${packageJsonPath} must contain a JSON object to add ${SUBSCRIPTION_AUTH_PACKAGE}`,
     )
   }
@@ -697,21 +700,19 @@ function agentInstructionPointerBlock(): string {
 // The config marker records completion, so a failed root block reports the scaffold incomplete.
 function incompleteScaffoldError(error: unknown, configName: string): Error {
   const reason = error instanceof Error ? error.message : String(error)
-  return new Error(
+  const message =
     `${reason}\nThe other scaffold files were written, but ${configName} was not written, `
     + 'so this project is not initialized. Fix the cause above and rerun agent-qa init; '
-    + 'files it already wrote are kept.',
-    { cause: error },
-  )
+    + 'files it already wrote are kept.'
+  return isInitRefusal(error)
+    ? new InitRefusal(message, { cause: error })
+    : new Error(message, { cause: error })
 }
-
-// The managed-block classes are matched by name: the unit tests mock their modules without them.
-const INIT_REFUSAL_NAMES = new Set(['Error', 'ManagedBlockRefusal', 'ManagedBlockLockRefusal'])
 
 // A refusal exits 2 with its message alone; a bug or a prompt cancel passes through unchanged.
 function asInitRefusal(error: unknown): unknown {
   if (error instanceof CliRefusal) return error
-  if (error instanceof Error && INIT_REFUSAL_NAMES.has(error.name)) {
+  if (isInitRefusal(error)) {
     return new CliRefusal([pc.red(error.message)], 2, { cause: error })
   }
   return error
@@ -1094,7 +1095,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
               written: 'nothing',
             })
           } catch (error) {
-            console.error(pc.red(error instanceof Error ? error.message : String(error)))
+            if (!isInitRefusal(error)) throw error
+            console.error(pc.red(error.message))
             process.exitCode = 2
             return
           }

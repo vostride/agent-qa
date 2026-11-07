@@ -134,6 +134,7 @@ import password from '@inquirer/password'
 import { getAgentQaVersion, resolveAppiumExecutable, writeAuth } from '@vostride/agent-qa-core'
 import { clearProviderRegistry, registerProvider, type ProviderDescriptor } from '@vostride/agent-qa-model'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { reportCliFailure } from '../cli-error-handler.js'
 
 const mockWriteFileSync = vi.mocked(writeFileSync)
 const mockExistsSync = vi.mocked(existsSync)
@@ -858,6 +859,40 @@ describe('init command', () => {
       expect(findWriteCallEndingWith(join('/tmp/test-project/pkg', 'agent-qa.config.yaml')))
         .toBeDefined()
       expect(consoleOutput()).not.toContain('already initialized')
+    })
+  })
+
+  describe('a bug on the write path', () => {
+    const typeError = new TypeError("Cannot read properties of undefined (reading 'mode')")
+
+    it.each([
+      { name: 'a TypeError', thrown: typeError },
+      {
+        name: 'a TypeError the writer wrapped in a plain Error',
+        thrown: new Error(`${typeError.message} Disposition: retained.`, { cause: typeError }),
+      },
+    ])('$name exits 1 with Unexpected error: and the stack', async ({ thrown }) => {
+      mockWriteScaffoldFileAtomic.mockImplementationOnce(() => {
+        throw thrown
+      })
+      const error = await runInit(['--dir', '/tmp/test-project', '--platform', 'web']).catch(
+        (error) => error,
+      )
+      const printed: string[] = []
+
+      const code = reportCliFailure(error, {
+        print: (text) => printed.push(text),
+        printFixed: (line) => printed.push(line),
+        mask: (text) => text,
+        setExitCode: () => {},
+        flush: async () => {},
+        exit: () => {},
+        env: {},
+      })
+
+      expect(code).toBe(1)
+      expect(printed.join('\n')).toMatch(/^Unexpected error: Cannot read properties of undefined/)
+      expect(printed.join('\n')).toMatch(/^\s+at /m)
     })
   })
 
