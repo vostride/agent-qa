@@ -60,7 +60,8 @@ async function runInit(dir: string, extra: string[] = [], hooks: InitCommandHook
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)
-  await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', ...extra])
+  const pm = extra.includes('--pm') ? [] : ['--pm', 'none']
+  await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', ...extra, ...pm])
 }
 
 function stdout(): string {

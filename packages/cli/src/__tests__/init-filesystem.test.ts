@@ -2009,7 +2009,7 @@ function gitIgnores(cwd: string, path: string): boolean {
 async function runRealInit(dir: string, hooks: InitCommandHooks = {}): Promise<void> {
   const parent = new Command()
   parent.addCommand(createInitCommand({ cwd: dir, ...hooks }))
-  await parent.parseAsync(['node', 'test', 'init', '--platform', 'web'])
+  await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', '--pm', 'none'])
 }
 
 function managedGitignoreBlockOf(content: string): string[] {
