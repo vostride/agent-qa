@@ -258,7 +258,7 @@ describe('init model connection flags', () => {
 
   it('a base URL is refused for a provider that takes none or when it is not an absolute http or https URL', async () => {
     await initOk(['--platform', 'web', '--llm', 'codex', '--base-url', 'https://x.test/v1'])
-    expect(process.exitCode).toBe(1)
+    expect(process.exitCode).toBe(2)
     expect(refusalOutput())
       .toContain('--base-url applies only to --llm openai-compatible or anthropic-compatible')
     expectNothingWritten()
@@ -267,7 +267,7 @@ describe('init model connection flags', () => {
     stderr = []
     process.exitCode = undefined
     await initOk(['--platform', 'web', '--llm', 'openai-compatible', '--base-url', 'ftp://x.test'])
-    expect(process.exitCode).toBe(1)
+    expect(process.exitCode).toBe(2)
     expect(refusalOutput()).toContain('--base-url must be an absolute http or https URL')
     expectNothingWritten()
     expectNoPrompt()

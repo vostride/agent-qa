@@ -287,6 +287,15 @@ type SubscriptionAuthDependencyResult = InitFileResult & {
   range: string
 }
 
+function parsePackageJson(packageJsonPath: string, text: string): Record<string, unknown> {
+  try {
+    return JSON.parse(text) as Record<string, unknown>
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    throw new Error(`Refusing to update ${packageJsonPath}: it is not valid JSON (${message}).`)
+  }
+}
+
 function buildSubscriptionAuthPackageDependencyPlan(
   dir: string,
 ): SubscriptionAuthDependencyPlan {
@@ -297,10 +306,12 @@ function buildSubscriptionAuthPackageDependencyPlan(
     : null
   const pkg = existing === null
     ? { private: true } as Record<string, unknown>
-    : JSON.parse(existing) as Record<string, unknown>
+    : parsePackageJson(packageJsonPath, existing)
 
   if (!objectRecord(pkg)) {
-    throw new Error(`${PACKAGE_JSON_FILE} must contain a JSON object to add ${SUBSCRIPTION_AUTH_PACKAGE}`)
+    throw new Error(
+      `${packageJsonPath} must contain a JSON object to add ${SUBSCRIPTION_AUTH_PACKAGE}`,
+    )
   }
 
   const dependencyBlocks = [
@@ -943,7 +954,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           const refusal = opts.baseUrl === undefined ? undefined : baseUrlRefusal(provider, opts.baseUrl)
           if (refusal) {
             console.error(pc.red(refusal))
-            process.exitCode = 1
+            process.exitCode = 2
           }
           return refusal !== undefined
         }
@@ -1070,7 +1081,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             })
           } catch (error) {
             console.error(pc.red(error instanceof Error ? error.message : String(error)))
-            process.exitCode = 1
+            process.exitCode = 2
             return
           }
         }
