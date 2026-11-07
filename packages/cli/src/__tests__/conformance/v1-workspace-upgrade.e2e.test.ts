@@ -37,7 +37,7 @@ import {
   trackTempRoot,
 } from './spawned-chat.js'
 
-const INIT_ARGS = ['init', '--force', '--platform', 'web', '--llm', 'codex']
+const INIT_ARGS = ['init', '--force', '--platform', 'web', '--llm', 'codex', '--pm', 'none']
 const OLD_INIT_LINE = "Run 'agent-qa init'"
 const USER_TESTS = ['tests/checkout-smoke.yaml', 'tests/account/profile.yaml']
 const KEPT = [...USER_TESTS, '.env', '.env.secrets.local']

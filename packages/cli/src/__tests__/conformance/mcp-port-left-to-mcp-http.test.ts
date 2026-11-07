@@ -63,7 +63,9 @@ describe('the MCP port is left to mcp --http', () => {
     const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-port-owner-')))
     const dir = join(root, 'workspace')
     mkdirSync(dir, { recursive: true })
-    const result = spawnSync(process.execPath, [CLI_ENTRY, 'init', '--platform', 'web'], {
+    mkdirSync(join(root, '.git'))
+    const args = ['init', '--platform', 'web', '--pm', 'none']
+    const result = spawnSync(process.execPath, [CLI_ENTRY, ...args], {
       cwd: dir,
       env: hermeticEnv(root),
       encoding: 'utf8',

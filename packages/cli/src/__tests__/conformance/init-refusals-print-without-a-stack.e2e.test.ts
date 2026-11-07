@@ -3,6 +3,7 @@
 import { spawnSync } from 'node:child_process'
 import {
   appendFileSync,
+  mkdirSync,
   mkdtempSync,
   readFileSync,
   realpathSync,
@@ -43,8 +44,10 @@ function expectFresh(): void {
 }
 
 function folders(): { root: string; home: string } {
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-init-refusal-')))
+  mkdirSync(join(root, '.git'))
   return {
-    root: trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-init-refusal-'))),
+    root,
     home: trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-init-refusal-home-'))),
   }
 }
@@ -54,7 +57,8 @@ async function init(
   home: string,
   args: readonly string[],
 ): Promise<SpawnOutcome & { text: string }> {
-  const outcome = await spawnCollecting(root, [CLI_ENTRY, 'init', ...args], {
+  const pm = args.includes('--pm') ? [] : ['--pm', 'none']
+  const outcome = await spawnCollecting(root, [CLI_ENTRY, 'init', ...args, ...pm], {
     HOME: home,
     USERPROFILE: home,
   })

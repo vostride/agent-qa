@@ -48,6 +48,7 @@ apiToken: ${PLANTED_TEST_CREDENTIAL}
 `
 
 let root: string
+let home: string
 
 function git(...args: string[]): void {
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' })
@@ -81,10 +82,11 @@ function runShippedCli(...args: string[]): { status: number | null; combined: st
  * cells below validate.
  */
 function scaffoldWithShippedInit(): string {
-  const run = spawnSync(process.execPath, [CLI_DIST, 'init', '--platform', 'web'], {
+  const args = ['init', '--platform', 'web', '--pm', 'none']
+  const run = spawnSync(process.execPath, [CLI_DIST, ...args], {
     cwd: root,
     encoding: 'utf8',
-    env: { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' },
+    env: { ...process.env, HOME: home, USERPROFILE: home, NO_COLOR: '1', FORCE_COLOR: '0' },
   })
   const combined = `${run.stdout ?? ''}${run.stderr ?? ''}`
   expect(run.status, `the product's own init must succeed:\n${combined}`).toBe(0)
@@ -148,6 +150,7 @@ function makeConfigUnresolvable(configText: string): void {
 
 beforeEach(() => {
   root = mkdtempSync(join(tmpdir(), 'validate-resolution-'))
+  home = mkdtempSync(join(tmpdir(), 'validate-resolution-home-'))
   git('init', '--quiet')
   git('config', 'user.name', 'agent-qa validate resolution test')
   git('config', 'user.email', 'validate-resolution-test@example.invalid')
@@ -156,6 +159,7 @@ beforeEach(() => {
 
 afterEach(() => {
   rmSync(root, { recursive: true, force: true })
+  rmSync(home, { recursive: true, force: true })
 })
 
 describe('a project the product scaffolds is validated, not attested over an empty set', () => {
