@@ -317,11 +317,11 @@ function checkLLMApiKey(config: Record<string, unknown> | null): DoctorCheck {
   }
 }
 
-function checkSubscriptionAuth(config: Record<string, unknown> | null): DoctorCheck {
+export function checkSubscriptionAuth(config: Record<string, unknown> | null): DoctorCheck {
   const name = configuredLLMName(config)
   return {
     name: 'Subscription Auth',
-    fixInstructions: `Install \`@vostride/agent-qa-subscription-auth\` (\`npm install -D @vostride/agent-qa-subscription-auth\`), add it to plugins as name: subscription with that package, then run \`agent-qa auth login --config ${name}\``,
+    fixInstructions: `Run \`npx agent-qa plugins add @vostride/agent-qa-subscription-auth\`, then run \`agent-qa auth login --config ${name}\``,
     check: async () => {
       const llm = getActiveLLMConfig(config)
       if (getProvider(llm.provider)?.subscription !== true) {
