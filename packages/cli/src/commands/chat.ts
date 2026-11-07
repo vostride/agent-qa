@@ -29,6 +29,7 @@ import {
   createDeclaredSecretMask,
   DeclaredSecretsUnavailableError,
 } from '../composition/declared-secrets.js'
+import { CANCELLED_LINE } from '../composition/cli-refusal.js'
 import {
   CLI_FUNCTION_CALLER,
   composeCliLocalAgent,
@@ -60,6 +61,7 @@ interface ChatOptions {
 export interface ChatCommandDeps {
   input?: NodeJS.ReadableStream
   output?: NodeJS.WritableStream
+  terminal?: boolean
   onInterruptHandler?: (handler: () => Promise<void>) => void
   // Substitutable because the default reaches a provider, so a suite could not run offline.
   chatCapabilities?: (configPath: string) => Promise<CliChatCapabilities | undefined>
@@ -329,6 +331,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
           // the suite drives) readline simply never calls it, so the degrade is silence rather
           // than a wrong suggestion.
           completer: createChatCompleter(catalog.rows, CHAT_HELP_ENTRIES),
+          ...(deps.terminal === undefined ? {} : { terminal: deps.terminal }),
         })
 
         // The starter prompts: three suggestions rendered from catalog rows, deterministic in
@@ -346,6 +349,13 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
         let promptClosed = false
         prompt.on('close', () => {
           promptClosed = true
+        })
+        // With no listener, readline closes on Ctrl-C and the session would end as a clean exit.
+        let cancelled: Promise<void> | undefined
+        prompt.on('SIGINT', () => {
+          cancelled ??= interrupt()
+          console.error(CANCELLED_LINE)
+          prompt.close()
         })
 
         let announced = sessionId !== undefined
@@ -408,6 +418,10 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
           if (!promptClosed) prompt.prompt()
         }
         prompt.close()
+        if (cancelled !== undefined) {
+          await cancelled
+          process.exitCode = 130
+        }
       } catch (error) {
         endReason = 'error'
         reportError(error, mask)
