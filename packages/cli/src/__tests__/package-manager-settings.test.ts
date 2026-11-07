@@ -8,6 +8,7 @@ import {
   PNPM_DENIED_BUILDS,
   ignoredBuildNames,
   withDeniedBuilds,
+  withNodeModulesLinker,
 } from '../commands/package-manager-settings.js'
 
 function trueLines(text: string): string[] {
@@ -130,5 +131,43 @@ describe('pnpm build scripts are denied in pnpm-workspace.yaml', () => {
       : []
 
     expect([...PNPM_DENIED_BUILDS].sort()).toEqual(deniedHere.sort())
+  })
+})
+
+describe("a Yarn Plug'n'Play project is switched to node_modules in .yarnrc.yml", () => {
+  it('an empty file gains the linker line', () => {
+    expect(withNodeModulesLinker('')).toBe('nodeLinker: node-modules\n')
+  })
+
+  it('a file without nodeLinker keeps every byte and gains the line at its end', () => {
+    const src = '# pinned by the team\nyarnPath: .yarn/releases/yarn-4.18.1.cjs\n'
+    const out = withNodeModulesLinker(src)
+
+    expect(out).toBe(`${src}nodeLinker: node-modules\n`)
+    expect(withNodeModulesLinker(src.trimEnd())).toBe(`${src}nodeLinker: node-modules\n`)
+  })
+
+  it('a CRLF file gets CRLF on the inserted line', () => {
+    expect(withNodeModulesLinker('yarnPath: x.cjs\r\n')).toBe(
+      'yarnPath: x.cjs\r\nnodeLinker: node-modules\r\n',
+    )
+  })
+
+  it('pnp is replaced in place and every other byte stays the same', () => {
+    const src = 'enableTelemetry: false\nnodeLinker: pnp  # default\nyarnPath: x.cjs\n'
+
+    expect(withNodeModulesLinker(src)).toBe(
+      'enableTelemetry: false\nnodeLinker: node-modules  # default\nyarnPath: x.cjs\n',
+    )
+  })
+
+  it('a quoted pnp keeps its quotes around the new value', () => {
+    expect(withNodeModulesLinker('nodeLinker: "pnp"\n')).toBe('nodeLinker: "node-modules"\n')
+    expect(withNodeModulesLinker("nodeLinker: 'pnp'\n")).toBe("nodeLinker: 'node-modules'\n")
+  })
+
+  it('node-modules and pnpm linkers are left alone', () => {
+    expect(withNodeModulesLinker('nodeLinker: node-modules\n')).toBeUndefined()
+    expect(withNodeModulesLinker('nodeLinker: pnpm\n')).toBeUndefined()
   })
 })

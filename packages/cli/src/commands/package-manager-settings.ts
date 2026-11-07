@@ -84,6 +84,17 @@ export function withDeniedBuilds(
   return { text: `${src.slice(0, at)}${lead}${lines}${src.slice(at)}`, added }
 }
 
+// Yarn 4 defaults to Plug'n'Play, which leaves no node_modules for agent-qa and its plugins.
+export function withNodeModulesLinker(src: string): string | undefined {
+  const doc = blockRoot(src)
+  if (doc === undefined) return undefined
+  const node = doc.get('nodeLinker', true)
+  if (node === undefined) return appended(src, ['nodeLinker: node-modules'])
+  if (!isScalar(node) || node.value !== 'pnp' || !node.range) return undefined
+  const quote = node.type === 'QUOTE_DOUBLE' ? '"' : node.type === 'QUOTE_SINGLE' ? "'" : ''
+  return `${src.slice(0, node.range[0])}${quote}node-modules${quote}${src.slice(node.range[1])}`
+}
+
 export function ignoredBuildNames(output: string): string[] {
   const names: string[] = []
   for (const match of output.matchAll(/Ignored build scripts:([^\r\n]*)/gu)) {
@@ -137,6 +148,16 @@ function preparePnpm(
   return [`denied the build scripts of ${listed(result.added)} in ${shown}`]
 }
 
+function prepareYarn(input: { range: ProjectRange; packageDir: string; host: ProjectHost }) {
+  const { range, packageDir, host } = input
+  const root = nearestAtOrAbove(range, packageDir, ['yarn.lock', '.yarnrc.yml'], host) ?? packageDir
+  const file = join(root, '.yarnrc.yml')
+  const text = withNodeModulesLinker(host.io.readText(file) ?? '')
+  if (text === undefined) return []
+  write(file, text)
+  return [`set nodeLinker: node-modules in ${relative(range.start, file) || file}`]
+}
+
 export async function prepareManagerSettings(input: {
   manager: DetectedManager
   range: ProjectRange
@@ -149,5 +170,7 @@ export async function prepareManagerSettings(input: {
   if (input.manager.name === 'pnpm') {
     return preparePnpm(located, [...PNPM_DENIED_BUILDS, ...(input.deny ?? [])])
   }
+  if (input.manager.name === 'yarn' && input.manager.yarnLine === 'berry')
+    return prepareYarn(located)
   return []
 }
