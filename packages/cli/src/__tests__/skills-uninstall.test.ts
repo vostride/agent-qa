@@ -335,6 +335,42 @@ describe('agent-qa skills uninstall for one agent', () => {
   })
 })
 
+describe('a manifest that lists no coding agent', () => {
+  it('is not written by an install with no agent chosen', async () => {
+    const project = newProject('install-no-agents')
+
+    await setup(project, [])
+
+    expect(existsSync(join(project.root, MANIFEST))).toBe(false)
+  })
+
+  it('is removed by uninstall with the block it lists, and says so', async () => {
+    const project = newProject('uninstall-no-agents')
+    await setup(project)
+    const manifest = manifestOf(project.root)
+    write(
+      project.root,
+      MANIFEST,
+      `${JSON.stringify({
+        ...manifest,
+        agents: [],
+        files: [],
+        entries: manifest.entries.filter((entry) => entry.file === 'AGENTS.md'),
+      })}\n`,
+    )
+
+    const output = await skills(project.root, ['uninstall'])
+
+    expect(output.split('\n')).toEqual([
+      '✓ AGENTS.md: removed the agent-qa block',
+      '✓ .agents/agent-qa-skills.json: removed it; it listed no coding agent',
+      '',
+    ])
+    expect(existsSync(join(project.root, MANIFEST))).toBe(false)
+    expect(existsSync(join(project.root, 'AGENTS.md'))).toBe(false)
+  })
+})
+
 describe('agent-qa skills uninstall --dry-run', () => {
   it('prints what it would remove and leaves every byte of the project as it was', async () => {
     const { project } = await sharedProject('uninstall-dry-run')

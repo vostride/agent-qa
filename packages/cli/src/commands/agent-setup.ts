@@ -500,7 +500,8 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
   }
   let manifestFailure: string | undefined
   try {
-    writeAgentSetupManifest(projectDir, manifest)
+    // With no agent chosen and nothing installed before, there is nothing to record.
+    if (chosen.length > 0 || previous !== undefined) writeAgentSetupManifest(projectDir, manifest)
   } catch (error) {
     manifestFailure = errorMessage(error)
   }
@@ -646,7 +647,8 @@ export async function removeAgentSetup(options: AgentRemovalOptions): Promise<Ag
     outcome: blockEntry === undefined ? 'unlisted' : 'kept',
     edited: false,
   }
-  if (chosen.length === 0) {
+  // A manifest that lists no agent goes whole, with any block it lists.
+  if (chosen.length === 0 && installed.length > 0) {
     return {
       installed: true,
       projectDir,
