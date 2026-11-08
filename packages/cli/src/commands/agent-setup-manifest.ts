@@ -76,8 +76,9 @@ export function readAgentSetupManifest(projectDir: string): AgentSetupManifest |
   try {
     value = JSON.parse(withoutBom(readFileSync(path, 'utf-8')))
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    throw malformed(`it is not valid JSON (${message})`)
+    // The parser quotes the offending text, which can span lines; the refusal stays on one.
+    const message = (error instanceof Error ? error.message : String(error)).replace(/\s+/gu, ' ')
+    throw malformed(`it is not valid JSON (${message.trim()})`)
   }
   const parsed = AgentSetupManifestSchema.safeParse(value)
   if (!parsed.success) {

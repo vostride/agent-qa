@@ -4,7 +4,10 @@
 
 This package owns the public `agent-qa` CLI, Commander command registration,
 config loading, init/auth/run/dashboard/mcp command UX, device and target
-commands, validation commands, and packaged skills.
+commands, validation commands, and packaged skills. It also owns the skills
+installer, which writes the skills, the MCP entries and the `AGENTS.md` block
+into a project folder and records them in its manifest, and
+`agent-qa skills uninstall`, which removes what that manifest lists.
 
 ## Read First
 
@@ -17,6 +20,8 @@ commands, validation commands, and packaged skills.
 - `src/commands/run.ts`
 - `src/commands/dashboard.ts`
 - `src/commands/mcp.ts`
+- `src/commands/agent-setup.ts`
+- `src/commands/skills.ts`
 - `scripts/copy-skills.mjs`
 - Relevant `src/__tests__/*.test.ts`
 

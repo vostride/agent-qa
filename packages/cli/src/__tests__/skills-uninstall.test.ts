@@ -1,5 +1,6 @@
 // agent-qa skills uninstall removes only what the manifest lists and leaves a person's bytes alone.
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -11,11 +12,16 @@ import {
 import { join, relative } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 
-import { Command } from 'commander'
-import { afterEach, describe, expect, it } from 'vitest'
+import { Command, type CommanderError } from 'commander'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { installAgentSetup, type CodingAgent } from '../commands/agent-setup.js'
-import { createSkillsCommand } from '../commands/skills.js'
+import {
+  createSkillsCommand,
+  listAgentQaSkills,
+  resolveAgentQaSkillsDirectory,
+} from '../commands/skills.js'
+import { CliRefusal } from '../composition/cli-refusal.js'
 import {
   cleanupTempProjects,
   fakeRunner,
@@ -42,6 +48,7 @@ const PERSON_SKILL = '---\nname: my-skill\ndescription: Mine.\n---\n\n# Mine\n'
 type Project = { root: string; home: string }
 
 afterEach(() => {
+  vi.restoreAllMocks()
   cleanupTempProjects()
 })
 
@@ -112,6 +119,29 @@ function snapshot(folder: string, skip: readonly string[] = []): Map<string, str
   }
   walk(folder)
   return seen
+}
+
+async function refusal(promise: Promise<unknown>): Promise<CliRefusal> {
+  const error = await promise.then(
+    () => undefined,
+    (thrown: unknown) => thrown,
+  )
+  expect(error).toBeInstanceOf(CliRefusal)
+  return error as CliRefusal
+}
+
+function plainLines(error: CliRefusal): string[] {
+  return error.lines.map((line) => stripVTControlCharacters(line))
+}
+
+interface Manifest {
+  agents: string[]
+  files: { path: string; sha256: string }[]
+  entries: { file: string; key: string; sha256: string }[]
+}
+
+function manifestOf(root: string): Manifest {
+  return JSON.parse(read(root, MANIFEST)) as Manifest
 }
 
 function listedFiles(root: string): string[] {
@@ -238,5 +268,244 @@ describe('agent-qa skills uninstall', () => {
     ])
     expect(result.block).toEqual({ outcome: 'removed', edited: false })
     expect(result.manifest).toBe('removed')
+  })
+})
+
+describe('agent-qa skills uninstall for one agent', () => {
+  it("removes Codex's share, keeps Claude Code's and the block, and the last agent takes the rest", async () => {
+    const project = newProject('uninstall-codex')
+    const { root } = project
+    const pristine = snapshot(root)
+    await setup(project)
+    const claude = snapshot(join(root, '.claude'))
+    const mcpJson = readFileSync(join(root, '.mcp.json'))
+    const agentsMd = readFileSync(join(root, 'AGENTS.md'))
+    const before = manifestOf(root)
+
+    const first = await skills(root, ['uninstall', '--agents', 'codex'])
+
+    expect(first).toBe(
+      '✓ Codex: removed 1 skill from .agents/skills and the agent-qa entry from .codex/config.toml\n',
+    )
+    expect(existsSync(join(root, '.agents/skills'))).toBe(false)
+    expect(existsSync(join(root, '.codex'))).toBe(false)
+    expect(snapshot(join(root, '.claude'))).toEqual(claude)
+    expect(readFileSync(join(root, '.mcp.json')).equals(mcpJson)).toBe(true)
+    expect(readFileSync(join(root, 'AGENTS.md')).equals(agentsMd)).toBe(true)
+    expect(manifestOf(root)).toEqual({
+      ...before,
+      agents: ['claude-code'],
+      files: before.files.filter((file) => file.path.startsWith('.claude/skills/')),
+      entries: before.entries.filter((entry) => entry.file !== '.codex/config.toml'),
+    })
+
+    const last = await skills(root, ['uninstall', '--agents', 'claude-code'])
+
+    expect(last.split('\n')).toEqual([
+      '✓ Claude Code: removed 1 skill from .claude/skills and the agent-qa entry from .mcp.json',
+      '✓ AGENTS.md: removed the agent-qa block',
+      '',
+    ])
+    expect(snapshot(root)).toEqual(pristine)
+  })
+
+  it('treats --agents all as every agent', async () => {
+    const all = newProject('uninstall-agents-all')
+    const plain = newProject('uninstall-agents-default')
+    await setup(all)
+    await setup(plain)
+
+    const withAll = await skills(all.root, ['uninstall', '--agents', 'all'])
+    const withNone = await skills(plain.root, ['uninstall'])
+
+    expect(withAll).toBe(withNone)
+    expect(snapshot(all.root)).toEqual(snapshot(plain.root))
+    expect(existsSync(join(all.root, MANIFEST))).toBe(false)
+  })
+
+  it('says an agent that is not in the manifest is not installed and changes nothing', async () => {
+    const project = newProject('uninstall-not-installed')
+    await setup(project, ['claude-code'])
+    const before = snapshot(project.root)
+
+    const output = await skills(project.root, ['uninstall', '--agents', 'codex'])
+
+    expect(output).toBe('- Codex: not installed here\n')
+    expect(snapshot(project.root)).toEqual(before)
+  })
+})
+
+describe('agent-qa skills uninstall --dry-run', () => {
+  it('prints what it would remove and leaves every byte of the project as it was', async () => {
+    const { project } = await sharedProject('uninstall-dry-run')
+    const before = snapshot(project.root)
+
+    const output = await skills(project.root, ['uninstall', '--dry-run'])
+
+    expect(output.split('\n')).toEqual([
+      '- Claude Code: would remove 1 skill from .claude/skills and the agent-qa entry from .mcp.json',
+      '  Would remove your edit: .claude/skills/agent-qa-alpha/SKILL.md',
+      '- Codex: would remove 1 skill from .agents/skills and the agent-qa entry from .codex/config.toml',
+      '- AGENTS.md: would remove the agent-qa block',
+      '',
+    ])
+    expect(snapshot(project.root)).toEqual(before)
+  })
+})
+
+describe('agent-qa skills uninstall refusals', () => {
+  it('says nothing is installed when the folder has no manifest', async () => {
+    const project = newProject('uninstall-nothing')
+    const before = snapshot(project.root)
+
+    const output = await skills(project.root, ['uninstall'])
+
+    expect(output).toBe(`agent-qa's skills and MCP entries are not installed in ${project.root}.\n`)
+    expect(snapshot(project.root)).toEqual(before)
+  })
+
+  it.each([
+    {
+      name: 'a manifest that is not JSON',
+      path: MANIFEST,
+      change: () => 'not\njson\n',
+      line: /^Refusing malformed \.agents\/agent-qa-skills\.json: it is not valid JSON/u,
+    },
+    {
+      name: 'a .mcp.json that is not JSON',
+      path: '.mcp.json',
+      change: () => 'mcpServers: this is not JSON\n',
+      line: /^Refusing malformed \.mcp\.json: /u,
+    },
+    {
+      name: 'a .codex/config.toml that does not parse',
+      path: '.codex/config.toml',
+      change: () => '[mcp_servers.agent-qa\ncommand = "npx"\n',
+      line: /^Refusing malformed \.codex\/config\.toml: /u,
+    },
+    {
+      name: 'an AGENTS.md with an unbalanced marker',
+      path: 'AGENTS.md',
+      change: (text: string) => `${text}\n<!-- agent-qa init:start -->\n`,
+      line: /^Refusing malformed AGENTS\.md: /u,
+    },
+  ])('exits 2 in one line and writes nothing for $name', async ({ path, change, line }) => {
+    const project = newProject('uninstall-malformed')
+    await setup(project)
+    write(project.root, path, change(read(project.root, path)))
+    const before = snapshot(project.root)
+
+    const error = await refusal(skills(project.root, ['uninstall']))
+
+    expect(error.exitCode).toBe(2)
+    expect(plainLines(error)).toHaveLength(1)
+    expect(plainLines(error)[0]).toMatch(line)
+    expect(plainLines(error)[0]).not.toContain('\n')
+    expect(snapshot(project.root)).toEqual(before)
+  })
+
+  it('exits 2 for an unknown coding agent', async () => {
+    const project = newProject('uninstall-unknown-agent')
+    await setup(project)
+    const before = snapshot(project.root)
+
+    const error = await refusal(skills(project.root, ['uninstall', '--agents', 'cursor']))
+
+    expect(error.exitCode).toBe(2)
+    expect(plainLines(error)).toEqual([
+      'Unknown coding agent "cursor". Use claude-code, codex or all.',
+    ])
+    expect(snapshot(project.root)).toEqual(before)
+  })
+
+  // Permissions do not stop a removal for root or on Windows.
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+    'exits 3 naming the file a removal could not delete, and keeps the manifest',
+    async () => {
+      const project = newProject('uninstall-read-only')
+      await setup(project)
+      const folder = join(project.root, '.agents/skills/agent-qa-alpha')
+      chmodSync(folder, 0o555)
+      try {
+        const error = await refusal(skills(project.root, ['uninstall']))
+
+        expect(error.exitCode).toBe(3)
+        expect(plainLines(error)).toHaveLength(1)
+        expect(plainLines(error)[0]).toMatch(
+          /^Could not remove \.agents\/skills\/agent-qa-alpha\/SKILL\.md: [^\n]+$/u,
+        )
+        expect(existsSync(join(project.root, MANIFEST))).toBe(true)
+      } finally {
+        chmodSync(folder, 0o755)
+      }
+    },
+  )
+})
+
+describe('the agent-qa skills command around uninstall', () => {
+  it('refuses skills install with the usage error and exit 2', async () => {
+    const project = newProject('skills-install')
+    let stderr = ''
+    vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
+      stderr += String(chunk)
+      return true
+    })
+
+    const error = await refusal(skills(project.root, ['install']))
+
+    expect(error.exitCode).toBe(2)
+    expect((error.cause as CommanderError).code).toBe('commander.excessArguments')
+    expect(stderr).toContain("too many arguments for 'skills'")
+  })
+
+  it('still lists the packaged skills with --json', async () => {
+    const project = newProject('skills-list')
+
+    const output = await skills(project.root, ['--json'])
+
+    const payload = JSON.parse(output) as { skills: { name: string }[] }
+    const packaged = listAgentQaSkills(resolveAgentQaSkillsDirectory().path)
+    expect(payload.skills.map((skill) => skill.name)).toEqual(packaged.map((skill) => skill.name))
+    expect(payload.skills.length).toBeGreaterThan(0)
+  })
+
+  it('names uninstall in its help', () => {
+    expect(createSkillsCommand().helpInformation()).toMatch(/^\s+uninstall\b/mu)
+  })
+})
+
+describe('the folder skills uninstall acts on', () => {
+  it('is the folder of the global --config, relative to where it runs', async () => {
+    const parent = tempProject('uninstall-config')
+    const sub = { root: join(parent.root, 'sub'), home: parent.home }
+    mkdirSync(sub.root)
+    installAgentQa(sub.root)
+    writeConfig(sub.root)
+    await setup(sub)
+    const outside = snapshot(parent.root, ['sub'])
+
+    await skills(parent.root, ['uninstall'], 'sub/agent-qa.config.yaml')
+
+    expect(existsSync(join(sub.root, MANIFEST))).toBe(false)
+    expect(existsSync(join(sub.root, '.mcp.json'))).toBe(false)
+    expect(snapshot(parent.root, ['sub'])).toEqual(outside)
+  })
+
+  it('leaves every byte of a second project in the repository as it was', async () => {
+    const repo = tempProject('uninstall-two-projects')
+    installAgentQa(repo.root)
+    const a = { root: join(repo.root, 'a'), home: repo.home }
+    const b = { root: join(repo.root, 'b'), home: repo.home }
+    for (const project of [a, b]) {
+      mkdirSync(project.root)
+      writeConfig(project.root)
+      await setup(project)
+    }
+    const afterB = snapshot(b.root)
+
+    await skills(a.root, ['uninstall'])
+
+    expect(existsSync(join(a.root, MANIFEST))).toBe(false)
+    expect(snapshot(b.root)).toEqual(afterB)
   })
 })
