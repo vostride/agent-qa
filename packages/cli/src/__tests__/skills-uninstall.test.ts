@@ -246,6 +246,7 @@ describe('agent-qa skills uninstall', () => {
       }[]
       block: { outcome: string; edited: boolean }
       manifest: string
+      notes: string[]
     }
     expect(result.dryRun).toBe(false)
     expect(result.removed.map((report) => report.agent)).toEqual(BOTH)
@@ -268,6 +269,7 @@ describe('agent-qa skills uninstall', () => {
     ])
     expect(result.block).toEqual({ outcome: 'removed', edited: false })
     expect(result.manifest).toBe('removed')
+    expect(result.notes).toEqual([])
   })
 })
 
@@ -473,6 +475,31 @@ describe('agent-qa skills uninstall refusals', () => {
         expect(existsSync(join(project.root, MANIFEST))).toBe(true)
       } finally {
         chmodSync(folder, 0o755)
+      }
+    },
+  )
+})
+
+describe('an empty folder uninstall cannot remove', () => {
+  // Permissions do not stop a removal for root or on Windows.
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+    'is named in a note after the file in it is removed, and the uninstall finishes',
+    async () => {
+      const project = newProject('uninstall-locked-parent')
+      await setup(project)
+      const parent = join(project.root, '.agents/skills')
+      chmodSync(parent, 0o555)
+      try {
+        const output = await skills(project.root, ['uninstall'])
+
+        expect(output.split('\n')).toContain(
+          'Could not remove the empty folder .agents/skills/agent-qa-alpha (EACCES)',
+        )
+        expect(output).not.toContain('Could not remove .agents/skills/agent-qa-alpha/SKILL.md')
+        expect(existsSync(join(parent, 'agent-qa-alpha/SKILL.md'))).toBe(false)
+        expect(existsSync(join(project.root, MANIFEST))).toBe(false)
+      } finally {
+        chmodSync(parent, 0o755)
       }
     },
   )

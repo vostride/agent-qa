@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { join, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 
 import {
   AGENT_SETUP_MANIFEST_PATH,
@@ -202,6 +202,23 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
+// Runs once the file is gone, so a folder left behind is named in a note, never as the file.
+function tidyEmptyFolders(
+  path: string,
+  stop: string,
+  projectDir: string,
+  notes: string[],
+): void {
+  try {
+    removeEmptyFoldersUpTo(path, stop)
+  } catch (error) {
+    const failed = (error as NodeJS.ErrnoException).path ?? dirname(path)
+    const reason = (error as NodeJS.ErrnoException).code ?? errorMessage(error)
+    const note = `Could not remove the empty folder ${relative(projectDir, failed)} (${reason})`
+    if (!notes.includes(note)) notes.push(note)
+  }
+}
+
 function byName<T extends { name: string }>(a: T, b: T): number {
   return a.name < b.name ? -1 : a.name > b.name ? 1 : 0
 }
@@ -290,11 +307,12 @@ function installSkillFiles(install: SkillsInstall): string[] {
           result.notes.push(`Removed your edit: ${path}`)
         }
       }
-      removeEmptyFoldersUpTo(absolute, join(projectDir, AGENT_SKILL_ROOTS[agent]))
     } catch (error) {
       failures.push(errorMessage(error))
       records.set(path, sha256)
+      continue
     }
+    tidyEmptyFolders(absolute, join(projectDir, AGENT_SKILL_ROOTS[agent]), projectDir, result.notes)
   }
   return failures
 }
@@ -553,6 +571,7 @@ export type AgentRemovalResult =
       remaining: CodingAgent[]
       block: AgentRemovalBlock
       manifest: 'removed' | 'rewritten' | 'unchanged'
+      notes: string[]
     }
 
 export interface AgentRemovalOptions {
@@ -658,6 +677,7 @@ export async function removeAgentSetup(options: AgentRemovalOptions): Promise<Ag
       remaining,
       block,
       manifest: 'unchanged',
+      notes: [],
     }
   }
 
@@ -743,15 +763,14 @@ export async function removeAgentSetup(options: AgentRemovalOptions): Promise<Ag
     remaining,
     block,
     manifest: remaining.length === 0 ? 'removed' : 'rewritten',
+    notes: [],
   }
   if (dryRun) return result
 
   for (const file of files) {
     if (file.outcome !== 'removed') continue
-    attempt(file.path, () => {
-      removeFileInsideRoot({ path: file.absolute, root: projectDir })
-      removeEmptyFoldersUpTo(file.absolute, projectDir)
-    })
+    attempt(file.path, () => removeFileInsideRoot({ path: file.absolute, root: projectDir }))
+    tidyEmptyFolders(file.absolute, projectDir, projectDir, result.notes)
   }
   for (const host of hosts) {
     if (host.outcome !== 'removed') continue
@@ -760,25 +779,24 @@ export async function removeAgentSetup(options: AgentRemovalOptions): Promise<Ag
     attempt(`the agent-qa entry from ${host.file}`, () => {
       if (host.text === undefined) {
         removeHostFile({ path: host.absolute, root: projectDir, read, rerun })
-        removeEmptyFoldersUpTo(host.absolute, projectDir)
       } else {
         writeHostFile({ path: host.absolute, root: projectDir, content: host.text, read, rerun })
       }
     })
+    if (host.text === undefined) {
+      tidyEmptyFolders(host.absolute, projectDir, projectDir, result.notes)
+    }
   }
   if (block.outcome === 'removed') {
     attempt(`the agent-qa block from ${AGENTS_MD_FILE}`, () =>
       removeManagedBlockFromFile(blockPlan),
     )
   }
+  const manifestPath = join(projectDir, AGENT_SETUP_MANIFEST_PATH)
   attempt(AGENT_SETUP_MANIFEST_PATH, () => {
-    if (remaining.length > 0) {
-      writeAgentSetupManifest(projectDir, next)
-      return
-    }
-    const path = join(projectDir, AGENT_SETUP_MANIFEST_PATH)
-    removeFileInsideRoot({ path, root: projectDir })
-    removeEmptyFoldersUpTo(path, projectDir)
+    if (remaining.length > 0) writeAgentSetupManifest(projectDir, next)
+    else removeFileInsideRoot({ path: manifestPath, root: projectDir })
   })
+  if (remaining.length === 0) tidyEmptyFolders(manifestPath, projectDir, projectDir, result.notes)
   return result
 }
