@@ -80,11 +80,12 @@ describe('the MCP server with no project to serve', () => {
     expect(posture).toEqual(served)
   })
 
-  it('answers a call with not initialized, the config path and npx agent-qa init', async () => {
+  it('answers a call with not initialized, npx agent-qa init and a restart', async () => {
     const expected = {
       status: 'not_initialized',
       configPath: CONFIG_PATH,
       run: 'npx agent-qa init',
+      then: 'restart this MCP server (reconnect it in your coding agent)',
     }
     const result = await (await connect(NOT_INITIALIZED, 'auto')).callTool({
       name: 'agent_qa_list_runs',
@@ -105,6 +106,7 @@ describe('the MCP server with no project to serve', () => {
     expect(content[0]!.type).toBe('text')
     expect(content[0]!.text).toContain(CONFIG_PATH)
     expect(content[0]!.text).toContain('npx agent-qa init')
+    expect(content[0]!.text).toContain('then restart this MCP server')
   })
 
   it('never invokes a registry function', async () => {
@@ -121,7 +123,7 @@ describe('the MCP server with no project to serve', () => {
     expect(listed.resources).toEqual([])
   })
 
-  it('answers a call with config invalid, the first problem and npx agent-qa validate', async () => {
+  it('answers a call with config invalid, its problem, validate and a restart', async () => {
     const posture: AgentQaMcpPosture = {
       state: 'config-invalid',
       configPath: CONFIG_PATH,
@@ -135,13 +137,16 @@ describe('the MCP server with no project to serve', () => {
       configPath: CONFIG_PATH,
       problem: 'workspace: Required',
       run: 'npx agent-qa validate',
+      then: 'restart this MCP server (reconnect it in your coding agent)',
     })
     const content = result.content as { type: string; text: string }[]
     expect(content).toHaveLength(1)
     expect(content[0]!.text).toContain('workspace: Required')
     expect(content[0]!.text).toContain('npx agent-qa validate')
+    expect(content[0]!.text).toContain('then restart this MCP server')
     expect(client.getInstructions()).toBe(barrel.agentQaMcpPostureInstructions(posture))
     expect(client.getInstructions()).toContain('npx agent-qa validate')
+    expect(client.getInstructions()).toContain('then restart this MCP server')
     expect(invoked).toEqual([])
   })
 
@@ -149,6 +154,8 @@ describe('the MCP server with no project to serve', () => {
     const instructions = (await connect(NOT_INITIALIZED)).getInstructions()
     expect(instructions).toBe(barrel.agentQaMcpPostureInstructions(NOT_INITIALIZED))
     expect(instructions).toContain('npx agent-qa init')
+    expect(instructions).toContain('then restart this MCP server')
+    expect(instructions).not.toContain('until you run')
     expect(instructions).toContain(CONFIG_PATH)
   })
 })

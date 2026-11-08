@@ -213,26 +213,33 @@ function createProjectionHandler(
   }
 }
 
+// The posture is read once, at startup, so a fixed config is served only after a restart.
+const RESTART = 'restart this MCP server (reconnect it in your coding agent)'
+
 // `isError` skips the SDK's output-schema check, so the same result fits every tool.
 function createPostureHandler(posture: AgentQaMcpPosture) {
   const { text, structuredContent } = posture.state === 'not-initialized'
     ? {
         text: `agent-qa is not set up here: there is no agent-qa config at ${posture.configPath} `
-          + 'or in the folders above it. Run npx agent-qa init in the project folder.',
+          + 'or in the folders above it. Run npx agent-qa init in the project folder, then '
+          + `${RESTART}.`,
         structuredContent: {
           status: 'not_initialized',
           configPath: posture.configPath,
           run: 'npx agent-qa init',
+          then: RESTART,
         },
       }
     : {
         text: `${posture.configPath} is not a valid agent-qa config: `
-          + `${posture.problem.replace(/\.$/u, '')}. Run npx agent-qa validate.`,
+          + `${posture.problem.replace(/\.$/u, '')}. Fix it until npx agent-qa validate passes, `
+          + `then ${RESTART}.`,
         structuredContent: {
           status: 'config_invalid',
           configPath: posture.configPath,
           problem: posture.problem,
           run: 'npx agent-qa validate',
+          then: RESTART,
         },
       }
   return async (): Promise<CallToolResult> => ({
