@@ -352,7 +352,13 @@ function writeMcpEntry(
           ? 'updated'
           : 'replaced'
   if (edit.text !== existing) {
-    writeScaffoldFileAtomic({ path, root: projectDir, content: edit.text, force: true })
+    writeScaffoldFileAtomic({
+      path,
+      root: projectDir,
+      content: edit.text,
+      force: true,
+      keepMode: true,
+    })
   }
   if (outcome === 'replaced') {
     result.notes.push(
@@ -747,6 +753,7 @@ export async function removeAgentSetup(options: AgentRemovalOptions): Promise<Ag
           root: projectDir,
           content: host.text,
           force: true,
+          keepMode: true,
         })
       }
     })
