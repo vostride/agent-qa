@@ -1,6 +1,6 @@
 --- a/.gitignore
 +++ b/.gitignore
-@@ -1,3 +1,15 @@
+@@ -1,3 +1,14 @@
  # the project's own rules
  dist/
  .agent-qa/
@@ -11,7 +11,6 @@
 +.agent-qa/auth-states/
 +tests/.agent-qa-drafts/
 +node_modules/
-+agent-qa.local.yaml
 +.env
 +.env.secrets.local
 +.*.agent-qa-init-*.tmp

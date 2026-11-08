@@ -93,11 +93,6 @@ export const TARGET_GITIGNORE_PROBES = [
     requiredRule: '.agent-qa/auth-states/',
   },
   { path: 'node_modules/example/index.js', expected: 'ignored', requiredRule: 'node_modules/' },
-  {
-    path: 'agent-qa.local.yaml',
-    expected: 'ignored',
-    requiredRule: 'agent-qa.local.yaml',
-  },
   { path: '.env', expected: 'ignored', requiredRule: '.env' },
   { path: '.env.secrets.local', expected: 'ignored', requiredRule: '.env.secrets.local' },
   {
@@ -185,7 +180,6 @@ export const TARGET_GITIGNORE_ENTRIES = [
   // The draft shelf sits inside `tests/`, so it needs its own rule to stay out of commits.
   'tests/.agent-qa-drafts/',
   'node_modules/',
-  'agent-qa.local.yaml',
   '.env',
   '.env.secrets.local',
   DURABLE_TEMPORARY_GITIGNORE_RULE,

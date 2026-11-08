@@ -420,25 +420,33 @@ describe('the init examples', () => {
     expect(suite.tests.map((member: { id: string }) => member.id)).not.toContain(doc['test-id'])
   })
 
-  it('the hook script writes a shipping address the runtime env decoder reads', async () => {
+  it('the hook script writes a shipping address numbered 100 to 999 that the runtime env decoder reads', async () => {
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')
     const script = writtenText(await initWrites(), HOOK_SCRIPT)
     expect(script).toContain(HOOK_ENV_FILE)
+    expect(script).toContain("import { randomInt } from 'node:crypto'")
+    expect(script).toContain('randomInt(100, 1000)')
 
     const root = realFs.mkdtempSync(join(tmpdir(), 'hook-'))
     tempRoots.push(root)
     const output = join(root, 'agent-qa.env')
     const scriptPath = join(root, 'make-shipping-address.mjs')
     realFs.writeFileSync(scriptPath, script.replaceAll(HOOK_ENV_FILE, output))
-    const run = realChildProcess.spawnSync(process.execPath, [scriptPath], {
-      cwd: root,
-      env: hermeticEnv(root),
-      encoding: 'utf8',
-    })
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const run = realChildProcess.spawnSync(process.execPath, [scriptPath], {
+        cwd: root,
+        env: hermeticEnv(root),
+        encoding: 'utf8',
+      })
 
-    expect(run.status, run.stderr).toBe(0)
-    const vars = parseEnvFile(realFs.readFileSync(output, 'utf8'))
-    expect(vars.SHIPPING_ADDRESS).toMatch(/^\d{3} Cedar Lane$/)
+      expect(run.status, run.stderr).toBe(0)
+      const vars = parseEnvFile(realFs.readFileSync(output, 'utf8'))
+      const match = /^(\d+) Cedar Lane$/.exec(vars.SHIPPING_ADDRESS ?? '')
+      expect(match, vars.SHIPPING_ADDRESS).not.toBeNull()
+      const number = Number(match![1])
+      expect(number).toBeGreaterThanOrEqual(100)
+      expect(number).toBeLessThanOrEqual(999)
+    }
   })
 })
 

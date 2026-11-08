@@ -256,9 +256,9 @@ function buildExampleHooksFile(): string {
 function buildShippingAddressScript(): string {
   return `// Runs before the test with no network and writes SHIPPING_ADDRESS for {{env:SHIPPING_ADDRESS}}.
 import { writeFile } from 'node:fs/promises'
-import { randomBytes } from 'node:crypto'
+import { randomInt } from 'node:crypto'
 
-const address = \`\${100 + (randomBytes(1)[0] % 900)} Cedar Lane\`
+const address = \`\${randomInt(100, 1000)} Cedar Lane\`
 await writeFile('/tmp/agent-qa.env', \`SHIPPING_ADDRESS="\${address}"\\n\`, 'utf-8')
 `
 }
@@ -293,7 +293,6 @@ function buildSecretsFile(platform: InitPlatformInput): string {
     + 'the examples type it as {{secret:KOMAZON_PASSWORD}}.\n'
     + `${EXAMPLE_SECRET_LINE}\n`
 }
-const DEFAULT_LOCAL_CONFIG_FILE = 'agent-qa.local.yaml'
 
 function directoryGitignoreEntry(value: string): string {
   return value.endsWith('/') ? value : `${value}/`
@@ -306,8 +305,6 @@ function buildGitignoreEntries(): string[] {
     // Spelled literally because the init suite mocks init-filesystem.js; a test pins both equal.
     'tests/.agent-qa-drafts/',
     'node_modules/',
-    // init no longer writes this file; the rule keeps one an older init wrote out of git.
-    DEFAULT_LOCAL_CONFIG_FILE,
     DEFAULT_ENV_FILE,
     DEFAULT_SECRETS_FILE,
     // The namespace `writeDurableTemporary` publishes through. The temporary is a sibling of
@@ -368,12 +365,13 @@ Always dismiss the cookie banner before asserting page content
 Scoping: this file is the global scope. Add sibling files named <product>.md
 next to it for product-scoped rules.
 
-Sovereignty: policies are human-asserted and win every conflict. Once policy
-serving lands, every active line here is served to the agent verbatim on every
-run — never summarized, never budgeted out — so keep rules few and deliberate.
+Sovereignty: policies are human-asserted and win every conflict. agent-qa serves
+every active line here to the planner verbatim on every run, never summarized,
+so keep rules few and deliberate. A long file draws a warning; it is never cut.
 
-HTML comments are stripped at serve time: a comment-only file like this one is
-an empty policy. Add rules below this comment block to activate them.
+agent-qa strips HTML comments before serving, so a comment-only file like this
+one is an empty policy. Comments cannot nest: close one before opening another.
+Add rules below this comment block to activate them.
 -->
 `
 }

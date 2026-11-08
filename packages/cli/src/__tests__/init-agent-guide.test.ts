@@ -300,4 +300,27 @@ describe('INIT-GUIDE-EXCLUDED: the guide a fresh init writes never becomes knowl
     writeFileSync(join(knowledgeRoot, 'policies', 'global.md'), readFileSync(join(dir, GUIDE)))
     expect(served()).toContain(heading)
   })
+
+  it('serves the policy file init writes as an empty policy, one comment the policy ladder strips', async () => {
+    const dir = tempProject()
+    await runInit(dir)
+    const knowledgeRoot = join(dir, 'agent-qa-knowledge')
+    const policy = readFileSync(join(knowledgeRoot, 'policies', 'global.md'), 'utf8')
+    expect(policy).toContain('Always dismiss the cookie banner')
+
+    const brief = openKnowledgeReader({ knowledgeRoot, product: 'example-web' })
+      .getRunBrief({ tier: 'product', key: 'example-web' }, 4_000)
+    expect(JSON.stringify(brief)).not.toContain('Always dismiss the cookie banner')
+
+    writeFileSync(
+      join(knowledgeRoot, 'policies', 'global.md'),
+      `${policy}Always close the newsletter popup first\n`,
+    )
+    const served = JSON.stringify(
+      openKnowledgeReader({ knowledgeRoot, product: 'example-web' })
+        .getRunBrief({ tier: 'product', key: 'example-web' }, 4_000),
+    )
+    expect(served).toContain('Always close the newsletter popup first')
+    expect(served).not.toContain('Always dismiss the cookie banner')
+  })
 })

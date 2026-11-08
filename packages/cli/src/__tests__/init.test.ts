@@ -24,7 +24,6 @@ vi.mock('../commands/init-filesystem.js', async () => {
     '.agent-qa/',
     '.agent-qa/auth-states/',
     'node_modules/',
-    'agent-qa.local.yaml',
     '.env',
     '.env.secrets.local',
   ]
@@ -814,18 +813,6 @@ describe('init command', () => {
     expect(mockWriteFileSync.mock.calls.some((call) => (call[0] as string).endsWith('.env.secrets.local'))).toBe(true)
   })
 
-  it.each(['web', 'android', 'ios'] as const)(
-    'a %s init writes no agent-qa.local.yaml and prints no step to edit one',
-    async (platform) => {
-      await runInit(['--platform', platform])
-
-      expect(findWriteCallEndingWith('agent-qa.local.yaml')).toBeUndefined()
-      const plannedPaths = mockPreflightInitPlan.mock.calls[0]![0].map(plan => plan.path)
-      expect(plannedPaths).not.toContain('/tmp/test-project/agent-qa.local.yaml')
-      expect(consoleOutput()).not.toContain('Edit agent-qa.local.yaml')
-    },
-  )
-
   it('places a complete managed .gitignore block after existing entries', async () => {
     mockExistsSync.mockImplementation((p) => {
       if ((p as string).endsWith('.gitignore')) return true
@@ -844,7 +831,6 @@ describe('init command', () => {
     // Existing rules remain byte-preserved; the complete terminal block is authoritative.
     expect(content).toContain('.agent-qa/')
     expect(content).toContain('.agent-qa/auth-states/')
-    expect(content).toContain('agent-qa.local.yaml')
     expect(content).toContain('.env')
     expect(content).toContain('.env.secrets.local')
     // The original node_modules rule remains and is repeated in the managed block.
@@ -1027,19 +1013,6 @@ describe('init command', () => {
       (call) => (call[0] as string).endsWith('agent-qa.config.yaml'),
     )
     expect(configCall).toBeDefined()
-  })
-
-  it('init --force does not rewrite a leftover agent-qa.local.yaml', async () => {
-    mockExistsSync.mockImplementation((p) => {
-      if ((p as string).endsWith('agent-qa.config.yaml')) return true
-      if ((p as string).endsWith('agent-qa.local.yaml')) return true
-      return false
-    })
-
-    await runInit(['--platform', 'web', '--force'])
-
-    expect(findWriteCallEndingWith('agent-qa.local.yaml')).toBeUndefined()
-    expect(findWriteCallEndingWith('agent-qa.config.yaml')).toBeDefined()
   })
 
   describe('credential-file scaffold policy', () => {
@@ -1393,6 +1366,12 @@ describe('init command', () => {
       expect(activeLines).toEqual([])
       // The example rule is taught INSIDE the comment.
       expect(segments[0]).toContain('Always dismiss the cookie banner before asserting page content')
+      expect(segments[0].split('<!--')).toHaveLength(2)
+      const prose = segments[0].replace(/\s+/g, ' ')
+      expect(prose).toContain('serves every active line here to the planner verbatim on every run')
+      expect(prose).toContain('strips HTML comments before serving')
+      expect(prose).toContain('A long file draws a warning; it is never cut.')
+      expect(prose).toContain('Comments cannot nest')
     })
 
     it('re-init never overwrites hand-edited README.md or policies/global.md, even with --force', async () => {
