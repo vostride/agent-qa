@@ -27,7 +27,9 @@ import type { ProjectedOpSpec } from './projection.js'
 import { registerEntityResources } from './resources.js'
 
 // Why the host cannot serve a project: every tool stays listed and every call says what to run.
-export type AgentQaMcpPosture = { readonly state: 'not-initialized'; readonly configPath: string }
+export type AgentQaMcpPosture =
+  | { readonly state: 'not-initialized'; readonly configPath: string }
+  | { readonly state: 'config-invalid'; readonly configPath: string; readonly problem: string }
 
 /** What a host must supply to build a server for one caller. */
 export interface AgentQaMcpServerDeps {
@@ -213,13 +215,26 @@ function createProjectionHandler(
 
 // `isError` skips the SDK's output-schema check, so the same result fits every tool.
 function createPostureHandler(posture: AgentQaMcpPosture) {
-  const text = `agent-qa is not set up here: there is no agent-qa config at ${posture.configPath} `
-    + 'or in the folders above it. Run npx agent-qa init in the project folder.'
-  const structuredContent = {
-    status: 'not_initialized',
-    configPath: posture.configPath,
-    run: 'npx agent-qa init',
-  }
+  const { text, structuredContent } = posture.state === 'not-initialized'
+    ? {
+        text: `agent-qa is not set up here: there is no agent-qa config at ${posture.configPath} `
+          + 'or in the folders above it. Run npx agent-qa init in the project folder.',
+        structuredContent: {
+          status: 'not_initialized',
+          configPath: posture.configPath,
+          run: 'npx agent-qa init',
+        },
+      }
+    : {
+        text: `${posture.configPath} is not a valid agent-qa config: `
+          + `${posture.problem.replace(/\.$/u, '')}. Run npx agent-qa validate.`,
+        structuredContent: {
+          status: 'config_invalid',
+          configPath: posture.configPath,
+          problem: posture.problem,
+          run: 'npx agent-qa validate',
+        },
+      }
   return async (): Promise<CallToolResult> => ({
     isError: true,
     content: [{ type: 'text', text }],

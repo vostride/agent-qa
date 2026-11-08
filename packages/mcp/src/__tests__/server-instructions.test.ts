@@ -89,6 +89,12 @@ describe('the MCP server instructions', () => {
     expect(instructions).toContain('agent-qa-knowledge/AGENTS.md')
   })
 
+  it('they name the installed skill folders and the command that writes them', () => {
+    for (const text of ['.claude/skills', '.agents/skills', 'npx agent-qa init']) {
+      expect(barrel.AGENT_QA_MCP_INSTRUCTIONS, text).toContain(text)
+    }
+  })
+
   it('every tool they name is registered', async () => {
     const client = await connect()
     const instructions = client.getInstructions() ?? ''

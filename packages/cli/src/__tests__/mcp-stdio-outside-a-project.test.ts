@@ -1,4 +1,4 @@
-// The built `agent-qa mcp` outside a project lists its tools and answers each call with what to run.
+// Outside a project, the built `agent-qa mcp` lists its tools and every call says what to run.
 
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -30,23 +30,25 @@ function emptyRepository(): string {
   return root
 }
 
-function fixtureProject(): string {
+const WORKSPACE = {
+  testMatch: ['tests/**/*.yaml'],
+  testPathIgnore: [],
+  suiteMatch: ['suites/**/*.suite.yaml'],
+  hooksFile: 'hooks.yaml',
+  envFile: '.env',
+  secretsFile: '.env.secrets.local',
+}
+
+function fixtureProject(
+  options: { readonly config?: string; readonly secretsFile?: boolean } = {},
+): string {
   const root = tempDir('agent-qa-inside-')
   writeFileSync(
     join(root, 'agent-qa.config.yaml'),
-    `${JSON.stringify({
-      workspace: {
-        testMatch: ['tests/**/*.yaml'],
-        testPathIgnore: [],
-        suiteMatch: ['suites/**/*.suite.yaml'],
-        hooksFile: 'hooks.yaml',
-        envFile: '.env',
-        secretsFile: '.env.secrets.local',
-      },
-    }, null, 2)}\n`,
+    options.config ?? `${JSON.stringify({ workspace: WORKSPACE }, null, 2)}\n`,
     'utf8',
   )
-  writeFileSync(join(root, '.env.secrets.local'), '')
+  if (options.secretsFile !== false) writeFileSync(join(root, '.env.secrets.local'), '')
   mkdirSync(join(root, '.agent-qa'), { recursive: true })
   return root
 }
@@ -145,4 +147,59 @@ describe('agent-qa mcp outside a project', () => {
 
     expect(listing(folder)).toEqual(before)
   }, 90_000)
+
+  describe('with a config that does not load', () => {
+    const cases = [
+      {
+        name: 'a config that is not YAML',
+        project: () => fixtureProject({
+          config: 'note: hunter2-in-the-file\nworkspace: {\n  testMatch: [tests\n',
+        }),
+      },
+      {
+        name: 'a config the schema refuses',
+        project: () => fixtureProject({
+          config: `${JSON.stringify({
+            workspace: WORKSPACE,
+            services: {
+              mcp: { tokens: [{ name: 'legacy', tokenEnvVar: 'UNSET', scopes: ['read'] }] },
+            },
+          }, null, 2)}\n`,
+        }),
+      },
+      {
+        name: 'a config whose secrets file is missing',
+        project: () => fixtureProject({ secretsFile: false }),
+      },
+    ]
+
+    for (const { name, project } of cases) {
+      it(`${name} answers config invalid with one problem line`, async () => {
+        expect(existsSync(CLI_ENTRY), `the built CLI entry is missing at ${CLI_ENTRY}`).toBe(true)
+        const session = await connect(project(), 'legacy')
+        try {
+          expect(await toolNames(session.client)).toContain('agent_qa_list_runs')
+          expect(session.client.getInstructions()).toContain('npx agent-qa validate')
+
+          const result = await session.client.callTool({
+            name: 'agent_qa_list_runs',
+            arguments: {},
+          })
+          expect(result.isError).toBe(true)
+          const payload = payloadOf(result.structuredContent)
+          expect(payload.status).toBe('config_invalid')
+          expect(payload.run).toBe('npx agent-qa validate')
+          expect(String(payload.configPath)).toMatch(/agent-qa\.config\.yaml$/u)
+          const problem = String(payload.problem)
+          expect(problem.trim()).not.toBe('')
+          expect(problem).not.toContain('\n')
+          expect(problem.length).toBeLessThanOrEqual(300)
+          expect(problem).not.toContain('hunter2')
+          expect(session.stderr()).not.toContain('Failed to start MCP server')
+        } finally {
+          await session.close()
+        }
+      }, 60_000)
+    }
+  })
 })
