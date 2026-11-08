@@ -1,6 +1,6 @@
 // In `ci` and `cloud`, each line promising a resume states the drainer's resume limit instead.
 
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { invokeFunction } from '@vostride/agent-qa-agent'
@@ -12,6 +12,7 @@ import type { ServedBrief } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
+import { CI_VENDOR_VARS as CLI_CI_VENDOR_VARS } from '../ci-env.js'
 import { createRunCommand } from '../commands/run.js'
 import * as drive from '../composition/in-process-run-execution.js'
 import { runInProcessCliRun } from '../composition/in-process-run-execution.js'
@@ -65,18 +66,11 @@ const CI_CONTEXTS = ['ci', 'cloud'] as const
 type Context = 'ci' | 'cloud' | 'local-headless'
 // Every marker a product reader takes as CI, taken from the readers themselves: safety-local's
 // context detector (env.CI plus CI_VENDOR_VARS, which its package index does not re-export) and
-// run.ts's cache-policy list, which is module-private and so is read from its source.
+// the CLI's own list, which run.ts's cache policy and the update notice read.
 const { CI_VENDOR_VARS: CONTEXT_VENDOR_VARS } = await import(
   new URL('../../../safety-local/src/execution-context-detector.js', import.meta.url).href
 ) as { CI_VENDOR_VARS: ReadonlySet<string> }
-function runCommandCiVars(): string[] {
-  const source = readFileSync(new URL('../commands/run.ts', import.meta.url), 'utf8')
-  const list = /const CI_VENDOR_VARS = \[([^\]]*)\]/u.exec(source)?.[1] ?? ''
-  const names = [...list.matchAll(/'([A-Z0-9_]+)'/gu)].map((match) => match[1]!)
-  if (names.length === 0) throw new Error('run.ts no longer declares CI_VENDOR_VARS as a literal list; read it from its new home')
-  return names
-}
-const CI_MARKERS = [...new Set(['CI', ...CONTEXT_VENDOR_VARS, ...runCommandCiVars()])]
+const CI_MARKERS = [...new Set(['CI', ...CONTEXT_VENDOR_VARS, ...CLI_CI_VENDOR_VARS])]
 
 const roots: string[] = []
 const targets: CountingTarget[] = []

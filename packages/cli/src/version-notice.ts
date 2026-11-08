@@ -1,124 +1,126 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
-import pc from 'picocolors'
-import { getAgentQaUpdateStatus } from '@vostride/agent-qa-core'
+import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { get as httpsGet } from 'node:https'
+import { homedir } from 'node:os'
+import { dirname, join } from 'node:path'
+import {
+  getAgentQaVersionCheckCachePath,
+  readCachedAgentQaUpdateStatus,
+  refreshAgentQaVersionCheckInBackground,
+  type VersionCheckRequest,
+} from '@vostride/agent-qa-core'
+import { resolveIsCI } from './ci-env.js'
+import { VERSION } from './index.js'
 
-export type AgentQaUpdateNoticeReporterSelection = {
-  console: boolean
-  stdoutLive: boolean
-  junit?: boolean
-}
-
-export type AgentQaUpdateNoticeContext = {
-  reporterSelection: AgentQaUpdateNoticeReporterSelection
-  effectiveLogLevel: string
-  liveEvents?: string
-  cwd?: string
-  log?: (line?: string) => void
-}
-
-type PackageManager = 'pnpm' | 'npm' | 'yarn' | 'bun'
+export const UPDATE_NOTICE_SHOWN_FILE = 'update-notice.json'
 
 const RELEASES_URL = 'https://github.com/vostride/agent-qa/releases'
-const UPDATE_COMMANDS: Record<PackageManager, string> = {
-  pnpm: 'pnpm add -D agent-qa@latest',
-  npm: 'npm install --save-dev agent-qa@latest',
-  yarn: 'yarn add --dev agent-qa@latest',
-  bun: 'bun add --dev agent-qa@latest',
+const NOTICE_INTERVAL_MS = 24 * 60 * 60 * 1000
+
+export interface UpdateNoticeGate {
+  env: NodeJS.ProcessEnv
+  stdoutIsTTY: boolean
+  stderrIsTTY: boolean
+  json: boolean
+  logLevel?: string
 }
 
-const LOCKFILES: Array<{ file: string; packageManager: PackageManager }> = [
-  { file: 'pnpm-lock.yaml', packageManager: 'pnpm' },
-  { file: 'package-lock.json', packageManager: 'npm' },
-  { file: 'npm-shrinkwrap.json', packageManager: 'npm' },
-  { file: 'yarn.lock', packageManager: 'yarn' },
-  { file: 'bun.lock', packageManager: 'bun' },
-  { file: 'bun.lockb', packageManager: 'bun' },
-]
+export interface UpdateNoticePrint {
+  homeDir: string
+  now: number
+  currentVersion: string
+  write: (text: string) => void
+}
 
-export function shouldPrintAgentQaUpdateNotice(context: AgentQaUpdateNoticeContext): boolean {
-  return Boolean(
-    context.reporterSelection.console &&
-      !context.reporterSelection.stdoutLive &&
-      context.liveEvents !== 'true' &&
-      context.effectiveLogLevel !== 'quiet' &&
-      context.effectiveLogLevel !== 'silent',
+export type UpdateNoticeRun = UpdateNoticeGate &
+  UpdateNoticePrint & {
+    request?: VersionCheckRequest
+  }
+
+// The one gate for both the notice and the registry refresh: people at a terminal only.
+export function updateNoticeApplies(gate: UpdateNoticeGate): boolean {
+  return (
+    gate.stdoutIsTTY &&
+    gate.stderrIsTTY &&
+    !resolveIsCI(gate.env) &&
+    gate.json !== true &&
+    gate.logLevel !== 'silent'
   )
 }
 
-export function inferAgentQaDevDependencyUpdateCommand(cwd = process.cwd()): string | undefined {
+export async function printUpdateNotice(input: UpdateNoticePrint): Promise<void> {
   try {
-    const packageJsonPath = join(cwd, 'package.json')
-    if (!existsSync(packageJsonPath)) return undefined
+    const status = await readCachedAgentQaUpdateStatus({
+      homeDir: input.homeDir,
+      currentVersion: input.currentVersion,
+    })
+    const latestVersion = status.latestVersion?.trim()
+    if (!status.updateAvailable || !latestVersion) return
 
-    const manifest = JSON.parse(readFileSync(packageJsonPath, 'utf-8')) as unknown
-    if (!isRecord(manifest) || !hasAgentQaDevDependency(manifest)) return undefined
+    const shownPath = updateNoticeShownPath(input.homeDir)
+    const shownAt = await readShownAt(shownPath)
+    if (shownAt !== undefined && input.now - shownAt < NOTICE_INTERVAL_MS) return
 
-    const packageManager = inferPackageManager(manifest, cwd)
-    return packageManager ? UPDATE_COMMANDS[packageManager] : undefined
+    input.write(
+      `agent-qa ${latestVersion} is out; you have ${status.installedVersion}. ` +
+        'Update this project: npx agent-qa@latest init\n',
+    )
+    input.write(`Releases: ${RELEASES_URL}\n`)
+    await writeShownAt(shownPath, input.now)
+  } catch {
+    // The notice is optional and never changes a command's outcome.
+  }
+}
+
+export async function runUpdateNotice(input: UpdateNoticeRun): Promise<void> {
+  if (!updateNoticeApplies(input)) return
+  await printUpdateNotice(input)
+  await refreshAgentQaVersionCheckInBackground({
+    homeDir: input.homeDir,
+    now: input.now,
+    request: input.request ?? httpsGet,
+  })
+}
+
+export async function processUpdateNotice(input: {
+  json: boolean
+  logLevel?: string
+}): Promise<void> {
+  await runUpdateNotice({
+    env: process.env,
+    stdoutIsTTY: process.stdout.isTTY === true,
+    stderrIsTTY: process.stderr.isTTY === true,
+    json: input.json,
+    logLevel: input.logLevel,
+    homeDir: homedir(),
+    now: Date.now(),
+    currentVersion: VERSION,
+    write: (text) => {
+      process.stderr.write(text)
+    },
+  })
+}
+
+function updateNoticeShownPath(homeDir: string): string {
+  return join(dirname(getAgentQaVersionCheckCachePath(homeDir)), UPDATE_NOTICE_SHOWN_FILE)
+}
+
+async function readShownAt(path: string): Promise<number | undefined> {
+  try {
+    const parsed = JSON.parse(await readFile(path, 'utf-8')) as { shownAt?: unknown }
+    return typeof parsed.shownAt === 'number' && Number.isFinite(parsed.shownAt)
+      ? parsed.shownAt
+      : undefined
   } catch {
     return undefined
   }
 }
 
-export async function printAgentQaUpdateNoticeIfNeeded(
-  context: AgentQaUpdateNoticeContext,
-): Promise<void> {
+async function writeShownAt(path: string, shownAt: number): Promise<void> {
   try {
-    if (!shouldPrintAgentQaUpdateNotice(context)) return
-
-    const status = await getAgentQaUpdateStatus()
-    const installedVersion = status.installedVersion.trim()
-    const latestVersion = typeof status.latestVersion === 'string'
-      ? status.latestVersion.trim()
-      : ''
-    if (!status.updateAvailable || !latestVersion) return
-
-    const command = inferAgentQaDevDependencyUpdateCommand(context.cwd)
-    const log = context.log ?? console.log
-
-    log()
-    log(`${pc.bold('Update available:')} agent-qa v${latestVersion}`)
-    if (installedVersion) {
-      log(pc.dim(`Current version: v${installedVersion}`))
-    }
-    log(`Releases: ${pc.cyan(RELEASES_URL)}`)
-    if (command) {
-      log(`Update: ${pc.cyan(command)}`)
-    }
+    await mkdir(dirname(path), { recursive: true })
+    await writeFile(path, JSON.stringify({ shownAt }), { encoding: 'utf-8', mode: 0o600 })
+    await chmod(path, 0o600)
   } catch {
-    // Update notices are optional and must never change CLI run outcomes.
+    // Without the record the notice shows again next time; nothing else depends on it.
   }
-}
-
-function hasAgentQaDevDependency(manifest: Record<string, unknown>): boolean {
-  const devDependencies = manifest.devDependencies
-  return (
-    isRecord(devDependencies) &&
-    Object.prototype.hasOwnProperty.call(devDependencies, 'agent-qa')
-  )
-}
-
-function inferPackageManager(
-  manifest: Record<string, unknown>,
-  cwd: string,
-): PackageManager | undefined {
-  if (typeof manifest.packageManager === 'string') {
-    return packageManagerFromSpecifier(manifest.packageManager)
-  }
-
-  const matchingLockfiles = LOCKFILES.filter(({ file }) => existsSync(join(cwd, file)))
-  return matchingLockfiles.length === 1 ? matchingLockfiles[0].packageManager : undefined
-}
-
-function packageManagerFromSpecifier(specifier: string): PackageManager | undefined {
-  const name = specifier.split('@')[0]
-  if (name === 'pnpm' || name === 'npm' || name === 'yarn' || name === 'bun') {
-    return name
-  }
-  return undefined
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

@@ -114,7 +114,7 @@ import { createShutdownController } from './shutdown-controller.js'
 import { rememberPluginRemoteRefusals, webRefusalMemory } from './plugin-remote-refusals.js'
 import { buildDirectRunMembers } from './direct-run-members.js'
 import { resolveRecordingSetting, resolveRecordingStagingDir } from './recording-setting.js'
-import { printAgentQaUpdateNoticeIfNeeded, shouldPrintAgentQaUpdateNotice, type AgentQaUpdateNoticeContext } from '../version-notice.js'
+import { resolveIsCI } from '../ci-env.js'
 
 const RUNTIME_ARTIFACTS_DIR = DEFAULT_AGENT_QA_ARTIFACTS_DIR || '.agent-qa/artifacts'
 const RUNTIME_CACHE_DIR = DEFAULT_AGENT_QA_CACHE_DIR || '.agent-qa/cache'
@@ -239,19 +239,6 @@ export const curationTailLog = {
 // Unref'd backstop: a run that cannot settle still exits 130, so Ctrl+C never hangs the CLI.
 function cancelGraceMs(): number {
   return Number(process.env.AGENT_QA_CANCEL_GRACE_MS ?? 3000)
-}
-
-// Mirrors safety-local's CI marker set inline, so the CLI takes no dependency just to read env.
-const CI_VENDOR_VARS = [
-  'CI', 'GITHUB_ACTIONS', 'GITLAB_CI', 'CIRCLECI', 'TRAVIS', 'APPVEYOR', 'BUILDKITE',
-  'DRONE', 'JENKINS_URL', 'HUDSON_URL', 'BITBUCKET_BUILD_NUMBER', 'TEAMCITY_VERSION',
-] as const
-
-function resolveIsCI(env: NodeJS.ProcessEnv = process.env): boolean {
-  return CI_VENDOR_VARS.some((name) => {
-    const value = env[name]
-    return value !== undefined && value !== '' && value.toLowerCase() !== 'false' && value !== '0'
-  })
 }
 
 async function buildActionCacheContext(params: {
@@ -1335,15 +1322,6 @@ export function closeOwnRowAtForcedExit(record: RunRecord): void {
     })
   } catch {
     // The process is exiting; a wedged runs.db must not stop it.
-  }
-}
-
-async function maybePrintPostRunUpdateNotice(context: AgentQaUpdateNoticeContext): Promise<void> {
-  try {
-    if (!shouldPrintAgentQaUpdateNotice(context)) return
-    await printAgentQaUpdateNoticeIfNeeded(context)
-  } catch {
-    // Update notices are best-effort and must not affect run outcomes.
   }
 }
 
@@ -5180,15 +5158,6 @@ export function createRunCommand(
         // Handle suite execution (early return)
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length === 0) {
           const { exitCode } = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere)
-          const suiteReporterSelection = resolveReporterSelection(opts).selection
-          if (suiteReporterSelection) {
-            await maybePrintPostRunUpdateNotice({
-              reporterSelection: suiteReporterSelection,
-              effectiveLogLevel,
-              liveEvents: process.env.AGENT_QA_LIVE_EVENTS,
-              cwd: process.cwd(),
-            })
-          }
           await drainAnalytics() // The suite-only path's terminal exit.
           process.exit(exitCode)
         }
@@ -5541,12 +5510,6 @@ export function createRunCommand(
 
         // `singleExit` was fixed from the verdict plus any --all suite failure before curation.
         const exitCode = singleExit
-        await maybePrintPostRunUpdateNotice({
-          reporterSelection,
-          effectiveLogLevel,
-          liveEvents: process.env.AGENT_QA_LIVE_EVENTS,
-          cwd: process.cwd(),
-        })
         await drainAnalytics() // The verdict path's terminal exit.
         process.exit(exitCode)
       } catch (err) {

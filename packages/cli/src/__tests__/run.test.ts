@@ -50,8 +50,6 @@ const {
   mockDashboardRunIngestInstance,
   mockCreateDashboardRunIngest,
   mockRunsDbHandle,
-  mockShouldPrintAgentQaUpdateNotice,
-  mockPrintAgentQaUpdateNoticeIfNeeded,
   mockLogScope,
 } = vi.hoisted(() => {
   const multiReporter = {
@@ -140,8 +138,6 @@ const {
     mockFsActionCache: vi.fn(function () { return { get: vi.fn(), set: vi.fn(), invalidate: vi.fn() } }),
     mockFsStorageStateStore: vi.fn(function () { return { save: vi.fn(), load: vi.fn() } }),
     mockResolveBranch: vi.fn(() => ({ currentBranch: 'main', defaultBranch: 'main' })),
-    mockShouldPrintAgentQaUpdateNotice: vi.fn(() => true),
-    mockPrintAgentQaUpdateNoticeIfNeeded: vi.fn().mockResolvedValue(undefined),
   }
 })
 
@@ -577,11 +573,6 @@ vi.mock('@vostride/agent-qa-dashboard', () => ({
   resolveDashboardDbPath: mockResolveDashboardDbPath,
 }))
 
-vi.mock('../version-notice.js', () => ({
-  shouldPrintAgentQaUpdateNotice: mockShouldPrintAgentQaUpdateNotice,
-  printAgentQaUpdateNoticeIfNeeded: mockPrintAgentQaUpdateNoticeIfNeeded,
-}))
-
 vi.mock('../config.js', () => ({
   resolveConfig: mockResolveConfig,
   loadConfigPlugins: vi.fn(async () => {}),
@@ -761,10 +752,6 @@ beforeEach(() => {
     cookies: [],
     origins: [],
   })
-  mockShouldPrintAgentQaUpdateNotice.mockReset()
-  mockShouldPrintAgentQaUpdateNotice.mockReturnValue(true)
-  mockPrintAgentQaUpdateNoticeIfNeeded.mockReset()
-  mockPrintAgentQaUpdateNoticeIfNeeded.mockResolvedValue(undefined)
   mockFsActionCache.mockClear()
   mockFsStorageStateStore.mockClear()
   mockResolveBranch.mockClear()
@@ -2218,45 +2205,6 @@ describe('run command — framework error handling', () => {
 })
 
 describe('run command — reporter integration', () => {
-  function setupPassingDirectRun(resultOverrides: Record<string, unknown> = {}) {
-    mockGlob.mockResolvedValue(['tests/a.yaml'])
-    mockParseAllTests.mockResolvedValue({
-      tests: [makeTest()],
-      errors: [],
-    })
-    mockRunMemberTest.mockResolvedValue({
-      name: 'Test One',
-      filePath: 'tests/a.yaml',
-      status: 'passed',
-      steps: [],
-      duration: 100,
-      ...resultOverrides,
-    })
-  }
-
-  async function setupSuiteRun(resultOverrides: Record<string, unknown> = {}) {
-    const { suitePath, configPath } = await createTempSuiteWorkspace()
-    mockParseSuiteFile.mockResolvedValue({
-      name: 'Smoke Suite',
-      target: 'test-app',
-      tests: [{ test: 'tests/login.yaml', id: 'suite-test-1' }],
-    })
-    mockParseTestFile.mockReturnValue({
-      tests: [makeTest()],
-      errors: [],
-    })
-    mockRunMemberTest.mockResolvedValue({
-      runId: 'r_member',
-      name: 'Suite Member',
-      filePath: 'tests/login.yaml',
-      status: 'passed',
-      steps: [],
-      duration: 100,
-      ...resultOverrides,
-    })
-    return { suitePath, configPath }
-  }
-
   async function setupAllRun() {
     const { suitePath, testPath, configPath } = await createTempSuiteWorkspace()
     mockGlob.mockImplementation(async (pattern: string) => (
@@ -2289,11 +2237,6 @@ describe('run command — reporter integration', () => {
     return { configPath }
   }
 
-  function lastInvocationOrder(mock: { mock: { invocationCallOrder: number[] } }) {
-    const orders = mock.mock.invocationCallOrder
-    return orders[orders.length - 1] ?? 0
-  }
-
   it('adds the analytics reporter to actual direct test execution and flushes after completion', async () => {
     mockGlob.mockResolvedValue(['tests/a.yaml'])
     mockParseAllTests.mockResolvedValue({
@@ -2321,29 +2264,6 @@ describe('run command — reporter integration', () => {
     expect(mockAnalyticsRunSubscriberInstance.flush).toHaveBeenCalled()
   })
 
-  it('prints the update notice once after direct reporter completion and analytics flush', async () => {
-    setupPassingDirectRun()
-
-    await runCommand('tests/**/*.yaml')
-
-    expect(mockShouldPrintAgentQaUpdateNotice).toHaveBeenCalledTimes(1)
-    expect(mockPrintAgentQaUpdateNoticeIfNeeded).toHaveBeenCalledTimes(1)
-    expect(mockPrintAgentQaUpdateNoticeIfNeeded).toHaveBeenCalledWith(expect.objectContaining({
-      cwd: process.cwd(),
-      effectiveLogLevel: 'warn',
-      liveEvents: undefined,
-      reporterSelection: expect.objectContaining({
-        console: true,
-        stdoutLive: false,
-      }),
-    }))
-    const noticeOrder = lastInvocationOrder(mockPrintAgentQaUpdateNoticeIfNeeded)
-    // The notice fires after member execution and the analytics subscriber flush.
-    expect(noticeOrder).toBeGreaterThan(lastInvocationOrder(mockRunMemberTest))
-    expect(noticeOrder).toBeGreaterThan(lastInvocationOrder(mockAnalyticsRunSubscriberInstance.flush))
-    expect(exitSpy).toHaveBeenCalledWith(0)
-  })
-
   it('adds the analytics reporter to actual suite execution and flushes after completion', async () => {
     const { suitePath, configPath } = await createTempSuiteWorkspace()
     mockParseSuiteFile.mockResolvedValue({
@@ -2367,27 +2287,6 @@ describe('run command — reporter integration', () => {
     expect(mockAnalyticsRunSubscriberInstance.flush).toHaveBeenCalled()
   })
 
-  it.each([
-    ['passing', 'passed', 0],
-    ['failing', 'failed', 1],
-  ])('prints the update notice once after %s suite-only execution', async (_label, suiteStatus, exitCode) => {
-    const { suitePath, configPath } = await setupSuiteRun({ status: suiteStatus })
-
-    await runCommandWithGlobalArgs(['--config', configPath], suitePath)
-
-    expect(mockShouldPrintAgentQaUpdateNotice).toHaveBeenCalledTimes(1)
-    expect(mockPrintAgentQaUpdateNoticeIfNeeded).toHaveBeenCalledTimes(1)
-    expect(mockPrintAgentQaUpdateNoticeIfNeeded).toHaveBeenCalledWith(expect.objectContaining({
-      cwd: process.cwd(),
-      effectiveLogLevel: 'warn',
-      reporterSelection: expect.objectContaining({
-        console: true,
-        stdoutLive: false,
-      }),
-    }))
-    expect(exitSpy).toHaveBeenCalledWith(exitCode)
-  })
-
   it('composes analytics ONCE for a --all invocation — both subscribers hold the same port', async () => {
     // THE CLAIM IS OBJECT IDENTITY, not "both were configured the same way". `--all` drives the
     // suite path and then the direct path in one process; a rewire that composed at each attach
@@ -2400,83 +2299,6 @@ describe('run command — reporter integration', () => {
     const ports = mockCreateAnalyticsRunSubscriber.mock.calls.map((call) => call[0].port)
     expect(ports).toHaveLength(2)
     expect(ports[0]).toBe(ports[1])
-  })
-
-  it('prints the update notice once after --all suites and direct tests finish', async () => {
-    const { configPath } = await setupAllRun()
-
-    await runCommandWithGlobalArgs(['--config', configPath], '--all')
-
-    expect(mockRunMemberTest).toHaveBeenCalledTimes(2)
-    expect(mockShouldPrintAgentQaUpdateNotice).toHaveBeenCalledTimes(1)
-    expect(mockPrintAgentQaUpdateNoticeIfNeeded).toHaveBeenCalledTimes(1)
-    const noticeOrder = lastInvocationOrder(mockPrintAgentQaUpdateNoticeIfNeeded)
-    // The notice fires after all members finish executing.
-    expect(noticeOrder).toBeGreaterThan(lastInvocationOrder(mockRunMemberTest))
-    expect(exitSpy).toHaveBeenCalledWith(0)
-  })
-
-  it.each([
-    [
-      '--quiet',
-      ['--quiet'],
-      ['tests/**/*.yaml'],
-      undefined,
-      { effectiveLogLevel: 'silent', reporterSelection: expect.objectContaining({ console: true, stdoutLive: false }) },
-    ],
-    [
-      '--log-level silent',
-      ['--log-level', 'silent'],
-      ['tests/**/*.yaml'],
-      undefined,
-      { effectiveLogLevel: 'silent', reporterSelection: expect.objectContaining({ console: true, stdoutLive: false }) },
-    ],
-    [
-      '--reporter stdout-live',
-      [],
-      ['tests/**/*.yaml', '--reporter', 'stdout-live'],
-      undefined,
-      { effectiveLogLevel: 'warn', reporterSelection: expect.objectContaining({ console: false, stdoutLive: true }) },
-    ],
-    [
-      'AGENT_QA_LIVE_EVENTS=true',
-      [],
-      ['tests/**/*.yaml'],
-      'true',
-      { effectiveLogLevel: 'warn', liveEvents: 'true', reporterSelection: expect.objectContaining({ console: true, stdoutLive: true }) },
-    ],
-    [
-      '--reporter junit',
-      [],
-      ['tests/**/*.yaml', '--reporter', 'junit', '--junit-output', join(tmpdir(), 'agent-qa-run-notice-junit.xml')],
-      undefined,
-      { effectiveLogLevel: 'warn', reporterSelection: expect.objectContaining({ console: false, junit: true, stdoutLive: false }) },
-    ],
-  ])('does not print the update notice for %s', async (_label, globalArgs, runArgs, liveEvents, expectedContext) => {
-    setupPassingDirectRun()
-    mockShouldPrintAgentQaUpdateNotice.mockReturnValue(false)
-    if (liveEvents) process.env.AGENT_QA_LIVE_EVENTS = liveEvents
-
-    await runCommandWithGlobalArgs(globalArgs as string[], ...(runArgs as string[]))
-
-    expect(mockShouldPrintAgentQaUpdateNotice).toHaveBeenCalledTimes(1)
-    expect(mockShouldPrintAgentQaUpdateNotice).toHaveBeenCalledWith(expect.objectContaining(expectedContext))
-    expect(mockPrintAgentQaUpdateNoticeIfNeeded).not.toHaveBeenCalled()
-    expect(exitSpy).toHaveBeenCalledWith(0)
-  })
-
-  it('preserves the computed exit status and console errors when the update notice rejects', async () => {
-    setupPassingDirectRun({ status: 'failed' })
-    mockPrintAgentQaUpdateNoticeIfNeeded.mockRejectedValueOnce(new Error('registry unavailable'))
-
-    await runCommand('tests/**/*.yaml')
-
-    expect(mockPrintAgentQaUpdateNoticeIfNeeded).toHaveBeenCalledTimes(1)
-    expect(exitSpy).toHaveBeenCalledWith(1)
-    const nonExitErrors = errorSpy.mock.calls
-      .map((call: string[]) => call.join(' '))
-      .filter((message: string) => !message.includes('Framework error: process.exit'))
-    expect(nonExitErrors).toEqual([])
   })
 
   it('does not create analytics reporter for dry run, list, or validation-only paths', async () => {

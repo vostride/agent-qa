@@ -32,6 +32,32 @@ export interface VersionCheckOptions {
   homeDir?: string
 }
 
+export interface VersionCheckSocket {
+  unref(): unknown
+}
+
+export interface VersionCheckResponse {
+  statusCode?: number
+  setEncoding(encoding: BufferEncoding): unknown
+  on(event: string, listener: (...args: any[]) => void): unknown
+  resume(): unknown
+}
+
+export interface VersionCheckClientRequest {
+  on(event: string, listener: (...args: any[]) => void): unknown
+  destroy(): unknown
+}
+
+// The shape of `https.get`. Core opens no socket itself: the host passes `https.get` in, and tests
+// pass a stand-in for the registry.
+export type VersionCheckRequest = (
+  url: string,
+  options: { headers: Record<string, string>; timeout: number },
+  onResponse: (response: VersionCheckResponse) => void,
+) => VersionCheckClientRequest
+
+const MAX_REGISTRY_RESPONSE_CHARS = 4 * 1024 * 1024
+
 interface VersionCheckCacheFile {
   latestVersion?: string
   checkedAt?: string
@@ -81,6 +107,119 @@ export async function getAgentQaUpdateStatus(
     return await getAgentQaUpdateStatusInternal(installedVersion, options)
   } catch {
     return createStatus(installedVersion)
+  }
+}
+
+export async function readCachedAgentQaUpdateStatus(options: {
+  homeDir?: string
+  currentVersion: string
+}): Promise<AgentQaUpdateStatus> {
+  const installedVersion = options.currentVersion.trim()
+  try {
+    const semver = getSemverApi()
+    if (!semver) return createStatus(installedVersion)
+    const cache = await readVersionCheckCache(getAgentQaVersionCheckCachePath(options.homeDir))
+    const latestVersion = getValidVersion(cache?.latestVersion, semver)
+    if (!latestVersion || getTimestamp(cache?.checkedAt) === undefined) {
+      return createStatus(installedVersion)
+    }
+    return createStatus(installedVersion, semver, latestVersion, cache?.checkedAt)
+  } catch {
+    return createStatus(installedVersion)
+  }
+}
+
+// Starts at most one registry request a day and never waits for it: the attempt is recorded
+// first, and the request's socket is unref'd so it cannot hold the process open.
+export async function refreshAgentQaVersionCheckInBackground(options: {
+  homeDir?: string
+  now: number
+  request: VersionCheckRequest
+}): Promise<void> {
+  try {
+    const semver = getSemverApi()
+    if (!semver) return
+    const cachePath = getAgentQaVersionCheckCachePath(options.homeDir)
+    const cache = await readVersionCheckCache(cachePath)
+    const checkedAtMs = getTimestamp(cache?.checkedAt)
+    if (
+      getValidVersion(cache?.latestVersion, semver) &&
+      checkedAtMs !== undefined &&
+      options.now - checkedAtMs < VERSION_CHECK_CACHE_TTL_MS
+    ) {
+      return
+    }
+    const lastAttemptedAtMs = getTimestamp(cache?.lastAttemptedAt)
+    if (
+      lastAttemptedAtMs !== undefined &&
+      options.now - lastAttemptedAtMs < VERSION_CHECK_CACHE_TTL_MS
+    ) {
+      return
+    }
+
+    const nowIso = new Date(options.now).toISOString()
+    await writeVersionCheckCache(cachePath, {
+      latestVersion: cache?.latestVersion,
+      checkedAt: cache?.checkedAt,
+      lastAttemptedAt: nowIso,
+    })
+    startRegistryRequest(options.request, semver, (latestVersion) => {
+      void writeVersionCheckCache(cachePath, {
+        latestVersion,
+        checkedAt: nowIso,
+        lastAttemptedAt: nowIso,
+      })
+    })
+  } catch {
+    // Version checks must never block CLI work.
+  }
+}
+
+function startRegistryRequest(
+  request: VersionCheckRequest,
+  semver: SemverApi,
+  onLatestVersion: (latestVersion: string) => void,
+): void {
+  try {
+    const req = request(
+      AGENT_QA_NPM_REGISTRY_URL,
+      {
+        headers: { accept: 'application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8' },
+        timeout: VERSION_CHECK_TIMEOUT_MS,
+      },
+      (response) => {
+        try {
+          if (response.statusCode !== 200) {
+            response.resume()
+            return
+          }
+          response.setEncoding('utf8')
+          let body = ''
+          response.on('data', (chunk: string) => {
+            body += chunk
+            if (body.length > MAX_REGISTRY_RESPONSE_CHARS) req.destroy()
+          })
+          response.on('error', () => {})
+          response.on('end', () => {
+            try {
+              const parsed = JSON.parse(body) as unknown
+              if (!isRecord(parsed) || !isRecord(parsed['dist-tags'])) return
+              const latestVersion = getValidVersion(parsed['dist-tags'].latest, semver)
+              if (latestVersion) onLatestVersion(latestVersion)
+            } catch {
+              // A malformed registry answer leaves the cache as it was.
+            }
+          })
+        } catch {
+          // Version checks must never block CLI work.
+        }
+      },
+    )
+    req.on('socket', (socket: VersionCheckSocket) => socket.unref())
+    req.on('timeout', () => req.destroy())
+    req.on('error', () => {})
+  } catch {
+    // Version checks must never block CLI work.
   }
 }
 
