@@ -10,7 +10,6 @@ import {
   multiselect,
   note,
   outro,
-  select,
   type Option,
 } from '@clack/prompts'
 
@@ -18,6 +17,7 @@ import { PromptCancelled } from '../composition/cli-refusal.js'
 import { renderBanner } from './banner.js'
 import type { InitStepLine, InitUi } from './init-ui.js'
 import type { BrandPalette } from './palette.js'
+import { sectionSelect } from './section-select.js'
 
 const SPINNER_FRAMES = ['◒', '◐', '◓', '◑'] as const
 const SPINNER_DELAY_MS = 80
@@ -152,12 +152,11 @@ export function createClackUi(options: {
     },
     select: (q) =>
       ask<typeof q.initialValue>((streams) =>
-        select({
+        sectionSelect({
           ...streams,
           message: q.message,
-          options: choices(q.options),
+          sections: q.sections,
           initialValue: q.initialValue,
-          ...(q.maxItems === undefined ? {} : { maxItems: q.maxItems }),
         }),
       ),
     multiselect: (q) =>

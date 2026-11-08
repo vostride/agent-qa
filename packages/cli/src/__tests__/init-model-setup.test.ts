@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'n
 import { dirname, join } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 
-import { S_RADIO_ACTIVE } from '@clack/prompts'
+import { S_RADIO_ACTIVE, S_RADIO_INACTIVE, S_STEP_ACTIVE, S_STEP_SUBMIT } from '@clack/prompts'
 import { AgentQaConfigSchema, getAuthPath } from '@vostride/agent-qa-core'
 import { getProvider } from '@vostride/agent-qa-model'
 import { Command } from 'commander'
@@ -179,22 +179,46 @@ afterEach(() => {
 })
 
 describe('the model question on the rail', () => {
-  it('lists the saved credentials before the new choices, starts on claude-code and asks no follow-up', async () => {
+  it('lists the new choices, then the saved credentials, each under a heading, and Enter takes claude-code', async () => {
     const run = initOnTheRail(['--platform', 'web'], SIGNED_IN_AND_WORK_KEY)
     await run.streams.waitFor(MODEL_QUESTION)
     const drawn = stripVTControlCharacters(run.streams.text())
     await run.streams.press(KEY.enter)
     await run.done
 
-    const question = drawn.slice(drawn.indexOf(MODEL_QUESTION))
-    const firstNew = question.indexOf('Claude subscription (Claude Code)')
-    expect(question.indexOf('claude-code (')).toBeGreaterThan(-1)
-    expect(question.indexOf('claude-code (')).toBeLessThan(firstNew)
-    expect(question.indexOf('work (')).toBeGreaterThan(-1)
-    expect(question.indexOf('work (')).toBeLessThan(firstNew)
-    const active = question.split('\n').filter((line) => line.includes(S_RADIO_ACTIVE))
+    const question = drawn.slice(drawn.lastIndexOf('\n', drawn.indexOf(MODEL_QUESTION)) + 1)
+    const order = [
+      'Connect a new model',
+      'Claude subscription (Claude Code)',
+      'ChatGPT subscription (Codex)',
+      'Anthropic API',
+      'OpenAI API',
+      'Gemini API',
+      'OpenAI-compatible endpoint',
+      'Anthropic-compatible endpoint',
+      'Saved on this machine (2)',
+      'claude-code (',
+      'work (',
+    ].map((text) => question.indexOf(text))
+    expect(order.every((at) => at > -1)).toBe(true)
+    expect(order).toEqual([...order].sort((a, b) => a - b))
+    const lines = question.split('\n')
+    expect(lines[0]?.startsWith(S_STEP_ACTIVE)).toBe(true)
+    const active = lines.filter((line) => line.includes(S_RADIO_ACTIVE))
     expect(active).toHaveLength(1)
     expect(active[0]).toContain('claude-code (')
+    const headingTexts = ['Connect a new model', 'Saved on this machine (2)']
+    const headings = lines.filter((line) => headingTexts.some((text) => line.includes(text)))
+    expect(headings).toHaveLength(2)
+    for (const heading of headings) {
+      expect(heading).not.toContain(S_RADIO_ACTIVE)
+      expect(heading).not.toContain(S_RADIO_INACTIVE)
+    }
+    const answered = stripVTControlCharacters(run.streams.text())
+      .split('\n')
+      .filter((line) => line.includes(MODEL_QUESTION))
+      .at(-1)
+    expect(answered?.startsWith(S_STEP_SUBMIT)).toBe(true)
 
     const config = writtenConfig(run.root)
     expect(config.registry.llms).toEqual([

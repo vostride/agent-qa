@@ -10,6 +10,7 @@ export const AGENT_QA_CLI_FORBIDDEN_RESPONSIBILITIES = [
   'none - surface is a composition root with full host/storage access per spec section 4',
 ] as const
 export const AGENT_QA_CLI_EXTERNAL_DEPENDENCIES = [
+  '@clack/core',
   '@clack/prompts',
   '@inquirer/input',
   '@inquirer/password',

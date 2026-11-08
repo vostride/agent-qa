@@ -373,6 +373,9 @@ importers:
 
   packages/cli:
     dependencies:
+      '@clack/core':
+        specifier: 1.5.1
+        version: 1.5.1
       '@clack/prompts':
         specifier: 1.8.1
         version: 1.8.1

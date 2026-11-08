@@ -94,6 +94,7 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
+    "@clack/core": "1.5.1",
     "@clack/prompts": "1.8.1",
     "@inquirer/input": "5.1.9",
     "@inquirer/password": "5.2.5",

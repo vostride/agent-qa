@@ -12,14 +12,27 @@ export interface InitChoice<T> {
   hint?: string
 }
 
+// A section's status is drawn on every row, not only under the cursor.
+export interface InitSectionChoice<T> {
+  value: T
+  label: string
+  status: string
+}
+
+export interface InitSection<T> {
+  heading: string
+  options: readonly InitSectionChoice<T>[]
+}
+
 export interface InitUi {
   banner(): void
   intro(): void
+  // The initial value is matched by identity, so it must be one of the options' own values; a
+  // heading is never chosen.
   select<T>(q: {
     message: string
-    options: readonly InitChoice<T>[]
+    sections: readonly InitSection<T>[]
     initialValue: T
-    maxItems?: number
   }): Promise<T>
   multiselect<T>(q: {
     message: string

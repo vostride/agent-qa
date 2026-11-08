@@ -645,8 +645,11 @@ describe('init command', () => {
     expect(mockModel).toHaveBeenNthCalledWith(1, expect.objectContaining({
       message: 'Which model should agent-qa use?',
       initialValue: { kind: 'new', choice: 'claude-code' },
-      maxItems: 10,
     }))
+    const modelQuestion = mockModel.mock.calls[0]![0]
+    expect(modelQuestion.sections[0]?.heading).toBe('Connect a new model')
+    expect(modelQuestion.sections[0]?.options[0]?.value).toBe(modelQuestion.initialValue)
+    expect(modelQuestion).not.toHaveProperty('maxItems')
     expect(mockWriteAuth).not.toHaveBeenCalled()
 
     const configCall = mockWriteFileSync.mock.calls.find(

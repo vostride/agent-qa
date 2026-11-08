@@ -7,6 +7,7 @@ import {
 import { getProvider } from '@vostride/agent-qa-model'
 import { SUBSCRIPTION_AUTH_ENTRY_NAME } from '@vostride/agent-qa-schema'
 import { CliRefusal } from '../composition/cli-refusal.js'
+import type { InitSection } from '../init-ui/init-ui.js'
 import { SUBSCRIPTION_AUTH_PACKAGE } from './scaffold-content.js'
 
 export const INIT_MODEL_CHOICES = [
@@ -20,16 +21,17 @@ export const INIT_MODEL_CHOICES = [
 ] as const
 export type InitModelChoice = (typeof INIT_MODEL_CHOICES)[number]
 
-const INIT_MODEL_CHOICE_TEXT: Record<InitModelChoice, { label: string; hint: string }> = {
-  'claude-code': { label: 'Claude subscription (Claude Code)', hint: 'sign in now' },
-  codex: { label: 'ChatGPT subscription (Codex)', hint: 'sign in now' },
-  anthropic: { label: 'Anthropic API', hint: 'key in the dashboard' },
-  openai: { label: 'OpenAI API', hint: 'key in the dashboard' },
-  gemini: { label: 'Gemini API', hint: 'key in the dashboard' },
-  'openai-compatible': { label: 'OpenAI-compatible endpoint', hint: 'set up in the dashboard' },
+// Init signs nothing in, so a subscription is signed in after setup.
+const INIT_MODEL_CHOICE_TEXT: Record<InitModelChoice, { label: string; status: string }> = {
+  'claude-code': { label: 'Claude subscription (Claude Code)', status: 'sign in after setup' },
+  codex: { label: 'ChatGPT subscription (Codex)', status: 'sign in after setup' },
+  anthropic: { label: 'Anthropic API', status: 'key in the dashboard' },
+  openai: { label: 'OpenAI API', status: 'key in the dashboard' },
+  gemini: { label: 'Gemini API', status: 'key in the dashboard' },
+  'openai-compatible': { label: 'OpenAI-compatible endpoint', status: 'set up in the dashboard' },
   'anthropic-compatible': {
     label: 'Anthropic-compatible endpoint',
-    hint: 'set up in the dashboard',
+    status: 'set up in the dashboard',
   },
 }
 
@@ -52,17 +54,21 @@ export type InitModelPick =
 
 type SavedPick = Extract<InitModelPick, { kind: 'saved' }>
 
-export interface InitModelOption {
-  value: InitModelPick
-  label: string
-  hint: string
+const SAVED_KIND_STATUS: Record<SavedCredentialType, string> = {
+  oauth: 'signed in',
+  api: 'key saved',
+  bearer: 'token saved',
 }
 
-const SAVED_KIND_HINTS: Record<SavedCredentialType, string> = {
-  oauth: 'saved · signed in',
-  api: 'saved · key saved',
-  bearer: 'saved · token saved',
-}
+// A saved credential is listed where the new choice it acts as stands; a compatible key acts as
+// an endpoint.
+const SAVED_PROVIDER_ORDER: readonly string[] = [
+  'anthropic-subscription',
+  'openai-subscription',
+  'gemini',
+  'openai-compatible',
+  'anthropic-compatible',
+]
 
 function configProviderOf(storedProvider: string): string | undefined {
   return Object.hasOwn(SAVED_PROVIDER_TO_CONFIG, storedProvider)
@@ -84,17 +90,30 @@ function savedPicks(saved: readonly SavedCredential[]): SavedPick[] {
   )
 }
 
-export function initModelOptions(saved: readonly SavedCredential[]): InitModelOption[] {
-  const savedOptions = savedPicks(saved).map((pick) => ({
-    value: pick,
-    label: `${pick.name} (${getProvider(pick.provider)?.label ?? pick.provider})`,
-    hint: SAVED_KIND_HINTS[pick.type],
-  }))
-  const newOptions = INIT_MODEL_CHOICES.map((choice) => ({
-    value: { kind: 'new', choice } as const,
-    ...INIT_MODEL_CHOICE_TEXT[choice],
-  }))
-  return [...savedOptions, ...newOptions]
+export function initModelSections(saved: readonly SavedCredential[]): InitSection<InitModelPick>[] {
+  const newChoices: InitSection<InitModelPick> = {
+    heading: 'Connect a new model',
+    options: INIT_MODEL_CHOICES.map((choice) => ({
+      value: { kind: 'new', choice } as const,
+      ...INIT_MODEL_CHOICE_TEXT[choice],
+    })),
+  }
+  const rank = (pick: SavedPick) => SAVED_PROVIDER_ORDER.indexOf(pick.provider)
+  const picks = savedPicks(saved).sort(
+    (a, b) => rank(a) - rank(b) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
+  )
+  if (picks.length === 0) return [newChoices]
+  return [
+    newChoices,
+    {
+      heading: `Saved on this machine (${picks.length})`,
+      options: picks.map((pick) => ({
+        value: pick,
+        label: `${pick.name} (${getProvider(pick.provider)?.label ?? pick.provider})`,
+        status: SAVED_KIND_STATUS[pick.type],
+      })),
+    },
+  ]
 }
 
 interface NewChoiceTarget {

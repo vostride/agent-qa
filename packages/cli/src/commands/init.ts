@@ -45,7 +45,7 @@ import { buildKnowledgeAgentGuide } from './knowledge-guide.js'
 import { resolveIsCI } from '../ci-env.js'
 import { CliRefusal, PromptCancelled, isPromptCancel } from '../composition/cli-refusal.js'
 import { createClackUi, type ClackUi } from '../init-ui/clack-ui.js'
-import { initUiMode, type InitUi } from '../init-ui/init-ui.js'
+import { initUiMode, type InitSection, type InitUi } from '../init-ui/init-ui.js'
 import { brandPalette, colorLevelFor } from '../init-ui/palette.js'
 import { createPlainUi } from '../init-ui/plain-ui.js'
 import {
@@ -77,12 +77,11 @@ import type { CodingAgent } from './agent-setup-manifest.js'
 import { INIT_AGENT_OPTIONS, detectCodingAgents, parseInitAgentsFlag } from './init-agents.js'
 import {
   INIT_MODEL_CHOICES,
-  initModelOptions,
+  initModelSections,
   modelEntryFor,
   modelStatus,
   preselectedModel,
   resolveLlmFlag,
-  type InitModelOption,
   type InitModelPick,
   type InitModelStatus,
 } from './init-model-choice.js'
@@ -519,7 +518,11 @@ const PLATFORM_CHOICES = [
 ] as const satisfies readonly { value: PlatformCapability; label: string; hint: string }[]
 
 // A drawn question finds its initial option by identity, so the pre-selected pick is matched to it.
-function optionFor(options: readonly InitModelOption[], pick: InitModelPick): InitModelPick {
+function optionFor(
+  sections: readonly InitSection<InitModelPick>[],
+  pick: InitModelPick,
+): InitModelPick {
+  const options = sections.flatMap((section) => section.options)
   const same = options.find(({ value }) =>
     value.kind === 'new'
       ? pick.kind === 'new' && value.choice === pick.choice
@@ -1008,12 +1011,11 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
 
         if (modelPick === undefined) {
           asked = true
-          const options = initModelOptions(saved)
+          const sections = initModelSections(saved)
           modelPick = await ui.select<InitModelPick>({
             message: 'Which model should agent-qa use?',
-            options,
-            initialValue: optionFor(options, preselectedModel(saved)),
-            maxItems: 10,
+            sections,
+            initialValue: optionFor(sections, preselectedModel(saved)),
           })
         }
         modelSetup ??= modelEntryFor(modelPick, modelFlags)

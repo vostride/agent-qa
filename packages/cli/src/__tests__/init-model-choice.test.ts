@@ -1,4 +1,4 @@
-// Checks the model question's options, the entry each pick writes, its name and the pre-selection.
+// Checks the model question's sections, the entry each pick writes, its name and the pre-selection.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -15,14 +15,13 @@ import { CliRefusal } from '../composition/cli-refusal.js'
 import {
   INIT_MODEL_CHOICES,
   SAVED_PROVIDER_TO_CONFIG,
-  initModelOptions,
+  initModelSections,
   modelEntryFor,
   modelStatus,
   preselectedModel,
   resolveLlmFlag,
   type InitModelChoice,
   type InitModelFlags,
-  type InitModelOption,
   type InitModelPick,
 } from '../commands/init-model-choice.js'
 import { SUBSCRIPTION_AUTH_PACKAGE } from '../commands/scaffold-content.js'
@@ -53,10 +52,11 @@ async function savedFrom(store: Record<string, unknown>): Promise<SavedCredentia
   return listSavedCredentials(writeStore(home, store))
 }
 
-function newChoiceRows(options: InitModelOption[]): Array<[string, string, string]> {
-  return options.flatMap((option) =>
-    option.value.kind === 'new' ? [[option.value.choice, option.label, option.hint]] : [],
-  )
+// The saved section's options; a store with nothing listed gives the new choices alone.
+function savedOptions(saved: readonly SavedCredential[]) {
+  return initModelSections(saved)
+    .slice(1)
+    .flatMap((section) => section.options)
 }
 
 afterEach(() => {
@@ -66,66 +66,84 @@ afterEach(() => {
   cleanupTempProjects()
 })
 
-describe('model question options', () => {
-  it('lists saved credentials first by name and kind, then the seven new choices', async () => {
-    const options = initModelOptions(await savedFrom(FIXTURE_STORE))
+describe('model question sections', () => {
+  it('lists the seven new choices under their heading first, then the saved credentials', async () => {
+    const sections = initModelSections(
+      await savedFrom({
+        'claude-code': FIXTURE_STORE['claude-code'],
+        work: FIXTURE_STORE.work,
+      }),
+    )
 
-    expect(options.slice(0, 3).map((option) => [option.value, option.hint])).toEqual([
-      [
-        { kind: 'saved', name: 'claude-code', provider: 'anthropic-subscription', type: 'oauth' },
-        'saved · signed in',
-      ],
-      [{ kind: 'saved', name: 'g', provider: 'gemini', type: 'api' }, 'saved · key saved'],
-      [
-        { kind: 'saved', name: 'work', provider: 'openai-compatible', type: 'api' },
-        'saved · key saved',
-      ],
+    expect(sections.map((section) => section.heading)).toEqual([
+      'Connect a new model',
+      'Saved on this machine (2)',
     ])
-    expect(options[0]?.label).toContain('claude-code')
-    expect(options[2]?.label).toContain('work')
-    expect(options.slice(3).map((option) => option.value)).toEqual(
+    expect(sections[0]?.options.map((option) => option.value)).toEqual(
       INIT_MODEL_CHOICES.map((choice) => ({ kind: 'new', choice })),
     )
+    expect(sections[1]?.options.map((option) => [option.value, option.status])).toEqual([
+      [
+        { kind: 'saved', name: 'claude-code', provider: 'anthropic-subscription', type: 'oauth' },
+        'signed in',
+      ],
+      [{ kind: 'saved', name: 'work', provider: 'openai-compatible', type: 'api' }, 'key saved'],
+    ])
+    expect(sections[1]?.options[0]?.label).toContain('claude-code (')
+    expect(sections[1]?.options[1]?.label).toContain('work (')
+  })
+
+  it('gives the new choices alone when nothing is saved', () => {
+    expect(initModelSections([]).map((section) => section.heading)).toEqual(['Connect a new model'])
   })
 
   it('leaves out a stored name that fails the name rule and a provider outside the table', async () => {
-    const options = initModelOptions(await savedFrom(FIXTURE_STORE))
-    const savedNames = options.flatMap((option) =>
-      option.value.kind === 'saved' ? [option.value.name] : [],
+    const sections = initModelSections(await savedFrom(FIXTURE_STORE))
+    const savedNames = sections.flatMap((section) =>
+      section.options.flatMap((option) =>
+        option.value.kind === 'saved' ? [option.value.name] : [],
+      ),
     )
-    expect(savedNames).not.toContain('a b')
-    expect(savedNames).not.toContain('other')
+    expect(savedNames).toEqual(['claude-code', 'g', 'work'])
+    expect(sections[1]?.heading).toBe('Saved on this machine (3)')
   })
 
-  it('carries no secret from the store into any option', async () => {
-    const text = JSON.stringify(initModelOptions(await savedFrom(FIXTURE_STORE)))
+  it('carries no secret from the store into any section', async () => {
+    const text = JSON.stringify(initModelSections(await savedFrom(FIXTURE_STORE)))
     expect(text).not.toContain(DUMMY_TOKEN)
     expect(text).not.toContain(DUMMY_KEY)
   })
 
   it('maps a saved ChatGPT sign-in to the OpenAI subscription and marks a token as saved', async () => {
-    const options = initModelOptions(
+    const options = savedOptions(
       await savedFrom({
         codex: { type: 'oauth', provider: 'openai-subscription-oauth', tokens: oauthTokens },
         proxy: { type: 'bearer', provider: 'anthropic-compatible', token: DUMMY_TOKEN },
       }),
     )
-    expect(options.slice(0, 2).map((option) => [option.value, option.hint])).toEqual([
+    expect(options.map((option) => [option.value, option.status])).toEqual([
       [
         { kind: 'saved', name: 'codex', provider: 'openai-subscription', type: 'oauth' },
-        'saved · signed in',
+        'signed in',
       ],
       [
         { kind: 'saved', name: 'proxy', provider: 'anthropic-compatible', type: 'bearer' },
-        'saved · token saved',
+        'token saved',
       ],
     ])
   })
 
-  it('labels the seven new choices with what each sets up', () => {
-    expect(newChoiceRows(initModelOptions([]))).toEqual([
-      ['claude-code', 'Claude subscription (Claude Code)', 'sign in now'],
-      ['codex', 'ChatGPT subscription (Codex)', 'sign in now'],
+  it('labels the seven new choices and gives each its status', () => {
+    const [newChoices] = initModelSections([])
+    expect(
+      newChoices?.options.map((option) => [
+        option.value.kind === 'new' ? option.value.choice : option.value.name,
+        option.label,
+        option.status,
+      ]),
+    ).toEqual([
+      ['claude-code', 'Claude subscription (Claude Code)', 'sign in after setup'],
+      ['codex', 'ChatGPT subscription (Codex)', 'sign in after setup'],
       ['anthropic', 'Anthropic API', 'key in the dashboard'],
       ['openai', 'OpenAI API', 'key in the dashboard'],
       ['gemini', 'Gemini API', 'key in the dashboard'],
@@ -265,7 +283,7 @@ describe('the entry each new choice writes', () => {
 describe('the entry a saved credential writes', () => {
   it('a saved Claude sign-in writes an entry under its name with the default model', () => {
     const saved = [oauth('claude-code', 'anthropic-subscription')]
-    const [pick] = initModelOptions(saved)
+    const [pick] = savedOptions(saved)
     expect(modelEntryFor(pick!.value, { saved })).toEqual({
       entry: {
         name: 'claude-code',
@@ -277,9 +295,9 @@ describe('the entry a saved credential writes', () => {
 
   it('a saved ChatGPT sign-in and a saved Gemini key write entries under their names', () => {
     const saved = [oauth('chat', 'openai-subscription-oauth'), api('g', 'gemini')]
-    const entries = initModelOptions(saved)
-      .filter((option) => option.value.kind === 'saved')
-      .map((option) => modelEntryFor(option.value, { saved }).entry)
+    const entries = savedOptions(saved).map(
+      (option) => modelEntryFor(option.value, { saved }).entry,
+    )
     expect(entries).toEqual([
       { name: 'chat', provider: 'openai-subscription', model: defaultModel('openai-subscription') },
       { name: 'g', provider: 'gemini', model: defaultModel('gemini') },
@@ -288,7 +306,7 @@ describe('the entry a saved credential writes', () => {
 
   it('a saved compatible key writes no entry and names the dashboard page', () => {
     const saved = [api('work', 'openai-compatible')]
-    const [pick] = initModelOptions(saved)
+    const [pick] = savedOptions(saved)
     expect(modelEntryFor(pick!.value, { saved })).toEqual({
       dashboard: { add: 'openai-compatible-key', name: 'work' },
     })
@@ -357,7 +375,7 @@ describe('the name a new choice writes', () => {
 
   it('reuses a saved compatible key when the person picks it', () => {
     const saved = [api('openai', 'openai-compatible')]
-    const [pick] = initModelOptions(saved)
+    const [pick] = savedOptions(saved)
     expect(modelEntryFor(pick!.value, { saved })).toEqual({
       dashboard: { add: 'openai-compatible-key', name: 'openai' },
     })
