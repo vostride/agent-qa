@@ -1,5 +1,11 @@
 import { isDeepStrictEqual } from 'node:util'
-import { findNodeAtLocation, parse, parseTree, printParseErrorCode } from 'jsonc-parser'
+import {
+  createScanner,
+  findNodeAtLocation,
+  parse,
+  parseTree,
+  printParseErrorCode,
+} from 'jsonc-parser'
 import type { Node, ParseError } from 'jsonc-parser'
 import { getStaticTOMLValue, ParseError as TomlParseError, parseTOML } from 'toml-eslint-parser'
 import type { AST } from 'toml-eslint-parser'
@@ -219,19 +225,98 @@ export function upsertClaudeCodeMcpEntry(text: string | undefined): McpEntryEdit
   return checkedJsonUpsert(body, after, bom, undefined, entry)
 }
 
-// The range that takes `property` out of `object` with its separating comma, or undefined when
-// it is the object's only property.
-function propertyCut(object: Node, property: Node): [number, number] | undefined {
-  const siblings = object.children ?? []
-  if (siblings.length <= 1) return undefined
-  const at = siblings.indexOf(property)
-  if (at > 0) {
-    const previous = siblings[at - 1]!
-    return [previous.offset + previous.length, property.offset + property.length]
-  }
-  return [property.offset, siblings[1]!.offset]
+interface Lexeme {
+  kind: 'comment' | 'comma' | 'space' | 'break' | 'other'
+  start: number
+  end: number
 }
 
+function lexemes(text: string): Lexeme[] {
+  const scanner = createScanner(text, false)
+  const found: Lexeme[] = []
+  while (scanner.getPosition() < text.length) {
+    scanner.scan()
+    const start = scanner.getTokenOffset()
+    const end = start + scanner.getTokenLength()
+    const token = text.slice(start, end)
+    const kind = token.startsWith('//') || token.startsWith('/*')
+      ? 'comment'
+      : token === ','
+        ? 'comma'
+        : /^[\r\n]+$/u.test(token)
+          ? 'break'
+          : /^\s+$/u.test(token)
+            ? 'space'
+            : 'other'
+    found.push({ kind, start, end })
+  }
+  return found
+}
+
+// Where the indentation and line break in front of `offset` begin, so its line goes with it.
+function leadingSpace(lex: readonly Lexeme[], offset: number): number {
+  let at = lex.findIndex((lexeme) => lexeme.start === offset) - 1
+  while (lex[at]?.kind === 'space') at -= 1
+  if (lex[at]?.kind === 'break') at -= 1
+  return lex[at + 1]?.start ?? offset
+}
+
+// Where the space after `offset` ends, through one line break and the next line's indentation.
+function trailingSpace(lex: readonly Lexeme[], offset: number): number {
+  let at = lex.findIndex((lexeme) => lexeme.start === offset)
+  if (at === -1) return offset
+  while (lex[at]?.kind === 'space') at += 1
+  if (lex[at]?.kind === 'break') {
+    at += 1
+    while (lex[at]?.kind === 'space') at += 1
+  }
+  return lex[at]?.start ?? offset
+}
+
+function withoutRanges(text: string, ranges: readonly (readonly [number, number])[]): string {
+  const sorted = [...ranges].filter(([start, end]) => end > start).sort((a, b) => a[0] - b[0])
+  let kept = ''
+  let from = 0
+  for (const [start, end] of sorted) {
+    if (start > from) kept += text.slice(from, start)
+    from = Math.max(from, end)
+  }
+  return kept + text.slice(from)
+}
+
+// Takes `property` out of `object` with its separating comma and its own line; no comment goes.
+function withoutMember(text: string, lex: readonly Lexeme[], object: Node, property: Node): string {
+  const siblings = object.children ?? []
+  const at = siblings.indexOf(property)
+  const start = property.offset
+  const end = start + property.length
+  const ranges: [number, number][] = [[start, end]]
+  const previous = siblings[at - 1]
+  const next = siblings[at + 1]
+  if (previous !== undefined) {
+    const from = previous.offset + previous.length
+    const comma = lex.find((l) => l.kind === 'comma' && l.start >= from && l.end <= start)
+    if (comma !== undefined) ranges.push([comma.start, comma.end])
+    ranges.push([leadingSpace(lex, start), start])
+  } else if (next !== undefined) {
+    const comma = lex.find((l) => l.kind === 'comma' && l.start >= end && l.end <= next.offset)
+    if (comma !== undefined) ranges.push([comma.start, trailingSpace(lex, comma.end)])
+  } else {
+    ranges.push([leadingSpace(lex, start), start])
+  }
+  return withoutRanges(text, ranges)
+}
+
+function commentsOf(text: string, lex: readonly Lexeme[] = lexemes(text)): string[] {
+  return lex.filter((l) => l.kind === 'comment').map((l) => text.slice(l.start, l.end))
+}
+
+function hasClaudeCodeEntry(value: unknown): boolean {
+  const servers = isRecord(value) ? value[SERVERS] : undefined
+  return isRecord(servers) && Object.hasOwn(servers, AGENT_QA_MCP_SERVER_NAME)
+}
+
+// An emptied mcpServers goes too unless it holds a comment; the file goes only when nothing does.
 export function removeClaudeCodeMcpEntry(text: string | undefined): McpEntryRemoval {
   const { bom, body } = splitBom(text)
   if (body.trim() === '') return { text: undefined, previous: undefined }
@@ -242,12 +327,29 @@ export function removeClaudeCodeMcpEntry(text: string | undefined): McpEntryRemo
   const previous = body.slice(tree.entry.offset, tree.entry.offset + tree.entry.length)
   const servers = tree.servers!
   const serversProperty = servers.parent!
-  const cut =
-    propertyCut(servers, tree.entry.parent!) ?? propertyCut(tree.root, serversProperty)
-  if (cut === undefined) return { text: undefined, previous }
-  const after = splice(body, cut[0], cut[1], '')
+  const entryProperty = tree.entry.parent!
+  const lex = lexemes(body)
+  const entryEnd = entryProperty.offset + entryProperty.length
+  const kept = lex.filter(
+    (l) => l.kind === 'comment' && (l.end <= entryProperty.offset || l.start >= entryEnd),
+  )
+  const keptIn = (node: Node): boolean =>
+    kept.some((l) => l.start >= node.offset && l.end <= node.offset + node.length)
+  let after: string
+  if (servers.children?.length === 1 && !keptIn(serversProperty)) {
+    if (tree.root.children?.length === 1 && kept.length === 0) return { text: undefined, previous }
+    after = withoutMember(body, lex, tree.root, serversProperty)
+  } else {
+    after = withoutMember(body, lex, servers, entryProperty)
+  }
   if (!parsesCleanly(after)) return { refused: JSON_MISMATCH }
-  if (!isDeepStrictEqual(withoutClaudeCodeEntry(jsonValue(body)), jsonValue(after))) {
+  const keptComments = kept.map((l) => body.slice(l.start, l.end))
+  if (!isDeepStrictEqual(commentsOf(after), keptComments)) return { refused: JSON_MISMATCH }
+  const value = jsonValue(after)
+  if (
+    hasClaudeCodeEntry(value)
+    || !isDeepStrictEqual(withoutClaudeCodeEntry(jsonValue(body)), withoutClaudeCodeEntry(value))
+  ) {
     return { refused: JSON_MISMATCH }
   }
   return { text: `${bom}${after}`, previous }

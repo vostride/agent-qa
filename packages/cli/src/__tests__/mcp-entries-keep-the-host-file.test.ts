@@ -220,6 +220,77 @@ describe("agent-qa's Claude Code entry in .mcp.json", () => {
     expect(result.previous).toBe(upserted.entry)
   })
 
+  it('removing the first server keeps a comment that sits above the next one', () => {
+    const before = [
+      '{',
+      '  "mcpServers": {',
+      '    "agent-qa": { "command": "npx" },',
+      '    // staging server, do not remove',
+      '    "other": { "command": "x" }',
+      '  }',
+      '}',
+      '',
+    ].join('\n')
+
+    const result = removed(removeClaudeCodeMcpEntry(before))
+
+    expect(result.text).toBe(
+      '{\n  "mcpServers": {\n    // staging server, do not remove\n    "other": { "command": "x" }\n  }\n}\n',
+    )
+  })
+
+  it('removing the last server keeps the comment after the server before it', () => {
+    const before = [
+      '{',
+      '  "mcpServers": {',
+      '    "other": { "command": "x" }, // prod',
+      '    "agent-qa": { "command": "npx" }',
+      '  }',
+      '}',
+      '',
+    ].join('\n')
+
+    const result = removed(removeClaudeCodeMcpEntry(before))
+
+    expect(result.text).toBe(
+      '{\n  "mcpServers": {\n    "other": { "command": "x" } // prod\n  }\n}\n',
+    )
+  })
+
+  it('a file whose only other content is a comment keeps the comment and is not deleted', () => {
+    const before = [
+      '{',
+      '  // team MCP setup, see wiki',
+      '  "mcpServers": { "agent-qa": { "command": "npx" } }',
+      '}',
+      '',
+    ].join('\n')
+
+    const result = removed(removeClaudeCodeMcpEntry(before))
+
+    expect(result.text).toBe('{\n  // team MCP setup, see wiki\n}\n')
+    expect(parse(result.text!)).toEqual({})
+  })
+
+  it('an mcpServers holding a comment stays with the comment when its last server goes', () => {
+    const before = [
+      '{',
+      '  "name": "shop",',
+      '  "mcpServers": {',
+      '    // add the team servers here',
+      '    "agent-qa": { "command": "npx" }',
+      '  }',
+      '}',
+      '',
+    ].join('\n')
+
+    const result = removed(removeClaudeCodeMcpEntry(before))
+
+    expect(result.text).toBe(
+      '{\n  "name": "shop",\n  "mcpServers": {\n    // add the team servers here\n  }\n}\n',
+    )
+  })
+
   it('a file without the entry is returned unchanged', () => {
     const before = '{"mcpServers": {"other": {"command": "x"}}}'
 
