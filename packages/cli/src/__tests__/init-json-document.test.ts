@@ -50,6 +50,7 @@ async function init(
   home: string,
   args: readonly string[],
   run: FakeRunner = fakeRunner(),
+  composeAnalytics: typeof composeAnalyticsHost = silentAnalytics,
 ): Promise<InitExit> {
   stdout.mockClear()
   stderr.mockClear()
@@ -60,7 +61,7 @@ async function init(
         cwd,
         host: { homedir: home, env: {}, run, argv: ['init', ...args], execPath: NODE },
         isTTY: false,
-        composeAnalytics: silentAnalytics,
+        composeAnalytics,
       }),
     )
   const handler: string[] = []
@@ -368,6 +369,60 @@ describe('init --json prints one document on stdout', () => {
       nextSteps: [],
     })
     expect(result.stderr).toContain(message)
+  })
+
+  it('a refusal inside a step is a refused document that lists every planned step', async () => {
+    const { root, home } = tempProject('json-refused-in-a-step')
+    writeFileSync(join(root, '.gitignore'), '# agent-qa init:start\nnode_modules/\n')
+
+    const result = await init(root, home, ['--json', '--platform', 'web', '--pm', 'none'])
+
+    const doc = documentOf(result)
+    expect(result.exit).toBe(2)
+    expect(doc).toMatchObject({ outcome: 'refused', exitCode: 2 })
+    expect(doc.steps).toEqual([
+      { name: 'package-json', outcome: 'failed', reason: expect.any(String) },
+      { name: 'scaffold', outcome: 'skipped', reason: 'not run' },
+      { name: 'install', outcome: 'skipped', reason: 'not run' },
+      { name: 'chromium', outcome: 'skipped', reason: 'not run' },
+      { name: 'skills', outcome: 'skipped', reason: 'not run' },
+      { name: 'validate', outcome: 'skipped', reason: 'not run' },
+      { name: 'sign-in', outcome: 'skipped', reason: 'not run' },
+      { name: 'dashboard', outcome: 'skipped', reason: 'not run' },
+    ])
+  })
+
+  it('an error between steps is a failed document that lists every planned step', async () => {
+    const { root, home } = tempProject('json-error-between-steps')
+    const broken: typeof composeAnalyticsHost = async () => {
+      throw new Error('the analytics host is gone')
+    }
+
+    const result = await init(
+      root,
+      home,
+      ['--json', '--platform', 'web', '--pm', 'none'],
+      fakeRunner(),
+      broken,
+    )
+
+    const doc = documentOf(result)
+    expect(result.exit).toBe(1)
+    expect(doc).toMatchObject({
+      outcome: 'failed',
+      exitCode: 1,
+      message: 'the analytics host is gone',
+    })
+    expect(doc.steps).toEqual([
+      { name: 'package-json', outcome: 'done' },
+      { name: 'scaffold', outcome: 'done' },
+      { name: 'install', outcome: 'skipped', reason: 'not run' },
+      { name: 'chromium', outcome: 'skipped', reason: 'not run' },
+      { name: 'skills', outcome: 'skipped', reason: 'not run' },
+      { name: 'validate', outcome: 'skipped', reason: 'not run' },
+      { name: 'sign-in', outcome: 'skipped', reason: 'not run' },
+      { name: 'dashboard', outcome: 'skipped', reason: 'not run' },
+    ])
   })
 
   it('a Ctrl-C during the install is an interrupted document with exit code 130', async () => {

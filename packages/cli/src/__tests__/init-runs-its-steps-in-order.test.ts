@@ -542,18 +542,46 @@ describe('the step runner', () => {
       name: 'a TypeError',
       thrown: new TypeError("Cannot read properties of undefined (reading 'x')"),
     },
-  ])('$name thrown in a step passes through unchanged and is not drawn', async ({ thrown }) => {
+  ])(
+    '$name thrown in a step passes through unchanged, is not drawn and the rest are not run',
+    async ({ thrown }) => {
+      const ui = fakeInitUi()
+      const runner = createInitStepRunner({ ui, plan: PLAN, signals: signals() })
+
+      await expect(
+        runner.run('scaffold', { title: 'scaffold' }, async () => {
+          throw thrown
+        }),
+      ).rejects.toBe(thrown)
+      runner.dispose()
+
+      expect(ui.entries.some((entry) => entry.kind === 'failed')).toBe(false)
+      expect(runner.records()).toEqual([
+        { name: 'package-json', outcome: 'skipped', reason: 'not run' },
+        { name: 'scaffold', outcome: 'failed', reason: thrown.message },
+        { name: 'install', outcome: 'skipped', reason: 'not run' },
+      ])
+    },
+  )
+
+  it('skipRemaining records only the steps not yet recorded, without drawing them', async () => {
     const ui = fakeInitUi()
     const runner = createInitStepRunner({ ui, plan: PLAN, signals: signals() })
 
-    await expect(
-      runner.run('scaffold', { title: 'scaffold' }, async () => {
-        throw thrown
-      }),
-    ).rejects.toBe(thrown)
+    await runner.run('package-json', { title: 'package.json' }, async () => ({
+      outcome: 'done',
+      text: 'package.json kept',
+    }))
+    const drawn = ui.entries.length
+    runner.skipRemaining('not run')
     runner.dispose()
 
-    expect(ui.entries.some((entry) => entry.kind === 'failed')).toBe(false)
+    expect(runner.records()).toEqual([
+      { name: 'package-json', outcome: 'done' },
+      { name: 'scaffold', outcome: 'skipped', reason: 'not run' },
+      { name: 'install', outcome: 'skipped', reason: 'not run' },
+    ])
+    expect(ui.entries).toHaveLength(drawn)
   })
 
   it('a Ctrl-C during a step fails it as interrupted, skips the rest and removes the listener', async () => {

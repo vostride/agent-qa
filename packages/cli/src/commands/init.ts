@@ -105,6 +105,8 @@ import {
 import { loadSubscriptionPlugin, runInitSignIn, type InitSignInOutcome } from './init-sign-in.js'
 import {
   ALREADY_INITIALIZED,
+  INTERRUPTED,
+  NOT_RUN,
   createInitStepRunner,
   freshInitPlan,
   type InitStepName,
@@ -770,6 +772,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       let clackUi: ClackUi | undefined
       const recorder = createInitDocumentRecorder({ dir: projectDir })
       let steps: () => readonly InitStepRecord[] = () => []
+      let stepRunner: InitStepRunner | undefined
       let delegated = false
       let threw = false
       try {
@@ -1322,6 +1325,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         }
 
         const runner = createInitStepRunner({ ui, plan: freshInitPlan() })
+        stepRunner = runner
         steps = () => runner.records()
         let status: InitModelStatus = { status: 'pending' }
         let pluginInstalled = false
@@ -1484,6 +1488,9 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         if (setupFailed) throw new CliRefusal([], 3)
       } catch (error) {
         threw = true
+        const interrupted =
+          isPromptCancel(error) || (error instanceof CliRefusal && error.exitCode === 130)
+        stepRunner?.skipRemaining(interrupted ? INTERRUPTED : NOT_RUN)
         const refusal = asInitRefusal(error)
         recorder.fail(refusal)
         throw refusal

@@ -37,6 +37,8 @@ export interface InitStepRunner {
   ): Promise<InitStepRecord>
   skip(name: InitStepName, text: string, reason: string, command?: string): InitStepRecord
   records(): InitStepRecord[]
+  // Records every planned step not yet recorded as skipped for the reason.
+  skipRemaining(reason: string): void
   failed(): boolean
   interrupted(): boolean
   dispose(): void
@@ -45,6 +47,9 @@ export interface InitStepRunner {
 export const INTERRUPTED = 'interrupted'
 
 export const ALREADY_INITIALIZED = 'already initialized'
+
+// The reason a step after a refusal or a bug carries: init stopped before it.
+export const NOT_RUN = 'not run'
 
 // The steps a fresh init plans, in the order it runs them.
 export function freshInitPlan(): InitStepName[] {
@@ -116,14 +121,14 @@ export function createInitStepRunner({
     return entry
   }
 
-  const skipTheRest = (): void => {
+  const skipTheRest = (reason: string): void => {
     for (const name of plan) {
-      if (!recorded.has(name)) record({ name, outcome: 'skipped', reason: INTERRUPTED })
+      if (!recorded.has(name)) record({ name, outcome: 'skipped', reason })
     }
   }
 
   const cancel = (): never => {
-    skipTheRest()
+    skipTheRest(INTERRUPTED)
     dispose()
     throw new PromptCancelled()
   }
@@ -146,6 +151,7 @@ export function createInitStepRunner({
         const reason = messageOf(error)
         if (passesThrough(error)) {
           record({ name, outcome: 'failed', reason })
+          skipTheRest(NOT_RUN)
           throw error
         }
         line.failed(reason, step.command)
@@ -173,6 +179,7 @@ export function createInitStepRunner({
       ui.step(text).skipped(text)
       return record(withCommand({ name, outcome: 'skipped', reason }, command))
     },
+    skipRemaining: skipTheRest,
     records: () => plan.flatMap((name) => recorded.get(name) ?? []),
     failed: () => [...recorded.values()].some((entry) => entry.outcome === 'failed'),
     interrupted: () => interrupted,
