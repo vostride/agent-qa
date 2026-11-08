@@ -13,7 +13,7 @@ vi.mock('../config.js', async (importOriginal) => ({
   loadConfigFile: vi.fn(),
 }))
 
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -23,6 +23,11 @@ import { MockLanguageModelV4 } from 'ai/test'
 import { createModel } from '@vostride/agent-qa-model'
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import { loadConfigFile } from '../config.js'
+import {
+  buildHooksFile,
+  buildScaffoldConfig,
+  renderScaffoldConfigYaml,
+} from '../commands/scaffold-content.js'
 import {
   applyResolvedAuthToModelConfig,
   buildAnalysisTokenBudget,
@@ -35,6 +40,14 @@ import {
   resolveModelAuth,
   resolveNamedConfig,
 } from '../llm-utils.js'
+import {
+  CLI_ENTRY,
+  REBUILD_INSTRUCTION,
+  buildFreshness,
+  cleanupTempRoots,
+  spawnCollecting,
+  trackTempRoot,
+} from './conformance/spawned-chat.js'
 
 import type { JobModelCapabilityDeps } from '../llm-utils.js'
 import type { ModelCapabilities } from '@vostride/agent-qa-schema'
@@ -567,4 +580,43 @@ describe('model egress masking', () => {
     expect(sentUserText()).toContain('Type [secret:SHORT] into the code field.')
     expect(sentUserText()).not.toContain('q^7')
   })
+})
+
+describe('a config whose model is set up later', () => {
+  afterAll(() => {
+    cleanupTempRoots()
+  })
+
+  it('passes the built validate with exit 0', async () => {
+    const freshness = buildFreshness()
+    expect(
+      { missing: freshness.missing, stale: freshness.stale },
+      `this cell drives the built CLI: ${REBUILD_INSTRUCTION}`,
+    ).toEqual({ missing: [], stale: [] })
+
+    const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-no-model-validate-')))
+    mkdirSync(join(root, '.agent-qa'), { recursive: true })
+    const config = buildScaffoldConfig('web', {
+      llmEntries: [],
+      usesSubscriptionAuth: false,
+      cacheDir: '.agent-qa/cache',
+      authStatesDir: '.agent-qa/auth-states',
+    })
+    expect(config).not.toHaveProperty('registry.llms')
+    writeFileSync(join(root, 'agent-qa.config.yaml'), renderScaffoldConfigYaml(config), 'utf8')
+    writeFileSync(join(root, 'hooks.yaml'), buildHooksFile('web'), 'utf8')
+    writeFileSync(join(root, '.env'), '', 'utf8')
+    writeFileSync(join(root, '.env.secrets.local'), '', 'utf8')
+
+    const outcome = await spawnCollecting(root, [CLI_ENTRY, 'validate'], {
+      HOME: root,
+      USERPROFILE: root,
+      XDG_CONFIG_HOME: join(root, '.config'),
+      XDG_DATA_HOME: join(root, '.local', 'share'),
+      XDG_CACHE_HOME: join(root, '.cache'),
+      XDG_STATE_HOME: join(root, '.local', 'state'),
+    })
+
+    expect(outcome.code, `${outcome.stdout}\n${outcome.stderr}`).toBe(0)
+  }, 60_000)
 })
