@@ -18,13 +18,13 @@ import {
 } from './init-filesystem.js'
 import { projectHost, type ProjectHost } from './project-host.js'
 import {
+  PLUGIN_SKILL_FOLDER_PREFIX,
   pluginSkillSources,
   readSkillFiles,
   resolveAgentQaSkillSource,
   sha256Of,
   stampSkillFrontmatter,
-  type AgentQaSkillSource,
-  type PluginSkillSource,
+  type PluginSkillSources,
   type SkillFile,
 } from './skill-install.js'
 import { listAgentQaSkills } from './skills.js'
@@ -77,51 +77,62 @@ function byPath<T extends { path: string }>(a: T, b: T): number {
   return a.path < b.path ? -1 : a.path > b.path ? 1 : 0
 }
 
-interface SkillToPlan {
+interface SkillFiles {
   folder: string
-  dir: string
-  stamp: { version: string; name?: string }
+  files: SkillFile[]
 }
 
-function stampedSkillFiles(skill: SkillToPlan): SkillFile[] {
-  return readSkillFiles(skill.dir).map((file) =>
+function stampedSkillFiles(dir: string, stamp: { version: string; name?: string }): SkillFile[] {
+  return readSkillFiles(dir).map((file) =>
     file.path === 'SKILL.md'
       ? {
           path: file.path,
-          bytes: Buffer.from(stampSkillFrontmatter(file.bytes.toString('utf-8'), skill.stamp)),
+          bytes: Buffer.from(stampSkillFrontmatter(file.bytes.toString('utf-8'), stamp)),
         }
       : file,
   )
 }
 
+// One plugin's unreadable skill is held with a note; it never stops agent-qa's own skills.
+function readPluginSkills(
+  plugins: PluginSkillSources,
+  notes: string[],
+  held: Set<string>,
+): SkillFiles[] {
+  const skills: SkillFiles[] = []
+  for (const plugin of plugins.sources) {
+    try {
+      skills.push({
+        folder: plugin.folder,
+        files: stampedSkillFiles(plugin.dir, { version: plugin.version, name: plugin.folder }),
+      })
+    } catch (error) {
+      const entry = plugin.folder.slice(PLUGIN_SKILL_FOLDER_PREFIX.length)
+      notes.push(`Plugin ${entry}: ${errorMessage(error)} Its skill is not installed.`)
+      held.add(plugin.folder)
+    }
+  }
+  return skills
+}
+
 function planSkillFiles(
-  source: AgentQaSkillSource,
-  plugins: readonly PluginSkillSource[],
+  skills: readonly SkillFiles[],
   agents: readonly CodingAgent[],
 ): PlannedFile[] {
-  const skills: SkillToPlan[] = [
-    ...listAgentQaSkills(source.dir).map((skill) => ({
-      folder: skill.name,
-      dir: skill.path,
-      stamp: { version: source.version },
-    })),
-    ...plugins.map((plugin) => ({
-      folder: plugin.folder,
-      dir: plugin.dir,
-      stamp: { version: plugin.version, name: plugin.folder },
-    })),
-  ]
   const planned: PlannedFile[] = []
   for (const skill of skills) {
-    const files = stampedSkillFiles(skill)
     for (const agent of agents) {
-      for (const file of files) {
+      for (const file of skill.files) {
         const path = `${AGENT_SKILL_ROOTS[agent]}/${skill.folder}/${file.path}`
         if (agentOfManifestPath(path) === agent) planned.push({ path, bytes: file.bytes })
       }
     }
   }
   return planned.sort(byPath)
+}
+
+function skillFolderOf(path: string, agent: CodingAgent): string {
+  return path.split('/')[AGENT_SKILL_ROOTS[agent].split('/').length] ?? ''
 }
 
 // A listed file whose bytes still hash to its record is unedited; any other difference is an edit.
@@ -167,6 +178,13 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
   if (!parts.includes('skills')) return result
   const plugins = await pluginSkillSources(projectDir, source.version)
   result.notes.push(...plugins.notes)
+  const held = new Set(plugins.held)
+  const holds = (path: string, agent: CodingAgent): boolean => {
+    const folder = skillFolderOf(path, agent)
+    return (
+      held.has(folder) || (!plugins.configLoaded && folder.startsWith(PLUGIN_SKILL_FOLDER_PREFIX))
+    )
+  }
 
   const listed = new Map((previous?.files ?? []).map((file) => [file.path, file.sha256]))
   const records = new Map<string, string>()
@@ -175,7 +193,14 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
     if (agent !== undefined && !chosen.includes(agent)) records.set(path, sha256)
   }
   const failures: string[] = []
-  const planned = planSkillFiles(source, plugins.sources, chosen)
+  const agentQaSkills = listAgentQaSkills(source.dir).map((skill) => ({
+    folder: skill.name,
+    files: stampedSkillFiles(skill.path, { version: source.version }),
+  }))
+  const planned = planSkillFiles(
+    [...agentQaSkills, ...readPluginSkills(plugins, result.notes, held)],
+    chosen,
+  )
 
   for (const file of planned) {
     const absolute = join(projectDir, file.path)
@@ -216,6 +241,10 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
   for (const [path, sha256] of listed) {
     const agent = agentOfManifestPath(path)
     if (agent === undefined || !chosen.includes(agent) || plannedPaths.has(path)) continue
+    if (holds(path, agent)) {
+      records.set(path, sha256)
+      continue
+    }
     const absolute = join(projectDir, path)
     try {
       if (removeFileInsideRoot({ path: absolute, root: projectDir }) === 'removed') {
