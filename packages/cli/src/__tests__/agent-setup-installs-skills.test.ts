@@ -1,6 +1,7 @@
 // The installer copies agent-qa's skills into Claude Code's and Codex's folders and records them.
 import { createHash } from 'node:crypto'
 import {
+  chmodSync,
   existsSync,
   lstatSync,
   mkdirSync,
@@ -368,6 +369,32 @@ describe('reinstalling agent-qa skills', () => {
       'Removed your edit: .claude/skills/agent-qa-beta/SKILL.md',
     ])
   })
+
+  // Permissions do not stop a removal for root or on Windows.
+  it.skipIf(process.platform === 'win32' || process.getuid?.() === 0)(
+    'drops the record of a removed file whose emptied folder it cannot remove, and names the folder',
+    async () => {
+      const project = tempProject('reinstall-drop-locked')
+      installAgentQa(project.root, VERSION)
+      await setup(project, BOTH)
+      shipOnly(project.root, VERSION, skillFolderFiles('agent-qa-alpha', ALPHA_EXTRA))
+      const parent = join(project.root, '.claude/skills')
+      chmodSync(parent, 0o555)
+      try {
+        const result = await setup(project, BOTH)
+
+        expect(result.parts.skills).toEqual({ outcome: 'done' })
+        expect(outcomeOf(result, '.claude/skills/agent-qa-beta/SKILL.md')).toBe('removed')
+        expect(result.notes).toContain(
+          'Could not remove the empty folder .claude/skills/agent-qa-beta (EACCES)',
+        )
+        const paths = readManifest(project.root).files.map((file) => file.path)
+        expect(paths.some((path) => path.includes('/agent-qa-beta/'))).toBe(false)
+      } finally {
+        chmodSync(parent, 0o755)
+      }
+    },
+  )
 
   it("never writes or removes a person's own skill or a file they added inside an agent-qa skill", async () => {
     const project = tempProject('reinstall-unlisted')

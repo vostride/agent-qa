@@ -282,6 +282,7 @@ function removalLines(result: AgentRemovalResult): string[] {
     )
   }
   if (lines.length === 0) lines.push("Nothing of agent-qa's is installed for those coding agents.")
+  lines.push(...result.notes)
   return lines
 }
 
