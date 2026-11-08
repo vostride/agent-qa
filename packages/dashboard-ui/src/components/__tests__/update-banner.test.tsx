@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   UPDATE_BANNER_DISMISS_COOKIE,
+  UPDATE_COMMAND_COPIED_TEXT,
   UpdateBanner,
   isUpdateBannerDismissed,
 } from '@/components/update-banner'
@@ -212,6 +213,33 @@ function getReleasesLink(): HTMLAnchorElement {
   return link as HTMLAnchorElement
 }
 
+function setClipboard(writeText: ((text: string) => Promise<void>) | undefined) {
+  Object.defineProperty(navigator, 'clipboard', {
+    configurable: true,
+    value: writeText === undefined ? undefined : { writeText },
+  })
+}
+
+function deferred() {
+  let resolve!: () => void
+  const promise = new Promise<void>((settle) => {
+    resolve = settle
+  })
+  return { promise, resolve }
+}
+
+function copyButton(): HTMLButtonElement {
+  const button = container?.querySelector<HTMLButtonElement>(
+    'button[aria-label="Copy npx agent-qa@latest init"]',
+  )
+  expect(button).not.toBeNull()
+  return button!
+}
+
+function copyStatus(): string | undefined {
+  return container?.querySelector('[data-update-command-status]')?.textContent ?? undefined
+}
+
 describe('UpdateBanner', () => {
   it('renders exact update copy, releases link, and dismiss control', async () => {
     const onDismiss = vi.fn()
@@ -236,7 +264,7 @@ describe('UpdateBanner', () => {
     expect(dismiss).not.toBeNull()
   })
 
-  it('contains no install guidance, npm link, product misbranding, or local debug copy', async () => {
+  it('names no package-manager install, npm link, product misbranding, or local debug copy', async () => {
     await renderNode(
       <UpdateBanner installedVersion="0.1.18" latestVersion="0.1.19" onDismiss={() => {}} />,
     )
@@ -262,6 +290,61 @@ describe('UpdateBanner', () => {
     for (const forbidden of forbiddenCopy) {
       expect(rendered).not.toContain(forbidden)
     }
+  })
+
+  it('shows the init command to run in this project', async () => {
+    await renderNode(
+      <UpdateBanner installedVersion="0.1.18" latestVersion="0.1.19" onDismiss={() => {}} />,
+    )
+
+    expect(queryText('Run in this project:')).not.toBeNull()
+    expect(container?.querySelector('[data-update-command]')?.textContent?.trim()).toBe(
+      'npx agent-qa@latest init',
+    )
+  })
+
+  it('copies exactly the init command and reports the copy once the write resolves', async () => {
+    const write = deferred()
+    const writes: string[] = []
+    setClipboard((text) => {
+      writes.push(text)
+      return write.promise
+    })
+    await renderNode(
+      <UpdateBanner installedVersion="0.1.18" latestVersion="0.1.19" onDismiss={() => {}} />,
+    )
+
+    const button = copyButton()
+    await act(async () => {
+      button.click()
+      await Promise.resolve()
+    })
+    expect(writes).toEqual(['npx agent-qa@latest init'])
+    expect(button.getAttribute('data-copy-status')).toBe('idle')
+    expect(copyStatus()).toBe('')
+
+    await act(async () => {
+      write.resolve()
+      await write.promise
+    })
+    expect(button.getAttribute('data-copy-status')).toBe('copied')
+    expect(copyStatus()).toBe(UPDATE_COMMAND_COPIED_TEXT)
+  })
+
+  it('shows no copied state when the clipboard write is rejected', async () => {
+    setClipboard(() => Promise.reject(new Error('blocked')))
+    await renderNode(
+      <UpdateBanner installedVersion="0.1.18" latestVersion="0.1.19" onDismiss={() => {}} />,
+    )
+
+    const button = copyButton()
+    await act(async () => {
+      button.click()
+      await Promise.resolve()
+    })
+    expect(button.getAttribute('data-copy-status')).toBe('failed')
+    expect(copyStatus()).not.toBe(UPDATE_COMMAND_COPIED_TEXT)
+    expect(copyStatus()).toContain('npx agent-qa@latest init')
   })
 
   it('invokes onDismiss once when the dismiss button is clicked', async () => {

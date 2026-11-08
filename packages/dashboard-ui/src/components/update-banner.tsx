@@ -1,9 +1,13 @@
-import { X } from "lucide-react"
+import { Check, Copy, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { useClipboardCopy } from "@/hooks/use-clipboard-copy"
 
 export const UPDATE_BANNER_DISMISS_COOKIE = "agent_qa_update_notice_dismissed"
 export const UPDATE_BANNER_DISMISS_MS = 24 * 60 * 60 * 1000
+export const UPDATE_COMMAND = "npx agent-qa@latest init"
+export const UPDATE_COMMAND_COPIED_TEXT = "Copied to the clipboard"
+export const UPDATE_COMMAND_COPY_FAILED_TEXT = `Could not copy — select the command to copy it: ${UPDATE_COMMAND}`
 
 export interface UpdateBannerDismissal {
   latestVersion: string
@@ -69,6 +73,7 @@ export function UpdateBanner({
   latestVersion: string
   onDismiss: () => void
 }) {
+  const { status, copy } = useClipboardCopy()
   return (
     <div
       role="status"
@@ -87,6 +92,31 @@ export function UpdateBanner({
         >
           View releases
         </a>
+        <span className="flex items-center gap-1.5">
+          <span className="text-muted-foreground">Run in this project:</span>
+          <code data-update-command className="rounded bg-background/70 px-1.5 py-0.5 font-mono">
+            {UPDATE_COMMAND}
+          </code>
+          <Button
+            type="button"
+            variant="ghost"
+            size="xs"
+            data-copy-status={status}
+            aria-label={`Copy ${UPDATE_COMMAND}`}
+            onClick={() => copy(UPDATE_COMMAND)}
+          >
+            {status === "copied"
+              ? <Check className="size-3.5 text-success" aria-hidden="true" />
+              : <Copy className="size-3.5 opacity-60" aria-hidden="true" />}
+          </Button>
+          <span data-update-command-status role="status" aria-live="polite" className="sr-only">
+            {status === "copied"
+              ? UPDATE_COMMAND_COPIED_TEXT
+              : status === "failed"
+                ? UPDATE_COMMAND_COPY_FAILED_TEXT
+                : ""}
+          </span>
+        </span>
       </div>
       <Button
         type="button"
