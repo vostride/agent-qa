@@ -516,7 +516,8 @@ export const UNPROJECTED_OPS: readonly UnprojectedOp[] = Object.freeze([
     opId: 'agent.explain',
     reason:
       'The protocol answers machine discovery itself through `tools/list` and SEP-2575 '
-      + '`server/discover`, and `init --agent` answers agent discovery from the committed catalog; '
-      + 'this op answers a person asking in prose, which a discovery tool would only restate.',
+      + '`server/discover`, and `init --capabilities` answers agent discovery from the committed '
+      + 'catalog; this op answers a person asking in prose, which a discovery tool would only '
+      + 'restate.',
   }),
 ] as const satisfies readonly UnprojectedOp[])

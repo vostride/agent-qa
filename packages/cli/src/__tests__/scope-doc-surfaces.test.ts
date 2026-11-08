@@ -1,4 +1,4 @@
-// The committed catalog, `init --agent` and MCP `tools/list` carry the scope text.
+// The committed catalog, `init --capabilities` and MCP `tools/list` carry the scope text.
 
 import { createServer, type Server } from 'node:http'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'

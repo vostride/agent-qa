@@ -73,7 +73,7 @@ const URL_PATTERN = /https?:\/\/[^\s"'<>)\]]+/g
 // No test starts a package manager or writes coding-agent files: init runs no install and
 // chooses no coding agent.
 function withoutInstall(args: readonly string[]): string[] {
-  if (args.includes('--agent')) return [...args]
+  if (args.includes('--capabilities')) return [...args]
   const pm = args.includes('--pm') ? [] : ['--pm', 'none']
   const agents = args.includes('--agents') ? [] : ['--agents', 'none']
   return [...args, ...pm, ...agents]

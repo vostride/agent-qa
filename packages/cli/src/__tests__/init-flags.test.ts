@@ -165,7 +165,7 @@ describe('init --capabilities prints the capability manifest', () => {
   )
 })
 
-describe('init --agent is refused with the new flag', () => {
+describe('a bare --agent is refused with a line naming --capabilities', () => {
   it(
     'prints the line pointing at --capabilities, suggests nothing, exits 2 and writes nothing',
     async () => {

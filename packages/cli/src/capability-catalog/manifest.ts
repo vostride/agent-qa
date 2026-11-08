@@ -53,9 +53,9 @@ export interface AgentManifestInput {
 /**
  * The whole manifest: the committed catalog, the projected map, and this workspace's posture.
  *
- * TOLERANT OF A MISSING OR BROKEN CONFIGURATION, AND SAYS WHICH OF THE TWO. `init --agent` is the
- * command an agent runs in a directory that is not a project yet — that is what `init` is for — so
- * neither state is an error here. They are told apart by whether the FILE EXISTS, which is a fact
+ * TOLERANT OF A MISSING OR BROKEN CONFIGURATION, AND SAYS WHICH OF THE TWO. `init --capabilities`
+ * is the command an agent runs in a directory that is not a project yet — that is what `init` is
+ * for — so neither state is an error here. They are told apart by whether the FILE EXISTS, which is a fact
  * about the filesystem rather than a fact read out of an exception message: `absent` means run
  * `init`, `unresolved` means fix the file, and reporting either as `resolved` would say "this
  * workspace is fine" about a workspace nobody could read.

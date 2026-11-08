@@ -156,7 +156,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
 // No test starts a package manager or writes coding-agent files: init declares the dependencies,
 // runs no install and chooses no coding agent.
 function withoutInstall(args: readonly string[]): string[] {
-  if (args.includes('--agent')) return [...args]
+  if (args.includes('--capabilities')) return [...args]
   const pm = args.includes('--pm') ? [] : ['--pm', 'none']
   const agents = args.includes('--agents') ? [] : ['--agents', 'none']
   return [...args, ...pm, ...agents, '--no-dashboard']
@@ -1732,8 +1732,9 @@ skills/.staging/
     }
   }, 60_000)
 
-  // Each arm runs the real `init`: a fresh directory, the same one again, and the `--agent` read.
-  it('emits one init member per scaffold, and none for the --agent read', async () => {
+  // Each arm runs the real `init`: a fresh directory, the same one again, and the
+  // `--capabilities` read.
+  it('emits one init member per scaffold, and none for the --capabilities read', async () => {
     vi.resetModules()
     vi.doUnmock('node:fs')
     vi.doUnmock('node:child_process')
@@ -1803,13 +1804,13 @@ skills/.staging/
         created_file_count: 0,
       })
 
-      // `--agent` is a read. It returns before the scaffold exists, so there is no init to report —
-      // and counting one would make every manifest read a coding agent performs look like a project
-      // being initialised.
+      // `--capabilities` is a read. It returns before the scaffold exists, so there is no init to
+      // report — and counting one would make every manifest read a coding agent performs look like a
+      // project being initialised.
       sent.length = 0
       const log = vi.spyOn(console, 'log').mockImplementation(() => {})
       try {
-        await runRealInit(['--agent'])
+        await runRealInit(['--capabilities'])
       } finally {
         log.mockRestore()
       }

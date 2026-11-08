@@ -9,6 +9,15 @@ installer, which writes the skills, the MCP entries and the `AGENTS.md` block
 into a project folder and records them in its manifest, and
 `agent-qa skills uninstall`, which removes what that manifest lists.
 
+`agent-qa init` sets up the folder it runs in. In a terminal it asks the
+platform, the model and the coding agents on a Clack rail; with `--yes`,
+`--json`, in CI or without a terminal it asks nothing and prints plain lines.
+It runs its steps through one runner, one line each, and an interactive init
+ends by starting the dashboard unless `--no-dashboard` is given. With `--json`
+it prints one JSON document on stdout on every exit.
+`agent-qa init --capabilities` prints the JSON capability manifest and writes
+nothing.
+
 ## Read First
 
 - `package.json`
@@ -16,6 +25,8 @@ into a project folder and records them in its manifest, and
 - `src/cli-error-handler.ts`
 - `src/config.ts`
 - `src/commands/init.ts`
+- `src/commands/init-steps.ts`
+- `src/init-ui/`
 - `src/commands/auth.ts`
 - `src/commands/run.ts`
 - `src/commands/dashboard.ts`

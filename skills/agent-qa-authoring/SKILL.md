@@ -11,8 +11,8 @@ metadata:
 
 1. Discover the surface from the protocol itself: `tools/list` names every tool, and every caller
    sees and may call the same set. For the full picture — the capability catalog and this
-   workspace's posture — run `npx agent-qa init --agent`, which prints one JSON document and writes
-   nothing.
+   workspace's posture — run `npx agent-qa init --capabilities`, which prints one JSON document and
+   writes nothing.
 2. Read the workspace posture from that same manifest: whether this workspace has a configuration
    that reads. No MCP tool reads configuration.
 3. Load `references/agent-qa-contracts.json` when you need exact schema fields or ID contracts.

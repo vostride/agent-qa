@@ -75,7 +75,7 @@ export const CapabilityCatalogSchema = z.object({
   rows: z.array(CatalogRowSchema),
 }).strict()
 
-// The `init --agent` manifest: the catalog's rows, unfiltered, plus this workspace's posture.
+// The `init --capabilities` manifest: the catalog's rows, unfiltered, plus this workspace's posture.
 
 // No arm carries a reason string: a validation message can quote the file credentials sit beside.
 export const AgentManifestPostureSchema = z.object({
@@ -84,7 +84,7 @@ export const AgentManifestPostureSchema = z.object({
 }).strict()
 export type AgentManifestPosture = z.infer<typeof AgentManifestPostureSchema>
 
-/** What `agent-qa init --agent` prints, in full. */
+/** What `agent-qa init --capabilities` prints, in full. */
 export const AgentManifestSchema = z.object({
   $note: z.array(z.string().min(1)).min(1),
   rows: z.array(CatalogRowSchema),

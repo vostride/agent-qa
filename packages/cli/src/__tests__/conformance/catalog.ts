@@ -72,7 +72,8 @@ function repoRelative(absolutePath: string): string {
 export const CATALOG_NOTE: readonly string[] = Object.freeze([
   'GENERATED — the capability catalog.',
   'One row per registry capability, per chat alias and per shipped skill. This artifact is the ONE',
-  'data source behind `init --agent`, the chat `/` type-ahead, the starter prompts and `explain`.',
+  'data source behind `init --capabilities`, the chat `/` type-ahead, the starter prompts and',
+  '`explain`.',
   `DO NOT EDIT BY HAND: regenerate with "bash ${CATALOG_REGEN_SCRIPT} --write" and commit the`,
   'result as a deliberate, reviewed change. The script refuses to run while any other leg of the',
   'conformance suite is red, so a regeneration cannot launder an unrelated failure, and no',

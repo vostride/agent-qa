@@ -158,7 +158,8 @@ export type AuthoringStop = z.infer<typeof AuthoringStopSchema>
 export const AuthoringDraftWriteInputSchema = z.object({
   /** Plain-English description of the test to author. */
   intent: z.string().min(1),
-  // The `.describe()` reaches the catalog, `init --agent` and MCP; match `HOST_DERIVES_SCOPE`.
+  // The `.describe()` reaches the catalog, `init --capabilities` and MCP; match
+  // `HOST_DERIVES_SCOPE`.
   scope: scopeKeySchema.optional().describe(
     'Which product this test is authored for — the target key, e.g. `automation-exercise`. '
     + "In chat the planner fills this from the person's own words: a request that names the page, "

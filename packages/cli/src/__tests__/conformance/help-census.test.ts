@@ -1425,7 +1425,7 @@ describe('agent guidance never offers init --force', () => {
     })
     expect(initForceFindings([{
       name: 'planted',
-      body: ['Run `npx agent-qa init` once.', '', '```sh', 'npx agent-qa init --agent', '```'].join('\n'),
+      body: ['Run `npx agent-qa init` once.', '', '```sh', 'npx agent-qa init --capabilities', '```'].join('\n'),
     }])).toEqual({ scanned: 5, findings: [] })
     expect(initForceFindings([])).toEqual({ scanned: 0, findings: [] })
   })
