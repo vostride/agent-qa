@@ -443,7 +443,7 @@ describe('agent-qa skills uninstall refusals', () => {
 })
 
 describe('the agent-qa skills command around uninstall', () => {
-  it('refuses skills install with the usage error and exit 2', async () => {
+  it("refuses skills install with Commander's usage error and exit 1", async () => {
     const project = newProject('skills-install')
     let stderr = ''
     vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
@@ -453,9 +453,25 @@ describe('the agent-qa skills command around uninstall', () => {
 
     const error = await refusal(skills(project.root, ['install']))
 
-    expect(error.exitCode).toBe(2)
+    expect(error.exitCode).toBe(1)
+    expect(error.lines).toEqual([])
     expect((error.cause as CommanderError).code).toBe('commander.excessArguments')
     expect(stderr).toContain("too many arguments for 'skills'")
+  })
+
+  it('refuses an unknown skills uninstall option with the usage error and exit 2', async () => {
+    const project = newProject('skills-uninstall-unknown-option')
+    let stderr = ''
+    vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
+      stderr += String(chunk)
+      return true
+    })
+
+    const error = await refusal(skills(project.root, ['uninstall', '--force']))
+
+    expect(error.exitCode).toBe(2)
+    expect((error.cause as CommanderError).code).toBe('commander.unknownOption')
+    expect(stderr).toContain("unknown option '--force'")
   })
 
   it('still lists the packaged skills with --json', async () => {
