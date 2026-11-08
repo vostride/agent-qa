@@ -10,6 +10,8 @@ import { getDefaultEnvironment, StdioClientTransport } from '@modelcontextprotoc
 import { getAgentQaVersion } from '@vostride/agent-qa-core'
 import { afterEach, describe, expect, it } from 'vitest'
 
+import { payloadOf } from './mcp-tool-payload.js'
+
 const CLI_ENTRY = resolve(dirname(fileURLToPath(import.meta.url)), '../../dist/cli.js')
 
 const roots: string[] = []
@@ -91,15 +93,6 @@ async function connect(cwd: string, era: 'legacy' | 'auto'): Promise<Session> {
       await transport.close().catch(() => {})
     },
   }
-}
-
-// The 2025 codec wraps a result in `{ result }` when the tool's output schema is not an object.
-function payloadOf(structuredContent: unknown): Record<string, unknown> {
-  const record = (structuredContent ?? {}) as Record<string, unknown>
-  const keys = Object.keys(record)
-  return keys.length === 1 && keys[0] === 'result'
-    ? record.result as Record<string, unknown>
-    : record
 }
 
 async function toolNames(client: Client): Promise<string[]> {
