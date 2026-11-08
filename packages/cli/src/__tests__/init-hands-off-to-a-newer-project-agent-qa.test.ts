@@ -193,6 +193,30 @@ describe('init installs a declared newer agent-qa, then hands off to it', () => 
     expect(configured(root)).toBe(false)
   })
 
+  describe("the project agent-qa's own exit decides init's code after a Ctrl-C both heard", () => {
+    const heard = { signal: null, output: '', cancelled: true } as const
+    const exits: [string, RunResult, number | undefined][] = [
+      ['a clean exit after its dashboard stopped exits 0', { ...heard, code: 0 }, undefined],
+      ['an exit 3 after a failed step exits 3', { ...heard, code: 3 }, 3],
+      ['an exit 130 exits 130', { ...heard, code: 130 }, 130],
+      ['death by SIGINT exits 130', { ...heard, code: null, signal: 'SIGINT' }, 130],
+    ]
+
+    for (const [label, result, expected] of exits) {
+      it(label, async () => {
+        const { root, home } = tempProject('hand-off-ctrl-c')
+        writeCopy(root, '99.0.0')
+        const run = machine(installsCopy('99.0.0'), () => result)
+
+        const outcome = init(root, home, run)
+
+        if (expected === undefined) await expect(outcome).resolves.toBeUndefined()
+        else expect((await refusal(outcome)).exitCode).toBe(expected)
+        expect(commands(run).map((call) => call.stdio)).toEqual(['inherit'])
+      })
+    }
+  })
+
   it('under --pm none a declared newer agent-qa is not installed and nothing takes over', async () => {
     const { root, home } = tempProject('hand-off-pm-none')
     declare(root, '99.0.0')

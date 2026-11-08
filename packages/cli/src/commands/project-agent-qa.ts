@@ -73,12 +73,13 @@ export async function runAsProjectAgentQa(
     env: { ...host.env, [HANDED_OFF_ENV]: '1' },
     stdio: 'inherit',
   })
-  // The child ran, so what it printed stands for this run.
-  if (result.missing !== true) onHandOff?.()
-  if (wasCancelled(result)) throw new CliRefusal([], 130)
   if (result.missing === true) {
     throw new CliRefusal([pc.red(`${host.execPath} was not found to run ${copy.bin}.`)], 1)
   }
+  // The child ran, so what it printed and how it exited stand for this run: a Ctrl-C this process
+  // also heard counts only when it ended the child.
+  onHandOff?.()
+  if (result.signal === 'SIGINT' || result.code === 130) throw new CliRefusal([], 130)
   if (result.code === 0) return
   throw new CliRefusal([], result.code ?? 1)
 }
