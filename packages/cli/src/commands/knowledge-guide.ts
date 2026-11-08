@@ -104,7 +104,7 @@ export function buildKnowledgeAgentGuide(): string {
     'Wrong knowledge is corrected by new feedback (a run mark) or by forgetting the record.',
     '',
     `The \`${KNOWLEDGE_SKILL_NAME}\` skill has the workflow, with the depth in its references/ folder;`,
-    '`npx agent-qa skills` prints where it is.',
+    '`npx agent-qa init` installs it in `.claude/skills` and `.agents/skills`.',
     `Connecting Claude Code or Codex: ${CODING_AGENTS_URL}`,
     '',
   ].join('\n')
