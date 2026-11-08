@@ -8,7 +8,9 @@ import {
   managerEnv,
   plainInstall,
   resolveInstallCommand,
+  RunRejected,
   runFromHere,
+  runOrReject,
   wasCancelled,
   withResolvedYarnLine,
   type DetectedManager,
@@ -34,6 +36,8 @@ export interface InstallStepResult {
   outcome: 'installed' | 'skipped' | 'declared' | 'failed'
   command: string
   notes: string[]
+  // Why a failed install failed, without the settings notes its ✗ line adds.
+  reason?: string
 }
 
 const EXACT_SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u
@@ -41,6 +45,9 @@ const FAILURE_OUTPUT_LINES = 20
 
 export const OUTPUT_HIDDEN =
   "The manager's output is not shown: the declared secrets that would mask it could not be read."
+const MESSAGE_HIDDEN =
+  'the command could not start, and its message is not shown: the declared secrets that would ' +
+  'mask it could not be read'
 
 // A config or secrets file that does not exist declares nothing; one that exists but cannot be read
 // may, so the output is withheld rather than printed unmasked.
@@ -117,10 +124,29 @@ function isInstalled(
   return floor !== undefined && (compareSemverVersions(version, floor) ?? -1) >= 0
 }
 
+// A run that could not start is a failed step with the command it was running, never a crash.
 export async function runInstallStep(input: InstallStepInput): Promise<InstallStepResult> {
+  const print = input.print ?? ((line: string) => console.log(line))
+  try {
+    return await installStep(input, print)
+  } catch (error) {
+    if (!(error instanceof RunRejected)) throw error
+    const { range, packageJson } = input
+    const command = runFromHere(error.line, dirname(packageJson.path), range.start)
+    const masked = input.mask === undefined ? error.message : await input.mask(error.message)
+    const reason = redactInstallOutput(masked ?? MESSAGE_HIDDEN)
+    print(`✗ Install failed: ${reason}`)
+    print(`  Run: ${command}`)
+    return { outcome: 'failed', command, notes: [], reason }
+  }
+}
+
+async function installStep(
+  input: InstallStepInput,
+  print: (line: string) => void,
+): Promise<InstallStepResult> {
   const { host, range, packageJson } = input
   let manager = input.manager
-  const print = input.print ?? ((line: string) => console.log(line))
   const plain = plainInstall(manager.name)
   const packageDir = dirname(packageJson.path)
   const command = runFromHere(commandLine(plain.command, plain.args), packageDir, range.start)
@@ -156,7 +182,7 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
   // A Ctrl-C leaves package.json declared for the next run: nothing is rolled back.
   const install = async (args: readonly string[]) => {
     const options = { cwd: packageDir, env, stdio: 'capture' } as const
-    const result = await host.run(resolved.command, args, options)
+    const result = await runOrReject(host, resolved.command, args, options)
     if (wasCancelled(result)) throw new PromptCancelled()
     return result
   }
@@ -204,7 +230,7 @@ export async function runInstallStep(input: InstallStepInput): Promise<InstallSt
       }
     }
     print(`  Run: ${ran}`)
-    return { outcome: 'failed', command: ran, notes: [...notes, ...settings] }
+    return { outcome: 'failed', command: ran, notes: [...notes, ...settings], reason }
   }
   if (peerConflict) notes.push('installed with --legacy-peer-deps: npm found a peer conflict')
   notes.push(...settings)

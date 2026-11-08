@@ -2,7 +2,7 @@ import { join, relative } from 'node:path'
 import { semverRangeFloor } from '@vostride/agent-qa-core'
 import { PromptCancelled } from '../composition/cli-refusal.js'
 import { withoutBom } from './package-json-plan.js'
-import type { ProjectHost, ProjectIo, RunResult } from './project-host.js'
+import type { ProjectHost, ProjectIo, RunOptions, RunResult } from './project-host.js'
 import { nearestFile, type ProjectRange } from './project-range.js'
 
 export type PackageManagerName = 'npm' | 'pnpm' | 'yarn' | 'bun'
@@ -242,8 +242,33 @@ export function managerEnv(
   return { ...kept, ...set }
 }
 
+// A manager that handles Ctrl-C itself exits 130 before agent-qa's own listener hears it.
 export function wasCancelled(result: RunResult): boolean {
-  return result.cancelled === true || result.signal === 'SIGINT'
+  return result.cancelled === true || result.signal === 'SIGINT' || result.code === 130
+}
+
+// A run that could not start (EACCES, an argument cmd.exe refuses), carrying the command line.
+export class RunRejected extends Error {
+  readonly line: string
+
+  constructor(line: string, cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause), { cause })
+    this.name = 'RunRejected'
+    this.line = line
+  }
+}
+
+export async function runOrReject(
+  host: Pick<ProjectHost, 'run'>,
+  command: string,
+  args: readonly string[],
+  options: RunOptions,
+): Promise<RunResult> {
+  try {
+    return await host.run(command, args, options)
+  } catch (error) {
+    throw new RunRejected(commandLine(command, args), error)
+  }
 }
 
 function majorOf(version: string): number | undefined {
@@ -256,7 +281,8 @@ async function versionOf(
   env: NodeJS.ProcessEnv,
   host: RunHost,
 ): Promise<string | undefined> {
-  const result = await host.run(command, ['--version'], { cwd: host.cwd, env, stdio: 'capture' })
+  const options = { cwd: host.cwd, env, stdio: 'capture' } as const
+  const result = await runOrReject(host, command, ['--version'], options)
   if (wasCancelled(result)) throw new PromptCancelled()
   if (result.missing === true || result.code !== 0) return undefined
   return result.output.split(/\r?\n/u)[0]?.trim() ?? ''
