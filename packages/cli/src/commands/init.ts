@@ -43,7 +43,7 @@ import {
 } from './init-filesystem.js'
 import { buildKnowledgeAgentGuide } from './knowledge-guide.js'
 import { resolveIsCI } from '../ci-env.js'
-import { CliRefusal } from '../composition/cli-refusal.js'
+import { CliRefusal, isPromptCancel } from '../composition/cli-refusal.js'
 import { createClackUi, type ClackUi } from '../init-ui/clack-ui.js'
 import { initUiMode, type InitUi } from '../init-ui/init-ui.js'
 import { brandPalette, colorLevelFor } from '../init-ui/palette.js'
@@ -84,8 +84,15 @@ import {
   resolveLlmFlag,
   type InitModelOption,
   type InitModelPick,
+  type InitModelStatus,
 } from './init-model-choice.js'
-import { DASHBOARD_COMMAND, initNextSteps, nextStepLines } from './init-next-steps.js'
+import {
+  DASHBOARD_COMMAND,
+  authLoginCommand,
+  initNextSteps,
+  nextStepLines,
+} from './init-next-steps.js'
+import { loadSubscriptionPlugin, runInitSignIn, type InitSignInOutcome } from './init-sign-in.js'
 import {
   ALREADY_INITIALIZED,
   createInitStepRunner,
@@ -93,6 +100,7 @@ import {
   type InitStepName,
   type InitStepRecord,
   type InitStepResult,
+  type InitStepRunner,
 } from './init-steps.js'
 import {
   createInitDocumentRecorder,
@@ -110,10 +118,12 @@ import { detectPackageManager } from './package-manager.js'
 import {
   agentQaAfterInstall,
   declaredAgentQaVersion,
+  findProjectAgentQa,
   handOffToProjectAgentQa,
   runAgentQaStep,
   runRunningAgentQa,
 } from './project-agent-qa.js'
+import { openInBrowser } from './open-url.js'
 import { projectHost, type ProjectHost } from './project-host.js'
 import { nearestInstalledPackage, projectRange } from './project-range.js'
 
@@ -490,6 +500,8 @@ export interface InitCommandHooks {
   cwd?: string
   host?: Partial<ProjectHost>
   ui?: InitUi
+  // Opens the subscription sign-in page; the default opens it without a shell.
+  openUrl?: (url: string) => void
 }
 
 // The streams the Clack rail reads and draws on: stdin and stderr in production.
@@ -646,6 +658,10 @@ function buildScaffoldFilePlans(
 function showExampleSecretLine(ui: InitUi): void {
   ui.line(`Add this line to ${DEFAULT_SECRETS_FILE} so the examples can sign in:`)
   ui.copyable(EXAMPLE_SECRET_LINE)
+}
+
+function skipSignIn(runner: InitStepRunner, reason: string, command?: string): void {
+  runner.skip('sign-in', `Sign-in: skipped (${reason})`, reason, command)
 }
 
 function holdsExamplePassword(text: string | undefined): boolean {
@@ -1186,8 +1202,108 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           }
         }
 
+        const authPath = getAuthPath({ env: host.env, homeDir: host.homedir })
+        const subscriptionPluginInstalled = (): boolean => {
+          const installRecord = runner.records().find((record) => record.name === 'install')
+          const installed =
+            installRecord?.outcome === 'done' ||
+            (installRecord?.outcome === 'skipped' && installRecord.reason === 'already installed')
+          return (
+            installed &&
+            nearestInstalledPackage(
+              range,
+              dirname(packageJsonPlan.path),
+              SUBSCRIPTION_AUTH_PACKAGE,
+              host.io,
+            ) !== undefined
+          )
+        }
+
+        // Signs a pending subscription in on the rail; true when the model is ready after it.
+        const signIn = async (
+          runner: InitStepRunner,
+          current: InitModelStatus,
+          pluginInstalled: boolean,
+        ): Promise<boolean> => {
+          const entry = modelSetup.entry
+          if (entry === undefined || !isSubscriptionProvider(entry.provider)) {
+            skipSignIn(runner, 'not a subscription model')
+            return false
+          }
+          const login = authLoginCommand(entry.name)
+          if (current.status === 'ready') {
+            skipSignIn(runner, 'already signed in')
+            return false
+          }
+          if (mode !== 'interactive') {
+            skipSignIn(runner, 'not interactive', login)
+            return false
+          }
+          if (!pluginInstalled) {
+            skipSignIn(runner, 'the subscription plugin is not installed', login)
+            return false
+          }
+          // The project's own plugin runs here, so only beside the agent-qa that installed it.
+          const copy = await findProjectAgentQa(range, range.start, host.io)
+          if (copy === undefined) {
+            skipSignIn(runner, 'the project has no agent-qa installed', login)
+            return false
+          }
+          if (copy.version !== runningVersion) {
+            skipSignIn(runner, "the project's agent-qa differs from this one", login)
+            return false
+          }
+          // Drawn before the step's own line, so the prompt never sits under a spinner.
+          let outcome: InitSignInOutcome | undefined
+          let failure: unknown
+          try {
+            const plugin = await loadSubscriptionPlugin({
+              provider: entry.provider,
+              projectDir: dir,
+              configPath,
+            })
+            outcome = await runInitSignIn({
+              ui,
+              plugin,
+              configName: entry.name,
+              authPath,
+              openUrl: hooks.openUrl ?? ((url) => openInBrowser(url)),
+            })
+          } catch (error) {
+            failure = error
+          }
+          const record = await runner.run(
+            'sign-in',
+            { title: 'Signing in', command: login },
+            async (): Promise<InitStepResult> => {
+              if (failure !== undefined) {
+                if (isPromptCancel(failure)) throw failure
+                const message = failure instanceof Error ? failure.message : String(failure)
+                const shown = await shownOutput(message, maskInstallOutput, Number.MAX_SAFE_INTEGER)
+                return {
+                  outcome: 'failed',
+                  reason: shown.join('\n') || 'The sign-in failed',
+                  command: login,
+                }
+              }
+              if (outcome === 'deferred') {
+                return {
+                  outcome: 'skipped',
+                  text: 'Sign-in: later',
+                  reason: 'later',
+                  command: login,
+                }
+              }
+              return { outcome: 'done', text: `Signed in: ${entry.name}` }
+            },
+          )
+          return record.outcome === 'done'
+        }
+
         const runner = createInitStepRunner({ ui, plan: freshInitPlan() })
         steps = () => runner.records()
+        let status: InitModelStatus = { status: 'pending' }
+        let pluginInstalled = false
         try {
           const packageJsonStep = await runner.run(
             'package-json',
@@ -1254,27 +1370,18 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
               )
             }
           }
+          pluginInstalled = subscriptionPluginInstalled()
+          status = await modelStatus({
+            ...modelSetup,
+            configPath,
+            projectDir: dir,
+            authPath,
+            pluginInstalled,
+          })
+          if (await signIn(runner, status, pluginInstalled)) status = { status: 'ready' }
         } finally {
           runner.dispose()
         }
-
-        const authPath = getAuthPath({ env: host.env, homeDir: host.homedir })
-        const installRecord = runner.records().find((record) => record.name === 'install')
-        const installed =
-          installRecord?.outcome === 'done' ||
-          (installRecord?.outcome === 'skipped' && installRecord.reason === 'already installed')
-        const pluginDir = dirname(packageJsonPlan.path)
-        const pluginInstalled =
-          installed &&
-          nearestInstalledPackage(range, pluginDir, SUBSCRIPTION_AUTH_PACKAGE, host.io) !==
-            undefined
-        const status = await modelStatus({
-          ...modelSetup,
-          configPath,
-          projectDir: dir,
-          authPath,
-          pluginInstalled,
-        })
         recorder.model({
           ...(modelSetup.entry === undefined
             ? {}

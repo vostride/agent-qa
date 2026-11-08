@@ -10,6 +10,7 @@ import {
   multiselect,
   note,
   outro,
+  password,
   select,
   text,
   type Option,
@@ -149,11 +150,14 @@ export function createClackUi(options: {
       return value ?? [...q.initialValues]
     },
     text: async (q) => {
-      const value = await ask<string>(
-        (streams) => text({ ...streams, message: q.message, defaultValue: q.defaultValue }),
+      const value = await ask<string | undefined>(
+        (streams) =>
+          q.secret === true
+            ? password({ ...streams, message: q.message })
+            : text({ ...streams, message: q.message, defaultValue: q.defaultValue }),
         q.signal,
       )
-      return value ?? q.defaultValue
+      return value === undefined || value === '' ? q.defaultValue : value
     },
     step,
     note: (title, lines) => note(lines.join('\n'), palette.accent(title), common),

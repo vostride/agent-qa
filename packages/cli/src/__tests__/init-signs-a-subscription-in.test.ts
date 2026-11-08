@@ -1,6 +1,7 @@
 // An interactive init signs a subscription in on the rail through the project's installed plugin.
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { stripVTControlCharacters } from 'node:util'
 
 import {
   clearLLMAuthProviderPlugins,
@@ -15,6 +16,7 @@ import { createInitCommand } from '../commands/init.js'
 import { installedAgentQaVersion } from '../commands/package-json-plan.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { PromptCancelled } from '../composition/cli-refusal.js'
+import { KEY, answeringTerminal, clackStreams } from './clack-keys.js'
 import { fakeInitUi, type FakeInitUi } from './fake-init-ui.js'
 import {
   cleanupTempProjects,
@@ -196,12 +198,17 @@ function stored(authPath: string): unknown {
   return existsSync(authPath) ? JSON.parse(readFileSync(authPath, 'utf8')) : undefined
 }
 
+// The line the sign-in step closed with, after its own step line.
 function signInEntries(ui: FakeInitUi) {
-  return ui.entries.filter(
+  const start = ui.entries.findIndex(
     (entry) =>
-      (entry.kind === 'done' && entry.text.startsWith('Signed in')) ||
-      ((entry.kind === 'skipped' || entry.kind === 'failed') && /^Sign-in|sign/u.test(entry.text)),
+      entry.kind === 'step' && (entry.text === 'Signing in' || entry.text.startsWith('Sign-in')),
   )
+  if (start === -1) return []
+  const outcome = ui.entries
+    .slice(start + 1)
+    .find((entry) => ['done', 'skipped', 'failed'].includes(entry.kind))
+  return outcome === undefined ? [] : [outcome]
 }
 
 function nextSteps(ui: FakeInitUi): string[] {
@@ -222,7 +229,8 @@ let stderr: MockInstance<typeof process.stderr.write>
 function expectNoSecretOutside({ root, home, authPath }: Project, ui: FakeInitUi): void {
   const outputs = [
     ui.output(),
-    JSON.stringify(ui.entries),
+    // The fake records the answer it gave; everything init drew is checked.
+    JSON.stringify(ui.entries.filter((entry) => entry.kind !== 'text')),
     ...[...stdout.mock.calls, ...stderr.mock.calls].map((call) => String(call[0])),
   ]
   const files = [...filesUnder(root), ...filesUnder(home)].filter((path) => path !== authPath)
@@ -302,6 +310,51 @@ describe('manual-code sign-in', () => {
     expect(stored(proj.authPath)).toBeUndefined()
     expect(nextSteps(ui)).toContain(LOGIN)
     expectNoSecretOutside(proj, ui)
+  })
+})
+
+describe('the sign-in on the rail', () => {
+  it('the pasted code is masked on the rail and the sign-in is stored', async () => {
+    const proj = project()
+    const streams = clackStreams()
+    const opened: string[] = []
+    const parent = new Command()
+    const command = createInitCommand({
+      cwd: proj.root,
+      host: {
+        homedir: proj.home,
+        env: {},
+        run: fakeRunner(({ args }) => ({
+          code: 0,
+          signal: null,
+          output: args[0] === '--version' ? '10.0.0\n' : '',
+        })),
+      },
+      stdinIsTTY: true,
+      stdoutIsTTY: true,
+      terminal: answeringTerminal().port,
+      rail: { input: streams.input, output: streams.output },
+      composeAnalytics: silentAnalytics,
+      openUrl: (url) => void opened.push(url),
+    })
+    parent.exitOverride()
+    command.exitOverride()
+    parent.addCommand(command)
+
+    const done = parent.parseAsync(['node', 'test', 'init', ...WEB])
+    await streams.waitFor(PASTE_THE_CODE)
+    await streams.press(PASTED_CODE, KEY.enter)
+    await done
+
+    const rail = stripVTControlCharacters(streams.text())
+    expect(rail).toContain(SIGN_IN_PAGE_OPEN)
+    expect(rail).toContain('Signed in: claude-code')
+    expect(rail).not.toContain(PASTED_CODE)
+    expect(rail).not.toContain(FAKE_TOKEN)
+    expect(opened).toEqual([AUTHORIZE_URL])
+    expect(stored(proj.authPath)).toEqual({
+      'claude-code': { type: 'oauth', provider: 'anthropic-subscription', tokens: TOKENS },
+    })
   })
 })
 
@@ -501,7 +554,8 @@ describe('the sign-in page opens without a shell', () => {
   it.each([
     { platform: 'darwin' as const, command: 'open', args: [AUTHORIZE_URL] },
     { platform: 'linux' as const, command: 'xdg-open', args: [AUTHORIZE_URL] },
-  ])('$platform runs $command with the address as one argument', async ({ platform, command, args }) => {
+  ])('$platform runs $command with the address as one argument', async (cell) => {
+    const { platform, command, args } = cell
     const { opener, calls } = recordingOpener(platform)
 
     const { openInBrowser } = await import('../commands/open-url.js')
@@ -534,7 +588,12 @@ describe('the sign-in page opens without a shell', () => {
     openInBrowser(url, opener)
 
     expect(calls).toEqual([
-      { command: 'rundll32', args: ['url.dll,FileProtocolHandler', url], shell: false, verbatim: undefined },
+      {
+        command: 'rundll32',
+        args: ['url.dll,FileProtocolHandler', url],
+        shell: false,
+        verbatim: undefined,
+      },
     ])
   })
 })

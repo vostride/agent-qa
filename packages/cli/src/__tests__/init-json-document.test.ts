@@ -138,6 +138,12 @@ describe('init --json prints one document on stdout', () => {
         reason: 'install first (--pm none)',
         command: 'npx agent-qa validate',
       },
+      {
+        name: 'sign-in',
+        outcome: 'skipped',
+        reason: 'not interactive',
+        command: 'npx agent-qa auth login --config claude-code',
+      },
     ])
     expect(doc.files).toContainEqual({
       path: '.gitignore',
@@ -212,6 +218,7 @@ describe('init --json prints one document on stdout', () => {
       'chromium',
       'skills',
       'validate',
+      'sign-in',
     ])
     expect(doc.steps.find((step) => step.name === 'chromium')).toEqual({
       name: 'chromium',
@@ -331,6 +338,7 @@ describe('init --json prints one document on stdout', () => {
         reason: 'npm ERR! boom',
         command: 'npx agent-qa validate',
       },
+      { name: 'sign-in', outcome: 'skipped', reason: 'not a subscription model' },
     ])
     expect(doc.plugins).toEqual([])
     expect(result.stderr).toContain('✗ Install failed: npm exited 1')
@@ -375,6 +383,7 @@ describe('init --json prints one document on stdout', () => {
       { name: 'chromium', outcome: 'skipped', reason: 'interrupted' },
       { name: 'skills', outcome: 'skipped', reason: 'interrupted' },
       { name: 'validate', outcome: 'skipped', reason: 'interrupted' },
+      { name: 'sign-in', outcome: 'skipped', reason: 'interrupted' },
     ])
     expect(result.stderr).toContain('Cancelled.\n')
   })
@@ -395,6 +404,7 @@ describe('init --json prints one document on stdout', () => {
       { name: 'chromium', outcome: 'skipped', reason: 'already initialized' },
       { name: 'skills', outcome: 'skipped', reason: 'already initialized' },
       { name: 'validate', outcome: 'skipped', reason: 'already initialized' },
+      { name: 'sign-in', outcome: 'skipped', reason: 'already initialized' },
     ])
     expect(result.stderr).toContain('Project is already initialized at')
   })
@@ -422,6 +432,7 @@ describe('init --json prints one document on stdout', () => {
       'skipped',
       'done',
       'done',
+      'skipped',
       'skipped',
     ])
     expect(doc.files).toContainEqual({

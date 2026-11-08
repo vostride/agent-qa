@@ -1,6 +1,4 @@
 import { Command } from 'commander'
-import { spawn } from 'node:child_process'
-import type { SpawnOptions } from 'node:child_process'
 import { createServer } from 'node:http'
 import type { Server as NodeHttpServer } from 'node:http'
 import { basename, resolve, dirname } from 'node:path'
@@ -84,6 +82,12 @@ import {
   type LLMConfigLike,
 } from '../llm-utils.js'
 import { DEFAULT_ANTHROPIC_MODEL } from '../model-defaults.js'
+import {
+  openUrlWithoutShell,
+  systemBrowserOpener,
+  type BrowserOpener,
+  type BrowserOpenerChild,
+} from './open-url.js'
 import { processRemoteSessions, releaseRemoteSessions, REMOTE_RELEASE_BOUND_MS } from './run.js'
 
 // The dot-path the entity card's `url` is read from, spelled as the producer reads it.
@@ -692,48 +696,11 @@ export function dashboardOpenUrl(port: number, open: true | string): string {
   return `http://localhost:${String(port)}${dashboardOpenPath(open)}`
 }
 
-export interface DashboardOpenerChild {
-  on(event: 'error', listener: (error: Error) => void): unknown
-  unref(): void
-}
+export type DashboardOpenerChild = BrowserOpenerChild
+export type DashboardOpener = BrowserOpener
+export const openDashboardUrl = openUrlWithoutShell
 
-export interface DashboardOpener {
-  readonly platform: NodeJS.Platform
-  readonly spawn: (
-    command: string,
-    args: readonly string[],
-    options: SpawnOptions,
-  ) => DashboardOpenerChild
-}
-
-// Anything here could leave cmd.exe's quotes or expand a variable inside them.
-const CMD_UNQUOTABLE = /["%^|<>!\u0000-\u001F\u007F]/u
-
-export function openDashboardUrl(url: string, opener: DashboardOpener): void {
-  let child: DashboardOpenerChild
-  if (opener.platform === 'win32') {
-    if (CMD_UNQUOTABLE.test(url)) {
-      throw new Error(
-        `Refusing to open ${JSON.stringify(url)} through cmd.exe: it holds a character cmd.exe ` +
-          'would act on.',
-      )
-    }
-    // Verbatim, so cmd reads `start "" "<url>"` and an `&` in the URL stays inside the quotes.
-    child = opener.spawn('cmd', ['/d', '/c', 'start', '""', `"${url}"`], {
-      shell: false,
-      stdio: 'ignore',
-      windowsVerbatimArguments: true,
-    })
-  } else {
-    const command = opener.platform === 'darwin' ? 'open' : 'xdg-open'
-    child = opener.spawn(command, [url], { shell: false, stdio: 'ignore' })
-  }
-  // A missing opener leaves the dashboard serving; the address is already printed.
-  child.on('error', () => {})
-  child.unref()
-}
-
-const systemDashboardOpener: DashboardOpener = { platform: process.platform, spawn }
+const systemDashboardOpener: DashboardOpener = systemBrowserOpener
 
 type ServiceCommandLabels = {
   error: string
