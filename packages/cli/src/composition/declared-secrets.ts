@@ -145,3 +145,9 @@ export function createDeclaredSecretMask(configPath: string): DeclaredSecretMask
 
   return { mask: (text) => redactor().redactString(text), redactor }
 }
+
+// With no loadable project there are no declared secrets to read.
+export function createEmptyDeclaredSecretMask(): DeclaredSecretMask {
+  const redactor = new SecretRedactor(SecretStore.empty())
+  return { mask: (text) => redactor.redactString(text), redactor: () => redactor }
+}

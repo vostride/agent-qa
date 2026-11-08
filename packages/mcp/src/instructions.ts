@@ -1,4 +1,6 @@
-// Static text; with no initialize handshake (SEP-2575) the SDK answers it in the discovery result.
+// The SDK answers this text in both the initialize result and the discovery result (SEP-2575).
+
+import type { AgentQaMcpPosture } from './catalog.js'
 
 export const AGENT_QA_MCP_INSTRUCTIONS: string = [
   'This project is tested with agent-qa. Read its runs and knowledge only through the agent_qa_* '
@@ -9,3 +11,13 @@ export const AGENT_QA_MCP_INSTRUCTIONS: string = [
   'The knowledge guide is agent-qa-knowledge/AGENTS.md; `npx agent-qa skills` lists the skills and '
     + 'their folder.',
 ].join('\n')
+
+// Says what every call answers when there is no project to serve.
+export function agentQaMcpPostureInstructions(posture: AgentQaMcpPosture): string {
+  return [
+    `agent-qa is not set up here: there is no agent-qa config at ${posture.configPath}. Every `
+      + 'agent_qa_* tool answers not_initialized until you run `npx agent-qa init` in the project '
+      + 'folder.',
+    'Never open .agent-qa/ or agent-qa\'s SQLite files; they are agent-qa\'s runtime state.',
+  ].join('\n')
+}

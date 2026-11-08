@@ -7,7 +7,7 @@ import type { FunctionRegistry } from '@vostride/agent-qa-agent'
 import type { FunctionCaller } from '@vostride/agent-qa-schema'
 
 import { MCP_APPS_EXTENSION_ID, appResourceUriFor, registerAppResources } from './app-resource.js'
-import { AGENT_QA_MCP_INSTRUCTIONS } from './instructions.js'
+import { AGENT_QA_MCP_INSTRUCTIONS, agentQaMcpPostureInstructions } from './instructions.js'
 import { liveLinkLineFor } from './live-link.js'
 import type { LiveLinkSupplier } from './live-link.js'
 import {
@@ -26,6 +26,9 @@ import { McpProjectionError, toRegisterToolConfig } from './projection.js'
 import type { ProjectedOpSpec } from './projection.js'
 import { registerEntityResources } from './resources.js'
 
+// Why the host cannot serve a project: every tool stays listed and every call says what to run.
+export type AgentQaMcpPosture = { readonly state: 'not-initialized'; readonly configPath: string }
+
 /** What a host must supply to build a server for one caller. */
 export interface AgentQaMcpServerDeps {
   // Built by the host, never by this package.
@@ -38,6 +41,8 @@ export interface AgentQaMcpServerDeps {
   readonly version: string
   // A factory, because on the co-hosted composition the origin exists only once a port is bound.
   readonly liveLink?: LiveLinkSupplier
+  // Present when there is no project to serve; no call then reaches the registry.
+  readonly posture?: AgentQaMcpPosture
 }
 
 /** The host-bound `(registry, caller)` closure over `invokeFunction`. */
@@ -206,6 +211,22 @@ function createProjectionHandler(
   }
 }
 
+// `isError` skips the SDK's output-schema check, so the same result fits every tool.
+function createPostureHandler(posture: AgentQaMcpPosture) {
+  const text = `agent-qa is not set up here: there is no agent-qa config at ${posture.configPath} `
+    + 'or in the folders above it. Run npx agent-qa init in the project folder.'
+  const structuredContent = {
+    status: 'not_initialized',
+    configPath: posture.configPath,
+    run: 'npx agent-qa init',
+  }
+  return async (): Promise<CallToolResult> => ({
+    isError: true,
+    content: [{ type: 'text', text }],
+    structuredContent,
+  })
+}
+
 // The listing comes from `registry.list(deps.caller)`, so it describes this composition.
 export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
   const server = new McpServer(
@@ -218,7 +239,9 @@ export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
         extensions: { [MCP_APPS_EXTENSION_ID]: {} },
       },
       // Instructions reach every MCP host, so init's pointer goes here.
-      instructions: AGENT_QA_MCP_INSTRUCTIONS,
+      instructions: deps.posture === undefined
+        ? AGENT_QA_MCP_INSTRUCTIONS
+        : agentQaMcpPostureInstructions(deps.posture),
     },
   )
 
@@ -275,9 +298,14 @@ export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
     server.registerTool(
       projection.name,
       config,
-      createProjectionHandler(projection, invoke, deps.maskText, deps.liveLink),
+      deps.posture === undefined
+        ? createProjectionHandler(projection, invoke, deps.maskText, deps.liveLink)
+        : createPostureHandler(deps.posture),
     )
   }
+
+  // Both read the project, so a server with no project to serve lists no resources.
+  if (deps.posture !== undefined) return server
 
   // Registered here so a `resource_link` resolves on the instance that produced it.
   registerEntityResources(server, {

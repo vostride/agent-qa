@@ -1,10 +1,10 @@
 // Per-request factory plus declared data; cross-call handles travel as tool arguments (SEP-2567).
 
 export { buildAgentQaMcpServer } from './catalog.js'
-export type { AgentQaMcpServerDeps } from './catalog.js'
+export type { AgentQaMcpPosture, AgentQaMcpServerDeps } from './catalog.js'
 
 // The CLI's parity cell compares the shipped stdio instructions against this one source.
-export { AGENT_QA_MCP_INSTRUCTIONS } from './instructions.js'
+export { AGENT_QA_MCP_INSTRUCTIONS, agentQaMcpPostureInstructions } from './instructions.js'
 
 export { createAgentQaMcpNodeHandler } from './http.js'
 export type { AgentQaMcpDepsResolver } from './http.js'
