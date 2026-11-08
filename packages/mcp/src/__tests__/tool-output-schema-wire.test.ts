@@ -68,6 +68,7 @@ function catalogClient(recorded: readonly CompletedRunHandoff[] = []): Promise<C
     registry: registryOver(recorded),
     caller,
     maskText: (text: string) => text,
+    version: '0.0.0-test',
   }))
 }
 

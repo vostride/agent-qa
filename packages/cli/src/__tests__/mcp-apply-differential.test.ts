@@ -147,6 +147,7 @@ async function connect(era: Era = LEGACY): Promise<Session> {
       registry: host!.registry,
       caller: MCP_FUNCTION_CALLER,
       maskText: (text: string) => masking!.mask(text),
+      version: '0.0.0-test',
     }),
   )
   const recordingFetch = (async (url: URL | string, init?: RequestInit) => {

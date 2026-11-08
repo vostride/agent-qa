@@ -129,7 +129,8 @@ async function openDoors(input: {
   }
   const withClient = async <T>(body: (client: Client) => Promise<T>): Promise<T> => {
     const handler = createMcpHandler(() => buildAgentQaMcpServer({
-      registry: input.registry, caller: MCP_FUNCTION_CALLER, maskText: input.maskText }))
+      registry: input.registry, caller: MCP_FUNCTION_CALLER, maskText: input.maskText,
+      version: '0.0.0-test' }))
     const client = new Client({ name: 'agent-qa-read-contracts', version: '0.0.0' })
     try {
       await client.connect(new StreamableHTTPClientTransport(new URL('http://read-contracts.local/mcp'), {

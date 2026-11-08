@@ -303,6 +303,7 @@ async function serveAgentQa(
     registry,
     caller: caller(grantedScopes),
     maskText: identity,
+    version: '0.0.0-test',
   }))
   const url = await serve((req, res) => void handler(req as never, res as never))
   return { url, minted }

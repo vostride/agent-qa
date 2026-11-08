@@ -12,6 +12,7 @@ import {
 } from '@modelcontextprotocol/server'
 import { buildAgentQaMcpServer, createAgentQaMcpNodeHandler } from '@vostride/agent-qa-mcp'
 import type { LiveLinkSupplier } from '@vostride/agent-qa-mcp'
+import { getAgentQaVersion } from '@vostride/agent-qa-core'
 import { reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
 import type { FunctionCaller } from '@vostride/agent-qa-schema'
 import { Command } from 'commander'
@@ -61,6 +62,7 @@ function mcpServerDeps(input: {
     registry: input.registry,
     caller: MCP_FUNCTION_CALLER,
     maskText: input.maskText,
+    version: getAgentQaVersion().trim(),
     // Absent stays ABSENT rather than becoming a present `undefined`: the house rule for an
     // optional member, and the two are the same posture to the builder either way.
     ...(input.liveLink === undefined ? {} : { liveLink: input.liveLink }),

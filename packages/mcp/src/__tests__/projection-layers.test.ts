@@ -66,7 +66,12 @@ async function withClient<Answer>(
   caller: FunctionCaller,
   body: (client: Client) => Promise<Answer>,
 ): Promise<Answer> {
-  const server = buildAgentQaMcpServer({ registry: realRegistry(), caller, maskText: (text) => text })
+  const server = buildAgentQaMcpServer({
+    registry: realRegistry(),
+    caller,
+    maskText: (text) => text,
+    version: '0.0.0-test',
+  })
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
   await server.connect(serverTransport)
   const client = new Client({ name: 'tokenless', version: '0.0.0' })

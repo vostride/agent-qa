@@ -195,6 +195,7 @@ async function openWorkspace(configBody: string): Promise<void> {
       // The one tokenless caller; no stdio grant exists to resolve.
       caller: MCP_FUNCTION_CALLER,
       maskText: masking!.mask,
+      version: '0.0.0-test',
     }),
   )
   const recordingFetch = (async (url: URL | string, init?: RequestInit) => {

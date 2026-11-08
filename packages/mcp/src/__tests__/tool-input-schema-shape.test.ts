@@ -90,6 +90,7 @@ function shippedServer(): McpServer {
       origin: 'agent',
     } as unknown as FunctionCaller,
     maskText: (text: string) => text,
+    version: '0.0.0-test',
   })
 }
 

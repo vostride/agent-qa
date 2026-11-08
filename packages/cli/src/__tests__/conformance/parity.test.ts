@@ -1963,6 +1963,7 @@ async function callOnProjectMcp(
     registry: host.registry,
     caller: MCP_FUNCTION_CALLER,
     maskText: (text: string) => masking.mask(text),
+    version: '0.0.0-test',
   }))
   const client = new Client({ name: 'agent-qa-parity', version: '0.0.0' })
   try {

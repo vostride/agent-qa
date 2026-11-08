@@ -330,6 +330,7 @@ describe('3 · the function layer reads no grant', () => {
       registry: harness.registry,
       caller: legacyCaller(['read', 'run', 'config-write']),
       maskText: (text: string) => text,
+      version: '0.0.0-test',
     })
     expect(openServer).toBeDefined()
     expect(await outcomeFor(legacyCaller(['read', 'run']))).not.toBe('FunctionScopeError')
@@ -380,6 +381,7 @@ async function namesFromFactory(scopes: readonly string[]): Promise<string[]> {
       registry: harness.registry,
       caller: legacyCaller(scopes),
       maskText: (text: string) => text,
+      version: '0.0.0-test',
     }),
   )
   const client = new Client({ name: 'agent-qa-factory', version: '0.0.0' })

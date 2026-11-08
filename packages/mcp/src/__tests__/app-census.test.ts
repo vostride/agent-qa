@@ -96,6 +96,7 @@ async function advertisedTools(): Promise<readonly AdvertisedTool[]> {
       registry: builtInRegistry(),
       caller: callerWith(EVERY_SCOPE),
       maskText: identity,
+      version: '0.0.0-test',
     }),
   )
   const client = new Client({ name: 'agent-qa-census', version: '0.0.0' })
@@ -265,6 +266,7 @@ async function serveLiveHost(options: { readonly base?: string } = {}): Promise<
     registry,
     caller: callerWith(['read', 'run']),
     maskText: identity,
+    version: '0.0.0-test',
     // `base: undefined` drops the supplier, as on a standalone host with no dashboard.
     ...(options.base === undefined ? {} : { liveLink: { dashboardBaseUrl: () => options.base } }),
   }))

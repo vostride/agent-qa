@@ -6,7 +6,8 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { Client } from '@modelcontextprotocol/client'
-import { StdioClientTransport } from '@modelcontextprotocol/client/stdio'
+import { getDefaultEnvironment, StdioClientTransport } from '@modelcontextprotocol/client/stdio'
+import { getAgentQaVersion } from '@vostride/agent-qa-core'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { MCP_STDIO_STARTUP_MESSAGE } from '../commands/mcp.js'
@@ -120,6 +121,28 @@ describe('agent-qa mcp over spawned stdio', () => {
       await expect
         .poll(() => captured, { timeout: 5_000 })
         .toContain(MCP_STDIO_STARTUP_MESSAGE)
+    } finally {
+      await client.close().catch(() => {})
+      await transport.close().catch(() => {})
+    }
+  }, 30_000)
+
+  it('the server reports the agent-qa version it runs as', async () => {
+    expect(existsSync(CLI_ENTRY), `the built CLI entry is missing at ${CLI_ENTRY}`).toBe(true)
+    const cwd = fixtureProject()
+    const home = mkdtempSync(join(tmpdir(), 'agent-qa-stdio-home-'))
+    roots.push(home)
+    const transport = new StdioClientTransport({
+      command: process.execPath,
+      args: [CLI_ENTRY, 'mcp'],
+      cwd,
+      env: { ...getDefaultEnvironment(), HOME: home, USERPROFILE: home },
+      stderr: 'pipe',
+    })
+    const client = new Client({ name: 'agent-qa-stdio-legacy', version: '0.0.0' })
+    try {
+      await client.connect(transport)
+      expect(client.getServerVersion()?.version).toBe(getAgentQaVersion().trim())
     } finally {
       await client.close().catch(() => {})
       await transport.close().catch(() => {})

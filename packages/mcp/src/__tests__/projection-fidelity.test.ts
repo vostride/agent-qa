@@ -72,6 +72,7 @@ async function advertise(
       // cells elsewhere. Named rather than defaulted, because a masker that can be omitted is a
       // masker that will be.
       maskText: (text: string) => text,
+      version: '0.0.0-test',
     }),
   )
   const client = new Client({ name: 'agent-qa-fidelity', version: '0.0.0' })
