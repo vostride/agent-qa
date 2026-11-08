@@ -9,10 +9,18 @@ import {
   readdir,
   rename,
   symlink,
+  writeFile,
 } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
-import { readAuth, writeAuth, removeAuth, getCredential } from '../auth/store.js'
+import {
+  getAuthPath,
+  getCredential,
+  listSavedCredentials,
+  readAuth,
+  removeAuth,
+  writeAuth,
+} from '../auth/store.js'
 import type { AuthCredential } from '../auth/types.js'
 
 vi.mock('node:fs/promises', async importOriginal => {
@@ -146,6 +154,94 @@ describe('auth store', () => {
     await rm(authPath)
     await (await import('node:fs/promises')).writeFile(authPath, '{"trunc', 'utf-8')
     expect(await readAuth(authPath)).toEqual({})
+  })
+
+  describe('saved credential list', () => {
+    const dummyToken = 'DUMMY-TOKEN-A'
+    const dummyKey = 'DUMMY-KEY-B'
+
+    beforeEach(async () => {
+      await writeFile(
+        authPath,
+        JSON.stringify({
+          'claude-code': {
+            type: 'oauth',
+            provider: 'anthropic-subscription',
+            tokens: { access: dummyToken, refresh: dummyToken, expires: 0 },
+          },
+          work: { type: 'api', provider: 'openai-compatible', key: dummyKey },
+          g: { type: 'api', provider: 'gemini', key: dummyKey },
+          'a b': {
+            type: 'oauth',
+            provider: 'anthropic-subscription',
+            tokens: { access: dummyToken, refresh: dummyToken, expires: 0 },
+          },
+          other: { type: 'api', provider: 'some-unknown-provider', key: dummyKey },
+          lost: { type: 'bearer', provider: 'anthropic-compatible', token: dummyToken },
+        }),
+        'utf-8',
+      )
+    })
+
+    it('lists every credential by name, kind and provider', async () => {
+      const saved = await listSavedCredentials(authPath)
+      expect(saved).toEqual([
+        { name: 'claude-code', type: 'oauth', provider: 'anthropic-subscription' },
+        { name: 'work', type: 'api', provider: 'openai-compatible' },
+        { name: 'g', type: 'api', provider: 'gemini' },
+        { name: 'a b', type: 'oauth', provider: 'anthropic-subscription' },
+        { name: 'other', type: 'api', provider: 'some-unknown-provider' },
+        { name: 'lost', type: 'bearer', provider: 'anthropic-compatible' },
+      ])
+    })
+
+    it('never returns a key, token or tokens field or a secret value', async () => {
+      const saved = await listSavedCredentials(authPath)
+      for (const entry of saved) {
+        expect(Object.keys(entry).sort()).toEqual(['name', 'provider', 'type'])
+      }
+      const text = JSON.stringify(saved)
+      expect(text).not.toContain(dummyToken)
+      expect(text).not.toContain(dummyKey)
+    })
+
+    it('drops an entry with no known kind or no provider', async () => {
+      await writeFile(
+        authPath,
+        JSON.stringify({
+          odd: { type: 'session', provider: 'gemini', key: dummyKey },
+          bare: { type: 'api', key: dummyKey },
+          text: 'not-a-credential',
+          kept: { type: 'api', provider: 'gemini', key: dummyKey },
+        }),
+        'utf-8',
+      )
+      expect(await listSavedCredentials(authPath)).toEqual([
+        { name: 'kept', type: 'api', provider: 'gemini' },
+      ])
+    })
+
+    it('gives an empty list for a missing, unreadable or non-object store', async () => {
+      expect(await listSavedCredentials(join(tempDir, 'missing.json'))).toEqual([])
+      await writeFile(authPath, '{"trunc', 'utf-8')
+      expect(await listSavedCredentials(authPath)).toEqual([])
+      await writeFile(authPath, '[1, 2]', 'utf-8')
+      expect(await listSavedCredentials(authPath)).toEqual([])
+      await writeFile(authPath, 'null', 'utf-8')
+      expect(await listSavedCredentials(authPath)).toEqual([])
+    })
+  })
+
+  describe('auth path', () => {
+    it('is under XDG_DATA_HOME when that is set', () => {
+      expect(getAuthPath({ env: { XDG_DATA_HOME: '/x' }, homeDir: '/h' })).toBe(
+        join('/x', 'agent-qa', 'auth.json'),
+      )
+    })
+
+    it('is under the home folder when XDG_DATA_HOME is not set', () => {
+      expect(getAuthPath({ env: {}, homeDir: '/h' })).toBe(join('/h', '.agent-qa', 'auth.json'))
+    })
   })
 
   describe('symlinked auth.json', () => {

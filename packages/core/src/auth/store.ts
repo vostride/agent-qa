@@ -14,10 +14,10 @@ import { basename, dirname, join, resolve } from 'node:path'
 import { homedir } from 'node:os'
 import type { AuthCredential, AuthStore } from './types.js'
 
-export function getAuthPath(): string {
-  const xdg = process.env.XDG_DATA_HOME
+export function getAuthPath(options?: { env?: NodeJS.ProcessEnv; homeDir?: string }): string {
+  const xdg = (options?.env ?? process.env).XDG_DATA_HOME
   if (xdg) return join(xdg, 'agent-qa', 'auth.json')
-  return join(homedir(), '.agent-qa', 'auth.json')
+  return join(options?.homeDir ?? homedir(), '.agent-qa', 'auth.json')
 }
 
 function isMissingFile(error: unknown): boolean {
@@ -68,6 +68,29 @@ export async function readAuth(path?: string): Promise<AuthStore> {
   } catch {
     return {}
   }
+}
+
+export interface SavedCredential {
+  name: string
+  type: AuthCredential['type']
+  provider: string
+}
+
+const SAVED_CREDENTIAL_TYPES: ReadonlySet<string> = new Set(['oauth', 'api', 'bearer'])
+
+// Only the name, kind and provider leave this module; a key or token never does.
+export async function listSavedCredentials(path?: string): Promise<SavedCredential[]> {
+  const store: unknown = await readAuth(path)
+  if (typeof store !== 'object' || store === null || Array.isArray(store)) return []
+  const saved: SavedCredential[] = []
+  for (const [name, entry] of Object.entries(store)) {
+    if (typeof entry !== 'object' || entry === null) continue
+    const { type, provider } = entry as { type?: unknown; provider?: unknown }
+    if (typeof type !== 'string' || !SAVED_CREDENTIAL_TYPES.has(type)) continue
+    if (typeof provider !== 'string') continue
+    saved.push({ name, type: type as SavedCredential['type'], provider })
+  }
+  return saved
 }
 
 export async function writeAuth(

@@ -9,8 +9,11 @@ export type {
   TokenRefreshFn,
 } from './types.js'
 
+export type { SavedCredential } from './store.js'
+
 export {
   getAuthPath,
+  listSavedCredentials,
   readAuth,
   writeAuth,
   removeAuth,
