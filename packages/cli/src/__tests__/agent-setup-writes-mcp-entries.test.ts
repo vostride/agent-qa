@@ -3,11 +3,13 @@
 // project in a repository on its own.
 import { createHash } from 'node:crypto'
 import {
+  chmodSync,
   lstatSync,
   mkdirSync,
   readdirSync,
   readFileSync,
   readlinkSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
@@ -17,7 +19,7 @@ import { parse } from 'jsonc-parser'
 import { getStaticTOMLValue, parseTOML } from 'toml-eslint-parser'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { installAgentSetup, type CodingAgent } from '../commands/agent-setup.js'
+import { installAgentSetup, removeAgentSetup, type CodingAgent } from '../commands/agent-setup.js'
 import {
   cleanupTempProjects,
   fakeRunner,
@@ -221,6 +223,33 @@ describe('the MCP entries the installer writes', () => {
     expect(insertedText(config, read(project, '.codex/config.toml'))).toBe(`\n${CODEX_ENTRY}\n`)
     expect(runner.calls).toEqual([])
   })
+
+  it.skipIf(process.platform === 'win32')(
+    'keeps an owner-only host file owner-only when it writes and removes the entry',
+    async () => {
+      const project = tempProject('mcp-mode')
+      installAgentQa(project.root)
+      const mcpJson =
+        '{\n  "mcpServers": {\n    "other": { "env": { "TOKEN": "s3cret" } }\n  }\n}\n'
+      const config = '[mcp_servers.other]\nenv = { API_KEY = "s3cret" }\n'
+      write(project, '.mcp.json', mcpJson)
+      write(project, '.codex/config.toml', config)
+      const mode = (path: string): number => statSync(join(project.root, path)).mode & 0o777
+      chmodSync(join(project.root, '.mcp.json'), 0o600)
+      chmodSync(join(project.root, '.codex/config.toml'), 0o600)
+
+      await setup(project)
+      expect(read(project, '.mcp.json')).toContain('"agent-qa"')
+      expect(mode('.mcp.json')).toBe(0o600)
+      expect(mode('.codex/config.toml')).toBe(0o600)
+
+      await removeAgentSetup({ projectDir: project.root })
+      expect(read(project, '.mcp.json')).toBe(mcpJson)
+      expect(read(project, '.codex/config.toml')).toBe(config)
+      expect(mode('.mcp.json')).toBe(0o600)
+      expect(mode('.codex/config.toml')).toBe(0o600)
+    },
+  )
 
   it('records each entry with the hash of the text written, beside the block', async () => {
     const project = tempProject('mcp-recorded')

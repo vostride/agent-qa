@@ -36,6 +36,8 @@ export interface InitPathPlan {
   force?: boolean
   preserveOnForce?: boolean
   mode?: number
+  // A forced replacement keeps the replaced file's permission bits instead of the default mode.
+  keepMode?: boolean
 }
 
 export interface InitFileResult {
@@ -496,6 +498,7 @@ function releaseTemporaryPin(pin: number | undefined): void {
 function writeDurableTemporary(
   plan: InitPathPlan,
   hooks: InitFilesystemHooks = {},
+  keptPermissions?: number,
 ): DurableTemporary {
   const path = resolve(plan.path)
   const temporary = resolve(
@@ -515,6 +518,9 @@ function writeDurableTemporary(
       invokeHook(hooks.afterTemporaryModeApply, temporary)
       const opened = confirmDescriptorMode(fd, path, requested)
       confirmed = { dev: opened.dev, ino: opened.ino }
+    } else if (keptPermissions !== undefined && MODE_ENFORCEMENT_SUPPORTED) {
+      // Applied before any content reaches the inode, so an owner-only file is never widened.
+      fchmodSync(fd, keptPermissions)
     }
     writeFileSync(fd, plan.content)
     fsyncSync(fd)
@@ -619,13 +625,14 @@ function publishExclusive(
 function replaceRegularAtomic(
   plan: InitPathPlan,
   hooks: InitFilesystemHooks = {},
+  keptPermissions?: number,
 ): InitFileResult {
   const path = resolve(plan.path)
   const parent = dirname(path)
   // The confirmed identity is consumed, not discarded: publication must prove it renamed
   // the inode whose mode was confirmed, exactly as the exclusive path does — and the pinned
   // descriptor is what makes that identity unforgeable against inode reuse.
-  const { temporary, confirmed, pin } = writeDurableTemporary(plan, hooks)
+  const { temporary, confirmed, pin } = writeDurableTemporary(plan, hooks, keptPermissions)
   const coverage = durableTemporaryCoverageProbe(path, temporary)
   try {
     const classification = classifyInitPath(path, plan.root)
@@ -929,7 +936,11 @@ export function writeScaffoldFileAtomic(
         return { path: normalizedPlan.path, outcome: 'preserved' }
       }
       ensureSafeParentDirectories(normalizedPlan.path, normalizedPlan.root)
-      return replaceRegularAtomic(normalizedPlan, hooks)
+      return replaceRegularAtomic(
+        normalizedPlan,
+        hooks,
+        normalizedPlan.keepMode === true ? inspection.permissions : undefined,
+      )
     }
 
     ensureSafeParentDirectories(normalizedPlan.path, normalizedPlan.root)
