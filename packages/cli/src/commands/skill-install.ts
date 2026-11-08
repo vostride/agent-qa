@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto'
 import { lstatSync, readdirSync, readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
+import { resolvePluginEntry, type AgentQaConfig } from '@vostride/agent-qa-core'
 import { parse, parseDocument, Scalar } from 'yaml'
 
 import { InitRefusal } from './init-refusal.js'
@@ -15,10 +16,24 @@ const SKIPPED_FOLDERS = new Set(['node_modules', '.turbo', '.git', 'dist', 'scri
 const SKIPPED_FILES = new Set(['pnpm-lock.yaml', 'package-lock.json', '.DS_Store'])
 const FRONTMATTER = /^---\n([\s\S]*?\n)?---(?:\n|$)/u
 
+export const PLUGIN_SKILL_FOLDER_PREFIX = 'agent-qa-plugin-'
+
 export interface AgentQaSkillSource {
   dir: string
   version: string
   source: 'project' | 'running'
+}
+
+export interface PluginSkillSource {
+  folder: string
+  dir: string
+  version: string
+}
+
+export interface PluginSkillSources {
+  sources: PluginSkillSource[]
+  notes: string[]
+  configLoaded: boolean
 }
 
 export interface SkillFile {
@@ -59,6 +74,52 @@ export async function resolveAgentQaSkillSource(
     throw new InitRefusal(`No agent-qa skills were found in ${source.dir}.`)
   }
   return source
+}
+
+// Listing a plugin is the trust decision, so each listed plugin's own skill installs beside ours.
+export async function pluginSkillSources(
+  projectDir: string,
+  version: string,
+): Promise<PluginSkillSources> {
+  const configPath = join(projectDir, 'agent-qa.config.yaml')
+  const { ConfigFileNotFoundError, resolveConfig } = await import('../config.js')
+  let plugins: NonNullable<AgentQaConfig['plugins']>
+  try {
+    plugins = (await resolveConfig({ configPath, loadAuthPlugins: false })).plugins ?? []
+  } catch (error) {
+    if (error instanceof ConfigFileNotFoundError) {
+      return { sources: [], notes: [], configLoaded: true }
+    }
+    throw error
+  }
+  const sources: PluginSkillSource[] = []
+  const taken = new Set<string>()
+  for (const entry of plugins) {
+    const folder = `${PLUGIN_SKILL_FOLDER_PREFIX}${entry.name}`
+    if (taken.has(folder)) continue
+    const resolved = resolvePluginEntry(entry, {
+      configDir: projectDir,
+      configPath,
+      agentQaVersion: version,
+    })
+    const manifest = resolved.manifest
+    if (
+      resolved.state !== 'ok' ||
+      manifest?.kind !== 'remote' ||
+      manifest.skill === undefined ||
+      resolved.packageDir === undefined ||
+      resolved.version === undefined
+    ) {
+      continue
+    }
+    taken.add(folder)
+    sources.push({
+      folder,
+      dir: resolve(resolved.packageDir, manifest.skill),
+      version: resolved.version,
+    })
+  }
+  return { sources, notes: [], configLoaded: true }
 }
 
 // Symlinks are skipped, never followed, so nothing outside the skill folder is read.

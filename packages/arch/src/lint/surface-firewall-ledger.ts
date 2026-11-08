@@ -238,6 +238,12 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'the run command wires runner, safety, and every platform driver by hand; relocates with the run-session composition root',
   },
   {
+    file: 'packages/cli/src/commands/skill-install.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: "the skills installer resolves each plugins entry's package and checks its skill path with core's plugin resolver; joins the config mutation class with init",
+  },
+  {
     file: 'packages/cli/src/commands/validate.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',

@@ -93,3 +93,43 @@ export function writeInstalledPackage(
   }
   return manifest
 }
+
+const EMPTY_OBJECT_SCHEMA = JSON.stringify({
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  type: 'object',
+  properties: {},
+  additionalProperties: false,
+})
+
+// The entry throws, so code that ran the plugin instead of reading its files would fail loudly.
+export function writeRemotePluginPackage(
+  root: string,
+  name: string,
+  version: string,
+  extra: { manifest?: Record<string, unknown>; files?: Record<string, string> } = {},
+): string {
+  const manifest = {
+    kind: 'remote',
+    runs: 'process',
+    protocol: 1,
+    entry: './dist/main.js',
+    serves: ['playwright'],
+    methods: [],
+    options: './dist/options.schema.json',
+    settings: './dist/settings.schema.json',
+    skill: './skill',
+    ...extra.manifest,
+  }
+  return join(
+    writeInstalledPackage(root, name, version, {
+      packageJson: { 'agent-qa': { plugin: manifest } },
+      files: {
+        'dist/main.js': "throw new Error('plugin code ran')\n",
+        'dist/options.schema.json': EMPTY_OBJECT_SCHEMA,
+        'dist/settings.schema.json': EMPTY_OBJECT_SCHEMA,
+        ...extra.files,
+      },
+    }),
+    '..',
+  )
+}
