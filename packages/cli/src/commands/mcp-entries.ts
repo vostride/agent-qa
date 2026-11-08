@@ -1,6 +1,8 @@
 import { isDeepStrictEqual } from 'node:util'
 import { findNodeAtLocation, parse, parseTree, printParseErrorCode } from 'jsonc-parser'
 import type { Node, ParseError } from 'jsonc-parser'
+import { getStaticTOMLValue, ParseError as TomlParseError, parseTOML } from 'toml-eslint-parser'
+import type { AST } from 'toml-eslint-parser'
 
 export const AGENT_QA_MCP_SERVER_NAME = 'agent-qa'
 export const CODING_AGENT_MCP_COMMAND = 'npx'
@@ -25,7 +27,7 @@ export type McpEntryRemoval =
 
 const MCP_JSON = '.mcp.json'
 const SERVERS = 'mcpServers'
-const BOM = '﻿'
+const BOM = '\uFEFF'
 
 const CLAUDE_CODE_ENTRY = {
   type: 'stdio',
@@ -101,13 +103,18 @@ function jsonValue(text: string): unknown {
   return text.trim() === '' ? {} : parse(text, [], { allowTrailingComma: false })
 }
 
-function withoutClaudeCodeEntry(value: unknown): unknown {
-  if (!isRecord(value) || !isRecord(value[SERVERS])) return value
+// `value` without agent-qa's server, and without a servers table that is left empty.
+function withoutAgentQaServer(value: unknown, serversKey: string): unknown {
+  if (!isRecord(value) || !isRecord(value[serversKey])) return value
   const others = Object.fromEntries(
-    Object.entries(value[SERVERS]).filter(([name]) => name !== AGENT_QA_MCP_SERVER_NAME),
+    Object.entries(value[serversKey]).filter(([name]) => name !== AGENT_QA_MCP_SERVER_NAME),
   )
-  const rest = Object.fromEntries(Object.entries(value).filter(([key]) => key !== SERVERS))
-  return Object.keys(others).length === 0 ? rest : { ...rest, [SERVERS]: others }
+  const rest = Object.fromEntries(Object.entries(value).filter(([key]) => key !== serversKey))
+  return Object.keys(others).length === 0 ? rest : { ...rest, [serversKey]: others }
+}
+
+function withoutClaudeCodeEntry(value: unknown): unknown {
+  return withoutAgentQaServer(value, SERVERS)
 }
 
 function parsesCleanly(text: string): boolean {
@@ -244,4 +251,200 @@ export function removeClaudeCodeMcpEntry(text: string | undefined): McpEntryRemo
     return { refused: JSON_MISMATCH }
   }
   return { text: `${bom}${after}`, previous }
+}
+
+const CODEX_CONFIG = '.codex/config.toml'
+const CODEX_SERVERS = 'mcp_servers'
+
+const CODEX_ENTRY = {
+  command: CODING_AGENT_MCP_COMMAND,
+  args: [...CODING_AGENT_MCP_ARGS],
+  tool_timeout_sec: CODEX_MCP_TOOL_TIMEOUT_SEC,
+}
+
+function codexTable(eol: string): string {
+  const args = CODING_AGENT_MCP_ARGS.map((arg) => JSON.stringify(arg)).join(', ')
+  return [
+    `[${CODEX_SERVERS}.${AGENT_QA_MCP_SERVER_NAME}]`,
+    `command = ${JSON.stringify(CODING_AGENT_MCP_COMMAND)}`,
+    `args = [${args}]`,
+    'tool_timeout_sec = 6000',
+  ].join(eol)
+}
+
+type CodexRange = { start: number; end: number; table: boolean }
+
+type CodexDefinitions = {
+  ranges: CodexRange[]
+  inlineServers: boolean
+  hasEntry: boolean
+}
+
+function keyPath(key: AST.TOMLKey): string[] {
+  return getStaticTOMLValue(key)
+}
+
+// Every definition of agent-qa's server: its tables and sub-tables, a dotted key at the root, and
+// a key under [mcp_servers].
+function readCodexConfig(text: string): CodexDefinitions | { refused: string } {
+  let ast: AST.TOMLProgram
+  try {
+    ast = parseTOML(text)
+  } catch (error) {
+    if (!(error instanceof TomlParseError)) throw error
+    const message = error.message.replace(/\s+/gu, ' ')
+    const at = `line ${error.lineNumber}, column ${error.column}`
+    return { refused: `Refusing malformed ${CODEX_CONFIG}: ${message} at ${at}.` }
+  }
+  const servers = (getStaticTOMLValue(ast) as Record<string, unknown>)[CODEX_SERVERS]
+  if (servers !== undefined && !isRecord(servers)) {
+    return { refused: `Refusing malformed ${CODEX_CONFIG}: ${CODEX_SERVERS} is not a table.` }
+  }
+  if (isRecord(servers) && Array.isArray(servers[AGENT_QA_MCP_SERVER_NAME])) {
+    const header = `[[${CODEX_SERVERS}.${AGENT_QA_MCP_SERVER_NAME}]]`
+    return {
+      refused: `Refusing malformed ${CODEX_CONFIG}: ${header} is an array of tables, which Codex cannot read.`,
+    }
+  }
+  const ranges: CodexRange[] = []
+  let inlineServers = false
+  for (const node of ast.body[0].body) {
+    if (node.type === 'TOMLTable') {
+      const [first, second] = node.resolvedKey
+      if (first !== CODEX_SERVERS) continue
+      if (second === AGENT_QA_MCP_SERVER_NAME) {
+        ranges.push({ start: node.range[0], end: node.range[1], table: true })
+      } else if (node.resolvedKey.length === 1) {
+        for (const pair of node.body) {
+          if (keyPath(pair.key)[0] !== AGENT_QA_MCP_SERVER_NAME) continue
+          ranges.push({ start: pair.range[0], end: pair.range[1], table: false })
+        }
+      }
+      continue
+    }
+    const path = keyPath(node.key)
+    if (path[0] !== CODEX_SERVERS) continue
+    if (path.length === 1) inlineServers = true
+    else if (path[1] === AGENT_QA_MCP_SERVER_NAME) {
+      ranges.push({ start: node.range[0], end: node.range[1], table: false })
+    }
+  }
+  const hasEntry = isRecord(servers) && servers[AGENT_QA_MCP_SERVER_NAME] !== undefined
+  return { ranges: ranges.sort((a, b) => a.start - b.start), inlineServers, hasEntry }
+}
+
+function lineStart(text: string, offset: number): number {
+  const start = text.lastIndexOf('\n', offset - 1) + 1
+  return /^[ \t]*$/u.test(text.slice(start, offset)) ? start : offset
+}
+
+// Past the rest of the line: trailing blanks, a comment and the line terminator.
+function pastLineEnd(text: string, offset: number): number {
+  const rest = /^[ \t]*(?:#[^\r\n]*)?(?:\r?\n|$)/u.exec(text.slice(offset))
+  return offset + (rest?.[0].length ?? 0)
+}
+
+function pastBlankLines(text: string, offset: number): number {
+  const blank = /^(?:[ \t]*\r?\n)*(?:[ \t]+$)?/u.exec(text.slice(offset))
+  return offset + (blank?.[0].length ?? 0)
+}
+
+function appendedAtEof(existing: string, block: string, eol: string): string {
+  if (existing.trim() === '') return block
+  const separator = existing.endsWith(`${eol}${eol}`)
+    ? ''
+    : existing.endsWith('\n')
+      ? eol
+      : eol + eol
+  return `${existing}${separator}${block}`
+}
+
+function tomlValue(text: string): Record<string, unknown> | undefined {
+  try {
+    return getStaticTOMLValue(parseTOML(text)) as Record<string, unknown>
+  } catch {
+    return undefined
+  }
+}
+
+function withoutCodexEntry(value: unknown): unknown {
+  return withoutAgentQaServer(value, CODEX_SERVERS)
+}
+
+const TOML_MISMATCH =
+  `Refusing to edit ${CODEX_CONFIG}: the edit would change more than agent-qa's entry.`
+
+const INLINE_SERVERS =
+  `Refusing to edit ${CODEX_CONFIG}: ${CODEX_SERVERS} is an inline table, so agent-qa cannot ` +
+  `write its own [${CODEX_SERVERS}.${AGENT_QA_MCP_SERVER_NAME}] table.`
+
+export function upsertCodexMcpEntry(text: string | undefined): McpEntryEdit {
+  const before = text ?? ''
+  const eol = eolOf(before)
+  const entry = codexTable(eol)
+  let after: string
+  let previous: string | undefined
+  if (before.trim() === '') {
+    after = `${entry}${eol}`
+  } else {
+    const definitions = readCodexConfig(before)
+    if ('refused' in definitions) return definitions
+    if (definitions.inlineServers) return { refused: INLINE_SERVERS }
+    const { ranges } = definitions
+    if (ranges.length > 0) {
+      previous = ranges.map((range) => before.slice(range.start, range.end)).join(eol)
+    }
+    const firstTable = ranges.find((range) => range.table)
+    let kept = ''
+    let cursor = 0
+    for (const range of ranges) {
+      const start = lineStart(before, range.start)
+      let end = pastLineEnd(before, range.end)
+      kept += before.slice(cursor, start)
+      if (range === firstTable) kept += `${entry}${eol}`
+      else if (range.table) end = pastBlankLines(before, end)
+      cursor = end
+    }
+    kept += before.slice(cursor)
+    after = firstTable === undefined ? appendedAtEof(kept, `${entry}${eol}`, eol) : kept
+  }
+  const value = tomlValue(after)
+  const servers = value?.[CODEX_SERVERS]
+  const written = isRecord(servers) ? servers[AGENT_QA_MCP_SERVER_NAME] : undefined
+  if (value === undefined || !isDeepStrictEqual(written, CODEX_ENTRY)) {
+    return { refused: TOML_MISMATCH }
+  }
+  if (!isDeepStrictEqual(withoutCodexEntry(tomlValue(before)), withoutCodexEntry(value))) {
+    return { refused: TOML_MISMATCH }
+  }
+  return { text: after, previous, entry }
+}
+
+export function removeCodexMcpEntry(text: string | undefined): McpEntryRemoval {
+  if (text === undefined || text.trim() === '') return { text: undefined, previous: undefined }
+  const definitions = readCodexConfig(text)
+  if ('refused' in definitions) return definitions
+  if (definitions.inlineServers && definitions.hasEntry) return { refused: INLINE_SERVERS }
+  const { ranges } = definitions
+  if (ranges.length === 0) return { text, previous: undefined }
+
+  const eol = eolOf(text)
+  const previous = ranges.map((range) => text.slice(range.start, range.end)).join(eol)
+  let kept = ''
+  let cursor = 0
+  for (const range of ranges) {
+    const start = lineStart(text, range.start)
+    const end = pastLineEnd(text, range.end)
+    kept += text.slice(cursor, start)
+    cursor = range.table ? pastBlankLines(text, end) : end
+  }
+  kept += text.slice(cursor)
+  if (cursor === text.length) kept = kept.replace(/(\r?\n)(?:[ \t]*\r?\n)+$/u, '$1')
+  if (kept.trim() === '') return { text: undefined, previous }
+  const value = tomlValue(kept)
+  if (value === undefined) return { refused: TOML_MISMATCH }
+  if (!isDeepStrictEqual(withoutCodexEntry(tomlValue(text)), withoutCodexEntry(value))) {
+    return { refused: TOML_MISMATCH }
+  }
+  return { text: kept, previous }
 }
