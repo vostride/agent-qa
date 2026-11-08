@@ -218,7 +218,7 @@ const AGENT_LABELS: Readonly<Record<CodingAgent, string>> = {
   codex: 'Codex',
 }
 
-function parseCodingAgentList(value: string): CodingAgent[] | undefined {
+export function parseCodingAgentList(value: string): CodingAgent[] | undefined {
   const names = value.split(',').map((name) => name.trim())
   if (names.includes('all')) return undefined
   for (const name of names) {
