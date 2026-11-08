@@ -19,6 +19,7 @@ import {
   type AgentRemovalResult,
   type CodingAgent,
 } from './agent-setup.js'
+import { AGENT_SETUP_MANIFEST_PATH } from './agent-setup-manifest.js'
 import { isInitRefusal } from './init-refusal.js'
 
 export interface AgentQaSkillInfo {
@@ -273,6 +274,14 @@ function removalLines(result: AgentRemovalResult): string[] {
       lines.push(`${edit} the agent-qa block in AGENTS.md`)
     }
   }
+  if (result.removed.length === 0 && result.manifest === 'removed') {
+    lines.push(
+      result.dryRun
+        ? `- ${AGENT_SETUP_MANIFEST_PATH}: would remove it; it lists no coding agent`
+        : pc.green(`✓ ${AGENT_SETUP_MANIFEST_PATH}: removed it; it listed no coding agent`),
+    )
+  }
+  if (lines.length === 0) lines.push("Nothing of agent-qa's is installed for those coding agents.")
   return lines
 }
 
