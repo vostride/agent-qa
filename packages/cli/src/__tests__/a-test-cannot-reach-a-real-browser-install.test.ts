@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { openDashboardUrl } from '../commands/dashboard.js'
-import { openInBrowser, systemBrowserOpener } from '../commands/open-url.js'
+import { systemBrowserOpener } from '../commands/open-url.js'
 import { projectHost, spawnRunner } from '../commands/project-host.js'
 import { runUpdateNotice } from '../version-notice.js'
 import { spawnVersionRefresh } from '../version-refresh-spawn.js'
@@ -136,21 +136,15 @@ describe('the download host a test environment carries', () => {
 })
 
 describe('the default browser opener in a test', () => {
-  const OPENER_REFUSAL = 'A test reached the real browser opener. Inject hooks.openUrl.'
+  const OPENER_REFUSAL =
+    'A test reached the real browser opener. Pass an opener to createDashboardCommand.'
   const PAGE = 'http://localhost:3470/config/models'
 
   it("the dashboard command's opener is refused before any child starts and records it", () => {
     expect(() => openDashboardUrl(PAGE, systemBrowserOpener)).toThrow(OPENER_REFUSAL)
 
     expect(takeGuardedCalls()).toEqual(['open http://localhost:3470'])
-    expect(spawned.filter((call) => /^(open|xdg-open|cmd|rundll32)\b/u.test(call))).toEqual([])
-  })
-
-  it('opening a page through the system opener by name is refused too', () => {
-    expect(() => openInBrowser(PAGE, systemBrowserOpener)).toThrow(OPENER_REFUSAL)
-
-    expect(takeGuardedCalls()).toEqual(['open http://localhost:3470'])
-    expect(spawned.filter((call) => /^(open|xdg-open|cmd|rundll32)\b/u.test(call))).toEqual([])
+    expect(spawned.filter((call) => /^(open|xdg-open|cmd)\b/u.test(call))).toEqual([])
   })
 })
 

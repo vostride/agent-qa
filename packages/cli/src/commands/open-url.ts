@@ -51,18 +51,3 @@ export const systemBrowserOpener: BrowserOpener = {
   platform: process.platform,
   spawn: (command, args, options) => spawn(command, [...args], options),
 }
-
-// A sign-in address carries percent escapes cmd.exe would expand, so Windows hands such an
-// address to the URL handler as one argument instead.
-export function openInBrowser(url: string, opener: BrowserOpener = systemBrowserOpener): void {
-  if (opener.platform === 'win32' && CMD_UNQUOTABLE.test(url)) {
-    detached(
-      opener.spawn('rundll32', ['url.dll,FileProtocolHandler', url], {
-        shell: false,
-        stdio: 'ignore',
-      }),
-    )
-    return
-  }
-  openUrlWithoutShell(url, opener)
-}

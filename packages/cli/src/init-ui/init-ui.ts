@@ -27,13 +27,6 @@ export interface InitUi {
     initialValues: readonly T[]
     required?: boolean
   }): Promise<T[]>
-  // A secret answer is masked on the rail, so a pasted code never shows.
-  text(q: {
-    message: string
-    defaultValue: string
-    signal?: AbortSignal
-    secret?: boolean
-  }): Promise<string>
   step(title: string): InitStepLine
   note(title: string, lines: readonly string[]): void
   line(text: string): void

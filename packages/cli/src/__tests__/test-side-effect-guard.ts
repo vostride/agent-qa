@@ -1,6 +1,6 @@
 // Loaded before every CLI test file: the default runner refuses a real browser install and a real
-// dashboard, the default openers (init's and the dashboard command's) refuse to open a real
-// browser, the dashboard's port probe refuses a fixed port, and the update notice's default spawn
+// dashboard, the dashboard command's default opener refuses to open a real browser, the
+// dashboard's port probe refuses a fixed port, and the update notice's default spawn
 // refuses to start a real registry refresh.
 import { afterEach, vi } from 'vitest'
 
@@ -12,7 +12,7 @@ import type * as VersionRefreshSpawnModule from '../version-refresh-spawn.js'
 const RECORD = Symbol.for('agent-qa.test-side-effect-guard')
 const INSTALL_ADVICE = 'Pass --no-browsers or inject host.run.'
 const DASHBOARD_ADVICE = 'Inject host.run or pass --no-dashboard.'
-const OPENER_ADVICE = 'Inject hooks.openUrl.'
+const OPENER_ADVICE = 'Pass an opener to createDashboardCommand.'
 const PROBE_ADVICE = 'Inject hooks.dashboardPort or pass --no-dashboard.'
 const REFRESH_ADVICE = 'Inject spawnRefresh.'
 const REFUSAL = `A test reached the real browser install. ${INSTALL_ADVICE}`
@@ -50,7 +50,7 @@ vi.mock('../commands/project-host.js', async (importOriginal) => {
   }
 })
 
-// Only the address's origin is recorded: the rest of a sign-in address carries session state.
+// Only the address's origin is recorded: the rest of an address can carry session state.
 vi.mock('../commands/open-url.js', async (importOriginal) => {
   const real = await importOriginal<typeof OpenUrlModule>()
   const store = Symbol.for('agent-qa.test-side-effect-guard')
@@ -64,20 +64,16 @@ vi.mock('../commands/open-url.js', async (importOriginal) => {
   const refuse = (url: string): never => {
     const calls = ((globalThis as unknown as GuardedGlobal)[store] ??= [])
     calls.push(`open ${origin(url)}`)
-    throw new Error('A test reached the real browser opener. Inject hooks.openUrl.')
+    throw new Error(
+      'A test reached the real browser opener. Pass an opener to createDashboardCommand.',
+    )
   }
-  // The dashboard command's default opener is this export; openInBrowser's default is bound
-  // inside the real module, so it is replaced as well.
+  // The dashboard command's default opener is this export.
   const systemBrowserOpener: OpenUrlModule.BrowserOpener = {
     platform: process.platform,
     spawn: (_command, args) => refuse(String(args.at(-1)).replace(/^"|"$/gu, '')),
   }
-  return {
-    ...real,
-    systemBrowserOpener,
-    openInBrowser: (url: string, opener?: OpenUrlModule.BrowserOpener) =>
-      opener === undefined ? refuse(url) : real.openInBrowser(url, opener),
-  }
+  return { ...real, systemBrowserOpener }
 })
 
 vi.mock('../commands/init-dashboard.js', async (importOriginal) => {

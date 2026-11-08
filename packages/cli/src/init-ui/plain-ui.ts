@@ -11,7 +11,6 @@ export function createPlainUi(
     intro: () => {},
     select: async (q) => q.initialValue,
     multiselect: async (q) => [...q.initialValues],
-    text: async (q) => q.defaultValue,
     step: () => ({
       done: (text) => print(`✓ ${text}`),
       skipped: (text) => print(`– ${text}`),

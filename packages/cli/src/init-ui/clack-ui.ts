@@ -10,9 +10,7 @@ import {
   multiselect,
   note,
   outro,
-  password,
   select,
-  text,
   type Option,
 } from '@clack/prompts'
 
@@ -63,32 +61,19 @@ export function createClackUi(options: {
   let stopSpinner: (() => void) | undefined
 
   // Clack leaves a prompt pending when its input closes, so each prompt aborts itself then.
-  // A deferring signal ends the prompt without a cancel, and the caller takes its default.
-  const ask = async <T>(
-    prompt: (streams: PromptStreams) => Promise<T | symbol>,
-    deferred?: AbortSignal,
-  ): Promise<T | undefined> => {
+  const ask = async <T>(prompt: (streams: PromptStreams) => Promise<T | symbol>): Promise<T> => {
     const controller = new AbortController()
-    let closed = false
-    const close = (): void => {
-      closed = true
-      controller.abort()
-    }
-    const defer = (): void => controller.abort()
+    const close = (): void => controller.abort()
     input.once('end', close)
     input.once('close', close)
-    deferred?.addEventListener('abort', defer, { once: true })
     if (input.readableEnded || input.destroyed) close()
-    if (deferred?.aborted === true) defer()
     try {
       const value = await prompt({ input, output, signal: controller.signal })
       if (!isCancel(value)) return value as T
-      if (!closed && deferred?.aborted === true) return undefined
       throw new PromptCancelled()
     } finally {
       input.off('end', close)
       input.off('close', close)
-      deferred?.removeEventListener('abort', defer)
     }
   }
 
@@ -165,8 +150,8 @@ export function createClackUi(options: {
     intro: () => {
       intro('agent-qa init', common)
     },
-    select: async (q) => {
-      const value = await ask<typeof q.initialValue>((streams) =>
+    select: (q) =>
+      ask<typeof q.initialValue>((streams) =>
         select({
           ...streams,
           message: q.message,
@@ -174,11 +159,9 @@ export function createClackUi(options: {
           initialValue: q.initialValue,
           ...(q.maxItems === undefined ? {} : { maxItems: q.maxItems }),
         }),
-      )
-      return value ?? q.initialValue
-    },
-    multiselect: async (q) => {
-      const value = await ask<(typeof q.initialValues)[number][]>((streams) =>
+      ),
+    multiselect: (q) =>
+      ask<(typeof q.initialValues)[number][]>((streams) =>
         multiselect({
           ...streams,
           message: q.message,
@@ -186,19 +169,7 @@ export function createClackUi(options: {
           initialValues: [...q.initialValues],
           required: q.required ?? false,
         }),
-      )
-      return value ?? [...q.initialValues]
-    },
-    text: async (q) => {
-      const value = await ask<string | undefined>(
-        (streams) =>
-          q.secret === true
-            ? password({ ...streams, message: q.message })
-            : text({ ...streams, message: q.message, defaultValue: q.defaultValue }),
-        q.signal,
-      )
-      return value === undefined || value === '' ? q.defaultValue : value
-    },
+      ),
     step,
     note: (title, lines) => note(lines.join('\n'), palette.accent(title), common),
     line: (text) => log.message(text, common),

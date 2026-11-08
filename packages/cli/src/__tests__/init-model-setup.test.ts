@@ -156,7 +156,7 @@ function expectNoDummySecret(root: string, ...outputs: string[]): void {
 
 function questions(ui: FakeInitUi): string[] {
   return ui.entries
-    .filter((entry) => ['select', 'multiselect', 'text'].includes(entry.kind))
+    .filter((entry) => ['select', 'multiselect'].includes(entry.kind))
     .map((entry) => entry.text)
 }
 

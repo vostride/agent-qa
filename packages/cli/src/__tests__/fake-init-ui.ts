@@ -8,7 +8,7 @@ export type FakeInitUiEntry =
     }
   | { kind: 'failed'; text: string; command?: string }
   | { kind: 'note'; text: string; lines: string[] }
-  | { kind: 'select' | 'multiselect' | 'text'; text: string; answer: unknown }
+  | { kind: 'select' | 'multiselect'; text: string; answer: unknown }
 
 export type FakeInitUi = InitUi & {
   entries: FakeInitUiEntry[]
@@ -44,11 +44,6 @@ export function fakeInitUi(answers: Record<string, unknown> = {}): FakeInitUi {
     multiselect: async (q) => {
       const value = answer(q.message, [...q.initialValues])
       entries.push({ kind: 'multiselect', text: q.message, answer: value })
-      return value
-    },
-    text: async (q) => {
-      const value = answer(q.message, q.defaultValue)
-      entries.push({ kind: 'text', text: q.message, answer: value })
       return value
     },
     step: (title) => {

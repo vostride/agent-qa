@@ -9,7 +9,7 @@ import { clackStreams } from './clack-keys.js'
 
 const CLEAR_LINE = '\x1b[1G\x1b[J'
 const SPINNER_FRAME = /^[◒◐◓◑] {2}/u
-const LONG_SKIP = "Sign-in: skipped (the project's agent-qa differs from this one)"
+const LONG_SKIP = "Dashboard: skipped (the project's agent-qa differs from this one)"
 
 const SHOW_CURSOR = '\x1b[?25h'
 const HIDE_CURSOR = '\x1b[?25l'
