@@ -121,6 +121,30 @@ describe('the MCP server with no project to serve', () => {
     expect(listed.resources).toEqual([])
   })
 
+  it('answers a call with config invalid, the first problem and npx agent-qa validate', async () => {
+    const posture: AgentQaMcpPosture = {
+      state: 'config-invalid',
+      configPath: CONFIG_PATH,
+      problem: 'workspace: Required',
+    }
+    const client = await connect(posture, 'auto')
+    const result = await client.callTool({ name: 'agent_qa_list_runs', arguments: {} })
+    expect(result.isError).toBe(true)
+    expect(result.structuredContent).toEqual({
+      status: 'config_invalid',
+      configPath: CONFIG_PATH,
+      problem: 'workspace: Required',
+      run: 'npx agent-qa validate',
+    })
+    const content = result.content as { type: string; text: string }[]
+    expect(content).toHaveLength(1)
+    expect(content[0]!.text).toContain('workspace: Required')
+    expect(content[0]!.text).toContain('npx agent-qa validate')
+    expect(client.getInstructions()).toBe(barrel.agentQaMcpPostureInstructions(posture))
+    expect(client.getInstructions()).toContain('npx agent-qa validate')
+    expect(invoked).toEqual([])
+  })
+
   it('answers the posture instructions', async () => {
     const instructions = (await connect(NOT_INITIALIZED)).getInstructions()
     expect(instructions).toBe(barrel.agentQaMcpPostureInstructions(NOT_INITIALIZED))

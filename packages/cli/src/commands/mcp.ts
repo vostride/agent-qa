@@ -24,6 +24,7 @@ import { analyticsEvent, composeAnalyticsHost } from '../composition/analytics-h
 import {
   createDeclaredSecretMask,
   createEmptyDeclaredSecretMask,
+  DeclaredSecretsUnavailableError,
 } from '../composition/declared-secrets.js'
 import type { DeclaredSecretMask } from '../composition/declared-secrets.js'
 import { composeCliLocalAgent, withRunDoor } from '../composition/local-agent-host.js'
@@ -55,7 +56,22 @@ export function composeMcpMasking(input: { configPath: string }): DeclaredSecret
   return createDeclaredSecretMask(input.configPath)
 }
 
-// Decided before anything reads the config, so a missing one never reaches the declared mask.
+const MCP_PROBLEM_MAX_LENGTH = 300
+
+// One line only: a validation error lists every issue, and only its first is answered.
+function firstProblemLine(err: unknown, configPath: string): string {
+  const message = err instanceof DeclaredSecretsUnavailableError
+    ? err.lines[0] ?? err.message
+    : err instanceof Error ? err.message : String(err)
+  const lines = message.split('\n').map((line) => line.trim()).filter((line) => line !== '')
+  const first = lines[0] === 'Config validation failed:' ? lines[1] : lines[0]
+  const line = (first ?? 'the config could not be loaded')
+    .replace(/^Error: /u, '')
+    .replace(`${configPath}: `, '')
+  return line.slice(0, MCP_PROBLEM_MAX_LENGTH)
+}
+
+// Decided before anything reads the config, so a missing or broken one never reaches a server.
 export async function classifyMcpConfig(
   configPath: string,
 ): Promise<AgentQaMcpPosture | undefined> {
@@ -67,7 +83,27 @@ export async function classifyMcpConfig(
     }
     throw err
   }
-  return undefined
+
+  const declared = createDeclaredSecretMask(configPath)
+  let failure: unknown
+  try {
+    await resolveConfig({ configPath, loadAuthPlugins: false })
+  } catch (err) {
+    failure = err
+  }
+  let mask: (text: string) => string = (text) => text
+  try {
+    const redactor = declared.redactor()
+    mask = (text) => redactor.redactString(text)
+  } catch (err) {
+    failure ??= err
+  }
+  if (failure === undefined) return undefined
+  return {
+    state: 'config-invalid',
+    configPath,
+    problem: mask(firstProblemLine(failure, configPath)),
+  }
 }
 
 // The one place deps are composed, so stdio and HTTP build identical servers.
