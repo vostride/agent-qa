@@ -97,6 +97,7 @@ async function setup(project: Project, runner: FakeRunner = fakeRunner()) {
   return await installAgentSetup({
     projectDir: project.root,
     agents: BOTH,
+    parts: ['skills', 'agents-md'],
     host: { cwd: project.root, homedir: project.home, env: {}, run: runner },
   })
 }

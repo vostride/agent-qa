@@ -4,6 +4,7 @@ import { join, resolve } from 'node:path'
 import {
   AGENT_SKILL_ROOTS,
   agentOfManifestPath,
+  type AGENT_SETUP_ENTRY_FILES,
   CODING_AGENTS,
   readAgentSetupManifest,
   writeAgentSetupManifest,
@@ -24,6 +25,7 @@ import {
   renderManagedBlock,
   type ManagedBlockContent,
 } from './managed-block.js'
+import { upsertClaudeCodeMcpEntry, upsertCodexMcpEntry, type McpEntryEdit } from './mcp-entries.js'
 import { projectHost, type ProjectHost } from './project-host.js'
 import {
   PLUGIN_SKILL_FOLDER_PREFIX,
@@ -39,11 +41,27 @@ import { listAgentQaSkills, skillSummary } from './skills.js'
 
 export { AGENT_SKILL_ROOTS, CODING_AGENTS, type CodingAgent } from './agent-setup-manifest.js'
 
-export type AgentSetupPart = 'skills' | 'agents-md'
-export const AGENT_SETUP_PARTS: readonly AgentSetupPart[] = ['skills', 'agents-md']
+export type AgentSetupPart = 'skills' | 'agents-md' | 'mcp'
+export const AGENT_SETUP_PARTS: readonly AgentSetupPart[] = ['skills', 'agents-md', 'mcp']
 
 export const AGENTS_MD_FILE = 'AGENTS.md'
 export const AGENTS_MD_BLOCK_KEY = 'agent-qa init block'
+
+type EntryFile = (typeof AGENT_SETUP_ENTRY_FILES)[number]
+
+export const AGENT_MCP_FILES: Readonly<Record<CodingAgent, EntryFile>> = {
+  'claude-code': '.mcp.json',
+  codex: '.codex/config.toml',
+}
+export const AGENT_MCP_ENTRY_KEYS: Readonly<Record<CodingAgent, string>> = {
+  'claude-code': 'mcpServers.agent-qa',
+  codex: 'mcp_servers.agent-qa',
+}
+
+const MCP_UPSERTS: Readonly<Record<CodingAgent, (text: string | undefined) => McpEntryEdit>> = {
+  'claude-code': upsertClaudeCodeMcpEntry,
+  codex: upsertCodexMcpEntry,
+}
 
 export type AgentSetupFileOutcome =
   | 'created'
@@ -293,6 +311,56 @@ function writeAgentsMdBlock(
   return sha256Of(wanted)
 }
 
+// The entry is agent-qa's by its server name: an edited or foreign one is rewritten and named.
+// The host file is spliced in place; no host CLI runs, because each re-serialises the file.
+function writeMcpEntry(
+  projectDir: string,
+  agent: CodingAgent,
+  listedHash: string | undefined,
+  result: AgentSetupResult,
+): string {
+  const file = AGENT_MCP_FILES[agent]
+  const path = join(projectDir, file)
+  const existing =
+    classifyInitPath(path, projectDir) === 'regular' ? readFileSync(path, 'utf-8') : undefined
+  const edit = MCP_UPSERTS[agent](existing)
+  if ('refused' in edit) throw new Error(edit.refused)
+  const outcome: AgentSetupFileOutcome =
+    edit.previous === undefined
+      ? 'created'
+      : edit.previous === edit.entry
+        ? 'unchanged'
+        : sha256Of(edit.previous) === listedHash
+          ? 'updated'
+          : 'replaced'
+  if (edit.text !== existing) {
+    writeScaffoldFileAtomic({ path, root: projectDir, content: edit.text, force: true })
+  }
+  if (outcome === 'replaced') {
+    result.notes.push(
+      listedHash === undefined
+        ? `Replaced the agent-qa entry in ${file}, which differed from agent-qa's`
+        : `Replaced your edit: the agent-qa entry in ${file}`,
+    )
+  }
+  result.files.push({ path: file, outcome })
+  return sha256Of(edit.entry)
+}
+
+function setEntry(entries: ManifestEntry[], entry: ManifestEntry): void {
+  const at = entries.findIndex((listed) => listed.file === entry.file && listed.key === entry.key)
+  if (at === -1) entries.push(entry)
+  else entries[at] = entry
+}
+
+function partResult(
+  chosen: readonly CodingAgent[],
+  reason: string | undefined,
+): AgentSetupPartResult {
+  if (chosen.length === 0) return { outcome: 'skipped', reason: 'no coding agent is chosen' }
+  return reason === undefined ? { outcome: 'done' } : { outcome: 'failed', reason }
+}
+
 export async function installAgentSetup(options: AgentSetupOptions): Promise<AgentSetupResult> {
   const projectDir = resolve(options.projectDir)
   const host = projectHost(options.host)
@@ -319,7 +387,8 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
   }
   const runSkills = parts.includes('skills')
   const runBlock = parts.includes('agents-md')
-  if (!runSkills && !runBlock) return result
+  const runMcp = parts.includes('mcp')
+  if (!runSkills && !runBlock && !runMcp) return result
   const plugins = await pluginSkillSources(projectDir, source.version)
   result.notes.push(...plugins.notes)
   const held = new Set(plugins.held)
@@ -357,20 +426,32 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
   const entries = [...(previous?.entries ?? [])]
   let blockFailure: string | undefined
   if (runBlock && chosen.length > 0) {
-    const listedEntry = entries.findIndex(isBlockEntry)
     try {
       const sha256 = writeAgentsMdBlock(
         projectDir,
         [...skillSummaries(agentQaSkills), ...skillSummaries(pluginSkills)],
         source.version,
-        entries[listedEntry]?.sha256,
+        entries.find(isBlockEntry)?.sha256,
         result,
       )
-      const entry: ManifestEntry = { file: AGENTS_MD_FILE, key: AGENTS_MD_BLOCK_KEY, sha256 }
-      if (listedEntry === -1) entries.push(entry)
-      else entries[listedEntry] = entry
+      setEntry(entries, { file: AGENTS_MD_FILE, key: AGENTS_MD_BLOCK_KEY, sha256 })
     } catch (error) {
       blockFailure = errorMessage(error)
+    }
+  }
+
+  const mcpFailures: string[] = []
+  if (runMcp) {
+    for (const agent of chosen) {
+      const file = AGENT_MCP_FILES[agent]
+      const key = AGENT_MCP_ENTRY_KEYS[agent]
+      const listedHash = entries.find((entry) => entry.file === file && entry.key === key)?.sha256
+      try {
+        const sha256 = writeMcpEntry(projectDir, agent, listedHash, result)
+        setEntry(entries, { file, key, sha256 })
+      } catch (error) {
+        mcpFailures.push(errorMessage(error))
+      }
     }
   }
   result.files.sort(byPath)
@@ -392,14 +473,7 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
     const reason = skillFailures[0] ?? manifestFailure
     result.parts.skills = reason === undefined ? { outcome: 'done' } : { outcome: 'failed', reason }
   }
-  if (runBlock) {
-    const reason = blockFailure ?? manifestFailure
-    result.parts['agents-md'] =
-      chosen.length === 0
-        ? { outcome: 'skipped', reason: 'no coding agent is chosen' }
-        : reason === undefined
-          ? { outcome: 'done' }
-          : { outcome: 'failed', reason }
-  }
+  if (runBlock) result.parts['agents-md'] = partResult(chosen, blockFailure ?? manifestFailure)
+  if (runMcp) result.parts.mcp = partResult(chosen, mcpFailures[0] ?? manifestFailure)
   return result
 }
