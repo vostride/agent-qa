@@ -3,7 +3,7 @@ import {
   printRunText,
   reserveStdoutForData,
 } from '@vostride/agent-qa-core/run-text-output'
-import { Command } from 'commander'
+import { Command, type CommanderError } from 'commander'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -198,8 +198,13 @@ export function createSkillsCommand(options: SkillsCommandOptions = {}): Command
     })
     .addCommand(createSkillsUninstallCommand(options))
 
-  cmd.exitOverride(usageErrorExit)
+  cmd.exitOverride(commanderExit)
   return cmd
+}
+
+// Commander has printed its own line; its usage errors keep Commander's exit code.
+function commanderExit(error: CommanderError): void {
+  if (error.exitCode !== 0) throw new CliRefusal([], error.exitCode, { cause: error })
 }
 
 // Commander has printed its own line; a usage error exits 2, and help returns to exit 0.
