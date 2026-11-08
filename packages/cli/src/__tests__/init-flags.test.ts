@@ -1,8 +1,8 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { Command } from 'commander'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 
 vi.mock('@inquirer/select', () => ({ default: vi.fn(async () => 'gemini') }))
@@ -61,8 +61,10 @@ function configuredLlm(root: string): unknown {
   return config.registry.llms[0]
 }
 
+let stdout: MockInstance<typeof process.stdout.write>
+
 beforeEach(() => {
-  vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+  stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
   vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
   vi.spyOn(console, 'warn').mockImplementation(() => {})
 })
@@ -109,4 +111,113 @@ describe('init in a terminal', () => {
       })
     },
   )
+})
+
+async function initWithFlags(
+  args: readonly string[],
+): Promise<{ root: string; error: unknown }> {
+  const { root, home } = tempProject('init-platform')
+  const parent = new Command()
+  const command = createInitCommand({
+    cwd: root,
+    host: { homedir: home, env: {}, run: fakeRunner() },
+    isTTY: false,
+    composeAnalytics: silentAnalytics,
+    ui: fakeInitUi(),
+  })
+  parent.exitOverride()
+  command.exitOverride()
+  parent.addCommand(command)
+  const error = await parent
+    .parseAsync(['node', 'test', 'init', ...args, '--llm', 'claude-code', '--pm', 'none'])
+    .then(
+      () => undefined,
+      (caught: unknown) => caught,
+    )
+  return { root, error }
+}
+
+function writtenConfig(root: string): {
+  registry: { targets: Record<string, unknown> }
+  use?: { mobile?: unknown }
+} {
+  return parseYaml(readFileSync(join(root, 'agent-qa.config.yaml'), 'utf8'))
+}
+
+const CSV_LINE = '--platform takes web, android and ios, separated by commas.'
+
+describe('--platform takes a CSV of web, android and ios', () => {
+  it('web writes a web scaffold and no use.mobile', async () => {
+    const { root, error } = await initWithFlags(['--platform', 'web'])
+
+    expect(error).toBeUndefined()
+    expect(Object.keys(writtenConfig(root).registry.targets)).toEqual([
+      'komazon',
+      'komazon-cart-total-bug',
+    ])
+    expect(writtenConfig(root).use?.mobile).toBeUndefined()
+    expect(existsSync(join(root, 'tests/examples/komazon-checkout.yaml'))).toBe(true)
+  })
+
+  it('web,android writes the web examples and an android target', async () => {
+    const { root, error } = await initWithFlags(['--platform', 'web,android'])
+
+    expect(error).toBeUndefined()
+    expect(Object.keys(writtenConfig(root).registry.targets)).toEqual([
+      'komazon',
+      'komazon-cart-total-bug',
+      'example-android',
+    ])
+    expect(writtenConfig(root).use?.mobile).toBeDefined()
+    expect(existsSync(join(root, 'tests/examples/komazon-checkout.yaml'))).toBe(true)
+  })
+
+  it('android,ios writes no web examples and a use.mobile block', async () => {
+    const { root, error } = await initWithFlags(['--platform', 'android,ios'])
+
+    expect(error).toBeUndefined()
+    expect(Object.keys(writtenConfig(root).registry.targets)).toEqual([
+      'example-android',
+      'example-ios',
+    ])
+    expect(writtenConfig(root).use?.mobile).toBeDefined()
+    expect(existsSync(join(root, 'tests/examples'))).toBe(false)
+  })
+
+  it('ios,web writes the same config as web,ios', async () => {
+    const first = await initWithFlags(['--platform', 'ios,web'])
+    const second = await initWithFlags(['--platform', 'web,ios'])
+
+    expect(first.error).toBeUndefined()
+    expect(second.error).toBeUndefined()
+    expect(readFileSync(join(first.root, 'agent-qa.config.yaml'), 'utf8')).toBe(
+      readFileSync(join(second.root, 'agent-qa.config.yaml'), 'utf8'),
+    )
+    expect(Object.keys(writtenConfig(first.root).registry.targets)).toContain('example-ios')
+  })
+
+  it.each([
+    ['web+android', '--platform web+android is now --platform web,android.'],
+    ['web+ios', '--platform web+ios is now --platform web,ios.'],
+    ['mobile', CSV_LINE],
+    ['web,,', CSV_LINE],
+  ])('--platform %s is refused with exit 2 and writes nothing', async (value, message) => {
+    const { root, error } = await initWithFlags(['--platform', value])
+
+    expect((error as Error | undefined)?.message).toBe(message)
+    expect(error).toMatchObject({ exitCode: 2 })
+    expect(readdirSync(root)).toEqual(['.git'])
+  })
+
+  it.each([
+    ['web+android', '--platform web+android is now --platform web,android.'],
+    ['web+ios', '--platform web+ios is now --platform web,ios.'],
+    ['mobile', CSV_LINE],
+  ])('--platform %s under --json is one refused document with the message', async (value, message) => {
+    await initWithFlags(['--platform', value, '--json'])
+
+    const documents = stdout.mock.calls.map((call) => JSON.parse(String(call[0])))
+    expect(documents).toHaveLength(1)
+    expect(documents[0]).toMatchObject({ outcome: 'refused', exitCode: 2, message })
+  })
 })
