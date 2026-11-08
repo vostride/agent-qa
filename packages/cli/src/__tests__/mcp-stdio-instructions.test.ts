@@ -43,7 +43,7 @@ function init(dir: string, ...extra: string[]): void {
   mkdirSync(join(dir, '.git'), { recursive: true })
   const home = tempDir()
   const pm = extra.includes('--pm') ? [] : ['--pm', 'none']
-  const args = ['init', '--platform', 'web', ...extra, ...pm]
+  const args = ['init', '--platform', 'web', '--no-browsers', ...extra, ...pm]
   const result = spawnSync(process.execPath, [CLI_ENTRY, ...args], {
     cwd: dir,
     env: { ...childEnv(), HOME: home, USERPROFILE: home },

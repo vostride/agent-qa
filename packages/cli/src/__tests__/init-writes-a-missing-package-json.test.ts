@@ -11,6 +11,7 @@ import { createInitCommand } from '../commands/init.js'
 import { sanitizedPackageName } from '../commands/package-json-plan.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { fakeInitUi } from './fake-init-ui.js'
+import { fakeRunner } from './project-fixtures.js'
 
 const WEB_GEMINI = ['--platform', 'web', '--llm', 'gemini', '--pm', 'none']
 const roots: string[] = []
@@ -60,7 +61,7 @@ describe('init writes a missing package.json', () => {
     const parent = new Command()
     const command = createInitCommand({
       cwd,
-      host: { homedir: tempFolder('agent-qa-missing-package-json-home-') },
+      host: { homedir: tempFolder('agent-qa-missing-package-json-home-'), run: fakeRunner() },
       isTTY: false,
       composeAnalytics: silentAnalytics,
       ui,

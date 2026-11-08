@@ -78,6 +78,7 @@ import { clearProviderRegistry } from '@vostride/agent-qa-model'
 import { isCanonicalHookId, isCanonicalSuiteId, isCanonicalTestId } from '@vostride/agent-qa-ids'
 import { SecretStore, parseEnvFile } from '@vostride/agent-qa-runner'
 import { hermeticEnv } from './conformance/spawned-chat.js'
+import { fakeRunner } from './project-fixtures.js'
 
 const realFs = await vi.importActual<typeof import('node:fs')>('node:fs')
 const realChildProcess = await vi.importActual<typeof import('node:child_process')>(
@@ -114,7 +115,7 @@ function withoutInstall(args: readonly string[]): string[] {
 
 async function runInit(args: string[]): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand({ cwd: DIR, host: { env: {} } })
+  const init = createInitCommand({ cwd: DIR, host: { env: {}, run: fakeRunner() } })
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)

@@ -752,6 +752,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       '--agents <list>',
       'coding agents to set up: claude-code, codex, all or none (default: the ones detected)',
     )
+    .option('--no-browsers', 'do not download Chromium for web targets')
     .option('--force', 'overwrite existing files')
     .addOption(
       new Option(

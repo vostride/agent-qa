@@ -20,6 +20,7 @@ import { createInitCommand } from '../commands/init.js'
 import { defaultProjectIo } from '../commands/project-host.js'
 import { projectRange } from '../commands/project-range.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
+import { fakeRunner } from './project-fixtures.js'
 
 const WEB_GEMINI = ['--platform', 'web', '--llm', 'gemini', '--pm', 'none']
 const roots: string[] = []
@@ -65,7 +66,7 @@ async function init(cwd: string, homedir: string = tempFolder('agent-qa-nearest-
   const parent = new Command()
   const command = createInitCommand({
     cwd,
-    host: { homedir },
+    host: { homedir, run: fakeRunner() },
     isTTY: false,
     composeAnalytics: silentAnalytics,
   })

@@ -10,8 +10,10 @@ export default defineConfig({
     // keep it.
     hookTimeout: 120_000,
     include: ['src/**/__tests__/**/*.test.ts'],
-    env: { GITHUB_ACTIONS: '' },
+    // A spawned init that forgets --no-browsers fails fast on a refused loopback download host.
+    env: { GITHUB_ACTIONS: '', PLAYWRIGHT_DOWNLOAD_HOST: 'http://127.0.0.1:0' },
     globalSetup: ['./src/__tests__/package-folders-unchanged.ts'],
+    setupFiles: ['./src/__tests__/test-side-effect-guard.ts'],
     globals: true,
     typecheck: {
       enabled: true,

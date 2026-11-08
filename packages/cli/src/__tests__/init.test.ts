@@ -113,6 +113,7 @@ import { reportCliFailure } from '../cli-error-handler.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
 import type { InitUi } from '../init-ui/init-ui.js'
 import { createPlainUi } from '../init-ui/plain-ui.js'
+import { fakeRunner } from './project-fixtures.js'
 
 const mockWriteFileSync = vi.mocked(writeFileSync)
 const mockExistsSync = vi.mocked(existsSync)
@@ -160,11 +161,12 @@ async function runInit(
   hooks: Parameters<typeof createInitCommand>[0] = {},
 ): Promise<void> {
   const parent = new Command()
+  const { host, ...rest } = hooks
   const init = createInitCommand({
     cwd: '/tmp/test-project',
-    host: { env: {} },
     ui: terminalUi(),
-    ...hooks,
+    ...rest,
+    host: { env: {}, run: fakeRunner(), ...host },
   })
   parent.exitOverride()
   init.exitOverride()
@@ -175,7 +177,12 @@ async function runInit(
 async function runInitUnderRootConfig(args: string[]): Promise<void> {
   const parent = new Command().enablePositionalOptions()
   parent.option('--config <path>', 'config file path', 'agent-qa.config.yaml')
-  const init = createInitCommand({ cwd: '/tmp/test-project', isTTY: true, ui: terminalUi() })
+  const init = createInitCommand({
+    cwd: '/tmp/test-project',
+    isTTY: true,
+    ui: terminalUi(),
+    host: { env: {}, run: fakeRunner() },
+  })
   parent.exitOverride()
   parent.addCommand(init)
   await parent.parseAsync(['node', 'test', ...args])
@@ -1577,7 +1584,13 @@ skills/.staging/
 
     const runRealInit = async (dir: string, hooks: Hooks = {}): Promise<void> => {
       const parent = new Command()
-      parent.addCommand(actualInit.createInitCommand({ cwd: dir, ...hooks }))
+      parent.addCommand(
+        actualInit.createInitCommand({
+          cwd: dir,
+          host: { homedir: `${dir}-home`, env: {}, run: fakeRunner() },
+          ...hooks,
+        }),
+      )
       await parent.parseAsync([
         'node',
         'test',
@@ -1695,6 +1708,7 @@ skills/.staging/
         'web',
         '--pm',
         'none',
+        '--no-browsers',
       ], {
         cwd: projectDir,
         stdio: 'pipe',
@@ -1748,7 +1762,13 @@ skills/.staging/
     actualFs.mkdirSync(join(dir, '.git'))
     const runRealInit = async (args: string[]): Promise<void> => {
       const parent = new Command()
-      parent.addCommand(actualInit.createInitCommand({ cwd: dir, composeAnalytics }))
+      parent.addCommand(
+        actualInit.createInitCommand({
+          cwd: dir,
+          composeAnalytics,
+          host: { homedir: `${dir}-home`, env: {}, run: fakeRunner() },
+        }),
+      )
       await parent.parseAsync(['node', 'test', 'init', ...withoutInstall(args)])
     }
 
@@ -1809,7 +1829,12 @@ skills/.staging/
     actualFs.mkdirSync(join(dir, '.git'))
     try {
       const parent = new Command()
-      parent.addCommand(actualInit.createInitCommand({ cwd: dir }))
+      parent.addCommand(
+        actualInit.createInitCommand({
+          cwd: dir,
+          host: { homedir: `${dir}-home`, env: {}, run: fakeRunner() },
+        }),
+      )
       await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', '--pm', 'none'])
 
       const readme = actualFs.readFileSync(join(dir, 'agent-qa-knowledge', 'README.md'), 'utf8')

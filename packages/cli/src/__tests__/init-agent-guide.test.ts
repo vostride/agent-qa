@@ -31,6 +31,7 @@ import { AGENT_QA_INIT_MARKDOWN_BLOCK, renderManagedBlock } from '../commands/ma
 import { installedAgentQaVersion } from '../commands/package-json-plan.js'
 import { createRunsCommand } from '../commands/runs.js'
 import { createSkillsCommand, runningAgentQaSkillSummaries } from '../commands/skills.js'
+import { fakeRunner } from './project-fixtures.js'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
 const GUIDE = join('agent-qa-knowledge', 'AGENTS.md')
@@ -50,7 +51,7 @@ async function runInit(dir: string, extra: string[] = [], hooks: InitCommandHook
   // A temporary home, so init reads no real credential store.
   const home = mkdtempSync(join(tmpdir(), 'agent-qa-guide-home-'))
   roots.push(home)
-  const host = { homedir: home, env: {}, ...hooks.host }
+  const host = { homedir: home, env: {}, run: fakeRunner(), ...hooks.host }
   const init = createInitCommand({ cwd: dir, ...hooks, host })
   parent.exitOverride()
   init.exitOverride()

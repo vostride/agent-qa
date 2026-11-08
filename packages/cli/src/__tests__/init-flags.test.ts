@@ -213,6 +213,24 @@ describe('--platform takes a CSV of web, android and ios', () => {
   )
 })
 
+function filesUnder(root: string): string[] {
+  return readdirSync(root, { recursive: true, encoding: 'utf8' }).sort()
+}
+
+describe('--no-browsers', () => {
+  it('is accepted, and init writes the same files and exits 0 as without it', async () => {
+    const without = await initWithFlags(['--platform', 'web'])
+    const withFlag = await initWithFlags(['--platform', 'web', '--no-browsers'])
+
+    expect(without.error).toBeUndefined()
+    expect(withFlag.error).toBeUndefined()
+    expect(filesUnder(withFlag.root)).toEqual(filesUnder(without.root))
+    expect(readFileSync(join(withFlag.root, 'agent-qa.config.yaml'), 'utf8')).toBe(
+      readFileSync(join(without.root, 'agent-qa.config.yaml'), 'utf8'),
+    )
+  })
+})
+
 function lastDocument(): InitDocument {
   const documents = stdout.mock.calls.map((call) => JSON.parse(String(call[0])) as InitDocument)
   expect(documents).toHaveLength(1)

@@ -58,7 +58,8 @@ async function init(
   args: readonly string[],
 ): Promise<SpawnOutcome & { text: string }> {
   const pm = args.includes('--pm') ? [] : ['--pm', 'none']
-  const outcome = await spawnCollecting(root, [CLI_ENTRY, 'init', ...args, ...pm], {
+  const argv = [CLI_ENTRY, 'init', ...args, ...pm, '--no-browsers']
+  const outcome = await spawnCollecting(root, argv, {
     HOME: home,
     USERPROFILE: home,
   })

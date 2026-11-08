@@ -102,7 +102,8 @@ async function init(
   parent.exitOverride()
   command.exitOverride()
   parent.addCommand(command)
-  await parent.parseAsync(['node', 'test', 'init', ...args])
+  // The cells are about the install, so no Chromium step runs.
+  await parent.parseAsync(['node', 'test', 'init', ...args, '--no-browsers'])
 }
 
 // runInstallStep prints through console.log in these cells; init draws its lines on stderr.

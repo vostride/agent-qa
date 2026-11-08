@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import { KNOWLEDGE_GITIGNORE_PROBES, verifyEffectiveGitignore } from '../commands/init-filesystem.js'
 import { createInitCommand } from '../commands/init.js'
+import { fakeRunner } from './project-fixtures.js'
 
 const KNOWLEDGE_ROOT_DIR = 'agent-qa-knowledge'
 /** The file name older builds committed grants under. Nothing in this build names it. */
@@ -50,7 +51,9 @@ async function runRealInit(dir: string): Promise<void> {
   mkdirSync(join(dir, '.git'), { recursive: true })
   const parent = new Command()
   // A temporary home, so init reads no real credential store.
-  parent.addCommand(createInitCommand({ cwd: dir, host: { homedir: tempRoot(), env: {} } }))
+  parent.addCommand(
+    createInitCommand({ cwd: dir, host: { homedir: tempRoot(), env: {}, run: fakeRunner() } }),
+  )
   await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', '--pm', 'none'])
 }
 

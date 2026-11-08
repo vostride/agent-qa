@@ -114,7 +114,8 @@ function cliHome(): string {
 }
 
 async function cli(root: string, args: readonly string[]): Promise<Leg> {
-  const pm = args[0] === 'init' && !args.includes('--pm') ? ['--pm', 'none'] : []
+  const pm =
+    args[0] === 'init' && !args.includes('--pm') ? ['--pm', 'none', '--no-browsers'] : []
   const child = spawn(process.execPath, [CLI_ENTRY, ...args, ...pm], {
     cwd: root,
     env: {

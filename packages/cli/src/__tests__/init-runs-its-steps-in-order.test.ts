@@ -44,7 +44,7 @@ async function init(
   const parent = new Command()
   const command = createInitCommand({
     cwd,
-    host: { homedir: home, env: {}, ...(options.run === undefined ? {} : { run: options.run }) },
+    host: { homedir: home, env: {}, run: options.run ?? fakeRunner() },
     isTTY: false,
     composeAnalytics: silentAnalytics,
     ...(options.ui === undefined ? {} : { ui: options.ui }),

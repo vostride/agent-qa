@@ -15,6 +15,7 @@ import type { DaemonCommandDeps } from '../commands/daemon.js'
 import { createInitCommand } from '../commands/init.js'
 import { MCP_HTTP_BIND_HOST, createMcpCommand } from '../commands/mcp.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
+import { fakeRunner } from './project-fixtures.js'
 import type {
   CliAnalyticsHost,
   ComposeAnalyticsHostInput,
@@ -303,7 +304,7 @@ async function runInit(
   const home = mkdtempSync(join(tmpdir(), 'agent-qa-root-optout-home-'))
   try {
     const parent = new Command().option('--config <path>', 'config file path')
-    const host = { homedir: home, env: {}, ...extraHooks.host }
+    const host = { homedir: home, env: {}, run: fakeRunner(), ...extraHooks.host }
     parent.addCommand(createInitCommand({ cwd: dir, ...extraHooks, host }))
     parent.exitOverride()
     await parent.parseAsync(['node', 'agent-qa', 'init', '--platform', 'web', '--pm', 'none'])

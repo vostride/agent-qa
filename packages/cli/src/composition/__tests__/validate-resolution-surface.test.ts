@@ -82,7 +82,7 @@ function runShippedCli(...args: string[]): { status: number | null; combined: st
  * cells below validate.
  */
 function scaffoldWithShippedInit(): string {
-  const args = ['init', '--platform', 'web', '--pm', 'none']
+  const args = ['init', '--platform', 'web', '--pm', 'none', '--no-browsers']
   const run = spawnSync(process.execPath, [CLI_DIST, ...args], {
     cwd: root,
     encoding: 'utf8',

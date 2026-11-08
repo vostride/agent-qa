@@ -48,7 +48,7 @@ async function init(
   home: string,
   args: readonly string[],
 ): Promise<SpawnOutcome & { text: string }> {
-  const outcome = await spawnCollecting(cwd, [CLI_ENTRY, 'init', ...args], {
+  const outcome = await spawnCollecting(cwd, [CLI_ENTRY, 'init', ...args, '--no-browsers'], {
     HOME: home,
     USERPROFILE: home,
   })

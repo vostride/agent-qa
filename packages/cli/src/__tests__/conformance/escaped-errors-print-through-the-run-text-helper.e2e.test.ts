@@ -18,7 +18,7 @@ import {
 } from './spawned-chat.js'
 
 const CELL_BUDGET_MS = 60_000
-const WEB_GEMINI = ['--platform', 'web', '--llm', 'gemini']
+const WEB_GEMINI = ['--platform', 'web', '--llm', 'gemini', '--no-browsers']
 const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
 const WORKFLOW_COMMAND_FOLDER = '::set-output name=x::y'
 const BUG_FOLDER = 'bug-trigger'

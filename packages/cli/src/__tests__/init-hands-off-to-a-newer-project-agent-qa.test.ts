@@ -23,7 +23,7 @@ import {
 
 const VERSION = getAgentQaVersion().trim()
 const NODE = '/fake/node'
-const INIT_ARGS = ['--platform', 'web', '--llm', 'gemini']
+const INIT_ARGS = ['--platform', 'web', '--llm', 'gemini', '--no-browsers']
 let log: MockInstance<typeof console.log>
 let errors: MockInstance<typeof process.stderr.write>
 
@@ -77,12 +77,18 @@ function initArgv(args: readonly string[]): string[] {
   return ['init', ...args]
 }
 
+// The cells are about the hand-off and the install, so no Chromium step runs.
+function withoutBrowsers(args: readonly string[]): string[] {
+  return args.includes('--no-browsers') ? [...args] : [...args, '--no-browsers']
+}
+
 async function init(
   cwd: string,
   home: string,
   run: FakeRunner,
-  args: readonly string[] = INIT_ARGS,
+  given: readonly string[] = INIT_ARGS,
 ): Promise<void> {
+  const args = withoutBrowsers(given)
   const parent = new Command()
   const command = createInitCommand({
     cwd,

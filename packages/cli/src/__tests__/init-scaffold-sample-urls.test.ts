@@ -57,6 +57,7 @@ vi.mock('@vostride/agent-qa-core', () => ({
 }))
 
 import { createInitCommand } from '../commands/init.js'
+import { fakeRunner } from './project-fixtures.js'
 import { writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { clearProviderRegistry } from '@vostride/agent-qa-model'
 
@@ -75,7 +76,7 @@ function withoutInstall(args: readonly string[]): string[] {
 
 async function runInit(args: string[]): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand({ cwd: '/tmp/hosts' })
+  const init = createInitCommand({ cwd: '/tmp/hosts', host: { env: {}, run: fakeRunner() } })
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)

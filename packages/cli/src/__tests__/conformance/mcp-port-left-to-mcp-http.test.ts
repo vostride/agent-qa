@@ -64,7 +64,7 @@ describe('the MCP port is left to mcp --http', () => {
     const dir = join(root, 'workspace')
     mkdirSync(dir, { recursive: true })
     mkdirSync(join(root, '.git'))
-    const args = ['init', '--platform', 'web', '--pm', 'none']
+    const args = ['init', '--platform', 'web', '--pm', 'none', '--no-browsers']
     const result = spawnSync(process.execPath, [CLI_ENTRY, ...args], {
       cwd: dir,
       env: hermeticEnv(root),

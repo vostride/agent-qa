@@ -207,6 +207,8 @@ export function hermeticEnv(root: string): Record<string, string> {
     HOME: root,
     TMPDIR: join(root, '.agent-qa'),
     NODE_ENV: 'test',
+    // A browser download the child was not meant to start is refused at once on loopback.
+    PLAYWRIGHT_DOWNLOAD_HOST: 'http://127.0.0.1:0',
   }
 }
 
