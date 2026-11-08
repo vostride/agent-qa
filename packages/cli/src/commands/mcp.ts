@@ -30,6 +30,8 @@ import type { DeclaredSecretMask } from '../composition/declared-secrets.js'
 import { composeCliLocalAgent, withRunDoor } from '../composition/local-agent-host.js'
 import { releaseRemoteSessions, REMOTE_RELEASE_BOUND_MS } from '../composition/remote-sessions.js'
 import { readAnalyticsPrivacyDeclaration, resolveConfig } from '../config.js'
+import { resolveMcpConfigPath } from './mcp-project.js'
+import { projectHost } from './project-host.js'
 
 /** The one line the stdio host prints, on stderr, once the server is listening. */
 export const MCP_STDIO_STARTUP_MESSAGE =
@@ -231,6 +233,7 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
       `serve over stateless HTTP bound to ${MCP_HTTP_BIND_HOST} instead of stdio`,
     )
     .action(async (options: { http?: string | boolean }, command: Command) => {
+      let restoreFolder: string | undefined
       try {
         // A refused port composes nothing: no config read, mask, analytics or agent host.
         const port = options.http === undefined || options.http === false
@@ -238,12 +241,24 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
           : httpPort(options.http)
         const program = command.parent
         const globalOpts = program?.opts<{ config?: string }>() ?? {}
-        const configPath = resolve(globalOpts.config ?? 'agent-qa.config.yaml')
+        // Hosts start the server in their own folder, so the project is searched for upward.
+        const location = await resolveMcpConfigPath({
+          config: globalOpts.config ?? 'agent-qa.config.yaml',
+          env: process.env,
+          cwd: process.cwd(),
+          host: projectHost(),
+        })
+        const configPath = location.configPath
+        // Helpers below still read process.cwd(), so the server sees the project as if started there.
+        if (location.found) {
+          restoreFolder = process.cwd()
+          process.chdir(location.projectDir)
+        }
         const posture = await classifyMcpConfig(configPath)
         // Tolerant and plugin-free; read only for analytics and the dashboard base.
         let config: Awaited<ReturnType<typeof resolveConfig>> | undefined
         try {
-          config = await resolveConfig({ configPath: globalOpts.config, loadAuthPlugins: false })
+          config = await resolveConfig({ configPath, loadAuthPlugins: false })
         } catch {
           config = undefined
         }
@@ -264,7 +279,7 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
         const maskText = declared.mask
 
         // An invalid config's privacy flag is read raw, as in chat.
-        const analyticsConfig = config ?? await readAnalyticsPrivacyDeclaration(globalOpts.config)
+        const analyticsConfig = config ?? await readAnalyticsPrivacyDeclaration(configPath)
         const analytics = await (deps.composeAnalytics ?? composeAnalyticsHost)({
           surface: 'mcp',
           ...(analyticsConfig === undefined ? {} : { config: analyticsConfig }),
@@ -333,6 +348,9 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
           err instanceof Error ? err.message : String(err),
         )
         process.exitCode = 1
+      } finally {
+        // An in-process caller gets its working folder back once serving ends.
+        if (restoreFolder !== undefined) process.chdir(restoreFolder)
       }
     })
 
