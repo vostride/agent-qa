@@ -102,6 +102,7 @@ describe('the stdio server instructions match the init guide', () => {
   it('init writes no CLAUDE.md', () => {
     const fresh = tempDir()
     init(fresh)
+    expect(existsSync(join(fresh, 'AGENTS.md')), 'the pointer was not written to AGENTS.md').toBe(true)
     expect(existsSync(join(fresh, 'CLAUDE.md'))).toBe(false)
     expect(existsSync(join(fresh, 'agent-qa-knowledge', 'CLAUDE.md'))).toBe(false)
 
