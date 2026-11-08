@@ -31,6 +31,7 @@ import {
   ManagedBlockRefusal,
   composeManagedBlock,
   managedBlockMarkers,
+  removeManagedBlock,
   type ManagedBlockContent,
   type ManagedBlockRefusalReason,
 } from '../commands/managed-block.js'
@@ -684,5 +685,57 @@ describe('MANAGED-POINTER', () => {
     expect(preflightManagedBlock({ path: absentPath, root, content: POINTER }))
       .toEqual({ path: absentPath, classification: 'missing' })
     expect(existsSync(absentPath)).toBe(false)
+  })
+})
+
+describe('stripping the managed block', () => {
+  const POINTER: ManagedBlockContent = {
+    descriptor: AGENT_QA_INIT_MARKDOWN_BLOCK,
+    body: buildAgentInstructionPointer(
+      [{ name: 'agent-qa-knowledge', shortDescription: 'Read agent-qa runs and knowledge' }],
+      '1.2.3',
+    ),
+    target: 'AGENTS.md',
+  }
+  const { start, end } = managedBlockMarkers(AGENT_QA_INIT_MARKDOWN_BLOCK)
+
+  it('returns an empty file to empty after composing into it', () => {
+    expect(removeManagedBlock(composeManagedBlock('', POINTER), POINTER)).toBe('')
+  })
+
+  it('returns a file that ended with one newline byte for byte after composing into it', () => {
+    expect(removeManagedBlock(composeManagedBlock('notes\n', POINTER), POINTER)).toBe('notes\n')
+  })
+
+  it('removes a block a person placed mid-file with its CRLF line terminator', () => {
+    const existing = `head\r\n${rendered(POINTER)}\r\ntail \u2713`
+    expect(removeManagedBlock(existing, POINTER)).toBe('head\r\ntail \u2713')
+  })
+
+  it('leaves an empty file when the file holds only the block', () => {
+    expect(removeManagedBlock(rendered(POINTER), POINTER)).toBe('')
+    expect(removeManagedBlock(`${rendered(POINTER)}\n`, POINTER)).toBe('')
+  })
+
+  it('returns a file with no block unchanged', () => {
+    expect(removeManagedBlock(USER_PROSE, POINTER)).toBe(USER_PROSE)
+  })
+
+  const malformed: { name: string; input: string; reason: ManagedBlockRefusalReason }[] = [
+    { name: 'a lone start marker', input: `a\n${start}\nb\n`, reason: 'unbalanced' },
+    {
+      name: 'two complete blocks',
+      input: `${start}\none\n${end}\nuser\n${start}\ntwo\n${end}\n`,
+      reason: 'duplicate',
+    },
+    { name: 'an inverted pair', input: `${end}\nuser\n${start}\n`, reason: 'inverted' },
+    { name: 'an indented marker', input: `  ${start}\nx\n${end}\n`, reason: 'ambiguous-marker' },
+  ]
+
+  it.each(malformed)('refuses $name with the reason composing gives', ({ input, reason }) => {
+    const refusal = refusalOf(() => removeManagedBlock(input, POINTER))
+    expect(refusal.reason).toBe(reason)
+    expect(refusalOf(() => composeManagedBlock(input, POINTER)).reason).toBe(reason)
+    expect(refusal.message.startsWith('Refusing malformed AGENTS.md: ')).toBe(true)
   })
 })
