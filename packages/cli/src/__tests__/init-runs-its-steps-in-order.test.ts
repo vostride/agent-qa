@@ -1,0 +1,407 @@
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { basename, join } from 'node:path'
+
+import { Command } from 'commander'
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
+
+import { createInitCommand } from '../commands/init.js'
+import { InitRefusal } from '../commands/init-refusal.js'
+import { createInitStepRunner, type InitStepName } from '../commands/init-steps.js'
+import { sanitizedPackageName } from '../commands/package-json-plan.js'
+import { composeAnalyticsHost } from '../composition/analytics-host.js'
+import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
+import { fakeInitUi, type FakeInitUi } from './fake-init-ui.js'
+import {
+  cleanupTempProjects,
+  fakeRunner,
+  tempProject,
+  type FakeRunner,
+} from './project-fixtures.js'
+
+const PLAN: readonly InitStepName[] = ['package-json', 'scaffold', 'install']
+
+const silentAnalytics: typeof composeAnalyticsHost = async () =>
+  composeAnalyticsHost({
+    surface: 'cli',
+    env: {},
+    transportOverride: { capture: () => {}, flush: () => {}, shutdown: () => {} },
+    resolveIdentity: async () => ({ distinctId: 'u_init-steps', runtimeContext: 'user' }),
+  })
+
+let stderr: MockInstance<typeof process.stderr.write>
+let stdout: MockInstance<typeof process.stdout.write>
+let log: MockInstance<typeof console.log>
+
+function written(spy: MockInstance<(chunk: never) => boolean>): string {
+  return spy.mock.calls.map((call) => String(call[0])).join('')
+}
+
+async function init(
+  cwd: string,
+  home: string,
+  options: { args?: readonly string[]; ui?: FakeInitUi; run?: FakeRunner } = {},
+): Promise<void> {
+  const parent = new Command()
+  const command = createInitCommand({
+    cwd,
+    host: { homedir: home, env: {}, ...(options.run === undefined ? {} : { run: options.run }) },
+    isTTY: false,
+    composeAnalytics: silentAnalytics,
+    ...(options.ui === undefined ? {} : { ui: options.ui }),
+  })
+  parent.exitOverride()
+  command.exitOverride()
+  parent.addCommand(command)
+  await parent.parseAsync([
+    'node',
+    'test',
+    'init',
+    ...(options.args ?? ['--platform', 'web', '--llm', 'gemini', '--pm', 'none']),
+  ])
+}
+
+function sigintListeners(): ((...args: unknown[]) => void)[] {
+  return process.listeners('SIGINT') as ((...args: unknown[]) => void)[]
+}
+
+beforeEach(() => {
+  stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+  stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+  log = vi.spyOn(console, 'log').mockImplementation(() => {})
+  vi.spyOn(console, 'warn').mockImplementation(() => {})
+})
+
+afterEach(() => {
+  vi.restoreAllMocks()
+  cleanupTempProjects()
+})
+
+describe('a fresh init draws one line per step', () => {
+  it('writes the package.json, scaffold and install lines to stderr in order and nothing to stdout', async () => {
+    const { root, home } = tempProject('steps-plain')
+
+    await init(root, home)
+
+    const lines = written(stderr).split('\n')
+    const name = sanitizedPackageName(basename(root))
+    const packageJson = lines.indexOf(`✓ package.json created (${name})`)
+    const scaffold = lines.findIndex((line) =>
+      /^✓ Scaffold: config, 3 example tests and a suite \(\d+ files\)$/u.test(line),
+    )
+    const install = lines.findIndex((line) => line.startsWith('– Declared agent-qa '))
+    expect(packageJson).toBe(0)
+    expect(scaffold).toBe(1)
+    expect(install).toBe(2)
+    expect(lines[install]).toContain('Install with: npm install')
+    expect(written(stdout)).toBe('')
+    expect(log).not.toHaveBeenCalled()
+  })
+
+  it('the scaffold line counts the files the scaffold wrote', async () => {
+    const { root, home } = tempProject('steps-count')
+    const ui = fakeInitUi()
+
+    await init(root, home, { ui })
+
+    const scaffold = ui.entries.find(
+      (entry) => entry.kind === 'done' && entry.text.startsWith('Scaffold:'),
+    )
+    expect(scaffold?.text).toBe('Scaffold: config, 3 example tests and a suite (13 files)')
+  })
+
+  it('a mobile scaffold names only the config', async () => {
+    const { root, home } = tempProject('steps-mobile')
+    const ui = fakeInitUi()
+
+    const args = ['--platform', 'android', '--llm', 'gemini', '--pm', 'none']
+    await init(root, home, { ui, args })
+
+    expect(ui.entries).toContainEqual({ kind: 'done', text: 'Scaffold: config (8 files)' })
+  })
+
+  it('draws three titled steps through the seam and lists no files', async () => {
+    const { root, home } = tempProject('steps-fake')
+    const ui = fakeInitUi()
+
+    await init(root, home, { ui })
+
+    expect(ui.entries.filter((entry) => entry.kind === 'step').map((entry) => entry.text)).toEqual([
+      'Writing package.json',
+      'Writing the scaffold',
+      'Installing dependencies',
+    ])
+    expect(ui.output()).not.toContain('tests/examples/komazon-checkout.yaml')
+    expect(ui.output()).not.toContain('agent-qa-knowledge/README.md')
+    expect(written(stderr)).toBe('')
+  })
+
+  it('an existing package.json reads as updated, and an unchanged one as kept', async () => {
+    const { root, home } = tempProject('steps-updated')
+    writeFileSync(join(root, 'package.json'), '{\n  "name": "mine"\n}\n')
+    const first = fakeInitUi()
+
+    await init(root, home, { ui: first })
+
+    expect(first.entries).toContainEqual({ kind: 'done', text: 'package.json updated' })
+    const second = fakeInitUi()
+    await init(root, home, {
+      ui: second,
+      args: ['--platform', 'web', '--llm', 'gemini', '--pm', 'none', '--force'],
+    })
+    expect(second.entries).toContainEqual({ kind: 'done', text: 'package.json kept' })
+  })
+
+  it('a failed install is drawn with its command, and init exits 3 after the other steps ran', async () => {
+    const { root, home } = tempProject('steps-failed-install')
+    const ui = fakeInitUi()
+    const run = fakeRunner(({ args }) =>
+      args[0] === '--version'
+        ? { code: 0, signal: null, output: '10.0.0\n' }
+        : { code: 1, signal: null, output: 'npm ERR! boom\n' },
+    )
+
+    const error = await init(root, home, {
+      ui,
+      run,
+      args: ['--platform', 'web', '--llm', 'gemini'],
+    }).catch((caught: unknown) => caught)
+
+    expect(error).toBeInstanceOf(CliRefusal)
+    expect(error).toMatchObject({ exitCode: 3 })
+    expect(ui.entries.filter((entry) => entry.kind === 'done').map((entry) => entry.text)).toEqual([
+      `package.json created (${sanitizedPackageName(basename(root))})`,
+      'Scaffold: config, 3 example tests and a suite (13 files)',
+    ])
+    expect(ui.entries).toContainEqual({
+      kind: 'failed',
+      text: 'Install failed: npm exited 1\n  npm ERR! boom',
+      command: 'npm install',
+    })
+    expect(ui.output()).toContain(
+      '✗ Install failed: npm exited 1\n  npm ERR! boom\n  Run: npm install\n',
+    )
+    expect(readFileSync(join(root, 'agent-qa.config.yaml'), 'utf8')).toContain('registry:')
+  })
+
+  it('a package.json that is not written skips the scaffold and the install, and init exits 3', async () => {
+    const { root, home } = tempProject('steps-no-package-json')
+    const ui = fakeInitUi()
+    const run = fakeRunner()
+    const parent = new Command()
+    const command = createInitCommand({
+      cwd: root,
+      host: { homedir: home, env: {}, run },
+      isTTY: false,
+      composeAnalytics: silentAnalytics,
+      ui,
+      afterWrite: (result) => {
+        if (result.path.endsWith('package.json')) throw new Error('EACCES: permission denied')
+      },
+    })
+    parent.exitOverride()
+    command.exitOverride()
+    parent.addCommand(command)
+
+    const error = await parent
+      .parseAsync(['node', 'test', 'init', '--platform', 'web', '--llm', 'gemini'])
+      .catch((caught: unknown) => caught)
+
+    expect(error).toMatchObject({ name: 'CliRefusal', exitCode: 3 })
+    expect(ui.output()).toContain(
+      '✗ EACCES: permission denied\n' +
+        '– Scaffold: skipped (package.json was not written)\n' +
+        '– Install: skipped (package.json was not written)\n',
+    )
+    expect(run.calls).toEqual([])
+    expect(existsSync(join(root, 'agent-qa.config.yaml'))).toBe(false)
+  })
+
+  it('a malformed managed block in .gitignore still ends init with exit 2', async () => {
+    const { root, home } = tempProject('steps-refusal')
+    writeFileSync(join(root, '.gitignore'), '# agent-qa init:start\nnode_modules/\n')
+    const ui = fakeInitUi()
+
+    const error = await init(root, home, { ui }).catch((caught: unknown) => caught)
+
+    expect(error).toBeInstanceOf(CliRefusal)
+    expect(error).toMatchObject({ exitCode: 2 })
+    expect(ui.entries.some((entry) => entry.kind === 'failed')).toBe(false)
+  })
+
+  it('a malformed package.json is refused with exit 2 before any step', async () => {
+    const { root, home } = tempProject('steps-bad-package-json')
+    writeFileSync(join(root, 'package.json'), '{ not json')
+    const ui = fakeInitUi()
+
+    const error = await init(root, home, { ui }).catch((caught: unknown) => caught)
+
+    expect(error).toMatchObject({ exitCode: 2 })
+    expect(ui.entries.filter((entry) => entry.kind === 'step')).toEqual([])
+  })
+})
+
+describe('the step runner', () => {
+  const signals = () => {
+    const listeners = new Set<() => void>()
+    return {
+      on: (_event: 'SIGINT', listener: () => void) => listeners.add(listener),
+      off: (_event: 'SIGINT', listener: () => void) => listeners.delete(listener),
+      listeners,
+    }
+  }
+
+  it('records a skipped step with its reason and draws it dimmed', async () => {
+    const ui = fakeInitUi()
+    const runner = createInitStepRunner({ ui, plan: PLAN, signals: signals() })
+
+    const record = await runner.run('package-json', { title: 'package.json' }, async () => ({
+      outcome: 'skipped',
+      text: 'package.json: nothing to do',
+      reason: 'already there',
+    }))
+    runner.dispose()
+
+    expect(record).toEqual({ name: 'package-json', outcome: 'skipped', reason: 'already there' })
+    expect(ui.output()).toBe('– package.json: nothing to do\n')
+    expect(runner.failed()).toBe(false)
+  })
+
+  it('draws a failed step with its command, and the next step still runs', async () => {
+    const ui = fakeInitUi()
+    const runner = createInitStepRunner({ ui, plan: PLAN, signals: signals() })
+
+    await runner.run('package-json', { title: 'package.json' }, async () => ({
+      outcome: 'failed',
+      reason: 'package.json is read-only',
+      command: 'chmod u+w package.json',
+    }))
+    await runner.run('scaffold', { title: 'scaffold' }, async () => ({
+      outcome: 'done',
+      text: 'Scaffold: config (8 files)',
+    }))
+    runner.dispose()
+
+    expect(ui.output()).toBe(
+      '✗ package.json is read-only\n' +
+        '  Run: chmod u+w package.json\n' +
+        '✓ Scaffold: config (8 files)\n',
+    )
+    expect(runner.records()).toEqual([
+      {
+        name: 'package-json',
+        outcome: 'failed',
+        reason: 'package.json is read-only',
+        command: 'chmod u+w package.json',
+      },
+      { name: 'scaffold', outcome: 'done' },
+    ])
+    expect(runner.failed()).toBe(true)
+  })
+
+  it('a step that throws is failed with the message and the step command', async () => {
+    const ui = fakeInitUi()
+    const runner = createInitStepRunner({ ui, plan: PLAN, signals: signals() })
+
+    const record = await runner.run(
+      'install',
+      { title: 'Installing dependencies', command: 'pnpm install' },
+      async () => {
+        throw new Error('EACCES: permission denied')
+      },
+    )
+    runner.dispose()
+
+    expect(record).toEqual({
+      name: 'install',
+      outcome: 'failed',
+      reason: 'EACCES: permission denied',
+      command: 'pnpm install',
+    })
+    expect(ui.output()).toBe('✗ EACCES: permission denied\n  Run: pnpm install\n')
+    expect(runner.failed()).toBe(true)
+  })
+
+  it.each([
+    { name: 'an InitRefusal', thrown: new InitRefusal('the managed block is malformed') },
+    { name: 'a CliRefusal', thrown: new CliRefusal(['package.json is not JSON'], 2) },
+    {
+      name: 'a TypeError',
+      thrown: new TypeError("Cannot read properties of undefined (reading 'x')"),
+    },
+  ])('$name thrown in a step passes through unchanged and is not drawn', async ({ thrown }) => {
+    const ui = fakeInitUi()
+    const runner = createInitStepRunner({ ui, plan: PLAN, signals: signals() })
+
+    await expect(
+      runner.run('scaffold', { title: 'scaffold' }, async () => {
+        throw thrown
+      }),
+    ).rejects.toBe(thrown)
+    runner.dispose()
+
+    expect(ui.entries.some((entry) => entry.kind === 'failed')).toBe(false)
+  })
+
+  it('a Ctrl-C during a step fails it as interrupted, skips the rest and removes the listener', async () => {
+    const before = process.listenerCount('SIGINT')
+    const existing = sigintListeners()
+    const ui = fakeInitUi()
+    const runner = createInitStepRunner({ ui, plan: PLAN })
+    const added = sigintListeners().filter((listener) => !existing.includes(listener))
+    expect(added).toHaveLength(1)
+
+    await runner.run('package-json', { title: 'package.json' }, async () => ({
+      outcome: 'done',
+      text: 'package.json created (app)',
+    }))
+    const run = runner.run('scaffold', { title: 'Writing the scaffold' }, async () => {
+      added[0]!('SIGINT')
+      return { outcome: 'done', text: 'Scaffold: config (8 files)' }
+    })
+
+    await expect(run).rejects.toBeInstanceOf(PromptCancelled)
+    expect(runner.records()).toEqual([
+      { name: 'package-json', outcome: 'done' },
+      { name: 'scaffold', outcome: 'failed', reason: 'interrupted' },
+      { name: 'install', outcome: 'skipped', reason: 'interrupted' },
+    ])
+    expect(runner.interrupted()).toBe(true)
+    expect(process.listenerCount('SIGINT')).toBe(before)
+    runner.dispose()
+    expect(process.listenerCount('SIGINT')).toBe(before)
+  })
+
+  it('a cancelled prompt inside a step is an interrupt', async () => {
+    const ui = fakeInitUi()
+    const fake = signals()
+    const runner = createInitStepRunner({ ui, plan: PLAN, signals: fake })
+
+    await expect(
+      runner.run('package-json', { title: 'package.json' }, async () => {
+        throw new PromptCancelled()
+      }),
+    ).rejects.toBeInstanceOf(PromptCancelled)
+
+    expect(runner.records().map((record) => record.outcome)).toEqual([
+      'failed',
+      'skipped',
+      'skipped',
+    ])
+    expect(fake.listeners.size).toBe(0)
+  })
+
+  it('removes its listener when disposed after a run that finished', async () => {
+    const before = process.listenerCount('SIGINT')
+    const runner = createInitStepRunner({ ui: fakeInitUi(), plan: PLAN })
+    expect(process.listenerCount('SIGINT')).toBe(before + 1)
+
+    await runner.run('package-json', { title: 'package.json' }, async () => ({
+      outcome: 'done',
+      text: 'package.json kept',
+    }))
+    runner.dispose()
+    runner.dispose()
+
+    expect(process.listenerCount('SIGINT')).toBe(before)
+  })
+})

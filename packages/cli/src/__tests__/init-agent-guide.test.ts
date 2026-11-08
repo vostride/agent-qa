@@ -48,6 +48,7 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
 const GUIDE = join('agent-qa-knowledge', 'AGENTS.md')
 const roots: string[] = []
 let log: MockInstance<typeof console.log>
+let errors: MockInstance<typeof process.stderr.write>
 
 function tempProject(): string {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-guide-'))
@@ -66,8 +67,9 @@ async function runInit(dir: string, extra: string[] = [], hooks: InitCommandHook
   await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', ...extra, ...pm])
 }
 
-function stdout(): string {
-  return stripVTControlCharacters(log.mock.calls.map((call) => call.map(String).join(' ')).join('\n'))
+// init draws its human output on stderr.
+function stderr(): string {
+  return stripVTControlCharacters(errors.mock.calls.map((call) => String(call[0])).join(''))
 }
 
 // The same skills and version init passes, so these match the block init prints and writes.
@@ -104,22 +106,24 @@ function liveCommandPath(cli: string): string {
 
 beforeEach(() => {
   log = vi.spyOn(console, 'log').mockImplementation(() => {})
+  errors = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
 })
 
 afterEach(() => {
   log.mockRestore()
+  errors.mockRestore()
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
 describe('INIT-GUIDE-LIFECYCLE: init generates the thin knowledge guide', () => {
   it('fresh init writes the generated guide into the knowledge root', async () => {
     const dir = tempProject()
-    await runInit(dir)
+    const { outcomes, hooks } = outcomeRecorder()
+    await runInit(dir, [], hooks)
 
     expect(existsSync(join(dir, GUIDE))).toBe(true)
     expect(readFileSync(join(dir, GUIDE), 'utf8')).toBe(buildKnowledgeAgentGuide())
-    const created = stdout().match(/ {2}Created:\n([\s\S]*?)(?:\n {2}(?:Updated|Preserved|Next steps):|$)/)?.[1] ?? ''
-    expect(created).toContain(GUIDE)
+    expect(outcomes).toContain(`created ${join(dir, GUIDE)}`)
   })
 
   it('keeps the guide thin, generated and truthful about the layout', () => {
@@ -197,13 +201,13 @@ describe('INIT-GUIDE-LIFECYCLE: init generates the thin knowledge guide', () => 
     const dir = tempProject()
     await runInit(dir)
     unlinkSync(join(dir, GUIDE))
-    log.mockClear()
+    errors.mockClear()
 
     await runInit(dir)
 
-    expect(stdout()).toContain(`Project is already initialized at ${dir}. Use --force to rebuild it.`)
+    expect(stderr()).toContain(`Project is already initialized at ${dir}. Use --force to rebuild it.`)
     expect(existsSync(join(dir, GUIDE))).toBe(false)
-    expect(stdout()).not.toContain(pointerBlock())
+    expect(stderr()).not.toContain(pointerBlock())
     expect(existsSync(join(dir, 'AGENTS.md'))).toBe(false)
   })
 
@@ -242,7 +246,7 @@ describe('INIT-POINTER-PRINT: init prints the root pointer and writes no root fi
     }
     expect(body.at(-1)).toBe('- Skills or MCP server missing or stale: run `npx agent-qa init`')
     expect(text).not.toContain('npx agent-qa skills')
-    expect(stdout()).toContain(`\n${pointerBlock()}\n`)
+    expect(stderr()).toContain(`\n${pointerBlock()}\n`)
   })
 
   it('leaves existing root instruction files byte-identical and creates none', async () => {
@@ -312,7 +316,7 @@ describe('INIT-ROOT-OPT-IN: --write-agent-instructions writes the root AGENTS.md
     expect(readFileSync(join(dir, 'AGENTS.md'), 'utf8')).toBe(`${pointerBlock()}\n`)
     expect(outcomes).toContain(`created ${join(dir, 'AGENTS.md')}`)
     expect(readdirSync(dir).filter((name) => /^(agents|claude)/i.test(name))).toEqual(['AGENTS.md'])
-    expect(stdout()).not.toContain(pointerBlock())
+    expect(stderr()).not.toContain(pointerBlock())
   })
 
   it('keeps every outside byte and CLAUDE.md exact across a fresh and a forced application', async () => {
@@ -351,11 +355,11 @@ describe('INIT-ROOT-OPT-IN: --write-agent-instructions writes the root AGENTS.md
     const dir = tempProject()
     await runInit(dir)
     const before = snapshot(dir)
-    log.mockClear()
+    errors.mockClear()
 
     await runInit(dir, [FLAG])
 
-    expect(stdout()).toContain(`Project is already initialized at ${dir}. Use --force to rebuild it.`)
+    expect(stderr()).toContain(`Project is already initialized at ${dir}. Use --force to rebuild it.`)
     expect(snapshot(dir)).toEqual(before)
   })
 })

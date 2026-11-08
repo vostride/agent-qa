@@ -56,6 +56,8 @@ import {
   type ManagedBlockContent,
 } from './managed-block.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
+import type { InitUi } from '../init-ui/init-ui.js'
+import { createPlainUi } from '../init-ui/plain-ui.js'
 import { InitRefusal, isInitRefusal } from './init-refusal.js'
 import { initFolderOptionRefusal, initFolderRefusal } from './init-project-folder.js'
 import {
@@ -64,8 +66,14 @@ import {
   planPackageJson,
   projectDependencies,
   readProjectPackageJson,
+  sanitizedPackageName,
 } from './package-json-plan.js'
-import { installOutputMask, runInstallStep } from './package-install.js'
+import { createInitStepRunner, type InitStepResult } from './init-steps.js'
+import {
+  installOutputMask,
+  runInstallStep,
+  type InstallStepResult,
+} from './package-install.js'
 import { detectPackageManager } from './package-manager.js'
 import {
   agentQaAfterInstall,
@@ -596,11 +604,9 @@ function asInitRefusal(error: unknown): unknown {
 }
 
 // Printed flush left: an indented marker line is not a marker, and the writer would refuse it.
-function printAgentInstructionPointer(): void {
-  console.log('')
-  console.log(`  Coding agents: add this block to ${ROOT_AGENT_INSTRUCTIONS_FILE} at the project root:`)
-  console.log('')
-  console.log(agentInstructionPointerBlock())
+function showAgentInstructionPointer(ui: InitUi): void {
+  ui.line(`Coding agents: add this block to ${ROOT_AGENT_INSTRUCTIONS_FILE} at the project root:`)
+  ui.line(agentInstructionPointerBlock())
 }
 
 export interface InitCommandHooks {
@@ -611,6 +617,7 @@ export interface InitCommandHooks {
   isTTY?: boolean
   cwd?: string
   host?: Partial<ProjectHost>
+  ui?: InitUi
 }
 
 function scaffoldFilePlan(
@@ -702,55 +709,58 @@ function buildScaffoldFilePlans(
   return plans
 }
 
-function isOutside(relativePath: string): boolean {
-  return relativePath === '..' || relativePath.startsWith(`..${sep}`)
-}
-
-// A file above the folder, such as the project's package.json, is found by its real path.
-function displayInitPath(dir: string, realDir: string, path: string): string {
-  const fromDir = relative(dir, path)
-  const localPath = isOutside(fromDir) && realDir !== dir ? relative(realDir, path) : fromDir
-  return localPath.length > 0 ? localPath : path
-}
-
-function printOutcomeSummary(
-  dir: string,
-  outcomes: readonly InitFileResult[],
-  realDir = dir,
-): void {
-  const groups = [
-    ['created', 'Created'],
-    ['updated', 'Updated'],
-    ['preserved', 'Preserved'],
-  ] as const
-
-  for (const [outcome, label] of groups) {
-    const matching = outcomes.filter(result => result.outcome === outcome)
-    if (matching.length === 0) continue
-    console.log(`  ${label}:`)
-    for (const result of matching) {
-      console.log(`    ${pc.dim('•')} ${displayInitPath(dir, realDir, result.path)}`)
-    }
-  }
-}
-
 // Printed flush left so the line can be pasted as is.
-function printExampleSecretLine(): void {
-  console.log('')
-  console.log(`  Add this line to ${DEFAULT_SECRETS_FILE} so the examples can sign in:`)
-  console.log(EXAMPLE_SECRET_LINE)
+function showExampleSecretLine(ui: InitUi): void {
+  ui.line(`Add this line to ${DEFAULT_SECRETS_FILE} so the examples can sign in:`)
+  ui.line(EXAMPLE_SECRET_LINE)
 }
 
-function printNextSteps(
+function showNextSteps(
+  ui: InitUi,
   platform: InitPlatformInput,
   config: Record<string, unknown>,
   packageFolder: InitPackageFolder,
 ): void {
-  console.log('')
-  console.log('  Next steps:')
-  for (const [index, step] of initNextSteps(platform, config, packageFolder).entries()) {
-    console.log(`    ${index + 1}. ${pc.cyan(step.command)}  ${step.description}`)
+  const steps = initNextSteps(platform, config, packageFolder)
+  ui.note(
+    'Next steps',
+    steps.map((step, index) => `${index + 1}. ${step.command}  ${step.description}`),
+  )
+}
+
+// A package.json above the folder is named by its path from the folder, which is real once it
+// leaves the folder.
+function packageJsonText(result: InitFileResult, dir: string, realDir: string): string {
+  const fromDir = relative(dir, result.path)
+  const outside = fromDir === '..' || fromDir.startsWith(`..${sep}`)
+  const shown = outside && realDir !== dir ? relative(realDir, result.path) : fromDir
+  const name = shown || 'package.json'
+  const folderName = basename(realDir)
+  if (result.outcome === 'created') return `${name} created (${sanitizedPackageName(folderName)})`
+  return result.outcome === 'updated' ? `${name} updated` : `${name} kept`
+}
+
+function scaffoldText(platform: InitPlatformInput, files: number): string {
+  const what = hasWeb(platform) ? 'config, 3 example tests and a suite' : 'config'
+  return `Scaffold: ${what} (${files} files)`
+}
+
+// runInstallStep's own lines, closed as one step: the failure keeps the shown output under it.
+function installStepResult(step: InstallStepResult, printed: readonly string[]): InitStepResult {
+  const lines = printed.flatMap((text) => text.split('\n'))
+  if (step.outcome === 'failed') {
+    const start = lines.findIndex((line) => line.startsWith('✗ '))
+    const end = lines.lastIndexOf(`  Run: ${step.command}`)
+    const shown = start === -1 ? [] : lines.slice(start, end === -1 ? undefined : end)
+    const reason = shown.join('\n').replace(/^✗ /u, '')
+    return { outcome: 'failed', reason: reason || 'Install failed', command: step.command }
   }
+  const text = (lines.at(-1) ?? '').replace(/^✓ /u, '')
+  if (step.outcome === 'declared') {
+    return { outcome: 'skipped', text, reason: '--pm none', command: step.command }
+  }
+  if (step.outcome === 'skipped') return { outcome: 'skipped', text, reason: 'already installed' }
+  return { outcome: 'done', text }
 }
 
 export function createInitCommand(hooks: InitCommandHooks = {}): Command {
@@ -813,6 +823,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         return
       }
 
+      const ui = hooks.ui ?? createPlainUi()
       try {
         const dir = projectDir
         const folderRefusal = await initFolderRefusal(dir)
@@ -850,9 +861,11 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
               manager: manager(),
               mode: 'run',
               mask: maskInstallOutput,
+              print: (line) => ui.line(line),
             })
             return step.outcome === 'installed' || step.outcome === 'skipped'
           },
+          print: (line) => ui.line(line),
         })
         if (handedOff) return
         const initStartedAt = Date.now()
@@ -902,8 +915,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         const configClassification = classifyInitPath(configPath, dir)
         if (configClassification === 'regular' && !force) {
           const completed = [{ path: configPath, outcome: 'preserved' }] as const
-          console.log(pc.yellow(`Project is already initialized at ${dir}. Use --force to rebuild it.`))
-          printOutcomeSummary(dir, completed)
+          ui.line(`Project is already initialized at ${dir}. Use --force to rebuild it.`)
           hooks.onComplete?.(completed)
           await emitInitCompleted(completed)
           return
@@ -1048,83 +1060,120 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
 
         const outcomes: InitFileResult[] = []
         let boundary = 0
-        const recordOutcome = (result: InitFileResult): void => {
+        const recordOutcome = (result: InitFileResult): InitFileResult => {
           outcomes.push(result)
-          if (result.outcome === 'preserved') return
+          if (result.outcome === 'preserved') return result
           boundary += 1
           hooks.afterWrite?.(result, boundary)
+          return result
         }
 
-        // Written first, so no later scaffold temporary exists before its ignore rule does.
-        recordOutcome(upsertManagedGitignoreBlock(
-          targetGitignorePath,
-          buildGitignoreEntries(),
-        ))
-        verifyEffectiveGitignore({
-          cwd: dir,
-          label: 'target .gitignore',
-          probes: TARGET_GITIGNORE_PROBES,
-          // The managed block is on disk by now — the refusal must not say otherwise.
-          written: 'managed-gitignore',
-        })
-
-        recordOutcome(writeScaffoldFileAtomic(packageJsonFilePlan, {}))
-
-        for (const plan of filePlans) {
-          recordOutcome(writeScaffoldFileAtomic(plan, {}))
-        }
-
-        if (!knowledgeGitignoreWasPresent) {
+        const writePackageJson = async (): Promise<InitStepResult> => {
+          // Written first, so no later scaffold temporary exists before its ignore rule does.
+          recordOutcome(upsertManagedGitignoreBlock(
+            targetGitignorePath,
+            buildGitignoreEntries(),
+          ))
           verifyEffectiveGitignore({
-            cwd: join(dir, KNOWLEDGE_ROOT_DIR),
-            label: 'agent-qa-knowledge/.gitignore',
-            probes: KNOWLEDGE_GITIGNORE_PROBES,
-            // This one runs AFTER the scaffold loop: the whole scaffold is published.
-            written: 'managed-gitignore-and-scaffold',
+            cwd: dir,
+            label: 'target .gitignore',
+            probes: TARGET_GITIGNORE_PROBES,
+            // The managed block is on disk by now — the refusal must not say otherwise.
+            written: 'managed-gitignore',
           })
+          const written = recordOutcome(writeScaffoldFileAtomic(packageJsonFilePlan, {}))
+          return { outcome: 'done', text: packageJsonText(written, dir, range.start) }
         }
 
-        if (agentInstructionsPlan) {
+        const writeScaffold = async (): Promise<InitStepResult> => {
+          const before = outcomes.length
+          for (const plan of filePlans) {
+            recordOutcome(writeScaffoldFileAtomic(plan, {}))
+          }
+
+          if (!knowledgeGitignoreWasPresent) {
+            verifyEffectiveGitignore({
+              cwd: join(dir, KNOWLEDGE_ROOT_DIR),
+              label: 'agent-qa-knowledge/.gitignore',
+              probes: KNOWLEDGE_GITIGNORE_PROBES,
+              // This one runs AFTER the scaffold loop: the whole scaffold is published.
+              written: 'managed-gitignore-and-scaffold',
+            })
+          }
+
+          if (agentInstructionsPlan) {
+            try {
+              recordOutcome(upsertManagedBlock(agentInstructionsPlan))
+            } catch (error) {
+              throw incompleteScaffoldError(error, DEFAULT_CONFIG_FILE_NAME)
+            }
+          }
+
+          recordOutcome(writeConfigMarkerLast(configPlan, {}))
+          hooks.onComplete?.([...outcomes])
+          return { outcome: 'done', text: scaffoldText(platform, outcomes.length - before) }
+        }
+
+        const install = async (): Promise<InitStepResult> => {
+          const printed: string[] = []
+          // A guarded block of the manager's output goes to stderr, never to stdout.
+          const releaseInstallStdout = reserveStdoutForData()
           try {
-            recordOutcome(upsertManagedBlock(agentInstructionsPlan))
-          } catch (error) {
-            throw incompleteScaffoldError(error, DEFAULT_CONFIG_FILE_NAME)
+            const step = await runInstallStep({
+              host,
+              range,
+              packageJson: packageJsonPlan,
+              manager: manager(),
+              mode: opts.pm === 'none' ? 'none' : 'run',
+              mask: maskInstallOutput,
+              print: (text) => printed.push(text),
+            })
+            return installStepResult(step, printed)
+          } finally {
+            releaseInstallStdout()
           }
         }
 
-        recordOutcome(writeConfigMarkerLast(configPlan, {}))
-        hooks.onComplete?.([...outcomes])
+        const runner = createInitStepRunner({ ui, plan: ['package-json', 'scaffold', 'install'] })
+        try {
+          const packageJsonStep = await runner.run(
+            'package-json',
+            { title: 'Writing package.json' },
+            writePackageJson,
+          )
+          // The config marker records a complete scaffold and the install reads what package.json
+          // declares, so neither runs over a package.json that was not written.
+          if (packageJsonStep.outcome === 'failed') {
+            const reason = 'package.json was not written'
+            runner.skip('scaffold', `Scaffold: skipped (${reason})`, reason)
+            runner.skip('install', `Install: skipped (${reason})`, reason)
+          } else {
+            const scaffold = await runner.run(
+              'scaffold',
+              { title: 'Writing the scaffold' },
+              writeScaffold,
+            )
+            // AFTER the config marker — the scaffold's last write — so the event describes a
+            // project that exists rather than one being attempted.
+            if (scaffold.outcome === 'done') await emitInitCompleted(outcomes)
+            await runner.run('install', { title: 'Installing dependencies' }, install)
+          }
+        } finally {
+          runner.dispose()
+        }
 
-        // AFTER the config marker — the scaffold's last write — so the event describes a
-        // project that exists rather than one being attempted.
-        await emitInitCompleted(outcomes)
-
-        const installStep = await runInstallStep({
-          host,
-          range,
-          packageJson: packageJsonPlan,
-          manager: manager(),
-          mode: opts.pm === 'none' ? 'none' : 'run',
-          mask: maskInstallOutput,
-        })
-
-        console.log('')
-        console.log(pc.green(pc.bold('✓ agent-qa project initialized!')))
-        console.log('')
-        printOutcomeSummary(dir, outcomes, range.start)
         const secretsPath = join(dir, DEFAULT_SECRETS_FILE)
         const secretsPreserved = outcomes.some(
           result => result.path === secretsPath && result.outcome === 'preserved',
         )
-        if (hasWeb(platform) && secretsPreserved) printExampleSecretLine()
-        printNextSteps(platform, config, {
+        if (hasWeb(platform) && secretsPreserved) showExampleSecretLine(ui)
+        showNextSteps(ui, platform, config, {
           range,
           dir: dirname(packageJsonPlan.path),
           io: host.io,
         })
-        if (!agentInstructionsPlan) printAgentInstructionPointer()
-        console.log('')
-        if (installStep.outcome === 'failed') throw new CliRefusal([], 3)
+        if (!agentInstructionsPlan) showAgentInstructionPointer(ui)
+        if (runner.failed()) throw new CliRefusal([], 3)
       } catch (error) {
         throw asInitRefusal(error)
       }

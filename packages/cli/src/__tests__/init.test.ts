@@ -204,8 +204,11 @@ function findWriteCallEndingWith(pathSuffix: string) {
   )
 }
 
+// init draws its human output on stderr; stdout stays free for documents.
 function consoleOutput(): string {
-  return stripVTControlCharacters(vi.mocked(console.log).mock.calls.flat().map(String).join('\n'))
+  return stripVTControlCharacters(
+    vi.mocked(process.stderr.write).mock.calls.map((call) => String(call[0])).join(''),
+  )
 }
 
 function warnOutput(): string {
@@ -231,6 +234,7 @@ describe('init command', () => {
     clearProviderRegistry()
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     vi.clearAllMocks()
     mockExistsSync.mockReturnValue(false)
     mockReadFileSync.mockImplementation((path) => String(path).endsWith('package.json') ? '{"version":"0.1.1"}' : '')
@@ -926,7 +930,8 @@ describe('init command', () => {
     })
 
     it('an initialized project asks nothing and writes nothing without --force', async () => {
-      await runInit([], { isTTY: true })
+      const onComplete = vi.fn()
+      await runInit([], { isTTY: true, onComplete })
 
       expect(mockCheckbox).not.toHaveBeenCalled()
       expect(mockSelect).not.toHaveBeenCalled()
@@ -934,7 +939,10 @@ describe('init command', () => {
       expect(mockWriteConfigMarkerLast).not.toHaveBeenCalled()
       expect(findWriteCallEndingWith('agent-qa.config.yaml')).toBeUndefined()
       expect(consoleOutput()).toContain(alreadyInitialized)
-      expect(consoleOutput()).toContain('Preserved:\n    • agent-qa.config.yaml')
+      expect(onComplete).toHaveBeenCalledWith([
+        { path: join('/tmp/test-project', 'agent-qa.config.yaml'), outcome: 'preserved' },
+      ])
+      expect(vi.mocked(console.log)).not.toHaveBeenCalled()
       expect(process.exitCode).toBeUndefined()
     })
 
@@ -1155,9 +1163,6 @@ describe('init command', () => {
         expect(paths.indexOf(envPath)).toBeLessThan(paths.indexOf(secretsPath))
         expect(outcomes.find(outcome => outcome.path === envPath)?.outcome).toBe('preserved')
         expect(outcomes.find(outcome => outcome.path === secretsPath)?.outcome).toBe('preserved')
-
-        const output = consoleOutput()
-        expect(output).toContain('Preserved:\n    • .env\n    • .env.secrets.local')
       })
     }
 
@@ -1301,7 +1306,8 @@ describe('init command', () => {
     }
 
     it('fresh init creates exactly AGENTS.md, README.md, .gitignore, and policies/global.md under the root', async () => {
-      await runInit(['--platform', 'web'])
+      const onComplete = vi.fn()
+      await runInit(['--platform', 'web'], { onComplete })
 
       expect(knowledgeWritePaths()).toEqual([
         `${KNOWLEDGE_ROOT}/.gitignore`,
@@ -1314,11 +1320,15 @@ describe('init command', () => {
       const readmeCall = findWriteCallEndingWith('agent-qa-knowledge/README.md')
       expect(readmeCall?.[1]).not.toContain('thumbnail')
 
-      const output = consoleOutput()
-      expect(output).toContain('agent-qa-knowledge/README.md')
-      expect(output).toContain('agent-qa-knowledge/.gitignore')
-      expect(output).toContain('agent-qa-knowledge/policies/global.md')
-      expect(output).toContain('agent-qa-knowledge/AGENTS.md')
+      const created = (onComplete.mock.calls[0]![0] as { path: string; outcome: string }[])
+        .filter((result) => result.outcome === 'created')
+        .map((result) => result.path)
+      expect(created).toEqual(expect.arrayContaining([
+        `${KNOWLEDGE_ROOT}/README.md`,
+        `${KNOWLEDGE_ROOT}/.gitignore`,
+        `${KNOWLEDGE_ROOT}/policies/global.md`,
+        `${KNOWLEDGE_ROOT}/AGENTS.md`,
+      ]))
     })
 
     it('scaffolded knowledge .gitignore carries the spec lines plus the init-tool rule', async () => {
@@ -1555,8 +1565,9 @@ skills/.staging/
       if (value.endsWith('.gitignore')) return '# existing project rules\n'
       return 'user-owned sentinel\n'
     })
+    const onComplete = vi.fn()
 
-    await runInit(['--platform', 'web'])
+    await runInit(['--platform', 'web'], { onComplete })
 
     const generatedResults = mockWriteScaffoldFileAtomic.mock.results
       .map(result => result.value)
@@ -1578,13 +1589,10 @@ skills/.staging/
       },
     })
 
-    const output = consoleOutput()
-    expect(output).toContain('Preserved:')
-    expect(output).toContain('tests/examples/komazon-checkout.yaml')
-    const createdSection = output.match(
-      /  Created:\n([\s\S]*?)(?:\n  (?:Updated|Preserved|Next steps):|$)/,
-    )?.[1] ?? ''
-    expect(createdSection).not.toContain('tests/examples/komazon-checkout.yaml')
+    const reported = onComplete.mock.calls[0]![0] as { path: string; outcome: string }[]
+    expect(reported.find(result => result.path.endsWith('tests/examples/komazon-checkout.yaml')))
+      .toMatchObject({ outcome: 'preserved' })
+    expect(consoleOutput()).toContain('✓ package.json kept\n')
   })
 
   it('performs zero writes when any full-plan preflight destination fails', async () => {
@@ -1674,12 +1682,14 @@ skills/.staging/
         const repository = createRepository()
         repositories.push(repository)
         let writes = 0
+        vi.mocked(process.stderr.write).mockClear()
         await expect(runRealInit(repository, {
           afterWrite: () => {
             writes += 1
             if (writes === boundary) throw new Error(`injected boundary ${boundary}`)
           },
-        })).rejects.toThrow(`injected boundary ${boundary}`)
+        })).rejects.toMatchObject({ name: 'CliRefusal', exitCode: 3 })
+        expect(consoleOutput()).toContain(`✗ injected boundary ${boundary}\n`)
 
         expect(actualFs.existsSync(join(repository, 'agent-qa.config.yaml'))).toBe(false)
         const completedBytes = snapshotFiles(repository)

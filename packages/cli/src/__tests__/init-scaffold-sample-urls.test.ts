@@ -100,6 +100,7 @@ describe('the URLs init writes', () => {
     clearProviderRegistry()
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.spyOn(console, 'warn').mockImplementation(() => {})
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     vi.clearAllMocks()
     vi.mocked(existsSync).mockReturnValue(false)
     vi.mocked(readFileSync).mockImplementation(path =>

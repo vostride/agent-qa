@@ -28,6 +28,7 @@ import {
 
 const VERSION = getAgentQaVersion().trim()
 let log: MockInstance<typeof console.log>
+let errors: MockInstance<typeof process.stderr.write>
 
 const silentAnalytics: typeof composeAnalyticsHost = async () =>
   composeAnalyticsHost({
@@ -95,10 +96,12 @@ async function init(
   await parent.parseAsync(['node', 'test', 'init', ...args])
 }
 
-function stdout(): string {
-  return stripVTControlCharacters(
-    log.mock.calls.map((call) => call.map(String).join(' ')).join('\n'),
-  )
+// runInstallStep prints through console.log in these cells; init draws its lines on stderr.
+function printed(): string {
+  const logged = log.mock.calls.map((call) => call.map(String).join(' '))
+  const drawn = errors.mock.calls.map((call) => String(call[0])).join('')
+  const lines = drawn === '' ? logged : [...logged, ...drawn.replace(/\n$/u, '').split('\n')]
+  return stripVTControlCharacters(lines.join('\n'))
 }
 
 function writeJson(path: string, value: unknown): string {
@@ -122,6 +125,7 @@ async function stepInput(root: string, home: string, run: FakeRunner, env: NodeJ
 describe('init installs what it declared', () => {
   beforeEach(() => {
     log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    errors = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
 
@@ -143,10 +147,12 @@ describe('init installs what it declared', () => {
       cwd: realpathSync(root),
       stdio: 'capture',
     })
-    const out = stdout()
-    expect(out).toContain(`Installing agent-qa ${VERSION} with npm…`)
-    expect(out).toContain(`✓ Installed agent-qa ${VERSION} with npm`)
-    expect(out.indexOf('✓ Installed')).toBeLessThan(out.indexOf('agent-qa project initialized'))
+    const out = printed()
+    expect(out).not.toContain(`Installing agent-qa ${VERSION} with npm…`)
+    expect(out).toContain(`✓ Installed agent-qa ${VERSION} with npm\n`)
+    expect(out.indexOf('✓ Scaffold:')).toBeLessThan(out.indexOf('✓ Installed'))
+    expect(out.indexOf('✓ Installed')).toBeLessThan(out.indexOf('Next steps'))
+    expect(log).not.toHaveBeenCalled()
   })
 
   it('a package.json above the folder is where the install runs, and the line names it', async () => {
@@ -160,7 +166,7 @@ describe('init installs what it declared', () => {
 
     expect(installs(run)).toHaveLength(1)
     expect(installs(run)[0]!.cwd).toBe(realpathSync(root))
-    expect(stdout()).toContain(
+    expect(printed()).toContain(
       `✓ Installed agent-qa ${VERSION} with npm; declared in ../package.json`,
     )
   })
@@ -172,7 +178,7 @@ describe('init installs what it declared', () => {
     await init(root, home, run, ['--platform', 'web', '--llm', 'gemini', '--pm', 'pnpm'])
 
     expect(installs(run).map(argv)).toEqual(['pnpm install'])
-    expect(stdout()).toContain(`✓ Installed agent-qa ${VERSION} with pnpm`)
+    expect(printed()).toContain(`✓ Installed agent-qa ${VERSION} with pnpm`)
   })
 
   it('a claude-code init installs the subscription plugin in the same single call', async () => {
@@ -182,7 +188,7 @@ describe('init installs what it declared', () => {
     await init(root, home, run, ['--platform', 'web', '--llm', 'claude-code'])
 
     expect(installs(run).map(argv)).toEqual(['npm install'])
-    expect(stdout()).toContain(
+    expect(printed()).toContain(
       `✓ Installed agent-qa ${VERSION} and ${SUBSCRIPTION_AUTH_PACKAGE} ${VERSION} with npm`,
     )
   })
@@ -194,7 +200,7 @@ describe('init installs what it declared', () => {
     await init(root, home, run, ['--platform', 'web', '--llm', 'gemini', '--pm', 'none'])
 
     expect(run.calls).toHaveLength(0)
-    expect(stdout()).toContain(`Declared agent-qa ${VERSION} in package.json.`)
+    expect(printed()).toContain(`Declared agent-qa ${VERSION} in package.json.`)
   })
 
   it('nothing runs when package.json is unchanged and every package is already installed', async () => {
@@ -213,7 +219,7 @@ describe('init installs what it declared', () => {
 
     expect(result.outcome).toBe('skipped')
     expect(run.calls).toHaveLength(0)
-    expect(stdout()).toBe(`✓ agent-qa ${VERSION} is already installed; nothing to install`)
+    expect(printed()).toBe(`✓ agent-qa ${VERSION} is already installed; nothing to install`)
   })
 
   it('the install still runs when init changed package.json, even with everything installed', async () => {
@@ -280,6 +286,7 @@ function failureDeps() {
 describe('a failed install is a failed step', () => {
   beforeEach(() => {
     log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    errors = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
 
@@ -298,7 +305,7 @@ describe('a failed install is a failed step', () => {
     expect(error.exitCode).toBe(3)
     expect(error.lines).toEqual([])
     expect(reportCliFailure(error, failureDeps())).toBe(3)
-    const out = stdout().split('\n')
+    const out = printed().split('\n')
     const at = out.indexOf('✗ Install failed: npm exited 1')
     expect(at).toBeGreaterThanOrEqual(0)
     const expected = [...lines.slice(10), 'npm error 404 Not Found'].map((line) => `  ${line}`)
@@ -306,8 +313,10 @@ describe('a failed install is a failed step', () => {
     expect(out[at + 21]).toBe('  Run: npm install')
     expect(out.join('\n')).not.toContain('npm line 10\n')
     expect(existsSync(join(root, 'agent-qa.config.yaml'))).toBe(true)
-    expect(out.join('\n')).toContain('agent-qa project initialized')
-    expect(out.join('\n')).toContain('Next steps:')
+    const scaffold = out.indexOf('✓ Scaffold: config, 3 example tests and a suite (13 files)')
+    expect(scaffold).toBeGreaterThanOrEqual(0)
+    expect(scaffold).toBeLessThan(at)
+    expect(out.indexOf('Next steps')).toBeGreaterThan(at + 21)
   })
 
   it('the command names the folder holding package.json when init ran below it', async () => {
@@ -319,7 +328,7 @@ describe('a failed install is a failed step', () => {
     const error = await refusal(init(qa, home, failing(1, 'npm error boom\n')))
 
     expect(error.exitCode).toBe(3)
-    expect(stdout()).toContain('  Run: cd .. && npm install')
+    expect(printed()).toContain('  Run: cd .. && npm install')
   })
 
   it('a zero exit that left a package missing is a failed step', async () => {
@@ -328,10 +337,10 @@ describe('a failed install is a failed step', () => {
     const error = await refusal(init(root, home, failing(0, '')))
 
     expect(error.exitCode).toBe(3)
-    expect(stdout()).toContain(
+    expect(printed()).toContain(
       `✗ Install failed: npm exited 0, but agent-qa ${VERSION} is not installed`,
     )
-    expect(stdout()).toContain('  Run: npm install')
+    expect(printed()).toContain('  Run: npm install')
   })
 
   it('a manager that is not found anywhere is a failed step with the command that ran', async () => {
@@ -346,8 +355,8 @@ describe('a failed install is a failed step', () => {
     const error = await refusal(init(root, home, run))
 
     expect(error.exitCode).toBe(3)
-    expect(stdout()).toContain('✗ Install failed: npx was not found')
-    expect(stdout()).toContain('  Run: npx -y npm install')
+    expect(printed()).toContain('✗ Install failed: npx was not found')
+    expect(printed()).toContain('  Run: npx -y npm install')
   })
 
   it('credentials and declared secrets in the output print masked', async () => {
@@ -363,7 +372,7 @@ describe('a failed install is a failed step', () => {
     const error = await refusal(init(root, home, failing(1, output)))
 
     expect(error.exitCode).toBe(3)
-    const out = stdout()
+    const out = printed()
     expect(out).toContain('  GET https://user:***@registry.example.com/x')
     expect(out).toContain('  //registry.example.com/:_authToken=***')
     expect(out).toContain('  Authorization: Bearer ***')
@@ -389,6 +398,7 @@ describe('failure output and the declared-secret mask', () => {
 
   beforeEach(() => {
     log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    errors = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
 
@@ -411,7 +421,7 @@ describe('failure output and the declared-secret mask', () => {
     const result = await failedStep(root, home)
 
     expect(result.outcome).toBe('failed')
-    const out = stdout()
+    const out = printed()
     expect(out).toContain(`  ${OUTPUT_HIDDEN}`)
     expect(out).toContain('  Run: npm install')
     expect(out).not.toContain(SECRET)
@@ -422,8 +432,8 @@ describe('failure output and the declared-secret mask', () => {
 
     await failedStep(root, home)
 
-    expect(stdout()).toContain(`  npm error fetch failed ${SECRET}`)
-    expect(stdout()).not.toContain(OUTPUT_HIDDEN)
+    expect(printed()).toContain(`  npm error fetch failed ${SECRET}`)
+    expect(printed()).not.toContain(OUTPUT_HIDDEN)
   })
 
   it('a config whose secrets file does not exist declares nothing, so the output prints', async () => {
@@ -432,7 +442,7 @@ describe('failure output and the declared-secret mask', () => {
 
     await failedStep(root, home)
 
-    expect(stdout()).toContain(`  npm error fetch failed ${SECRET}`)
+    expect(printed()).toContain(`  npm error fetch failed ${SECRET}`)
   })
 })
 
@@ -449,12 +459,13 @@ async function declaredProject(
 }
 
 function lastLine(): string {
-  return stdout().split('\n').at(-1) ?? ''
+  return printed().split('\n').at(-1) ?? ''
 }
 
 describe('a manager the machine lacks installs at the declared version', () => {
   beforeEach(() => {
     log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    errors = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
 
@@ -590,6 +601,7 @@ function eresolveUntilLegacy(legacyWorks: boolean): Install {
 describe('the install holds up under CI, npx, peer conflicts and Ctrl-C', () => {
   beforeEach(() => {
     log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    errors = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
 
@@ -627,7 +639,7 @@ describe('the install holds up under CI, npx, peer conflicts and Ctrl-C', () => 
     })
     expect(run.calls.at(-1)!.env.NODE_ENV).toBeUndefined()
     for (const value of ['/env-path-value', 'env-registry-value', 'production']) {
-      expect(stdout()).not.toContain(value)
+      expect(printed()).not.toContain(value)
     }
   })
 
@@ -655,7 +667,7 @@ describe('the install holds up under CI, npx, peer conflicts and Ctrl-C', () => 
 
     expect(result.outcome).toBe('failed')
     expect(installs(run).map(argv)).toEqual(['npm install', 'npm install --legacy-peer-deps'])
-    expect(stdout()).toContain('✗ Install failed: npm exited 1')
+    expect(printed()).toContain('✗ Install failed: npm exited 1')
     expect(lastLine()).toBe('  Run: npm install --legacy-peer-deps')
   })
 
@@ -687,16 +699,17 @@ describe('the install holds up under CI, npx, peer conflicts and Ctrl-C', () => 
       )
 
       expect(error).toBeInstanceOf(PromptCancelled)
-      const printed: string[] = []
-      const deps = { ...failureDeps(), printFixed: (line: string) => printed.push(line) }
+      const fixed: string[] = []
+      const deps = { ...failureDeps(), printFixed: (line: string) => fixed.push(line) }
       expect(reportCliFailure(error, deps)).toBe(130)
-      expect(printed).toEqual(['Cancelled.'])
+      expect(fixed).toEqual(['Cancelled.'])
       expect(installs(run)).toHaveLength(1)
       const manifest = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
         devDependencies?: Record<string, string>
       }
       expect(manifest.devDependencies?.['agent-qa']).toBe(VERSION)
-      expect(stdout()).not.toContain('agent-qa project initialized')
+      expect(printed()).toContain('✗ Installing dependencies: interrupted')
+      expect(printed()).not.toContain('Next steps')
     },
   )
 })
@@ -723,6 +736,7 @@ function ignoredBuildsUntil(installedOnCall: number): Install {
 describe('a pnpm install denies the build scripts pnpm would stop on', () => {
   beforeEach(() => {
     log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    errors = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
 
@@ -745,7 +759,7 @@ describe('a pnpm install denies the build scripts pnpm would stop on', () => {
 
     expect(installs(run).map(argv)).toEqual(['pnpm install'])
     expect(seen).toEqual([DENIED_FILE])
-    expect(stdout()).toContain(`✓ Installed agent-qa ${VERSION} with pnpm; ${DENIED_NOTE}`)
+    expect(printed()).toContain(`✓ Installed agent-qa ${VERSION} with pnpm; ${DENIED_NOTE}`)
   })
 
   it('the pnpm-workspace.yaml at the workspace root above package.json is the one edited', async () => {
@@ -799,7 +813,7 @@ describe('a pnpm install denies the build scripts pnpm would stop on', () => {
 
     expect(result.outcome).toBe('failed')
     expect(installs(run).map(argv)).toEqual(['pnpm install', 'pnpm install'])
-    expect(stdout()).toContain('✗ Install failed: pnpm exited 1')
+    expect(printed()).toContain('✗ Install failed: pnpm exited 1')
     expect(lastLine()).toBe('  Run: pnpm install')
   })
 
@@ -828,7 +842,7 @@ describe('a pnpm install denies the build scripts pnpm would stop on', () => {
 
     expect(run.calls).toHaveLength(0)
     expect(readFileSync(join(root, 'pnpm-workspace.yaml'), 'utf8')).toBe(DENIED_FILE)
-    expect(stdout()).toContain(
+    expect(printed()).toContain(
       `Declared agent-qa ${VERSION} in package.json. Install with: pnpm install; ${DENIED_NOTE}`,
     )
   })
@@ -850,6 +864,7 @@ describe('a pnpm install denies the build scripts pnpm would stop on', () => {
 describe("a Yarn Plug'n'Play project installs into node_modules", () => {
   beforeEach(() => {
     log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    errors = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
 
@@ -878,7 +893,7 @@ describe("a Yarn Plug'n'Play project installs into node_modules", () => {
 
     expect(installs(run).map(argv)).toEqual(['yarn install'])
     expect(seen).toEqual(['nodeLinker: node-modules\n'])
-    expect(stdout()).toContain(
+    expect(printed()).toContain(
       `✓ Installed agent-qa ${VERSION} with yarn; set nodeLinker: node-modules in .yarnrc.yml`,
     )
   })
@@ -916,7 +931,7 @@ const NPM_PLUGIN_INSTALL = new RegExp(
 )
 
 function pluginStepLine(): string | undefined {
-  return stdout()
+  return printed()
     .split('\n')
     .find((line) => line.includes(PLUGIN_STEP))
 }
@@ -924,6 +939,7 @@ function pluginStepLine(): string | undefined {
 describe("init's subscription next step", () => {
   beforeEach(() => {
     log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    errors = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
 
@@ -938,9 +954,9 @@ describe("init's subscription next step", () => {
 
     await init(root, home, run, CLAUDE_CODE)
 
-    expect(stdout()).not.toContain('plugins add')
-    expect(stdout()).not.toContain(PLUGIN_STEP_DESCRIPTION)
-    expect(stdout()).toContain('npx agent-qa auth login --config claude-code')
+    expect(printed()).not.toContain('plugins add')
+    expect(printed()).not.toContain(PLUGIN_STEP_DESCRIPTION)
+    expect(printed()).toContain('npx agent-qa auth login --config claude-code')
   })
 
   it('a failed install is followed by the plugins add next step', async () => {
@@ -950,7 +966,7 @@ describe("init's subscription next step", () => {
 
     expect(error.exitCode).toBe(3)
     expect(pluginStepLine()).toContain(PLUGIN_STEP_DESCRIPTION)
-    expect(stdout()).not.toMatch(NPM_PLUGIN_INSTALL)
+    expect(printed()).not.toMatch(NPM_PLUGIN_INSTALL)
   })
 
   it('--pm none is followed by the plugins add next step', async () => {
@@ -959,7 +975,7 @@ describe("init's subscription next step", () => {
     await init(root, home, installing(), [...CLAUDE_CODE, '--pm', 'none'])
 
     expect(pluginStepLine()).toContain(PLUGIN_STEP_DESCRIPTION)
-    expect(stdout()).not.toMatch(NPM_PLUGIN_INSTALL)
+    expect(printed()).not.toMatch(NPM_PLUGIN_INSTALL)
   })
 
   it('a plugin installed above the git root does not hide the next step', async () => {

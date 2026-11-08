@@ -25,6 +25,7 @@ const VERSION = getAgentQaVersion().trim()
 const NODE = '/fake/node'
 const INIT_ARGS = ['--platform', 'web', '--llm', 'gemini']
 let log: MockInstance<typeof console.log>
+let errors: MockInstance<typeof process.stderr.write>
 
 const silentAnalytics: typeof composeAnalyticsHost = async () =>
   composeAnalyticsHost({
@@ -116,10 +117,9 @@ function failureDeps() {
   }
 }
 
-function stdout(): string {
-  return stripVTControlCharacters(
-    log.mock.calls.map((call) => call.map(String).join(' ')).join('\n'),
-  )
+// init draws its human output on stderr.
+function stderr(): string {
+  return stripVTControlCharacters(errors.mock.calls.map((call) => String(call[0])).join(''))
 }
 
 function declare(root: string, spec: string): void {
@@ -141,6 +141,7 @@ function devDependencies(root: string): unknown {
 describe('init installs a declared newer agent-qa, then hands off to it', () => {
   beforeEach(() => {
     log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    errors = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
     vi.spyOn(console, 'warn').mockImplementation(() => {})
   })
 
@@ -172,7 +173,7 @@ describe('init installs a declared newer agent-qa, then hands off to it', () => 
       stdio: 'inherit',
     })
     expect(handOff?.env.AGENT_QA_HANDED_OFF).toBe('1')
-    expect(stdout()).toContain(
+    expect(stderr()).toContain(
       `Handing over to the project's agent-qa 99.0.0 (node_modules/agent-qa), which is newer than this one (${VERSION}).`,
     )
     expect(configured(root)).toBe(false)
@@ -225,13 +226,14 @@ describe('init installs a declared newer agent-qa, then hands off to it', () => 
 
     expect(reportCliFailure(error, failureDeps())).toBe(3)
     expect(commands(run).map(argv)).toEqual(['npm install', 'npm install'])
-    const lines = stdout().split('\n')
+    const lines = stderr().split('\n')
     expect(lines.filter((line) => line === '✗ Install failed: npm exited 1')).toHaveLength(2)
     expect(lines).toContain(
       `The project's agent-qa 99.0.0 is not installed, so this one (${VERSION}) sets up the folder.`,
     )
     expect(lines).toContain('  Run: npm install')
-    expect(stdout()).toContain('Next steps:')
+    expect(stderr()).toContain('\nNext steps\n')
+    expect(log).not.toHaveBeenCalled()
     expect(configured(root)).toBe(true)
   })
 
@@ -295,7 +297,7 @@ describe('init installs a declared newer agent-qa, then hands off to it', () => 
         'u',
       ),
     )
-    expect(stdout()).not.toContain('already initialized')
+    expect(stderr()).not.toContain('already initialized')
     expect(run.calls).toEqual([])
   })
 })

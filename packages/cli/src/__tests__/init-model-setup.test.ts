@@ -154,6 +154,7 @@ beforeEach(() => {
   vi.spyOn(console, 'log').mockImplementation(() => {})
   vi.spyOn(console, 'warn').mockImplementation(() => {})
   vi.spyOn(console, 'error').mockImplementation(() => {})
+  vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
 })
 
 afterEach(() => {
@@ -419,10 +420,11 @@ describe('subscription model defaults', () => {
 const GETTING_STARTED = 'https://vostride.com/docs/agent-qa/quickstart'
 const RUN_EXAMPLES = 'npx agent-qa run suites/examples.suite.yaml'
 
+// init draws its human output on stderr.
 function printed(): string {
-  return vi.mocked(console.log).mock.calls
-    .map(call => call.map(String).join(' '))
-    .join('\n')
+  return vi.mocked(process.stderr.write).mock.calls
+    .map(call => String(call[0]))
+    .join('')
     .replace(/\u001b\[[0-9;]*m/gu, '')
 }
 
@@ -483,7 +485,7 @@ describe('init next steps', () => {
       await initOk(args)
 
       const lines = printed().split('\n')
-      const start = lines.findIndex(line => line.includes('Next steps:'))
+      const start = lines.findIndex(line => line === 'Next steps')
       expect(start, args.join(' ')).toBeGreaterThanOrEqual(0)
       const validate = lines.slice(start).some(line => line.includes('npx agent-qa validate'))
       expect(validate, args.join(' ')).toBe(true)

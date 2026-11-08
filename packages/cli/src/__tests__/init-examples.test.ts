@@ -127,7 +127,7 @@ async function runInit(args: string[]): Promise<void> {
 
 async function initWrites(platform = 'web'): Promise<Write[]> {
   mockWriteFileSync.mockClear()
-  vi.mocked(console.log).mockClear()
+  vi.mocked(process.stderr.write).mockClear()
   await runInit(['--platform', platform])
   return mockWriteFileSync.mock.calls.map(call => ({
     path: String(call[0]).slice(DIR.length + 1),
@@ -146,8 +146,11 @@ function written(writes: Write[], path: string): { raw: string; doc: any } {
   return { raw, doc: parseYaml(raw) }
 }
 
+// init draws its human output on stderr.
 function consoleOutput(): string {
-  return stripVTControlCharacters(vi.mocked(console.log).mock.calls.flat().map(String).join('\n'))
+  return stripVTControlCharacters(
+    vi.mocked(process.stderr.write).mock.calls.map((call) => String(call[0])).join(''),
+  )
 }
 
 async function loadCoreYamlValidators() {
@@ -175,6 +178,7 @@ function setUpInitMocks(): void {
   clearProviderRegistry()
   vi.spyOn(console, 'log').mockImplementation(() => {})
   vi.spyOn(console, 'warn').mockImplementation(() => {})
+  vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
   vi.clearAllMocks()
   vi.mocked(existsSync).mockReturnValue(false)
   vi.mocked(readFileSync).mockImplementation(path =>
@@ -282,8 +286,8 @@ describe('the init examples', () => {
     const writes = await initWrites()
     const paths = writes.map(write => write.path)
     const output = consoleOutput()
-    const nextSteps = output.slice(output.indexOf('Next steps:'))
-    expect(output).toContain('Next steps:')
+    const nextSteps = output.slice(output.indexOf('Next steps\n'))
+    expect(output).toContain('Next steps\n')
     const named = nextSteps.match(/\b(?:tests|suites|scripts)\/[\w./-]+/g) ?? []
     expect(named.length, 'the next steps name no example file').toBeGreaterThan(0)
     for (const path of named) {

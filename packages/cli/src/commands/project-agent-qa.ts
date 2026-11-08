@@ -59,8 +59,9 @@ export async function runAsProjectAgentQa(
   copy: ProjectAgentQa,
   host: ProjectHost,
   line: string,
+  print: (line: string) => void = (text) => console.log(text),
 ): Promise<void> {
-  console.log(line)
+  print(line)
   const result = await host.run(host.execPath, [copy.bin, ...host.argv], {
     cwd: host.cwd,
     env: { ...host.env, [HANDED_OFF_ENV]: '1' },
@@ -104,8 +105,10 @@ export async function handOffToProjectAgentQa(input: {
   runningVersion: string
   pm: string | undefined
   install: () => Promise<boolean>
+  print?: (line: string) => void
 }): Promise<boolean> {
   const { host, range, packageJson, runningVersion } = input
+  const print = input.print ?? ((line: string) => console.log(line))
   if ((host.env[HANDED_OFF_ENV] ?? '') !== '') return false
   const fromDir = packageJson.text === undefined ? range.start : dirname(packageJson.path)
   const newerCopy = async (): Promise<ProjectAgentQa | undefined> => {
@@ -118,7 +121,7 @@ export async function handOffToProjectAgentQa(input: {
     const declared = declaredAgentQaVersion(packageJson.text)
     if (declared === undefined || !isNewer(declared, runningVersion)) return false
     if (!(await input.install())) {
-      console.log(
+      print(
         `The project's agent-qa ${declared} is not installed, so this one (${runningVersion}) ` +
           'sets up the folder.',
       )
@@ -127,7 +130,7 @@ export async function handOffToProjectAgentQa(input: {
     copy = await newerCopy()
     if (copy === undefined) return false
   }
-  await runAsProjectAgentQa(copy, host, handOffLine(copy, range, runningVersion))
+  await runAsProjectAgentQa(copy, host, handOffLine(copy, range, runningVersion), print)
   return true
 }
 

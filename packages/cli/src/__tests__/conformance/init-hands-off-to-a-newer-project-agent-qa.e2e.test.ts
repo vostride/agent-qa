@@ -97,7 +97,7 @@ describe('init hands off to a newer project agent-qa', () => {
       expect(outcome.stdout.split('\n'), outcome.text).toContain(
         JSON.stringify({ argv: INIT_ARGS, handedOff: '1' }),
       )
-      expect(outcome.stdout.split('\n'), outcome.text).toContain(
+      expect(outcome.stderr.split('\n'), outcome.text).toContain(
         `Handing over to the project's agent-qa 99.0.0 (node_modules/agent-qa), which is newer than this one (${RUNNING_VERSION}).`,
       )
       expect(readdirSync(root).sort()).toEqual(['.git', 'node_modules'])
