@@ -144,6 +144,7 @@ describe('init --json prints one document on stdout', () => {
         reason: 'not interactive',
         command: 'npx agent-qa auth login --config claude-code',
       },
+      { name: 'dashboard', outcome: 'skipped', reason: 'not interactive' },
     ])
     expect(doc.files).toContainEqual({
       path: '.gitignore',
@@ -219,6 +220,7 @@ describe('init --json prints one document on stdout', () => {
       'skills',
       'validate',
       'sign-in',
+      'dashboard',
     ])
     expect(doc.steps.find((step) => step.name === 'chromium')).toEqual({
       name: 'chromium',
@@ -339,6 +341,7 @@ describe('init --json prints one document on stdout', () => {
         command: 'npx agent-qa validate',
       },
       { name: 'sign-in', outcome: 'skipped', reason: 'not a subscription model' },
+      { name: 'dashboard', outcome: 'skipped', reason: 'not interactive' },
     ])
     expect(doc.plugins).toEqual([])
     expect(result.stderr).toContain('✗ Install failed: npm exited 1')

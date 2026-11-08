@@ -76,6 +76,13 @@ describe('init --help', () => {
     expect(help).toContain('--json')
     expect(help).not.toContain('--write-agent-instructions')
   })
+
+  it('lists --no-dashboard and --no-browsers', () => {
+    const help = createInitCommand().helpInformation()
+
+    expect(help).toContain('--no-dashboard')
+    expect(help).toContain('--no-browsers')
+  })
 })
 
 describe('init in a terminal', () => {

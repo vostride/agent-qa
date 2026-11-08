@@ -1,5 +1,6 @@
 // An interactive init ends by starting the dashboard, as a child, on the page that finishes setup.
 import { mkdirSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { createServer, type AddressInfo } from 'node:net'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -10,7 +11,8 @@ import { parse } from 'yaml'
 
 import { runCli, type CliFailureDeps } from '../cli-error-handler.js'
 import { createInitCommand } from '../commands/init.js'
-import { dashboardPage } from '../commands/init-dashboard.js'
+import type { InitDocument } from '../commands/init-document.js'
+import { dashboardPage, probeDashboardPort } from '../commands/init-dashboard.js'
 import { installedAgentQaVersion } from '../commands/package-json-plan.js'
 import type { RunResult } from '../commands/project-host.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
@@ -76,6 +78,7 @@ const silentAnalytics: typeof composeAnalyticsHost = async () =>
   })
 
 let stderr: MockInstance<typeof process.stderr.write>
+let stdout: MockInstance<typeof process.stdout.write>
 
 interface Project {
   root: string
@@ -110,7 +113,9 @@ function configuredPort(root: string): number {
   return config.services.dashboard.port
 }
 
-const freePort = { probe: async () => 'free' as const }
+const FREE_PORT = 49_731
+const freePort = { probe: async () => 'free' as const, findFree: async () => FREE_PORT }
+const busyPort = { probe: async () => 'busy' as const, findFree: async () => FREE_PORT }
 
 // Answers the manager's version probe and the dashboard, and passes every other call.
 function runner(dashboard: RunResult = OK, onDashboard?: () => void): FakeRunner {
@@ -127,24 +132,31 @@ function runner(dashboard: RunResult = OK, onDashboard?: () => void): FakeRunner
 interface InitExit {
   exit: number | undefined
   stderr: string
+  stdout: string
 }
 
 async function init(
   { root, home }: Project,
   ui: FakeInitUi,
   args: readonly string[],
-  options: { run?: FakeRunner; dashboardPort?: typeof freePort } = {},
+  options: {
+    run?: FakeRunner
+    dashboardPort?: typeof freePort
+    isTTY?: boolean
+    env?: NodeJS.ProcessEnv
+  } = {},
 ): Promise<InitExit> {
   stderr.mockClear()
+  stdout.mockClear()
   const program = new Command('agent-qa').addCommand(
     createInitCommand({
       cwd: root,
       host: {
         homedir: home,
-        env: {},
+        env: options.env ?? {},
         ...(options.run === undefined ? {} : { run: options.run }),
       },
-      isTTY: true,
+      isTTY: options.isTTY ?? true,
       ui,
       composeAnalytics: silentAnalytics,
       ...(options.dashboardPort === undefined ? {} : { dashboardPort: options.dashboardPort }),
@@ -165,7 +177,8 @@ async function init(
   }
   await runCli(program, ['node', 'agent-qa', 'init', ...args], deps)
   const written = stderr.mock.calls.map((call) => String(call[0])).join('')
-  return { exit, stderr: `${written}${printed.join('\n')}` }
+  const out = stdout.mock.calls.map((call) => String(call[0])).join('')
+  return { exit, stderr: `${written}${printed.join('\n')}`, stdout: out }
 }
 
 function dashboardCalls(run: FakeRunner): string[][] {
@@ -181,6 +194,7 @@ function nextSteps(ui: FakeInitUi): string[] {
 
 beforeEach(() => {
   stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+  stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
   vi.spyOn(console, 'log').mockImplementation(() => {})
   vi.spyOn(console, 'warn').mockImplementation(() => {})
   vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -381,6 +395,120 @@ describe('stopping the dashboard ends init with setup code', () => {
       expect(result.stderr).not.toContain(CANCELLED_LINE)
     })
   }
+})
+
+describe('when init does not start the dashboard', () => {
+  it('a busy port skips the step and names a free port in the next steps, with exit 0', async () => {
+    const target = project()
+    const ui = fakeInitUi()
+    const run = runner()
+
+    const result = await init(target, ui, [...BASE, '--llm', 'gemini'], {
+      run,
+      dashboardPort: busyPort,
+    })
+
+    const port = configuredPort(target.root)
+    expect(nextSteps(ui).join(' ')).toContain(`npx agent-qa dashboard --port ${FREE_PORT}`)
+    expect(dashboardCalls(run)).toEqual([])
+    expect(ui.entries).toContainEqual({
+      kind: 'skipped',
+      text: `Dashboard: skipped (port ${port} is in use)`,
+    })
+    expect(nextSteps(ui).at(-1)).toMatch(/^npx agent-qa dashboard --port \d+$/u)
+    expect(result.exit).toBeUndefined()
+  })
+
+  it('a busy port leaves a failed setup at exit 3', async () => {
+    const run = fakeRunner(({ args }) => {
+      if (args[0] === '--version') return { code: 0, signal: null, output: '10.0.0\n' }
+      return args.includes('install-browsers') ? { code: 1, signal: null, output: 'offline\n' } : OK
+    })
+
+    const result = await init(
+      project(),
+      fakeInitUi(),
+      ['--platform', 'web', '--agents', 'none', '--pm', 'npm', '--llm', 'gemini'],
+      { run, dashboardPort: busyPort },
+    )
+
+    expect(dashboardCalls(run)).toEqual([])
+    expect(result.exit).toBe(3)
+  })
+
+  it('--no-dashboard skips the step and lists the dashboard command last', async () => {
+    const ui = fakeInitUi()
+    const run = runner()
+
+    const result = await init(project(), ui, [...BASE, '--llm', 'gemini', '--no-dashboard'], {
+      run,
+      dashboardPort: freePort,
+    })
+
+    expect(dashboardCalls(run)).toEqual([])
+    expect(ui.entries).toContainEqual({
+      kind: 'skipped',
+      text: 'Dashboard: skipped (--no-dashboard)',
+    })
+    expect(nextSteps(ui).at(-1)).toBe('npx agent-qa dashboard')
+    expect(result.exit).toBeUndefined()
+  })
+
+  const unattended: [string, readonly string[], { isTTY?: boolean; env?: NodeJS.ProcessEnv }][] = [
+    ['--yes in a terminal', ['--yes'], {}],
+    ['CI', [], { env: { CI: 'true' } }],
+    ['no terminal', [], { isTTY: false }],
+  ]
+
+  for (const [label, args, options] of unattended) {
+    it(`${label} skips the step as not interactive and lists the dashboard command`, async () => {
+      const ui = fakeInitUi()
+      const run = runner()
+
+      await init(project(), ui, [...BASE, '--llm', 'gemini', ...args], {
+        run,
+        dashboardPort: freePort,
+        ...options,
+      })
+
+      expect(dashboardCalls(run)).toEqual([])
+      expect(ui.entries).toContainEqual({
+        kind: 'skipped',
+        text: 'Dashboard: skipped (not interactive)',
+      })
+      expect(nextSteps(ui).at(-1)).toBe('npx agent-qa dashboard')
+    })
+  }
+
+  it('--json records the dashboard step as skipped, not interactive', async () => {
+    const run = runner()
+
+    const result = await init(project(), fakeInitUi(), [...BASE, '--llm', 'gemini', '--json'], {
+      run,
+      dashboardPort: freePort,
+    })
+
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(dashboardCalls(run)).toEqual([])
+    expect(doc.steps.at(-1)).toEqual({
+      name: 'dashboard',
+      outcome: 'skipped',
+      reason: 'not interactive',
+    })
+    expect(doc.nextSteps.at(-1)?.command).toBe('npx agent-qa dashboard')
+  })
+})
+
+describe('the port probe', () => {
+  it('reads a port a server holds on loopback as busy, and free once it closes', async () => {
+    const held = createServer()
+    await new Promise<void>((listening) => held.listen(0, '127.0.0.1', listening))
+    const { port } = held.address() as AddressInfo
+
+    expect(await probeDashboardPort(port)).toBe('busy')
+    await new Promise<void>((closed) => held.close(() => closed()))
+    expect(await probeDashboardPort(port)).toBe('free')
+  })
 })
 
 describe('the setup guard in front of the dashboard', () => {
