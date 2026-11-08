@@ -204,6 +204,30 @@ test('source skill validation fails on a missing or empty knowledge reference', 
   }
 })
 
+test('source skill validation refuses an agents/openai.yaml that declares dependencies', async () => {
+  await withTemp(async (tempDir) => {
+    const skills = join(tempDir, 'skills')
+    await cp(join(rootDir, 'skills'), skills, { recursive: true })
+    execFileSync(process.execPath, [join(skills, 'scripts', 'validate-skills.mjs')], { stdio: 'pipe' })
+    const openAi = join(skills, 'agent-qa-knowledge', 'agents', 'openai.yaml')
+    await writeFile(openAi, [
+      readFileSync(openAi, 'utf8').trimEnd(),
+      'dependencies:',
+      '  tools:',
+      '    - type: "mcp"',
+      '      value: "agent-qa"',
+      '      transport: "stdio"',
+      '      command: "npx"',
+      '',
+    ].join('\n'))
+    assert.throws(
+      () => execFileSync(process.execPath, [join(skills, 'scripts', 'validate-skills.mjs')], { stdio: 'pipe', encoding: 'utf8' }),
+      error => /agent-qa-knowledge: agents\/openai\.yaml declares dependencies/.test(String(error.stderr)),
+      'validate-skills accepted an openai.yaml that declares dependencies',
+    )
+  })
+})
+
 test('stages the root README into every public package but a plugin with its own, without writing it to the source packages', async () => {
   await withTemp(async (tempDir) => {
     const fixture = await fixtureRepo(tempDir)
