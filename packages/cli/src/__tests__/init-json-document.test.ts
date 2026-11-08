@@ -442,6 +442,31 @@ describe('init --json prints one document on stdout', () => {
     expect(result.stderr).toContain(doc.message)
   })
 
+  it('a bad option value before --json is a refused document', async () => {
+    const { root, home } = tempProject('json-bad-value-first')
+
+    for (const args of [
+      ['--pm', 'gpt', '--json'],
+      ['--json', '--pm', 'gpt'],
+    ]) {
+      const result = await init(root, home, args)
+
+      const doc = documentOf(result)
+      expect(result.exit, args.join(' ')).toBe(2)
+      expect(doc, args.join(' ')).toMatchObject({ outcome: 'refused', exitCode: 2, steps: [] })
+      expect(doc.message, args.join(' ')).toContain('Allowed choices are')
+    }
+  })
+
+  it('a --json after -- is an argument and asks for no document', async () => {
+    const { root, home } = tempProject('json-after-dashes')
+
+    const result = await init(root, home, ['--pm', 'gpt', '--', '--json'])
+
+    expect(result.exit).toBe(2)
+    expect(result.stdout).toBe('')
+  })
+
   it('a Ctrl-C during the install is an interrupted document with exit code 130', async () => {
     const { root, home } = tempProject('json-interrupted')
     const run = probeOr(() => ({ code: 130, signal: null, output: '' }))

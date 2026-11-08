@@ -715,6 +715,18 @@ function installStepResult(step: InstallStepResult, printed: readonly string[]):
   return { outcome: 'done', text }
 }
 
+// Commander stops at a bad option value before it reads the options after it, so --json is looked
+// for in the arguments as given, up to a `--`.
+function asksForJson(cmd: Command): boolean {
+  let root = cmd
+  while (root.parent !== null) root = root.parent
+  const raw = (root as unknown as { rawArgs?: unknown }).rawArgs
+  const given = Array.isArray(raw) ? raw.map(String) : []
+  const args = given.slice(given.indexOf(cmd.name()) + 1)
+  const end = args.indexOf('--')
+  return (end === -1 ? args : args.slice(0, end)).includes('--json')
+}
+
 export function createInitCommand(hooks: InitCommandHooks = {}): Command {
   let documentWritten = false
   const writeDocument = (doc: InitDocument): void => {
@@ -1497,7 +1509,9 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
   // Commander has printed its own line; a usage error exits 2, and help returns so commander exits 0.
   cmd.exitOverride((error) => {
     if (error.exitCode === 0) return
-    if (cmd.opts().json === true) writeDocument(refusedInitDocument(error.message))
+    if (cmd.opts().json === true || asksForJson(cmd)) {
+      writeDocument(refusedInitDocument(error.message))
+    }
     throw new CliRefusal([], 2, { cause: error })
   })
 

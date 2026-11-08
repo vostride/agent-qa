@@ -102,6 +102,20 @@ describe('init usage errors', () => {
   )
 
   it(
+    'an invalid --pm value before --json still prints one refused document',
+    async () => {
+      expectFresh()
+      const outcome = await cli(['init', '--pm', 'gpt', '--json'])
+      expect(outcome.code).toBe(2)
+      const doc = JSON.parse(outcome.stdout) as Record<string, unknown>
+      expect(doc).toMatchObject({ format: 1, outcome: 'refused', exitCode: 2, steps: [] })
+      expect(doc.message).toContain('Allowed choices are')
+      expect(readdirSync(outcome.root)).toEqual([])
+    },
+    CELL_BUDGET_MS,
+  )
+
+  it(
     'an invalid --pm choice exits 2',
     async () => {
       expectFresh()
