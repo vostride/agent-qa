@@ -2,7 +2,12 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
-import type { CommandRunner, RunOptions, RunResult } from '../commands/project-host.js'
+import type {
+  CommandRunner,
+  ProjectIo,
+  RunOptions,
+  RunResult,
+} from '../commands/project-host.js'
 
 const roots: string[] = []
 
@@ -51,6 +56,19 @@ export function fakeRunner(
     return await script({ command, args, options })
   }
   return Object.assign(run, { calls })
+}
+
+// A running agent-qa whose package.json names its bin, readable where node:fs is mocked.
+export function runningAgentQa(
+  io: ProjectIo,
+  dir = '/running/agent-qa',
+): { io: ProjectIo; runningPackageDir: string } {
+  const manifest = join(dir, 'package.json')
+  const text = `${JSON.stringify({ name: 'agent-qa', bin: { 'agent-qa': 'dist/cli.js' } })}\n`
+  return {
+    runningPackageDir: dir,
+    io: { ...io, readText: (path) => (path === manifest ? text : io.readText(path)) },
+  }
 }
 
 export function skillFolderFiles(

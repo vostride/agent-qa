@@ -127,6 +127,7 @@ describe('init --json prints one document on stdout', () => {
       { name: 'package-json', outcome: 'done' },
       { name: 'scaffold', outcome: 'done' },
       { name: 'install', outcome: 'skipped', reason: '--pm none', command: 'npm install' },
+      { name: 'chromium', outcome: 'done' },
     ])
     expect(doc.files).toContainEqual({
       path: '.gitignore',
@@ -161,6 +162,33 @@ describe('init --json prints one document on stdout', () => {
     expect(result.stderr).toContain('– Declared agent-qa')
   })
 
+  it('--no-browsers lists the Chromium step after the install, skipped with its command', async () => {
+    const { root, home } = tempProject('json-no-browsers')
+    const run = fakeRunner()
+
+    const result = await init(
+      root,
+      home,
+      ['--json', '--platform', 'web', '--pm', 'none', '--no-browsers'],
+      run,
+    )
+
+    const doc = documentOf(result)
+    expect(doc.steps.map((step) => step.name)).toEqual([
+      'package-json',
+      'scaffold',
+      'install',
+      'chromium',
+    ])
+    expect(doc.steps.at(-1)).toEqual({
+      name: 'chromium',
+      outcome: 'skipped',
+      reason: '--no-browsers',
+      command: 'npx agent-qa install-browsers --chromium',
+    })
+    expect(run.calls.filter((call) => call.args.includes('install-browsers'))).toEqual([])
+  })
+
   it('a failed install is a failed document with exit code 3 and the step command', async () => {
     const { root, home } = tempProject('json-failed')
     const run = probeOr(() => ({ code: 1, signal: null, output: 'npm ERR! boom\n' }))
@@ -179,6 +207,12 @@ describe('init --json prints one document on stdout', () => {
         outcome: 'failed',
         reason: 'Install failed: npm exited 1\n  npm ERR! boom',
         command: 'npm install',
+      },
+      {
+        name: 'chromium',
+        outcome: 'failed',
+        reason: 'Chromium download failed twice: npm ERR! boom',
+        command: 'npx agent-qa install-browsers --chromium',
       },
     ])
     expect(doc.plugins).toEqual([])
@@ -221,6 +255,7 @@ describe('init --json prints one document on stdout', () => {
       { name: 'package-json', outcome: 'done' },
       { name: 'scaffold', outcome: 'done' },
       { name: 'install', outcome: 'failed', reason: 'interrupted' },
+      { name: 'chromium', outcome: 'skipped', reason: 'interrupted' },
     ])
     expect(result.stderr).toContain('Cancelled.\n')
   })
@@ -238,6 +273,7 @@ describe('init --json prints one document on stdout', () => {
       { name: 'package-json', outcome: 'skipped', reason: 'already initialized' },
       { name: 'scaffold', outcome: 'skipped', reason: 'already initialized' },
       { name: 'install', outcome: 'skipped', reason: 'already initialized' },
+      { name: 'chromium', outcome: 'skipped', reason: 'already initialized' },
     ])
     expect(result.stderr).toContain('Project is already initialized at')
   })
@@ -259,7 +295,7 @@ describe('init --json prints one document on stdout', () => {
 
     const doc = documentOf(result)
     expect(doc).toMatchObject({ outcome: 'done', exitCode: 0 })
-    expect(doc.steps.map((step) => step.outcome)).toEqual(['done', 'done', 'skipped'])
+    expect(doc.steps.map((step) => step.outcome)).toEqual(['done', 'done', 'skipped', 'done'])
     expect(doc.files).toContainEqual({
       path: '.env.secrets.local',
       outcome: 'kept',

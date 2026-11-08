@@ -95,6 +95,7 @@ import {
 import {
   installOutputMask,
   runInstallStep,
+  shownOutput,
   type InstallStepResult,
 } from './package-install.js'
 import { detectPackageManager } from './package-manager.js'
@@ -102,6 +103,8 @@ import {
   agentQaAfterInstall,
   declaredAgentQaVersion,
   handOffToProjectAgentQa,
+  runAgentQaStep,
+  runRunningAgentQa,
 } from './project-agent-qa.js'
 import { projectHost, type ProjectHost, type ProjectIo } from './project-host.js'
 import { nearestInstalledPackage, projectRange, type ProjectRange } from './project-range.js'
@@ -582,6 +585,9 @@ function optionFor(options: readonly InitModelOption[], pick: InitModelPick): In
   )
   return (same ?? options[0]!).value
 }
+
+const CHROMIUM_COMMAND = 'npx agent-qa install-browsers --chromium'
+const CHROMIUM_ATTEMPTS = 2
 
 const WHAT_TO_EXPECT =
   '3 questions, then: package.json, scaffold, install, Chromium, skills and MCP, validate, '
@@ -1149,6 +1155,30 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           }
         }
 
+        // Later steps run through the project's agent-qa, or this one as a captured child.
+        const stepContext = {
+          host,
+          range,
+          fromDir: dir,
+          runningVersion,
+          inProcess: (args: readonly string[]) => runRunningAgentQa(args, host),
+        }
+
+        const installChromium = async (): Promise<InitStepResult> => {
+          let output = ''
+          for (let attempt = 0; attempt < CHROMIUM_ATTEMPTS; attempt += 1) {
+            const run = await runAgentQaStep(['install-browsers', '--chromium'], stepContext)
+            if (run.code === 0) return { outcome: 'done', text: 'Chromium installed' }
+            output = run.output
+          }
+          const [last] = await shownOutput(output, maskInstallOutput, 1)
+          return {
+            outcome: 'failed',
+            reason: `Chromium download failed twice${last === undefined ? '' : `: ${last}`}`,
+            command: CHROMIUM_COMMAND,
+          }
+        }
+
         const runner = createInitStepRunner({ ui, plan: freshInitPlan() })
         steps = () => runner.records()
         try {
@@ -1163,6 +1193,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             const reason = 'package.json was not written'
             runner.skip('scaffold', `Scaffold: skipped (${reason})`, reason)
             runner.skip('install', `Install: skipped (${reason})`, reason)
+            runner.skip('chromium', `Chromium: skipped (${reason})`, reason)
           } else {
             const scaffold = await runner.run(
               'scaffold',
@@ -1173,6 +1204,22 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             // project that exists rather than one being attempted.
             if (scaffold.outcome === 'done') await emitInitCompleted(outcomes)
             await runner.run('install', { title: 'Installing dependencies' }, install)
+            if (opts.browsers === false) {
+              runner.skip(
+                'chromium',
+                'Chromium: skipped (--no-browsers)',
+                '--no-browsers',
+                CHROMIUM_COMMAND,
+              )
+            } else if (!hasWeb(platform)) {
+              runner.skip('chromium', 'Chromium: no web target', 'no web target')
+            } else {
+              await runner.run(
+                'chromium',
+                { title: 'Installing Chromium', command: CHROMIUM_COMMAND },
+                installChromium,
+              )
+            }
           }
         } finally {
           runner.dispose()

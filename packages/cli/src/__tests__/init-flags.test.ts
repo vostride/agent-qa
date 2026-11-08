@@ -9,7 +9,12 @@ import { createInitCommand } from '../commands/init.js'
 import type { InitDocument } from '../commands/init-document.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { fakeInitUi, type FakeInitUi } from './fake-init-ui.js'
-import { cleanupTempProjects, fakeRunner, tempProject } from './project-fixtures.js'
+import {
+  cleanupTempProjects,
+  fakeRunner,
+  tempProject,
+  type FakeRunner,
+} from './project-fixtures.js'
 
 const silentAnalytics: typeof composeAnalyticsHost = async () =>
   composeAnalyticsHost({
@@ -103,15 +108,19 @@ describe('init in a terminal', () => {
   )
 })
 
-async function initWithFlags(args: readonly string[]): Promise<{ root: string; error: unknown }> {
+async function initWithFlags(
+  args: readonly string[],
+): Promise<{ root: string; error: unknown; ui: FakeInitUi; run: FakeRunner }> {
   const { root, home } = tempProject('init-platform')
+  const ui = fakeInitUi()
+  const run = fakeRunner()
   const parent = new Command()
   const command = createInitCommand({
     cwd: root,
-    host: { homedir: home, env: {}, run: fakeRunner() },
+    host: { homedir: home, env: {}, run },
     isTTY: false,
     composeAnalytics: silentAnalytics,
-    ui: fakeInitUi(),
+    ui,
   })
   parent.exitOverride()
   command.exitOverride()
@@ -122,7 +131,7 @@ async function initWithFlags(args: readonly string[]): Promise<{ root: string; e
       () => undefined,
       (caught: unknown) => caught,
     )
-  return { root, error }
+  return { root, error, ui, run }
 }
 
 function writtenConfig(root: string): {
@@ -217,17 +226,53 @@ function filesUnder(root: string): string[] {
   return readdirSync(root, { recursive: true, encoding: 'utf8' }).sort()
 }
 
-describe('--no-browsers', () => {
-  it('is accepted, and init writes the same files and exits 0 as without it', async () => {
+function browserInstalls(run: FakeRunner): string[][] {
+  return run.calls.filter((call) => call.args.includes('install-browsers')).map((call) => call.args)
+}
+
+describe('the Chromium step follows --no-browsers and the platform', () => {
+  it('--no-browsers runs no browser install, skips the step with its command and writes the same files', async () => {
     const without = await initWithFlags(['--platform', 'web'])
     const withFlag = await initWithFlags(['--platform', 'web', '--no-browsers'])
 
     expect(without.error).toBeUndefined()
     expect(withFlag.error).toBeUndefined()
+    expect(browserInstalls(withFlag.run)).toEqual([])
+    expect(withFlag.ui.entries).toContainEqual({
+      kind: 'skipped',
+      text: 'Chromium: skipped (--no-browsers)',
+    })
     expect(filesUnder(withFlag.root)).toEqual(filesUnder(without.root))
     expect(readFileSync(join(withFlag.root, 'agent-qa.config.yaml'), 'utf8')).toBe(
       readFileSync(join(without.root, 'agent-qa.config.yaml'), 'utf8'),
     )
+  })
+
+  it('--no-browsers carries the install command in the document', async () => {
+    await initWithFlags(['--platform', 'web', '--no-browsers', '--json'])
+
+    expect(lastDocument().steps).toContainEqual({
+      name: 'chromium',
+      outcome: 'skipped',
+      reason: '--no-browsers',
+      command: 'npx agent-qa install-browsers --chromium',
+    })
+  })
+
+  it('--platform android,ios skips the step with no web target and runs no browser install', async () => {
+    const { error, ui, run } = await initWithFlags(['--platform', 'android,ios'])
+
+    expect(error).toBeUndefined()
+    expect(browserInstalls(run)).toEqual([])
+    expect(ui.entries).toContainEqual({ kind: 'skipped', text: 'Chromium: no web target' })
+  })
+
+  it('--platform web installs Chromium once and draws it done', async () => {
+    const { error, ui, run } = await initWithFlags(['--platform', 'web'])
+
+    expect(error).toBeUndefined()
+    expect(browserInstalls(run)).toHaveLength(1)
+    expect(ui.entries).toContainEqual({ kind: 'done', text: 'Chromium installed' })
   })
 })
 

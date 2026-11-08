@@ -113,7 +113,8 @@ import { reportCliFailure } from '../cli-error-handler.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
 import type { InitUi } from '../init-ui/init-ui.js'
 import { createPlainUi } from '../init-ui/plain-ui.js'
-import { fakeRunner } from './project-fixtures.js'
+import { defaultProjectIo } from '../commands/project-host.js'
+import { fakeRunner, runningAgentQa } from './project-fixtures.js'
 
 const mockWriteFileSync = vi.mocked(writeFileSync)
 const mockExistsSync = vi.mocked(existsSync)
@@ -166,7 +167,7 @@ async function runInit(
     cwd: '/tmp/test-project',
     ui: terminalUi(),
     ...rest,
-    host: { env: {}, run: fakeRunner(), ...host },
+    host: { env: {}, run: fakeRunner(), ...runningAgentQa(defaultProjectIo), ...host },
   })
   parent.exitOverride()
   init.exitOverride()
@@ -181,7 +182,7 @@ async function runInitUnderRootConfig(args: string[]): Promise<void> {
     cwd: '/tmp/test-project',
     isTTY: true,
     ui: terminalUi(),
-    host: { env: {}, run: fakeRunner() },
+    host: { env: {}, run: fakeRunner(), ...runningAgentQa(defaultProjectIo) },
   })
   parent.exitOverride()
   parent.addCommand(init)
@@ -1155,14 +1156,18 @@ describe('init command', () => {
     })
   })
 
-  it('does not auto-install browser support for web projects', async () => {
-    await runInit(['--platform', 'web'])
+  it('installs Chromium for a web project through the host runner, not the bundled installer', async () => {
+    const run = fakeRunner()
+    await runInit(['--platform', 'web'], { host: { run } })
 
+    expect(run.calls.map((call) => call.args)).toContainEqual([
+      '/running/agent-qa/dist/cli.js',
+      'install-browsers',
+      '--chromium',
+    ])
     expect(mockRunBrowserInstall).not.toHaveBeenCalled()
     expect(mockExecSync).not.toHaveBeenCalledWith('npx playwright install chromium', { stdio: 'inherit' })
-    const output = consoleOutput()
-    expect(output).toContain('agent-qa install-browsers --chromium')
-    expect(output).not.toContain('Installing agent-qa browser support')
+    expect(consoleOutput()).toContain('Chromium installed')
   })
 
   it('does not auto-install Appium or drivers for Android projects', async () => {
@@ -1587,7 +1592,12 @@ skills/.staging/
       parent.addCommand(
         actualInit.createInitCommand({
           cwd: dir,
-          host: { homedir: `${dir}-home`, env: {}, run: fakeRunner() },
+          host: {
+            homedir: `${dir}-home`,
+            env: {},
+            run: fakeRunner(),
+            ...runningAgentQa(defaultProjectIo),
+          },
           ...hooks,
         }),
       )
@@ -1766,7 +1776,12 @@ skills/.staging/
         actualInit.createInitCommand({
           cwd: dir,
           composeAnalytics,
-          host: { homedir: `${dir}-home`, env: {}, run: fakeRunner() },
+          host: {
+            homedir: `${dir}-home`,
+            env: {},
+            run: fakeRunner(),
+            ...runningAgentQa(defaultProjectIo),
+          },
         }),
       )
       await parent.parseAsync(['node', 'test', 'init', ...withoutInstall(args)])
@@ -1832,7 +1847,12 @@ skills/.staging/
       parent.addCommand(
         actualInit.createInitCommand({
           cwd: dir,
-          host: { homedir: `${dir}-home`, env: {}, run: fakeRunner() },
+          host: {
+            homedir: `${dir}-home`,
+            env: {},
+            run: fakeRunner(),
+            ...runningAgentQa(defaultProjectIo),
+          },
         }),
       )
       await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', '--pm', 'none'])

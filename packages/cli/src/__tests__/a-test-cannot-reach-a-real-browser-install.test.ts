@@ -1,4 +1,4 @@
-// The setup guard refuses a browser install through the default runner and fails the test that reached it.
+// The setup guard refuses a browser install through the default runner and fails the test.
 import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
@@ -99,7 +99,11 @@ describe('the check after each test', () => {
     }).catch(() => undefined)
 
     expect(() => assertNoGuardedCalls()).toThrow(
-      /^1 real side effects reached from this test: .*install-browsers --chromium\. Pass --no-browsers or inject host\.run\.$/u,
+      new RegExp(
+        '^1 real side effects reached from this test: .*install-browsers --chromium\\. ' +
+          'Pass --no-browsers or inject host\\.run\\.$',
+        'u',
+      ),
     )
     expect(takeGuardedCalls()).toEqual([])
   })

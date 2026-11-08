@@ -5,6 +5,7 @@ import type * as ProjectHostModule from '../commands/project-host.js'
 
 const RECORD = Symbol.for('agent-qa.test-side-effect-guard')
 const ADVICE = 'Pass --no-browsers or inject host.run.'
+const REFUSAL = `A test reached the real browser install. ${ADVICE}`
 
 type GuardedGlobal = Record<symbol, string[] | undefined>
 
@@ -19,7 +20,7 @@ vi.mock('../commands/project-host.js', async (importOriginal) => {
     if (args.includes('install-browsers')) {
       const calls = ((globalThis as unknown as GuardedGlobal)[store] ??= [])
       calls.push([command, ...args].join(' '))
-      throw new Error('A test reached the real browser install. Pass --no-browsers or inject host.run.')
+      throw new Error(REFUSAL)
     }
     return await real.spawnRunner(command, args, options)
   }

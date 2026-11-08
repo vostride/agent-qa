@@ -1,4 +1,4 @@
-import { dirname, relative, resolve } from 'node:path'
+import { dirname, join, relative, resolve } from 'node:path'
 import pc from 'picocolors'
 import { compareSemverVersions, isPathInsideDir } from '@vostride/agent-qa-core'
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
@@ -34,6 +34,11 @@ function parsed(text: string | undefined): JsonObject | undefined {
   }
 }
 
+function binOf(pkg: JsonObject): string | undefined {
+  const binPath = typeof pkg.bin === 'string' ? pkg.bin : asObject(pkg.bin)?.['agent-qa']
+  return typeof binPath === 'string' && binPath !== '' ? binPath : undefined
+}
+
 // A copy counts only when it is named agent-qa, has an exact version and its bin stays inside it.
 export async function findProjectAgentQa(
   range: ProjectRange,
@@ -46,8 +51,8 @@ export async function findProjectAgentQa(
   if (pkg?.name !== 'agent-qa') return undefined
   const version = pkg.version
   if (typeof version !== 'string' || !EXACT_SEMVER.test(version)) return undefined
-  const binPath = typeof pkg.bin === 'string' ? pkg.bin : asObject(pkg.bin)?.['agent-qa']
-  if (typeof binPath !== 'string' || binPath === '') return undefined
+  const binPath = binOf(pkg)
+  if (binPath === undefined) return undefined
   const dir = dirname(manifest)
   const realDir = await io.realpath(dir)
   const bin = await io.realpath(resolve(dir, binPath))
@@ -189,4 +194,28 @@ export async function runAgentQaStep(
     code: result.code ?? 1,
     output,
   }
+}
+
+// The running agent-qa's own bin as a captured child, so a step never prints past the rail.
+export async function runRunningAgentQa(
+  args: readonly string[],
+  host: ProjectHost,
+): Promise<{ code: number; output: string }> {
+  const manifest = join(host.runningPackageDir, 'package.json')
+  const pkg = parsed(host.io.readText(manifest))
+  const binPath = pkg === undefined ? undefined : binOf(pkg)
+  if (binPath === undefined) {
+    return { code: 1, output: `This agent-qa's bin is not named in ${manifest}.\n` }
+  }
+  const bin = resolve(host.runningPackageDir, binPath)
+  const result = await host.run(host.execPath, [bin, ...args], {
+    cwd: host.cwd,
+    env: { ...host.env, [HANDED_OFF_ENV]: '1' },
+    stdio: 'capture',
+  })
+  if (wasCancelled(result)) throw new PromptCancelled()
+  if (result.missing === true) {
+    return { code: 1, output: `${host.execPath} was not found to run ${bin}.\n` }
+  }
+  return { code: result.code ?? 1, output: result.output }
 }

@@ -19,6 +19,7 @@ import {
 } from './project-fixtures.js'
 
 const PLAN: readonly InitStepName[] = ['package-json', 'scaffold', 'install']
+const CHROMIUM_COMMAND = 'npx agent-qa install-browsers --chromium'
 
 const silentAnalytics: typeof composeAnalyticsHost = async () =>
   composeAnalyticsHost({
@@ -77,7 +78,7 @@ afterEach(() => {
 })
 
 describe('a fresh init draws one line per step', () => {
-  it('writes the What to expect line, then the package.json, scaffold and install lines to stderr in order and nothing to stdout', async () => {
+  it('writes the What to expect line, then the package.json, scaffold, install and Chromium lines to stderr in order and nothing to stdout', async () => {
     const { root, home } = tempProject('steps-plain')
 
     await init(root, home)
@@ -89,10 +90,12 @@ describe('a fresh init draws one line per step', () => {
       /^✓ Scaffold: config, 3 example tests and a suite \(\d+ files\)$/u.test(line),
     )
     const install = lines.findIndex((line) => line.startsWith('– Declared agent-qa '))
+    const chromium = lines.indexOf('✓ Chromium installed')
     expect(lines[0]).toMatch(/^3 questions, then: package\.json, scaffold, install/u)
     expect(packageJson).toBe(1)
     expect(scaffold).toBe(2)
     expect(install).toBe(3)
+    expect(chromium).toBe(4)
     expect(lines[install]).toContain('Install with: npm install')
     expect(written(stdout)).toBe('')
     expect(log).not.toHaveBeenCalled()
@@ -120,7 +123,7 @@ describe('a fresh init draws one line per step', () => {
     expect(ui.entries).toContainEqual({ kind: 'done', text: 'Scaffold: config (8 files)' })
   })
 
-  it('draws three titled steps through the seam and lists no files', async () => {
+  it('draws its titled steps through the seam and lists no files', async () => {
     const { root, home } = tempProject('steps-fake')
     const ui = fakeInitUi()
 
@@ -130,6 +133,7 @@ describe('a fresh init draws one line per step', () => {
       'Writing package.json',
       'Writing the scaffold',
       'Installing dependencies',
+      'Installing Chromium',
     ])
     expect(ui.output()).not.toContain('tests/examples/komazon-checkout.yaml')
     expect(ui.output()).not.toContain('agent-qa-knowledge/README.md')
@@ -211,10 +215,48 @@ describe('a fresh init draws one line per step', () => {
     expect(ui.output()).toContain(
       '✗ EACCES: permission denied\n' +
         '– Scaffold: skipped (package.json was not written)\n' +
-        '– Install: skipped (package.json was not written)\n',
+        '– Install: skipped (package.json was not written)\n' +
+        '– Chromium: skipped (package.json was not written)\n',
     )
     expect(run.calls).toEqual([])
     expect(existsSync(join(root, 'agent-qa.config.yaml'))).toBe(false)
+  })
+
+  it('a Chromium download that fails twice is failed with its last line and command, and init exits 3', async () => {
+    const { root, home } = tempProject('steps-chromium-failed')
+    const ui = fakeInitUi()
+    const run = fakeRunner(({ args }) =>
+      args.includes('install-browsers')
+        ? { code: 1, signal: null, output: 'Downloading Chromium\nError: connect ECONNREFUSED\n' }
+        : { code: 0, signal: null, output: '' },
+    )
+
+    const error = await init(root, home, { ui, run }).catch((caught: unknown) => caught)
+
+    expect(error).toMatchObject({ name: 'CliRefusal', exitCode: 3 })
+    expect(run.calls.filter((call) => call.args.includes('install-browsers'))).toHaveLength(2)
+    expect(ui.entries).toContainEqual({
+      kind: 'failed',
+      text: 'Chromium download failed twice: Error: connect ECONNREFUSED',
+      command: CHROMIUM_COMMAND,
+    })
+  })
+
+  it('a Chromium download that fails once and then succeeds is done after two calls', async () => {
+    const { root, home } = tempProject('steps-chromium-retry')
+    const ui = fakeInitUi()
+    let attempts = 0
+    const run = fakeRunner(({ args }) => {
+      if (!args.includes('install-browsers')) return { code: 0, signal: null, output: '' }
+      attempts += 1
+      return { code: attempts === 1 ? 1 : 0, signal: null, output: '' }
+    })
+
+    await init(root, home, { ui, run })
+
+    expect(run.calls.filter((call) => call.args.includes('install-browsers'))).toHaveLength(2)
+    expect(ui.entries).toContainEqual({ kind: 'done', text: 'Chromium installed' })
+    expect(ui.entries.some((entry) => entry.kind === 'failed')).toBe(false)
   })
 
   it('a malformed managed block in .gitignore still ends init with exit 2', async () => {
