@@ -1,9 +1,25 @@
-import { guardJsonText, reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
+import {
+  guardJsonText,
+  printRunText,
+  reserveStdoutForData,
+} from '@vostride/agent-qa-core/run-text-output'
 import { Command } from 'commander'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import pc from 'picocolors'
 import { parse as parseYaml } from 'yaml'
+
+import { CliRefusal } from '../composition/cli-refusal.js'
+import {
+  AgentRemovalFailure,
+  CODING_AGENTS,
+  removeAgentSetup,
+  type AgentRemovalAgent,
+  type AgentRemovalResult,
+  type CodingAgent,
+} from './agent-setup.js'
+import { isInitRefusal } from './init-refusal.js'
 
 export interface AgentQaSkillInfo {
   name: string
@@ -23,6 +39,7 @@ export interface ResolvedSkillsDirectory {
 
 interface SkillsCommandOptions {
   startDir?: string
+  cwd?: string
   stdout?: Pick<NodeJS.WriteStream, 'write'>
   stderr?: Pick<NodeJS.WriteStream, 'write'>
 }
@@ -143,7 +160,7 @@ export function createSkillsCommand(options: SkillsCommandOptions = {}): Command
   const stdout = options.stdout ?? process.stdout
   const stderr = options.stderr ?? process.stderr
 
-  return new Command('skills')
+  const cmd = new Command('skills')
     .description('List packaged agent-qa skills')
     .option('--json', 'print machine-readable output')
     .action((opts: { json?: boolean }) => {
@@ -179,4 +196,130 @@ export function createSkillsCommand(options: SkillsCommandOptions = {}): Command
         releaseStdout?.()
       }
     })
+    .addCommand(createSkillsUninstallCommand(options))
+
+  cmd.exitOverride(usageErrorExit)
+  return cmd
+}
+
+// Commander has printed its own line; a usage error exits 2, and help returns to exit 0.
+function usageErrorExit(error: { exitCode: number }): void {
+  if (error.exitCode !== 0) throw new CliRefusal([], 2, { cause: error })
+}
+
+const AGENT_LABELS: Readonly<Record<CodingAgent, string>> = {
+  'claude-code': 'Claude Code',
+  codex: 'Codex',
+}
+
+function parseCodingAgentList(value: string): CodingAgent[] | undefined {
+  const names = value.split(',').map((name) => name.trim())
+  if (names.includes('all')) return undefined
+  for (const name of names) {
+    if (!(CODING_AGENTS as readonly string[]).includes(name)) {
+      throw new CliRefusal(
+        [pc.red(`Unknown coding agent "${name}". Use claude-code, codex or all.`)],
+        2,
+      )
+    }
+  }
+  return CODING_AGENTS.filter((agent) => names.includes(agent))
+}
+
+function plural(count: number, noun: string): string {
+  return `${count} ${noun}${count === 1 ? '' : 's'}`
+}
+
+function agentLines(report: AgentRemovalAgent, dryRun: boolean): string[] {
+  const label = AGENT_LABELS[report.agent]
+  const clauses: string[] = []
+  if (report.skills > 0) clauses.push(`${plural(report.skills, 'skill')} from ${report.skillRoot}`)
+  for (const entry of report.entries) {
+    if (entry.outcome === 'removed') clauses.push(`the agent-qa entry from ${entry.file}`)
+  }
+  const what = clauses.length === 0 ? "nothing of agent-qa's" : clauses.join(' and ')
+  const lines = [
+    dryRun ? `- ${label}: would remove ${what}` : pc.green(`✓ ${label}: removed ${what}`),
+  ]
+  const edit = dryRun ? '  Would remove your edit:' : '  Removed your edit:'
+  for (const file of report.files) if (file.edited) lines.push(`${edit} ${file.path}`)
+  for (const entry of report.entries) {
+    if (entry.edited) lines.push(`${edit} the agent-qa entry in ${entry.file}`)
+  }
+  return lines
+}
+
+function removalLines(result: AgentRemovalResult): string[] {
+  if (!result.installed) {
+    return [`agent-qa's skills and MCP entries are not installed in ${result.projectDir}.`]
+  }
+  const lines = result.removed.flatMap((report) => agentLines(report, result.dryRun))
+  for (const agent of result.notInstalled) {
+    lines.push(`- ${AGENT_LABELS[agent]}: not installed here`)
+  }
+  if (result.block.outcome === 'removed') {
+    lines.push(
+      result.dryRun
+        ? '- AGENTS.md: would remove the agent-qa block'
+        : pc.green('✓ AGENTS.md: removed the agent-qa block'),
+    )
+    if (result.block.edited) {
+      const edit = result.dryRun ? '  Would remove your edit:' : '  Removed your edit:'
+      lines.push(`${edit} the agent-qa block in AGENTS.md`)
+    }
+  }
+  return lines
+}
+
+interface UninstallOptions {
+  agents?: string
+  dryRun?: boolean
+}
+
+export function createSkillsUninstallCommand(options: SkillsCommandOptions = {}): Command {
+  const stdout = options.stdout ?? process.stdout
+
+  const cmd = new Command('uninstall')
+    .description(
+      "Remove agent-qa's skills, MCP entries and AGENTS.md block from the project folder",
+    )
+    .option('--agents <list>', 'claude-code, codex or all, comma separated (default: all)')
+    .option('--dry-run', 'print what would be removed and change nothing')
+    .option('--json', 'print machine-readable output')
+    .action(async (opts: UninstallOptions, command: Command) => {
+      // `skills` has its own --json, which Commander gives the parent wherever it appears.
+      const globals = command.optsWithGlobals<{ config?: string; json?: boolean }>()
+      const json = globals.json === true
+      const releaseStdout = json ? reserveStdoutForData() : undefined
+      try {
+        const agents = opts.agents === undefined ? undefined : parseCodingAgentList(opts.agents)
+        const cwd = options.cwd ?? process.cwd()
+        const config = resolve(cwd, globals.config ?? 'agent-qa.config.yaml')
+        const result = await removeAgentSetup({
+          projectDir: dirname(config),
+          agents,
+          dryRun: opts.dryRun === true,
+        })
+        if (json) {
+          stdout.write(`${guardJsonText(JSON.stringify(result, null, 2))}\n`)
+          return
+        }
+        for (const line of removalLines(result)) {
+          printRunText(line, (text) => stdout.write(`${text}\n`))
+        }
+      } catch (error) {
+        if (isInitRefusal(error)) {
+          throw new CliRefusal([pc.red((error as Error).message)], 2, { cause: error })
+        }
+        if (error instanceof AgentRemovalFailure) {
+          throw new CliRefusal([pc.red(error.message)], 3, { cause: error })
+        }
+        throw error
+      } finally {
+        releaseStdout?.()
+      }
+    })
+
+  cmd.exitOverride(usageErrorExit)
+  return cmd
 }

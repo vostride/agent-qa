@@ -19,7 +19,11 @@ import {
 } from 'node:fs'
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 // The managed block's shape lives with the scaffold content; this file does the writing.
-import { composeManagedBlock, type ManagedBlockContent } from './managed-block.js'
+import {
+  composeManagedBlock,
+  removeManagedBlock,
+  type ManagedBlockContent,
+} from './managed-block.js'
 import { InitRefusal, isInitRefusal } from './init-refusal.js'
 import { managedGitignoreContent } from './scaffold-content.js'
 
@@ -1102,6 +1106,7 @@ function refuseIfChangedSinceRead(
   path: string,
   inspection: InitPathInspection,
   read: ManagedBlockRead,
+  rerun = 'rerun to apply the block',
 ): void {
   const now = lstatIfPresent(path)
   if (
@@ -1110,7 +1115,7 @@ function refuseIfChangedSinceRead(
     || readFileSync(path, 'utf8') !== read.text
   ) {
     throw new InitRefusal(
-      `Refusing to update ${path}: it changed while it was being updated; rerun to apply the block`,
+      `Refusing to update ${path}: it changed while it was being updated; ${rerun}`,
     )
   }
 }
@@ -1151,6 +1156,70 @@ export function upsertManagedBlock(
         },
       },
     )
+  } finally {
+    releaseManagedBlockLock(lock)
+  }
+}
+
+export interface ManagedBlockRemovalPlan {
+  existing: string
+  candidate: string
+}
+
+function planBlockRemoval(
+  path: string,
+  inspection: InitPathInspection,
+  content: ManagedBlockContent,
+): (ManagedBlockRemovalPlan & { read: ManagedBlockRead }) | undefined {
+  if (inspection.classification === 'missing') return undefined
+  const read = readManagedBlockTarget(path, inspection)
+  return { existing: read.text, candidate: removeManagedBlock(read.text, content), read }
+}
+
+// Checks without the lock or a write so a caller can refuse early; the remover rechecks it.
+export function preflightManagedBlockRemoval(
+  plan: ManagedBlockUpsertPlan,
+): ManagedBlockRemovalPlan | undefined {
+  const path = resolve(plan.path)
+  const inspection = inspectInitPath(path, resolve(plan.root ?? dirname(path)))
+  const lockPath = managedBlockLockPath(path)
+  if (lstatIfPresent(lockPath) !== undefined) throw new ManagedBlockLockRefusal(path, lockPath)
+  const planned = planBlockRemoval(path, inspection, plan.content)
+  return planned === undefined
+    ? undefined
+    : { existing: planned.existing, candidate: planned.candidate }
+}
+
+// Locked like the upsert. A file the strip leaves holding only whitespace is deleted.
+export function removeManagedBlockFromFile(
+  plan: ManagedBlockUpsertPlan,
+  hooks: InitFilesystemHooks = {},
+): 'stripped' | 'deleted' | 'unchanged' {
+  const path = resolve(plan.path)
+  const root = resolve(plan.root ?? dirname(path))
+  if (inspectInitPath(path, root).classification === 'missing') return 'unchanged'
+  const lock = acquireManagedBlockLock(path)
+  try {
+    const inspection = inspectInitPath(path, root)
+    const planned = planBlockRemoval(path, inspection, plan.content)
+    if (planned === undefined || planned.candidate === planned.existing) return 'unchanged'
+    const rerun = 'rerun to remove the block'
+    if (planned.candidate.trim() === '') {
+      refuseIfChangedSinceRead(path, inspection, planned.read, rerun)
+      unlinkSync(path)
+      return 'deleted'
+    }
+    writeScaffoldFileAtomic(
+      { path, root, content: planned.candidate, force: true },
+      {
+        ...hooks,
+        beforeAtomicReplacePublish: (target) => {
+          hooks.beforeAtomicReplacePublish?.(target)
+          refuseIfChangedSinceRead(target, inspection, planned.read, rerun)
+        },
+      },
+    )
+    return 'stripped'
   } finally {
     releaseManagedBlockLock(lock)
   }
