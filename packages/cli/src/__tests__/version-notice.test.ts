@@ -7,12 +7,21 @@ import type { VersionCheckRequest } from '@vostride/agent-qa-core'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { createAgentQaProgram } from '../program.js'
+import { VERSION } from '../index.js'
 import {
   UPDATE_NOTICE_SHOWN_FILE,
   runUpdateNotice,
   updateNoticeApplies,
   type UpdateNoticeGate,
 } from '../version-notice.js'
+import {
+  CLI_ENTRY,
+  REBUILD_INSTRUCTION,
+  buildFreshness,
+  cleanupTempRoots,
+  spawnCollecting,
+  trackTempRoot,
+} from './conformance/spawned-chat.js'
 
 const HOUR_MS = 60 * 60 * 1000
 const NOW = Date.parse('2026-05-24T10:00:00.000Z')
@@ -22,6 +31,7 @@ const createdDirs: string[] = []
 
 afterEach(() => {
   for (const dir of createdDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
+  cleanupTempRoots()
 })
 
 function tempHome(cache?: Record<string, string>): string {
@@ -242,4 +252,84 @@ describe('the program runs the notice after every command', () => {
 
     expect(await parseWith(['notice-probe'], throwing, 3)).toBe(3)
   })
+})
+
+describe('the built CLI over pipes', () => {
+  const CELL_BUDGET_MS = 60_000
+  const NOTICE_TEXT = /is out; you have|npx agent-qa@latest init|Releases:/u
+
+  function expectFresh(): void {
+    const freshness = buildFreshness()
+    expect(
+      { missing: freshness.missing, stale: freshness.stale },
+      `these cells drive the built CLI: ${REBUILD_INSTRUCTION}`,
+    ).toEqual({ missing: [], stale: [] })
+  }
+
+  // A home whose cache names a newer version and is a day and an hour old on every clock.
+  function staleHome(): string {
+    const home = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-notice-built-home-')))
+    const dayAndHourAgo = new Date(Date.now() - 25 * HOUR_MS).toISOString()
+    mkdirSync(join(home, '.agent-qa'), { recursive: true })
+    writeFileSync(
+      cachePath(home),
+      JSON.stringify(
+        { latestVersion: '9.9.9', checkedAt: dayAndHourAgo, lastAttemptedAt: dayAndHourAgo },
+        null,
+        2,
+      ),
+      'utf-8',
+    )
+    return home
+  }
+
+  // The child inherits no CI variable: spawnCollecting starts from PATH, HOME, TMPDIR and NODE_ENV.
+  async function built(args: readonly string[], home: string) {
+    const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-notice-built-')))
+    return await spawnCollecting(root, [CLI_ENTRY, ...args], {
+      HOME: home,
+      USERPROFILE: home,
+      XDG_CONFIG_HOME: join(home, '.config'),
+      XDG_CACHE_HOME: join(home, '.cache'),
+      XDG_DATA_HOME: join(home, '.local', 'share'),
+      XDG_STATE_HOME: join(home, '.local', 'state'),
+    })
+  }
+
+  it(
+    'a command over pipes prints no notice, makes no registry request and exits promptly',
+    async () => {
+      expectFresh()
+      const home = staleHome()
+      const before = readFileSync(cachePath(home))
+
+      const started = Date.now()
+      const outcome = await built(['skills'], home)
+      const elapsed = Date.now() - started
+
+      expect(outcome.code, outcome.stderr).toBe(0)
+      expect(outcome.stdout).not.toMatch(NOTICE_TEXT)
+      expect(outcome.stderr).not.toMatch(NOTICE_TEXT)
+      // A started refresh writes lastAttemptedAt first, so an unchanged file means no request.
+      expect(readFileSync(cachePath(home)).equals(before)).toBe(true)
+      expect(existsSync(shownPath(home))).toBe(false)
+      expect(elapsed).toBeLessThan(3_000)
+    },
+    CELL_BUDGET_MS,
+  )
+
+  it(
+    '--version prints only the version on stdout',
+    async () => {
+      expectFresh()
+      const home = staleHome()
+
+      const outcome = await built(['--version'], home)
+
+      expect(outcome.code).toBe(0)
+      expect(outcome.stdout).toBe(`${VERSION}\n`)
+      expect(outcome.stderr).not.toMatch(NOTICE_TEXT)
+    },
+    CELL_BUDGET_MS,
+  )
 })
