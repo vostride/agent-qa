@@ -186,7 +186,7 @@ async function init(
   command.exitOverride()
   parent.addCommand(command)
   const error = await parent
-    .parseAsync(['node', 'test', 'init', ...(options.args ?? WEB)])
+    .parseAsync(['node', 'test', 'init', ...(options.args ?? WEB), '--no-dashboard'])
     .then(
       () => undefined,
       (caught: unknown) => caught,
@@ -341,7 +341,7 @@ describe('the sign-in on the rail', () => {
     command.exitOverride()
     parent.addCommand(command)
 
-    const done = parent.parseAsync(['node', 'test', 'init', ...WEB])
+    const done = parent.parseAsync(['node', 'test', 'init', ...WEB, '--no-dashboard'])
     await streams.waitFor(PASTE_THE_CODE)
     await streams.press(PASTED_CODE, KEY.enter)
     await done

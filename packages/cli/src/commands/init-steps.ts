@@ -48,7 +48,16 @@ export const ALREADY_INITIALIZED = 'already initialized'
 
 // The steps a fresh init plans, in the order it runs them.
 export function freshInitPlan(): InitStepName[] {
-  return ['package-json', 'scaffold', 'install', 'chromium', 'skills', 'validate', 'sign-in']
+  return [
+    'package-json',
+    'scaffold',
+    'install',
+    'chromium',
+    'skills',
+    'validate',
+    'sign-in',
+    'dashboard',
+  ]
 }
 
 // A bug is reported with its stack, not drawn as a failed step.

@@ -79,7 +79,7 @@ async function init(
   const { root, home } = projectWithStore(options.store)
   const ui = options.ui ?? fakeInitUi()
   const error = await initCommand(root, home, { isTTY: options.isTTY ?? false, ui })
-    .parseAsync(['node', 'test', 'init', ...args, '--pm', 'none'])
+    .parseAsync(['node', 'test', 'init', ...args, '--pm', 'none', '--no-dashboard'])
     .then(
       () => undefined,
       (caught: unknown) => caught,
@@ -103,7 +103,17 @@ function initOnTheRail(args: readonly string[], store: Record<string, unknown>):
     terminal: answeringTerminal().port,
     rail: { input: streams.input, output: streams.output },
   })
-    .parseAsync(['node', 'test', 'init', ...args, '--agents', 'claude-code', '--pm', 'none'])
+    .parseAsync([
+      'node',
+      'test',
+      'init',
+      ...args,
+      '--agents',
+      'claude-code',
+      '--pm',
+      'none',
+      '--no-dashboard',
+    ])
     .then(() => {})
   return { root, streams, done }
 }
@@ -525,7 +535,7 @@ describe('the example secret line', () => {
       stdoutIsTTY: true,
       terminal: answeringTerminal().port,
       rail: { input: streams.input, output: streams.output },
-    }).parseAsync(['node', 'test', 'init', ...WEB, '--force'])
+    }).parseAsync(['node', 'test', 'init', ...WEB, '--force', '--no-dashboard'])
 
     const lines = stripVTControlCharacters(streams.text()).split('\n')
     expect(lines.filter((line) => line.includes('KOMAZON_PASSWORD'))).toEqual([

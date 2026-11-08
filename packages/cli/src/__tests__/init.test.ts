@@ -160,7 +160,7 @@ function withoutInstall(args: readonly string[]): string[] {
   if (args.includes('--agent')) return [...args]
   const pm = args.includes('--pm') ? [] : ['--pm', 'none']
   const agents = args.includes('--agents') ? [] : ['--agents', 'none']
-  return [...args, ...pm, ...agents]
+  return [...args, ...pm, ...agents, '--no-dashboard']
 }
 
 async function runInit(

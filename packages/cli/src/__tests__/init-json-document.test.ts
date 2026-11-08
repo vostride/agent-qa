@@ -384,6 +384,7 @@ describe('init --json prints one document on stdout', () => {
       { name: 'skills', outcome: 'skipped', reason: 'interrupted' },
       { name: 'validate', outcome: 'skipped', reason: 'interrupted' },
       { name: 'sign-in', outcome: 'skipped', reason: 'interrupted' },
+      { name: 'dashboard', outcome: 'skipped', reason: 'interrupted' },
     ])
     expect(result.stderr).toContain('Cancelled.\n')
   })
@@ -405,6 +406,7 @@ describe('init --json prints one document on stdout', () => {
       { name: 'skills', outcome: 'skipped', reason: 'already initialized' },
       { name: 'validate', outcome: 'skipped', reason: 'already initialized' },
       { name: 'sign-in', outcome: 'skipped', reason: 'already initialized' },
+      { name: 'dashboard', outcome: 'skipped', reason: 'already initialized' },
     ])
     expect(result.stderr).toContain('Project is already initialized at')
   })

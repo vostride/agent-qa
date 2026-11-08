@@ -92,6 +92,14 @@ import {
   initNextSteps,
   nextStepLines,
 } from './init-next-steps.js'
+import {
+  DASHBOARD_HOST,
+  dashboardPage,
+  dashboardPortOf,
+  probeDashboardPort,
+  runDashboardStep,
+  type DashboardPort,
+} from './init-dashboard.js'
 import { loadSubscriptionPlugin, runInitSignIn, type InitSignInOutcome } from './init-sign-in.js'
 import {
   ALREADY_INITIALIZED,
@@ -502,6 +510,8 @@ export interface InitCommandHooks {
   ui?: InitUi
   // Opens the subscription sign-in page; the default opens it without a shell.
   openUrl?: (url: string) => void
+  // Probes the dashboard's port; the default binds it on loopback and lets it go.
+  dashboardPort?: DashboardPort
 }
 
 // The streams the Clack rail reads and draws on: stdin and stderr in production.
@@ -732,6 +742,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       'coding agents to set up: claude-code, codex, all or none (default: the ones detected)',
     )
     .option('--no-browsers', 'do not download Chromium for web targets')
+    .option('--no-dashboard', 'do not start the dashboard at the end')
     .option('--force', 'overwrite existing files')
     .addOption(
       new Option(
@@ -1382,6 +1393,17 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         } finally {
           runner.dispose()
         }
+
+        const port = dashboardPortOf(config)
+        let dashboard: 'starting' | { command: string } = { command: DASHBOARD_COMMAND }
+        if (mode === 'interactive') {
+          if (opts.dashboard === false) {
+            runner.skip('dashboard', 'Dashboard: skipped (--no-dashboard)', '--no-dashboard')
+          } else {
+            const ports = hooks.dashboardPort ?? { probe: probeDashboardPort }
+            if ((await ports.probe(port)) === 'free') dashboard = 'starting'
+          }
+        }
         recorder.model({
           ...(modelSetup.entry === undefined
             ? {}
@@ -1420,13 +1442,29 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           web: hasWeb(platform),
           mobile: normalizePlatformSelection(platform).mobileRuntimes.length > 0,
           agents: skillsDone ? agents : [],
-          dashboard: { command: DASHBOARD_COMMAND },
+          dashboard,
         })
         recorder.nextSteps(next.steps)
         ui.note('Next steps', nextStepLines(next.steps))
         for (const hint of next.hints) ui.line(hint)
+        // Taken before the dashboard starts: stopping it is the normal end, never a setup failure.
+        const setupFailed = runner.failed()
+        if (dashboard === 'starting') {
+          await runner.run('dashboard', { title: 'Starting the dashboard' }, async () => ({
+            outcome: 'done',
+            text: `Dashboard on http://${DASHBOARD_HOST}:${port} (Ctrl-C stops it)`,
+          }))
+          // The runner reads a Ctrl-C as an interrupted step; while the dashboard runs, the host
+          // runner alone holds Ctrl-C and forwards it to the child.
+          runner.dispose()
+          await runDashboardStep({
+            host,
+            range,
+            page: dashboardPage({ model: status.status, dashboard: modelSetup.dashboard }),
+          })
+        }
         ui.outro(GETTING_STARTED_URL)
-        if (runner.failed()) throw new CliRefusal([], 3)
+        if (setupFailed) throw new CliRefusal([], 3)
       } catch (error) {
         threw = true
         const refusal = asInitRefusal(error)

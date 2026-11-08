@@ -196,18 +196,23 @@ export async function runAgentQaStep(
   }
 }
 
+// Read from the running package's package.json, the way a project copy's bin is read.
+export function runningAgentQaBin(host: ProjectHost): { bin: string } | { refusal: string } {
+  const manifest = join(host.runningPackageDir, 'package.json')
+  const pkg = parsed(host.io.readText(manifest))
+  const binPath = pkg === undefined ? undefined : binOf(pkg)
+  if (binPath === undefined) return { refusal: `This agent-qa's bin is not named in ${manifest}.` }
+  return { bin: resolve(host.runningPackageDir, binPath) }
+}
+
 // The running agent-qa's own bin as a captured child, so a step never prints past the rail.
 export async function runRunningAgentQa(
   args: readonly string[],
   host: ProjectHost,
 ): Promise<{ code: number; output: string }> {
-  const manifest = join(host.runningPackageDir, 'package.json')
-  const pkg = parsed(host.io.readText(manifest))
-  const binPath = pkg === undefined ? undefined : binOf(pkg)
-  if (binPath === undefined) {
-    return { code: 1, output: `This agent-qa's bin is not named in ${manifest}.\n` }
-  }
-  const bin = resolve(host.runningPackageDir, binPath)
+  const running = runningAgentQaBin(host)
+  if ('refusal' in running) return { code: 1, output: `${running.refusal}\n` }
+  const { bin } = running
   const result = await host.run(host.execPath, [bin, ...args], {
     cwd: host.cwd,
     env: { ...host.env, [HANDED_OFF_ENV]: '1' },

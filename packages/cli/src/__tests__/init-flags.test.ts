@@ -37,7 +37,7 @@ async function initInATerminal(args: readonly string[], ui: FakeInitUi): Promise
   parent.exitOverride()
   command.exitOverride()
   parent.addCommand(command)
-  await parent.parseAsync(['node', 'test', 'init', ...args, '--pm', 'none'])
+  await parent.parseAsync(['node', 'test', 'init', ...args, '--pm', 'none', '--no-dashboard'])
   return root
 }
 
@@ -126,7 +126,17 @@ async function initWithFlags(
   command.exitOverride()
   parent.addCommand(command)
   const error = await parent
-    .parseAsync(['node', 'test', 'init', ...args, '--llm', 'claude-code', '--pm', 'none'])
+    .parseAsync([
+      'node',
+      'test',
+      'init',
+      ...args,
+      '--llm',
+      'claude-code',
+      '--pm',
+      'none',
+      '--no-dashboard',
+    ])
     .then(
       () => undefined,
       (caught: unknown) => caught,

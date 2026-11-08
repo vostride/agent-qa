@@ -246,7 +246,18 @@ async function agentsOnTheRail(
   command.exitOverride()
   parent.addCommand(command)
   const done = parent.parseAsync(
-    ['node', 'test', 'init', '--platform', 'web', '--llm', 'claude-code', '--pm', 'none'],
+    [
+      'node',
+      'test',
+      'init',
+      '--platform',
+      'web',
+      '--llm',
+      'claude-code',
+      '--pm',
+      'none',
+      '--no-dashboard',
+    ],
   )
   await streams.waitFor(AGENTS_QUESTION)
   const drawn = stripVTControlCharacters(streams.text())
