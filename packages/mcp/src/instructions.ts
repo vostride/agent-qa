@@ -12,18 +12,22 @@ export const AGENT_QA_MCP_INSTRUCTIONS: string = [
     + 'and `.agents/skills`, written by `npx agent-qa init`.',
 ].join('\n')
 
-// Says what every call answers when there is no project to serve.
+// Says what every call answers when there is no project to serve. The state is read once, at
+// startup, so the way out ends with a restart.
 export function agentQaMcpPostureInstructions(posture: AgentQaMcpPosture): string {
   const state = posture.state === 'not-initialized'
     ? [
         `agent-qa is not set up here: there is no agent-qa config at ${posture.configPath}.`,
-        'Every agent_qa_* tool answers not_initialized until you run `npx agent-qa init` in the '
-          + 'project folder.',
+        'Every agent_qa_* tool answers not_initialized for as long as this server runs. Run '
+          + '`npx agent-qa init` in the project folder, then restart this MCP server (reconnect it '
+          + 'in your coding agent).',
       ]
     : [
         `${posture.configPath} is not a valid agent-qa config: `
           + `${posture.problem.replace(/\.$/u, '')}.`,
-        'Every agent_qa_* tool answers config_invalid until `npx agent-qa validate` passes.',
+        'Every agent_qa_* tool answers config_invalid for as long as this server runs. Fix the '
+          + 'config until `npx agent-qa validate` passes, then restart this MCP server (reconnect '
+          + 'it in your coding agent).',
       ]
   return [
     ...state,

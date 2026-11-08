@@ -194,5 +194,34 @@ describe('agent-qa mcp outside a project', () => {
         }
       }, 60_000)
     }
+
+    it('keeps answering config invalid after a fix and names the restart', async () => {
+      expect(existsSync(CLI_ENTRY), `the built CLI entry is missing at ${CLI_ENTRY}`).toBe(true)
+      const root = fixtureProject({ secretsFile: false })
+      const session = await connect(root, 'legacy')
+      try {
+        expect(session.client.getInstructions()).toContain('then restart this MCP server')
+        writeFileSync(join(root, '.env.secrets.local'), '')
+
+        const result = await session.client.callTool({ name: 'agent_qa_list_runs', arguments: {} })
+        expect(result.isError).toBe(true)
+        const payload = payloadOf(result.structuredContent)
+        expect(payload.status).toBe('config_invalid')
+        expect(payload.then).toBe('restart this MCP server (reconnect it in your coding agent)')
+      } finally {
+        await session.close()
+      }
+
+      const restarted = await connect(root, 'legacy')
+      try {
+        const result = await restarted.client.callTool({
+          name: 'agent_qa_list_runs',
+          arguments: {},
+        })
+        expect(result.isError).not.toBe(true)
+      } finally {
+        await restarted.close()
+      }
+    }, 60_000)
   })
 })
