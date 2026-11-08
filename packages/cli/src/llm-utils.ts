@@ -130,6 +130,16 @@ export async function resolveNamedConfig(
   return { config: found, allConfigs: llms, defaultName: defaultLLM ?? '' }
 }
 
+export class NoModelConfiguredError extends Error {
+  constructor() {
+    super(
+      "No model is set in agent-qa.config.yaml. Add one on the dashboard's model page " +
+        '(npx agent-qa dashboard), or run npx agent-qa init --llm <choice>.',
+    )
+    this.name = 'NoModelConfiguredError'
+  }
+}
+
 export function resolveLLMModels(config: {
   registry?: { llms?: NamedLLMConfigLike[] }
   use?: { llm?: string }
@@ -138,8 +148,9 @@ export function resolveLLMModels(config: {
   verifier: LLMConfigLike
   configName: string
 } {
+  if (!config.registry?.llms?.length) throw new NoModelConfiguredError()
   const defaults: LLMConfigLike = { provider: 'anthropic-subscription', model: DEFAULT_ANTHROPIC_MODEL }
-  if (!config.registry?.llms || !config.use?.llm) {
+  if (!config.use?.llm) {
     return { planner: defaults, verifier: defaults, configName: '' }
   }
   const found = config.registry.llms.find(c => c.name === config.use!.llm)

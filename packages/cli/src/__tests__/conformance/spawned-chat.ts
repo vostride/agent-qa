@@ -455,6 +455,39 @@ export const RUN_SERVICE_ANCHORED_BUILDS: readonly {
   Object.freeze({ pkg: 'runner', artifact: join('dist', 'index.js') }),
 ])
 
+/** The name the declared model entry carries. One spelling, referenced by the config it writes. */
+export const DRAINABLE_MODEL_NAME = 'conformance-model'
+
+/**
+ * The address the declared model points at: a port nothing is listening on.
+ *
+ * PORT 1 IS RESERVED AND UNSERVED, so a reach for this model is an immediate connection refusal
+ * rather than a timeout somebody would read as a slow test. The deterministic analysis floor never
+ * calls it; a build that started calling it would announce itself in seconds.
+ */
+export const DRAINABLE_MODEL_BASE_URL = 'http://127.0.0.1:1/v1'
+
+/** A keyless model on an unserved local port: a run that names it starts, and never reaches it. */
+export function withUnservedModel(config: Record<string, unknown>): Record<string, unknown> {
+  const registry = (config.registry ?? {}) as Record<string, unknown>
+  const use = (config.use ?? {}) as Record<string, unknown>
+  return {
+    ...config,
+    registry: {
+      ...registry,
+      llms: [
+        {
+          name: DRAINABLE_MODEL_NAME,
+          provider: 'openai-compatible',
+          model: 'stub-model',
+          baseURL: DRAINABLE_MODEL_BASE_URL,
+        },
+      ],
+    },
+    use: { ...use, llm: DRAINABLE_MODEL_NAME },
+  }
+}
+
 // The run is expected to fail: every claim here is about wire shape, not a passing run.
 export function runServiceFixtureProject(label: string): {
   root: string
@@ -465,7 +498,7 @@ export function runServiceFixtureProject(label: string): {
   writeFileSync(
     configPath,
     `${JSON.stringify(
-      {
+      withUnservedModel({
         workspace: {
           testMatch: ['tests/**/*.test.yaml'],
           testPathIgnore: [],
@@ -484,7 +517,7 @@ export function runServiceFixtureProject(label: string): {
             },
           },
         },
-      },
+      }),
       null,
       2,
     )}\n`,
@@ -512,20 +545,6 @@ export function runServiceFixtureProject(label: string): {
   )
   return { root, configPath }
 }
-
-// Run through a suite with an unauthenticated model declared, so the run reaches its tail.
-
-/** The name the declared model entry carries. One spelling, referenced by the config it writes. */
-export const DRAINABLE_MODEL_NAME = 'conformance-model'
-
-/**
- * The address the declared model points at: a port nothing is listening on.
- *
- * PORT 1 IS RESERVED AND UNSERVED, so a reach for this model is an immediate connection refusal
- * rather than a timeout somebody would read as a slow test. The deterministic analysis floor never
- * calls it; a build that started calling it would announce itself in seconds.
- */
-export const DRAINABLE_MODEL_BASE_URL = 'http://127.0.0.1:1/v1'
 
 /** The suite file a drainable run is triggered against, relative to the project root. */
 export const DRAINABLE_SUITE_PATH = 'suites/probe.suite.yaml'
@@ -566,26 +585,6 @@ export function drainableSuiteFixtureProject(label: string): {
     + entries.join(''),
     'utf8',
   )
-
-  // The declared model, folded into the recipe above rather than written as a fifth config: the
-  // three frames that share `runServiceFixtureProject` must keep the zero-declaration posture,
-  // because "a project that declares nothing is refused" is itself a measured fact one of them
-  // depends on.
-  const config = JSON.parse(readFileSync(project.configPath, 'utf8')) as Record<string, unknown>
-  const registry = (config.registry ?? {}) as Record<string, unknown>
-  config.registry = {
-    ...registry,
-    llms: [
-      {
-        name: DRAINABLE_MODEL_NAME,
-        provider: 'openai-compatible',
-        model: 'stub-model',
-        baseURL: DRAINABLE_MODEL_BASE_URL,
-      },
-    ],
-  }
-  config.use = { ...((config.use ?? {}) as Record<string, unknown>), llm: DRAINABLE_MODEL_NAME }
-  writeFileSync(project.configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
 
   // The knowledge root, created rather than left to the first writer. A real `agent-qa daemon`
   // acquires its writer lease over this directory before it serves anything, and a daemon that had

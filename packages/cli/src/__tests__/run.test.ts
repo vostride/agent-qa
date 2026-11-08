@@ -2168,6 +2168,54 @@ describe('run command — exit codes', () => {
 })
 
 
+describe('run command — a project with no model', () => {
+  const noModelLine =
+    "No model is set in agent-qa.config.yaml. Add one on the dashboard's model page " +
+    '(npx agent-qa dashboard), or run npx agent-qa init --llm <choice>.'
+
+  function configWithoutModel() {
+    const cfg = defaultConfig() as Record<string, any>
+    delete cfg.registry.llms
+    delete cfg.use.llm
+    return cfg
+  }
+
+  function printedErrors(): string[] {
+    return errorSpy.mock.calls
+      .map((call: unknown[]) => call.map(String).join(' ').replace(/\x1b\[[0-9;]*m/g, ''))
+      .filter((line: string) => line.trim() !== '')
+  }
+
+  it('refuses a direct run with one line naming the dashboard and init --llm, exit 2', async () => {
+    mockResolveConfig.mockResolvedValue(configWithoutModel())
+    mockGlob.mockResolvedValue(['tests/a.yaml'])
+    mockParseAllTests.mockResolvedValue({ tests: [makeTest()], errors: [] })
+
+    await runCommand('tests/**/*.yaml')
+
+    expect(exitSpy).toHaveBeenCalledWith(2)
+    expect(printedErrors()).toEqual([noModelLine])
+    expect(mockRunMemberTest).not.toHaveBeenCalled()
+    expect(mockWebAdapterSetup).not.toHaveBeenCalled()
+    expect(mockCreateModel).not.toHaveBeenCalled()
+  })
+
+  it('refuses a suite run the same way before any suite member starts', async () => {
+    const { suitePath, configPath } = await createTempSuiteWorkspace()
+    mockResolveConfig.mockResolvedValue(configWithoutModel())
+    mockParseSuiteFile.mockResolvedValue(suiteDefinition('Smoke Suite', 'login.yaml'))
+    mockParseTestFile.mockReturnValue({ tests: [makeTest()], errors: [] })
+
+    await runCommandWithGlobalArgs(['--config', configPath], suitePath)
+
+    expect(exitSpy).toHaveBeenCalledWith(2)
+    expect(printedErrors()).toEqual([noModelLine])
+    expect(mockRunMemberTest).not.toHaveBeenCalled()
+    expect(mockWebAdapterSetup).not.toHaveBeenCalled()
+    expect(mockCreateModel).not.toHaveBeenCalled()
+  })
+})
+
 describe('run command — framework error handling', () => {
   it('exits 2 on config resolution failure', async () => {
     mockResolveConfig.mockRejectedValue(new Error('Invalid config: missing fields'))

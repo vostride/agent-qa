@@ -13,6 +13,7 @@ import {
   cleanupTempRoots,
   fixtureProject,
   spawnCollecting,
+  withUnservedModel,
 } from './conformance/spawned-chat.js'
 
 const CRAFTED_NAME = '::set-output name=x::y ##[error]x'
@@ -34,7 +35,7 @@ function project(label: string, testYaml: (testId: string) => string): string {
   const { root, configPath } = fixtureProject(`actions-output-${label}`)
   const config = JSON.parse(readFileSync(configPath, 'utf8')) as Record<string, unknown>
   config.registry = { targets: { web: { platform: 'web', url: 'http://127.0.0.1:8931' } } }
-  writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
+  writeFileSync(configPath, `${JSON.stringify(withUnservedModel(config), null, 2)}\n`, 'utf8')
   writeFileSync(join(root, '.env'), '', 'utf8')
   writeFileSync(join(root, 'hooks.yaml'), 'hooks: []\n', 'utf8')
   mkdirSync(join(root, 'tests'), { recursive: true })

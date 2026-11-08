@@ -27,6 +27,7 @@ import {
   applyResolvedAuthToModelConfig,
   buildAnalysisTokenBudget,
   buildJobModelCapability,
+  NoModelConfiguredError,
   resolveCliChatCapabilities,
   resolveCliJobModel,
   resolveLLMModels,
@@ -230,18 +231,19 @@ describe('resolveCredentials', () => {
 })
 
 describe('resolveLLMModels', () => {
-  it('uses the current Claude fallback when config has no selected LLM', () => {
-    const resolved = resolveLLMModels({})
+  const noModelMessage =
+    "No model is set in agent-qa.config.yaml. Add one on the dashboard's model page " +
+    '(npx agent-qa dashboard), or run npx agent-qa init --llm <choice>.'
 
-    expect(resolved.configName).toBe('')
-    expect(resolved.planner).toEqual({
-      provider: 'anthropic-subscription',
-      model: 'claude-sonnet-5-5',
-    })
-    expect(resolved.verifier).toEqual({
-      provider: 'anthropic-subscription',
-      model: 'claude-sonnet-5-5',
-    })
+  it('refuses a config with no registry.llms, naming the dashboard and init --llm', () => {
+    expect(() => resolveLLMModels({})).toThrow(NoModelConfiguredError)
+    expect(() => resolveLLMModels({})).toThrow(noModelMessage)
+  })
+
+  it('refuses a config whose registry.llms is empty', () => {
+    expect(() => resolveLLMModels({ registry: { llms: [] }, use: {} })).toThrow(
+      NoModelConfiguredError,
+    )
   })
 
   it('uses the current Claude fallback when the selected LLM is missing', () => {

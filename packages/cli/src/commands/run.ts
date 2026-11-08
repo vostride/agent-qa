@@ -12,7 +12,12 @@ import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, RemoteConnectionFields, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
-import { resolveLLMModels, resolveModelAuth, toModelProfileAndAuth } from '../llm-utils.js'
+import {
+  NoModelConfiguredError,
+  resolveLLMModels,
+  resolveModelAuth,
+  toModelProfileAndAuth,
+} from '../llm-utils.js'
 import { formatInstallBrowsersRetryCommand, type BrowserInstallSelection } from './install-browsers.js'
 import type { ParsedTestBinding, TestDefinition, ParseError, SuiteDefinition, SuiteResult, RunSuiteConfig } from '@vostride/agent-qa-core'
 import {
@@ -1467,6 +1472,18 @@ function buildHooksArtifact(hooks?: Map<string, HookDefinition>): Array<{ id: st
     runtime: (hook as any).runtime,
     sourcePath: (hook as any).path ?? (hook as any).sourcePath,
   }))
+}
+
+// A project whose model is set up later is refused with exit 2, before any test starts.
+function resolveRunModels(
+  config: Parameters<typeof resolveLLMModels>[0],
+): ReturnType<typeof resolveLLMModels> {
+  try {
+    return resolveLLMModels(config)
+  } catch (err) {
+    if (err instanceof NoModelConfiguredError) throw new CliRunInputError([pc.red(err.message)], 2)
+    throw err
+  }
 }
 
 function secretsRefusal(err: DeclaredSecretsUnavailableError): CliRunInputError {
@@ -2982,6 +2999,8 @@ export async function produceSuiteRunMembers(
     throw new Error('This suite run has no secrets redactor; its records cannot be masked, so it was not started.')
   }
   const suiteRunMask: MaskFn = (text) => suiteRunSecretRedactor.redactString(text)
+  // Up front, so a project with no model is refused before any suite is prepared.
+  resolveRunModels(config)
   const hooksContext = input.hooksContext
   const analytics = input.analytics
   const parsedSuiteDefinitions = input.preflight.definitions
@@ -3382,7 +3401,7 @@ export async function produceSuiteRunMembers(
     }
 
     // Resolve LLM models
-    const { planner: plannerCfg, verifier: verifierCfg, configName } = resolveLLMModels(config)
+    const { planner: plannerCfg, verifier: verifierCfg, configName } = resolveRunModels(config)
     const resolvedAuth = await resolveModelAuth(configName, plannerCfg, configFilePath)
     const { profile: plannerProfile, auth: plannerAuth } = toModelProfileAndAuth(plannerCfg, resolvedAuth)
     const { profile: verifierProfile, auth: verifierAuth } = toModelProfileAndAuth(verifierCfg, resolvedAuth)
@@ -4250,6 +4269,8 @@ export async function produceDirectRunMembers(
   const memberSnapshots = createRunArtifactSnapshotChannel()
   const directRunProduct = input.product
   const singleRunMask: MaskFn = (text) => runtimeSecrets.secretRedactor.redactString(text)
+  // Up front, so a project with no model is refused before any member starts.
+  resolveRunModels(config)
 
   const directRemotes = selectDirectRemotes(config, configDir, filtered, opts.browser)
   const directDevicePlaces = placeDirectDevices(config, configDir, filtered, opts.device)
@@ -4480,7 +4501,7 @@ export async function produceDirectRunMembers(
     })
 
     const mergedForLLM = { registry: (config as any).registry, use: (testMergedConfig as any).use ?? (config as any).use }
-    const { planner: plannerCfg, verifier: verifierCfg, configName } = resolveLLMModels(mergedForLLM)
+    const { planner: plannerCfg, verifier: verifierCfg, configName } = resolveRunModels(mergedForLLM)
 
     // Per-test timeouts from merged config
     const testTimeouts = {

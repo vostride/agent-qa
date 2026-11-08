@@ -100,7 +100,13 @@ beforeEach(() => {
       '      platform: web',
       `      url: ${probeOrigin}/local-thing`,
       '      environment: local',
+      // A model chosen but never signed in: the run starts and ends at the model, before a browser.
+      '  llms:',
+      '    - name: unserved-model',
+      '      provider: anthropic-subscription',
+      '      model: claude-sonnet-5-5',
       'use:',
+      '  llm: unserved-model',
       '  mobile:',
       '    appState: preserve',
       '',

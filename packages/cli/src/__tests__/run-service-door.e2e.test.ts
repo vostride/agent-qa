@@ -14,6 +14,7 @@ import {
 } from '@vostride/agent-qa-schema'
 import { generateTestId } from '@vostride/agent-qa-ids'
 import { afterEach, describe, expect, it } from 'vitest'
+import { withUnservedModel } from './conformance/spawned-chat.js'
 
 import {
   composeDashboardDoor,
@@ -34,7 +35,7 @@ function fixtureWorkspace(): string {
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,
-    `${JSON.stringify({
+    `${JSON.stringify(withUnservedModel({
       workspace: {
         testMatch: ['tests/**/*.test.yaml'],
         suiteMatch: ['suites/**/*.suite.yaml'],
@@ -52,7 +53,7 @@ function fixtureWorkspace(): string {
           },
         },
       },
-    })}\n`,
+    }))}\n`,
     'utf8',
   )
   // The workspace files the run path REQUIRES to exist, empty. `loadRuntimeSecrets` refuses a
