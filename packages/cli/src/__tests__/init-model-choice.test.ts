@@ -1,8 +1,15 @@
 // Checks the model question's options, the entry each pick writes, its name and the pre-selection.
 import { mkdirSync, writeFileSync } from 'node:fs'
-import { dirname } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
-import { getAuthPath, listSavedCredentials, type SavedCredential } from '@vostride/agent-qa-core'
+import { dirname, join } from 'node:path'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import {
+  clearLLMAuthProviderPlugins,
+  clearLoadedLLMAuthPluginModules,
+  getAgentQaVersion,
+  getAuthPath,
+  listSavedCredentials,
+  type SavedCredential,
+} from '@vostride/agent-qa-core'
 import { getProvider } from '@vostride/agent-qa-model'
 import { CliRefusal } from '../composition/cli-refusal.js'
 import {
@@ -10,13 +17,16 @@ import {
   SAVED_PROVIDER_TO_CONFIG,
   initModelOptions,
   modelEntryFor,
+  modelStatus,
   preselectedModel,
   resolveLlmFlag,
   type InitModelChoice,
+  type InitModelFlags,
   type InitModelOption,
   type InitModelPick,
 } from '../commands/init-model-choice.js'
-import { cleanupTempProjects, tempProject } from './project-fixtures.js'
+import { SUBSCRIPTION_AUTH_PACKAGE } from '../commands/scaffold-content.js'
+import { cleanupTempProjects, tempProject, writeInstalledPackage } from './project-fixtures.js'
 
 const DUMMY_TOKEN = 'DUMMY-TOKEN-A'
 const DUMMY_KEY = 'DUMMY-KEY-B'
@@ -50,6 +60,9 @@ function newChoiceRows(options: InitModelOption[]): Array<[string, string, strin
 }
 
 afterEach(() => {
+  vi.restoreAllMocks()
+  clearLLMAuthProviderPlugins()
+  clearLoadedLLMAuthPluginModules()
   cleanupTempProjects()
 })
 
@@ -427,5 +440,112 @@ describe('--model and --base-url', () => {
     )
     expect(refusal.exitCode).toBe(2)
     expect(refusal.message).toBe('--base-url must be an absolute http or https URL')
+  })
+})
+
+// A stand-in for the subscription plugin: it registers the Claude subscription and makes no call.
+function installFakeSubscriptionPlugin(root: string): void {
+  writeInstalledPackage(root, SUBSCRIPTION_AUTH_PACKAGE, getAgentQaVersion().trim(), {
+    packageJson: { type: 'module', exports: './index.js' },
+    files: {
+      'index.js': [
+        'export const providers = [{',
+        "  providerId: 'anthropic-subscription',",
+        "  credentialProviderId: 'anthropic-subscription',",
+        "  label: 'Claude subscription',",
+        "  modelAdapter: 'anthropic-messages',",
+        "  dashboardAuth: { mode: 'manual-code' },",
+        '  createAuthFetch: () => async () => {',
+        "    throw new Error('the fake plugin made a call')",
+        '  },',
+        '}]',
+        '',
+      ].join('\n'),
+    },
+  })
+}
+
+async function statusOf(
+  llm: string,
+  options: {
+    store?: Record<string, unknown>
+    plugin?: boolean
+    flags?: Omit<InitModelFlags, 'saved'>
+  } = {},
+) {
+  const { root, home } = tempProject('model-status')
+  const authPath = writeStore(home, options.store ?? {})
+  const saved = await listSavedCredentials(authPath)
+  if (options.plugin === true) installFakeSubscriptionPlugin(root)
+  const setup = modelEntryFor(resolveLlmFlag(llm, saved), { ...options.flags, saved })
+  return await modelStatus({
+    ...setup,
+    configPath: join(root, 'agent-qa.config.yaml'),
+    projectDir: root,
+    authPath,
+    pluginInstalled: options.plugin === true,
+  })
+}
+
+describe('the model reads ready or pending from the local store', () => {
+  it('an endpoint choice with no entry is pending on the dashboard', async () => {
+    expect(await statusOf('openai-compatible')).toEqual({
+      status: 'pending',
+      reason: "set up on the dashboard's model page",
+    })
+  })
+
+  it('a Claude subscription without its plugin installed is pending on the plugin', async () => {
+    const store = { 'claude-code': FIXTURE_STORE['claude-code'] }
+
+    expect(await statusOf('claude-code', { store })).toEqual({
+      status: 'pending',
+      reason: 'the subscription plugin is not installed',
+    })
+  })
+
+  it('a Claude subscription with its plugin and a saved sign-in is ready', async () => {
+    const store = { 'claude-code': FIXTURE_STORE['claude-code'] }
+
+    expect(await statusOf('claude-code', { store, plugin: true })).toEqual({ status: 'ready' })
+  })
+
+  it('a Claude subscription with its plugin and no sign-in is pending', async () => {
+    expect(await statusOf('claude-code', { plugin: true })).toEqual({
+      status: 'pending',
+      reason: 'not signed in',
+    })
+  })
+
+  it('a Gemini entry is ready with a saved Gemini key of its name and pending without one', async () => {
+    const store = { gemini: { type: 'api', provider: 'gemini', key: DUMMY_KEY } }
+
+    expect(await statusOf('gemini', { store })).toEqual({ status: 'ready' })
+    expect(await statusOf('gemini')).toEqual({
+      status: 'pending',
+      reason: "add the key on the dashboard's model page",
+    })
+  })
+
+  it('a keyless OpenAI-compatible endpoint on localhost is ready', async () => {
+    const flags = { baseUrl: 'http://localhost:11434/v1', model: 'llama3' }
+
+    expect(await statusOf('openai-compatible', { flags })).toEqual({ status: 'ready' })
+  })
+
+  it('makes no network call', async () => {
+    const fetch = vi.spyOn(globalThis, 'fetch')
+    const store = {
+      'claude-code': FIXTURE_STORE['claude-code'],
+      gemini: { type: 'api', provider: 'gemini', key: DUMMY_KEY },
+    }
+
+    await statusOf('claude-code', { store, plugin: true })
+    await statusOf('gemini', { store })
+    await statusOf('openai-compatible', {
+      flags: { baseUrl: 'http://localhost:11434/v1', model: 'm' },
+    })
+
+    expect(fetch).not.toHaveBeenCalled()
   })
 })

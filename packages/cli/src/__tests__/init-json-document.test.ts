@@ -1,7 +1,7 @@
-import { readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 
-import { getAgentQaVersion } from '@vostride/agent-qa-core'
+import { getAgentQaVersion, getAuthPath } from '@vostride/agent-qa-core'
 import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
@@ -121,6 +121,7 @@ describe('init --json prints one document on stdout', () => {
       'packageManager',
       'agentQa',
       'plugins',
+      'model',
       'nextSteps',
     ])
     expect(doc).toMatchObject({ format: 1, outcome: 'done', exitCode: 0, packageManager: 'none' })
@@ -219,6 +220,58 @@ describe('init --json prints one document on stdout', () => {
     ])
     expect(doc.agentQa).toEqual({ version: VERSION, via: 'project' })
     expect(run.calls.map((call) => call.args.slice(1))).toContainEqual(['validate'])
+  })
+
+  it('a Gemini init with a saved Gemini key records the model as ready', async () => {
+    const { root, home } = tempProject('json-model-ready')
+    const authPath = getAuthPath({ env: {}, homeDir: home })
+    mkdirSync(dirname(authPath), { recursive: true })
+    writeFileSync(
+      authPath,
+      JSON.stringify({ gemini: { type: 'api', provider: 'gemini', key: 'DUMMY-KEY-C' } }),
+    )
+
+    const result = await init(root, home, [
+      '--json',
+      '--platform',
+      'web',
+      '--llm',
+      'gemini',
+      '--pm',
+      'none',
+      '--agents',
+      'none',
+    ])
+
+    const doc = documentOf(result)
+    const model = doc.model
+    expect(`${model?.name} ${model?.provider} ${model?.status}`).toBe('gemini gemini ready')
+    expect(model).toEqual({ name: 'gemini', provider: 'gemini', status: 'ready' })
+    expect(result.stdout).not.toContain('DUMMY-KEY-C')
+  })
+
+  it('an OpenAI-compatible endpoint choice records the model as pending on the dashboard', async () => {
+    const { root, home } = tempProject('json-model-pending')
+
+    const result = await init(root, home, [
+      '--json',
+      '--platform',
+      'web',
+      '--llm',
+      'openai-compatible',
+      '--pm',
+      'none',
+      '--agents',
+      'none',
+    ])
+
+    const doc = documentOf(result)
+    expect(result.exit).toBeUndefined()
+    expect(doc.exitCode).toBe(0)
+    expect(doc.model).toMatchObject({
+      status: 'pending',
+      reason: "set up on the dashboard's model page",
+    })
   })
 
   it('a failed install is a failed document with exit code 3 and the step command', async () => {
