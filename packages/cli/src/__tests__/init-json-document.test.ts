@@ -439,6 +439,7 @@ describe('init --json prints one document on stdout', () => {
       'done',
       'skipped',
       'skipped',
+      'skipped',
     ])
     expect(doc.files).toContainEqual({
       path: '.env.secrets.local',

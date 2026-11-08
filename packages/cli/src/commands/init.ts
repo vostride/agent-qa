@@ -96,6 +96,8 @@ import {
   DASHBOARD_HOST,
   dashboardPage,
   dashboardPortOf,
+  findFreePort,
+  portInUse,
   probeDashboardPort,
   runDashboardStep,
   type DashboardPort,
@@ -1396,12 +1398,19 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
 
         const port = dashboardPortOf(config)
         let dashboard: 'starting' | { command: string } = { command: DASHBOARD_COMMAND }
-        if (mode === 'interactive') {
-          if (opts.dashboard === false) {
-            runner.skip('dashboard', 'Dashboard: skipped (--no-dashboard)', '--no-dashboard')
+        if (mode !== 'interactive') {
+          runner.skip('dashboard', 'Dashboard: skipped (not interactive)', 'not interactive')
+        } else if (opts.dashboard === false) {
+          runner.skip('dashboard', 'Dashboard: skipped (--no-dashboard)', '--no-dashboard')
+        } else {
+          const ports = hooks.dashboardPort ?? { probe: probeDashboardPort, findFree: findFreePort }
+          if ((await ports.probe(port)) === 'free') {
+            dashboard = 'starting'
           } else {
-            const ports = hooks.dashboardPort ?? { probe: probeDashboardPort }
-            if ((await ports.probe(port)) === 'free') dashboard = 'starting'
+            // The config names the port, so init never moves the dashboard to another one itself.
+            const inUse = portInUse(port)
+            runner.skip('dashboard', `Dashboard: skipped (${inUse})`, inUse)
+            dashboard = { command: `${DASHBOARD_COMMAND} --port ${await ports.findFree()}` }
           }
         }
         recorder.model({

@@ -12,6 +12,7 @@ const MODEL_PAGE = '/config/models'
 
 export interface DashboardPort {
   probe(port: number): Promise<'free' | 'busy'>
+  findFree(): Promise<number>
 }
 
 // The page that finishes the setup; none opens the runs page.
@@ -40,6 +41,10 @@ export function dashboardPortOf(config: Record<string, unknown>): number {
     : DEFAULT_DASHBOARD_PORT
 }
 
+export function portInUse(port: number): string {
+  return `port ${port} is in use`
+}
+
 // A port nothing can bind is as good as busy for the dashboard.
 export function probeDashboardPort(
   port: number,
@@ -51,6 +56,20 @@ export function probeDashboardPort(
     server.once('error', () => settle('busy'))
     server.listen({ port, host, exclusive: true }, () => {
       server.close(() => settle('free'))
+    })
+  })
+}
+
+// The port the system hands out on loopback, released at once.
+export function findFreePort(host: string = DASHBOARD_HOST): Promise<number> {
+  return new Promise((settle, fail) => {
+    const server = createServer()
+    server.unref()
+    server.once('error', fail)
+    server.listen({ port: 0, host }, () => {
+      const address = server.address()
+      const port = typeof address === 'object' && address !== null ? address.port : 0
+      server.close(() => settle(port))
     })
   })
 }

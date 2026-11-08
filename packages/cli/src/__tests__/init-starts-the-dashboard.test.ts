@@ -12,7 +12,11 @@ import { parse } from 'yaml'
 import { runCli, type CliFailureDeps } from '../cli-error-handler.js'
 import { createInitCommand } from '../commands/init.js'
 import type { InitDocument } from '../commands/init-document.js'
-import { dashboardPage, probeDashboardPort } from '../commands/init-dashboard.js'
+import {
+  dashboardPage,
+  probeDashboardPort,
+  type DashboardPort,
+} from '../commands/init-dashboard.js'
 import { installedAgentQaVersion } from '../commands/package-json-plan.js'
 import type { RunResult } from '../commands/project-host.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
@@ -114,8 +118,8 @@ function configuredPort(root: string): number {
 }
 
 const FREE_PORT = 49_731
-const freePort = { probe: async () => 'free' as const, findFree: async () => FREE_PORT }
-const busyPort = { probe: async () => 'busy' as const, findFree: async () => FREE_PORT }
+const freePort: DashboardPort = { probe: async () => 'free', findFree: async () => FREE_PORT }
+const busyPort: DashboardPort = { probe: async () => 'busy', findFree: async () => FREE_PORT }
 
 // Answers the manager's version probe and the dashboard, and passes every other call.
 function runner(dashboard: RunResult = OK, onDashboard?: () => void): FakeRunner {
@@ -141,7 +145,7 @@ async function init(
   args: readonly string[],
   options: {
     run?: FakeRunner
-    dashboardPort?: typeof freePort
+    dashboardPort?: DashboardPort
     isTTY?: boolean
     env?: NodeJS.ProcessEnv
   } = {},
