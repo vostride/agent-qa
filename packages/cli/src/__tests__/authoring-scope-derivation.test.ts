@@ -5,28 +5,24 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { stringify } from 'yaml'
 
+import { buildScaffoldConfig } from '../commands/scaffold-content.js'
 import {
   AuthoringScopeUnresolvableError,
   deriveDefaultAuthoringScope,
 } from '../composition/local-agent-host.js'
 
-// The house shape, as `agent-qa init` writes it (`buildScaffoldConfig`), for the reason
-// `draft-shelf-admission.test.ts` gives: a bespoke workspace measures a workspace nobody has. The
-// `use.mobile.appState` line is not decoration — `resolveConfig` REFUSES a config without it, so a
-// fixture omitting it would measure the config validator rather than the derivation.
-const WORKSPACE_BLOCK = `workspace:
-  testMatch:
-    - tests/**/*.yaml
-  suiteMatch:
-    - suites/**/*.suite.yaml
-  hooksFile: hooks.yaml
-  envFile: .env
-  secretsFile: .env.secrets.local
-use:
-  mobile:
-    appState: preserve
-`
+// The workspace block `agent-qa init` writes: a bespoke workspace would measure a workspace nobody
+// has.
+const WORKSPACE_BLOCK = stringify({
+  workspace: buildScaffoldConfig('web', {
+    llmEntries: [],
+    usesSubscriptionAuth: false,
+    cacheDir: '.agent-qa/cache',
+    authStatesDir: '.agent-qa/auth-states',
+  }).workspace,
+})
 
 /** One configured web target, product taken from the target NAME (`product` absent). */
 const ONE_TARGET = `registry:

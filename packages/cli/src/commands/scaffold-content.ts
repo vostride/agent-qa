@@ -151,7 +151,7 @@ export function buildScaffoldConfig(
       secretsFile: '.env.secrets.local',
     },
     services: {
-      dashboard: { port: 3100, artifactsDir: '.agent-qa/artifacts' },
+      dashboard: { port: 3470, artifactsDir: '.agent-qa/artifacts' },
       cache: { dir: facts.cacheDir },
       authState: { dir: facts.authStatesDir },
       vision: { screenshotSize: DEFAULT_SCREENSHOT_SIZE, effectiveResolution: DEFAULT_EFFECTIVE_RESOLUTION },
@@ -199,7 +199,8 @@ export function buildScaffoldConfig(
 }
 
 export function addYamlComments(yamlStr: string): string {
-  let result = '# agent-qa Configuration\n\n'
+  let result = '# The project settings agent-qa reads for every command run in this folder.\n'
+  result += '# Docs: https://vostride.com/docs/agent-qa/\n\n'
 
   const lines = yamlStr.split('\n')
   for (const line of lines) {
@@ -231,7 +232,7 @@ export function addYamlComments(yamlStr: string): string {
 
     if (line === '  secretsFile: .env.secrets.local') {
       result += '  # Its values are shown as [secret:<name>] and never restored; nothing else is masked.\n'
-      result += '# Optional: ignore archived or generated tests.\n'
+      result += '  # Optional: ignore archived or generated tests.\n'
       result += '  # testPathIgnore:\n'
       result += '  #   - tests/archive/**/*.yaml\n'
     } else if (line === '    artifactsDir: .agent-qa/artifacts') {

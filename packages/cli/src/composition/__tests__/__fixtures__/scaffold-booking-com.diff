@@ -18,8 +18,9 @@
 +# agent-qa init:end
 --- /dev/null
 +++ b/agent-qa.config.yaml
-@@ -0,0 +1,87 @@
-+# agent-qa Configuration
+@@ -0,0 +1,88 @@
++# The project settings agent-qa reads for every command run in this folder.
++# Docs: https://vostride.com/docs/agent-qa/
 +
 +# File discovery and project settings
 +workspace:
@@ -31,14 +32,14 @@
 +  envFile: .env
 +  secretsFile: .env.secrets.local
 +  # Its values are shown as [secret:<name>] and never restored; nothing else is masked.
-+# Optional: ignore archived or generated tests.
++  # Optional: ignore archived or generated tests.
 +  # testPathIgnore:
 +  #   - tests/archive/**/*.yaml
 +
 +# Infrastructure services (dashboard, cache, auth state, logging)
 +services:
 +  dashboard:
-+    port: 3100
++    port: 3470
 +    artifactsDir: .agent-qa/artifacts
 +    # Optional: persist dashboard state to a custom SQLite path.
 +    # dbPath: .agent-qa/dashboard.sqlite

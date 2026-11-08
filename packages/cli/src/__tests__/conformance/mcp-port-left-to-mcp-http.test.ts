@@ -54,7 +54,7 @@ describe('the MCP port is left to mcp --http', () => {
       const config = buildScaffoldConfig(platform, FACTS) as { services: Record<string, unknown> }
       expect(config.services, `${platform} services`).not.toHaveProperty('mcp')
       expect(config.services.dashboard, `${platform} dashboard`)
-        .toEqual({ port: 3100, artifactsDir: '.agent-qa/artifacts' })
+        .toEqual({ port: 3470, artifactsDir: '.agent-qa/artifacts' })
     }
   })
 
