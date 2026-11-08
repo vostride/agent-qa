@@ -12,11 +12,18 @@ import { createInitCommand } from '../commands/init.js'
 import { installOutputMask, OUTPUT_HIDDEN, runInstallStep } from '../commands/package-install.js'
 import { planPackageJson, readProjectPackageJson } from '../commands/package-json-plan.js'
 import { detectPackageManager, managerEnv } from '../commands/package-manager.js'
-import { projectHost, type RunOptions, type RunResult } from '../commands/project-host.js'
+import {
+  projectHost,
+  spawnRunner,
+  type CommandRunner,
+  type RunOptions,
+  type RunResult,
+} from '../commands/project-host.js'
 import { projectRange } from '../commands/project-range.js'
 import { SUBSCRIPTION_AUTH_PACKAGE } from '../commands/scaffold-content.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
+import { fakeInitUi, type FakeInitUi } from './fake-init-ui.js'
 import {
   cleanupTempProjects,
   fakeRunner,
@@ -80,8 +87,9 @@ function argv(call: RunnerCall): string {
 async function init(
   cwd: string,
   home: string,
-  run: FakeRunner,
+  run: CommandRunner,
   args: readonly string[] = ['--platform', 'web', '--llm', 'gemini'],
+  ui?: FakeInitUi,
 ): Promise<void> {
   const parent = new Command()
   const command = createInitCommand({
@@ -89,6 +97,7 @@ async function init(
     host: { homedir: home, env: {}, run },
     isTTY: false,
     composeAnalytics: silentAnalytics,
+    ...(ui === undefined ? {} : { ui }),
   })
   parent.exitOverride()
   command.exitOverride()
@@ -110,7 +119,12 @@ function writeJson(path: string, value: unknown): string {
   return text
 }
 
-async function stepInput(root: string, home: string, run: FakeRunner, env: NodeJS.ProcessEnv = {}) {
+async function stepInput(
+  root: string,
+  home: string,
+  run: CommandRunner,
+  env: NodeJS.ProcessEnv = {},
+) {
   const host = projectHost({ cwd: root, homedir: home, env, run })
   const range = await projectRange(root, host)
   const packageJson = planPackageJson({
@@ -987,5 +1001,128 @@ describe("init's subscription next step", () => {
     await init(project, home, installing(), [...CLAUDE_CODE, '--pm', 'none'])
 
     expect(pluginStepLine()).toContain(PLUGIN_STEP_DESCRIPTION)
+  })
+})
+
+// Exits 130 from its own Ctrl-C handler, which agent-qa's listener never sees.
+const OWN_CTRL_C = [
+  "process.on('SIGINT', () => process.exit(130))",
+  "setTimeout(() => process.exit(0), 10_000)",
+  "if (process.platform === 'win32') process.emit('SIGINT')",
+  "else process.kill(process.pid, 'SIGINT')",
+].join('\n')
+
+const EACCES = () => Object.assign(new Error('spawn EACCES'), { code: 'EACCES' })
+
+function pnpmProject(label: string): { root: string; home: string } {
+  const project = tempProject(label)
+  writeFileSync(join(project.root, 'pnpm-lock.yaml'), '')
+  return project
+}
+
+describe('a manager that cancels itself or a runner that throws', () => {
+  beforeEach(() => {
+    log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    errors = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    cleanupTempProjects()
+  })
+
+  // Probes answer from the fake machine; the install runs a real node child.
+  function childOnInstall(script: string): CommandRunner {
+    const probes = onMachine({}, () => ({ code: 0, signal: null, output: '' }))
+    return (command, args, options) =>
+      isProbe(args)
+        ? probes(command, args, options)
+        : spawnRunner(process.execPath, ['-e', script], options)
+  }
+
+  it('a manager that exits 130 from its own Ctrl-C handler is a cancel, not a failed install', async () => {
+    const { root, home } = tempProject('install-own-ctrl-c')
+    const before = process.listeners('SIGINT')
+    const input = await stepInput(root, home, childOnInstall(OWN_CTRL_C))
+
+    await expect(runInstallStep({ ...input, mode: 'run' })).rejects.toBeInstanceOf(
+      PromptCancelled,
+    )
+    expect(process.listeners('SIGINT')).toEqual(before)
+  }, 20_000)
+
+  it('init over a manager that exits 130 on its own prints Cancelled. and exits 130', async () => {
+    const { root, home } = tempProject('init-own-ctrl-c')
+    const before = process.listeners('SIGINT')
+
+    const error = await init(root, home, childOnInstall(OWN_CTRL_C)).then(
+      () => undefined,
+      (caught: unknown) => caught,
+    )
+
+    expect(error).toBeInstanceOf(PromptCancelled)
+    const fixed: string[] = []
+    const deps = { ...failureDeps(), printFixed: (line: string) => fixed.push(line) }
+    expect(reportCliFailure(error, deps)).toBe(130)
+    expect(fixed).toEqual(['Cancelled.'])
+    expect(process.listeners('SIGINT')).toEqual(before)
+  }, 20_000)
+
+  it('a runner that throws on the install is a failed step with its message and command', async () => {
+    const { root, home } = pnpmProject('install-throws')
+    const run = onMachine({ pnpm: '10.0.0' }, () => {
+      throw EACCES()
+    })
+    const input = await stepInput(root, home, run)
+
+    const result = await runInstallStep({ ...input, mode: 'run' })
+
+    expect(result).toMatchObject({
+      outcome: 'failed',
+      reason: 'spawn EACCES',
+      command: 'pnpm install',
+    })
+    const out = printed().split('\n')
+    expect(out).toContain('✗ Install failed: spawn EACCES')
+    expect(out.at(-1)).toBe('  Run: pnpm install')
+  })
+
+  it('init over a runner that throws on the install exits 3 with every step recorded', async () => {
+    const { root, home } = pnpmProject('init-install-throws')
+    const ui = fakeInitUi()
+    const run = onMachine({ pnpm: '10.0.0' }, () => {
+      throw EACCES()
+    })
+
+    const error = await refusal(init(root, home, run, undefined, ui))
+
+    expect(reportCliFailure(error, failureDeps())).toBe(3)
+    expect(ui.entries.filter((entry) => entry.kind === 'done').map((entry) => entry.text))
+      .toHaveLength(2)
+    expect(ui.entries).toContainEqual({
+      kind: 'failed',
+      text: 'Install failed: spawn EACCES',
+      command: 'pnpm install',
+    })
+    expect(existsSync(join(root, 'agent-qa.config.yaml'))).toBe(true)
+  })
+
+  it("a version probe that throws is a failed install step with the probe's command", async () => {
+    const { root, home } = pnpmProject('init-probe-throws')
+    const ui = fakeInitUi()
+    const run = fakeRunner(() => {
+      throw EACCES()
+    })
+
+    const error = await refusal(init(root, home, run, undefined, ui))
+
+    expect(reportCliFailure(error, failureDeps())).toBe(3)
+    expect(run.calls.map(argv)).toEqual(['pnpm --version'])
+    expect(ui.entries).toContainEqual({
+      kind: 'failed',
+      text: 'Install failed: spawn EACCES',
+      command: 'pnpm --version',
+    })
   })
 })

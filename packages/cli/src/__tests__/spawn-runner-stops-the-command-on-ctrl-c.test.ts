@@ -9,6 +9,14 @@ import { cleanupTempProjects, tempProject } from './project-fixtures.js'
 // Exits 0 on its own after 10 s, so only a Ctrl-C ends it sooner and with another result.
 const WAITS = 'setTimeout(() => process.exit(0), 10_000)'
 
+// Handles its own Ctrl-C and exits 130 before agent-qa's listener hears anything.
+const OWN_CTRL_C = [
+  "process.on('SIGINT', () => process.exit(130))",
+  WAITS,
+  "if (process.platform === 'win32') process.emit('SIGINT')",
+  "else process.kill(process.pid, 'SIGINT')",
+].join('\n')
+
 function sigintListeners(): ((signal: NodeJS.Signals) => void)[] {
   return process.listeners('SIGINT') as ((signal: NodeJS.Signals) => void)[]
 }
@@ -40,6 +48,30 @@ describe('spawnRunner and Ctrl-C', () => {
     expect(Date.now() - started).toBeLessThan(10_000)
     expect(sigintListeners()).toEqual(before)
   }, 20_000)
+
+  it('a command that exits 130 from its own Ctrl-C handler reads as cancelled', async () => {
+    const { root } = tempProject('spawn-runner-own-ctrl-c')
+    const before = sigintListeners()
+
+    const started = Date.now()
+    const result = await spawnRunner(process.execPath, ['-e', OWN_CTRL_C], {
+      cwd: root,
+      env: process.env,
+      stdio: 'capture',
+    })
+
+    expect(result).toMatchObject({ code: 130, signal: null })
+    expect(result.cancelled).toBeUndefined()
+    expect(wasCancelled(result)).toBe(true)
+    expect(Date.now() - started).toBeLessThan(10_000)
+    expect(sigintListeners()).toEqual(before)
+  }, 20_000)
+
+  it('exit 130 is a cancel and any other exit is not', () => {
+    expect(wasCancelled({ code: 130, signal: null, output: '' })).toBe(true)
+    expect(wasCancelled({ code: 1, signal: null, output: '' })).toBe(false)
+    expect(wasCancelled({ code: 0, signal: null, output: '' })).toBe(false)
+  })
 
   it('a command that ends by itself is not cancelled and removes its listener', async () => {
     const { root } = tempProject('spawn-runner-ends')
