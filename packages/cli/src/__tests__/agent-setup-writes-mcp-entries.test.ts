@@ -1,8 +1,17 @@
 // The installer writes agent-qa's MCP server into the project folder's .mcp.json and
-// .codex/config.toml, records each entry with its hash, and never runs a host CLI.
+// .codex/config.toml, records each entry with its hash, never runs a host CLI, and sets up each
+// project in a repository on its own.
 import { createHash } from 'node:crypto'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import {
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  readlinkSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
+import { join, relative } from 'node:path'
 
 import { parse } from 'jsonc-parser'
 import { getStaticTOMLValue, parseTOML } from 'toml-eslint-parser'
@@ -94,12 +103,53 @@ function insertedText(before: string, after: string): string | undefined {
   return start + tail === before.length ? after.slice(start, after.length - tail) : undefined
 }
 
-async function setup(project: Project, runner: FakeRunner = fakeRunner()) {
+async function setup(
+  project: Project,
+  agents: CodingAgent[] = BOTH,
+  runner: FakeRunner = fakeRunner(),
+) {
   return await installAgentSetup({
     projectDir: project.root,
-    agents: BOTH,
+    agents,
     host: { cwd: project.root, homedir: project.home, env: {}, run: runner },
   })
+}
+
+// Every path under `folder` with its bytes, a symlink's target, or a marker for a folder.
+function snapshot(folder: string, skip: readonly string[] = []): Map<string, string> {
+  const seen = new Map<string, string>()
+  const walk = (dir: string): void => {
+    for (const name of readdirSync(dir).sort()) {
+      const path = join(dir, name)
+      const key = relative(folder, path)
+      if (skip.includes(key)) continue
+      const stat = lstatSync(path)
+      if (stat.isSymbolicLink()) seen.set(key, `link ${readlinkSync(path)}`)
+      else if (stat.isDirectory()) {
+        seen.set(key, 'folder')
+        walk(path)
+      } else seen.set(key, readFileSync(path).toString('base64'))
+    }
+  }
+  walk(folder)
+  return seen
+}
+
+function writeConfig(folder: string): void {
+  writeFileSync(
+    join(folder, 'agent-qa.config.yaml'),
+    [
+      'workspace:',
+      '  testMatch:',
+      '    - tests/**/*.yaml',
+      '  suiteMatch:',
+      '    - suites/**/*.suite.yaml',
+      '  hooksFile: hooks.yaml',
+      '  envFile: .env',
+      '  secretsFile: .env.secrets.local',
+      '',
+    ].join('\n'),
+  )
 }
 
 describe('the MCP entries the installer writes', () => {
@@ -108,7 +158,7 @@ describe('the MCP entries the installer writes', () => {
     installAgentQa(project.root)
     const runner = fakeRunner()
 
-    const result = await setup(project, runner)
+    const result = await setup(project, BOTH, runner)
 
     expect(result.parts).toEqual({
       skills: { outcome: 'done' },
@@ -156,7 +206,7 @@ describe('the MCP entries the installer writes', () => {
     write(project, '.codex/config.toml', config)
     const runner = fakeRunner()
 
-    const result = await setup(project, runner)
+    const result = await setup(project, BOTH, runner)
 
     expect(result.parts.mcp).toEqual({ outcome: 'done' })
     expect(outcomeOf(result, '.mcp.json')).toBe('created')
@@ -177,7 +227,7 @@ describe('the MCP entries the installer writes', () => {
     installAgentQa(project.root)
     const runner = fakeRunner()
 
-    await setup(project, runner)
+    await setup(project, BOTH, runner)
 
     expect(manifestEntries(project)).toEqual([
       { file: 'AGENTS.md', key: 'agent-qa init block', sha256: sha256(agentsMdBlock(project)) },
@@ -201,5 +251,141 @@ describe('the MCP entries the installer writes', () => {
     expect(again.notes).toEqual([])
     expect(read(project, '.mcp.json')).toBe(mcpJson)
     expect(read(project, '.codex/config.toml')).toBe(config)
+  })
+
+  it('rewrites an edited entry and names it, and writes a deleted one again', async () => {
+    const project = tempProject('mcp-edited')
+    installAgentQa(project.root)
+    await setup(project)
+    const mcpJson = read(project, '.mcp.json')
+    write(project, '.mcp.json', mcpJson.replace('"timeout": 6000000', '"timeout": 60000'))
+    write(project, '.codex/config.toml', '# only our own settings now\n')
+
+    const result = await setup(project)
+
+    expect(outcomeOf(result, '.mcp.json')).toBe('replaced')
+    expect(outcomeOf(result, '.codex/config.toml')).toBe('created')
+    expect(result.notes).toEqual(['Replaced your edit: the agent-qa entry in .mcp.json'])
+    expect(read(project, '.mcp.json')).toBe(mcpJson)
+    expect(read(project, '.codex/config.toml')).toBe(
+      `# only our own settings now\n\n${CODEX_ENTRY}\n`,
+    )
+    expect(result.parts.mcp).toEqual({ outcome: 'done' })
+  })
+
+  it('replaces an agent-qa entry that was there before any install and names it', async () => {
+    const project = tempProject('mcp-foreign')
+    installAgentQa(project.root)
+    const http = '{ "type": "http", "url": "http://localhost:4100/mcp" }'
+    write(project, '.mcp.json', `{\n  "mcpServers": {\n    "agent-qa": ${http}\n  }\n}\n`)
+
+    const result = await setup(project, ['claude-code'])
+
+    expect(outcomeOf(result, '.mcp.json')).toBe('replaced')
+    expect(result.notes).toEqual([
+      "Replaced the agent-qa entry in .mcp.json, which differed from agent-qa's",
+    ])
+    expect(parse(read(project, '.mcp.json'))).toEqual({
+      mcpServers: {
+        'agent-qa': { type: 'stdio', command: 'npx', args: ARGS, timeout: 6000000 },
+      },
+    })
+  })
+
+  it("leaves the other agent's host file and its record as they were", async () => {
+    const project = tempProject('mcp-one-agent')
+    installAgentQa(project.root)
+    await setup(project)
+    const mcpJson = readFileSync(join(project.root, '.mcp.json'))
+    const claudeCodeEntry = manifestEntries(project).find((entry) => entry.file === '.mcp.json')
+    write(project, '.codex/config.toml', '')
+
+    const result = await setup(project, ['codex'])
+
+    expect(outcomeOf(result, '.mcp.json')).toBeUndefined()
+    expect(outcomeOf(result, '.codex/config.toml')).toBe('created')
+    expect(readFileSync(join(project.root, '.mcp.json')).equals(mcpJson)).toBe(true)
+    expect(manifestEntries(project)).toContainEqual(claudeCodeEntry)
+  })
+
+  it('fails only the MCP part on a malformed .mcp.json and leaves the file as it was', async () => {
+    const project = tempProject('mcp-malformed')
+    installAgentQa(project.root)
+    const text = 'mcpServers: this is not JSON\n'
+    write(project, '.mcp.json', text)
+
+    const result = await setup(project)
+
+    expect(result.parts.mcp?.outcome).toBe('failed')
+    expect(result.parts.mcp?.reason).toMatch(/^Refusing malformed \.mcp\.json: [^\n]+$/u)
+    expect(result.parts.skills).toEqual({ outcome: 'done' })
+    expect(result.parts['agents-md']).toEqual({ outcome: 'done' })
+    expect(outcomeOf(result, '.mcp.json')).toBeUndefined()
+    expect(read(project, '.mcp.json')).toBe(text)
+    expect(manifestEntries(project).map((entry) => entry.file)).toEqual([
+      'AGENTS.md',
+      '.codex/config.toml',
+    ])
+  })
+
+  it('fails the MCP part and writes nothing through a symlinked .codex folder', async () => {
+    const project = tempProject('mcp-symlink')
+    const outside = tempProject('mcp-symlink-outside')
+    installAgentQa(project.root)
+    writeFileSync(join(outside.root, 'config.toml'), 'model = "theirs"\n')
+    const before = snapshot(outside.root)
+    symlinkSync(outside.root, join(project.root, '.codex'), 'dir')
+
+    const result = await setup(project)
+
+    expect(result.parts.mcp?.outcome).toBe('failed')
+    expect(result.parts.mcp?.reason).toMatch(/^Refusing init destination [^\n]+$/u)
+    expect(result.parts.skills).toEqual({ outcome: 'done' })
+    expect(result.parts['agents-md']).toEqual({ outcome: 'done' })
+    expect(outcomeOf(result, '.mcp.json')).toBe('created')
+    expect(snapshot(outside.root)).toEqual(before)
+    expect(manifestEntries(project).map((entry) => entry.file)).toEqual([
+      'AGENTS.md',
+      '.mcp.json',
+    ])
+  })
+})
+
+describe('two agent-qa projects in one repository', () => {
+  it("sets up each project in its own folder and leaves the other's bytes alone", async () => {
+    const repo = tempProject('mcp-two-projects')
+    installAgentQa(repo.root)
+    const a = { root: join(repo.root, 'a'), home: repo.home }
+    const b = { root: join(repo.root, 'b'), home: repo.home }
+    mkdirSync(a.root)
+    mkdirSync(b.root)
+    writeConfig(a.root)
+    writeConfig(b.root)
+    const outside = snapshot(repo.root, ['a', 'b'])
+    const runner = fakeRunner()
+
+    const second = await setup(b, BOTH, runner)
+    const afterB = snapshot(b.root)
+    const first = await setup(a, BOTH, runner)
+
+    expect(second.source).toBe('project')
+    expect(first.source).toBe('project')
+    expect(first.parts).toEqual(second.parts)
+    expect(snapshot(b.root)).toEqual(afterB)
+    expect(snapshot(repo.root, ['a', 'b'])).toEqual(outside)
+    for (const project of [a, b]) {
+      expect(read(project, '.codex/config.toml')).toBe(`${CODEX_ENTRY}\n`)
+      expect(parse(read(project, '.mcp.json'))).toEqual({
+        mcpServers: {
+          'agent-qa': { type: 'stdio', command: 'npx', args: ARGS, timeout: 6000000 },
+        },
+      })
+      expect(manifestEntries(project).map((entry) => entry.file)).toEqual([
+        'AGENTS.md',
+        '.mcp.json',
+        '.codex/config.toml',
+      ])
+    }
+    expect(runner.calls).toEqual([])
   })
 })
