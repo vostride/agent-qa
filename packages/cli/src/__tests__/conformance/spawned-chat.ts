@@ -208,7 +208,11 @@ export function hermeticEnv(root: string): Record<string, string> {
     TMPDIR: join(root, '.agent-qa'),
     NODE_ENV: 'test',
     // A browser download the child was not meant to start is refused at once on loopback.
+    // Playwright reads a browser's own host variable before the shared one, so each is set.
     PLAYWRIGHT_DOWNLOAD_HOST: 'http://127.0.0.1:0',
+    PLAYWRIGHT_CHROMIUM_DOWNLOAD_HOST: 'http://127.0.0.1:0',
+    PLAYWRIGHT_FIREFOX_DOWNLOAD_HOST: 'http://127.0.0.1:0',
+    PLAYWRIGHT_WEBKIT_DOWNLOAD_HOST: 'http://127.0.0.1:0',
   }
 }
 

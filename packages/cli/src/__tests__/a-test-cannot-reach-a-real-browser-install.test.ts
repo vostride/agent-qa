@@ -116,10 +116,21 @@ describe('the check after each test', () => {
 })
 
 describe('the download host a test environment carries', () => {
-  it('points Playwright at a refusing loopback address, in this process and in a spawned child', () => {
-    expect(process.env.PLAYWRIGHT_DOWNLOAD_HOST).toBe('http://127.0.0.1:0')
-    expect(hermeticEnv('/tmp/root').PLAYWRIGHT_DOWNLOAD_HOST).toBe('http://127.0.0.1:0')
-  })
+  // Playwright takes a browser's own variable first, then the shared one.
+  const HOSTS = [
+    'PLAYWRIGHT_DOWNLOAD_HOST',
+    'PLAYWRIGHT_CHROMIUM_DOWNLOAD_HOST',
+    'PLAYWRIGHT_FIREFOX_DOWNLOAD_HOST',
+    'PLAYWRIGHT_WEBKIT_DOWNLOAD_HOST',
+  ]
+
+  it.each(HOSTS)(
+    '%s points at a refusing loopback address, in this process and in a spawned child',
+    (name) => {
+      expect(process.env[name]).toBe('http://127.0.0.1:0')
+      expect(hermeticEnv('/tmp/root')[name]).toBe('http://127.0.0.1:0')
+    },
+  )
 })
 
 describe('the default browser opener in a test', () => {

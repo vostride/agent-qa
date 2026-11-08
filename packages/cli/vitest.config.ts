@@ -11,7 +11,14 @@ export default defineConfig({
     hookTimeout: 120_000,
     include: ['src/**/__tests__/**/*.test.ts'],
     // A spawned init that forgets --no-browsers fails fast on a refused loopback download host.
-    env: { GITHUB_ACTIONS: '', PLAYWRIGHT_DOWNLOAD_HOST: 'http://127.0.0.1:0' },
+    // Playwright reads a browser's own host variable before the shared one, so each is set.
+    env: {
+      GITHUB_ACTIONS: '',
+      PLAYWRIGHT_DOWNLOAD_HOST: 'http://127.0.0.1:0',
+      PLAYWRIGHT_CHROMIUM_DOWNLOAD_HOST: 'http://127.0.0.1:0',
+      PLAYWRIGHT_FIREFOX_DOWNLOAD_HOST: 'http://127.0.0.1:0',
+      PLAYWRIGHT_WEBKIT_DOWNLOAD_HOST: 'http://127.0.0.1:0',
+    },
     globalSetup: ['./src/__tests__/package-folders-unchanged.ts'],
     setupFiles: ['./src/__tests__/test-side-effect-guard.ts'],
     globals: true,
