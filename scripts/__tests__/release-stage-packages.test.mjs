@@ -10,8 +10,15 @@ import { getPublicPackages } from '../release/packages.mjs'
 import { absolutizeReadmeLinks, stagePublishPackages } from '../release/stage-packages.mjs'
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
-const shippedSkills = ['agent-qa-authoring', 'agent-qa-result-triage', 'agent-qa-debug-fix', 'agent-qa-knowledge']
+const shippedSkills = skillFolderNames(join(rootDir, 'skills'))
 const knowledgeReference = join('agent-qa-knowledge', 'references', 'knowledge-reads.md')
+
+function skillFolderNames(skillsRoot) {
+  return readdirSync(skillsRoot, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && existsSync(join(skillsRoot, entry.name, 'SKILL.md')))
+    .map(entry => entry.name)
+    .sort()
+}
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'))
@@ -45,6 +52,15 @@ async function fixtureRepo(tempDir, mutateSkills) {
   return fixture
 }
 
+function assertSameFiles(sourceDir, stagedDir, skillName) {
+  const sourceFiles = filesUnder(sourceDir).map(file => relative(sourceDir, file)).sort()
+  const stagedFiles = filesUnder(stagedDir).map(file => relative(stagedDir, file)).sort()
+  assert.deepEqual(stagedFiles, sourceFiles, `${skillName} staged a different file set`)
+  for (const file of sourceFiles) {
+    assert.ok(readFileSync(join(sourceDir, file)).equals(readFileSync(join(stagedDir, file))), `${skillName}/${file} bytes changed`)
+  }
+}
+
 async function withTemp(body) {
   const tempDir = await mkdtemp(join(tmpdir(), 'agent-qa-stage-packages-'))
   try {
@@ -73,32 +89,78 @@ test('stages CLI package with packaged skills and without source-only lifecycle 
   })
 })
 
-test('stages exactly the four source skills, byte for byte, including UTF-8 text', async () => {
+test('stages every source skill folder, byte for byte, including UTF-8 text', async () => {
   await withTemp(async (tempDir) => {
     const stagedDir = join(tempDir, 'staged')
     await stagePublishPackages({ rootDir: await fixtureRepo(tempDir), targetVersion: '0.1.1', outputDir: stagedDir })
     const stagedSkills = join(stagedDir, 'cli', 'skills')
 
-    assert.deepEqual(readdirSync(stagedSkills).sort(), [...shippedSkills].sort())
-    let compared = 0
+    assert.deepEqual(readdirSync(stagedSkills).sort(), shippedSkills)
     for (const skillName of shippedSkills) {
-      const sourceDir = join(rootDir, 'skills', skillName)
-      const sourceFiles = filesUnder(sourceDir).map(file => relative(sourceDir, file)).sort()
-      const stagedFiles = filesUnder(join(stagedSkills, skillName)).map(file => relative(join(stagedSkills, skillName), file)).sort()
-      assert.deepEqual(stagedFiles, sourceFiles, `${skillName} staged a different file set`)
-      for (const file of sourceFiles) {
-        const source = readFileSync(join(sourceDir, file))
-        assert.ok(source.equals(readFileSync(join(stagedSkills, skillName, file))), `${skillName}/${file} bytes changed`)
-        compared += 1
-      }
+      assertSameFiles(join(rootDir, 'skills', skillName), join(stagedSkills, skillName), skillName)
     }
-    assert.ok(compared >= 9, `only ${String(compared)} skill files were compared`)
 
     const reference = readFileSync(join(stagedSkills, knowledgeReference))
     assert.ok(reference.length > 0)
     assert.ok(reference.some(byte => byte > 0x7f), 'the knowledge reference carries no non-ASCII bytes to preserve')
-    assert.ok(readFileSync(join(stagedSkills, 'agent-qa-knowledge', 'agents', 'openai.yaml'))
-      .equals(readFileSync(join(rootDir, 'skills', 'agent-qa-knowledge', 'agents', 'openai.yaml'))))
+  })
+})
+
+const newSkillBody = [
+  '---',
+  'name: agent-qa-zzz',
+  'description: A skill folder added after the release scripts were written.',
+  '---',
+  '',
+  '# agent-qa-zzz',
+  '',
+  'List recent runs with `agent_qa_list_runs`.',
+  '',
+].join('\n')
+const newSkillOpenAi = [
+  'interface:',
+  '  display_name: "agent-qa zzz"',
+  '  short_description: "A skill folder added after the release scripts were written."',
+  'policy:',
+  '  allow_implicit_invocation: true',
+  '',
+].join('\n')
+
+async function addSkillFolder(skills, name, body = newSkillBody) {
+  await mkdir(join(skills, name, 'agents'), { recursive: true })
+  await writeFile(join(skills, name, 'SKILL.md'), body)
+  await writeFile(join(skills, name, 'agents', 'openai.yaml'), newSkillOpenAi)
+}
+
+test('a new skill folder ships with no script change', async () => {
+  await withTemp(async (tempDir) => {
+    const fixture = await fixtureRepo(tempDir, skills => addSkillFolder(skills, 'agent-qa-zzz'))
+    const fixtureSkills = join(fixture, 'skills')
+    execFileSync(process.execPath, [join(fixtureSkills, 'scripts', 'validate-skills.mjs')], { stdio: 'pipe' })
+
+    const stagedDir = join(tempDir, 'staged')
+    await stagePublishPackages({ rootDir: fixture, targetVersion: '0.1.1', outputDir: stagedDir })
+    const stagedSkills = join(stagedDir, 'cli', 'skills')
+
+    const sourceSet = skillFolderNames(fixtureSkills)
+    assert.ok(sourceSet.includes('agent-qa-zzz'))
+    assert.deepEqual(readdirSync(stagedSkills).sort(), sourceSet)
+    assertSameFiles(join(fixtureSkills, 'agent-qa-zzz'), join(stagedSkills, 'agent-qa-zzz'), 'agent-qa-zzz')
+  })
+})
+
+test('source skill validation requires every reference a SKILL.md body names', async () => {
+  await withTemp(async (tempDir) => {
+    const skills = join(tempDir, 'skills')
+    await cp(join(rootDir, 'skills'), skills, { recursive: true })
+    await addSkillFolder(skills, 'agent-qa-zzz', `${newSkillBody}Read references/missing.md first.\n`)
+    assert.throws(
+      () => execFileSync(process.execPath, [join(skills, 'scripts', 'validate-skills.mjs')], { stdio: 'pipe', encoding: 'utf8' }),
+      error => /agent-qa-zzz: missing references\/missing\.md/.test(String(error.stderr)),
+    )
+    await mkdir(join(skills, 'agent-qa-zzz', 'references'))
+    await writeFile(join(skills, 'agent-qa-zzz', 'references', 'missing.md'), 'Present now.\n')
+    execFileSync(process.execPath, [join(skills, 'scripts', 'validate-skills.mjs')], { stdio: 'pipe' })
   })
 })
 

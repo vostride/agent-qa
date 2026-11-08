@@ -7,8 +7,10 @@ import test from 'node:test'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import {
   builtPackageSourceMapErrors,
+  copiedSkillErrors,
   danglingSourceMapUrls,
   pluginPackageErrors,
+  sourceSkillNames,
 } from '../validate-publish-surface.mjs'
 
 const scriptsDir = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -195,4 +197,49 @@ test('a plugin package without exports or a manifest is refused', () => {
     `${name} must export only ./package.json`,
     `${name} agent-qa.plugin must be a remote plugin manifest`,
   ])
+})
+
+function writeSkill(skillsRoot, name, files) {
+  for (const [file, body] of Object.entries(files)) {
+    mkdirSync(join(skillsRoot, name, file, '..'), { recursive: true })
+    writeFileSync(join(skillsRoot, name, file), body)
+  }
+}
+
+test('the packaged skill check names a source skill folder whose packaged copy is missing', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'agent-qa-copied-skills-'))
+  try {
+    const source = join(dir, 'source')
+    const packaged = join(dir, 'packaged')
+    const files = {
+      'SKILL.md': '---\nname: agent-qa-zzz\ndescription: x\n---\nRead references/notes.md.\n',
+      'agents/openai.yaml': 'interface: {}\n',
+      'references/notes.md': 'notes\n',
+    }
+    writeSkill(source, 'agent-qa-zzz', files)
+    mkdirSync(join(source, 'scripts'), { recursive: true })
+    mkdirSync(packaged, { recursive: true })
+
+    assert.deepEqual(sourceSkillNames(source), ['agent-qa-zzz'])
+    assert.deepEqual(copiedSkillErrors(source, packaged), [
+      'agent-qa packaged skill missing agent-qa-zzz/SKILL.md',
+      'agent-qa packaged skill missing agent-qa-zzz/agents/openai.yaml',
+      'agent-qa packaged skill missing agent-qa-zzz/references/notes.md',
+    ])
+
+    writeSkill(packaged, 'agent-qa-zzz', files)
+    assert.deepEqual(copiedSkillErrors(source, packaged), [])
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
+})
+
+test('a skills folder holding no folder with a SKILL.md is refused', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'agent-qa-copied-skills-'))
+  try {
+    mkdirSync(join(dir, 'scripts'), { recursive: true })
+    assert.throws(() => sourceSkillNames(dir), /no skill folders with a SKILL\.md under/)
+  } finally {
+    rmSync(dir, { recursive: true, force: true })
+  }
 })
