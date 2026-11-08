@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 
 import {
+  AGENT_SETUP_MANIFEST_PATH,
   AGENT_SKILL_ROOTS,
   agentOfManifestPath,
   type AGENT_SETUP_ENTRY_FILES,
@@ -13,11 +14,14 @@ import {
 } from './agent-setup-manifest.js'
 import {
   classifyInitPath,
+  preflightManagedBlockRemoval,
   removeEmptyFoldersUpTo,
   removeFileInsideRoot,
+  removeManagedBlockFromFile,
   upsertManagedBlock,
   writeScaffoldFileAtomic,
 } from './init-filesystem.js'
+import { InitRefusal } from './init-refusal.js'
 import { buildAgentInstructionPointer, type AgentInstructionSkill } from './knowledge-guide.js'
 import {
   AGENT_QA_INIT_MARKDOWN_BLOCK,
@@ -25,7 +29,14 @@ import {
   renderManagedBlock,
   type ManagedBlockContent,
 } from './managed-block.js'
-import { upsertClaudeCodeMcpEntry, upsertCodexMcpEntry, type McpEntryEdit } from './mcp-entries.js'
+import {
+  removeClaudeCodeMcpEntry,
+  removeCodexMcpEntry,
+  upsertClaudeCodeMcpEntry,
+  upsertCodexMcpEntry,
+  type McpEntryEdit,
+  type McpEntryRemoval,
+} from './mcp-entries.js'
 import { projectHost, type ProjectHost } from './project-host.js'
 import {
   PLUGIN_SKILL_FOLDER_PREFIX,
@@ -61,6 +72,13 @@ export const AGENT_MCP_ENTRY_KEYS: Readonly<Record<CodingAgent, string>> = {
 const MCP_UPSERTS: Readonly<Record<CodingAgent, (text: string | undefined) => McpEntryEdit>> = {
   'claude-code': upsertClaudeCodeMcpEntry,
   codex: upsertCodexMcpEntry,
+}
+
+const MCP_REMOVALS: Readonly<
+  Record<CodingAgent, (text: string | undefined) => McpEntryRemoval>
+> = {
+  'claude-code': removeClaudeCodeMcpEntry,
+  codex: removeCodexMcpEntry,
 }
 
 export type AgentSetupFileOutcome =
@@ -475,5 +493,277 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
   }
   if (runBlock) result.parts['agents-md'] = partResult(chosen, blockFailure ?? manifestFailure)
   if (runMcp) result.parts.mcp = partResult(chosen, mcpFailures[0] ?? manifestFailure)
+  return result
+}
+
+export type AgentRemovalOutcome = 'removed' | 'missing'
+
+export interface AgentRemovalFile {
+  path: string
+  outcome: AgentRemovalOutcome
+  edited: boolean
+}
+
+export interface AgentRemovalEntry {
+  file: string
+  key: string
+  outcome: AgentRemovalOutcome
+  edited: boolean
+}
+
+export interface AgentRemovalAgent {
+  agent: CodingAgent
+  skillRoot: string
+  skills: number
+  files: AgentRemovalFile[]
+  entries: AgentRemovalEntry[]
+}
+
+export interface AgentRemovalBlock {
+  outcome: 'removed' | 'missing' | 'kept' | 'unlisted'
+  edited: boolean
+}
+
+export type AgentRemovalResult =
+  | { installed: false; projectDir: string; dryRun: boolean }
+  | {
+      installed: true
+      projectDir: string
+      dryRun: boolean
+      removed: AgentRemovalAgent[]
+      notInstalled: CodingAgent[]
+      remaining: CodingAgent[]
+      block: AgentRemovalBlock
+      manifest: 'removed' | 'rewritten' | 'unchanged'
+    }
+
+export interface AgentRemovalOptions {
+  projectDir: string
+  agents?: readonly CodingAgent[]
+  dryRun?: boolean
+}
+
+// A write failed after the plan was made; the manifest is written last, so a re-run continues.
+export class AgentRemovalFailure extends Error {
+  readonly target: string
+
+  constructor(target: string, cause: unknown) {
+    super(`Could not remove ${target}: ${errorMessage(cause).replace(/\s+/gu, ' ')}`, { cause })
+    this.name = 'AgentRemovalFailure'
+    this.target = target
+  }
+}
+
+interface PlannedRemoval {
+  path: string
+  absolute: string
+  outcome: AgentRemovalOutcome
+}
+
+interface PlannedHostEdit extends AgentRemovalEntry {
+  agent: CodingAgent
+  absolute: string
+  text: string | undefined
+}
+
+function attempt(target: string, operation: () => unknown): void {
+  try {
+    operation()
+  } catch (error) {
+    throw new AgentRemovalFailure(target, error)
+  }
+}
+
+function agentsBlockContent(): ManagedBlockContent {
+  return { descriptor: AGENT_QA_INIT_MARKDOWN_BLOCK, target: AGENTS_MD_FILE, body: [] }
+}
+
+function installedAgents(manifest: AgentSetupManifest): CodingAgent[] {
+  return CODING_AGENTS.filter(
+    (agent) =>
+      manifest.agents.includes(agent) ||
+      manifest.files.some((file) => agentOfManifestPath(file.path) === agent) ||
+      manifest.entries.some((entry) => entry.file === AGENT_MCP_FILES[agent]),
+  )
+}
+
+function planHostEdit(
+  projectDir: string,
+  agent: CodingAgent,
+  listed: ManifestEntry,
+): PlannedHostEdit {
+  const absolute = join(projectDir, listed.file)
+  const text =
+    classifyInitPath(absolute, projectDir) === 'regular'
+      ? readFileSync(absolute, 'utf-8')
+      : undefined
+  const removal = MCP_REMOVALS[agent](text)
+  if ('refused' in removal) throw new InitRefusal(removal.refused)
+  return {
+    agent,
+    absolute,
+    file: listed.file,
+    key: listed.key,
+    text: removal.text,
+    outcome: removal.previous === undefined ? 'missing' : 'removed',
+    edited: removal.previous !== undefined && sha256Of(removal.previous) !== listed.sha256,
+  }
+}
+
+// Every read, parse and refusal happens before the first write; only listed paths are touched.
+export async function removeAgentSetup(options: AgentRemovalOptions): Promise<AgentRemovalResult> {
+  const projectDir = resolve(options.projectDir)
+  const dryRun = options.dryRun === true
+  const manifest = readAgentSetupManifest(projectDir)
+  if (manifest === undefined) return { installed: false, projectDir, dryRun }
+
+  const installed = installedAgents(manifest)
+  const requested = options.agents ?? CODING_AGENTS
+  const chosen = installed.filter((agent) => requested.includes(agent))
+  const notInstalled =
+    options.agents === undefined
+      ? []
+      : CODING_AGENTS.filter((agent) => requested.includes(agent) && !installed.includes(agent))
+  const remaining = installed.filter((agent) => !chosen.includes(agent))
+  const blockEntry = manifest.entries.find(isBlockEntry)
+  let block: AgentRemovalBlock = {
+    outcome: blockEntry === undefined ? 'unlisted' : 'kept',
+    edited: false,
+  }
+  if (chosen.length === 0) {
+    return {
+      installed: true,
+      projectDir,
+      dryRun,
+      removed: [],
+      notInstalled,
+      remaining,
+      block,
+      manifest: 'unchanged',
+    }
+  }
+
+  const removed: AgentRemovalAgent[] = chosen.map((agent) => ({
+    agent,
+    skillRoot: AGENT_SKILL_ROOTS[agent],
+    skills: 0,
+    files: [],
+    entries: [],
+  }))
+  const reportOf = (agent: CodingAgent): AgentRemovalAgent =>
+    removed.find((report) => report.agent === agent)!
+
+  const files: PlannedRemoval[] = []
+  for (const listed of [...manifest.files].sort(byPath)) {
+    const agent = agentOfManifestPath(listed.path)
+    if (agent === undefined || !chosen.includes(agent)) continue
+    const absolute = join(projectDir, listed.path)
+    const present = classifyInitPath(absolute, projectDir) === 'regular'
+    const outcome: AgentRemovalOutcome = present ? 'removed' : 'missing'
+    const edited = present && sha256Of(readFileSync(absolute)) !== listed.sha256
+    files.push({ path: listed.path, absolute, outcome })
+    reportOf(agent).files.push({ path: listed.path, outcome, edited })
+  }
+  for (const report of removed) {
+    const folders = report.files
+      .filter((file) => file.outcome === 'removed')
+      .map((file) => skillFolderOf(file.path, report.agent))
+    report.skills = new Set(folders).size
+  }
+
+  const hosts: PlannedHostEdit[] = []
+  for (const agent of chosen) {
+    const listed = manifest.entries.find(
+      (entry) => entry.file === AGENT_MCP_FILES[agent] && entry.key === AGENT_MCP_ENTRY_KEYS[agent],
+    )
+    if (listed === undefined) continue
+    const host = planHostEdit(projectDir, agent, listed)
+    hosts.push(host)
+    reportOf(agent).entries.push({
+      file: host.file,
+      key: host.key,
+      outcome: host.outcome,
+      edited: host.edited,
+    })
+  }
+
+  const blockPlan = {
+    path: join(projectDir, AGENTS_MD_FILE),
+    root: projectDir,
+    content: agentsBlockContent(),
+  }
+  if (remaining.length === 0 && blockEntry !== undefined) {
+    const planned = preflightManagedBlockRemoval(blockPlan)
+    const span =
+      planned === undefined ? undefined : locateManagedBlock(planned.existing, blockPlan.content)
+    block =
+      planned === undefined || span === undefined
+        ? { outcome: 'missing', edited: false }
+        : {
+            outcome: 'removed',
+            edited: sha256Of(planned.existing.slice(span.start, span.end)) !== blockEntry.sha256,
+          }
+  }
+
+  const next: AgentSetupManifest = {
+    ...manifest,
+    agents: manifest.agents.filter((agent) => !chosen.includes(agent)),
+    files: manifest.files.filter((file) => {
+      const agent = agentOfManifestPath(file.path)
+      return agent === undefined || !chosen.includes(agent)
+    }),
+    entries: manifest.entries.filter(
+      (entry) => !chosen.some((agent) => entry.file === AGENT_MCP_FILES[agent]),
+    ),
+  }
+  const result: AgentRemovalResult = {
+    installed: true,
+    projectDir,
+    dryRun,
+    removed,
+    notInstalled,
+    remaining,
+    block,
+    manifest: remaining.length === 0 ? 'removed' : 'rewritten',
+  }
+  if (dryRun) return result
+
+  for (const file of files) {
+    if (file.outcome !== 'removed') continue
+    attempt(file.path, () => {
+      removeFileInsideRoot({ path: file.absolute, root: projectDir })
+      removeEmptyFoldersUpTo(file.absolute, projectDir)
+    })
+  }
+  for (const host of hosts) {
+    if (host.outcome !== 'removed') continue
+    attempt(`the agent-qa entry from ${host.file}`, () => {
+      if (host.text === undefined) {
+        removeFileInsideRoot({ path: host.absolute, root: projectDir })
+        removeEmptyFoldersUpTo(host.absolute, projectDir)
+      } else {
+        writeScaffoldFileAtomic({
+          path: host.absolute,
+          root: projectDir,
+          content: host.text,
+          force: true,
+        })
+      }
+    })
+  }
+  if (block.outcome === 'removed') {
+    attempt(`the agent-qa block from ${AGENTS_MD_FILE}`, () =>
+      removeManagedBlockFromFile(blockPlan),
+    )
+  }
+  attempt(AGENT_SETUP_MANIFEST_PATH, () => {
+    if (remaining.length > 0) {
+      writeAgentSetupManifest(projectDir, next)
+      return
+    }
+    const path = join(projectDir, AGENT_SETUP_MANIFEST_PATH)
+    removeFileInsideRoot({ path, root: projectDir })
+    removeEmptyFoldersUpTo(path, projectDir)
+  })
   return result
 }
