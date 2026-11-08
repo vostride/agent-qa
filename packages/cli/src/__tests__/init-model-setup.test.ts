@@ -333,6 +333,21 @@ describe('--llm, --model and --base-url', () => {
     expect(AgentQaConfigSchema.safeParse(writtenConfig(root)).success).toBe(true)
   })
 
+  it('an endpoint given --base-url without --model is refused with exit 2 and nothing is written', async () => {
+    const { root, error } = await init([
+      '--platform',
+      'web',
+      '--llm',
+      'openai-compatible',
+      '--base-url',
+      'https://llm.local/v1',
+    ])
+
+    expect(error).toMatchObject({ exitCode: 2 })
+    expect((error as Error).message).toMatch(/^--model is missing: /u)
+    expect(readdirSync(root)).toEqual(['.git'])
+  })
+
   it('a blank --model is refused with exit 2 and nothing is written', async () => {
     const { root, error } = await init(['--platform', 'web', '--model', '  '])
 

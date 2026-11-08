@@ -218,13 +218,30 @@ describe('the entry each new choice writes', () => {
     })
   })
 
-  it('an endpoint given only one of --base-url and --model writes no entry', () => {
-    expect(modelEntryFor(newPick('anthropic-compatible'), { model: 'm', saved: [] })).toEqual({
-      dashboard: { add: 'anthropic-compatible-key' },
+  it('an endpoint given only one of --base-url and --model is refused with exit 2 naming the other', () => {
+    const noBaseUrl = refusalFrom(() =>
+      modelEntryFor(newPick('anthropic-compatible'), { model: 'm', saved: [] }),
+    )
+    expect(noBaseUrl).toMatchObject({
+      exitCode: 2,
+      message:
+        '--base-url is missing: an endpoint takes --base-url and --model together, ' +
+        'or neither to set it up in the dashboard',
     })
-    expect(
+    const noModel = refusalFrom(() =>
       modelEntryFor(newPick('openai-compatible'), { baseUrl: 'https://llm.local/v1', saved: [] }),
-    ).toEqual({ dashboard: { add: 'openai-compatible-key' } })
+    )
+    expect(noModel).toMatchObject({ exitCode: 2 })
+    expect(noModel.message).toMatch(/^--model is missing: /u)
+  })
+
+  it('a saved compatible key given only --model is refused the same way', () => {
+    const saved = [api('work', 'openai-compatible')]
+    const refusal = refusalFrom(() =>
+      modelEntryFor(resolveLlmFlag('work', saved), { model: 'm', saved }),
+    )
+    expect(refusal.exitCode).toBe(2)
+    expect(refusal.message).toMatch(/^--base-url is missing: /u)
   })
 
   it('--model and --base-url override an API choice', () => {

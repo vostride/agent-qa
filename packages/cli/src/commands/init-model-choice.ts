@@ -155,6 +155,8 @@ export interface InitModelFlags {
 }
 
 const BASE_URL_FORM_REFUSAL = '--base-url must be an absolute http or https URL'
+const ENDPOINT_FLAGS_REFUSAL =
+  'an endpoint takes --base-url and --model together, or neither to set it up in the dashboard'
 const BASE_URL_PROVIDER_REFUSAL =
   '--base-url applies only to --llm anthropic, openai, openai-compatible or anthropic-compatible'
 
@@ -216,6 +218,10 @@ export function modelEntryFor(pick: InitModelPick, flags: InitModelFlags): InitM
   if (target.endpoint === true) {
     if (model !== undefined && baseURL !== undefined) {
       return { entry: { name: name(), provider, model, baseURL } }
+    }
+    if (model !== undefined || baseURL !== undefined) {
+      const missing = model === undefined ? '--model' : '--base-url'
+      throw new CliRefusal([`${missing} is missing: ${ENDPOINT_FLAGS_REFUSAL}`], 2)
     }
     const add = DASHBOARD_ADD[provider]!
     return { dashboard: pick.kind === 'saved' ? { add, name: pick.name } : { add } }
