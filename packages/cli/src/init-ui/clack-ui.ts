@@ -33,6 +33,17 @@ interface PromptStreams {
   signal: AbortSignal
 }
 
+// The signals that would end init with the cursor still hidden; the step runner owns SIGINT.
+const ENDING_SIGNALS = ['SIGTERM', 'SIGHUP'] as const
+
+export interface RailProcess {
+  readonly pid: number
+  on(event: string, listener: (signal: NodeJS.Signals) => void): unknown
+  off(event: string, listener: (signal: NodeJS.Signals) => void): unknown
+  listenerCount(event: string): number
+  kill(pid: number, signal: NodeJS.Signals): unknown
+}
+
 export type ClackUi = InitUi & {
   // Stops a spinner a step left running, as when a refusal passes through the step runner.
   dispose(): void
@@ -43,8 +54,10 @@ export function createClackUi(options: {
   output: Writable
   palette: BrandPalette
   columns: number
+  host?: RailProcess
 }): ClackUi {
   const { input, output, palette, columns } = options
+  const host: RailProcess = options.host ?? process
   const common = { output }
   const bar = palette.dim(S_BAR)
   let stopSpinner: (() => void) | undefined
@@ -103,10 +116,28 @@ export function createClackUi(options: {
     draw()
     const timer = setInterval(draw, SPINNER_DELAY_MS)
     timer.unref()
+    // A kill or an exit mid-step shows the cursor again; a signal nobody else handles then takes
+    // its default action, as it would have without this listener.
+    const showCursor = (): void => {
+      output.write(SHOW_CURSOR)
+    }
+    const release = (): void => {
+      host.off('exit', showCursor)
+      for (const signal of ENDING_SIGNALS) host.off(signal, onSignal)
+    }
+    const onSignal = (signal: NodeJS.Signals): void => {
+      release()
+      clearInterval(timer)
+      showCursor()
+      if (host.listenerCount(signal) === 0) host.kill(host.pid, signal)
+    }
+    host.on('exit', showCursor)
+    for (const signal of ENDING_SIGNALS) host.on(signal, onSignal)
     const close = (lines: readonly string[]): void => {
       if (stopSpinner !== stop) return
       stopSpinner = undefined
       clearInterval(timer)
+      release()
       const shown = lines.length === 0 ? '' : `${lines.join('\n')}\n`
       output.write(`${CLEAR_LINE}${shown}${SHOW_CURSOR}`)
     }
