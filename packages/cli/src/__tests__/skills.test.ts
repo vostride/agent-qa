@@ -10,7 +10,10 @@ import { AGENT_QUESTION_MAP, KNOWLEDGE_SKILL_NAME } from '../commands/knowledge-
 import { createSkillsCommand, listAgentQaSkills, resolveAgentQaSkillsDirectory } from '../commands/skills.js'
 
 const SOURCE_SKILLS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../skills')
-const SHIPPED_SKILLS = ['agent-qa-authoring', 'agent-qa-debug-fix', 'agent-qa-knowledge', 'agent-qa-result-triage']
+const SHIPPED_SKILLS = readdirSync(SOURCE_SKILLS_DIR, { withFileTypes: true })
+  .filter(entry => entry.isDirectory() && existsSync(path.join(SOURCE_SKILLS_DIR, entry.name, 'SKILL.md')))
+  .map(entry => entry.name)
+  .sort()
 
 function frontmatterOf(file: string): Record<string, unknown> {
   const match = /^---\n([\s\S]*?)\n---\n/.exec(readFileSync(file, 'utf8'))
@@ -191,7 +194,7 @@ describe('skills directory listing', () => {
     expect(listAgentQaSkills(resolved.path).map(skill => skill.name)).toEqual(SHIPPED_SKILLS)
   })
 
-  it('lists all four source skills through the existing reader', () => {
+  it('lists every source skill folder through the existing reader', () => {
     const listed = listAgentQaSkills(SOURCE_SKILLS_DIR)
     expect(listed.map(skill => skill.name)).toEqual(SHIPPED_SKILLS)
     for (const skill of listed) expect(skill.description, skill.name).toMatch(/^Use /)

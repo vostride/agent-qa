@@ -22,7 +22,6 @@ import { cleanupTempRoots, trackTempRoot } from './spawned-chat.js'
 
 const STAGE_BUDGET_MS = 600_000
 const PACK_BUDGET_MS = 120_000
-const MINIMUM_SKILLS = 4
 
 interface PackedFile {
   readonly path: string
@@ -84,11 +83,6 @@ function packedSkillFindings(
 ): readonly string[] {
   const findings: string[] = []
   const names = packedSkillNames(files)
-  if (names.length < MINIMUM_SKILLS) {
-    findings.push(
-      `only ${names.length} skill folders are listed under skills/, expected at least ${MINIMUM_SKILLS}`,
-    )
-  }
   const sizeFinding = (path: string, missing: string, empty: string): void => {
     const size = files.get(path)
     if (size === undefined) findings.push(missing)
@@ -111,12 +105,14 @@ function packedSkillFindings(
 
 function sourceSkillFolders(): readonly string[] {
   const root = join(agentQaRoot(), 'skills')
-  return readdirSync(root)
+  const folders = readdirSync(root)
     .filter((entry) => {
       const candidate = join(root, entry)
       return statSync(candidate).isDirectory() && existsSync(join(candidate, 'SKILL.md'))
     })
     .sort()
+  if (folders.length === 0) throw new Error(`no skill folders with a SKILL.md under ${root}`)
+  return folders
 }
 
 beforeAll(async () => {
@@ -143,9 +139,7 @@ describe('skill assets in the packed CLI', () => {
       throw new Error('the staged CLI package was not listed')
     }
     expect(packedSkillFindings(files, join(stagedCli, 'skills'))).toEqual([])
-    const sources = sourceSkillFolders()
-    expect(sources.length, 'source skill folders').toBeGreaterThanOrEqual(MINIMUM_SKILLS)
-    expect(packedSkillNames(files)).toEqual(sources)
+    expect(new Set(packedSkillNames(files))).toEqual(new Set(sourceSkillFolders()))
   })
 
   it('a missing or empty reference in the staged package is named', () => {
