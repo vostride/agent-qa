@@ -3,10 +3,18 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { getAuthPath, listSavedCredentials, type SavedCredential } from '@vostride/agent-qa-core'
+import { getProvider } from '@vostride/agent-qa-model'
+import { CliRefusal } from '../composition/cli-refusal.js'
 import {
   INIT_MODEL_CHOICES,
+  SAVED_PROVIDER_TO_CONFIG,
   initModelOptions,
+  modelEntryFor,
+  preselectedModel,
+  resolveLlmFlag,
+  type InitModelChoice,
   type InitModelOption,
+  type InitModelPick,
 } from '../commands/init-model-choice.js'
 import { cleanupTempProjects, tempProject } from './project-fixtures.js'
 
@@ -111,5 +119,293 @@ describe('model question options', () => {
       ['openai-compatible', 'OpenAI-compatible endpoint', 'set up in the dashboard'],
       ['anthropic-compatible', 'Anthropic-compatible endpoint', 'set up in the dashboard'],
     ])
+  })
+})
+
+function defaultModel(provider: string): string {
+  const model = getProvider(provider)?.defaultModel
+  if (model === undefined) throw new Error(`no default model for ${provider}`)
+  return model
+}
+
+function newPick(choice: InitModelChoice): InitModelPick {
+  return { kind: 'new', choice }
+}
+
+function refusalFrom(run: () => unknown): CliRefusal {
+  try {
+    run()
+  } catch (error) {
+    if (error instanceof CliRefusal) return error
+    throw error
+  }
+  throw new Error('expected a refusal')
+}
+
+const api = (name: string, provider: string): SavedCredential => ({ name, type: 'api', provider })
+const oauth = (name: string, provider: string): SavedCredential => ({
+  name,
+  type: 'oauth',
+  provider,
+})
+
+describe('the entry each new choice writes', () => {
+  it.each([
+    [
+      'claude-code',
+      { name: 'claude-code', provider: 'anthropic-subscription', model: 'anthropic-subscription' },
+    ],
+    ['codex', { name: 'codex', provider: 'openai-subscription', model: 'openai-subscription' }],
+    [
+      'anthropic',
+      {
+        name: 'anthropic',
+        provider: 'anthropic-compatible',
+        model: 'anthropic-compatible',
+        baseURL: 'https://api.anthropic.com/v1',
+      },
+    ],
+    [
+      'openai',
+      {
+        name: 'openai',
+        provider: 'openai-compatible',
+        model: 'openai-compatible',
+        baseURL: 'https://api.openai.com/v1',
+      },
+    ],
+    ['gemini', { name: 'gemini', provider: 'gemini', model: 'gemini' }],
+  ] as const)('%s writes its provider with the default model', (choice, expected) => {
+    expect(modelEntryFor(newPick(choice), { saved: [] })).toEqual({
+      entry: { ...expected, model: defaultModel(expected.model) },
+    })
+  })
+
+  it.each([
+    ['openai-compatible', 'openai-compatible-key'],
+    ['anthropic-compatible', 'anthropic-compatible-key'],
+  ] as const)('%s with no flags writes no entry and opens the dashboard', (choice, add) => {
+    expect(modelEntryFor(newPick(choice), { saved: [] })).toEqual({ dashboard: { add } })
+  })
+
+  it('an endpoint given both --base-url and --model writes a complete entry', () => {
+    expect(
+      modelEntryFor(newPick('openai-compatible'), {
+        baseUrl: 'https://llm.local/v1',
+        model: 'm',
+        saved: [],
+      }),
+    ).toEqual({
+      entry: {
+        name: 'openai-compatible',
+        provider: 'openai-compatible',
+        model: 'm',
+        baseURL: 'https://llm.local/v1',
+      },
+    })
+  })
+
+  it('an endpoint given only one of --base-url and --model writes no entry', () => {
+    expect(modelEntryFor(newPick('anthropic-compatible'), { model: 'm', saved: [] })).toEqual({
+      dashboard: { add: 'anthropic-compatible-key' },
+    })
+    expect(
+      modelEntryFor(newPick('openai-compatible'), { baseUrl: 'https://llm.local/v1', saved: [] }),
+    ).toEqual({ dashboard: { add: 'openai-compatible-key' } })
+  })
+
+  it('--model and --base-url override an API choice', () => {
+    expect(
+      modelEntryFor(newPick('openai'), {
+        model: 'gpt-x',
+        baseUrl: 'https://proxy.local/v1',
+        saved: [],
+      }),
+    ).toEqual({
+      entry: {
+        name: 'openai',
+        provider: 'openai-compatible',
+        model: 'gpt-x',
+        baseURL: 'https://proxy.local/v1',
+      },
+    })
+  })
+})
+
+describe('the entry a saved credential writes', () => {
+  it('a saved Claude sign-in writes an entry under its name with the default model', () => {
+    const saved = [oauth('claude-code', 'anthropic-subscription')]
+    const [pick] = initModelOptions(saved)
+    expect(modelEntryFor(pick!.value, { saved })).toEqual({
+      entry: {
+        name: 'claude-code',
+        provider: 'anthropic-subscription',
+        model: defaultModel('anthropic-subscription'),
+      },
+    })
+  })
+
+  it('a saved ChatGPT sign-in and a saved Gemini key write entries under their names', () => {
+    const saved = [oauth('chat', 'openai-subscription-oauth'), api('g', 'gemini')]
+    const entries = initModelOptions(saved)
+      .filter((option) => option.value.kind === 'saved')
+      .map((option) => modelEntryFor(option.value, { saved }).entry)
+    expect(entries).toEqual([
+      { name: 'chat', provider: 'openai-subscription', model: defaultModel('openai-subscription') },
+      { name: 'g', provider: 'gemini', model: defaultModel('gemini') },
+    ])
+  })
+
+  it('a saved compatible key writes no entry and names the dashboard page', () => {
+    const saved = [api('work', 'openai-compatible')]
+    const [pick] = initModelOptions(saved)
+    expect(modelEntryFor(pick!.value, { saved })).toEqual({
+      dashboard: { add: 'openai-compatible-key', name: 'work' },
+    })
+  })
+})
+
+describe('the name a new choice writes', () => {
+  it('takes <name>-2 when the store holds the stable name for another provider', () => {
+    const saved = [api('openai', 'gemini')]
+    expect(modelEntryFor(newPick('openai'), { saved }).entry?.name).toBe('openai-2')
+  })
+
+  it('takes the first free name past every taken one', () => {
+    const saved = [api('openai', 'gemini'), oauth('openai-2', 'anthropic-subscription')]
+    expect(modelEntryFor(newPick('openai'), { saved }).entry?.name).toBe('openai-3')
+  })
+
+  it('keeps the stable name when the store holds it for the same provider', () => {
+    const saved = [api('openai', 'openai-compatible')]
+    expect(modelEntryFor(newPick('openai'), { saved }).entry?.name).toBe('openai')
+    const codex = [oauth('codex', 'openai-subscription-oauth')]
+    expect(modelEntryFor(newPick('codex'), { saved: codex }).entry?.name).toBe('codex')
+  })
+
+  it('gives a flag-built endpoint entry a free name too', () => {
+    const saved = [api('openai-compatible', 'gemini')]
+    const entry = modelEntryFor(newPick('openai-compatible'), {
+      baseUrl: 'https://llm.local/v1',
+      model: 'm',
+      saved,
+    }).entry
+    expect(entry?.name).toBe('openai-compatible-2')
+  })
+
+  it('writes a name that is free or held by the same provider, for every choice and store', async () => {
+    const stores: SavedCredential[][] = [
+      [],
+      await savedFrom(FIXTURE_STORE),
+      INIT_MODEL_CHOICES.map((choice) => api(choice, 'some-unknown-provider')),
+      INIT_MODEL_CHOICES.map((choice) => oauth(choice, 'anthropic-subscription')),
+      INIT_MODEL_CHOICES.flatMap((choice) => [api(choice, 'gemini'), api(`${choice}-2`, 'gemini')]),
+      INIT_MODEL_CHOICES.map((choice) => api(choice, 'openai-compatible')),
+    ]
+    for (const saved of stores) {
+      for (const choice of INIT_MODEL_CHOICES) {
+        const { entry } = modelEntryFor(newPick(choice), {
+          baseUrl: choice.endsWith('-compatible') ? 'https://llm.local/v1' : undefined,
+          model: choice.endsWith('-compatible') ? 'm' : undefined,
+          saved,
+        })
+        expect(entry).toBeDefined()
+        const holder = saved.find((credential) => credential.name === entry!.name)
+        if (holder !== undefined) {
+          expect(SAVED_PROVIDER_TO_CONFIG[holder.provider]).toBe(entry!.provider)
+        }
+      }
+    }
+  })
+})
+
+describe('the pre-selected model', () => {
+  it('is a saved claude-code sign-in when there is one', async () => {
+    expect(preselectedModel(await savedFrom(FIXTURE_STORE))).toEqual({
+      kind: 'saved',
+      name: 'claude-code',
+      provider: 'anthropic-subscription',
+      type: 'oauth',
+    })
+  })
+
+  it('is another saved working model when claude-code is not saved', () => {
+    expect(preselectedModel([api('g', 'gemini')])).toEqual({
+      kind: 'saved',
+      name: 'g',
+      provider: 'gemini',
+      type: 'api',
+    })
+  })
+
+  it('is never a compatible key, which needs the dashboard', () => {
+    expect(preselectedModel([api('work', 'openai-compatible')])).toEqual(newPick('claude-code'))
+  })
+
+  it('is the Claude subscription when nothing is saved', () => {
+    expect(preselectedModel([])).toEqual(newPick('claude-code'))
+  })
+})
+
+describe('--llm', () => {
+  const saved = [api('work', 'openai-compatible'), oauth('a b', 'anthropic-subscription')]
+
+  it('takes one of the seven ids as a new choice', () => {
+    expect(resolveLlmFlag('openai', saved)).toEqual(newPick('openai'))
+  })
+
+  it('takes a listed saved name as that credential', () => {
+    expect(resolveLlmFlag('work', saved)).toEqual({
+      kind: 'saved',
+      name: 'work',
+      provider: 'openai-compatible',
+      type: 'api',
+    })
+  })
+
+  it('refuses anything else with exit 2, naming the seven ids', () => {
+    for (const value of ['nope', 'a b']) {
+      const refusal = refusalFrom(() => resolveLlmFlag(value, saved))
+      expect(refusal.exitCode).toBe(2)
+      for (const choice of INIT_MODEL_CHOICES) expect(refusal.message).toContain(choice)
+    }
+  })
+})
+
+describe('--model and --base-url', () => {
+  it('refuses an empty or blank --model with exit 2', () => {
+    for (const model of ['', '   ']) {
+      expect(
+        refusalFrom(() => modelEntryFor(newPick('gemini'), { model, saved: [] })).exitCode,
+      ).toBe(2)
+    }
+  })
+
+  it('trims --model and --base-url', () => {
+    expect(
+      modelEntryFor(newPick('openai-compatible'), {
+        model: '  m  ',
+        baseUrl: '  https://llm.local/v1 ',
+        saved: [],
+      }).entry,
+    ).toMatchObject({ model: 'm', baseURL: 'https://llm.local/v1' })
+  })
+
+  it('refuses --base-url on a provider without a base URL with exit 2', () => {
+    for (const pick of [newPick('gemini'), newPick('claude-code')]) {
+      const refusal = refusalFrom(() =>
+        modelEntryFor(pick, { baseUrl: 'https://llm.local/v1', saved: [] }),
+      )
+      expect(refusal.exitCode).toBe(2)
+      expect(refusal.message).toContain('--base-url')
+    }
+  })
+
+  it('refuses a --base-url that is not absolute http or https with exit 2', () => {
+    const refusal = refusalFrom(() =>
+      modelEntryFor(newPick('openai'), { baseUrl: 'ftp://llm.local/v1', saved: [] }),
+    )
+    expect(refusal.exitCode).toBe(2)
+    expect(refusal.message).toBe('--base-url must be an absolute http or https URL')
   })
 })
