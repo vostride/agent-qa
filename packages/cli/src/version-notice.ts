@@ -1,15 +1,14 @@
 import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises'
-import { get as httpsGet } from 'node:https'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 import {
+  claimAgentQaVersionRefresh,
   getAgentQaVersionCheckCachePath,
   readCachedAgentQaUpdateStatus,
-  refreshAgentQaVersionCheckInBackground,
-  type VersionCheckRequest,
 } from '@vostride/agent-qa-core'
 import { VERSION } from './index.js'
 import { updateNoticeApplies, type UpdateNoticeGate } from './update-notice-gate.js'
+import { spawnVersionRefresh, type VersionRefreshSpawn } from './version-refresh-spawn.js'
 
 export { updateNoticeApplies, type UpdateNoticeGate } from './update-notice-gate.js'
 
@@ -27,8 +26,7 @@ export interface UpdateNoticePrint {
 
 export type UpdateNoticeRun = UpdateNoticeGate &
   UpdateNoticePrint & {
-    request?: VersionCheckRequest
-    refresh?: boolean
+    spawnRefresh?: VersionRefreshSpawn
   }
 
 export async function printUpdateNotice(input: UpdateNoticePrint): Promise<void> {
@@ -58,21 +56,21 @@ export async function printUpdateNotice(input: UpdateNoticePrint): Promise<void>
 export async function runUpdateNotice(input: UpdateNoticeRun): Promise<void> {
   if (!updateNoticeApplies(input)) return
   await printUpdateNotice(input)
-  if (input.refresh === false) return
-  await refreshAgentQaVersionCheckInBackground({
-    homeDir: input.homeDir,
-    now: input.now,
-    request: input.request ?? httpsGet,
-  })
+  try {
+    if (await claimAgentQaVersionRefresh({ homeDir: input.homeDir, now: input.now })) {
+      const spawnRefresh = input.spawnRefresh ?? spawnVersionRefresh
+      spawnRefresh(input.homeDir)
+    }
+  } catch {
+    // The refresh is optional and never changes a command's outcome.
+  }
 }
 
 export async function processUpdateNotice(input: {
   json: boolean
   logLevel?: string
-  refresh?: boolean
 }): Promise<void> {
   await runUpdateNotice({
-    ...(input.refresh === undefined ? {} : { refresh: input.refresh }),
     env: process.env,
     stdoutIsTTY: process.stdout.isTTY === true,
     stderrIsTTY: process.stderr.isTTY === true,

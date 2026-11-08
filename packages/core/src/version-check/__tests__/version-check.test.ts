@@ -11,7 +11,9 @@ import {
   getAgentQaUpdateStatus,
   getAgentQaVersionCheckCachePath,
   readCachedAgentQaUpdateStatus,
-  refreshAgentQaVersionCheckInBackground,
+  VERSION_REFRESH_START_WINDOW_MS,
+  claimAgentQaVersionRefresh,
+  refreshAgentQaVersionCheck,
   type VersionCheckRequest,
   type VersionCheckResponse,
 } from '../index.js'
@@ -20,6 +22,7 @@ interface VersionCheckCacheFile {
   latestVersion?: string
   checkedAt?: string
   lastAttemptedAt?: string
+  refreshStartedAt?: string
 }
 
 type FetchCall = [string | URL | Request, RequestInit | undefined]
@@ -325,25 +328,29 @@ interface FakeRegistry {
   request: VersionCheckRequest
   calls: string[]
   cacheAtRequest: string[]
-  unrefs: number
+  destroys: number
   answer(body: unknown, statusCode?: number): void
+  fail(): void
 }
 
 // A registry stand-in that records each request and answers only when told to.
 function fakeRegistry(cachePath: string): FakeRegistry {
   const pending: Array<(response: VersionCheckResponse) => void> = []
+  const requests: EventEmitter[] = []
   const registry: FakeRegistry = {
     calls: [],
     cacheAtRequest: [],
-    unrefs: 0,
+    destroys: 0,
     request: (url, _options, onResponse) => {
       registry.calls.push(url)
       registry.cacheAtRequest.push(readFileSync(cachePath, 'utf-8'))
       pending.push(onResponse)
-      const req = Object.assign(new EventEmitter(), { destroy: () => undefined })
-      queueMicrotask(() => {
-        req.emit('socket', { unref: () => { registry.unrefs += 1 } })
+      const req = Object.assign(new EventEmitter(), {
+        destroy: () => {
+          registry.destroys += 1
+        },
       })
+      requests.push(req)
       return req
     },
     answer(body, statusCode = 200) {
@@ -355,6 +362,9 @@ function fakeRegistry(cachePath: string): FakeRegistry {
       for (const onResponse of pending.splice(0)) onResponse(response)
       response.emit('data', JSON.stringify(body))
       response.emit('end')
+    },
+    fail() {
+      for (const req of requests.splice(0)) req.emit('error', new Error('getaddrinfo EAI_AGAIN'))
     },
   }
   return registry
@@ -407,7 +417,7 @@ describe('readCachedAgentQaUpdateStatus', () => {
   })
 })
 
-describe('refreshAgentQaVersionCheckInBackground', () => {
+describe('claimAgentQaVersionRefresh', () => {
   let tempHome: string
   let cachePath: string
 
@@ -421,101 +431,108 @@ describe('refreshAgentQaVersionCheckInBackground', () => {
     await rm(tempHome, { recursive: true, force: true })
   })
 
-  it('records the attempt before the request starts and returns without waiting', async () => {
+  it('claims a stale cache once and marks the start without recording an attempt', async () => {
     await writeCache(cachePath, {
       latestVersion: '9.9.9',
       checkedAt: staleCheckedAt,
       lastAttemptedAt: staleCheckedAt,
     })
-    const registry = fakeRegistry(cachePath)
 
-    await refreshAgentQaVersionCheckInBackground({
-      homeDir: tempHome,
-      now: now.getTime(),
-      request: registry.request,
-    })
-
-    expect(registry.calls).toEqual(['https://registry.npmjs.org/agent-qa'])
-    expect(JSON.parse(registry.cacheAtRequest[0]!)).toEqual({
-      latestVersion: '9.9.9',
-      checkedAt: staleCheckedAt,
-      lastAttemptedAt: now.toISOString(),
-    })
-    expect(Object.keys(await readCache(cachePath)).sort()).toEqual([
-      'checkedAt',
-      'lastAttemptedAt',
-      'latestVersion',
-    ])
-    await new Promise((resolve) => setImmediate(resolve))
-    expect(registry.unrefs).toBe(1)
-  })
-
-  it('starts no second request inside the attempt window', async () => {
-    await writeCache(cachePath, {
+    expect(await claimAgentQaVersionRefresh({ homeDir: tempHome, now: now.getTime() })).toBe(true)
+    expect(await readCache(cachePath)).toEqual({
       latestVersion: '9.9.9',
       checkedAt: staleCheckedAt,
       lastAttemptedAt: staleCheckedAt,
+      refreshStartedAt: now.toISOString(),
     })
-    const registry = fakeRegistry(cachePath)
-
-    await refreshAgentQaVersionCheckInBackground({
-      homeDir: tempHome,
-      now: now.getTime(),
-      request: registry.request,
-    })
-    await refreshAgentQaVersionCheckInBackground({
-      homeDir: tempHome,
-      now: now.getTime() + hourMs,
-      request: registry.request,
-    })
-
-    expect(registry.calls).toHaveLength(1)
+    expect(await claimAgentQaVersionRefresh({ homeDir: tempHome, now: now.getTime() + 1000 })).toBe(
+      false,
+    )
   })
 
-  it('starts no request over a fresh cache and leaves it byte for byte', async () => {
+  it('claims again once a started refresh is older than its window', async () => {
+    await writeCache(cachePath, {
+      lastAttemptedAt: staleCheckedAt,
+      refreshStartedAt: now.toISOString(),
+    })
+
+    expect(
+      await claimAgentQaVersionRefresh({
+        homeDir: tempHome,
+        now: now.getTime() + VERSION_REFRESH_START_WINDOW_MS,
+      }),
+    ).toBe(true)
+  })
+
+  it('claims nothing over a fresh cache and leaves it byte for byte', async () => {
     await writeCache(cachePath, {
       latestVersion: '9.9.9',
       checkedAt: freshCheckedAt,
       lastAttemptedAt: freshCheckedAt,
     })
     const before = await readFile(cachePath, 'utf-8')
-    const registry = fakeRegistry(cachePath)
 
-    await refreshAgentQaVersionCheckInBackground({
-      homeDir: tempHome,
-      now: now.getTime(),
-      request: registry.request,
-    })
-
-    expect(registry.calls).toEqual([])
+    expect(await claimAgentQaVersionRefresh({ homeDir: tempHome, now: now.getTime() })).toBe(false)
     expect(await readFile(cachePath, 'utf-8')).toBe(before)
   })
 
-  it('writes the registry answer to the cache when it arrives', async () => {
+  it('claims nothing within a day of a finished attempt', async () => {
+    await writeCache(cachePath, { lastAttemptedAt: recentAttemptAt })
+
+    expect(await claimAgentQaVersionRefresh({ homeDir: tempHome, now: now.getTime() })).toBe(false)
+  })
+})
+
+describe('refreshAgentQaVersionCheck', () => {
+  let tempHome: string
+  let cachePath: string
+
+  beforeEach(async () => {
+    tempHome = await mkdtemp(join(tmpdir(), 'agent-qa-version-home-'))
+    cachePath = getAgentQaVersionCheckCachePath(tempHome)
+    await mkdir(join(tempHome, '.agent-qa'), { recursive: true })
+  })
+
+  afterEach(async () => {
+    await rm(tempHome, { recursive: true, force: true })
+  })
+
+  it('waits for a late registry answer and only then records the version and the attempt', async () => {
     await writeCache(cachePath, {
       latestVersion: '1.0.0',
       checkedAt: staleCheckedAt,
       lastAttemptedAt: staleCheckedAt,
+      refreshStartedAt: now.toISOString(),
     })
+    const before = await readFile(cachePath, 'utf-8')
     const registry = fakeRegistry(cachePath)
+    let finished = false
 
-    await refreshAgentQaVersionCheckInBackground({
+    const refresh = refreshAgentQaVersionCheck({
       homeDir: tempHome,
       now: now.getTime(),
       request: registry.request,
+    }).then(() => {
+      finished = true
     })
-    registry.answer({ 'dist-tags': { latest: '9.9.9' } })
+    await new Promise((resolve) => setTimeout(resolve, 50))
 
-    await vi.waitFor(async () => {
-      expect(await readCache(cachePath)).toEqual({
-        latestVersion: '9.9.9',
-        checkedAt: now.toISOString(),
-        lastAttemptedAt: now.toISOString(),
-      })
+    expect(registry.calls).toEqual(['https://registry.npmjs.org/agent-qa'])
+    expect(registry.cacheAtRequest).toEqual([before])
+    expect(finished).toBe(false)
+    expect(await readFile(cachePath, 'utf-8')).toBe(before)
+
+    registry.answer({ 'dist-tags': { latest: '9.9.9' } })
+    await refresh
+
+    expect(await readCache(cachePath)).toEqual({
+      latestVersion: '9.9.9',
+      checkedAt: now.toISOString(),
+      lastAttemptedAt: now.toISOString(),
     })
   })
 
-  it('keeps the cached version when the registry answers with an error', async () => {
+  it('keeps the cached version and records the attempt when the registry answers with an error', async () => {
     await writeCache(cachePath, {
       latestVersion: '1.0.0',
       checkedAt: staleCheckedAt,
@@ -523,18 +540,50 @@ describe('refreshAgentQaVersionCheckInBackground', () => {
     })
     const registry = fakeRegistry(cachePath)
 
-    await refreshAgentQaVersionCheckInBackground({
+    const refresh = refreshAgentQaVersionCheck({
       homeDir: tempHome,
       now: now.getTime(),
       request: registry.request,
     })
-    registry.answer({ error: 'not found' }, 404)
     await new Promise((resolve) => setImmediate(resolve))
+    registry.answer({ error: 'not found' }, 404)
+    await refresh
 
     expect(await readCache(cachePath)).toEqual({
       latestVersion: '1.0.0',
       checkedAt: staleCheckedAt,
       lastAttemptedAt: now.toISOString(),
     })
+  })
+
+  it('records the attempt when the lookup fails', async () => {
+    const registry = fakeRegistry(cachePath)
+    await writeCache(cachePath, {})
+
+    const refresh = refreshAgentQaVersionCheck({
+      homeDir: tempHome,
+      now: now.getTime(),
+      request: registry.request,
+    })
+    await new Promise((resolve) => setImmediate(resolve))
+    registry.fail()
+    await refresh
+
+    expect(await readCache(cachePath)).toEqual({ lastAttemptedAt: now.toISOString() })
+  })
+
+  it('gives up on a request that never answers at its deadline and records the attempt', async () => {
+    await writeCache(cachePath, {})
+    const registry = fakeRegistry(cachePath)
+
+    await refreshAgentQaVersionCheck({
+      homeDir: tempHome,
+      now: now.getTime(),
+      request: registry.request,
+      deadlineMs: 20,
+    })
+
+    expect(registry.destroys).toBe(1)
+    expect(await readCache(cachePath)).toEqual({ lastAttemptedAt: now.toISOString() })
   })
 })

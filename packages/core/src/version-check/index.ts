@@ -32,10 +32,6 @@ export interface VersionCheckOptions {
   homeDir?: string
 }
 
-export interface VersionCheckSocket {
-  unref(): unknown
-}
-
 export interface VersionCheckResponse {
   statusCode?: number
   setEncoding(encoding: BufferEncoding): unknown
@@ -62,6 +58,7 @@ interface VersionCheckCacheFile {
   latestVersion?: string
   checkedAt?: string
   lastAttemptedAt?: string
+  refreshStartedAt?: string
 }
 
 interface SemverApi {
@@ -129,16 +126,20 @@ export async function readCachedAgentQaUpdateStatus(options: {
   }
 }
 
-// Starts at most one registry request a day and never waits for it: the attempt is recorded
-// first, and the request's socket is unref'd so it cannot hold the process open.
-export async function refreshAgentQaVersionCheckInBackground(options: {
+// A refresh that started this recently is still running, or its process was stopped; either way
+// the next command leaves it alone.
+export const VERSION_REFRESH_START_WINDOW_MS = 10 * 60 * 1000
+export const VERSION_REFRESH_DEADLINE_MS = 15_000
+
+// Decides whether the caller should start a refresh, and marks it started. The daily attempt is
+// recorded only by the refresh itself, once its request ends.
+export async function claimAgentQaVersionRefresh(options: {
   homeDir?: string
   now: number
-  request: VersionCheckRequest
-}): Promise<void> {
+}): Promise<boolean> {
   try {
     const semver = getSemverApi()
-    if (!semver) return
+    if (!semver) return false
     const cachePath = getAgentQaVersionCheckCachePath(options.homeDir)
     const cache = await readVersionCheckCache(cachePath)
     const checkedAtMs = getTimestamp(cache?.checkedAt)
@@ -147,80 +148,130 @@ export async function refreshAgentQaVersionCheckInBackground(options: {
       checkedAtMs !== undefined &&
       options.now - checkedAtMs < VERSION_CHECK_CACHE_TTL_MS
     ) {
-      return
+      return false
     }
     const lastAttemptedAtMs = getTimestamp(cache?.lastAttemptedAt)
     if (
       lastAttemptedAtMs !== undefined &&
       options.now - lastAttemptedAtMs < VERSION_CHECK_CACHE_TTL_MS
     ) {
-      return
+      return false
     }
-
-    const nowIso = new Date(options.now).toISOString()
-    await writeVersionCheckCache(cachePath, {
-      latestVersion: cache?.latestVersion,
-      checkedAt: cache?.checkedAt,
-      lastAttemptedAt: nowIso,
+    const refreshStartedAtMs = getTimestamp(cache?.refreshStartedAt)
+    if (
+      refreshStartedAtMs !== undefined &&
+      options.now - refreshStartedAtMs < VERSION_REFRESH_START_WINDOW_MS
+    ) {
+      return false
+    }
+    return await writeVersionCheckCache(cachePath, {
+      ...cache,
+      refreshStartedAt: new Date(options.now).toISOString(),
     })
-    startRegistryRequest(options.request, semver, (latestVersion) => {
-      void writeVersionCheckCache(cachePath, {
-        latestVersion,
-        checkedAt: nowIso,
-        lastAttemptedAt: nowIso,
-      })
+  } catch {
+    return false
+  }
+}
+
+// Asks the registry once and waits for the request to end, then records the attempt, and the
+// version when one came back. Meant for a process of its own, so nothing here unrefs.
+export async function refreshAgentQaVersionCheck(options: {
+  homeDir?: string
+  now: number
+  request: VersionCheckRequest
+  deadlineMs?: number
+}): Promise<void> {
+  try {
+    const semver = getSemverApi()
+    if (!semver) return
+    const cachePath = getAgentQaVersionCheckCachePath(options.homeDir)
+    const latestVersion = await requestLatestVersion(
+      options.request,
+      semver,
+      getPositiveNumber(options.deadlineMs, VERSION_REFRESH_DEADLINE_MS),
+    )
+    const nowIso = new Date(options.now).toISOString()
+    const cache = await readVersionCheckCache(cachePath)
+    await writeVersionCheckCache(cachePath, {
+      latestVersion: latestVersion ?? cache?.latestVersion,
+      checkedAt: latestVersion === undefined ? cache?.checkedAt : nowIso,
+      lastAttemptedAt: nowIso,
     })
   } catch {
     // Version checks must never block CLI work.
   }
 }
 
-function startRegistryRequest(
+function requestLatestVersion(
   request: VersionCheckRequest,
   semver: SemverApi,
-  onLatestVersion: (latestVersion: string) => void,
-): void {
-  try {
-    const req = request(
-      AGENT_QA_NPM_REGISTRY_URL,
-      {
-        headers: { accept: 'application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8' },
-        timeout: VERSION_CHECK_TIMEOUT_MS,
-      },
-      (response) => {
-        try {
-          if (response.statusCode !== 200) {
-            response.resume()
-            return
-          }
-          response.setEncoding('utf8')
-          let body = ''
-          response.on('data', (chunk: string) => {
-            body += chunk
-            if (body.length > MAX_REGISTRY_RESPONSE_CHARS) req.destroy()
-          })
-          response.on('error', () => {})
-          response.on('end', () => {
-            try {
-              const parsed = JSON.parse(body) as unknown
-              if (!isRecord(parsed) || !isRecord(parsed['dist-tags'])) return
-              const latestVersion = getValidVersion(parsed['dist-tags'].latest, semver)
-              if (latestVersion) onLatestVersion(latestVersion)
-            } catch {
-              // A malformed registry answer leaves the cache as it was.
+  deadlineMs: number,
+): Promise<string | undefined> {
+  return new Promise((resolve) => {
+    let req: VersionCheckClientRequest | undefined
+    let settled = false
+    const settle = (latestVersion?: string) => {
+      if (settled) return
+      settled = true
+      clearTimeout(deadline)
+      resolve(latestVersion)
+    }
+    // A resolver that never answers is not covered by the request's own idle timeout.
+    const deadline = setTimeout(() => {
+      req?.destroy()
+      settle()
+    }, deadlineMs)
+    try {
+      req = request(
+        AGENT_QA_NPM_REGISTRY_URL,
+        {
+          headers: {
+            accept: 'application/vnd.npm.install-v1+json; q=1.0, application/json; q=0.8',
+          },
+          timeout: VERSION_CHECK_TIMEOUT_MS,
+        },
+        (response) => {
+          try {
+            if (response.statusCode !== 200) {
+              response.resume()
+              settle()
+              return
             }
-          })
-        } catch {
-          // Version checks must never block CLI work.
-        }
-      },
-    )
-    req.on('socket', (socket: VersionCheckSocket) => socket.unref())
-    req.on('timeout', () => req.destroy())
-    req.on('error', () => {})
-  } catch {
-    // Version checks must never block CLI work.
-  }
+            response.setEncoding('utf8')
+            let body = ''
+            response.on('data', (chunk: string) => {
+              body += chunk
+              if (body.length > MAX_REGISTRY_RESPONSE_CHARS) {
+                req?.destroy()
+                settle()
+              }
+            })
+            response.on('error', () => settle())
+            response.on('close', () => settle())
+            response.on('end', () => {
+              try {
+                const parsed = JSON.parse(body) as unknown
+                if (!isRecord(parsed) || !isRecord(parsed['dist-tags'])) return settle()
+                settle(getValidVersion(parsed['dist-tags'].latest, semver))
+              } catch {
+                settle()
+              }
+            })
+          } catch {
+            settle()
+          }
+        },
+      )
+      req.on('timeout', () => {
+        req?.destroy()
+        settle()
+      })
+      req.on('error', () => settle())
+      req.on('close', () => settle())
+    } catch {
+      settle()
+    }
+  })
 }
 
 async function getAgentQaUpdateStatusInternal(
@@ -375,6 +426,8 @@ async function readVersionCheckCache(cachePath: string): Promise<VersionCheckCac
       checkedAt: typeof parsed.checkedAt === 'string' ? parsed.checkedAt : undefined,
       lastAttemptedAt:
         typeof parsed.lastAttemptedAt === 'string' ? parsed.lastAttemptedAt : undefined,
+      refreshStartedAt:
+        typeof parsed.refreshStartedAt === 'string' ? parsed.refreshStartedAt : undefined,
     }
   } catch {
     return undefined
@@ -384,7 +437,7 @@ async function readVersionCheckCache(cachePath: string): Promise<VersionCheckCac
 async function writeVersionCheckCache(
   cachePath: string,
   cache: VersionCheckCacheFile,
-): Promise<void> {
+): Promise<boolean> {
   try {
     await mkdir(dirname(cachePath), { recursive: true })
     await writeFile(cachePath, JSON.stringify(cache, null, 2), {
@@ -396,8 +449,10 @@ async function writeVersionCheckCache(
     } catch {
       // Cache permissions are best effort.
     }
+    return true
   } catch {
     // Version checks must never block CLI or dashboard work.
+    return false
   }
 }
 

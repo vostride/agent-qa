@@ -7,6 +7,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { openDashboardUrl } from '../commands/dashboard.js'
 import { openInBrowser, systemBrowserOpener } from '../commands/open-url.js'
 import { projectHost, spawnRunner } from '../commands/project-host.js'
+import { runUpdateNotice } from '../version-notice.js'
+import { spawnVersionRefresh } from '../version-refresh-spawn.js'
 import { hermeticEnv } from './conformance/spawned-chat.js'
 import { cleanupTempProjects, tempProject } from './project-fixtures.js'
 import { assertNoGuardedCalls, takeGuardedCalls } from './test-side-effect-guard.js'
@@ -149,5 +151,38 @@ describe('the default browser opener in a test', () => {
 
     expect(takeGuardedCalls()).toEqual(['open http://localhost:3470'])
     expect(spawned.filter((call) => /^(open|xdg-open|cmd|rundll32)\b/u.test(call))).toEqual([])
+  })
+})
+
+describe('the default registry refresh in a test', () => {
+  const REFRESH_REFUSAL = 'A test reached a real registry refresh. Inject spawnRefresh.'
+
+  it('refuses the default spawn before any child starts and records it', () => {
+    const { home } = project()
+
+    expect(() => spawnVersionRefresh(home)).toThrow(REFRESH_REFUSAL)
+
+    expect(takeGuardedCalls()).toEqual(['refresh registry'])
+    expect(spawned.filter((call) => call.includes('version-refresh'))).toEqual([])
+  })
+
+  it('an update notice with no spawn of its own reaches the refusal, and the check names it', async () => {
+    const { home } = project()
+
+    await runUpdateNotice({
+      env: {},
+      stdoutIsTTY: true,
+      stderrIsTTY: true,
+      json: false,
+      homeDir: home,
+      now: Date.now(),
+      currentVersion: '0.0.0',
+      write: () => undefined,
+    })
+
+    expect(spawned.filter((call) => call.includes('version-refresh'))).toEqual([])
+    expect(() => assertNoGuardedCalls()).toThrow(
+      /^1 real side effects reached from this test: refresh registry\. Inject spawnRefresh\.$/u,
+    )
   })
 })

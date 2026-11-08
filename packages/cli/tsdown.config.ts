@@ -39,4 +39,5 @@ export default defineConfig([
   },
   { ...shared, entry: { cli: 'src/cli.ts' }, banner: { js: '#!/usr/bin/env node' } },
   { ...shared, entry: { 'cli-main': 'src/cli-main.ts' } },
+  { ...shared, entry: { 'version-refresh': 'src/version-refresh.ts' } },
 ])

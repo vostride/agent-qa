@@ -2233,7 +2233,7 @@ describe('run command — a project with no model', () => {
 })
 
 describe('run command — the update notice at the end of a run', () => {
-  type NoticeInput = { json: boolean; logLevel?: string; refresh?: boolean }
+  type NoticeInput = { json: boolean; logLevel?: string }
   type NoticeCall = { input: NoticeInput; exitsBefore: number }
   const streams = [process.stdout, process.stderr] as const
   let savedTTY: (PropertyDescriptor | undefined)[] = []
@@ -2299,7 +2299,7 @@ describe('run command — the update notice at the end of a run', () => {
     await runCommandWithOptions({ updateNotice: recorder.notice }, [], 'tests/**/*.yaml')
 
     expect(recorder.calls).toEqual([
-      { input: { json: false, logLevel: 'warn', refresh: false }, exitsBefore: 0 },
+      { input: { json: false, logLevel: 'warn' }, exitsBefore: 0 },
     ])
     expect(exitSpy.mock.calls[0]).toEqual([0])
   })

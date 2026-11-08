@@ -450,4 +450,10 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     clearedBy: '386',
     reason: 'version notice reads host state directly; relocates with the composition root',
   },
+  {
+    file: 'packages/cli/src/version-refresh.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '386',
+    reason: 'the detached registry refresh writes the version-check cache directly; relocates with the version notice',
+  },
 ]

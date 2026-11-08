@@ -1,9 +1,7 @@
-import { EventEmitter } from 'node:events'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import type { VersionCheckRequest } from '@vostride/agent-qa-core'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { createAgentQaProgram } from '../program.js'
@@ -64,14 +62,13 @@ function staleCache(): Record<string, string> {
   return { latestVersion: '9.9.9', checkedAt: isoHoursAgo(25), lastAttemptedAt: isoHoursAgo(25) }
 }
 
-// Records each registry request and never answers it.
-function recordingRequest(): { request: VersionCheckRequest; calls: string[] } {
+// Records each refresh child the notice would start, and starts none.
+function recordingSpawn(): { spawnRefresh: (homeDir: string) => void; calls: string[] } {
   const calls: string[] = []
   return {
     calls,
-    request: (url) => {
-      calls.push(url)
-      return Object.assign(new EventEmitter(), { destroy: () => undefined })
+    spawnRefresh: (homeDir) => {
+      calls.push(homeDir)
     },
   }
 }
@@ -98,12 +95,10 @@ async function notice(
   options: {
     now?: number
     gate?: Partial<UpdateNoticeGate>
-    request?: VersionCheckRequest
-    refresh?: boolean
   } = {},
 ): Promise<{ text: string; calls: string[] }> {
   const written: string[] = []
-  const recorder = recordingRequest()
+  const recorder = recordingSpawn()
   await runUpdateNotice({
     ...OPEN_GATE,
     ...options.gate,
@@ -113,8 +108,7 @@ async function notice(
     write: (text) => {
       written.push(text)
     },
-    request: options.request ?? recorder.request,
-    ...(options.refresh === undefined ? {} : { refresh: options.refresh }),
+    spawnRefresh: recorder.spawnRefresh,
   })
   return { text: written.join(''), calls: recorder.calls }
 }
@@ -169,7 +163,7 @@ describe('the shared gate for the notice and the registry refresh', () => {
   })
 
   it.each(CLOSED_GATES)(
-    'with %s prints nothing, makes no request and leaves version-check.json byte for byte',
+    'with %s prints nothing, starts no refresh and leaves version-check.json byte for byte',
     async (_name, gate) => {
       const home = tempHome(staleCache())
       const before = readFileSync(cachePath(home))
@@ -183,24 +177,61 @@ describe('the shared gate for the notice and the registry refresh', () => {
     },
   )
 
-  it('with the gate open over a stale cache starts exactly one registry request', async () => {
+  it('with the gate open over a stale cache starts one refresh child for this home', async () => {
     const home = tempHome(staleCache())
 
     const { text, calls } = await notice(home)
 
     expect(text).toContain('npx agent-qa@latest init')
-    expect(calls).toEqual(['https://registry.npmjs.org/agent-qa'])
+    expect(calls).toEqual([home])
   })
 
-  it('with the refresh off prints from a stale cache and starts no request', async () => {
+  it('leaves the daily attempt to the refresh child, so a command that ends at once burns none', async () => {
     const home = tempHome(staleCache())
-    const before = readFileSync(cachePath(home))
 
-    const { text, calls } = await notice(home, { refresh: false })
+    await notice(home)
 
-    expect(text).toContain('npx agent-qa@latest init')
+    expect(JSON.parse(readFileSync(cachePath(home), 'utf-8'))).toEqual({
+      ...staleCache(),
+      refreshStartedAt: new Date(NOW).toISOString(),
+    })
+  })
+
+  it('starts no second refresh child while the first may still be running', async () => {
+    const home = tempHome(staleCache())
+
+    const first = await notice(home)
+    const second = await notice(home, { now: NOW + 60_000 })
+
+    expect(first.calls).toEqual([home])
+    expect(second.calls).toEqual([])
+  })
+
+  it('over a fresh cache starts no refresh child', async () => {
+    const { calls } = await notice(tempHome(freshCache()))
+
     expect(calls).toEqual([])
-    expect(readFileSync(cachePath(home)).equals(before)).toBe(true)
+  })
+
+  it('a refresh spawn that throws leaves the notice printed and the command untouched', async () => {
+    const home = tempHome(staleCache())
+    const written: string[] = []
+
+    await expect(
+      runUpdateNotice({
+        ...OPEN_GATE,
+        homeDir: home,
+        now: NOW,
+        currentVersion: CURRENT,
+        write: (text) => {
+          written.push(text)
+        },
+        spawnRefresh: () => {
+          throw new Error('spawn EAGAIN')
+        },
+      }),
+    ).resolves.toBeUndefined()
+    expect(written.join('')).toContain('npx agent-qa@latest init')
   })
 })
 
@@ -327,7 +358,7 @@ describe('the built CLI over pipes', () => {
       expect(outcome.code, outcome.stderr).toBe(0)
       expect(outcome.stdout).not.toMatch(NOTICE_TEXT)
       expect(outcome.stderr).not.toMatch(NOTICE_TEXT)
-      // A started refresh writes lastAttemptedAt first, so an unchanged file means no request.
+      // A refresh is claimed in this file before its child starts, so an unchanged file means none.
       expect(readFileSync(cachePath(home)).equals(before)).toBe(true)
       expect(existsSync(shownPath(home))).toBe(false)
       expect(elapsed).toBeLessThan(3_000)

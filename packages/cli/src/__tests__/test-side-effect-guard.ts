@@ -1,17 +1,20 @@
 // Loaded before every CLI test file: the default runner refuses a real browser install and a real
 // dashboard, the default openers (init's and the dashboard command's) refuse to open a real
-// browser, and the dashboard's port probe refuses a fixed port.
+// browser, the dashboard's port probe refuses a fixed port, and the update notice's default spawn
+// refuses to start a real registry refresh.
 import { afterEach, vi } from 'vitest'
 
 import type * as InitDashboardModule from '../commands/init-dashboard.js'
 import type * as OpenUrlModule from '../commands/open-url.js'
 import type * as ProjectHostModule from '../commands/project-host.js'
+import type * as VersionRefreshSpawnModule from '../version-refresh-spawn.js'
 
 const RECORD = Symbol.for('agent-qa.test-side-effect-guard')
 const INSTALL_ADVICE = 'Pass --no-browsers or inject host.run.'
 const DASHBOARD_ADVICE = 'Inject host.run or pass --no-dashboard.'
 const OPENER_ADVICE = 'Inject hooks.openUrl.'
 const PROBE_ADVICE = 'Inject hooks.dashboardPort or pass --no-dashboard.'
+const REFRESH_ADVICE = 'Inject spawnRefresh.'
 const REFUSAL = `A test reached the real browser install. ${INSTALL_ADVICE}`
 const DASHBOARD_REFUSAL = `A test reached a real dashboard. ${DASHBOARD_ADVICE}`
 // Linux hands out ports from 32768 and macOS and Windows from 49152, so a lower one is fixed.
@@ -91,8 +94,20 @@ vi.mock('../commands/init-dashboard.js', async (importOriginal) => {
   }
 })
 
+vi.mock('../version-refresh-spawn.js', async (importOriginal) => {
+  const real = await importOriginal<typeof VersionRefreshSpawnModule>()
+  const store = Symbol.for('agent-qa.test-side-effect-guard')
+  const spawnVersionRefresh: VersionRefreshSpawnModule.VersionRefreshSpawn = () => {
+    const calls = ((globalThis as unknown as GuardedGlobal)[store] ??= [])
+    calls.push('refresh registry')
+    throw new Error(`A test reached a real registry refresh. ${REFRESH_ADVICE}`)
+  }
+  return { ...real, spawnVersionRefresh }
+})
+
 function adviceFor(call: string): string {
   if (call.startsWith('open ')) return OPENER_ADVICE
+  if (call.startsWith('refresh ')) return REFRESH_ADVICE
   if (call.startsWith('probe ')) return PROBE_ADVICE
   return call.split(' ').includes('install-browsers') ? INSTALL_ADVICE : DASHBOARD_ADVICE
 }

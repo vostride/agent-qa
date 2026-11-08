@@ -8,11 +8,7 @@ export interface UpdateNoticeGate {
   logLevel?: string
 }
 
-export type UpdateNotice = (input: {
-  json: boolean
-  logLevel?: string
-  refresh?: boolean
-}) => Promise<void>
+export type UpdateNotice = (input: { json: boolean; logLevel?: string }) => Promise<void>
 
 // The one gate for both the notice and the registry refresh: people at a terminal only.
 export function updateNoticeApplies(gate: UpdateNoticeGate): boolean {
@@ -25,8 +21,8 @@ export function updateNoticeApplies(gate: UpdateNoticeGate): boolean {
   )
 }
 
-// For a command that ends through `process.exit`, which skips the program's postAction hook. It
-// starts no registry refresh, because the exit that follows would cut the request off.
+// For a command that ends through `process.exit`, which skips the program's postAction hook. The
+// registry refresh runs in a detached child, so the exit that follows does not cut it off.
 export async function showUpdateNoticeBeforeExit(
   updateNotice: UpdateNotice | undefined,
   logLevel: string | undefined,
@@ -40,7 +36,7 @@ export async function showUpdateNoticeBeforeExit(
       json: false,
       logLevel,
     })
-    if (applies) await updateNotice({ json: false, logLevel, refresh: false })
+    if (applies) await updateNotice({ json: false, logLevel })
   } catch {
     // The notice never changes a command's outcome.
   }

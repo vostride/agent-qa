@@ -477,6 +477,8 @@ function validatePackFiles(record, files, errors) {
   assert(files.some(file => file.startsWith('dist/')), `${name} tarball must include dist output after build`, errors)
 
   if (record.pkg.name === entryPackageName) {
+    // The update notice starts this entry as a detached child.
+    assert(files.includes('dist/version-refresh.js'), 'agent-qa tarball must include dist/version-refresh.js', errors)
     for (const skillName of sourceSkillNames(sourceSkillsRoot)) {
       assert(files.some(file => file.startsWith(`skills/${skillName}/`)), `agent-qa tarball must include skills/${skillName}`, errors)
     }
