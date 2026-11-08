@@ -2009,7 +2009,9 @@ function gitIgnores(cwd: string, path: string): boolean {
 async function runRealInit(dir: string, hooks: InitCommandHooks = {}): Promise<void> {
   mkdirSync(join(dir, '.git'), { recursive: true })
   const parent = new Command()
-  parent.addCommand(createInitCommand({ cwd: dir, ...hooks }))
+  // A temporary home, so init reads no real credential store.
+  const host = { homedir: tempRoot('agent-qa-init-filesystem-home-'), env: {}, ...hooks.host }
+  parent.addCommand(createInitCommand({ cwd: dir, ...hooks, host }))
   await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', '--pm', 'none'])
 }
 

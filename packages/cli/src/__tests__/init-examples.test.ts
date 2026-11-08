@@ -58,11 +58,6 @@ vi.mock('../commands/install-browsers.js', () => ({
   runBrowserInstall: vi.fn(() => ({ ok: true, status: 0, stage: 'installer' })),
 }))
 
-vi.mock('@inquirer/select', () => ({ default: vi.fn() }))
-vi.mock('@inquirer/input', () => ({ default: vi.fn() }))
-vi.mock('@inquirer/confirm', () => ({ default: vi.fn() }))
-vi.mock('@inquirer/password', () => ({ default: vi.fn() }))
-
 vi.mock('@vostride/agent-qa-core', () => ({
   writeAuth: vi.fn(() => Promise.resolve()),
   resolveAppiumExecutable: vi.fn(() => ({ command: 'appium', source: 'path' })),
@@ -71,6 +66,8 @@ vi.mock('@vostride/agent-qa-core', () => ({
   DEFAULT_AGENT_QA_CACHE_DIR: '.agent-qa/cache',
   DEFAULT_AGENT_QA_RUNTIME_DIR: '.agent-qa',
   getAgentQaVersion: vi.fn(() => '0.1.1'),
+  getAuthPath: vi.fn(() => '/tmp/test-home/.agent-qa/auth.json'),
+  listSavedCredentials: vi.fn(async () => []),
 }))
 
 import { createInitCommand } from '../commands/init.js'

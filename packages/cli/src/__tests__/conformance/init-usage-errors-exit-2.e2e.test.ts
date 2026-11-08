@@ -102,13 +102,29 @@ describe('init usage errors', () => {
   )
 
   it(
-    'an invalid init choice exits 2',
+    'an invalid --pm choice exits 2',
     async () => {
       expectFresh()
-      const outcome = await cli(['init', '--llm', 'gpt'])
+      const outcome = await cli(['init', '--pm', 'gpt'])
       expect(outcome.code).toBe(2)
       expect(outcome.stderr).toContain('Allowed choices are')
       expect(`${outcome.stdout}\n${outcome.stderr}`).not.toMatch(FRAME)
+    },
+    CELL_BUDGET_MS,
+  )
+
+  it(
+    'an unknown --llm exits 2 with one line naming the choices and writes nothing',
+    async () => {
+      expectFresh()
+      const outcome = await cli(['init', '--platform', 'web', '--llm', 'gpt'])
+      expect(outcome.code).toBe(2)
+      expect(outcome.stderr).toContain(
+        '--llm must be one of claude-code, codex, anthropic, openai, gemini, openai-compatible, '
+          + 'anthropic-compatible, or the name of a saved credential',
+      )
+      expect(`${outcome.stdout}\n${outcome.stderr}`).not.toMatch(FRAME)
+      expect(existsSync(join(outcome.root, 'agent-qa.config.yaml'))).toBe(false)
     },
     CELL_BUDGET_MS,
   )

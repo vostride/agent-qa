@@ -299,9 +299,13 @@ async function runInit(
   const previousExitCode = process.exitCode
   process.exitCode = undefined
   mkdirSync(join(dir, '.git'), { recursive: true })
+  // A temporary home, so init reads no real credential store.
+  const home = mkdtempSync(join(tmpdir(), 'agent-qa-root-optout-home-'))
   try {
     const parent = new Command().option('--config <path>', 'config file path')
-    parent.addCommand(createInitCommand({ cwd: dir, ...extraHooks }))
+    parent.addCommand(
+      createInitCommand({ cwd: dir, ...extraHooks, host: { homedir: home, env: {}, ...extraHooks.host } }),
+    )
     parent.exitOverride()
     await parent.parseAsync(['node', 'agent-qa', 'init', '--platform', 'web', '--pm', 'none'])
     return { exitCode: process.exitCode }
@@ -309,6 +313,7 @@ async function runInit(
     process.exitCode = previousExitCode
     log.mockRestore()
     error.mockRestore()
+    rmSync(home, { recursive: true, force: true })
   }
 }
 

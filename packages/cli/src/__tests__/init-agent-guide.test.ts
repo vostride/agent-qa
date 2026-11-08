@@ -47,7 +47,10 @@ function tempProject(): string {
 
 async function runInit(dir: string, extra: string[] = [], hooks: InitCommandHooks = {}): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand({ cwd: dir, ...hooks })
+  // A temporary home, so init reads no real credential store.
+  const home = mkdtempSync(join(tmpdir(), 'agent-qa-guide-home-'))
+  roots.push(home)
+  const init = createInitCommand({ cwd: dir, ...hooks, host: { homedir: home, env: {}, ...hooks.host } })
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)

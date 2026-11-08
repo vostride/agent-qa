@@ -77,22 +77,6 @@ vi.mock('../commands/install-browsers.js', () => ({
   runBrowserInstall: vi.fn(() => ({ ok: true, status: 0, stage: 'installer' })),
 }))
 
-vi.mock('@inquirer/select', () => ({
-  default: vi.fn(),
-}))
-
-vi.mock('@inquirer/input', () => ({
-  default: vi.fn(),
-}))
-
-vi.mock('@inquirer/confirm', () => ({
-  default: vi.fn(),
-}))
-
-vi.mock('@inquirer/password', () => ({
-  default: vi.fn(),
-}))
-
 vi.mock('@vostride/agent-qa-core', () => ({
   writeAuth: vi.fn(() => Promise.resolve()),
   resolveAppiumExecutable: vi.fn(() => ({ command: 'appium', source: 'path' })),
@@ -101,6 +85,8 @@ vi.mock('@vostride/agent-qa-core', () => ({
   DEFAULT_AGENT_QA_CACHE_DIR: '.agent-qa/cache',
   DEFAULT_AGENT_QA_RUNTIME_DIR: '.agent-qa',
   getAgentQaVersion: vi.fn(() => '0.1.1'),
+  getAuthPath: vi.fn(() => '/tmp/test-home/.agent-qa/auth.json'),
+  listSavedCredentials: vi.fn(async () => []),
   compareSemverVersions: vi.fn(() => undefined),
   semverRangeFloor: vi.fn(() => undefined),
 }))
@@ -109,12 +95,7 @@ vi.mock('@vostride/agent-qa-core', () => ({
 vi.spyOn(console, 'log').mockImplementation(() => {})
 
 import { parseInitPlatformList, type InitPlatformInput } from '../commands/scaffold-content.js'
-import {
-  createInitCommand,
-  buildDefaultConfig,
-  getProviderChoices,
-  defaultModelForProvider,
-} from '../commands/init.js'
+import { createInitCommand, buildDefaultConfig } from '../commands/init.js'
 import {
   preflightInitPlan,
   upsertManagedGitignoreBlock,
@@ -125,12 +106,8 @@ import {
 import { formatInstallBrowsersRetryCommand, runBrowserInstall } from '../commands/install-browsers.js'
 import { writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { execFileSync, execSync } from 'node:child_process'
-import select from '@inquirer/select'
-import input from '@inquirer/input'
-import confirm from '@inquirer/confirm'
-import password from '@inquirer/password'
 import { getAgentQaVersion, resolveAppiumExecutable, writeAuth } from '@vostride/agent-qa-core'
-import { clearProviderRegistry, registerProvider, type ProviderDescriptor } from '@vostride/agent-qa-model'
+import { clearProviderRegistry, getProvider } from '@vostride/agent-qa-model'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { reportCliFailure } from '../cli-error-handler.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
@@ -144,16 +121,21 @@ const mockExecSync = vi.mocked(execSync)
 const mockExecFileSync = vi.mocked(execFileSync)
 const mockRunBrowserInstall = vi.mocked(runBrowserInstall)
 const mockFormatInstallBrowsersRetryCommand = vi.mocked(formatInstallBrowsersRetryCommand)
-const mockSelect = vi.mocked(select)
-const mockInput = vi.mocked(input)
-// The platform question is answered here; every other line draws as plain stderr lines.
+// The questions are answered here; every other line draws as plain stderr lines.
 const mockPlatform = vi.fn<InitUi['multiselect']>(async (q) => [...q.initialValues])
+const mockModel = vi.fn<InitUi['select']>(async (q) => q.initialValue)
 
 function terminalUi(): InitUi {
-  return { ...createPlainUi(), multiselect: mockPlatform as InitUi['multiselect'] }
+  return {
+    ...createPlainUi(),
+    multiselect: mockPlatform as InitUi['multiselect'],
+    select: mockModel as InitUi['select'],
+  }
 }
-const mockConfirm = vi.mocked(confirm)
-const mockPassword = vi.mocked(password)
+
+function defaultModelOf(provider: string): string | undefined {
+  return getProvider(provider)?.defaultModel
+}
 const mockWriteAuth = vi.mocked(writeAuth)
 const mockGetAgentQaVersion = vi.mocked(getAgentQaVersion)
 const mockResolveAppiumExecutable = vi.mocked(resolveAppiumExecutable)
@@ -197,8 +179,7 @@ async function runInitUnderRootConfig(args: string[]): Promise<void> {
 
 function expectNothingAskedOrWritten(): void {
   expect(mockPlatform).not.toHaveBeenCalled()
-  expect(mockSelect).not.toHaveBeenCalled()
-  expect(mockInput).not.toHaveBeenCalled()
+  expect(mockModel).not.toHaveBeenCalled()
   expect(mockPreflightInitPlan).not.toHaveBeenCalled()
   expect(mockWriteScaffoldFileAtomic).not.toHaveBeenCalled()
   expect(mockWriteConfigMarkerLast).not.toHaveBeenCalled()
@@ -396,41 +377,6 @@ describe('init command', () => {
       devDependencies: { vitest: '4.0.0' },
       optionalDependencies: { '@vostride/agent-qa-subscription-auth': '0.1.1' },
     })
-  })
-
-  it('provider choices include only current LLM providers', () => {
-    const values = getProviderChoices().map(choice => choice.value)
-
-    expect(values).toEqual([
-      'openai-compatible',
-      'anthropic-compatible',
-      'openai-subscription',
-      'anthropic-subscription',
-      'gemini',
-    ])
-    expect(values).not.toContain('anthropic')
-    expect(values).not.toContain('openai')
-    expect(values).not.toContain('google')
-    expect(values).not.toContain('authMethod')
-    expect(values).not.toContain('ollama')
-    expect(values).not.toContain('lmstudio')
-    expect(values).not.toContain('custom')
-  })
-
-  it('includes newly registered provider descriptors in init choices at call time', () => {
-    const descriptor: ProviderDescriptor = {
-      id: 'sixth-provider',
-      label: 'Sixth',
-      adapter: (_transport, _modelId) => ({}) as ReturnType<ProviderDescriptor['adapter']>,
-      needsBaseURL: true,
-      authModes: ['api-key'],
-      defaultModel: 'sixth-default',
-    }
-
-    registerProvider(descriptor)
-
-    expect(getProviderChoices()).toContainEqual({ value: 'sixth-provider', name: 'Sixth' })
-    expect(defaultModelForProvider('sixth-provider')).toBe('sixth-default')
   })
 
   it('builds openai-compatible config with user-supplied baseURL and no inline apiKey', () => {
@@ -662,12 +608,9 @@ describe('init command', () => {
     },
   )
 
-  it('prompts model as free text and does not collect first-party API keys during interactive init', async () => {
+  it('asks the platform and then the model, and collects no API key during interactive init', async () => {
     mockPlatform.mockResolvedValueOnce(['web'])
-    mockSelect.mockResolvedValueOnce('anthropic-compatible')
-    mockInput
-      .mockResolvedValueOnce('claude-remote')
-      .mockResolvedValueOnce('https://anthropic-proxy.example/messages')
+    mockModel.mockResolvedValueOnce({ kind: 'new', choice: 'anthropic' })
 
     await runInit([], { isTTY: true })
 
@@ -681,28 +624,21 @@ describe('init command', () => {
       initialValues: ['web'],
       required: true,
     }))
-    expect(mockSelect).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      message: 'Which model connection?',
-      default: 'claude-code',
+    expect(mockModel).toHaveBeenCalledTimes(1)
+    expect(mockModel).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      message: 'Which model should agent-qa use?',
+      initialValue: { kind: 'new', choice: 'claude-code' },
+      maxItems: 10,
     }))
-    expect(mockInput).toHaveBeenNthCalledWith(1, expect.objectContaining({
-      message: 'Model:',
-      default: defaultModelForProvider('anthropic-compatible'),
-    }))
-    expect(mockInput).toHaveBeenNthCalledWith(2, expect.objectContaining({
-      message: 'Base URL:',
-      default: 'https://api.anthropic.com/v1',
-    }))
-    expect(mockConfirm).not.toHaveBeenCalled()
-    expect(mockPassword).not.toHaveBeenCalled()
     expect(mockWriteAuth).not.toHaveBeenCalled()
 
     const configCall = mockWriteFileSync.mock.calls.find(
       (call) => (call[0] as string).endsWith('agent-qa.config.yaml'),
     )
+    expect(configCall?.[1]).toContain('name: anthropic')
     expect(configCall?.[1]).toContain('provider: anthropic-compatible')
-    expect(configCall?.[1]).toContain('model: claude-remote')
-    expect(configCall?.[1]).toContain('baseURL: https://anthropic-proxy.example/messages')
+    expect(configCall?.[1]).toContain(`model: ${defaultModelOf('anthropic-compatible')}`)
+    expect(configCall?.[1]).toContain('baseURL: https://api.anthropic.com/v1')
     expect(configCall?.[1]).not.toContain('apiKey')
   })
 
@@ -739,28 +675,21 @@ describe('init command', () => {
     expect(configCall?.[1]).toContain('llm: codex')
     expect(configCall?.[1]).toContain('package: "@vostride/agent-qa-subscription-auth"')
     expect(configCall?.[1]).not.toContain('provider: anthropic-subscription')
-    expect(mockInput).not.toHaveBeenCalled()
+    expect(mockModel).not.toHaveBeenCalled()
     expect(mockWriteAuth).not.toHaveBeenCalled()
   })
 
-  it('keeps compatible Gemini init free of subscription auth plugin', async () => {
+  it('keeps a Gemini init free of the subscription auth plugin', async () => {
     mockPlatform.mockResolvedValueOnce(['web'])
-    mockSelect.mockResolvedValueOnce('gemini')
-    mockInput.mockResolvedValueOnce('gemini-3-flash-preview')
+    mockModel.mockResolvedValueOnce({ kind: 'new', choice: 'gemini' })
 
     await runInit([], { isTTY: true })
-
-    expect(mockInput).toHaveBeenCalledTimes(1)
-    expect(mockInput).toHaveBeenCalledWith(expect.objectContaining({
-      message: 'Model:',
-      default: defaultModelForProvider('gemini'),
-    }))
 
     const configCall = mockWriteFileSync.mock.calls.find(
       (call) => (call[0] as string).endsWith('agent-qa.config.yaml'),
     )
     expect(configCall?.[1]).toContain('provider: gemini')
-    expect(configCall?.[1]).toContain('model: gemini-3-flash-preview')
+    expect(configCall?.[1]).toContain(`model: ${defaultModelOf('gemini')}`)
     expect(configCall?.[1]).not.toContain('plugins:')
     expect(configCall?.[1]).not.toContain('baseURL:')
     expect(configCall?.[1]).not.toContain('apiKey')
@@ -951,8 +880,7 @@ describe('init command', () => {
       await runInit([], { isTTY: true, onComplete })
 
       expect(mockPlatform).not.toHaveBeenCalled()
-      expect(mockSelect).not.toHaveBeenCalled()
-      expect(mockInput).not.toHaveBeenCalled()
+      expect(mockModel).not.toHaveBeenCalled()
       expect(mockWriteConfigMarkerLast).not.toHaveBeenCalled()
       expect(findWriteCallEndingWith('agent-qa.config.yaml')).toBeUndefined()
       expect(consoleOutput()).toContain(alreadyInitialized)
@@ -978,8 +906,7 @@ describe('init command', () => {
 
     it('with --force an initialized project is asked the questions and rebuilt', async () => {
       mockPlatform.mockResolvedValueOnce(['web'])
-      mockSelect.mockResolvedValueOnce('gemini')
-      mockInput.mockResolvedValueOnce('gemini-3-flash-preview')
+      mockModel.mockResolvedValueOnce({ kind: 'new', choice: 'gemini' })
 
       await runInit(['--force'], { isTTY: true })
 
@@ -1039,8 +966,7 @@ describe('init command', () => {
 
     function expectNothingAskedOrWritten(): void {
       expect(mockPlatform).not.toHaveBeenCalled()
-      expect(mockSelect).not.toHaveBeenCalled()
-      expect(mockInput).not.toHaveBeenCalled()
+      expect(mockModel).not.toHaveBeenCalled()
       expect(mockPreflightInitPlan).not.toHaveBeenCalled()
       expect(mockWriteFileSync).not.toHaveBeenCalled()
     }

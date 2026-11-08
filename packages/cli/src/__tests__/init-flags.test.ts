@@ -5,12 +5,6 @@ import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 
-vi.mock('@inquirer/select', () => ({ default: vi.fn(async () => 'gemini') }))
-vi.mock('@inquirer/input', () => ({ default: vi.fn(async () => 'gemini-model') }))
-
-import input from '@inquirer/input'
-import select from '@inquirer/select'
-
 import { createInitCommand } from '../commands/init.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { fakeInitUi, type FakeInitUi } from './fake-init-ui.js'
@@ -47,10 +41,6 @@ function questions(ui: FakeInitUi): string[] {
     .map((entry) => entry.text)
 }
 
-function promptsAsked(): number {
-  return [select, input].reduce((sum, prompt) => sum + vi.mocked(prompt).mock.calls.length, 0)
-}
-
 function configuredLlm(root: string): unknown {
   const config = parseYaml(readFileSync(join(root, 'agent-qa.config.yaml'), 'utf8')) as {
     registry: { llms: unknown[] }
@@ -84,13 +74,12 @@ describe('init --help', () => {
 
 describe('init in a terminal', () => {
   it('asks its questions without --yes or --json', async () => {
-    const ui = fakeInitUi()
+    const ui = fakeInitUi({ 'Which model should agent-qa use?': { kind: 'new', choice: 'gemini' } })
 
     const root = await initInATerminal([], ui)
 
-    expect(questions(ui)).toEqual(['What platform will you test?'])
-    expect(promptsAsked()).toBeGreaterThan(0)
-    expect(configuredLlm(root)).toMatchObject({ provider: 'gemini', model: 'gemini-model' })
+    expect(questions(ui)).toEqual(['What platform will you test?', 'Which model should agent-qa use?'])
+    expect(configuredLlm(root)).toMatchObject({ name: 'gemini', provider: 'gemini' })
   })
 
   it.each([['--yes'], ['--json']])(
@@ -101,7 +90,6 @@ describe('init in a terminal', () => {
       const root = await initInATerminal([flag], ui)
 
       expect(questions(ui)).toEqual([])
-      expect(promptsAsked()).toBe(0)
       expect(configuredLlm(root)).toMatchObject({
         name: 'claude-code',
         provider: 'anthropic-subscription',

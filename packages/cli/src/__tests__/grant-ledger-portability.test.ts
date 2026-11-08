@@ -49,7 +49,8 @@ function gitIgnores(cwd: string, path: string): boolean {
 async function runRealInit(dir: string): Promise<void> {
   mkdirSync(join(dir, '.git'), { recursive: true })
   const parent = new Command()
-  parent.addCommand(createInitCommand({ cwd: dir }))
+  // A temporary home, so init reads no real credential store.
+  parent.addCommand(createInitCommand({ cwd: dir, host: { homedir: tempRoot(), env: {} } }))
   await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', '--pm', 'none'])
 }
 

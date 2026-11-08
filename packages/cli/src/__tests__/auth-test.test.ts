@@ -18,10 +18,6 @@ vi.mock('@inquirer/password', () => ({
   default: vi.fn(() => Promise.resolve('prompt-secret')),
 }))
 
-vi.mock('@inquirer/select', () => ({
-  default: vi.fn(() => Promise.resolve('anthropic-subscription')),
-}))
-
 vi.mock('@vostride/agent-qa-core', () => ({
   getAgentQaVersion: vi.fn(() => '1.2.3'),
   getCredential: vi.fn(() => null),

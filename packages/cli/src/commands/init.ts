@@ -3,15 +3,15 @@ import { readFileSync } from 'node:fs'
 import { basename, dirname, join, relative, sep } from 'node:path'
 import pc from 'picocolors'
 import type { Readable, Writable } from 'node:stream'
-import select from '@inquirer/select'
-import input from '@inquirer/input'
 import {
   DEFAULT_AGENT_QA_AUTH_STATES_DIR,
   DEFAULT_AGENT_QA_CACHE_DIR,
   DEFAULT_AGENT_QA_RUNTIME_DIR,
+  getAuthPath,
+  listSavedCredentials,
 } from '@vostride/agent-qa-core'
 import { guardJsonText, reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
-import { getProvider, listProviders } from '@vostride/agent-qa-model'
+import { getProvider } from '@vostride/agent-qa-model'
 // The scaffold's content comes from the shared producer, so the two scaffolds cannot drift.
 import {
   SUBSCRIPTION_AUTH_PACKAGE,
@@ -67,6 +67,15 @@ import {
   readProjectPackageJson,
   sanitizedPackageName,
 } from './package-json-plan.js'
+import {
+  INIT_MODEL_CHOICES,
+  initModelOptions,
+  modelEntryFor,
+  preselectedModel,
+  resolveLlmFlag,
+  type InitModelOption,
+  type InitModelPick,
+} from './init-model-choice.js'
 import {
   ALREADY_INITIALIZED,
   createInitStepRunner,
@@ -148,55 +157,6 @@ export function buildDefaultConfig(
     authStatesDir: INIT_AUTH_STATES_DIR,
   })
 }
-export const INIT_LLM_CHOICES = [
-  'claude-code',
-  'codex',
-  'openai-compatible',
-  'anthropic-compatible',
-  'gemini',
-] as const
-export type InitLLMChoice = (typeof INIT_LLM_CHOICES)[number]
-
-const INIT_LLM_ENTRIES: Record<InitLLMChoice, { name: string; provider: string }> = {
-  'claude-code': { name: 'claude-code', provider: 'anthropic-subscription' },
-  codex: { name: 'codex', provider: 'openai-subscription' },
-  'openai-compatible': { name: 'default', provider: 'openai-compatible' },
-  'anthropic-compatible': { name: 'default', provider: 'anthropic-compatible' },
-  gemini: { name: 'default', provider: 'gemini' },
-}
-
-const INIT_LLM_NAMES: Record<InitLLMChoice, string> = {
-  'claude-code': 'Claude Code (Anthropic subscription)',
-  codex: 'Codex (OpenAI subscription)',
-  'openai-compatible': 'OpenAI-compatible API',
-  'anthropic-compatible': 'Anthropic-compatible API',
-  gemini: 'Gemini API',
-}
-
-// The defaults @ai-sdk/openai and @ai-sdk/anthropic use with no baseURL.
-export const INIT_BASE_URL_DEFAULTS: Readonly<Record<string, string>> = {
-  'openai-compatible': 'https://api.openai.com/v1',
-  'anthropic-compatible': 'https://api.anthropic.com/v1',
-}
-
-const BASE_URL_FORM_REFUSAL = '--base-url must be an absolute http or https URL'
-
-function baseUrlFormRefusal(value: string): string | undefined {
-  const url = URL.canParse(value) ? new URL(value) : undefined
-  return url?.protocol === 'http:' || url?.protocol === 'https:' ? undefined : BASE_URL_FORM_REFUSAL
-}
-
-function baseUrlRefusal(provider: string, value: string): string | undefined {
-  if (getProvider(provider)?.needsBaseURL !== true) {
-    return '--base-url applies only to --llm openai-compatible or anthropic-compatible'
-  }
-  return baseUrlFormRefusal(value)
-}
-
-export function getProviderChoices(): Array<{ value: string; name: string }> {
-  return listProviders().map(provider => ({ value: provider.id, name: provider.label }))
-}
-
 const KOMAZON_CHECKOUT_TEST_ID = 't_packer-staff-asha-lak-spill-usher-pele-allen-bid-done'
 const KOMAZON_CART_TOTAL_BUG_TEST_ID = 't_reduce-eva-elding-reset-lai-iban-rum-hin-parent-chang'
 const EXAMPLES_SUITE_ID = 's_dice-ego-veer-warp-ionic-trying-tur-cal-stride-battle'
@@ -285,10 +245,6 @@ steps:
   - Type {{env:SHIPPING_ADDRESS}} into the Street address field, enter city Portland and postal code 97205, then continue to delivery.
   - Select Express delivery and continue with Review order. Verify the review shows {{env:SHIPPING_ADDRESS}} as the street address.
 `
-}
-
-export function defaultModelForProvider(provider: string): string {
-  return getProvider(provider)?.defaultModel ?? 'model-name'
 }
 
 const DEFAULT_HOOKS_FILE = 'hooks.yaml'
@@ -615,6 +571,16 @@ const PLATFORM_CHOICES = [
   { value: 'mobile', label: 'Mobile', hint: 'Appium: Android and iOS' },
 ] as const satisfies readonly { value: PlatformCapability; label: string; hint: string }[]
 
+// A drawn question finds its initial option by identity, so the pre-selected pick is matched to it.
+function optionFor(options: readonly InitModelOption[], pick: InitModelPick): InitModelPick {
+  const same = options.find(({ value }) =>
+    value.kind === 'new'
+      ? pick.kind === 'new' && value.choice === pick.choice
+      : pick.kind === 'saved' && value.name === pick.name,
+  )
+  return (same ?? options[0]!).value
+}
+
 const WHAT_TO_EXPECT =
   '3 questions, then: package.json, scaffold, install, Chromium, skills and MCP, validate, '
   + 'sign-in and the dashboard.'
@@ -770,14 +736,15 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
     .addOption(
       new Option('--platform <list>', 'platforms to test: web, android and ios, separated by commas'),
     )
-    .addOption(
-      new Option('--llm <provider>', 'model connection (default: claude-code)')
-        .choices([...INIT_LLM_CHOICES]),
+    .option(
+      '--llm <choice>',
+      `model: ${INIT_MODEL_CHOICES.join(', ')} or the name of a saved credential `
+        + '(default: a saved sign-in, else claude-code)',
     )
     .option('--model <id>', "model id (default: the provider's default model)")
     .option(
       '--base-url <url>',
-      'endpoint for openai-compatible or anthropic-compatible (default: the provider API)',
+      'endpoint for anthropic, openai, openai-compatible or anthropic-compatible',
     )
     .option('--force', 'overwrite existing files')
     .addOption(
@@ -942,18 +909,18 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           return
         }
 
-        const refuseBaseUrl = (provider: string): boolean => {
-          const refusal = opts.baseUrl === undefined ? undefined : baseUrlRefusal(provider, opts.baseUrl)
-          if (refusal) {
-            console.error(pc.red(refusal))
-            process.exitCode = 2
-            recorder.refused(refusal)
-          }
-          return refusal !== undefined
-        }
-        const askLlm = ask && opts.llm === undefined
-        const flaggedLlm = (opts.llm ?? 'claude-code') as InitLLMChoice
-        if (!askLlm && refuseBaseUrl(INIT_LLM_ENTRIES[flaggedLlm].provider)) return
+        const saved = await listSavedCredentials(
+          getAuthPath({ env: host.env, homeDir: host.homedir }),
+        )
+        const modelFlags = { model: opts.model, baseUrl: opts.baseUrl, saved }
+        const askModel = ask && opts.llm === undefined
+        let modelPick: InitModelPick | undefined = askModel
+          ? undefined
+          : opts.llm === undefined
+            ? preselectedModel(saved)
+            : resolveLlmFlag(opts.llm, saved)
+        // Resolved before anything is drawn, so a refused flag writes nothing.
+        let modelSetup = modelPick === undefined ? undefined : modelEntryFor(modelPick, modelFlags)
         const flaggedPlatform =
           opts.platform === undefined ? undefined : parseInitPlatformList(opts.platform)
         if (flaggedPlatform !== undefined && 'refusal' in flaggedPlatform) {
@@ -999,42 +966,22 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           platform = flaggedPlatform?.platform ?? 'web'
         }
 
-        let llm: InitLLMChoice = opts.llm ?? 'claude-code'
-        if (askLlm) {
+        if (modelPick === undefined) {
           asked = true
-          llm = await select<InitLLMChoice>({
-            message: 'Which model connection?',
-            choices: INIT_LLM_CHOICES.map(value => ({ value, name: INIT_LLM_NAMES[value] })),
-            default: 'claude-code',
+          const options = initModelOptions(saved)
+          modelPick = await ui.select<InitModelPick>({
+            message: 'Which model should agent-qa use?',
+            options,
+            initialValue: optionFor(options, preselectedModel(saved)),
+            maxItems: 10,
           })
         }
-        const { name: llmName, provider } = INIT_LLM_ENTRIES[llm]
-        if (askLlm && refuseBaseUrl(provider)) return
+        modelSetup ??= modelEntryFor(modelPick, modelFlags)
 
-        let model: string = opts.model ?? defaultModelForProvider(provider)
-        if (ask && opts.model === undefined && !isSubscriptionProvider(provider)) {
-          asked = true
-          model = (await input({
-            message: 'Model:',
-            default: model,
-            validate: (value) => value.trim().length > 0 || 'Enter a model id.',
-          })).trim()
-        }
-
-        const needsBaseURL = getProvider(provider)?.needsBaseURL === true
-        let baseURL: string | undefined = needsBaseURL
-          ? opts.baseUrl ?? INIT_BASE_URL_DEFAULTS[provider]
-          : undefined
-        if (ask && opts.baseUrl === undefined && needsBaseURL) {
-          asked = true
-          baseURL = (await input({
-            message: 'Base URL:',
-            default: baseURL,
-            validate: (value) => baseUrlFormRefusal(value.trim()) ?? true,
-          })).trim()
-        }
-
-        const config = buildDefaultConfig(platform, [{ name: llmName, provider, model, baseURL }])
+        const config = buildDefaultConfig(
+          platform,
+          modelSetup.entry === undefined ? [] : [modelSetup.entry],
+        )
         const agentQaVersion = agentQaAfterInstall(packageJson.text, runningVersion)
         const dependencies = projectDependencies({
           version: agentQaVersion,

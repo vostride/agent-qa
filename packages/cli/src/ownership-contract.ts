@@ -13,7 +13,6 @@ export const AGENT_QA_CLI_EXTERNAL_DEPENDENCIES = [
   '@clack/prompts',
   '@inquirer/input',
   '@inquirer/password',
-  '@inquirer/select',
   // Lives here because serving stdio owns the process; the projection package stays host-free.
   '@modelcontextprotocol/server',
   'ai',

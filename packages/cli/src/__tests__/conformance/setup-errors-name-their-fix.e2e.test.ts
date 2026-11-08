@@ -9,7 +9,7 @@ import * as core from '@vostride/agent-qa-core'
 import { generateTestId } from '@vostride/agent-qa-ids'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { INIT_BASE_URL_DEFAULTS } from '../../commands/init.js'
+import { INIT_BASE_URL_DEFAULTS } from '../../commands/init-model-choice.js'
 import { refuseWithoutRecordingTools } from './run-doors-fixture.js'
 import {
   POPULATED_RUN_ANCHORED_BUILDS,

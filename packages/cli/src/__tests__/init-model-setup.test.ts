@@ -1,133 +1,126 @@
-// Init's model flags and defaults, the defaulted questions a terminal asks, its next steps.
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+// Init's model question, the flags that answer it, the entry it writes and the next steps.
+import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { stripVTControlCharacters } from 'node:util'
+
+import { S_RADIO_ACTIVE } from '@clack/prompts'
+import { AgentQaConfigSchema, getAuthPath } from '@vostride/agent-qa-core'
+import { getProvider } from '@vostride/agent-qa-model'
 import { Command } from 'commander'
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 
-vi.mock('node:fs', () => ({
-  writeFileSync: vi.fn(),
-  mkdirSync: vi.fn(),
-  existsSync: vi.fn(() => false),
-  readFileSync: vi.fn(() => ''),
-}))
-
-vi.mock('node:child_process', () => ({
-  execSync: vi.fn(),
-  execFileSync: vi.fn(),
-}))
-
-vi.mock('../commands/init-filesystem.js', async () => {
-  const fs = await import('node:fs')
-  const writePlan = (plan: {
-    path: string
-    content: string | Uint8Array
-    force?: boolean
-    preserveOnForce?: boolean
-  }) => {
-    const exists = fs.existsSync(plan.path)
-    if (exists && (!plan.force || plan.preserveOnForce)) {
-      return { path: plan.path, outcome: 'preserved' as const }
-    }
-    fs.writeFileSync(plan.path, plan.content)
-    return { path: plan.path, outcome: exists ? 'updated' as const : 'created' as const }
-  }
-
-  return {
-    KNOWLEDGE_GITIGNORE_PROBES: [],
-    TARGET_GITIGNORE_PROBES: [],
-    classifyInitPath: vi.fn((path: string) => fs.existsSync(path) ? 'regular' : 'missing'),
-    preflightInitPlan: vi.fn((plans: Array<{ path: string }>) => plans.map(plan => ({
-      path: plan.path,
-      classification: fs.existsSync(plan.path) ? 'regular' : 'missing',
-    }))),
-    writeScaffoldFileAtomic: vi.fn(writePlan),
-    writeConfigMarkerLast: vi.fn(writePlan),
-    upsertManagedGitignoreBlock: vi.fn((path: string) => {
-      fs.writeFileSync(path, '# agent-qa init:start\n.agent-qa/\n# agent-qa init:end\n')
-      return { path, outcome: 'created' as const }
-    }),
-    verifyEffectiveGitignore: vi.fn(() => ({ checked: true })),
-  }
-})
-
-vi.mock('../commands/install-browsers.js', () => ({
-  formatInstallBrowsersRetryCommand: vi.fn(() => 'agent-qa install-browsers --chromium'),
-  runBrowserInstall: vi.fn(() => ({ ok: true, status: 0, stage: 'installer' })),
-}))
-
-vi.mock('@inquirer/select', () => ({ default: vi.fn() }))
-vi.mock('@inquirer/input', () => ({ default: vi.fn() }))
-vi.mock('@inquirer/confirm', () => ({ default: vi.fn() }))
-vi.mock('@inquirer/password', () => ({ default: vi.fn() }))
-
-vi.mock('@vostride/agent-qa-core', () => ({
-  writeAuth: vi.fn(() => Promise.resolve()),
-  resolveAppiumExecutable: vi.fn(() => ({ command: 'appium', source: 'path' })),
-  formatAppiumInstallGuidance: vi.fn(() => 'Install Appium locally.'),
-  DEFAULT_AGENT_QA_AUTH_STATES_DIR: '.agent-qa/auth-states',
-  DEFAULT_AGENT_QA_CACHE_DIR: '.agent-qa/cache',
-  DEFAULT_AGENT_QA_RUNTIME_DIR: '.agent-qa',
-  getAgentQaVersion: vi.fn(() => '0.1.1'),
-}))
-
-import { createInitCommand, EXAMPLE_SECRET_LINE, INIT_LLM_CHOICES } from '../commands/init.js'
-import { preflightInitPlan, writeScaffoldFileAtomic } from '../commands/init-filesystem.js'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import select from '@inquirer/select'
-import input from '@inquirer/input'
-import confirm from '@inquirer/confirm'
-import password from '@inquirer/password'
-import { getProvider } from '@vostride/agent-qa-model'
+import { createInitCommand, EXAMPLE_SECRET_LINE } from '../commands/init.js'
+import { INIT_MODEL_CHOICES } from '../commands/init-model-choice.js'
+import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { DEFAULT_ANTHROPIC_MODEL, DEFAULT_OPENAI_MODEL } from '../model-defaults.js'
-import type { InitUi } from '../init-ui/init-ui.js'
-import { createPlainUi } from '../init-ui/plain-ui.js'
+import { KEY, answeringTerminal, clackStreams, type ClackStreams } from './clack-keys.js'
+import { fakeInitUi, type FakeInitUi } from './fake-init-ui.js'
+import { cleanupTempProjects, fakeRunner, tempProject } from './project-fixtures.js'
 
-const DIR = '/tmp/init-llm'
 const SUBSCRIPTION_AUTH_PACKAGE = '@vostride/agent-qa-subscription-auth'
-const mockWriteFileSync = vi.mocked(writeFileSync)
-// The platform question is drawn through init's UI; the rest are still Inquirer prompts.
-const platform = vi.fn<InitUi['multiselect']>()
-const prompts = [select, input, platform, confirm, password].map(fn => vi.mocked(fn))
+const MODEL_QUESTION = 'Which model should agent-qa use?'
+const DUMMY_TOKEN = 'DUMMY-INIT-TOKEN-7f3a'
+const DUMMY_KEY = 'DUMMY-INIT-KEY-91c2'
+const DUMMIES = [DUMMY_TOKEN, DUMMY_KEY]
 
-let stderr: string[] = []
-let previousExitCode: typeof process.exitCode
+const SIGNED_IN_AND_WORK_KEY = {
+  'claude-code': {
+    type: 'oauth',
+    provider: 'anthropic-subscription',
+    tokens: { access: DUMMY_TOKEN, refresh: DUMMY_TOKEN, expires: 0 },
+  },
+  work: { type: 'api', provider: 'openai-compatible', key: DUMMY_KEY },
+}
 
-let stdout: string[] = []
+const silentAnalytics: typeof composeAnalyticsHost = async () =>
+  composeAnalyticsHost({
+    surface: 'cli',
+    env: {},
+    transportOverride: { capture: () => {}, flush: () => {}, shutdown: () => {} },
+    resolveIdentity: async () => ({ distinctId: 'u_init-model-setup', runtimeContext: 'user' }),
+  })
+
+interface InitRun {
+  root: string
+  error: unknown
+  ui: FakeInitUi
+}
+
+function projectWithStore(store?: Record<string, unknown>): { root: string; home: string } {
+  const project = tempProject('init-model')
+  if (store !== undefined) {
+    const path = getAuthPath({ env: {}, homeDir: project.home })
+    mkdirSync(dirname(path), { recursive: true })
+    writeFileSync(path, JSON.stringify(store), 'utf8')
+  }
+  return project
+}
+
+function initCommand(root: string, home: string, extra: Parameters<typeof createInitCommand>[0]) {
+  const parent = new Command()
+  const command = createInitCommand({
+    cwd: root,
+    host: { homedir: home, env: {}, run: fakeRunner() },
+    composeAnalytics: silentAnalytics,
+    ...extra,
+  })
+  parent.exitOverride()
+  command.exitOverride()
+  parent.addCommand(command)
+  return parent
+}
 
 // No test starts a package manager: init declares the dependencies and runs no install.
-function withoutInstall(args: readonly string[]): string[] {
-  return args.includes('--pm') || args.includes('--agent') ? [...args] : [...args, '--pm', 'none']
+async function init(
+  args: readonly string[],
+  options: { store?: Record<string, unknown>; isTTY?: boolean; ui?: FakeInitUi } = {},
+): Promise<InitRun> {
+  const { root, home } = projectWithStore(options.store)
+  const ui = options.ui ?? fakeInitUi()
+  const error = await initCommand(root, home, { isTTY: options.isTTY ?? false, ui })
+    .parseAsync(['node', 'test', 'init', ...args, '--pm', 'none'])
+    .then(
+      () => undefined,
+      (caught: unknown) => caught,
+    )
+  return { root, error, ui }
 }
 
-async function runInit(args: string[], isTTY = false): Promise<void> {
-  const parent = new Command()
-  const init = createInitCommand({
-    cwd: DIR,
-    host: { env: {} },
-    isTTY,
-    ui: { ...createPlainUi(), multiselect: platform },
-  } as Parameters<typeof createInitCommand>[0])
-  parent.exitOverride()
-  init.exitOverride()
-  init.configureOutput({
-    writeErr: text => { stderr.push(text) },
-    writeOut: text => { stdout.push(text) },
+interface RailRun {
+  root: string
+  streams: ClackStreams
+  done: Promise<void>
+}
+
+function initOnTheRail(args: readonly string[], store: Record<string, unknown>): RailRun {
+  const { root, home } = projectWithStore(store)
+  const streams = clackStreams()
+  const done = initCommand(root, home, {
+    stdinIsTTY: true,
+    stdoutIsTTY: true,
+    terminal: answeringTerminal().port,
+    rail: { input: streams.input, output: streams.output },
   })
-  parent.addCommand(init)
-  await parent.parseAsync(['node', 'agent-qa', 'init', ...withoutInstall(args)])
+    .parseAsync(['node', 'test', 'init', ...args, '--pm', 'none'])
+    .then(() => {})
+  return { root, streams, done }
 }
 
-async function initOk(args: string[], isTTY = false): Promise<void> {
-  await expect(runInit(args, isTTY)).resolves.toBeUndefined()
+async function pickOnTheRail(downs: number): Promise<RailRun> {
+  const run = initOnTheRail(['--platform', 'web'], SIGNED_IN_AND_WORK_KEY)
+  await run.streams.waitFor(MODEL_QUESTION)
+  await run.streams.press(...Array<string>(downs).fill(KEY.down), KEY.enter)
+  await run.done
+  return run
 }
 
-function writtenText(path: string): string {
-  const call = mockWriteFileSync.mock.calls.find(entry => String(entry[0]) === `${DIR}/${path}`)
-  expect(call, `init wrote ${path}`).toBeDefined()
-  return String(call![1])
+function configText(root: string): string {
+  return readFileSync(join(root, 'agent-qa.config.yaml'), 'utf8')
 }
 
-function writtenConfig(): any {
-  return parseYaml(writtenText('agent-qa.config.yaml'))
+function writtenConfig(root: string): any {
+  return parseYaml(configText(root))
 }
 
 function registryDefault(provider: string): string {
@@ -136,56 +129,112 @@ function registryDefault(provider: string): string {
   return model!
 }
 
-function refusalOutput(): string {
-  return [...stderr, ...vi.mocked(console.error).mock.calls.flat().map(String)].join('\n')
+function filesUnder(folder: string): string[] {
+  return readdirSync(folder).flatMap((name) => {
+    const path = join(folder, name)
+    return statSync(path).isDirectory() ? filesUnder(path) : [path]
+  })
 }
 
-function expectNothingWritten(): void {
-  expect(vi.mocked(preflightInitPlan)).not.toHaveBeenCalled()
-  expect(vi.mocked(writeScaffoldFileAtomic)).not.toHaveBeenCalled()
-  expect(mockWriteFileSync).not.toHaveBeenCalled()
+function expectNoDummySecret(root: string, ...outputs: string[]): void {
+  const written = filesUnder(root).map((path) => readFileSync(path, 'utf8'))
+  for (const text of [...outputs, ...written]) {
+    for (const secret of DUMMIES) expect(text).not.toContain(secret)
+  }
 }
 
-function expectNoPrompt(): void {
-  for (const prompt of prompts) expect(prompt).not.toHaveBeenCalled()
+function questions(ui: FakeInitUi): string[] {
+  return ui.entries
+    .filter((entry) => ['select', 'multiselect', 'text'].includes(entry.kind))
+    .map((entry) => entry.text)
+}
+
+let stdout: MockInstance<typeof process.stdout.write>
+let stderr: MockInstance<typeof process.stderr.write>
+
+function processOutput(): string {
+  return [...stdout.mock.calls, ...stderr.mock.calls].map((call) => String(call[0])).join('')
 }
 
 beforeEach(() => {
-  vi.clearAllMocks()
-  stderr = []
-  stdout = []
-  previousExitCode = process.exitCode
-  process.exitCode = undefined
-  vi.mocked(existsSync).mockReturnValue(false)
-  vi.mocked(readFileSync).mockImplementation(() => '')
-  vi.spyOn(console, 'log').mockImplementation(() => {})
+  stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+  stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
   vi.spyOn(console, 'warn').mockImplementation(() => {})
-  vi.spyOn(console, 'error').mockImplementation(() => {})
-  vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
 })
 
 afterEach(() => {
-  process.exitCode = previousExitCode
   vi.restoreAllMocks()
+  cleanupTempProjects()
 })
 
-describe('init model connection flags', () => {
-  it('--llm codex writes one codex entry on the Codex subscription and declares the plugin', async () => {
-    await initOk(['--platform', 'web', '--llm', 'codex'])
+describe('the model question on the rail', () => {
+  it('lists the saved credentials before the new choices, starts on claude-code and asks no follow-up', async () => {
+    const run = initOnTheRail(['--platform', 'web'], SIGNED_IN_AND_WORK_KEY)
+    await run.streams.waitFor(MODEL_QUESTION)
+    const drawn = stripVTControlCharacters(run.streams.text())
+    await run.streams.press(KEY.enter)
+    await run.done
 
-    const config = writtenConfig()
+    const question = drawn.slice(drawn.indexOf(MODEL_QUESTION))
+    const firstNew = question.indexOf('Claude subscription (Claude Code)')
+    expect(question.indexOf('claude-code (')).toBeGreaterThan(-1)
+    expect(question.indexOf('claude-code (')).toBeLessThan(firstNew)
+    expect(question.indexOf('work (')).toBeGreaterThan(-1)
+    expect(question.indexOf('work (')).toBeLessThan(firstNew)
+    const active = question.split('\n').filter((line) => line.includes(S_RADIO_ACTIVE))
+    expect(active).toHaveLength(1)
+    expect(active[0]).toContain('claude-code (')
+
+    const config = writtenConfig(run.root)
     expect(config.registry.llms).toEqual([
-      { name: 'codex', provider: 'openai-subscription', model: registryDefault('openai-subscription') },
+      {
+        name: 'claude-code',
+        provider: 'anthropic-subscription',
+        model: registryDefault('anthropic-subscription'),
+      },
     ])
-    expect(config.use.llm).toBe('codex')
-    expect(config.plugins).toEqual([{ name: 'subscription', package: SUBSCRIPTION_AUTH_PACKAGE }])
-    expectNoPrompt()
+    expect(config.use.llm).toBe('claude-code')
+    const text = stripVTControlCharacters(run.streams.text())
+    expect(text).not.toContain('Model:')
+    expect(text).not.toContain('Base URL:')
+    expectNoDummySecret(run.root, run.streams.text(), processOutput())
   })
 
-  it('with no flags and no terminal, init writes the claude-code entry and asks nothing', async () => {
-    await initOk([])
+  it('OpenAI API writes the openai entry with the official base URL', async () => {
+    const run = await pickOnTheRail(5)
 
-    const config = writtenConfig()
+    expect(writtenConfig(run.root).registry.llms).toEqual([
+      {
+        name: 'openai',
+        provider: 'openai-compatible',
+        model: registryDefault('openai-compatible'),
+        baseURL: 'https://api.openai.com/v1',
+      },
+    ])
+    expect(writtenConfig(run.root).use.llm).toBe('openai')
+    expectNoDummySecret(run.root, run.streams.text(), processOutput())
+  })
+
+  it.each([
+    { name: 'the saved work key', downs: 1 },
+    { name: 'OpenAI-compatible endpoint', downs: 7 },
+  ])('$name writes no model entry and no use.llm, and the config parses strictly', async (cell) => {
+    const run = await pickOnTheRail(cell.downs)
+
+    const config = writtenConfig(run.root)
+    expect(config.registry.llms).toBeUndefined()
+    expect(config.use.llm).toBeUndefined()
+    expect(AgentQaConfigSchema.safeParse(config).success).toBe(true)
+    expectNoDummySecret(run.root, run.streams.text(), processOutput())
+  })
+})
+
+describe('the model question without a terminal', () => {
+  it('with no flags and an empty store, init writes the Claude subscription entry and asks nothing', async () => {
+    const { root, error, ui } = await init([])
+
+    expect(error).toBeUndefined()
+    const config = writtenConfig(root)
     expect(config.registry.llms).toEqual([
       {
         name: 'claude-code',
@@ -195,220 +244,139 @@ describe('init model connection flags', () => {
     ])
     expect(config.use.llm).toBe('claude-code')
     expect(config.plugins).toEqual([{ name: 'subscription', package: SUBSCRIPTION_AUTH_PACKAGE }])
-    for (const path of [
-      'tests/examples/komazon-checkout.yaml',
-      'tests/examples/komazon-cart-total-bug.yaml',
-      'tests/examples/komazon-shipping-hook.yaml',
-      'suites/examples.suite.yaml',
-    ]) {
-      expect(writtenText(path)).toMatch(/\S/u)
-    }
-    expect(writtenText('.env.secrets.local').split('\n')).toContain(EXAMPLE_SECRET_LINE)
-    expectNoPrompt()
+    expect(readFileSync(join(root, '.env.secrets.local'), 'utf8').split('\n')).toContain(
+      EXAMPLE_SECRET_LINE,
+    )
+    expect(questions(ui)).toEqual([])
   })
 
-  it('--llm anthropic-compatible writes a default entry with the Anthropic API base URL and declares no plugin', async () => {
-    await initOk(['--platform', 'web', '--llm', 'anthropic-compatible'])
+  it('takes a saved sign-in without being asked', async () => {
+    const { root, ui } = await init(['--platform', 'web'], { store: SIGNED_IN_AND_WORK_KEY })
 
-    const config = writtenConfig()
-    expect(config.registry.llms).toEqual([
-      {
-        name: 'default',
-        provider: 'anthropic-compatible',
-        model: registryDefault('anthropic-compatible'),
-        baseURL: 'https://api.anthropic.com/v1',
-      },
-    ])
-    expect(config.use.llm).toBe('default')
-    expect(config).not.toHaveProperty('plugins')
-    expect(JSON.parse(writtenText('package.json')).devDependencies).toEqual({ 'agent-qa': '0.1.1' })
-    expectNoPrompt()
-  })
-
-  it('--llm openai-compatible takes --model and --base-url as given', async () => {
-    await initOk([
-      '--platform', 'web',
-      '--llm', 'openai-compatible',
-      '--model', 'gpt-test',
-      '--base-url', 'https://llm.internal.test/v1',
-    ])
-
-    const config = writtenConfig()
-    expect(config.registry.llms).toEqual([
-      {
-        name: 'default',
-        provider: 'openai-compatible',
-        model: 'gpt-test',
-        baseURL: 'https://llm.internal.test/v1',
-      },
-    ])
-    expect(config.use.llm).toBe('default')
-    expect(config).not.toHaveProperty('plugins')
-    expectNoPrompt()
-  })
-
-  it('--llm gemini writes a default entry with no base URL and no plugin', async () => {
-    await initOk(['--platform', 'web', '--llm', 'gemini'])
-
-    const config = writtenConfig()
-    expect(config.registry.llms).toEqual([
-      { name: 'default', provider: 'gemini', model: registryDefault('gemini') },
-    ])
-    expect(config.use.llm).toBe('default')
-    expect(config).not.toHaveProperty('plugins')
-    expectNoPrompt()
-  })
-
-  it('an unknown --llm value is refused before anything is written', async () => {
-    await expect(runInit(['--platform', 'web', '--llm', 'gpt']))
-      .rejects.toMatchObject({ code: 'commander.invalidArgument' })
-
-    expect(refusalOutput()).toContain('claude-code')
-    expectNothingWritten()
-    expectNoPrompt()
-  })
-
-  it('a base URL is refused for a provider that takes none or when it is not an absolute http or https URL', async () => {
-    await initOk(['--platform', 'web', '--llm', 'codex', '--base-url', 'https://x.test/v1'])
-    expect(process.exitCode).toBe(2)
-    expect(refusalOutput())
-      .toContain('--base-url applies only to --llm openai-compatible or anthropic-compatible')
-    expectNothingWritten()
-
-    vi.clearAllMocks()
-    stderr = []
-    process.exitCode = undefined
-    await initOk(['--platform', 'web', '--llm', 'openai-compatible', '--base-url', 'ftp://x.test'])
-    expect(process.exitCode).toBe(2)
-    expect(refusalOutput()).toContain('--base-url must be an absolute http or https URL')
-    expectNothingWritten()
-    expectNoPrompt()
+    expect(writtenConfig(root).use.llm).toBe('claude-code')
+    expect(questions(ui)).toEqual([])
+    expectNoDummySecret(root, ui.output(), processOutput())
   })
 })
 
-type PromptCall = { kind: string; config: any }
+describe('--llm, --model and --base-url', () => {
+  it('--llm gemini writes the gemini entry with no base URL and no plugin', async () => {
+    const { root } = await init(['--platform', 'web', '--llm', 'gemini'])
 
-function promptCalls(): PromptCall[] {
-  const kinds = ['select', 'input', 'multiselect', 'confirm', 'password']
-  return prompts.flatMap((prompt, index) =>
-    prompt.mock.calls.map(call => ({ kind: kinds[index]!, config: call[0] as any })))
-}
-
-function answerWithDefaults(): void {
-  platform.mockImplementation(async (config) => [...config.initialValues])
-  vi.mocked(select).mockImplementation((async (config: any) => config.default) as any)
-  vi.mocked(input).mockImplementation((async (config: any) => config.default) as any)
-}
-
-function hasDefault(call: PromptCall): boolean {
-  if (call.kind === 'multiselect') return call.config.initialValues.length > 0
-  return call.config.default !== undefined && String(call.config.default).length > 0
-}
-
-describe('init prompts', () => {
-  beforeEach(answerWithDefaults)
-
-  it('in a terminal with no flags, init asks the platform and the model connection, each with its default', async () => {
-    await initOk([], true)
-
-    expect(platform).toHaveBeenCalledTimes(1)
-    expect(platform.mock.calls[0]![0].initialValues).toEqual(['web'])
-    expect(vi.mocked(select)).toHaveBeenCalledTimes(1)
-    const connection = vi.mocked(select).mock.calls[0]![0] as any
-    expect(connection.choices.map((choice: any) => choice.value)).toEqual([...INIT_LLM_CHOICES])
-    expect(connection.default).toBe('claude-code')
-    expect(vi.mocked(input)).not.toHaveBeenCalled()
-    expect(writtenConfig().registry.llms).toEqual([
-      {
-        name: 'claude-code',
-        provider: 'anthropic-subscription',
-        model: registryDefault('anthropic-subscription'),
-      },
+    const config = writtenConfig(root)
+    expect(config.registry.llms).toEqual([
+      { name: 'gemini', provider: 'gemini', model: registryDefault('gemini') },
     ])
+    expect(config.use.llm).toBe('gemini')
+    expect(config).not.toHaveProperty('plugins')
   })
 
-  it('a flag that is given skips its question', async () => {
-    await initOk(['--platform', 'web', '--llm', 'codex'], true)
-    expectNoPrompt()
-    expect(writtenConfig().registry.llms[0].name).toBe('codex')
+  it('--llm codex writes the codex entry on the Codex subscription and declares the plugin', async () => {
+    const { root } = await init(['--platform', 'web', '--llm', 'codex'])
 
-    vi.clearAllMocks()
-    answerWithDefaults()
-    await initOk(['--platform', 'web'], true)
-    expect(promptCalls().map(call => call.kind)).toEqual(['select'])
+    const config = writtenConfig(root)
+    expect(config.registry.llms).toEqual([
+      { name: 'codex', provider: 'openai-subscription', model: registryDefault('openai-subscription') },
+    ])
+    expect(config.use.llm).toBe('codex')
+    expect(config.plugins).toEqual([{ name: 'subscription', package: SUBSCRIPTION_AUTH_PACKAGE }])
+    expect(readFileSync(join(root, 'package.json'), 'utf8')).toContain(SUBSCRIPTION_AUTH_PACKAGE)
   })
 
-  it('the compatible providers ask the model and base URL with their defaults', async () => {
-    await initOk(['--platform', 'web', '--llm', 'anthropic-compatible'], true)
+  it('--llm with a saved compatible key writes no entry', async () => {
+    const { root, error, ui } = await init(['--platform', 'web', '--llm', 'work'], {
+      store: SIGNED_IN_AND_WORK_KEY,
+    })
 
-    const asked = promptCalls()
-    expect(asked.map(call => call.kind)).toEqual(['input', 'input'])
-    expect(asked[0]!.config.default).toBe(registryDefault('anthropic-compatible'))
-    expect(asked[1]!.config.default).toBe('https://api.anthropic.com/v1')
-    expect(asked[1]!.config.validate('ftp://x.test')).toBe('--base-url must be an absolute http or https URL')
-    expect(asked[1]!.config.validate('https://llm.internal.test/v1')).toBe(true)
-    expect(writtenConfig().registry.llms).toEqual([
-      {
-        name: 'default',
-        provider: 'anthropic-compatible',
-        model: registryDefault('anthropic-compatible'),
-        baseURL: 'https://api.anthropic.com/v1',
-      },
+    expect(error).toBeUndefined()
+    const config = writtenConfig(root)
+    expect(config.registry.llms).toBeUndefined()
+    expect(config.use.llm).toBeUndefined()
+    expectNoDummySecret(root, ui.output(), processOutput())
+  })
+
+  it('--llm openai-compatible with --base-url and --model writes a complete endpoint entry', async () => {
+    const { root } = await init([
+      '--platform',
+      'web',
+      '--llm',
+      'openai-compatible',
+      '--base-url',
+      ' https://llm.local/v1 ',
+      '--model',
+      ' m ',
     ])
 
-    vi.clearAllMocks()
-    answerWithDefaults()
-    await initOk([
-      '--platform', 'web',
-      '--llm', 'anthropic-compatible',
-      '--model', 'claude-test',
-      '--base-url', 'https://llm.internal.test/v1',
-    ], true)
-    expectNoPrompt()
+    expect(writtenConfig(root).registry.llms).toEqual([
+      { name: 'openai-compatible', provider: 'openai-compatible', model: 'm', baseURL: 'https://llm.local/v1' },
+    ])
+    expect(AgentQaConfigSchema.safeParse(writtenConfig(root)).success).toBe(true)
   })
 
-  it('init asks no yes or no question', async () => {
-    const asked: PromptCall[] = []
-    for (const args of [[], ['--platform', 'web'], ['--platform', 'web', '--llm', 'anthropic-compatible']]) {
-      vi.clearAllMocks()
-      answerWithDefaults()
-      await initOk(args, true)
-      asked.push(...promptCalls())
-    }
+  it('a blank --model is refused with exit 2 and nothing is written', async () => {
+    const { root, error } = await init(['--platform', 'web', '--model', '  '])
 
-    expect(new Set(asked.map(call => call.kind))).toEqual(new Set(['multiselect', 'select', 'input']))
-    for (const call of asked) expect(hasDefault(call), `${call.kind} ${call.config.message}`).toBe(true)
+    expect(error).toMatchObject({ exitCode: 2, message: '--model must not be empty' })
+    expect(readdirSync(root)).toEqual(['.git'])
   })
 
-  it('init help names --llm with its five values, --model and --base-url', async () => {
-    await expect(runInit(['--help'])).rejects.toMatchObject({ code: 'commander.helpDisplayed' })
+  it('an unknown --llm is refused with exit 2 naming the seven choices, and nothing is written', async () => {
+    const { root, error } = await init(['--platform', 'web', '--llm', 'nope'])
 
-    const lines = stdout.join('').split('\n')
-    const start = lines.findIndex(line => line.startsWith('  --llm <provider>'))
+    expect(error).toMatchObject({ exitCode: 2 })
+    for (const choice of INIT_MODEL_CHOICES) expect((error as Error).message).toContain(choice)
+    expect((error as Error).message).not.toContain('nope')
+    expect(readdirSync(root)).toEqual(['.git'])
+  })
+
+  it('a base URL on a provider that takes none is refused with exit 2 and nothing is written', async () => {
+    const { root, error } = await init(['--platform', 'web', '--llm', 'codex', '--base-url', 'https://x.test/v1'])
+
+    expect(error).toMatchObject({ exitCode: 2 })
+    expect(readdirSync(root)).toEqual(['.git'])
+  })
+
+  it('a flag answers the question in a terminal, and without one only the questions are asked', async () => {
+    const flagged = await init(['--platform', 'web', '--llm', 'codex'], { isTTY: true })
+    expect(questions(flagged.ui)).toEqual([])
+    expect(writtenConfig(flagged.root).use.llm).toBe('codex')
+
+    const asked = await init(['--platform', 'web'], {
+      isTTY: true,
+      ui: fakeInitUi({ [MODEL_QUESTION]: { kind: 'new', choice: 'gemini' } }),
+    })
+    expect(questions(asked.ui)).toContain(MODEL_QUESTION)
+    expect(writtenConfig(asked.root).use.llm).toBe('gemini')
+  })
+
+  it('init help names the seven --llm choices, --model and --base-url', () => {
+    const help = createInitCommand().helpInformation()
+    const lines = help.split('\n')
+    const start = lines.findIndex((line) => line.startsWith('  --llm <choice>'))
     expect(start).toBeGreaterThanOrEqual(0)
     const next = lines.findIndex((line, index) => index > start && /^\s{2}-/u.test(line))
     const entry = lines.slice(start, next).join(' ')
-    for (const value of INIT_LLM_CHOICES) expect(entry).toContain(`"${value}"`)
-    expect(entry).toContain('default: claude-code')
-    expect(lines.some(line => line.startsWith('  --model <id>'))).toBe(true)
-    expect(lines.some(line => line.startsWith('  --base-url <url>'))).toBe(true)
-    expect(stdout.join('')).not.toMatch(/--(api-key|token|key|secret)\b/u)
+    for (const choice of INIT_MODEL_CHOICES) expect(entry).toContain(choice)
+    expect(entry).toContain('saved credential')
+    expect(lines.some((line) => line.startsWith('  --model <id>'))).toBe(true)
+    expect(lines.some((line) => line.startsWith('  --base-url <url>'))).toBe(true)
+    expect(help).not.toMatch(/--(api-key|token|key|secret)\b/u)
   })
 })
 
 describe('subscription model defaults', () => {
   it('--llm codex with no --model writes gpt-6.1-sol', async () => {
-    await initOk(['--platform', 'web', '--llm', 'codex'])
+    const { root } = await init(['--platform', 'web', '--llm', 'codex'])
 
-    expect(writtenConfig().registry.llms).toEqual([
+    expect(writtenConfig(root).registry.llms).toEqual([
       { name: 'codex', provider: 'openai-subscription', model: 'gpt-6.1-sol' },
     ])
   })
 
   it('--llm claude-code with no --model writes claude-sonnet-5-5', async () => {
-    await initOk(['--platform', 'web', '--llm', 'claude-code'])
+    const { root } = await init(['--platform', 'web', '--llm', 'claude-code'])
 
-    expect(writtenConfig().registry.llms).toEqual([
+    expect(writtenConfig(root).registry.llms).toEqual([
       { name: 'claude-code', provider: 'anthropic-subscription', model: 'claude-sonnet-5-5' },
     ])
   })
@@ -416,33 +384,27 @@ describe('subscription model defaults', () => {
   it('the CLI subscription defaults equal the provider registry defaults', () => {
     expect(DEFAULT_OPENAI_MODEL).toBe(getProvider('openai-subscription')?.defaultModel)
     expect(DEFAULT_ANTHROPIC_MODEL).toBe(getProvider('anthropic-subscription')?.defaultModel)
-    expect([DEFAULT_OPENAI_MODEL, DEFAULT_ANTHROPIC_MODEL])
-      .toEqual(['gpt-6.1-sol', 'claude-sonnet-5-5'])
+    expect([DEFAULT_OPENAI_MODEL, DEFAULT_ANTHROPIC_MODEL]).toEqual([
+      'gpt-6.1-sol',
+      'claude-sonnet-5-5',
+    ])
   })
 })
 
 const GETTING_STARTED = 'https://vostride.com/docs/agent-qa/quickstart'
 const RUN_EXAMPLES = 'npx agent-qa run suites/examples.suite.yaml'
 
-// init draws its human output on stderr.
-function printed(): string {
-  return vi.mocked(process.stderr.write).mock.calls
-    .map(call => String(call[0]))
-    .join('')
-    .replace(/\u001b\[[0-9;]*m/gu, '')
-}
-
 function lineWith(output: string, text: string): string {
-  const line = output.split('\n').find(entry => entry.includes(text))
+  const line = output.split('\n').find((entry) => entry.includes(text))
   expect(line, `init printed ${text}`).toBeDefined()
   return line!
 }
 
 describe('init next steps', () => {
   it('the next steps follow the route order for a subscription workspace', async () => {
-    await initOk(['--platform', 'web', '--llm', 'codex'])
+    const { ui } = await init(['--platform', 'web', '--llm', 'codex'])
 
-    const output = printed()
+    const output = ui.output()
     const order = [
       'npx agent-qa install-browsers --chromium',
       `npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}`,
@@ -451,7 +413,7 @@ describe('init next steps', () => {
       RUN_EXAMPLES,
       GETTING_STARTED,
     ]
-    const positions = order.map(text => output.indexOf(text))
+    const positions = order.map((text) => output.indexOf(text))
     for (const [index, text] of order.entries()) {
       expect(positions[index], text).toBeGreaterThanOrEqual(0)
     }
@@ -463,36 +425,34 @@ describe('init next steps', () => {
   })
 
   it('an API-key workspace is told to save its key with auth set and the hidden prompt', async () => {
-    await initOk(['--platform', 'web', '--llm', 'anthropic-compatible'])
+    const { ui } = await init(['--platform', 'web', '--llm', 'anthropic'])
 
-    const output = printed()
-    const apiKey = lineWith(output, 'npx agent-qa auth set --config default --type api-key')
+    const output = ui.output()
+    const apiKey = lineWith(output, 'npx agent-qa auth set --config anthropic --type api-key')
     expect(apiKey).toContain('hidden prompt')
-    lineWith(output, 'npx agent-qa auth set --config default --type bearer-token')
-    expect(output.indexOf('npx agent-qa install-browsers --chromium'))
-      .toBeLessThan(output.indexOf('npx agent-qa auth set'))
-    expect(output.indexOf('npx agent-qa auth set'))
-      .toBeLessThan(output.indexOf('npx agent-qa validate'))
+    lineWith(output, 'npx agent-qa auth set --config anthropic --type bearer-token')
+    expect(output.indexOf('npx agent-qa install-browsers --chromium')).toBeLessThan(
+      output.indexOf('npx agent-qa auth set'),
+    )
+    expect(output.indexOf('npx agent-qa auth set')).toBeLessThan(
+      output.indexOf('npx agent-qa validate'),
+    )
     expect(output).not.toContain('auth login')
     expect(output).not.toContain(SUBSCRIPTION_AUTH_PACKAGE)
   })
 
-  it('the next steps of every workspace name validate', async () => {
-    const workspaces = [
-      ['--platform', 'web', '--llm', 'codex'],
-      ['--platform', 'web'],
-      ['--platform', 'web', '--llm', 'anthropic-compatible'],
-      ['--platform', 'android'],
-    ]
-    for (const args of workspaces) {
-      vi.clearAllMocks()
-      await initOk(args)
+  it.each([
+    [['--platform', 'web', '--llm', 'codex']],
+    [['--platform', 'web']],
+    [['--platform', 'web', '--llm', 'anthropic']],
+    [['--platform', 'web', '--llm', 'openai-compatible']],
+    [['--platform', 'android']],
+  ])('the next steps of %j name validate', async (args) => {
+    const { ui } = await init(args)
 
-      const lines = printed().split('\n')
-      const start = lines.findIndex(line => line === 'Next steps')
-      expect(start, args.join(' ')).toBeGreaterThanOrEqual(0)
-      const validate = lines.slice(start).some(line => line.includes('npx agent-qa validate'))
-      expect(validate, args.join(' ')).toBe(true)
-    }
+    const lines = ui.output().split('\n')
+    const start = lines.findIndex((line) => line === 'Next steps')
+    expect(start).toBeGreaterThanOrEqual(0)
+    expect(lines.slice(start).some((line) => line.includes('npx agent-qa validate'))).toBe(true)
   })
 })

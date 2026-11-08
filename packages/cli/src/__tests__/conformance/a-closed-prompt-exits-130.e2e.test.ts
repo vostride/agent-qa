@@ -49,7 +49,7 @@ describe('a closed prompt', () => {
 
       const outcome = await spawnCollecting(
         root,
-        [CLI_ENTRY, 'auth', 'set', '--config', 'default', '--type', 'api-key'],
+        [CLI_ENTRY, 'auth', 'set', '--config', 'gemini', '--type', 'api-key'],
         env,
       )
 

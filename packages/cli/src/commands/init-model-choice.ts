@@ -116,6 +116,13 @@ const NEW_CHOICE_TARGETS: Record<InitModelChoice, NewChoiceTarget> = {
   },
 }
 
+// The official endpoint each API choice writes, by provider.
+export const INIT_BASE_URL_DEFAULTS: Readonly<Record<string, string>> = Object.fromEntries(
+  Object.values(NEW_CHOICE_TARGETS).flatMap(({ provider, baseURL }) =>
+    baseURL === undefined ? [] : [[provider, baseURL]],
+  ),
+)
+
 // The model page's existing `?add=` choices.
 const DASHBOARD_ADD: Readonly<Record<string, string>> = {
   'openai-compatible': 'openai-compatible-key',
