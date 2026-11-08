@@ -283,17 +283,11 @@ describe('source skill metadata', () => {
     const reference = parseYaml(readFileSync(path.join(SOURCE_SKILLS_DIR, 'agent-qa-authoring', 'agents/openai.yaml'), 'utf8'))
     const metadata = parseYaml(readFileSync(path.join(SOURCE_SKILLS_DIR, name, 'agents/openai.yaml'), 'utf8')) as {
       interface: { default_prompt: string }
-      dependencies: { tools: Array<Record<string, string>> }
       policy: Record<string, unknown>
     }
     expect(yamlShape(metadata)).toEqual(yamlShape(reference))
     expect(metadata.interface.default_prompt).toContain(`$${name}`)
-    expect(metadata.dependencies.tools).toEqual([expect.objectContaining({
-      type: 'mcp',
-      value: 'agent-qa',
-      transport: 'streamable_http',
-      url: 'http://127.0.0.1:3471/mcp',
-    })])
+    expect(metadata).not.toHaveProperty('dependencies')
     expect(metadata.policy).toEqual({ allow_implicit_invocation: true })
   })
 })
@@ -444,25 +438,16 @@ describe('skill metadata', () => {
     ])
   }
 
-  it('each agents/openai.yaml points at the agent-qa server on port 3471, prompts with its own skill name and claims no schema or ID tool', () => {
+  it('each agents/openai.yaml prompts with its own skill name, declares no MCP dependency and claims no schema or ID tool', () => {
     const findings: string[] = []
-    let read = 0
     for (const tree of trees) {
       for (const name of SHIPPED_SKILLS) {
         const file = path.join(tree, name, 'agents', 'openai.yaml')
         const label = path.relative(path.dirname(SOURCE_SKILLS_DIR), file)
         const metadata = parseYaml(readFileSync(file, 'utf8')) as {
           interface?: { default_prompt?: string }
-          dependencies?: { tools?: Array<Record<string, unknown>> }
         }
-        read += 1
-        const tools = metadata.dependencies?.tools ?? []
-        const live = tools.length === 1
-          && tools[0]?.type === 'mcp'
-          && tools[0]?.value === 'agent-qa'
-          && tools[0]?.transport === 'streamable_http'
-          && tools[0]?.url === 'http://127.0.0.1:3471/mcp'
-        if (!live) findings.push(`${label}: the tool dependency is not the agent-qa server on 127.0.0.1:3471`)
+        if (Object.hasOwn(metadata, 'dependencies')) findings.push(`${label}: declares dependencies`)
         if (!(metadata.interface?.default_prompt ?? '').includes(`$${name}`)) {
           findings.push(`${label}: the default prompt does not name $${name}`)
         }
@@ -471,7 +456,6 @@ describe('skill metadata', () => {
         }
       }
     }
-    expect(read).toBe(SHIPPED_SKILLS.length * 2)
     expect(findings, 'a skill metadata file is stale').toEqual([])
   })
 })

@@ -3,13 +3,5 @@ interface:
   short_description: "Read runs, evidence and knowledge"
   default_prompt: "Use $agent-qa-knowledge to find out what this agent-qa run did and what knowledge it used, with provenance."
 
-dependencies:
-  tools:
-    - type: "mcp"
-      value: "agent-qa"
-      description: "agent-qa local MCP server for run, evidence and knowledge read tools."
-      transport: "streamable_http"
-      url: "http://127.0.0.1:3471/mcp"
-
 policy:
   allow_implicit_invocation: true
