@@ -79,6 +79,7 @@ import {
   INIT_MODEL_CHOICES,
   initModelOptions,
   modelEntryFor,
+  modelStatus,
   preselectedModel,
   resolveLlmFlag,
   type InitModelOption,
@@ -1329,6 +1330,29 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         } finally {
           runner.dispose()
         }
+
+        const authPath = getAuthPath({ env: host.env, homeDir: host.homedir })
+        const installRecord = runner.records().find((record) => record.name === 'install')
+        const installed =
+          installRecord?.outcome === 'done' ||
+          (installRecord?.outcome === 'skipped' && installRecord.reason === 'already installed')
+        const pluginDir = dirname(packageJsonPlan.path)
+        const status = await modelStatus({
+          ...modelSetup,
+          configPath,
+          projectDir: dir,
+          authPath,
+          pluginInstalled:
+            installed &&
+            nearestInstalledPackage(range, pluginDir, SUBSCRIPTION_AUTH_PACKAGE, host.io) !==
+              undefined,
+        })
+        recorder.model({
+          ...(modelSetup.entry === undefined
+            ? {}
+            : { name: modelSetup.entry.name, provider: modelSetup.entry.provider }),
+          ...status,
+        })
 
         const secretsPath = join(dir, DEFAULT_SECRETS_FILE)
         const secretsPreserved = outcomes.some(

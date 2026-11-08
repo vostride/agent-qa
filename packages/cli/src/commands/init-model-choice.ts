@@ -1,6 +1,13 @@
-import { NameSlugSchema, type SavedCredential } from '@vostride/agent-qa-core'
+import {
+  NameSlugSchema,
+  loadLLMAuthPlugins,
+  resolveLLMAuth,
+  type SavedCredential,
+} from '@vostride/agent-qa-core'
 import { getProvider } from '@vostride/agent-qa-model'
+import { SUBSCRIPTION_AUTH_ENTRY_NAME } from '@vostride/agent-qa-schema'
 import { CliRefusal } from '../composition/cli-refusal.js'
+import { SUBSCRIPTION_AUTH_PACKAGE } from './scaffold-content.js'
 
 export const INIT_MODEL_CHOICES = [
   'claude-code',
@@ -242,4 +249,45 @@ export function resolveLlmFlag(value: string, saved: readonly SavedCredential[])
     [`--llm must be one of ${INIT_MODEL_CHOICES.join(', ')}, or the name of a saved credential`],
     2,
   )
+}
+
+export interface InitModelStatus {
+  status: 'ready' | 'pending'
+  reason?: string
+}
+
+const DASHBOARD_REASON = "set up on the dashboard's model page"
+
+// Read from the local store only: the subscription plugin is loaded so the resolver knows its
+// provider, and nothing leaves the machine.
+export async function modelStatus(input: {
+  entry?: InitModelEntry
+  dashboard?: InitModelSetup['dashboard']
+  configPath: string
+  projectDir: string
+  authPath: string
+  pluginInstalled: boolean
+}): Promise<InitModelStatus> {
+  const { entry } = input
+  if (entry === undefined) return { status: 'pending', reason: DASHBOARD_REASON }
+  const subscription = getProvider(entry.provider)?.subscription === true
+  if (subscription) {
+    if (!input.pluginInstalled) {
+      return { status: 'pending', reason: 'the subscription plugin is not installed' }
+    }
+    try {
+      await loadLLMAuthPlugins(
+        [{ name: SUBSCRIPTION_AUTH_ENTRY_NAME, package: SUBSCRIPTION_AUTH_PACKAGE }],
+        { baseDir: input.projectDir, configPath: input.configPath },
+      )
+    } catch {
+      return { status: 'pending', reason: 'the subscription plugin could not be loaded' }
+    }
+  }
+  const auth = await resolveLLMAuth(entry.name, entry, input.authPath)
+  if (auth.kind !== 'missing') return { status: 'ready' }
+  return {
+    status: 'pending',
+    reason: subscription ? 'not signed in' : "add the key on the dashboard's model page",
+  }
 }

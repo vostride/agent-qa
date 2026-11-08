@@ -87,6 +87,8 @@ vi.mock('@vostride/agent-qa-core', () => ({
   getAgentQaVersion: vi.fn(() => '0.1.1'),
   getAuthPath: vi.fn(() => '/tmp/test-home/.agent-qa/auth.json'),
   listSavedCredentials: vi.fn(async () => []),
+  loadLLMAuthPlugins: vi.fn(async () => []),
+  resolveLLMAuth: vi.fn(async () => ({ kind: 'missing', required: true, message: '' })),
   compareSemverVersions: vi.fn(() => undefined),
   semverRangeFloor: vi.fn(() => undefined),
 }))
