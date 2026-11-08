@@ -1126,7 +1126,7 @@ describe('a manager that cancels itself or a runner that throws', () => {
     expect(existsSync(join(root, 'agent-qa.config.yaml'))).toBe(true)
   })
 
-  it("a version probe that throws is a failed install step with the probe's command", async () => {
+  it('a version probe that throws is a failed install step with the install command to run', async () => {
     const { root, home } = pnpmProject('init-probe-throws')
     const ui = fakeInitUi()
     const run = fakeRunner(() => {
@@ -1139,8 +1139,12 @@ describe('a manager that cancels itself or a runner that throws', () => {
     expect(managerCalls(run).map(argv)).toEqual(['pnpm --version'])
     expect(ui.entries).toContainEqual({
       kind: 'failed',
-      text: 'Install failed: spawn EACCES',
-      command: 'pnpm --version',
+      text: 'Install failed: pnpm --version could not start: spawn EACCES',
+      command: 'pnpm install',
     })
+    const note = ui.entries.find((entry) => entry.kind === 'note' && entry.text === 'Next steps')
+    const steps = note?.kind === 'note' ? note.lines : []
+    expect(steps[0]).toBe('pnpm install')
+    expect(steps).not.toContain('pnpm --version')
   })
 })

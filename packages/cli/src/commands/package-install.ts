@@ -173,7 +173,14 @@ async function installStep(
     return { outcome: 'skipped', command, notes }
   }
 
-  const resolved = await resolveInstallCommand(manager, { ...host, cwd: packageDir })
+  const resolved = await resolveInstallCommand(manager, { ...host, cwd: packageDir }).catch(
+    (error: unknown) => {
+      // A probe that cannot start leaves the install itself as the command to run.
+      if (!(error instanceof RunRejected)) throw error
+      const message = `${error.line} could not start: ${error.message}`
+      throw new RunRejected(commandLine(plain.command, plain.args), new Error(message))
+    },
+  )
   manager = withResolvedYarnLine(manager, resolved)
   const settings = await prepare()
   print(`Installing ${list} with ${manager.name}…`)
