@@ -335,6 +335,22 @@ describe('reinstalling agent-qa skills', () => {
     expect(paths).toHaveLength(6)
   })
 
+  it('names each edited file of a dropped skill that it removes', async () => {
+    const project = tempProject('reinstall-drop-edited')
+    installAgentQa(project.root, VERSION)
+    await setup(project, BOTH)
+    writeFileSync(join(project.root, '.claude/skills/agent-qa-beta/SKILL.md'), 'My edit.\n')
+    shipOnly(project.root, VERSION, skillFolderFiles('agent-qa-alpha', ALPHA_EXTRA))
+
+    const result = await setup(project, BOTH)
+
+    expect(outcomeOf(result, '.claude/skills/agent-qa-beta/SKILL.md')).toBe('removed')
+    expect(outcomeOf(result, '.agents/skills/agent-qa-beta/SKILL.md')).toBe('removed')
+    expect(result.notes.filter((note) => note.startsWith('Removed your edit:'))).toEqual([
+      'Removed your edit: .claude/skills/agent-qa-beta/SKILL.md',
+    ])
+  })
+
   it("never writes or removes a person's own skill or a file they added inside an agent-qa skill", async () => {
     const project = tempProject('reinstall-unlisted')
     installAgentQa(project.root, VERSION)

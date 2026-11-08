@@ -280,8 +280,15 @@ function installSkillFiles(install: SkillsInstall): string[] {
     }
     const absolute = join(projectDir, path)
     try {
+      const onDisk =
+        classifyInitPath(absolute, projectDir) === 'regular'
+          ? sha256Of(readFileSync(absolute))
+          : undefined
       if (removeFileInsideRoot({ path: absolute, root: projectDir }) === 'removed') {
         result.files.push({ path, outcome: 'removed' })
+        if (onDisk !== undefined && onDisk !== sha256) {
+          result.notes.push(`Removed your edit: ${path}`)
+        }
       }
       removeEmptyFoldersUpTo(absolute, join(projectDir, AGENT_SKILL_ROOTS[agent]))
     } catch (error) {
