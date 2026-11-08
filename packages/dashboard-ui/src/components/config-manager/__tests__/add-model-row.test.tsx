@@ -726,6 +726,51 @@ describe('The add row in the list', () => {
     expect(document.activeElement).toBe(radio(CONNECTION_CHOICES[0]))
   })
 
+  it('a link with a choice and a name opens the add row on that choice with that name kept, and consumes both', async () => {
+    await mount('/config/models?add=openai-compatible-key&name=work')
+    expect(addRows()).toHaveLength(1)
+    expect(radio('openai-compatible-key')?.getAttribute('aria-checked')).toBe('true')
+    expect(input('name')?.value).toBe('work')
+    expect(location()).toEqual({ pathname: '/config/models', search: '' })
+
+    await type(input('model'), 'gpt-5.6')
+    expect(input('name')?.value).toBe('work')
+  })
+
+  it('a linked name that holds this provider\'s key reuses it and asks only for the URL and the model', async () => {
+    vi.mocked(fetchAuthStatus).mockResolvedValue({
+      credentials: heldCredentials({ configName: 'work', provider: 'openai-compatible', type: 'api' }),
+    })
+    await mount('/config/models?add=openai-compatible-key&name=work')
+    expect(input('name')?.value).toBe('work')
+    expect(existingLine()?.textContent).toContain(existingCredentialLine('key', 'work'))
+    expect(input('key')).toBeNull()
+    expect(input('baseURL')).not.toBeNull()
+    expect(input('model')).not.toBeNull()
+
+    await type(input('baseURL'), 'https://llm.example.com/v1')
+    await type(input('model'), 'gpt-5.6')
+    vi.mocked(connectLLM).mockResolvedValueOnce({ success: false, errorClass: 'auth_error', message: 'Refused.' })
+    await click(connectButton())
+    expect(vi.mocked(connectLLM).mock.calls[0][0]).toEqual({
+      name: 'work',
+      provider: 'openai-compatible',
+      model: 'gpt-5.6',
+      baseURL: 'https://llm.example.com/v1',
+    })
+  })
+
+  it('a link with a name leaves a stored draft its own name and is still consumed', async () => {
+    localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({ choice: 'openai-compatible-key', model: 'gpt-5.6', name: 'gpt-5.6', nameEdited: false }),
+    )
+    await mount('/config/models?add=openai-compatible-key&name=work')
+    expect(addRows()).toHaveLength(1)
+    expect(input('name')?.value).toBe('gpt-5.6')
+    expect(location()).toEqual({ pathname: '/config/models', search: '' })
+  })
+
   it('ADD-DRAFT-RESTORED-WITHOUT-SECRETS: a reload re-opens the add row with its non-secret fields and every secret field empty', async () => {
     localStorage.setItem(
       DRAFT_KEY,

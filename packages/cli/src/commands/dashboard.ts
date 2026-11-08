@@ -1,4 +1,6 @@
 import { Command } from 'commander'
+import { spawn } from 'node:child_process'
+import type { SpawnOptions } from 'node:child_process'
 import { createServer } from 'node:http'
 import type { Server as NodeHttpServer } from 'node:http'
 import { basename, resolve, dirname } from 'node:path'
@@ -71,6 +73,7 @@ import {
   createConfigReader,
   withRunDoor,
 } from '../composition/local-agent-host.js'
+import { CliRefusal } from '../composition/cli-refusal.js'
 import { createDeclaredSecretMask } from '../composition/declared-secrets.js'
 import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
 import { composeRunOwnership } from '../composition/run-owner-probe.js'
@@ -663,8 +666,74 @@ export async function mountCoHostedMcp(input: {
 type DashboardCommandOptions = {
   port?: string
   db?: string
-  open?: boolean
+  open?: true | string
 }
+
+// The URL-encoded form a page path may take: none of these characters means anything to a shell.
+const DASHBOARD_OPEN_PATH = /^\/[A-Za-z0-9\-._~/?&=]*$/u
+
+export function dashboardOpenPath(open: true | string): string {
+  if (open === true) return ''
+  if (!DASHBOARD_OPEN_PATH.test(open)) {
+    throw new CliRefusal(
+      [
+        pc.red(
+          `--open takes a dashboard page in URL-encoded form, starting with / and holding only ` +
+            `letters, digits and - . _ ~ / ? & =, such as /config/models; got ${JSON.stringify(open)}.`,
+        ),
+      ],
+      2,
+    )
+  }
+  return open
+}
+
+export function dashboardOpenUrl(port: number, open: true | string): string {
+  return `http://localhost:${String(port)}${dashboardOpenPath(open)}`
+}
+
+export interface DashboardOpenerChild {
+  on(event: 'error', listener: (error: Error) => void): unknown
+  unref(): void
+}
+
+export interface DashboardOpener {
+  readonly platform: NodeJS.Platform
+  readonly spawn: (
+    command: string,
+    args: readonly string[],
+    options: SpawnOptions,
+  ) => DashboardOpenerChild
+}
+
+// Anything here could leave cmd.exe's quotes or expand a variable inside them.
+const CMD_UNQUOTABLE = /["%^|<>!\u0000-\u001F\u007F]/u
+
+export function openDashboardUrl(url: string, opener: DashboardOpener): void {
+  let child: DashboardOpenerChild
+  if (opener.platform === 'win32') {
+    if (CMD_UNQUOTABLE.test(url)) {
+      throw new Error(
+        `Refusing to open ${JSON.stringify(url)} through cmd.exe: it holds a character cmd.exe ` +
+          'would act on.',
+      )
+    }
+    // Verbatim, so cmd reads `start "" "<url>"` and an `&` in the URL stays inside the quotes.
+    child = opener.spawn('cmd', ['/d', '/c', 'start', '""', `"${url}"`], {
+      shell: false,
+      stdio: 'ignore',
+      windowsVerbatimArguments: true,
+    })
+  } else {
+    const command = opener.platform === 'darwin' ? 'open' : 'xdg-open'
+    child = opener.spawn(command, [url], { shell: false, stdio: 'ignore' })
+  }
+  // A missing opener leaves the dashboard serving; the address is already printed.
+  child.on('error', () => {})
+  child.unref()
+}
+
+const systemDashboardOpener: DashboardOpener = { platform: process.platform, spawn }
 
 type ServiceCommandLabels = {
   error: string
@@ -675,6 +744,7 @@ async function startDashboardBackedServices(
   opts: DashboardCommandOptions,
   command: Command,
   labels: ServiceCommandLabels,
+  opener: DashboardOpener = systemDashboardOpener,
 ): Promise<void> {
   try {
     const program = command.parent!
@@ -883,10 +953,8 @@ async function startDashboardBackedServices(
       }
     }
 
-    if (opts.open) {
-      const { exec } = await import('node:child_process')
-      const openCmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'
-      exec(`${openCmd} http://localhost:${listeningPort}`)
+    if (opts.open !== undefined) {
+      openDashboardUrl(dashboardOpenUrl(listeningPort, opts.open), opener)
     }
 
     let shuttingDown = false
@@ -935,17 +1003,21 @@ export async function openProjectRunDetailReader(dbPath: string) {
   return { reader: createDashboardRunDetailReader(db), close: () => db.close() }
 }
 
-export function createDashboardCommand(): Command {
+export function createDashboardCommand(opener: DashboardOpener = systemDashboardOpener): Command {
   const cmd = new Command('dashboard')
     .description('Start the dashboard web server')
     .option('--port <number>', 'server port (default: 3470)')
     .option('--db <path>', 'database file path')
-    .option('--open', 'open browser after start')
+    .option('--open [path]', 'open the browser after start, at a page such as /config/models')
     .action(async (opts: DashboardCommandOptions, command: Command) => {
-      await startDashboardBackedServices(opts, command, {
-        error: 'Dashboard',
-        shutdown: 'dashboard',
-      })
+      // Refused before the server starts, so a bad page never leaves a dashboard running.
+      if (opts.open !== undefined) dashboardOpenPath(opts.open)
+      await startDashboardBackedServices(
+        opts,
+        command,
+        { error: 'Dashboard', shutdown: 'dashboard' },
+        opener,
+      )
     })
 
   return cmd

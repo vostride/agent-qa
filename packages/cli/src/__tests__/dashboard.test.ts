@@ -155,10 +155,11 @@ describe('createDashboardCommand', () => {
     expect(dbOpt).toBeDefined()
   })
 
-  it('has open flag as boolean', () => {
+  it('has an open option that takes an optional page', () => {
     const cmd = createDashboardCommand()
     const openOpt = cmd.options.find(o => o.long === '--open')
     expect(openOpt).toBeDefined()
+    expect(openOpt!.optional).toBe(true)
   })
 
   it('starts server with correct config on action', async () => {
@@ -191,6 +192,53 @@ describe('createDashboardCommand', () => {
     // And the backend it handed over is composed over a real starter rather than a placeholder.
     const backendOptions = (started.executionBackend as { options?: { invokeRun?: unknown } }).options
     expect(typeof backendOptions?.invokeRun).toBe('function')
+  })
+
+  it('opens the page given to --open on the listening port through the opener', async () => {
+    const child = { on: vi.fn(), unref: vi.fn() }
+    const spawn = vi.fn(() => child)
+    const program = new Command()
+    program.option('--config <path>')
+    program.addCommand(createDashboardCommand({ platform: 'darwin', spawn }))
+
+    await program.parseAsync([
+      'node', 'agent-qa', '--config', configPath,
+      'dashboard', '--open', '/config/models?add=openai-compatible-key&name=work',
+    ])
+
+    expect(mockStartServer).toHaveBeenCalled()
+    expect(spawn).toHaveBeenCalledWith(
+      'open',
+      ['http://localhost:3470/config/models?add=openai-compatible-key&name=work'],
+      { shell: false, stdio: 'ignore' },
+    )
+  })
+
+  it('opens the dashboard root for a bare --open', async () => {
+    const child = { on: vi.fn(), unref: vi.fn() }
+    const spawn = vi.fn(() => child)
+    const program = new Command()
+    program.option('--config <path>')
+    program.addCommand(createDashboardCommand({ platform: 'linux', spawn }))
+
+    await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'dashboard', '--open'])
+
+    expect(spawn).toHaveBeenCalledWith('xdg-open', ['http://localhost:3470'], {
+      shell: false,
+      stdio: 'ignore',
+    })
+  })
+
+  it('opens nothing without --open', async () => {
+    const spawn = vi.fn(() => ({ on: vi.fn(), unref: vi.fn() }))
+    const program = new Command()
+    program.option('--config <path>')
+    program.addCommand(createDashboardCommand({ platform: 'darwin', spawn }))
+
+    await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'dashboard'])
+
+    expect(mockStartServer).toHaveBeenCalled()
+    expect(spawn).not.toHaveBeenCalled()
   })
 
   it('uses dashboard config from resolved config', async () => {

@@ -63,6 +63,7 @@ function choiceParam(value: string | null): ConnectionChoice | undefined {
 
 interface AddRowState {
   initialChoice?: ConnectionChoice
+  initialName?: string
   focus: AddFocusRequest | undefined
 }
 
@@ -70,6 +71,7 @@ export function ModelList(_props: ModelListProps) {
   const autosave = useConfigAutosaveContext()
   const [searchParams, setSearchParams] = useSearchParams()
   const addParam = searchParams.get("add")
+  const nameParam = searchParams.get("name")
   const configPath = autosave.load.kind === "ready" ? (autosave.load.answer.file?.path ?? "") : ""
   // A stored add draft (a reload mid-draft) re-opens the row; it takes focus only when asked.
   const [add, setAdd] = useState<AddRowState | undefined>(() =>
@@ -162,23 +164,28 @@ export function ModelList(_props: ModelListProps) {
   }
 
   /** Opens the one add row, or focuses it when it is already open. */
-  function openAdd(initialChoice: ConnectionChoice | undefined) {
+  function openAdd(initialChoice: ConnectionChoice | undefined, initialName?: string) {
     focusSeq.current += 1
     const seq = focusSeq.current
     setAdd((current) =>
       current === undefined
-        ? { ...(initialChoice === undefined ? {} : { initialChoice }), focus: { seq, target: initialChoice ? "field" : "choice" } }
+        ? {
+            ...(initialChoice === undefined ? {} : { initialChoice }),
+            ...(initialName === undefined ? {} : { initialName }),
+            focus: { seq, target: initialChoice ? "field" : "choice" },
+          }
         : { ...current, focus: { seq, target: "choice" } },
     )
   }
 
   useEffect(() => {
     if (addParam === null) return
-    openAdd(choiceParam(addParam))
+    openAdd(choiceParam(addParam), nameParam === null || nameParam === "" ? undefined : nameParam)
     setSearchParams(
       (current) => {
         const next = new URLSearchParams(current)
         next.delete("add")
+        next.delete("name")
         return next
       },
       { replace: true },
@@ -270,6 +277,7 @@ export function ModelList(_props: ModelListProps) {
               providers={reads.providers}
               existingNames={models.map((model) => model.name)}
               {...(add.initialChoice === undefined ? {} : { initialChoice: add.initialChoice })}
+              {...(add.initialName === undefined ? {} : { initialName: add.initialName })}
               {...(add.focus === undefined ? {} : { focusRequest: add.focus })}
               onConnected={connected}
               onDiscard={discardAdd}

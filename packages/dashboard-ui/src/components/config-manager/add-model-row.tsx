@@ -101,6 +101,8 @@ interface AddModelRowProps {
   providers: readonly LLMProviderMetadata[]
   existingNames: readonly string[]
   initialChoice?: ConnectionChoice
+  /** A name the link that opened the row carries; it counts as typed, so a model pick keeps it. */
+  initialName?: string
   focusRequest?: AddFocusRequest
   onConnected: (landing: AddModelLanding) => void
   onDiscard: () => void
@@ -174,13 +176,19 @@ function restoredSignIn(draft: AddModelDraft, savedNames: readonly string[]): Dr
 function initialState(
   stored: AddModelDraft | undefined,
   initialChoice: ConnectionChoice | undefined,
+  initialName: string | undefined,
   providers: readonly LLMProviderMetadata[],
 ): Initial {
+  const named: AddModelDraft = initialName === undefined ? {} : { name: initialName, nameEdited: true }
   if (initialChoice !== undefined && stored?.choice !== initialChoice) {
     const model = defaultModelOf(providers, initialChoice)
-    return { draft: { choice: initialChoice, model, name: suggestModelName(model), nameEdited: false }, headers: [] }
+    return {
+      draft: { choice: initialChoice, model, name: suggestModelName(model), nameEdited: false, ...named },
+      headers: [],
+    }
   }
-  const draft = stored ?? {}
+  // A stored draft is the person's own work in progress, so it keeps its name over a link's.
+  const draft = stored ?? named
   const headers = (draft.headerNames ?? []).map((name, index) => ({ id: index + 1, name, value: "" }))
   return { draft, headers }
 }
@@ -261,13 +269,14 @@ export function AddModelRow({
   providers,
   existingNames,
   initialChoice,
+  initialName,
   focusRequest,
   onConnected,
   onDiscard,
 }: AddModelRowProps) {
   const autosave = useConfigAutosaveContext()
   const baseId = useId()
-  const [initial] = useState(() => initialState(readAddModelDraft(configPath), initialChoice, providers))
+  const [initial] = useState(() => initialState(readAddModelDraft(configPath), initialChoice, initialName, providers))
   const [choice, setChoice] = useState<ConnectionChoice | undefined>(initial.draft.choice)
   const [baseURL, setBaseURL] = useState(initial.draft.baseURL ?? "")
   const [model, setModel] = useState(initial.draft.model ?? "")
