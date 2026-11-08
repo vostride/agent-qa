@@ -3,11 +3,17 @@ import { Command } from 'commander'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { parse as parseYaml } from 'yaml'
 
 export interface AgentQaSkillInfo {
   name: string
   path: string
   description?: string
+}
+
+export interface AgentQaSkillSummary {
+  name: string
+  shortDescription: string
 }
 
 export interface ResolvedSkillsDirectory {
@@ -99,6 +105,39 @@ export function listAgentQaSkills(skillsDir: string): AgentQaSkillInfo[] {
     })
 }
 
+const SKILL_FRONTMATTER = /^\uFEFF?---\r?\n([\s\S]*?\r?\n)?---(?:\r?\n|$)/u
+
+function fieldsOf(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
+}
+
+function textOf(value: unknown): string {
+  return typeof value === 'string' ? value.replace(/\s+/gu, ' ').trim() : ''
+}
+
+function firstSentence(text: string): string {
+  return text.match(/^.*?[.!?](?=\s|$)/u)?.[0] ?? text
+}
+
+export function skillSummary(skillMarkdown: string): AgentQaSkillSummary {
+  const match = SKILL_FRONTMATTER.exec(skillMarkdown)
+  const fields = fieldsOf(match === null ? undefined : parseYaml(match[1] ?? ''))
+  const name = textOf(fields['name'])
+  if (name === '') throw new Error('A SKILL.md frontmatter names no skill.')
+  const shortDescription = textOf(fieldsOf(fields['metadata'])['short-description'])
+  return {
+    name,
+    shortDescription: shortDescription || firstSentence(textOf(fields['description'])),
+  }
+}
+
+export function runningAgentQaSkillSummaries(startDir?: string): AgentQaSkillSummary[] {
+  return listAgentQaSkills(resolveAgentQaSkillsDirectory(startDir).path)
+    .map((skill) => skillSummary(readFileSync(join(skill.path, 'SKILL.md'), 'utf-8')))
+    .sort((left, right) => (left.name < right.name ? -1 : left.name > right.name ? 1 : 0))
+}
 
 export function createSkillsCommand(options: SkillsCommandOptions = {}): Command {
   const stdout = options.stdout ?? process.stdout

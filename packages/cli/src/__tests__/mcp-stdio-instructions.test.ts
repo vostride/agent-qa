@@ -16,6 +16,8 @@ import {
   buildAgentInstructionPointer,
   buildKnowledgeAgentGuide,
 } from '../commands/knowledge-guide.js'
+import { installedAgentQaVersion } from '../commands/package-json-plan.js'
+import { runningAgentQaSkillSummaries } from '../commands/skills.js'
 
 const CLI_ENTRY = process.env['AGENT_QA_PARITY_CLI']
   ?? resolve(dirname(fileURLToPath(import.meta.url)), '../../dist/cli.js')
@@ -81,7 +83,9 @@ describe('the stdio server instructions match the init guide', () => {
       expect(guide, `the guide no longer names ${path}`).toContain(path)
       expect(AGENT_QA_MCP_INSTRUCTIONS, path).toContain(path)
     }
-    expect(buildAgentInstructionPointer().join('\n')).toContain('.agent-qa/')
+    const skills = runningAgentQaSkillSummaries()
+    const block = buildAgentInstructionPointer(skills, installedAgentQaVersion())
+    expect(block.join('\n')).toContain('.agent-qa/')
     expect(AGENT_QA_MCP_INSTRUCTIONS).toContain('.agent-qa/')
   })
 

@@ -74,6 +74,7 @@ import {
 } from './project-agent-qa.js'
 import { projectHost, type ProjectHost, type ProjectIo } from './project-host.js'
 import { nearestInstalledPackage, projectRange, type ProjectRange } from './project-range.js'
+import { runningAgentQaSkillSummaries } from './skills.js'
 
 // Re-exported because this module is their public door.
 export { SUPPORTED_INIT_PLATFORMS, parseInitPlatform } from './scaffold-content.js'
@@ -564,7 +565,7 @@ const ROOT_AGENT_INSTRUCTIONS_FILE = 'AGENTS.md'
 function agentInstructionPointerContent(): ManagedBlockContent {
   return {
     descriptor: AGENT_QA_INIT_MARKDOWN_BLOCK,
-    body: buildAgentInstructionPointer(),
+    body: buildAgentInstructionPointer(runningAgentQaSkillSummaries(), installedAgentQaVersion()),
     target: ROOT_AGENT_INSTRUCTIONS_FILE,
   }
 }
