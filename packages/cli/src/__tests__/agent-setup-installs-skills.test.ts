@@ -170,6 +170,24 @@ describe('installing agent-qa skills into a project', () => {
     }
   })
 
+  it("copies a skill's own scripts folder like any other file", async () => {
+    const project = tempProject('setup-skill-scripts')
+    installAgentQa(project.root, VERSION, {
+      ...skillFolderFiles('agent-qa-alpha', {
+        ...ALPHA_EXTRA,
+        'scripts/check.sh': '#!/bin/sh\necho checked\n',
+      }),
+    })
+
+    const result = await setup(project, BOTH)
+
+    for (const root of ['.claude/skills', '.agents/skills']) {
+      const path = `${root}/agent-qa-alpha/scripts/check.sh`
+      expect(outcomeOf(result, path)).toBe('created')
+      expect(readFileSync(join(project.root, path), 'utf-8')).toBe('#!/bin/sh\necho checked\n')
+    }
+  })
+
   it('records every written file with the hash of its bytes on disk in the manifest', async () => {
     const project = tempProject('setup-manifest')
     installAgentQa(project.root, VERSION)

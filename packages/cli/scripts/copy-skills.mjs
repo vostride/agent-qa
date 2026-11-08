@@ -1,6 +1,6 @@
 import { cp, mkdir, rm } from 'node:fs/promises'
 import { existsSync, readdirSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const here = dirname(fileURLToPath(import.meta.url))
@@ -21,18 +21,16 @@ function skillFolderNames(skillsRoot) {
 
 const skillNames = skillFolderNames(sourceRoot)
 
-function rejectGeneratedOrLocalFiles(path) {
-  const normalized = path.split('\\').join('/')
-  return ![
-    '/node_modules/',
-    '/.turbo/',
-    '/.git/',
-    '/dist/',
-    '/scripts/',
-  ].some(segment => normalized.includes(segment))
-    && !normalized.endsWith('/pnpm-lock.yaml')
-    && !normalized.endsWith('/package-lock.json')
-    && !normalized.endsWith('/.DS_Store')
+const SKIPPED_FOLDERS = new Set(['node_modules', '.turbo', '.git', 'dist'])
+const SKIPPED_FILES = new Set(['pnpm-lock.yaml', 'package-lock.json', '.DS_Store'])
+
+// Judged inside the skill folder, so the checkout's own location never decides what is copied.
+function keepsSkillFile(sourceDir) {
+  return path => {
+    const segments = relative(sourceDir, path).split(sep).filter(Boolean)
+    return !segments.some(segment => SKIPPED_FOLDERS.has(segment))
+      && !SKIPPED_FILES.has(segments.at(-1) ?? '')
+  }
 }
 
 await rm(targetRoot, { recursive: true, force: true })
@@ -43,7 +41,7 @@ for (const skillName of skillNames) {
   const targetDir = join(targetRoot, skillName)
   await cp(sourceDir, targetDir, {
     recursive: true,
-    filter: rejectGeneratedOrLocalFiles,
+    filter: keepsSkillFile(sourceDir),
   })
 }
 

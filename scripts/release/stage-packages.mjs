@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises'
-import { join, relative } from 'node:path'
+import { join, relative, sep } from 'node:path'
 import { getPublicPackages, publicPackageNames } from './packages.mjs'
 import { rewriteInternalWorkspaceRanges } from './version.mjs'
 
@@ -29,18 +29,16 @@ function stagedPackageDir(outputDir, record) {
   return join(outputDir, record.packageDirName ?? record.dir.split(/[\\/]/).at(-1))
 }
 
-function rejectSkillGeneratedOrLocalFiles(path) {
-  const normalized = path.split('\\').join('/')
-  return ![
-    '/node_modules/',
-    '/.turbo/',
-    '/.git/',
-    '/dist/',
-    '/scripts/',
-  ].some(segment => normalized.includes(segment))
-    && !normalized.endsWith('/pnpm-lock.yaml')
-    && !normalized.endsWith('/package-lock.json')
-    && !normalized.endsWith('/.DS_Store')
+const skippedSkillFolders = new Set(['node_modules', '.turbo', '.git', 'dist'])
+const skippedSkillFiles = new Set(['pnpm-lock.yaml', 'package-lock.json', '.DS_Store'])
+
+// Judged inside the skill folder, so the checkout's own location never decides what is staged.
+function keepsSkillFile(sourceDir) {
+  return path => {
+    const segments = relative(sourceDir, path).split(sep).filter(Boolean)
+    return !segments.some(segment => skippedSkillFolders.has(segment))
+      && !skippedSkillFiles.has(segments.at(-1) ?? '')
+  }
 }
 
 function readJson(path) {
@@ -113,7 +111,7 @@ async function stageCliSkills(sourcePackageDir, targetPackageDir) {
     }
     await cp(sourceDir, join(targetRoot, skillName), {
       recursive: true,
-      filter: rejectSkillGeneratedOrLocalFiles,
+      filter: keepsSkillFile(sourceDir),
     })
   }
 }
