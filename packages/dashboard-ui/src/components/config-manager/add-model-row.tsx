@@ -173,6 +173,16 @@ function restoredSignIn(draft: AddModelDraft, savedNames: readonly string[]): Dr
   return { name: draft.name, provider: providerOf(draft.choice), created: true }
 }
 
+/** A link naming a choice starts a fresh row unless the stored draft already has its choice and name. */
+export function linkReplacesDraft(
+  stored: AddModelDraft | undefined,
+  linkChoice: ConnectionChoice | undefined,
+  linkName: string | undefined,
+): linkChoice is ConnectionChoice {
+  if (linkChoice === undefined) return false
+  return stored?.choice !== linkChoice || (linkName !== undefined && stored.name !== linkName)
+}
+
 function initialState(
   stored: AddModelDraft | undefined,
   initialChoice: ConnectionChoice | undefined,
@@ -180,14 +190,13 @@ function initialState(
   providers: readonly LLMProviderMetadata[],
 ): Initial {
   const named: AddModelDraft = initialName === undefined ? {} : { name: initialName, nameEdited: true }
-  if (initialChoice !== undefined && stored?.choice !== initialChoice) {
+  if (linkReplacesDraft(stored, initialChoice, initialName)) {
     const model = defaultModelOf(providers, initialChoice)
     return {
       draft: { choice: initialChoice, model, name: suggestModelName(model), nameEdited: false, ...named },
       headers: [],
     }
   }
-  // A stored draft is the person's own work in progress, so it keeps its name over a link's.
   const draft = stored ?? named
   const headers = (draft.headerNames ?? []).map((name, index) => ({ id: index + 1, name, value: "" }))
   return { draft, headers }

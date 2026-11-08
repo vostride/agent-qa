@@ -4,7 +4,12 @@ import { useEffect, useRef, useState } from "react"
 import { useSearchParams } from "react-router"
 import { Plus, TriangleAlert } from "lucide-react"
 
-import { AddModelRow, type AddFocusRequest, type AddModelLanding } from "@/components/config-manager/add-model-row"
+import {
+  AddModelRow,
+  linkReplacesDraft,
+  type AddFocusRequest,
+  type AddModelLanding,
+} from "@/components/config-manager/add-model-row"
 import {
   ModelRow,
   credentialKeyType,
@@ -62,6 +67,7 @@ function choiceParam(value: string | null): ConnectionChoice | undefined {
 }
 
 interface AddRowState {
+  key: number
   initialChoice?: ConnectionChoice
   initialName?: string
   focus: AddFocusRequest | undefined
@@ -75,7 +81,7 @@ export function ModelList(_props: ModelListProps) {
   const configPath = autosave.load.kind === "ready" ? (autosave.load.answer.file?.path ?? "") : ""
   // A stored add draft (a reload mid-draft) re-opens the row; it takes focus only when asked.
   const [add, setAdd] = useState<AddRowState | undefined>(() =>
-    readAddModelDraft(configPath) === undefined ? undefined : { focus: undefined },
+    readAddModelDraft(configPath) === undefined ? undefined : { key: 0, focus: undefined },
   )
   const focusSeq = useRef(0)
   const [landing, setLanding] = useState<AddModelLanding | undefined>(undefined)
@@ -163,13 +169,14 @@ export function ModelList(_props: ModelListProps) {
     autosave.settle(DEFAULT_REF)
   }
 
-  /** Opens the one add row, or focuses it when it is already open. */
-  function openAdd(initialChoice: ConnectionChoice | undefined, initialName?: string) {
+  /** Opens the one add row, or focuses it when it is already open; `replace` starts it afresh. */
+  function openAdd(initialChoice: ConnectionChoice | undefined, initialName?: string, replace = false) {
     focusSeq.current += 1
     const seq = focusSeq.current
     setAdd((current) =>
-      current === undefined
+      current === undefined || replace
         ? {
+            key: (current?.key ?? 0) + 1,
             ...(initialChoice === undefined ? {} : { initialChoice }),
             ...(initialName === undefined ? {} : { initialName }),
             focus: { seq, target: initialChoice ? "field" : "choice" },
@@ -180,7 +187,9 @@ export function ModelList(_props: ModelListProps) {
 
   useEffect(() => {
     if (addParam === null) return
-    openAdd(choiceParam(addParam), nameParam === null || nameParam === "" ? undefined : nameParam)
+    const choice = choiceParam(addParam)
+    const name = nameParam === null || nameParam === "" ? undefined : nameParam
+    openAdd(choice, name, linkReplacesDraft(readAddModelDraft(configPath), choice, name))
     setSearchParams(
       (current) => {
         const next = new URLSearchParams(current)
@@ -273,6 +282,7 @@ export function ModelList(_props: ModelListProps) {
         >
           {add === undefined ? null : (
             <AddModelRow
+              key={add.key}
               configPath={configPath}
               providers={reads.providers}
               existingNames={models.map((model) => model.name)}

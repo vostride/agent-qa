@@ -760,13 +760,52 @@ describe('The add row in the list', () => {
     })
   })
 
-  it('a link with a name leaves a stored draft its own name and is still consumed', async () => {
+  it('a link with a name gives a stored draft of the same choice the link\'s name, and is consumed', async () => {
     localStorage.setItem(
       DRAFT_KEY,
       JSON.stringify({ choice: 'openai-compatible-key', model: 'gpt-5.6', name: 'gpt-5.6', nameEdited: false }),
     )
     await mount('/config/models?add=openai-compatible-key&name=work')
     expect(addRows()).toHaveLength(1)
+    expect(radio('openai-compatible-key')?.getAttribute('aria-checked')).toBe('true')
+    expect(input('name')?.value).toBe('work')
+    expect(location()).toEqual({ pathname: '/config/models', search: '' })
+    expect(readAddModelDraft(CONFIG_PATH)?.name).toBe('work')
+  })
+
+  it('a link naming another choice replaces a stored draft, reuses that provider\'s saved key, and is consumed', async () => {
+    vi.mocked(fetchAuthStatus).mockResolvedValue({
+      credentials: heldCredentials({ configName: 'work', provider: 'openai-compatible', type: 'api' }),
+    })
+    localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({
+        choice: 'anthropic-compatible-key',
+        baseURL: 'https://claude.example.com',
+        model: 'claude-sonnet-4.5',
+        name: 'sonnet',
+        nameEdited: true,
+      }),
+    )
+    await mount('/config/models?add=openai-compatible-key&name=work')
+    expect(addRows()).toHaveLength(1)
+    expect(radio('openai-compatible-key')?.getAttribute('aria-checked')).toBe('true')
+    expect(input('name')?.value).toBe('work')
+    expect(input('baseURL')?.value).toBe('')
+    expect(existingLine()?.textContent).toContain(existingCredentialLine('key', 'work'))
+    expect(input('key')).toBeNull()
+    expect(document.activeElement).toBe(input('baseURL'))
+    expect(location()).toEqual({ pathname: '/config/models', search: '' })
+    expect(readAddModelDraft(CONFIG_PATH)?.choice).toBe('openai-compatible-key')
+  })
+
+  it('a link with only the stored draft\'s choice keeps the draft', async () => {
+    localStorage.setItem(
+      DRAFT_KEY,
+      JSON.stringify({ choice: 'openai-compatible-key', baseURL: 'https://llm.example.com/v1', model: 'gpt-5.6', name: 'gpt-5.6', nameEdited: false }),
+    )
+    await mount('/config/models?add=openai-compatible-key')
+    expect(input('baseURL')?.value).toBe('https://llm.example.com/v1')
     expect(input('name')?.value).toBe('gpt-5.6')
     expect(location()).toEqual({ pathname: '/config/models', search: '' })
   })
