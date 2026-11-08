@@ -82,12 +82,22 @@ export function createClackUi(options: {
   const choices = <T>(options: readonly { value: T; label: string; hint?: string }[]) =>
     options.map((option) => ({ ...option })) as Option<T>[]
 
+  // Each frame clears only the row the cursor is on, so the spinner's line must never wrap: the
+  // frame and its gap take three columns, and the last column stays free.
+  const fit = (text: string): string => {
+    const width = (output as Partial<Record<'columns', number>>).columns ?? columns
+    const room = width - 4
+    const chars = [...text]
+    if (width <= 0 || chars.length <= room) return text
+    return room <= 1 ? '' : `${chars.slice(0, room - 1).join('')}…`
+  }
+
   const step = (title: string): InitStepLine => {
     stopSpinner?.()
     output.write(`${bar}\n${HIDE_CURSOR}`)
     let frame = 0
     const draw = (): void => {
-      output.write(`${CLEAR_LINE}${palette.accent(SPINNER_FRAMES[frame]!)}  ${title}`)
+      output.write(`${CLEAR_LINE}${palette.accent(SPINNER_FRAMES[frame]!)}  ${fit(title)}`)
       frame = (frame + 1) % SPINNER_FRAMES.length
     }
     draw()
