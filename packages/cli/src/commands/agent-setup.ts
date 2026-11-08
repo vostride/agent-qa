@@ -15,11 +15,15 @@ import {
 import {
   classifyInitPath,
   preflightManagedBlockRemoval,
+  readHostFile,
   removeEmptyFoldersUpTo,
   removeFileInsideRoot,
+  removeHostFile,
   removeManagedBlockFromFile,
   upsertManagedBlock,
+  writeHostFile,
   writeScaffoldFileAtomic,
+  type HostFileRead,
 } from './init-filesystem.js'
 import { InitRefusal } from './init-refusal.js'
 import { buildAgentInstructionPointer, type AgentInstructionSkill } from './knowledge-guide.js'
@@ -339,8 +343,8 @@ function writeMcpEntry(
 ): string {
   const file = AGENT_MCP_FILES[agent]
   const path = join(projectDir, file)
-  const existing =
-    classifyInitPath(path, projectDir) === 'regular' ? readFileSync(path, 'utf-8') : undefined
+  const read = readHostFile(path, projectDir)
+  const existing = read?.text
   const edit = MCP_UPSERTS[agent](existing)
   if ('refused' in edit) throw new Error(edit.refused)
   const outcome: AgentSetupFileOutcome =
@@ -352,12 +356,12 @@ function writeMcpEntry(
           ? 'updated'
           : 'replaced'
   if (edit.text !== existing) {
-    writeScaffoldFileAtomic({
+    writeHostFile({
       path,
       root: projectDir,
       content: edit.text,
-      force: true,
-      keepMode: true,
+      read,
+      rerun: 'rerun npx agent-qa init',
     })
   }
   if (outcome === 'replaced') {
@@ -569,6 +573,7 @@ interface PlannedRemoval {
 interface PlannedHostEdit extends AgentRemovalEntry {
   agent: CodingAgent
   absolute: string
+  read: HostFileRead | undefined
   text: string | undefined
 }
 
@@ -599,15 +604,13 @@ function planHostEdit(
   listed: ManifestEntry,
 ): PlannedHostEdit {
   const absolute = join(projectDir, listed.file)
-  const text =
-    classifyInitPath(absolute, projectDir) === 'regular'
-      ? readFileSync(absolute, 'utf-8')
-      : undefined
-  const removal = MCP_REMOVALS[agent](text)
+  const read = readHostFile(absolute, projectDir)
+  const removal = MCP_REMOVALS[agent](read?.text)
   if ('refused' in removal) throw new InitRefusal(removal.refused)
   return {
     agent,
     absolute,
+    read,
     file: listed.file,
     key: listed.key,
     text: removal.text,
@@ -743,18 +746,14 @@ export async function removeAgentSetup(options: AgentRemovalOptions): Promise<Ag
   }
   for (const host of hosts) {
     if (host.outcome !== 'removed') continue
+    const read = host.read!
+    const rerun = 'rerun npx agent-qa skills uninstall'
     attempt(`the agent-qa entry from ${host.file}`, () => {
       if (host.text === undefined) {
-        removeFileInsideRoot({ path: host.absolute, root: projectDir })
+        removeHostFile({ path: host.absolute, root: projectDir, read, rerun })
         removeEmptyFoldersUpTo(host.absolute, projectDir)
       } else {
-        writeScaffoldFileAtomic({
-          path: host.absolute,
-          root: projectDir,
-          content: host.text,
-          force: true,
-          keepMode: true,
-        })
+        writeHostFile({ path: host.absolute, root: projectDir, content: host.text, read, rerun })
       }
     })
   }

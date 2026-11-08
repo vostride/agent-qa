@@ -299,7 +299,7 @@ function ensureSafeParentDirectories(file: string, planRoot?: string): void {
   }
 }
 
-interface InitPathInspection {
+export interface InitPathInspection {
   classification: 'missing' | 'regular'
   dev?: number
   ino?: number
@@ -1067,7 +1067,7 @@ function acquireManagedBlockLock(path: string): HeldManagedBlockLock {
   }
 }
 
-interface ManagedBlockRead {
+export interface ManagedBlockRead {
   text: string
   size: number
   mtimeMs: number
@@ -1234,6 +1234,62 @@ export function removeManagedBlockFromFile(
   } finally {
     releaseManagedBlockLock(lock)
   }
+}
+
+export interface HostFileRead {
+  text: string
+  inspection: InitPathInspection
+  read: ManagedBlockRead
+}
+
+// A coding agent's own file, read as the managed block reads AGENTS.md: one hard link, UTF-8.
+export function readHostFile(path: string, root: string): HostFileRead | undefined {
+  const absolutePath = resolve(path)
+  const inspection = inspectInitPath(absolutePath, root)
+  if (inspection.classification === 'missing') return undefined
+  const read = readManagedBlockTarget(absolutePath, inspection)
+  return { text: read.text, inspection, read }
+}
+
+export interface HostFileWritePlan {
+  path: string
+  root: string
+  content: string
+  read: HostFileRead | undefined
+  rerun: string
+}
+
+// The file keeps its mode, and one that changed since `read` is refused rather than overwritten.
+export function writeHostFile(plan: HostFileWritePlan, hooks: InitFilesystemHooks = {}): void {
+  const { path, root, content, read, rerun } = plan
+  if (read === undefined) {
+    writeScaffoldFileAtomic({ path, root, content }, hooks)
+    return
+  }
+  writeScaffoldFileAtomic(
+    { path, root, content, force: true, keepMode: true },
+    {
+      ...hooks,
+      beforeAtomicReplacePublish: (target) => {
+        hooks.beforeAtomicReplacePublish?.(target)
+        refuseIfChangedSinceRead(target, read.inspection, read.read, rerun)
+      },
+    },
+  )
+}
+
+export interface HostFileRemovalPlan {
+  path: string
+  root: string
+  read: HostFileRead
+  rerun: string
+}
+
+export function removeHostFile(plan: HostFileRemovalPlan): void {
+  const path = resolve(plan.path)
+  inspectInitPath(path, plan.root)
+  refuseIfChangedSinceRead(path, plan.read.inspection, plan.read.read, plan.rerun)
+  unlinkSync(path)
 }
 
 export function upsertManagedGitignoreBlock(
