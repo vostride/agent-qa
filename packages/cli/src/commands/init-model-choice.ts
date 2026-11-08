@@ -1,5 +1,6 @@
 import { NameSlugSchema, type SavedCredential } from '@vostride/agent-qa-core'
 import { getProvider } from '@vostride/agent-qa-model'
+import { CliRefusal } from '../composition/cli-refusal.js'
 
 export const INIT_MODEL_CHOICES = [
   'claude-code',
@@ -42,6 +43,8 @@ export type InitModelPick =
   | { kind: 'new'; choice: InitModelChoice }
   | { kind: 'saved'; name: string; provider: string; type: SavedCredentialType }
 
+type SavedPick = Extract<InitModelPick, { kind: 'saved' }>
+
 export interface InitModelOption {
   value: InitModelPick
   label: string
@@ -61,8 +64,8 @@ function configProviderOf(storedProvider: string): string | undefined {
 }
 
 // Names that fail the config name rule are dropped: a listed name flows into a URL and a command.
-function savedPicks(saved: readonly SavedCredential[]): Array<InitModelPick & { kind: 'saved' }> {
-  const picks: Array<InitModelPick & { kind: 'saved' }> = []
+function savedPicks(saved: readonly SavedCredential[]): SavedPick[] {
+  const picks: SavedPick[] = []
   for (const credential of saved) {
     const provider = configProviderOf(credential.provider)
     if (provider === undefined || !NameSlugSchema.safeParse(credential.name).success) continue
@@ -85,4 +88,151 @@ export function initModelOptions(saved: readonly SavedCredential[]): InitModelOp
     ...INIT_MODEL_CHOICE_TEXT[choice],
   }))
   return [...savedOptions, ...newOptions]
+}
+
+interface NewChoiceTarget {
+  name: string
+  provider: string
+  baseURL?: string
+  endpoint?: boolean
+}
+
+// The base URLs are the official endpoints @ai-sdk/anthropic and @ai-sdk/openai use by default.
+const NEW_CHOICE_TARGETS: Record<InitModelChoice, NewChoiceTarget> = {
+  'claude-code': { name: 'claude-code', provider: 'anthropic-subscription' },
+  codex: { name: 'codex', provider: 'openai-subscription' },
+  anthropic: {
+    name: 'anthropic',
+    provider: 'anthropic-compatible',
+    baseURL: 'https://api.anthropic.com/v1',
+  },
+  openai: { name: 'openai', provider: 'openai-compatible', baseURL: 'https://api.openai.com/v1' },
+  gemini: { name: 'gemini', provider: 'gemini' },
+  'openai-compatible': { name: 'openai-compatible', provider: 'openai-compatible', endpoint: true },
+  'anthropic-compatible': {
+    name: 'anthropic-compatible',
+    provider: 'anthropic-compatible',
+    endpoint: true,
+  },
+}
+
+// The model page's existing `?add=` choices.
+const DASHBOARD_ADD: Readonly<Record<string, string>> = {
+  'openai-compatible': 'openai-compatible-key',
+  'anthropic-compatible': 'anthropic-compatible-key',
+}
+
+export interface InitModelEntry {
+  name: string
+  provider: string
+  model: string
+  baseURL?: string
+}
+
+export interface InitModelSetup {
+  entry?: InitModelEntry
+  dashboard?: { add: string; name?: string }
+}
+
+export interface InitModelFlags {
+  model?: string
+  baseUrl?: string
+  saved: readonly SavedCredential[]
+}
+
+const BASE_URL_FORM_REFUSAL = '--base-url must be an absolute http or https URL'
+const BASE_URL_PROVIDER_REFUSAL =
+  '--base-url applies only to --llm anthropic, openai, openai-compatible or anthropic-compatible'
+
+function needsDashboard(provider: string): boolean {
+  return Object.hasOwn(DASHBOARD_ADD, provider)
+}
+
+function defaultModelOf(provider: string): string {
+  const model = getProvider(provider)?.defaultModel
+  if (model === undefined) throw new Error(`No default model is registered for ${provider}`)
+  return model
+}
+
+function modelFlag(value: string | undefined): string | undefined {
+  if (value === undefined) return undefined
+  const model = value.trim()
+  if (model === '') throw new CliRefusal(['--model must not be empty'], 2)
+  return model
+}
+
+function baseUrlFlag(provider: string, value: string | undefined): string | undefined {
+  if (value === undefined) return undefined
+  if (getProvider(provider)?.needsBaseURL !== true) {
+    throw new CliRefusal([BASE_URL_PROVIDER_REFUSAL], 2)
+  }
+  const baseUrl = value.trim()
+  const url = URL.canParse(baseUrl) ? new URL(baseUrl) : undefined
+  if (url?.protocol !== 'http:' && url?.protocol !== 'https:') {
+    throw new CliRefusal([BASE_URL_FORM_REFUSAL], 2)
+  }
+  return baseUrl
+}
+
+// A name the store holds for the same provider is shared, so a saved credential is reused and
+// never copied; one it holds for another provider is never written over.
+function freeName(stable: string, provider: string, saved: readonly SavedCredential[]): string {
+  const holders = new Map(saved.map((credential) => [credential.name, credential.provider]))
+  const fits = (name: string) => {
+    const held = holders.get(name)
+    return held === undefined || configProviderOf(held) === provider
+  }
+  if (fits(stable)) return stable
+  for (let suffix = 2; ; suffix += 1) {
+    if (fits(`${stable}-${suffix}`)) return `${stable}-${suffix}`
+  }
+}
+
+export function modelEntryFor(pick: InitModelPick, flags: InitModelFlags): InitModelSetup {
+  const target: NewChoiceTarget =
+    pick.kind === 'new'
+      ? NEW_CHOICE_TARGETS[pick.choice]
+      : { name: pick.name, provider: pick.provider, endpoint: needsDashboard(pick.provider) }
+  const { provider } = target
+  const model = modelFlag(flags.model)
+  const baseURL = baseUrlFlag(provider, flags.baseUrl)
+  const name = () =>
+    pick.kind === 'new' ? freeName(target.name, provider, flags.saved) : pick.name
+
+  if (target.endpoint === true) {
+    if (model !== undefined && baseURL !== undefined) {
+      return { entry: { name: name(), provider, model, baseURL } }
+    }
+    const add = DASHBOARD_ADD[provider]!
+    return { dashboard: pick.kind === 'saved' ? { add, name: pick.name } : { add } }
+  }
+
+  const entry: InitModelEntry = { name: name(), provider, model: model ?? defaultModelOf(provider) }
+  const url = baseURL ?? target.baseURL
+  return { entry: url === undefined ? entry : { ...entry, baseURL: url } }
+}
+
+// A compatible key is never pre-selected: it still needs a URL and a model from the dashboard.
+export function preselectedModel(saved: readonly SavedCredential[]): InitModelPick {
+  return (
+    savedPicks(saved).find((pick) => !needsDashboard(pick.provider)) ?? {
+      kind: 'new',
+      choice: 'claude-code',
+    }
+  )
+}
+
+function isInitModelChoice(value: string): value is InitModelChoice {
+  return (INIT_MODEL_CHOICES as readonly string[]).includes(value)
+}
+
+export function resolveLlmFlag(value: string, saved: readonly SavedCredential[]): InitModelPick {
+  const id = value.trim()
+  if (isInitModelChoice(id)) return { kind: 'new', choice: id }
+  const savedPick = savedPicks(saved).find((pick) => pick.name === id)
+  if (savedPick !== undefined) return savedPick
+  throw new CliRefusal(
+    [`--llm must be one of ${INIT_MODEL_CHOICES.join(', ')}, or the name of a saved credential`],
+    2,
+  )
 }

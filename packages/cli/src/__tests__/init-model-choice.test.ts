@@ -265,6 +265,26 @@ describe('the entry a saved credential writes', () => {
   })
 })
 
+describe('a saved compatible key given both flags', () => {
+  it('writes a complete entry under the saved name', () => {
+    const saved = [api('work', 'openai-compatible')]
+    expect(
+      modelEntryFor(resolveLlmFlag('work', saved), {
+        baseUrl: 'https://llm.local/v1',
+        model: 'm',
+        saved,
+      }),
+    ).toEqual({
+      entry: {
+        name: 'work',
+        provider: 'openai-compatible',
+        model: 'm',
+        baseURL: 'https://llm.local/v1',
+      },
+    })
+  })
+})
+
 describe('the name a new choice writes', () => {
   it('takes <name>-2 when the store holds the stable name for another provider', () => {
     const saved = [api('openai', 'gemini')]
