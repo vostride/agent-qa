@@ -28,13 +28,8 @@ const requiredNoticeSnippets = [
   'Apache License, Version 2.0',
   'Third-party dependencies are distributed under their own license terms',
 ]
-const requiredSkills = ['agent-qa-authoring', 'agent-qa-result-triage', 'agent-qa-debug-fix', 'agent-qa-knowledge']
-const requiredSkillReferences = {
-  'agent-qa-authoring': ['references/agent-qa-contracts.json'],
-  'agent-qa-result-triage': ['references/triage-categories.md'],
-  'agent-qa-debug-fix': [],
-  'agent-qa-knowledge': ['references/knowledge-reads.md'],
-}
+const sourceSkillsRoot = join(root, 'skills')
+const packagedSkillsRoot = join(root, 'packages/cli/skills')
 const ownershipContractMarker = '_OWNERSHIP_CONTRACT'
 const pluginKitPackageName = '@vostride/agent-qa-plugin-kit'
 const pluginKitSubpaths = ['protocol', 'testing']
@@ -354,18 +349,45 @@ export function builtPackageSourceMapErrors(records = publicPackageRecords()) {
   return errors
 }
 
-function validateCopiedSkills(errors, skillsRoot = join(root, 'packages/cli/skills')) {
-  for (const skillName of requiredSkills) {
-    const skillDir = join(skillsRoot, skillName)
+export function sourceSkillNames(skillsRoot) {
+  const names = existsSync(skillsRoot)
+    ? readdirSync(skillsRoot, { withFileTypes: true })
+        .filter(entry => entry.isDirectory() && entry.name !== 'scripts')
+        .filter(entry => existsSync(join(skillsRoot, entry.name, 'SKILL.md')))
+        .map(entry => entry.name)
+        .sort()
+    : []
+  if (names.length === 0) throw new Error(`no skill folders with a SKILL.md under ${skillsRoot}`)
+  return names
+}
+
+function quotedReferences(body) {
+  const names = [...body.matchAll(/references\/[A-Za-z0-9._-]+/gu)].map(match => match[0].replace(/\.+$/u, ''))
+  return [...new Set(names)]
+}
+
+export function copiedSkillErrors(sourceRoot, packagedRoot) {
+  const errors = []
+  for (const skillName of sourceSkillNames(sourceRoot)) {
+    const skillDir = join(packagedRoot, skillName)
     assert(existsSync(join(skillDir, 'SKILL.md')), `agent-qa packaged skill missing ${skillName}/SKILL.md`, errors)
     assert(existsSync(join(skillDir, 'agents/openai.yaml')), `agent-qa packaged skill missing ${skillName}/agents/openai.yaml`, errors)
-    for (const ref of requiredSkillReferences[skillName]) {
+    for (const ref of quotedReferences(readFileSync(join(sourceRoot, skillName, 'SKILL.md'), 'utf-8'))) {
       const refPath = join(skillDir, ref)
       assert(existsSync(refPath), `agent-qa packaged skill missing ${skillName}/${ref}`, errors)
       if (existsSync(refPath)) assert(statSync(refPath).size > 0, `agent-qa packaged skill has empty ${skillName}/${ref}`, errors)
     }
   }
-  assert(!existsSync(join(skillsRoot, 'scripts')), 'agent-qa packaged skills must not include skills/scripts', errors)
+  assert(!existsSync(join(packagedRoot, 'scripts')), 'agent-qa packaged skills must not include skills/scripts', errors)
+  return errors
+}
+
+function validateCopiedSkills(errors, packagedRoot = packagedSkillsRoot) {
+  try {
+    errors.push(...copiedSkillErrors(sourceSkillsRoot, packagedRoot))
+  } catch (err) {
+    errors.push(err.message)
+  }
 }
 
 function collectTextFiles(dir) {
@@ -386,8 +408,8 @@ function collectTextFiles(dir) {
 
 function validateNoStaleMcpToolPrefix(errors) {
   const scanned = [
-    ...requiredSkills.map(skillName => join(root, 'skills', skillName)),
-    join(root, 'packages/cli/skills'),
+    ...sourceSkillNames(sourceSkillsRoot).map(skillName => join(sourceSkillsRoot, skillName)),
+    packagedSkillsRoot,
     join(root, 'packages/mcp/src'),
   ]
   for (const target of scanned) {
@@ -455,7 +477,7 @@ function validatePackFiles(record, files, errors) {
   assert(files.some(file => file.startsWith('dist/')), `${name} tarball must include dist output after build`, errors)
 
   if (record.pkg.name === entryPackageName) {
-    for (const skillName of requiredSkills) {
+    for (const skillName of sourceSkillNames(sourceSkillsRoot)) {
       assert(files.some(file => file.startsWith(`skills/${skillName}/`)), `agent-qa tarball must include skills/${skillName}`, errors)
     }
   }
@@ -561,35 +583,36 @@ function runFixtures() {
   expectFixtureFailure('missing copied skills', (errors) => {
     const temp = mkdtempSync(join(tmpdir(), 'agent-qa-publish-fixture-'))
     try {
-      const originalRoot = join(root, 'packages/cli/skills')
-      const missingRoot = join(temp, 'skills')
-      for (const skillName of requiredSkills) {
-        assert(existsSync(join(missingRoot, skillName, 'SKILL.md')), `agent-qa packaged skill missing ${skillName}/SKILL.md`, errors)
-      }
-      assert(existsSync(originalRoot), 'fixture sanity check failed: real skills root missing', errors)
+      validateCopiedSkills(errors, temp)
     } finally {
       rmSync(temp, { recursive: true, force: true })
     }
   }, 'packaged skill missing')
 
+  const sourceRefs = skillName => quotedReferences(readFileSync(join(sourceSkillsRoot, skillName, 'SKILL.md'), 'utf-8'))
+  const referencingSkill = sourceSkillNames(sourceSkillsRoot)
+    .map(skillName => ({ skillName, refs: sourceRefs(skillName) }))
+    .find(({ refs }) => refs.length > 0)
+  if (!referencingSkill) throw new Error('fixture setup found no source skill that quotes a reference')
+  const emptiedRef = `${referencingSkill.skillName}/${referencingSkill.refs[0]}`
   expectFixtureFailure('empty packaged skill reference', (errors) => {
     const temp = mkdtempSync(join(tmpdir(), 'agent-qa-publish-fixture-'))
     try {
-      for (const skillName of requiredSkills) {
+      for (const skillName of sourceSkillNames(sourceSkillsRoot)) {
         const skillDir = join(temp, skillName)
         mkdirSync(join(skillDir, 'agents'), { recursive: true })
         writeFileSync(join(skillDir, 'SKILL.md'), `---\nname: ${skillName}\n---\n`)
         writeFileSync(join(skillDir, 'agents/openai.yaml'), 'interface: {}\n')
-        for (const ref of requiredSkillReferences[skillName]) {
+        for (const ref of sourceRefs(skillName)) {
           mkdirSync(dirname(join(skillDir, ref)), { recursive: true })
-          writeFileSync(join(skillDir, ref), skillName === 'agent-qa-knowledge' ? '' : 'x')
+          writeFileSync(join(skillDir, ref), `${skillName}/${ref}` === emptiedRef ? '' : 'x')
         }
       }
       validateCopiedSkills(errors, temp)
     } finally {
       rmSync(temp, { recursive: true, force: true })
     }
-  }, 'empty agent-qa-knowledge/references/knowledge-reads.md')
+  }, `empty ${emptiedRef}`)
 
   expectFixtureFailure('ownership contract marker in dist', (errors) => {
     const temp = mkdtempSync(join(tmpdir(), 'agent-qa-arch-symbol-fixture-'))

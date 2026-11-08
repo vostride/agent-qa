@@ -1,14 +1,24 @@
-import { readFileSync, existsSync, statSync } from 'node:fs'
+import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 
 const root = new URL('..', import.meta.url).pathname
-const skills = ['agent-qa-authoring', 'agent-qa-result-triage', 'agent-qa-debug-fix', 'agent-qa-knowledge']
-const requiredReferences = {
-  'agent-qa-authoring': ['references/agent-qa-contracts.json'],
-  'agent-qa-result-triage': ['references/triage-categories.md'],
-  'agent-qa-debug-fix': [],
-  'agent-qa-knowledge': ['references/knowledge-reads.md'],
+
+function skillFolderNames(skillsRoot) {
+  const names = readdirSync(skillsRoot, { withFileTypes: true })
+    .filter(entry => entry.isDirectory() && entry.name !== 'scripts')
+    .filter(entry => existsSync(join(skillsRoot, entry.name, 'SKILL.md')))
+    .map(entry => entry.name)
+    .sort()
+  if (names.length === 0) throw new Error(`no skill folders with a SKILL.md under ${skillsRoot}`)
+  return names
 }
+
+function quotedReferences(body) {
+  const names = [...body.matchAll(/references\/[A-Za-z0-9._-]+/gu)].map(match => match[0].replace(/\.+$/u, ''))
+  return [...new Set(names)]
+}
+
+const skills = skillFolderNames(root)
 
 for (const skill of skills) {
   const dir = join(root, skill)
@@ -21,7 +31,7 @@ for (const skill of skills) {
   if (!body.includes('description: ')) throw new Error(`${skill}: missing frontmatter description`)
   if (!body.includes('agent_qa_')) throw new Error(`${skill}: missing MCP tool guidance`)
   if (body.includes('agentqa_')) throw new Error(`${skill}: stale agentqa_ MCP tool prefix`)
-  for (const reference of requiredReferences[skill]) {
+  for (const reference of quotedReferences(body)) {
     const referencePath = join(dir, reference)
     if (!existsSync(referencePath)) throw new Error(`${skill}: missing ${reference}`)
     if (statSync(referencePath).size === 0) throw new Error(`${skill}: empty ${reference}`)

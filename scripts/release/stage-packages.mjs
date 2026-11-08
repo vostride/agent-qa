@@ -6,13 +6,6 @@ import { rewriteInternalWorkspaceRanges } from './version.mjs'
 
 const dependencyBlocks = ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']
 const entryPackageName = 'agent-qa'
-const requiredCliSkills = ['agent-qa-authoring', 'agent-qa-result-triage', 'agent-qa-debug-fix', 'agent-qa-knowledge']
-const requiredCliSkillFiles = {
-  'agent-qa-authoring': ['SKILL.md', 'agents/openai.yaml', 'references/agent-qa-contracts.json'],
-  'agent-qa-result-triage': ['SKILL.md', 'agents/openai.yaml', 'references/triage-categories.md'],
-  'agent-qa-debug-fix': ['SKILL.md', 'agents/openai.yaml'],
-  'agent-qa-knowledge': ['SKILL.md', 'agents/openai.yaml', 'references/knowledge-reads.md'],
-}
 const sourceOnlyScripts = ['prepack', 'prepare', 'prepublishOnly', 'postpack', 'copy:skills']
 const repositorySlug = 'vostride/agent-qa'
 const absoluteOrAnchorUrl = /^(?:[a-z][a-z\d+.-]*:|\/\/|#)/i
@@ -86,18 +79,34 @@ function validateExactInternalRanges(pkg, targetVersion) {
   }
 }
 
+function skillFolderNames(skillsRoot) {
+  const names = existsSync(skillsRoot)
+    ? readdirSync(skillsRoot, { withFileTypes: true })
+        .filter(entry => entry.isDirectory() && entry.name !== 'scripts')
+        .filter(entry => existsSync(join(skillsRoot, entry.name, 'SKILL.md')))
+        .map(entry => entry.name)
+        .sort()
+    : []
+  if (names.length === 0) throw new Error(`no skill folders with a SKILL.md under ${skillsRoot}`)
+  return names
+}
+
+function quotedReferences(body) {
+  const names = [...body.matchAll(/references\/[A-Za-z0-9._-]+/gu)].map(match => match[0].replace(/\.+$/u, ''))
+  return [...new Set(names)]
+}
+
 async function stageCliSkills(sourcePackageDir, targetPackageDir) {
   const sourceRoot = join(sourcePackageDir, 'skills')
   const targetRoot = join(targetPackageDir, 'skills')
+  const skillNames = skillFolderNames(sourceRoot)
   await rm(targetRoot, { recursive: true, force: true })
   await mkdir(targetRoot, { recursive: true })
 
-  for (const skillName of requiredCliSkills) {
+  for (const skillName of skillNames) {
     const sourceDir = join(sourceRoot, skillName)
-    if (!existsSync(sourceDir)) {
-      throw new Error(`missing source CLI skill for staged package: ${skillName}`)
-    }
-    for (const file of requiredCliSkillFiles[skillName]) {
+    const body = readFileSync(join(sourceDir, 'SKILL.md'), 'utf8')
+    for (const file of ['SKILL.md', 'agents/openai.yaml', ...quotedReferences(body)]) {
       const filePath = join(sourceDir, file)
       if (!existsSync(filePath)) throw new Error(`missing CLI skill file for staged package: ${skillName}/${file}`)
       if (statSync(filePath).size === 0) throw new Error(`empty CLI skill file for staged package: ${skillName}/${file}`)
