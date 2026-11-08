@@ -9,6 +9,7 @@ import { KEY, answeringTerminal, clackStreams, type ClackStreams } from './clack
 import { cleanupTempProjects, fakeRunner, tempProject } from './project-fixtures.js'
 
 const PLATFORM_QUESTION = 'What platform will you test?'
+const MODEL_QUESTION = 'Which model should agent-qa use?'
 
 function failureDeps() {
   const deps = {
@@ -23,7 +24,9 @@ function failureDeps() {
   return deps
 }
 
-async function cancelAtThePlatformQuestion(
+async function cancelAtQuestion(
+  question: string,
+  flags: readonly string[],
   stop: (streams: ClackStreams) => Promise<void>,
 ): Promise<{ root: string; deps: ReturnType<typeof failureDeps>; streams: ClackStreams }> {
   const { root, home } = tempProject('init-cancel')
@@ -41,8 +44,8 @@ async function cancelAtThePlatformQuestion(
     )
   const deps = failureDeps()
 
-  const done = runCli(program, ['node', 'agent-qa', 'init', '--pm', 'none'], deps)
-  await streams.waitFor(PLATFORM_QUESTION)
+  const done = runCli(program, ['node', 'agent-qa', 'init', ...flags, '--pm', 'none'], deps)
+  await streams.waitFor(question)
   await stop(streams)
   await done
 
@@ -58,20 +61,27 @@ afterEach(() => {
   cleanupTempProjects()
 })
 
-describe('a cancelled init prompt', () => {
-  it.each([
-    { name: 'Ctrl-C', stop: (streams: ClackStreams) => streams.press(KEY.ctrlC) },
-    { name: 'Esc', stop: (streams: ClackStreams) => streams.press(KEY.escape) },
-    {
-      name: 'a closed input',
-      stop: async (streams: ClackStreams) => {
-        streams.input.end()
-      },
+const STOPS = [
+  { name: 'Ctrl-C', stop: (streams: ClackStreams) => streams.press(KEY.ctrlC) },
+  { name: 'Esc', stop: (streams: ClackStreams) => streams.press(KEY.escape) },
+  {
+    name: 'a closed input',
+    stop: async (streams: ClackStreams) => {
+      streams.input.end()
     },
-  ])(
-    '$name at the platform question prints Cancelled., exits 130 and writes nothing',
-    async ({ stop }) => {
-      const { root, deps } = await cancelAtThePlatformQuestion(stop)
+  },
+]
+
+const QUESTIONS = [
+  { where: 'the platform question', question: PLATFORM_QUESTION, flags: [] },
+  { where: 'the model question', question: MODEL_QUESTION, flags: ['--platform', 'web'] },
+]
+
+describe('a cancelled init prompt', () => {
+  it.each(QUESTIONS.flatMap((question) => STOPS.map((stop) => ({ ...question, ...stop }))))(
+    '$name at $where prints Cancelled., exits 130 and writes nothing',
+    async ({ question, flags, stop }) => {
+      const { root, deps } = await cancelAtQuestion(question, flags, stop)
 
       expect(deps.printFixed.mock.calls).toEqual([['Cancelled.']])
       expect(deps.print).not.toHaveBeenCalled()

@@ -133,6 +133,43 @@ describe('model question sections', () => {
     ])
   })
 
+  it('lists saved credentials by the new choice each acts as, then by name', async () => {
+    const sections = initModelSections(
+      await savedFrom({
+        proxy: { type: 'api', provider: 'anthropic-compatible', key: DUMMY_KEY },
+        z: { type: 'api', provider: 'gemini', key: DUMMY_KEY },
+        chat: { type: 'oauth', provider: 'openai-subscription-oauth', tokens: oauthTokens },
+        a: { type: 'api', provider: 'gemini', key: DUMMY_KEY },
+        work: { type: 'api', provider: 'openai-compatible', key: DUMMY_KEY },
+        claude: { type: 'oauth', provider: 'anthropic-subscription', tokens: oauthTokens },
+      }),
+    )
+
+    expect(sections[1]?.heading).toBe('Saved on this machine (6)')
+    expect(
+      sections[1]?.options.map((option) =>
+        option.value.kind === 'saved' ? [option.value.name, option.value.provider] : [],
+      ),
+    ).toEqual([
+      ['claude', 'anthropic-subscription'],
+      ['chat', 'openai-subscription'],
+      ['a', 'gemini'],
+      ['z', 'gemini'],
+      ['work', 'openai-compatible'],
+      ['proxy', 'anthropic-compatible'],
+    ])
+  })
+
+  it('gives the new choices alone when nothing saved can be listed', async () => {
+    const sections = initModelSections(
+      await savedFrom({
+        other: FIXTURE_STORE.other,
+        'a b': FIXTURE_STORE['a b'],
+      }),
+    )
+    expect(sections.map((section) => section.heading)).toEqual(['Connect a new model'])
+  })
+
   it('labels the seven new choices and gives each its status', () => {
     const [newChoices] = initModelSections([])
     expect(

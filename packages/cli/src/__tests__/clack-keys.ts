@@ -5,6 +5,7 @@ import type { TerminalPort } from '../init-ui/terminal-background.js'
 
 export const KEY = {
   enter: '\r',
+  up: '\x1b[A',
   down: '\x1b[B',
   space: ' ',
   ctrlC: '\x03',
