@@ -8,7 +8,7 @@ export function createPlainUi(
   const print = (text: string): void => write(`${text}\n`)
   return {
     banner: () => {},
-    intro: print,
+    intro: () => {},
     select: async (q) => q.initialValue,
     multiselect: async (q) => [...q.initialValues],
     text: async (q) => q.defaultValue,

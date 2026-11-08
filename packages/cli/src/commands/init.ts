@@ -573,10 +573,6 @@ function skillCount(
   return folders.size
 }
 
-const WHAT_TO_EXPECT =
-  '3 questions, then: package.json, scaffold, install, Chromium, skills and MCP, validate, '
-  + 'sign-in and the dashboard.'
-
 function scaffoldFilePlan(
   root: string,
   path: string,
@@ -1004,7 +1000,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           ui = clackUi
         }
         if (mode !== 'plain') ui.banner()
-        ui.intro(WHAT_TO_EXPECT)
+        ui.intro()
 
         let platform: InitPlatformInput
         if (ask && flaggedPlatform === undefined) {

@@ -14,7 +14,7 @@ export interface InitChoice<T> {
 
 export interface InitUi {
   banner(): void
-  intro(note: string): void
+  intro(): void
   select<T>(q: {
     message: string
     options: readonly InitChoice<T>[]

@@ -32,9 +32,9 @@ export function fakeInitUi(answers: Record<string, unknown> = {}): FakeInitUi {
     banner: () => {
       entries.push({ kind: 'banner', text: '' })
     },
-    intro: (note) => {
-      entries.push({ kind: 'intro', text: note })
-      plain.intro(note)
+    intro: () => {
+      entries.push({ kind: 'intro', text: '' })
+      plain.intro()
     },
     select: async (q) => {
       const value = answer(q.message, q.initialValue)

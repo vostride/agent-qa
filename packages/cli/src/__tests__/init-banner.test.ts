@@ -232,14 +232,13 @@ describe('init on the Clack rail', () => {
     cleanupTempProjects()
   })
 
-  it('draws the banner, the intro, the What to expect note and the platform question, and Enter answers Web', async () => {
+  it('draws the banner, the intro and the platform question, and Enter answers Web', async () => {
     const run = initOnTheRail([], { terminal: answeringTerminal(DARK_BACKGROUND_REPLY) })
 
     const text = (await answerTheQuestions(run)).replace(SGR, '')
 
     for (const line of bannerLines) expect(text).toContain(line)
     expect(text).toContain('agent-qa init')
-    expect(text).toContain('What to expect')
     expect(text).toContain(PLATFORM_QUESTION)
     expect(text.indexOf(bannerLines[1]!)).toBeLessThan(text.indexOf(PLATFORM_QUESTION))
     expect(text).toMatch(/Scaffold: config, 3 example tests and a suite/u)
@@ -267,14 +266,13 @@ describe('init on the Clack rail', () => {
     expect(text).toContain('38;2;43;160;171')
   })
 
-  it('draws the banner and the note under --yes and asks nothing', async () => {
+  it('draws the banner under --yes and asks nothing', async () => {
     const run = initOnTheRail(['--yes'])
 
     await run.done
     const text = run.streams.text().replace(SGR, '')
 
     expect(text).toContain(bannerLines[1])
-    expect(text).toContain('What to expect')
     expect(text).not.toContain(PLATFORM_QUESTION)
     expect(existsSync(join(run.root, 'agent-qa.config.yaml'))).toBe(true)
   })

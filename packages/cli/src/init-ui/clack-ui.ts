@@ -162,9 +162,8 @@ export function createClackUi(options: {
       const lines = renderBanner({ columns, palette })
       if (lines !== undefined) output.write(`${lines.join('\n')}\n\n`)
     },
-    intro: (summary) => {
+    intro: () => {
       intro('agent-qa init', common)
-      log.message([palette.accent('What to expect'), summary], common)
     },
     select: async (q) => {
       const value = await ask<typeof q.initialValue>((streams) =>
