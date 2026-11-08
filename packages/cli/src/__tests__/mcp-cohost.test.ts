@@ -15,6 +15,7 @@ import {
   type FunctionDeps,
   type FunctionRegistry,
 } from '@vostride/agent-qa-agent'
+import { getAgentQaVersion } from '@vostride/agent-qa-core'
 import {
   LIVE_LINK_ABSENT_LINE,
   MCP_APPS_EXTENSION_ID,
@@ -319,6 +320,17 @@ describe('the mounted endpoint keeps the standalone face\'s guard order', () => 
     expect(answer.status).not.toBe(403)
     expect(answer.text).not.toContain('invalid_token')
     expect(answer.text).not.toContain('not-the-declared-credential')
+  })
+})
+
+describe('the server info on this endpoint', () => {
+  it('the HTTP listener reports the agent-qa version it runs as', async () => {
+    const client = await connectAs(TOKEN_VALUE)
+    try {
+      expect(client.getServerVersion()?.version).toBe(getAgentQaVersion().trim())
+    } finally {
+      await client.close().catch(() => {})
+    }
   })
 })
 
