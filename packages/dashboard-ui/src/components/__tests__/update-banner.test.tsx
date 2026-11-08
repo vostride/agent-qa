@@ -7,6 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   UPDATE_BANNER_DISMISS_COOKIE,
   UPDATE_COMMAND_COPIED_TEXT,
+  UPDATE_COMMAND_COPY_FAILED_LABEL,
   UpdateBanner,
   isUpdateBannerDismissed,
 } from '@/components/update-banner'
@@ -331,20 +332,54 @@ describe('UpdateBanner', () => {
     expect(copyStatus()).toBe(UPDATE_COMMAND_COPIED_TEXT)
   })
 
-  it('shows no copied state when the clipboard write is rejected', async () => {
-    setClipboard(() => Promise.reject(new Error('blocked')))
+  it('shows a rejected clipboard write on screen, then returns to the copy button', async () => {
+    vi.useFakeTimers()
+    try {
+      setClipboard(() => Promise.reject(new Error('blocked')))
+      await renderNode(
+        <UpdateBanner installedVersion="0.1.18" latestVersion="0.1.19" onDismiss={() => {}} />,
+      )
+
+      const button = copyButton()
+      const idleIcon = button.innerHTML
+      await act(async () => {
+        button.click()
+        await Promise.resolve()
+      })
+      expect(button.getAttribute('data-copy-status')).toBe('failed')
+      expect(button.innerHTML).not.toBe(idleIcon)
+      expect(container?.querySelector('[data-update-command-failed]')?.textContent).toBe(
+        UPDATE_COMMAND_COPY_FAILED_LABEL,
+      )
+      expect(copyStatus()).not.toBe(UPDATE_COMMAND_COPIED_TEXT)
+      expect(copyStatus()).toContain('npx agent-qa@latest init')
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2000)
+      })
+      expect(button.getAttribute('data-copy-status')).toBe('idle')
+      expect(button.innerHTML).toBe(idleIcon)
+      expect(container?.querySelector('[data-update-command-failed]')).toBeNull()
+      expect(copyStatus()).toBe('')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('announces the copy result through the banner as its only live region', async () => {
+    setClipboard(() => Promise.resolve())
     await renderNode(
       <UpdateBanner installedVersion="0.1.18" latestVersion="0.1.19" onDismiss={() => {}} />,
     )
 
-    const button = copyButton()
     await act(async () => {
-      button.click()
+      copyButton().click()
       await Promise.resolve()
     })
-    expect(button.getAttribute('data-copy-status')).toBe('failed')
-    expect(copyStatus()).not.toBe(UPDATE_COMMAND_COPIED_TEXT)
-    expect(copyStatus()).toContain('npx agent-qa@latest init')
+    const liveRegions = container?.querySelectorAll('[role="status"], [role="alert"], [aria-live]')
+    expect(liveRegions).toHaveLength(1)
+    expect(liveRegions?.[0]?.contains(container?.querySelector('[data-update-command-status]') ?? null)).toBe(true)
+    expect(copyStatus()).toBe(UPDATE_COMMAND_COPIED_TEXT)
   })
 
   it('invokes onDismiss once when the dismiss button is clicked', async () => {

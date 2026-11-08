@@ -1,4 +1,5 @@
 // `copied` waits for the clipboard write to resolve; no clipboard or a rejection is `failed`.
+// Either result returns to `idle` after a moment, so the next one is announced again.
 
 import { useEffect, useRef, useState } from "react"
 
@@ -9,19 +10,21 @@ export function useClipboardCopy(): { status: CopyStatus; copy: (value: string) 
   const reset = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
   useEffect(() => () => { clearTimeout(reset.current) }, [])
 
+  const settle = (result: CopyStatus) => {
+    setStatus(result)
+    reset.current = setTimeout(() => setStatus("idle"), 2000)
+  }
+
   const copy = (value: string) => {
     clearTimeout(reset.current)
     const written = navigator.clipboard?.writeText(value)
     if (written === undefined) {
-      setStatus("failed")
+      settle("failed")
       return
     }
     void written.then(
-      () => {
-        setStatus("copied")
-        reset.current = setTimeout(() => setStatus("idle"), 2000)
-      },
-      () => { setStatus("failed") },
+      () => settle("copied"),
+      () => settle("failed"),
     )
   }
 
