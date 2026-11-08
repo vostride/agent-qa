@@ -32,8 +32,9 @@ import {
   createValidateCommand,
 } from './commands/index.js'
 import { createRunsCommand } from './commands/runs.js'
+import type { UpdateNotice } from './update-notice-gate.js'
 
-export type UpdateNotice = (input: { json: boolean; logLevel?: string }) => Promise<void>
+export type { UpdateNotice }
 
 /** The whole `agent-qa` command tree, unparsed; `cli.ts` parses it and tests read it. */
 export function createAgentQaProgram({
@@ -81,7 +82,7 @@ export function createAgentQaProgram({
     }
   })
 
-  program.addCommand(createRunCommand())
+  program.addCommand(createRunCommand({ updateNotice }))
   program.addCommand(createRunsCommand())
   program.addCommand(createInitCommand())
   program.addCommand(createInstallBrowsersCommand())

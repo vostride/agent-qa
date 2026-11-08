@@ -95,7 +95,12 @@ const CLOSED_GATES: Array<[string, Partial<UpdateNoticeGate>]> = [
 
 async function notice(
   home: string,
-  options: { now?: number; gate?: Partial<UpdateNoticeGate>; request?: VersionCheckRequest } = {},
+  options: {
+    now?: number
+    gate?: Partial<UpdateNoticeGate>
+    request?: VersionCheckRequest
+    refresh?: boolean
+  } = {},
 ): Promise<{ text: string; calls: string[] }> {
   const written: string[] = []
   const recorder = recordingRequest()
@@ -109,6 +114,7 @@ async function notice(
       written.push(text)
     },
     request: options.request ?? recorder.request,
+    ...(options.refresh === undefined ? {} : { refresh: options.refresh }),
   })
   return { text: written.join(''), calls: recorder.calls }
 }
@@ -184,6 +190,17 @@ describe('the shared gate for the notice and the registry refresh', () => {
 
     expect(text).toContain('npx agent-qa@latest init')
     expect(calls).toEqual(['https://registry.npmjs.org/agent-qa'])
+  })
+
+  it('with the refresh off prints from a stale cache and starts no request', async () => {
+    const home = tempHome(staleCache())
+    const before = readFileSync(cachePath(home))
+
+    const { text, calls } = await notice(home, { refresh: false })
+
+    expect(text).toContain('npx agent-qa@latest init')
+    expect(calls).toEqual([])
+    expect(readFileSync(cachePath(home)).equals(before)).toBe(true)
   })
 })
 

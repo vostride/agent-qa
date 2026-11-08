@@ -605,6 +605,7 @@ vi.mock('../commands/baseline-probe.js', () => ({
 }))
 
 import { createRunCommand } from '../commands/run.js'
+import { CI_VENDOR_VARS } from '../ci-env.js'
 import { composeRunOwnership } from '../composition/run-owner-probe.js'
 
 let defaultSecretsFilePath: string | undefined
@@ -793,6 +794,14 @@ async function runCommand(...args: string[]) {
 }
 
 async function runCommandWithGlobalArgs(globalArgs: string[], ...runArgs: string[]) {
+  return runCommandWithOptions({}, globalArgs, ...runArgs)
+}
+
+async function runCommandWithOptions(
+  commandOptions: Parameters<typeof createRunCommand>[0],
+  globalArgs: string[],
+  ...runArgs: string[]
+) {
   defaultConfigRoot = mkdtempSync(join(tmpdir(), 'agent-qa-run-test-'))
   tempDirs.push(defaultConfigRoot)
   const program = new Command()
@@ -805,9 +814,16 @@ async function runCommandWithGlobalArgs(globalArgs: string[], ...runArgs: string
   program.option('--verbose', 'shorthand for --log-level debug')
   program.option('--quiet', 'shorthand for --log-level silent')
   program.configureOutput({ writeErr: (message) => errorSpy(message.trimEnd()) })
-  const run = createRunCommand()
+  const run = createRunCommand(commandOptions)
   run.configureOutput({ writeErr: (message) => errorSpy(message.trimEnd()) })
   program.addCommand(run)
+  // The program's own hook, so a cell can see that run's notice is never shown a second time.
+  const programNotice = commandOptions?.updateNotice
+  if (programNotice !== undefined) {
+    program.hook('postAction', async () => {
+      await programNotice({ json: false })
+    })
+  }
 
   try {
     await program.parseAsync(['node', 'agent-qa', ...globalArgs, 'run', ...runArgs])
@@ -2213,6 +2229,146 @@ describe('run command — a project with no model', () => {
     expect(mockRunMemberTest).not.toHaveBeenCalled()
     expect(mockWebAdapterSetup).not.toHaveBeenCalled()
     expect(mockCreateModel).not.toHaveBeenCalled()
+  })
+})
+
+describe('run command — the update notice at the end of a run', () => {
+  type NoticeInput = { json: boolean; logLevel?: string; refresh?: boolean }
+  type NoticeCall = { input: NoticeInput; exitsBefore: number }
+  const streams = [process.stdout, process.stderr] as const
+  let savedTTY: (PropertyDescriptor | undefined)[] = []
+  let savedCI: Record<string, string | undefined> = {}
+
+  function setTTY(stream: NodeJS.WriteStream, value: boolean): void {
+    Object.defineProperty(stream, 'isTTY', { value, configurable: true, writable: true })
+  }
+
+  beforeEach(() => {
+    savedTTY = streams.map((stream) => Object.getOwnPropertyDescriptor(stream, 'isTTY'))
+    for (const stream of streams) setTTY(stream, true)
+    savedCI = {}
+    for (const name of CI_VENDOR_VARS) {
+      savedCI[name] = process.env[name]
+      delete process.env[name]
+    }
+  })
+
+  afterEach(() => {
+    streams.forEach((stream, index) => {
+      const saved = savedTTY[index]
+      if (saved === undefined) delete (stream as { isTTY?: boolean }).isTTY
+      else Object.defineProperty(stream, 'isTTY', saved)
+    })
+    for (const name of CI_VENDOR_VARS) {
+      if (savedCI[name] === undefined) delete process.env[name]
+      else process.env[name] = savedCI[name]
+    }
+  })
+
+  // The mocked `process.exit` throws, so the action's catch exits a second time; the first exit
+  // is the run's own.
+  function recordingNotice(): {
+    calls: NoticeCall[]
+    notice: (input: NoticeInput) => Promise<void>
+  } {
+    const calls: NoticeCall[] = []
+    return {
+      calls,
+      notice: async (input) => {
+        calls.push({ input, exitsBefore: exitSpy.mock.calls.length })
+      },
+    }
+  }
+
+  function memberEnds(status: 'passed' | 'failed'): void {
+    mockGlob.mockResolvedValue(['tests/a.yaml'])
+    mockParseAllTests.mockResolvedValue({ tests: [makeTest()], errors: [] })
+    mockRunMemberTest.mockResolvedValue({
+      name: 'Test One',
+      filePath: 'tests/a.yaml',
+      status,
+      steps: [],
+      duration: 100,
+    })
+  }
+
+  it('a passing run at a terminal shows the notice once before it exits 0', async () => {
+    memberEnds('passed')
+    const recorder = recordingNotice()
+
+    await runCommandWithOptions({ updateNotice: recorder.notice }, [], 'tests/**/*.yaml')
+
+    expect(recorder.calls).toEqual([
+      { input: { json: false, logLevel: 'warn', refresh: false }, exitsBefore: 0 },
+    ])
+    expect(exitSpy.mock.calls[0]).toEqual([0])
+  })
+
+  it('a run that ends with a failing test shows the notice and still exits 1', async () => {
+    memberEnds('failed')
+    const recorder = recordingNotice()
+
+    await runCommandWithOptions({ updateNotice: recorder.notice }, [], 'tests/**/*.yaml')
+
+    expect(recorder.calls).toHaveLength(1)
+    expect(exitSpy.mock.calls[0]).toEqual([1])
+  })
+
+  it('a suite run shows the notice once at its end', async () => {
+    const { suitePath, configPath } = await createTempSuiteWorkspace()
+    mockParseSuiteFile.mockResolvedValue(suiteDefinition('Smoke Suite', 'login.yaml'))
+    mockParseTestFile.mockReturnValue({ tests: [makeTest()], errors: [] })
+    const recorder = recordingNotice()
+
+    await runCommandWithOptions(
+      { updateNotice: recorder.notice },
+      ['--config', configPath],
+      suitePath,
+    )
+
+    expect(recorder.calls).toHaveLength(1)
+    expect(exitSpy.mock.calls[0]).toEqual([0])
+  })
+
+  it.each([
+    ['in CI', () => { process.env.CI = 'true' }, [] as string[]],
+    ['when stdout is not a terminal', () => { setTTY(process.stdout, false) }, [] as string[]],
+    ['when stderr is not a terminal', () => { setTTY(process.stderr, false) }, [] as string[]],
+    ['with --quiet', () => {}, ['--quiet']],
+  ])('shows no notice %s', async (_name, arrange, globalArgs) => {
+    arrange()
+    memberEnds('passed')
+    const recorder = recordingNotice()
+
+    await runCommandWithOptions({ updateNotice: recorder.notice }, globalArgs, 'tests/**/*.yaml')
+
+    expect(recorder.calls).toEqual([])
+    expect(exitSpy.mock.calls[0]).toEqual([0])
+  })
+
+  it('a notice that throws leaves the exit code alone', async () => {
+    memberEnds('failed')
+    const throwing = async (): Promise<void> => {
+      throw new Error('notice failed')
+    }
+
+    await runCommandWithOptions({ updateNotice: throwing }, [], 'tests/**/*.yaml')
+
+    expect(exitSpy.mock.calls[0]).toEqual([1])
+  })
+
+  it('a run refused before a test starts shows no notice', async () => {
+    const cfg = defaultConfig() as Record<string, any>
+    delete cfg.registry.llms
+    delete cfg.use.llm
+    mockResolveConfig.mockResolvedValue(cfg)
+    memberEnds('passed')
+    const recorder = recordingNotice()
+
+    await runCommandWithOptions({ updateNotice: recorder.notice }, [], 'tests/**/*.yaml')
+
+    expect(recorder.calls).toEqual([])
+    expect(exitSpy).toHaveBeenCalledWith(2)
   })
 })
 

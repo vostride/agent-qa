@@ -120,6 +120,7 @@ import { rememberPluginRemoteRefusals, webRefusalMemory } from './plugin-remote-
 import { buildDirectRunMembers } from './direct-run-members.js'
 import { resolveRecordingSetting, resolveRecordingStagingDir } from './recording-setting.js'
 import { resolveIsCI } from '../ci-env.js'
+import { showUpdateNoticeBeforeExit, type UpdateNotice } from '../update-notice-gate.js'
 
 const RUNTIME_ARTIFACTS_DIR = DEFAULT_AGENT_QA_ARTIFACTS_DIR || '.agent-qa/artifacts'
 const RUNTIME_CACHE_DIR = DEFAULT_AGENT_QA_CACHE_DIR || '.agent-qa/cache'
@@ -5038,7 +5039,10 @@ export async function produceDirectRunMembers(
 }
 
 export function createRunCommand(
-  options: { readonly listDevicesHere?: DevicesHereLister } = {},
+  options: {
+    readonly listDevicesHere?: DevicesHereLister
+    readonly updateNotice?: UpdateNotice
+  } = {},
 ): Command {
   const cmd = new Command('run')
     .description('Run test files')
@@ -5161,6 +5165,14 @@ export function createRunCommand(
           userRunAttributes,
         } = inputs
         _crashSecretRedactor = runtimeSecrets.secretRedactor
+        // A run that reached its result shows the update notice; refusals, errors and cancels
+        // (exit 2 and 130) end without it.
+        const exitAtNormalEnd = async (code: number): Promise<never> => {
+          if (code === 0 || code === 1) {
+            await showUpdateNoticeBeforeExit(options.updateNotice, effectiveLogLevel)
+          }
+          process.exit(code)
+        }
         let discoveredTestFiles: string[] = [...inputs.discovered.tests]
         const discoveredSuiteFiles: string[] = [...inputs.discovered.suites]
 
@@ -5180,7 +5192,7 @@ export function createRunCommand(
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length === 0) {
           const { exitCode } = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere)
           await drainAnalytics() // The suite-only path's terminal exit.
-          process.exit(exitCode)
+          await exitAtNormalEnd(exitCode)
         }
 
         // Handle --all: run suites first, then fall through to test execution
@@ -5199,7 +5211,7 @@ export function createRunCommand(
           if (files.length > 0) {
             printRunText(files.map((file) => `  ${file}`).join('\n'), (text) => console.log(text))
           }
-          process.exit(0)
+          await exitAtNormalEnd(0)
         }
 
         const { parseAllTestBindings, formatParseError } = await import('@vostride/agent-qa-core')
@@ -5338,7 +5350,7 @@ export function createRunCommand(
             }
             printRunText(lines.join('\n'), (text) => console.log(text))
           }
-          process.exit(0)
+          await exitAtNormalEnd(0)
         }
 
         // ---- Compose the one RunSession per invocation ---------------------------------------------
@@ -5532,7 +5544,7 @@ export function createRunCommand(
         // `singleExit` was fixed from the verdict plus any --all suite failure before curation.
         const exitCode = singleExit
         await drainAnalytics() // The verdict path's terminal exit.
-        process.exit(exitCode)
+        await exitAtNormalEnd(exitCode)
       } catch (err) {
         await startedRemoteReleases()
         // Input refusals become output and an exit code only here, at the door with a terminal.

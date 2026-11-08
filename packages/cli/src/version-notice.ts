@@ -8,21 +8,15 @@ import {
   refreshAgentQaVersionCheckInBackground,
   type VersionCheckRequest,
 } from '@vostride/agent-qa-core'
-import { resolveIsCI } from './ci-env.js'
 import { VERSION } from './index.js'
+import { updateNoticeApplies, type UpdateNoticeGate } from './update-notice-gate.js'
+
+export { updateNoticeApplies, type UpdateNoticeGate } from './update-notice-gate.js'
 
 export const UPDATE_NOTICE_SHOWN_FILE = 'update-notice.json'
 
 const RELEASES_URL = 'https://github.com/vostride/agent-qa/releases'
 const NOTICE_INTERVAL_MS = 24 * 60 * 60 * 1000
-
-export interface UpdateNoticeGate {
-  env: NodeJS.ProcessEnv
-  stdoutIsTTY: boolean
-  stderrIsTTY: boolean
-  json: boolean
-  logLevel?: string
-}
 
 export interface UpdateNoticePrint {
   homeDir: string
@@ -34,18 +28,8 @@ export interface UpdateNoticePrint {
 export type UpdateNoticeRun = UpdateNoticeGate &
   UpdateNoticePrint & {
     request?: VersionCheckRequest
+    refresh?: boolean
   }
-
-// The one gate for both the notice and the registry refresh: people at a terminal only.
-export function updateNoticeApplies(gate: UpdateNoticeGate): boolean {
-  return (
-    gate.stdoutIsTTY &&
-    gate.stderrIsTTY &&
-    !resolveIsCI(gate.env) &&
-    gate.json !== true &&
-    gate.logLevel !== 'silent'
-  )
-}
 
 export async function printUpdateNotice(input: UpdateNoticePrint): Promise<void> {
   try {
@@ -74,6 +58,7 @@ export async function printUpdateNotice(input: UpdateNoticePrint): Promise<void>
 export async function runUpdateNotice(input: UpdateNoticeRun): Promise<void> {
   if (!updateNoticeApplies(input)) return
   await printUpdateNotice(input)
+  if (input.refresh === false) return
   await refreshAgentQaVersionCheckInBackground({
     homeDir: input.homeDir,
     now: input.now,
@@ -84,8 +69,10 @@ export async function runUpdateNotice(input: UpdateNoticeRun): Promise<void> {
 export async function processUpdateNotice(input: {
   json: boolean
   logLevel?: string
+  refresh?: boolean
 }): Promise<void> {
   await runUpdateNotice({
+    ...(input.refresh === undefined ? {} : { refresh: input.refresh }),
     env: process.env,
     stdoutIsTTY: process.stdout.isTTY === true,
     stderrIsTTY: process.stderr.isTTY === true,
