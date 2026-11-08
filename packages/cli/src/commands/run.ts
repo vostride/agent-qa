@@ -1482,7 +1482,9 @@ function resolveRunModels(
   try {
     return resolveLLMModels(config)
   } catch (err) {
-    if (err instanceof NoModelConfiguredError) throw new CliRunInputError([pc.red(err.message)], 2)
+    if (err instanceof NoModelConfiguredError) {
+      throw new CliRunInputError([pc.red(err.message)], 2, { cause: err })
+    }
     throw err
   }
 }

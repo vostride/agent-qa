@@ -8,8 +8,8 @@ import { CliRefusal } from './cli-refusal.js'
  * configuration file (env, hooks, secrets), `2` for "nothing to run" and for a usage/parse refusal.
  */
 export class CliRunInputError extends CliRefusal {
-  constructor(lines: readonly string[], exitCode: number) {
-    super(lines, exitCode)
+  constructor(lines: readonly string[], exitCode: number, options?: ErrorOptions) {
+    super(lines, exitCode, options)
     this.name = 'CliRunInputError'
   }
 }

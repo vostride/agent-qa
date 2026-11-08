@@ -12,7 +12,11 @@ import {
   RunServiceReadinessSchema,
   RunStartAcknowledgementSchema,
 } from '@vostride/agent-qa-schema'
+import type { FunctionRegistry } from '@vostride/agent-qa-agent'
 import { generateTestId } from '@vostride/agent-qa-ids'
+import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'
 import { withUnservedModel } from './conformance/spawned-chat.js'
 
@@ -22,6 +26,9 @@ import {
   createDashboardRunDoor,
   createRunServiceReadiness,
 } from '../commands/dashboard.js'
+import { createMcpHttpRequestListener } from '../commands/mcp.js'
+import { composeCliLocalAgent } from '../composition/local-agent-host.js'
+import { NoModelConfiguredError } from '../llm-utils.js'
 
 /** A bearer value an older client might still present. The door neither needs nor reads it. */
 const TOKEN = 'zz-e2e-run-credential-6d20af'
@@ -30,12 +37,15 @@ const TOKEN = 'zz-e2e-run-credential-6d20af'
 const CROSS_SITE = { Origin: 'https://evil.example' } as const
 
 /** The `dashboard-door-security.ts` fixture project's shape, plus one planted test. */
-function fixtureWorkspace(): string {
+function fixtureWorkspace(options: { model?: boolean } = {}): string {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-'))
   const configPath = join(root, 'agent-qa.config.yaml')
+  const withModel = options.model === false
+    ? (config: Record<string, unknown>) => config
+    : withUnservedModel
   writeFileSync(
     configPath,
-    `${JSON.stringify(withUnservedModel({
+    `${JSON.stringify(withModel({
       workspace: {
         testMatch: ['tests/**/*.test.yaml'],
         suiteMatch: ['suites/**/*.suite.yaml'],
@@ -85,8 +95,8 @@ interface ServiceFixture {
 const openFixtures: ServiceFixture[] = []
 
 /** The composition `agent-qa dashboard` performs, with an ephemeral port and a temp project. */
-async function openRunService(): Promise<ServiceFixture> {
-  const configPath = fixtureWorkspace()
+async function openRunService(options: { model?: boolean } = {}): Promise<ServiceFixture> {
+  const configPath = fixtureWorkspace(options)
   const configDir = dirname(resolve(configPath))
   const { DashboardDatabase, startServer } = await import('@vostride/agent-qa-dashboard')
   const db = new DashboardDatabase({ dbPath: join(configDir, 'dashboard.db') })
@@ -369,6 +379,57 @@ describe('a door with no declared credential opens for a local caller', () => {
 })
 
 // ---- `/ok` driven through the production composition ----
+
+describe('a project with no model', () => {
+  it('POST /run refuses it 400 no_model_configured, with the one-key body', async () => {
+    const service = await openRunService({ model: false })
+
+    const response = await fetch(`${service.origin}/run`, {
+      method: 'POST',
+      headers: authed,
+      body: JSON.stringify({ patterns: ['tests/probe.test.yaml'] }),
+    })
+
+    expect(response.status).toBe(400)
+    expect(RunServiceErrorBodySchema.parse(await response.json()))
+      .toEqual({ error: 'no_model_configured' })
+  })
+
+  it('agent_qa_start_run answers a tool error with the refusal line and no stack', async () => {
+    const configPath = fixtureWorkspace({ model: false })
+    const configDir = dirname(resolve(configPath))
+    const host = composeCliLocalAgent({
+      agentQaRoot: join(configDir, '.agent-qa'),
+      configPath,
+      runTrigger: 'mcp',
+    })
+    const server = createServer(createMcpHttpRequestListener({
+      registry: host.registry as FunctionRegistry,
+      maskText: (text) => text,
+    }))
+    await new Promise<void>((listening) => server.listen(0, '127.0.0.1', listening))
+    const client = new Client({ name: 'agent-qa-no-model', version: '0.0.0' })
+    try {
+      const port = (server.address() as AddressInfo).port
+      await client.connect(
+        new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${String(port)}/mcp`)),
+      )
+      const result = (await client.callTool({
+        name: 'agent_qa_start_run',
+        arguments: { patterns: ['tests/probe.test.yaml'] },
+      })) as { content?: ReadonlyArray<{ text?: string }>; isError?: boolean }
+
+      const text = (result.content ?? []).map((entry) => entry.text ?? '').join('\n')
+      expect(result.isError).toBe(true)
+      expect(text).toBe(new NoModelConfiguredError().message)
+    } finally {
+      await client.close().catch(() => undefined)
+      await new Promise<void>((closed) => server.close(() => closed()))
+      await host.close()
+      rmSync(configDir, { recursive: true, force: true })
+    }
+  })
+})
 
 describe('GET /ok on the mounted door', () => {
   it('is refused cross-site and answers measured facts to a local caller', async () => {

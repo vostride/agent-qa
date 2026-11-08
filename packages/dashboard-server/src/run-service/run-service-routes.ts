@@ -594,10 +594,17 @@ export function createRunServiceRoutes(ports: RunServicePorts): RunServiceRouter
         ack = await ports.invokeRunStart(
           parsed.data.patterns === undefined ? {} : { patterns: parsed.data.patterns },
         )
-      } catch {
+      } catch (error) {
         // Every rejection keeps its words to itself: a crash message is composed from this
         // process's own state and is not this caller's to read. The run's own diagnostics reach
-        // whoever reads the run.
+        // whoever reads the run. A missing model is a config refusal, named by its error.
+        const name = typeof error === 'object' && error !== null
+          ? (error as { name?: unknown }).name
+          : undefined
+        if (name === 'NoModelConfiguredError') {
+          refuse(res, 400, 'no_model_configured')
+          return
+        }
         refuse(res, 500, 'run_start_failed')
         return
       }

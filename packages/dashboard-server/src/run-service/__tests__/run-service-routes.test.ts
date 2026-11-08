@@ -785,6 +785,22 @@ const CODE_PROBES: readonly CodeProbe[] = Object.freeze([
     }),
   },
   {
+    code: 'no_model_configured',
+    status: 400,
+    drive: () => refusalAt('/run', {
+      method: 'POST',
+      headers: { ...authed, 'Content-Type': 'application/json' },
+      body: JSON.stringify({}),
+      ports: fakePorts({
+        invokeRunStart: () => {
+          throw Object.assign(new Error('No model is set in agent-qa.config.yaml.'), {
+            name: 'NoModelConfiguredError',
+          })
+        },
+      }),
+    }),
+  },
+  {
     code: 'unknown_run',
     status: 404,
     drive: () => refusalAt('/run/r_nope/events', { headers: authed }),

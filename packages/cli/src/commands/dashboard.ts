@@ -77,6 +77,7 @@ import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
 import { composeRunOwnership } from '../composition/run-owner-probe.js'
 import type { ComposeCliLocalAgentInput } from '../composition/local-agent-host.js'
 import {
+  NoModelConfiguredError,
   applyResolvedAuthToModelConfig,
   resolveModelAuth,
   type LLMConfigLike,
@@ -547,12 +548,21 @@ export function composeRunServicePorts(input: RunServiceCompositionInput): RunSe
       ? {}
       : { patterns: [...start.patterns] }
     // The shipped dispatcher, so validation, refusals and receipts apply; this records `api`.
-    const result = await withRunDoor('api', () => invokeFunction(
-      host.registry as FunctionRegistry,
-      RUNS_START_FUNCTION_ID,
-      request,
-      RUN_SERVICE_FUNCTION_CALLER,
-    ))
+    let result: unknown
+    try {
+      result = await withRunDoor('api', () => invokeFunction(
+        host.registry as FunctionRegistry,
+        RUNS_START_FUNCTION_ID,
+        request,
+        RUN_SERVICE_FUNCTION_CALLER,
+      ))
+    } catch (error) {
+      // The door refuses by error name, so the model refusal leaves as itself, not as run's exit.
+      if (error instanceof CliRefusal && error.cause instanceof NoModelConfiguredError) {
+        throw error.cause
+      }
+      throw error
+    }
     // PARSED, NOT CAST. The ack law says every field comes off the durable record; this is the
     // read side of it, and it is what makes the router's typed 202 a fact rather than a hope.
     return RunStartAcknowledgementSchema.parse(result)

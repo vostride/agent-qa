@@ -19,6 +19,8 @@ export const RUN_SERVICE_ERROR_CODES = [
   'unknown_run',
   'unknown_route',
   'run_start_failed',
+  // The project names no model, so no run can start until one is set up.
+  'no_model_configured',
   'replay_unavailable',
   // `invalid_handle` is a malformed parameter, `unknown_handle` a valid one no member answers to.
   'invalid_handle',
