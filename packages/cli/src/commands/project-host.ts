@@ -1,4 +1,4 @@
-import { spawn, type SpawnOptions } from 'node:child_process'
+import { spawn as nodeSpawn, type SpawnOptions } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { realpath } from 'node:fs/promises'
 import { homedir } from 'node:os'
@@ -77,46 +77,56 @@ function isWindowsExecutable(command: string): boolean {
 // On Windows the managers are .cmd shims that only a shell can start; an .exe such as node.exe
 // starts directly, so the arguments it is handed never meet cmd.exe. The shell gets one command
 // line, which keeps Node from warning about arguments passed with a shell.
-export const spawnRunner: CommandRunner = (command, args, options) => {
-  const shell = process.platform === 'win32' && !isWindowsExecutable(command)
-  let line: string | undefined
-  try {
-    line = shell ? [command, ...args].map(windowsShellWord).join(' ') : undefined
-  } catch (error) {
-    return Promise.reject(error)
-  }
-  const spawnOptions: SpawnOptions = {
-    cwd: options.cwd,
-    env: options.env,
-    stdio: options.stdio === 'capture' ? ['ignore', 'pipe', 'pipe'] : 'inherit',
-    shell,
-  }
-  const child =
-    line === undefined ? spawn(command, [...args], spawnOptions) : spawn(line, spawnOptions)
-  let output = ''
-  let cancelled = false
-  const collect = (chunk: Buffer): void => {
-    output += chunk.toString('utf8')
-  }
-  child.stdout?.on('data', collect)
-  child.stderr?.on('data', collect)
-  const interrupt = (): void => {
-    cancelled = true
-    child.kill('SIGINT')
-  }
-  process.on('SIGINT', interrupt)
-  return new Promise<RunResult>((settle, fail) => {
-    child.once('error', (error: NodeJS.ErrnoException) => {
-      process.off('SIGINT', interrupt)
-      if (error.code === 'ENOENT') settle({ code: null, signal: null, output: '', missing: true })
-      else fail(error)
+export function createSpawnRunner({
+  platform = process.platform,
+  spawn = nodeSpawn,
+}: { platform?: NodeJS.Platform; spawn?: typeof nodeSpawn } = {}): CommandRunner {
+  return (command, args, options) => {
+    const shell = platform === 'win32' && !isWindowsExecutable(command)
+    let line: string | undefined
+    try {
+      line = shell ? [command, ...args].map(windowsShellWord).join(' ') : undefined
+    } catch (error) {
+      return Promise.reject(error)
+    }
+    const spawnOptions: SpawnOptions = {
+      cwd: options.cwd,
+      env: options.env,
+      stdio: options.stdio === 'capture' ? ['ignore', 'pipe', 'pipe'] : 'inherit',
+      shell,
+    }
+    const child =
+      line === undefined ? spawn(command, [...args], spawnOptions) : spawn(line, spawnOptions)
+    let output = ''
+    let cancelled = false
+    const collect = (chunk: Buffer): void => {
+      output += chunk.toString('utf8')
+    }
+    child.stdout?.on('data', collect)
+    child.stderr?.on('data', collect)
+    // Windows' kill is a forced end, and a child on this console already got its own Ctrl-C, so
+    // it is left to shut down by itself.
+    const forwards = platform !== 'win32' || options.stdio === 'capture'
+    const interrupt = (): void => {
+      cancelled = true
+      if (forwards) child.kill('SIGINT')
+    }
+    process.on('SIGINT', interrupt)
+    return new Promise<RunResult>((settle, fail) => {
+      child.once('error', (error: NodeJS.ErrnoException) => {
+        process.off('SIGINT', interrupt)
+        if (error.code === 'ENOENT') settle({ code: null, signal: null, output: '', missing: true })
+        else fail(error)
+      })
+      child.once('close', (code, signal) => {
+        process.off('SIGINT', interrupt)
+        settle({ code, signal, output, ...(cancelled ? { cancelled: true } : {}) })
+      })
     })
-    child.once('close', (code, signal) => {
-      process.off('SIGINT', interrupt)
-      settle({ code, signal, output, ...(cancelled ? { cancelled: true } : {}) })
-    })
-  })
+  }
 }
+
+export const spawnRunner: CommandRunner = createSpawnRunner()
 
 export interface ProjectHost {
   cwd: string

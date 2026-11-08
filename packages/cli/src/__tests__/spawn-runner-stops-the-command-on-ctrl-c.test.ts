@@ -1,9 +1,11 @@
+import type { spawn } from 'node:child_process'
+import { EventEmitter } from 'node:events'
 import { join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { wasCancelled } from '../commands/package-manager.js'
-import { spawnRunner } from '../commands/project-host.js'
+import { createSpawnRunner, spawnRunner, type RunOptions } from '../commands/project-host.js'
 import { cleanupTempProjects, tempProject } from './project-fixtures.js'
 
 // Exits 0 on its own after 10 s, so only a Ctrl-C ends it sooner and with another result.
@@ -104,4 +106,49 @@ describe('spawnRunner and Ctrl-C', () => {
     expect(result).toEqual({ code: null, signal: null, output: '', missing: true })
     expect(sigintListeners()).toEqual(before)
   })
+})
+
+// A child that only records the signals it is sent and closes when told to.
+function fakeChild(): { spawn: typeof spawn; kills: string[]; close: (code: number) => void } {
+  const child = Object.assign(new EventEmitter(), {
+    stdout: null,
+    stderr: null,
+    kill: (signal: string) => {
+      kills.push(signal)
+      return true
+    },
+  })
+  const kills: string[] = []
+  return {
+    spawn: (() => child) as unknown as typeof spawn,
+    kills,
+    close: (code) => child.emit('close', code, null),
+  }
+}
+
+describe('spawnRunner and Ctrl-C on each platform', () => {
+  const cells: [NodeJS.Platform, RunOptions['stdio'], string[]][] = [
+    ['win32', 'inherit', []],
+    ['win32', 'capture', ['SIGINT']],
+    ['darwin', 'inherit', ['SIGINT']],
+    ['linux', 'inherit', ['SIGINT']],
+  ]
+
+  for (const [platform, stdio, sent] of cells) {
+    it(`on ${platform} with ${stdio} output, a Ctrl-C sends the child ${sent.join(', ') || 'nothing'} and the run reads as cancelled`, async () => {
+      const child = fakeChild()
+      const before = sigintListeners()
+
+      const runner = createSpawnRunner({ platform, spawn: child.spawn })
+      const run = runner('C:\\node.exe', ['dashboard'], { cwd: '.', env: {}, stdio })
+      const added = sigintListeners().filter((listener) => !before.includes(listener))
+      expect(added).toHaveLength(1)
+      added[0]!('SIGINT')
+      expect(child.kills).toEqual(sent)
+      child.close(0)
+
+      expect(await run).toEqual({ code: 0, signal: null, output: '', cancelled: true })
+      expect(sigintListeners()).toEqual(before)
+    })
+  }
 })
