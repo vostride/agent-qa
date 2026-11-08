@@ -327,10 +327,40 @@ describe('the name a new choice writes', () => {
   })
 
   it('keeps the stable name when the store holds it for the same provider', () => {
-    const saved = [api('openai', 'openai-compatible')]
-    expect(modelEntryFor(newPick('openai'), { saved }).entry?.name).toBe('openai')
     const codex = [oauth('codex', 'openai-subscription-oauth')]
     expect(modelEntryFor(newPick('codex'), { saved: codex }).entry?.name).toBe('codex')
+    const gemini = [api('gemini', 'gemini')]
+    expect(modelEntryFor(newPick('gemini'), { saved: gemini }).entry?.name).toBe('gemini')
+  })
+
+  it.each([
+    ['openai', 'openai-compatible'],
+    ['anthropic', 'anthropic-compatible'],
+  ] as const)(
+    'never points the official %s host at a compatible key saved under its name',
+    (choice, storedProvider) => {
+      const saved = [api(choice, storedProvider)]
+      const { entry } = modelEntryFor(newPick(choice), { saved })
+      expect(entry?.name).toBe(`${choice}-2`)
+    },
+  )
+
+  it('never shares a compatible key saved under an endpoint choice name either', () => {
+    const saved = [api('openai-compatible', 'openai-compatible')]
+    const entry = modelEntryFor(newPick('openai-compatible'), {
+      baseUrl: 'https://llm.local/v1',
+      model: 'm',
+      saved,
+    }).entry
+    expect(entry?.name).toBe('openai-compatible-2')
+  })
+
+  it('reuses a saved compatible key when the person picks it', () => {
+    const saved = [api('openai', 'openai-compatible')]
+    const [pick] = initModelOptions(saved)
+    expect(modelEntryFor(pick!.value, { saved })).toEqual({
+      dashboard: { add: 'openai-compatible-key', name: 'openai' },
+    })
   })
 
   it('gives a flag-built endpoint entry a free name too', () => {
@@ -343,7 +373,7 @@ describe('the name a new choice writes', () => {
     expect(entry?.name).toBe('openai-compatible-2')
   })
 
-  it('writes a name that is free or held by the same provider, for every choice and store', async () => {
+  it('writes a name that is free or held by the same provider and never a compatible key, for every choice and store', async () => {
     const stores: SavedCredential[][] = [
       [],
       await savedFrom(FIXTURE_STORE),
@@ -363,6 +393,7 @@ describe('the name a new choice writes', () => {
         const holder = saved.find((credential) => credential.name === entry!.name)
         if (holder !== undefined) {
           expect(SAVED_PROVIDER_TO_CONFIG[holder.provider]).toBe(entry!.provider)
+          expect(holder.provider).not.toMatch(/-compatible$/u)
         }
       }
     }

@@ -191,12 +191,15 @@ function baseUrlFlag(provider: string, value: string | undefined): string | unde
 }
 
 // A name the store holds for the same provider is shared, so a saved credential is reused and
-// never copied; one it holds for another provider is never written over.
+// never copied; one it holds for another provider is never written over. A compatible key is
+// never shared: the store keeps no URL for it, so it could belong to any endpoint, and it is
+// reused only when the person picks it.
 function freeName(stable: string, provider: string, saved: readonly SavedCredential[]): string {
   const holders = new Map(saved.map((credential) => [credential.name, credential.provider]))
   const fits = (name: string) => {
     const held = holders.get(name)
-    return held === undefined || configProviderOf(held) === provider
+    if (held === undefined) return true
+    return !needsDashboard(provider) && configProviderOf(held) === provider
   }
   if (fits(stable)) return stable
   for (let suffix = 2; ; suffix += 1) {
