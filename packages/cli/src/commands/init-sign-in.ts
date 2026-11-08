@@ -13,7 +13,7 @@ import { SUBSCRIPTION_AUTH_PACKAGE } from './scaffold-content.js'
 
 export const PASTE_THE_CODE = 'Paste the code (Enter to sign in later)'
 export const WAITING_FOR_THE_BROWSER = 'Waiting for the browser (Enter to sign in later)'
-export const SIGN_IN_PAGE_OPEN = 'The sign-in page is open in your browser.'
+export const OPENING_THE_SIGN_IN_PAGE = 'Opening your browser. If it does not open, go to:'
 
 export type InitSignInOutcome = 'signed-in' | 'deferred'
 
@@ -97,8 +97,10 @@ export async function runInitSignIn(input: {
   // Whatever happens below, a callback server that fails late is not an unhandled rejection.
   started.waitForTokens?.catch(() => undefined)
   try {
+    // The opener cannot tell whether a page opened, so the address is always shown.
+    ui.line(OPENING_THE_SIGN_IN_PAGE)
+    ui.copyable(started.authorizeUrl)
     openUrl(started.authorizeUrl)
-    ui.line(SIGN_IN_PAGE_OPEN)
     let tokens: OAuthTokens | undefined
     if (started.waitForTokens !== undefined) {
       tokens = await raceTheBrowser(ui, started.waitForTokens)

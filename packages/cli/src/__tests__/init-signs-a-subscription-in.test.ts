@@ -48,7 +48,7 @@ vi.mock('node:child_process', async (importOriginal) => {
 const SUBSCRIPTION_AUTH_PACKAGE = '@vostride/agent-qa-subscription-auth'
 const PASTE_THE_CODE = 'Paste the code (Enter to sign in later)'
 const WAITING_FOR_THE_BROWSER = 'Waiting for the browser (Enter to sign in later)'
-const SIGN_IN_PAGE_OPEN = 'The sign-in page is open in your browser.'
+const OPENING_THE_SIGN_IN_PAGE = 'Opening your browser. If it does not open, go to:'
 const CONTROL = Symbol.for('agent-qa.fake-subscription-plugin')
 const AUTHORIZE_URL = 'https://auth.example.test/authorize?state=SESSION-STATE-5d1e'
 const FAKE_TOKEN = 'FAKE-OAUTH-TOKEN-4b8c'
@@ -211,6 +211,17 @@ function signInEntries(ui: FakeInitUi) {
   return outcome === undefined ? [] : [outcome]
 }
 
+// The wording never claims the page opened, and the address follows it as a line to copy.
+function addressShown(ui: FakeInitUi): boolean {
+  const at = ui.entries.findIndex(
+    (entry) => entry.kind === 'line' && entry.text === OPENING_THE_SIGN_IN_PAGE,
+  )
+  return (
+    at !== -1 &&
+    JSON.stringify(ui.entries[at + 1]) === JSON.stringify({ kind: 'copyable', text: AUTHORIZE_URL })
+  )
+}
+
 function nextSteps(ui: FakeInitUi): string[] {
   const note = ui.entries.find((entry) => entry.kind === 'note' && entry.text === 'Next steps')
   return note?.kind === 'note' ? note.lines : []
@@ -273,7 +284,7 @@ describe('manual-code sign-in', () => {
     expect(stored(proj.authPath)).toEqual({
       'claude-code': { type: 'oauth', provider: 'anthropic-subscription', tokens: TOKENS },
     })
-    expect(ui.entries).toContainEqual({ kind: 'line', text: SIGN_IN_PAGE_OPEN })
+    expect(addressShown(ui)).toBe(true)
     expect(signInEntries(ui)).toEqual([{ kind: 'done', text: 'Signed in: claude-code' }])
     expect(nextSteps(ui)).not.toContain(LOGIN)
     expectNoSecretOutside(proj, ui)
@@ -347,7 +358,8 @@ describe('the sign-in on the rail', () => {
     await done
 
     const rail = stripVTControlCharacters(streams.text())
-    expect(rail).toContain(SIGN_IN_PAGE_OPEN)
+    expect(rail).toContain(`${OPENING_THE_SIGN_IN_PAGE}\n`)
+    expect(rail.split('\n')).toContain(AUTHORIZE_URL)
     expect(rail).toContain('Signed in: claude-code')
     expect(rail).not.toContain(PASTED_CODE)
     expect(rail).not.toContain(FAKE_TOKEN)
@@ -384,6 +396,7 @@ describe('browser-poll sign-in', () => {
 
     expect(error).toBeUndefined()
     expect(aborted).toBe(true)
+    expect(addressShown(ui)).toBe(true)
     expect(stored(proj.authPath)).toEqual({
       'claude-code': { type: 'oauth', provider: 'anthropic-subscription', tokens: TOKENS },
     })
@@ -415,6 +428,7 @@ describe('browser-poll sign-in', () => {
 
     expect(error).toBeUndefined()
     expect(cleanup).toHaveBeenCalledTimes(1)
+    expect(addressShown(ui)).toBe(true)
     expect(stored(proj.authPath)).toBeUndefined()
     expect(signInEntries(ui)).toEqual([{ kind: 'skipped', text: 'Sign-in: later' }])
     expect(nextSteps(ui)).toContain(LOGIN)
@@ -501,17 +515,16 @@ describe('when init does not sign in', () => {
 })
 
 describe('the sign-in page in a test', () => {
-  it('without hooks.openUrl the real opener is refused before any child starts and the step fails', async () => {
+  it('without hooks.openUrl the real opener is refused before any child starts, after the address is shown', async () => {
     const proj = project()
     const ui = fakeInitUi({ [PASTE_THE_CODE]: PASTED_CODE })
 
     const { error } = await init(proj, ui, { opener: 'none' })
 
     expect(takeGuardedCalls()).toEqual(['open https://auth.example.test'])
-    expect(spawned.filter((command) => /^(open|xdg-open|cmd|rundll32)$/u.test(command))).toEqual(
-      [],
-    )
+    expect(spawned.filter((command) => /^(open|xdg-open|cmd|rundll32)$/u.test(command))).toEqual([])
     expect(error).toMatchObject({ name: 'CliRefusal', exitCode: 3 })
+    expect(addressShown(ui)).toBe(true)
     expect(signInEntries(ui)).toEqual([
       {
         kind: 'failed',
