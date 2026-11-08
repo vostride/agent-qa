@@ -40,6 +40,8 @@ interface AuditRow {
 }
 
 let project: string
+// The child's home and XDG folders, so it never reads the real credential store.
+let home: string
 
 /**
  * THE TARGET, as a loopback server that counts who knocked.
@@ -71,6 +73,7 @@ afterAll(async () => {
 beforeEach(() => {
   probeHits = []
   project = mkdtempSync(join(tmpdir(), 'run-gate-e2e-'))
+  home = mkdtempSync(join(tmpdir(), 'run-gate-e2e-home-'))
   mkdirSync(join(project, 'tests'), { recursive: true })
 
   // A config this cell owns end to end. THREE targets, differing ONLY in their `environment`
@@ -135,6 +138,7 @@ beforeEach(() => {
 
 afterEach(() => {
   rmSync(project, { recursive: true, force: true })
+  rmSync(home, { recursive: true, force: true })
 })
 
 /**
@@ -153,7 +157,16 @@ async function runCliWithEnv(
   overrides: Record<string, string>,
   ...args: string[]
 ): Promise<{ status: number | null; stdout: string; stderr: string }> {
-  const env: NodeJS.ProcessEnv = { ...process.env, NO_COLOR: '1' }
+  const env: NodeJS.ProcessEnv = {
+    ...process.env,
+    NO_COLOR: '1',
+    HOME: home,
+    USERPROFILE: home,
+    XDG_DATA_HOME: join(home, '.local', 'share'),
+    XDG_CONFIG_HOME: join(home, '.config'),
+    XDG_CACHE_HOME: join(home, '.cache'),
+    XDG_STATE_HOME: join(home, '.local', 'state'),
+  }
   // A run id inherited from this process would attach the child's run to another run's directory —
   // and an EMPTY string is not the same as absent: `?? generateRunId()` keeps `''`, which slugs to
   // a run directory called `default`. Deleted, not blanked.
