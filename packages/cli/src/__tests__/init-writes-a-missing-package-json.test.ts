@@ -57,11 +57,13 @@ describe('init writes a missing package.json', () => {
   it('a folder named My App gets a two-space package.json named my-app with a final newline', async () => {
     const cwd = join(tempFolder('agent-qa-missing-package-json-'), 'My App')
     mkdirSync(join(cwd, '.git'), { recursive: true })
+    const homedir = tempFolder('agent-qa-missing-package-json-home-')
     const ui = fakeInitUi()
     const parent = new Command()
     const command = createInitCommand({
       cwd,
-      host: { homedir: tempFolder('agent-qa-missing-package-json-home-'), run: fakeRunner() },
+      // No XDG folder, CI marker or provider key of the person running the tests reaches init.
+      host: { homedir, env: { HOME: homedir }, run: fakeRunner() },
       isTTY: false,
       composeAnalytics: silentAnalytics,
       ui,

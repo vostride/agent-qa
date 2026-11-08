@@ -66,7 +66,8 @@ async function init(cwd: string, homedir: string = tempFolder('agent-qa-nearest-
   const parent = new Command()
   const command = createInitCommand({
     cwd,
-    host: { homedir, run: fakeRunner() },
+    // No XDG folder, CI marker or provider key of the person running the tests reaches init.
+    host: { homedir, env: { HOME: homedir }, run: fakeRunner() },
     isTTY: false,
     composeAnalytics: silentAnalytics,
   })
