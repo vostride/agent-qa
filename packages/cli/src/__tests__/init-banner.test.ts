@@ -24,12 +24,11 @@ const tty = { isTTY: true }
 const pipe = { isTTY: false }
 
 describe('the committed banner art', () => {
-  it('is half blocks only, five or six lines, within its declared width of at most 69', () => {
-    expect(BANNER_ROWS.length).toBeGreaterThanOrEqual(5)
-    expect(BANNER_ROWS.length).toBeLessThanOrEqual(6)
-    expect(BANNER_WIDTH).toBeLessThanOrEqual(69)
+  it('is braille dots only, five lines, within its declared width of at most 64', () => {
+    expect(BANNER_ROWS).toHaveLength(5)
+    expect(BANNER_WIDTH).toBeLessThanOrEqual(64)
     for (const [chevron, wordmark] of BANNER_ROWS) {
-      expect(chevron + wordmark).toMatch(/^[▀▄█ ]*$/)
+      expect(chevron + wordmark).toMatch(/^[⠁-⣿ ]*$/u)
       expect(chevron.length + BANNER_GAP + wordmark.length).toBeLessThanOrEqual(BANNER_WIDTH)
     }
   })

@@ -491,9 +491,6 @@ importers:
       '@vostride/agent-qa-safety':
         specifier: workspace:*
         version: link:../safety
-      figlet:
-        specifier: 1.12.0
-        version: 1.12.0
       glob:
         specifier: ~14.0.3
         version: 14.0.3
@@ -3521,10 +3518,6 @@ packages:
   color-name@1.1.4:
     resolution: {integrity: sha512-dOy+3AuW3a2wNbZHIuMZpTcgjGuLU/uBL/ubcZF9OXbDo8ff4O8yVp5Bf0efS8uEoYo5q4Fx7dY9OgQGXgAsQA==}
 
-  commander@14.0.3:
-    resolution: {integrity: sha512-H+y0Jo/T1RZ9qPP4Eh1pkcQcLRglraJaSLoyOtHxu6AapkjWVCy2Sit1QQ4x3Dng8qDlSsZEet7g5Pq06MvTgw==}
-    engines: {node: '>=20'}
-
   commander@15.0.0:
     resolution: {integrity: sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==}
     engines: {node: '>=22.12.0'}
@@ -3824,11 +3817,6 @@ packages:
 
   fflate@0.8.3:
     resolution: {integrity: sha512-tbZNuJrLwGUp3zshBtdy4W+ORxZuIh8a5ilyIEQDC5rY1f3U20JMry0Ll3WBzU58EZKsEuJFXhb5gwv8CsPvgA==}
-
-  figlet@1.12.0:
-    resolution: {integrity: sha512-Ith3WsUi0N/EqGt+0/F6XnWhT04sohhH2tT0Dq7GdUmWbMTIoCbg2Jq9qKggmTO62ST5kRCfB311EmIMbizGyA==}
-    engines: {node: '>= 17.0.0'}
-    hasBin: true
 
   flatbuffers@25.9.23:
     resolution: {integrity: sha512-MI1qs7Lo4Syw0EOzUl0xjs2lsoeqFku44KpngfIduHBYvzm8h2+7K8YMQh1JtVVVrUvhLpNwqVi4DERegUJhPQ==}
@@ -7112,8 +7100,6 @@ snapshots:
 
   color-name@1.1.4: {}
 
-  commander@14.0.3: {}
-
   commander@15.0.0: {}
 
   commander@9.5.0: {}
@@ -7375,10 +7361,6 @@ snapshots:
       picomatch: 4.0.7
 
   fflate@0.8.3: {}
-
-  figlet@1.12.0:
-    dependencies:
-      commander: 14.0.3
 
   flatbuffers@25.9.23: {}
 

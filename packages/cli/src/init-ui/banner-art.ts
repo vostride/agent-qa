@@ -2,13 +2,13 @@
 // A document rendered from VT323 and Geist Mono (OFL-1.1); no font ships with it.
 
 export const BANNER_ROWS: readonly (readonly [chevron: string, wordmark: string])[] = [
-  ['   ', '                             ██'],
-  ['▄  ', '█▀▀█▄  ██▀██  ██▀██  ██▀██ ▀▀██▀▀         ██▀██  █▀▀█▄'],
-  [' ▀▄', '▄█▀██ ▀█   █  ██▀▀▀  █▀ ▀█   ██    ▀▀▀▀▀ ██   █  ▄█▀██'],
-  ['▄▀ ', '█▄▄██▄ ▀██▀█  ▀█▄█▀  █   █   ▀█▄▄         ██▄██  █▄▄██▄'],
-  ['   ', '       ▀███▀                                  █'],
+  ['⣀⡀  ', '                           ⣶⡆'],
+  ['⠛⣧⣤ ', '⣴⡿⠛⢿⣦ ⢠⣾⠟⠻⣾⣿ ⣴⡿⠛⢿⣦ ⣿⣷⠟⢻⣷⡀⠛⠛⣿⡟⠛⠃       ⣴⡿⠟⢷⣿⡇⢠⣾⠟⠻⣷⡀'],
+  [' ⠉⣿⡆', '⣠⣴⠶⢾⣿ ⢸⣿  ⣸⣿⢸⣿⡷⠶⠾⠿⠂⣿⣿  ⣿⡇  ⣿⡇   ⠸⠿⠿⠿⠇ ⣿⡇  ⣿⡇⢠⣴⠶⠾⣿⡇'],
+  ['⣀⡿⠿ ', '⢿⣧⣤⡾⣿⡆⠈⠻⠷⠶⢻⣿ ⠻⣷⣤⣾⠟ ⣿⣿  ⣿⡇  ⢿⣷⣤⡄       ⠻⣷⣦⡾⣿⡇⠻⣿⣤⡼⢿⣧'],
+  ['⠛⠃  ', '      ⠈⠿⢶⣶⠿⠋                              ⠿⠇'],
 ]
 
 export const BANNER_GAP = 1
 
-export const BANNER_WIDTH = 59
+export const BANNER_WIDTH = 55
