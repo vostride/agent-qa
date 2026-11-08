@@ -464,6 +464,24 @@ describe('a dashboard that does not start is a failed step', () => {
   })
 })
 
+describe("a thrown step's message", () => {
+  it('is masked with the declared secrets before it reaches the rail', async () => {
+    const ui = fakeInitUi()
+    const run = fakeRunner(({ args }) => {
+      if (args[0] === '--version') return { code: 0, signal: null, output: '10.0.0\n' }
+      if (args.includes('dashboard')) throw new Error('could not start with komazon123')
+      return OK
+    })
+
+    await init(project(), ui, [...BASE, '--llm', 'gemini'], { run, dashboardPort: freePort })
+
+    const failed = ui.entries.filter((entry) => entry.kind === 'failed')
+    expect(failed).toHaveLength(1)
+    expect(failed[0]?.text).toContain('could not start with')
+    expect(JSON.stringify(ui.entries)).not.toContain('komazon123')
+  })
+})
+
 describe('a Ctrl-C before the dashboard starts', () => {
   it('interrupts init with Cancelled. and exit 130, and the dashboard never runs', async () => {
     const before = process.listeners('SIGINT')

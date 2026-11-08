@@ -599,6 +599,36 @@ describe('the step runner', () => {
     expect(runner.failed()).toBe(true)
   })
 
+  it('masks a thrown message before it is drawn or recorded, whether or not it passes through', async () => {
+    const ui = fakeInitUi()
+    const runner = createInitStepRunner({
+      ui,
+      plan: PLAN,
+      signals: signals(),
+      mask: async (text) => text.replaceAll('hunter2', '***'),
+    })
+
+    await runner.run('package-json', { title: 'package.json', command: 'fix it' }, async () => {
+      throw new Error('login hunter2 refused')
+    })
+    await expect(
+      runner.run('scaffold', { title: 'scaffold' }, async () => {
+        throw new InitRefusal('the block names hunter2')
+      }),
+    ).rejects.toBeInstanceOf(InitRefusal)
+    runner.dispose()
+
+    expect(ui.entries).toContainEqual({
+      kind: 'failed',
+      text: 'login *** refused',
+      command: 'fix it',
+    })
+    expect(runner.records().slice(0, 2)).toEqual([
+      { name: 'package-json', outcome: 'failed', reason: 'login *** refused', command: 'fix it' },
+      { name: 'scaffold', outcome: 'failed', reason: 'the block names ***' },
+    ])
+  })
+
   it.each([
     { name: 'an InitRefusal', thrown: new InitRefusal('the managed block is malformed') },
     { name: 'a CliRefusal', thrown: new CliRefusal(['package.json is not JSON'], 2) },

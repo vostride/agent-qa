@@ -97,10 +97,13 @@ export function createInitStepRunner({
   ui,
   plan,
   signals = process,
+  mask = async (text) => text,
 }: {
   ui: InitUi
   plan: readonly InitStepName[]
   signals?: InitSignals
+  // Applied to a thrown step's message before it is drawn or recorded.
+  mask?: (text: string) => Promise<string>
 }): InitStepRunner {
   const recorded = new Map<InitStepName, InitStepRecord>()
   let interrupted = false
@@ -148,7 +151,7 @@ export function createInitStepRunner({
           line.failed(`${step.title}: ${INTERRUPTED}`)
           return cancel()
         }
-        const reason = messageOf(error)
+        const reason = await mask(messageOf(error))
         if (passesThrough(error)) {
           record({ name, outcome: 'failed', reason })
           skipTheRest(NOT_RUN)

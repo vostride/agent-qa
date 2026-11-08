@@ -1344,7 +1344,12 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           return record.outcome === 'done'
         }
 
-        const runner = createInitStepRunner({ ui, plan: freshInitPlan() })
+        const runner = createInitStepRunner({
+          ui,
+          plan: freshInitPlan(),
+          mask: async (text) =>
+            (await shownOutput(text, maskInstallOutput, Number.MAX_SAFE_INTEGER)).join('\n'),
+        })
         stepRunner = runner
         steps = () => runner.records()
         let status: InitModelStatus = { status: 'pending' }
