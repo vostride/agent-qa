@@ -1,4 +1,4 @@
-// init's usage errors exit 2 with commander's own line; other commands keep exit 1.
+// init's usage errors exit 2 with one line, commander's or init's own; other commands keep exit 1.
 
 import { existsSync, mkdtempSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -105,14 +105,27 @@ describe('init usage errors', () => {
     'an invalid init choice exits 2',
     async () => {
       expectFresh()
-      for (const args of [
-        ['init', '--platform', 'foo'],
-        ['init', '--llm', 'gpt'],
-      ]) {
-        const outcome = await cli(args)
-        expect(outcome.code, args.join(' ')).toBe(2)
-        expect(outcome.stderr, args.join(' ')).toContain('Allowed choices are')
+      const outcome = await cli(['init', '--llm', 'gpt'])
+      expect(outcome.code).toBe(2)
+      expect(outcome.stderr).toContain('Allowed choices are')
+      expect(`${outcome.stdout}\n${outcome.stderr}`).not.toMatch(FRAME)
+    },
+    CELL_BUDGET_MS,
+  )
+
+  it(
+    'an invalid --platform exits 2 with one line saying what to type and writes nothing',
+    async () => {
+      expectFresh()
+      for (const [value, line] of [
+        ['foo', '--platform takes web, android and ios, separated by commas.'],
+        ['web+android', '--platform web+android is now --platform web,android.'],
+      ] as const) {
+        const outcome = await cli(['init', '--platform', value])
+        expect(outcome.code, value).toBe(2)
+        expect(outcome.stderr, value).toContain(line)
         expect(`${outcome.stdout}\n${outcome.stderr}`).not.toMatch(FRAME)
+        expect(existsSync(join(outcome.root, 'agent-qa.config.yaml'))).toBe(false)
       }
     },
     CELL_BUDGET_MS,

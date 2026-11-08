@@ -108,6 +108,7 @@ vi.mock('@vostride/agent-qa-core', () => ({
 // Suppress console output in tests
 vi.spyOn(console, 'log').mockImplementation(() => {})
 
+import { parseInitPlatformList, type InitPlatformInput } from '../commands/scaffold-content.js'
 import {
   createInitCommand,
   buildDefaultConfig,
@@ -203,6 +204,12 @@ function expectNothingAskedOrWritten(): void {
   expect(mockWriteConfigMarkerLast).not.toHaveBeenCalled()
   expect(mockUpsertManagedGitignoreBlock).not.toHaveBeenCalled()
   expect(mockWriteFileSync).not.toHaveBeenCalled()
+}
+
+function platformFlag(value: string): InitPlatformInput {
+  const parsed = parseInitPlatformList(value)
+  if ('refusal' in parsed) throw new Error(parsed.refusal)
+  return parsed.platform
 }
 
 function findWriteCallEndingWith(pathSuffix: string) {
@@ -507,11 +514,11 @@ describe('init command', () => {
     expect(config).not.toHaveProperty('plugins')
   })
 
-  it.each(['web', 'android', 'ios', 'web+android', 'web+ios'] as const)(
+  it.each(['web', 'android', 'ios', 'web,android', 'web,ios'] as const)(
     'builds %s config with a mobile app state only for mobile platforms',
     (platform) => {
       const config = buildDefaultConfig(
-        platform,
+        platformFlag(platform),
         'anthropic-subscription',
         'claude-sonnet-4-6',
       ) as any
@@ -531,7 +538,7 @@ describe('init command', () => {
       expect(config.plugins).toEqual([
         { name: 'subscription', package: '@vostride/agent-qa-subscription-auth' },
       ])
-      if (platform === 'web' || platform === 'web+android' || platform === 'web+ios') {
+      if (platform === 'web' || platform === 'web,android' || platform === 'web,ios') {
         expect(config.services.accessibility).toEqual({
           enabled: true,
           standard: 'wcag2aa',
@@ -543,11 +550,11 @@ describe('init command', () => {
         expect(config.services).not.toHaveProperty('accessibility')
         expect(config.registry.targets).not.toHaveProperty('komazon-cart-total-bug')
       }
-      if (platform === 'web+android') {
+      if (platform === 'web,android') {
         expect(config.registry.targets).toHaveProperty('komazon')
         expect(config.registry.targets).toHaveProperty('example-android')
       }
-      if (platform === 'web+ios') {
+      if (platform === 'web,ios') {
         expect(config.registry.targets).toHaveProperty('komazon')
         expect(config.registry.targets).toHaveProperty('example-ios')
       }
@@ -555,11 +562,14 @@ describe('init command', () => {
     },
   )
 
-  it('rejects an invalid Commander platform before preflight or filesystem writes', async () => {
+  it('refuses an unknown platform with exit 2 before preflight or filesystem writes', async () => {
     await expect(runInit([
       '--platform',
       'bogus',
-    ])).rejects.toMatchObject({ code: 'commander.invalidArgument' })
+    ])).rejects.toMatchObject({
+      exitCode: 2,
+      message: '--platform takes web, android and ios, separated by commas.',
+    })
 
     expect(mockPreflightInitPlan).not.toHaveBeenCalled()
     expect(mockWriteScaffoldFileAtomic).not.toHaveBeenCalled()
@@ -1239,7 +1249,7 @@ describe('init command', () => {
   })
 
   it('prints both web and mobile setup guidance for mixed projects', async () => {
-    await runInit(['--platform', 'web+android'])
+    await runInit(['--platform', 'web,android'])
 
     const output = consoleOutput()
     expect(output).toContain('agent-qa install-browsers --chromium')

@@ -9,13 +9,7 @@ import {
   type ManagedBlockContent,
 } from './managed-block.js'
 
-export const SUPPORTED_INIT_PLATFORMS = [
-  'web',
-  'android',
-  'ios',
-  'web+android',
-  'web+ios',
-] as const
+export const SUPPORTED_INIT_PLATFORMS = ['web', 'android', 'ios'] as const
 export type Platform = (typeof SUPPORTED_INIT_PLATFORMS)[number]
 export type PlatformCapability = 'web' | 'mobile'
 export type MobileRuntime = 'android' | 'ios'
@@ -58,15 +52,36 @@ export function normalizePlatformSelection(platform: InitPlatformInput): InitPla
       return { capabilities: ['mobile'], mobileRuntimes: ['android'] }
     case 'ios':
       return { capabilities: ['mobile'], mobileRuntimes: ['ios'] }
-    case 'web+android':
-      return { capabilities: ['web', 'mobile'], mobileRuntimes: ['android'] }
-    case 'web+ios':
-      return { capabilities: ['web', 'mobile'], mobileRuntimes: ['ios'] }
     default: {
       const exhaustivePlatform: never = selectedPlatform
       throw new Error(`Unsupported init platform "${String(exhaustivePlatform)}"`)
     }
   }
+}
+
+const PLATFORM_LIST_REFUSAL = '--platform takes web, android and ios, separated by commas.'
+const RETIRED_PLATFORM = /^web\+(android|ios)$/u
+
+// `--platform` names each platform, in any order: `web,android` is the web and Android scaffold.
+export function parseInitPlatformList(
+  value: string,
+): { platform: InitPlatformInput } | { refusal: string } {
+  const retired = RETIRED_PLATFORM.exec(value)
+  if (retired !== null) {
+    return { refusal: `--platform ${value} is now --platform web,${retired[1]}.` }
+  }
+  const names = value.split(',').map((name) => name.trim())
+  if (!names.every((name) => (SUPPORTED_INIT_PLATFORMS as readonly string[]).includes(name))) {
+    return { refusal: PLATFORM_LIST_REFUSAL }
+  }
+  const chosen = new Set(names as Platform[])
+  if (chosen.size === 1) return { platform: [...chosen][0]! }
+  const mobileRuntimes = (['android', 'ios'] as const).filter((name) => chosen.has(name))
+  const capabilities: PlatformCapability[] = [
+    ...(chosen.has('web') ? (['web'] as const) : []),
+    ...(mobileRuntimes.length > 0 ? (['mobile'] as const) : []),
+  ]
+  return { platform: { capabilities, mobileRuntimes } }
 }
 
 export function hasWeb(platform: InitPlatformInput): boolean {

@@ -48,10 +48,7 @@ function questions(ui: FakeInitUi): string[] {
 }
 
 function promptsAsked(): number {
-  return [select, input].reduce(
-    (sum, prompt) => sum + vi.mocked(prompt).mock.calls.length,
-    0,
-  )
+  return [select, input].reduce((sum, prompt) => sum + vi.mocked(prompt).mock.calls.length, 0)
 }
 
 function configuredLlm(root: string): unknown {
@@ -113,9 +110,7 @@ describe('init in a terminal', () => {
   )
 })
 
-async function initWithFlags(
-  args: readonly string[],
-): Promise<{ root: string; error: unknown }> {
+async function initWithFlags(args: readonly string[]): Promise<{ root: string; error: unknown }> {
   const { root, home } = tempProject('init-platform')
   const parent = new Command()
   const command = createInitCommand({
@@ -213,11 +208,14 @@ describe('--platform takes a CSV of web, android and ios', () => {
     ['web+android', '--platform web+android is now --platform web,android.'],
     ['web+ios', '--platform web+ios is now --platform web,ios.'],
     ['mobile', CSV_LINE],
-  ])('--platform %s under --json is one refused document with the message', async (value, message) => {
-    await initWithFlags(['--platform', value, '--json'])
+  ])(
+    '--platform %s under --json is one refused document with the message',
+    async (value, message) => {
+      await initWithFlags(['--platform', value, '--json'])
 
-    const documents = stdout.mock.calls.map((call) => JSON.parse(String(call[0])))
-    expect(documents).toHaveLength(1)
-    expect(documents[0]).toMatchObject({ outcome: 'refused', exitCode: 2, message })
-  })
+      const documents = stdout.mock.calls.map((call) => JSON.parse(String(call[0])))
+      expect(documents).toHaveLength(1)
+      expect(documents[0]).toMatchObject({ outcome: 'refused', exitCode: 2, message })
+    },
+  )
 })

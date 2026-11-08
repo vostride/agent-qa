@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 import { AgentQaConfigSchema } from '@vostride/agent-qa-core'
 import { buildDefaultConfig } from '../commands/init.js'
-import { renderScaffoldConfigYaml } from '../commands/scaffold-content.js'
+import {
+  parseInitPlatformList,
+  renderScaffoldConfigYaml,
+  type InitPlatformInput,
+} from '../commands/scaffold-content.js'
 
 const SCREENSHOT_SIZE_BYTES = 256 * 1024
 const CANONICAL_WORKSPACE = {
@@ -16,6 +20,12 @@ const EXPECTED_TIMEOUT_MS = {
   step: 1200000,
   test: 5400000,
   navigation: 120000,
+}
+
+function platformFlag(value: string): InitPlatformInput {
+  const parsed = parseInitPlatformList(value)
+  if ('refusal' in parsed) throw new Error(parsed.refusal)
+  return parsed.platform
 }
 
 function parseGeneratedConfig(config: Record<string, unknown>) {
@@ -48,11 +58,11 @@ function expectCompressionDefaults(config: Record<string, unknown>): void {
 }
 
 describe('init generated config schema compatibility', () => {
-  it.each(['web', 'android', 'ios', 'web+android'] as const)(
+  it.each(['web', 'android', 'ios', 'web,android'] as const)(
     'generates schema-valid %s config',
     (platform) => {
       const config = buildDefaultConfig(
-        platform,
+        platformFlag(platform),
         'anthropic-subscription',
         'claude-sonnet-4-6',
       )
@@ -69,7 +79,7 @@ describe('init generated config schema compatibility', () => {
       expect(parsed.use?.logCapture?.console).toBe(true)
       expect(parsed.use?.logCapture?.network).toBe(true)
       expect(parsed.use?.parallel).toBe(false)
-      if (platform === 'web' || platform === 'web+android') {
+      if (platform === 'web' || platform === 'web,android') {
         expect(parsed.use?.browser?.viewport).toEqual({ width: 1280, height: 720 })
         expect(parsed.registry?.targets?.komazon).toEqual({
           platform: 'web',
@@ -83,10 +93,10 @@ describe('init generated config schema compatibility', () => {
     },
   )
 
-  it.each(['web', 'android', 'ios', 'web+android'] as const)(
+  it.each(['web', 'android', 'ios', 'web,android'] as const)(
     'writes the %s config with the cache under .agent-qa, the canonical workspace and app state for mobile platforms, and no retired key or reconciliation',
     (platform) => {
-      const config = buildDefaultConfig(platform, 'anthropic-subscription', 'claude-sonnet-4-6')
+      const config = buildDefaultConfig(platformFlag(platform), 'anthropic-subscription', 'claude-sonnet-4-6')
       const parsed = parseGeneratedConfig(config)
       const written = renderScaffoldConfigYaml(config)
 
@@ -105,10 +115,10 @@ describe('init generated config schema compatibility', () => {
     },
   )
 
-  it.each(['web', 'android', 'ios', 'web+android'] as const)(
+  it.each(['web', 'android', 'ios', 'web,android'] as const)(
     'the %s scaffold with its device and mobile target examples uncommented passes the strict parse',
     (platform) => {
-      const config = buildDefaultConfig(platform, 'anthropic-subscription', 'claude-sonnet-4-6')
+      const config = buildDefaultConfig(platformFlag(platform), 'anthropic-subscription', 'claude-sonnet-4-6')
       const written = renderScaffoldConfigYaml(config)
       const uncommented = uncommentBlock(
         uncommentBlock(written, '  # devices:'),

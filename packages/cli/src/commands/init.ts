@@ -15,18 +15,16 @@ import { getProvider, listProviders } from '@vostride/agent-qa-model'
 // The scaffold's content comes from the shared producer, so the two scaffolds cannot drift.
 import {
   SUBSCRIPTION_AUTH_PACKAGE,
-  SUPPORTED_INIT_PLATFORMS,
   buildHooksFile,
   buildScaffoldConfig,
   hasWeb,
   normalizePlatformSelection,
-  parseInitPlatform,
+  parseInitPlatformList,
   renderScaffoldConfigYaml,
   type InitLLMConfig,
   type InitPlatformInput,
   type MobileRuntime,
   type PlatformCapability,
-  type Platform,
 } from './scaffold-content.js'
 // Type-only here and the value loaded lazily: the analytics graph breaks `init.test.ts`'s fs mock.
 import type { composeAnalyticsHost as ComposeAnalyticsHost } from '../composition/analytics-host.js'
@@ -770,8 +768,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
     .addOption(new Option('--dir <path>').hideHelp())
     .addOption(new Option('--config <path>').hideHelp())
     .addOption(
-      new Option('--platform <type>', 'platform to configure')
-        .choices([...SUPPORTED_INIT_PLATFORMS]),
+      new Option('--platform <list>', 'platforms to test: web, android and ios, separated by commas'),
     )
     .addOption(
       new Option('--llm <provider>', 'model connection (default: claude-code)')
@@ -957,6 +954,11 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         const askLlm = ask && opts.llm === undefined
         const flaggedLlm = (opts.llm ?? 'claude-code') as InitLLMChoice
         if (!askLlm && refuseBaseUrl(INIT_LLM_ENTRIES[flaggedLlm].provider)) return
+        const flaggedPlatform =
+          opts.platform === undefined ? undefined : parseInitPlatformList(opts.platform)
+        if (flaggedPlatform !== undefined && 'refusal' in flaggedPlatform) {
+          throw new CliRefusal([pc.red(flaggedPlatform.refusal)], 2)
+        }
 
         if (mode !== 'plain' && hooks.ui === undefined) {
           const rail = hooks.rail ?? { input: process.stdin, output: process.stderr }
@@ -981,7 +983,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         ui.intro(WHAT_TO_EXPECT)
 
         let platform: InitPlatformInput
-        if (ask && opts.platform === undefined) {
+        if (ask && flaggedPlatform === undefined) {
           asked = true
           const capabilities = await ui.multiselect<PlatformCapability>({
             message: 'What platform will you test?',
@@ -994,7 +996,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
 
           platform = { capabilities, mobileRuntimes }
         } else {
-          platform = (opts.platform ?? 'web') as Platform
+          platform = flaggedPlatform?.platform ?? 'web'
         }
 
         let llm: InitLLMChoice = opts.llm ?? 'claude-code'

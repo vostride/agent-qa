@@ -46,7 +46,6 @@ vi.mock('../commands/install-browsers.js', () => ({
 
 vi.mock('@inquirer/select', () => ({ default: vi.fn() }))
 vi.mock('@inquirer/input', () => ({ default: vi.fn() }))
-vi.mock('@inquirer/checkbox', () => ({ default: vi.fn() }))
 vi.mock('@inquirer/confirm', () => ({ default: vi.fn() }))
 vi.mock('@inquirer/password', () => ({ default: vi.fn() }))
 
@@ -66,8 +65,8 @@ import { clearProviderRegistry } from '@vostride/agent-qa-model'
 
 const mockWriteFileSync = vi.mocked(writeFileSync)
 
-const PLATFORMS = ['web', 'android', 'ios', 'web+android', 'web+ios'] as const
-const WEB_PLATFORMS = new Set(['web', 'web+android', 'web+ios'])
+const PLATFORMS = ['web', 'android', 'ios', 'web,android', 'web,ios'] as const
+const WEB_PLATFORMS = new Set(['web', 'web,android', 'web,ios'])
 const PLAYGROUND_HOST = 'playground.vostride.dev'
 const AGENT_QA_RECIPE_URL = 'https://vostride.com/docs/agent-qa/coding-agents'
 const URL_PATTERN = /https?:\/\/[^\s"'<>)\]]+/g

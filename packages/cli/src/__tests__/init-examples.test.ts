@@ -60,7 +60,6 @@ vi.mock('../commands/install-browsers.js', () => ({
 
 vi.mock('@inquirer/select', () => ({ default: vi.fn() }))
 vi.mock('@inquirer/input', () => ({ default: vi.fn() }))
-vi.mock('@inquirer/checkbox', () => ({ default: vi.fn() }))
 vi.mock('@inquirer/confirm', () => ({ default: vi.fn() }))
 vi.mock('@inquirer/password', () => ({ default: vi.fn() }))
 
@@ -273,8 +272,8 @@ describe('the init examples', () => {
       web: KOMAZON_TARGETS,
       android: { 'example-android': { platform: 'android' } },
       ios: { 'example-ios': { platform: 'ios' } },
-      'web+android': { ...KOMAZON_TARGETS, 'example-android': { platform: 'android' } },
-      'web+ios': { ...KOMAZON_TARGETS, 'example-ios': { platform: 'ios' } },
+      'web,android': { ...KOMAZON_TARGETS, 'example-android': { platform: 'android' } },
+      'web,ios': { ...KOMAZON_TARGETS, 'example-ios': { platform: 'ios' } },
     }
     for (const [platform, targets] of Object.entries(expected)) {
       const config = written(await initWrites(platform), 'agent-qa.config.yaml').doc
