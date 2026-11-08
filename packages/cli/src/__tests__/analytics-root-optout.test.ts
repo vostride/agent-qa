@@ -303,9 +303,8 @@ async function runInit(
   const home = mkdtempSync(join(tmpdir(), 'agent-qa-root-optout-home-'))
   try {
     const parent = new Command().option('--config <path>', 'config file path')
-    parent.addCommand(
-      createInitCommand({ cwd: dir, ...extraHooks, host: { homedir: home, env: {}, ...extraHooks.host } }),
-    )
+    const host = { homedir: home, env: {}, ...extraHooks.host }
+    parent.addCommand(createInitCommand({ cwd: dir, ...extraHooks, host }))
     parent.exitOverride()
     await parent.parseAsync(['node', 'agent-qa', 'init', '--platform', 'web', '--pm', 'none'])
     return { exitCode: process.exitCode }

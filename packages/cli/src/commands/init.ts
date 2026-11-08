@@ -67,6 +67,8 @@ import {
   readProjectPackageJson,
   sanitizedPackageName,
 } from './package-json-plan.js'
+import type { CodingAgent } from './agent-setup-manifest.js'
+import { INIT_AGENT_OPTIONS, detectCodingAgents, parseInitAgentsFlag } from './init-agents.js'
 import {
   INIT_MODEL_CHOICES,
   initModelOptions,
@@ -746,6 +748,10 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       '--base-url <url>',
       'endpoint for anthropic, openai, openai-compatible or anthropic-compatible',
     )
+    .option(
+      '--agents <list>',
+      'coding agents to set up: claude-code, codex, all or none (default: the ones detected)',
+    )
     .option('--force', 'overwrite existing files')
     .addOption(
       new Option(
@@ -921,6 +927,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             : resolveLlmFlag(opts.llm, saved)
         // Resolved before anything is drawn, so a refused flag writes nothing.
         let modelSetup = modelPick === undefined ? undefined : modelEntryFor(modelPick, modelFlags)
+        const flaggedAgents =
+          opts.agents === undefined ? undefined : parseInitAgentsFlag(opts.agents)
         const flaggedPlatform =
           opts.platform === undefined ? undefined : parseInitPlatformList(opts.platform)
         if (flaggedPlatform !== undefined && 'refusal' in flaggedPlatform) {
@@ -977,6 +985,26 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           })
         }
         modelSetup ??= modelEntryFor(modelPick, modelFlags)
+
+        let agents = flaggedAgents
+        if (agents === undefined) {
+          agents = await detectCodingAgents({
+            projectDir: dir,
+            homeDir: host.homedir,
+            env: host.env,
+            io: host.io,
+          })
+          if (ask) {
+            asked = true
+            agents = await ui.multiselect<CodingAgent>({
+              message: 'Which coding agents should agent-qa set up?',
+              options: INIT_AGENT_OPTIONS,
+              initialValues: agents,
+              required: false,
+            })
+          }
+        }
+        recorder.agents(agents)
 
         const config = buildDefaultConfig(
           platform,

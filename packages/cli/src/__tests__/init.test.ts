@@ -126,9 +126,13 @@ const mockPlatform = vi.fn<InitUi['multiselect']>(async (q) => [...q.initialValu
 const mockModel = vi.fn<InitUi['select']>(async (q) => q.initialValue)
 
 function terminalUi(): InitUi {
+  const plain = createPlainUi()
   return {
-    ...createPlainUi(),
-    multiselect: mockPlatform as InitUi['multiselect'],
+    ...plain,
+    multiselect: ((q) =>
+      q.message === 'What platform will you test?'
+        ? mockPlatform(q)
+        : plain.multiselect(q)) as InitUi['multiselect'],
     select: mockModel as InitUi['select'],
   }
 }

@@ -194,7 +194,18 @@ function initOnTheRail(
   command.exitOverride()
   parent.addCommand(command)
   const done = parent
-    .parseAsync(['node', 'test', 'init', ...args, '--llm', 'claude-code', '--pm', 'none'])
+    .parseAsync([
+      'node',
+      'test',
+      'init',
+      ...args,
+      '--llm',
+      'claude-code',
+      '--agents',
+      'claude-code',
+      '--pm',
+      'none',
+    ])
     .then(() => {})
   return { root, streams, terminal, done }
 }

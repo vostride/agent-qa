@@ -50,7 +50,8 @@ async function runInit(dir: string, extra: string[] = [], hooks: InitCommandHook
   // A temporary home, so init reads no real credential store.
   const home = mkdtempSync(join(tmpdir(), 'agent-qa-guide-home-'))
   roots.push(home)
-  const init = createInitCommand({ cwd: dir, ...hooks, host: { homedir: home, env: {}, ...hooks.host } })
+  const host = { homedir: home, env: {}, ...hooks.host }
+  const init = createInitCommand({ cwd: dir, ...hooks, host })
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)

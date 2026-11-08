@@ -93,6 +93,7 @@ interface RailRun {
   done: Promise<void>
 }
 
+// The coding agents are given, so the model question is the only one drawn.
 function initOnTheRail(args: readonly string[], store: Record<string, unknown>): RailRun {
   const { root, home } = projectWithStore(store)
   const streams = clackStreams()
@@ -102,7 +103,7 @@ function initOnTheRail(args: readonly string[], store: Record<string, unknown>):
     terminal: answeringTerminal().port,
     rail: { input: streams.input, output: streams.output },
   })
-    .parseAsync(['node', 'test', 'init', ...args, '--pm', 'none'])
+    .parseAsync(['node', 'test', 'init', ...args, '--agents', 'claude-code', '--pm', 'none'])
     .then(() => {})
   return { root, streams, done }
 }
@@ -276,7 +277,11 @@ describe('--llm, --model and --base-url', () => {
 
     const config = writtenConfig(root)
     expect(config.registry.llms).toEqual([
-      { name: 'codex', provider: 'openai-subscription', model: registryDefault('openai-subscription') },
+      {
+        name: 'codex',
+        provider: 'openai-subscription',
+        model: registryDefault('openai-subscription'),
+      },
     ])
     expect(config.use.llm).toBe('codex')
     expect(config.plugins).toEqual([{ name: 'subscription', package: SUBSCRIPTION_AUTH_PACKAGE }])
@@ -308,7 +313,12 @@ describe('--llm, --model and --base-url', () => {
     ])
 
     expect(writtenConfig(root).registry.llms).toEqual([
-      { name: 'openai-compatible', provider: 'openai-compatible', model: 'm', baseURL: 'https://llm.local/v1' },
+      {
+        name: 'openai-compatible',
+        provider: 'openai-compatible',
+        model: 'm',
+        baseURL: 'https://llm.local/v1',
+      },
     ])
     expect(AgentQaConfigSchema.safeParse(writtenConfig(root)).success).toBe(true)
   })
@@ -330,15 +340,22 @@ describe('--llm, --model and --base-url', () => {
   })
 
   it('a base URL on a provider that takes none is refused with exit 2 and nothing is written', async () => {
-    const { root, error } = await init(['--platform', 'web', '--llm', 'codex', '--base-url', 'https://x.test/v1'])
+    const { root, error } = await init([
+      '--platform',
+      'web',
+      '--llm',
+      'codex',
+      '--base-url',
+      'https://x.test/v1',
+    ])
 
     expect(error).toMatchObject({ exitCode: 2 })
     expect(readdirSync(root)).toEqual(['.git'])
   })
 
-  it('a flag answers the question in a terminal, and without one only the questions are asked', async () => {
+  it('--llm answers the question in a terminal, and without it the question is asked', async () => {
     const flagged = await init(['--platform', 'web', '--llm', 'codex'], { isTTY: true })
-    expect(questions(flagged.ui)).toEqual([])
+    expect(questions(flagged.ui)).not.toContain(MODEL_QUESTION)
     expect(writtenConfig(flagged.root).use.llm).toBe('codex')
 
     const asked = await init(['--platform', 'web'], {
