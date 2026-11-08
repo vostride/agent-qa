@@ -104,6 +104,7 @@ async function setup(
   return await installAgentSetup({
     projectDir: project.root,
     agents,
+    parts: ['skills'],
     host: {
       cwd: project.root,
       homedir: project.home,

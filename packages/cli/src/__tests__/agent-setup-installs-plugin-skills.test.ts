@@ -120,6 +120,7 @@ async function setup(project: Project, agents: CodingAgent[] = BOTH) {
   return await installAgentSetup({
     projectDir: project.root,
     agents,
+    parts: ['skills'],
     host: { cwd: project.root, homedir: project.home, env: {}, run: fakeRunner() },
   })
 }

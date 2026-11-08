@@ -14,8 +14,16 @@ import {
   classifyInitPath,
   removeEmptyFoldersUpTo,
   removeFileInsideRoot,
+  upsertManagedBlock,
   writeScaffoldFileAtomic,
 } from './init-filesystem.js'
+import { buildAgentInstructionPointer, type AgentInstructionSkill } from './knowledge-guide.js'
+import {
+  AGENT_QA_INIT_MARKDOWN_BLOCK,
+  locateManagedBlock,
+  renderManagedBlock,
+  type ManagedBlockContent,
+} from './managed-block.js'
 import { projectHost, type ProjectHost } from './project-host.js'
 import {
   PLUGIN_SKILL_FOLDER_PREFIX,
@@ -27,12 +35,15 @@ import {
   type PluginSkillSources,
   type SkillFile,
 } from './skill-install.js'
-import { listAgentQaSkills } from './skills.js'
+import { listAgentQaSkills, skillSummary } from './skills.js'
 
 export { AGENT_SKILL_ROOTS, CODING_AGENTS, type CodingAgent } from './agent-setup-manifest.js'
 
-export type AgentSetupPart = 'skills'
-export const AGENT_SETUP_PARTS: readonly AgentSetupPart[] = ['skills']
+export type AgentSetupPart = 'skills' | 'agents-md'
+export const AGENT_SETUP_PARTS: readonly AgentSetupPart[] = ['skills', 'agents-md']
+
+export const AGENTS_MD_FILE = 'AGENTS.md'
+export const AGENTS_MD_BLOCK_KEY = 'agent-qa init block'
 
 export type AgentSetupFileOutcome =
   | 'created'
@@ -151,57 +162,39 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-export async function installAgentSetup(options: AgentSetupOptions): Promise<AgentSetupResult> {
-  const projectDir = resolve(options.projectDir)
-  const host = projectHost(options.host)
-  const parts = options.parts ?? AGENT_SETUP_PARTS
-  const chosen = CODING_AGENTS.filter((agent) => options.agents.includes(agent))
+function byName<T extends { name: string }>(a: T, b: T): number {
+  return a.name < b.name ? -1 : a.name > b.name ? 1 : 0
+}
 
-  const previous = readAgentSetupManifest(projectDir)
-  const source = await resolveAgentQaSkillSource(projectDir, host)
-  const result: AgentSetupResult = {
-    source: source.source,
-    version: source.version,
-    agents: CODING_AGENTS.filter(
-      (agent) => chosen.includes(agent) || (previous?.agents.includes(agent) ?? false),
-    ),
-    parts: {},
-    files: [],
-    notes: [],
-  }
-  if (source.source === 'running') {
-    result.notes.push(
-      'agent-qa is not installed in the project, so the skills come from the running ' +
-        `agent-qa ${source.version}.`,
-    )
-  }
-  if (!parts.includes('skills')) return result
-  const plugins = await pluginSkillSources(projectDir, source.version)
-  result.notes.push(...plugins.notes)
-  const held = new Set(plugins.held)
-  const holds = (path: string, agent: CodingAgent): boolean => {
-    const folder = skillFolderOf(path, agent)
-    return (
-      held.has(folder) || (!plugins.configLoaded && folder.startsWith(PLUGIN_SKILL_FOLDER_PREFIX))
-    )
-  }
+type ManifestEntry = AgentSetupManifest['entries'][number]
 
-  const listed = new Map((previous?.files ?? []).map((file) => [file.path, file.sha256]))
-  const records = new Map<string, string>()
-  for (const [path, sha256] of listed) {
-    const agent = agentOfManifestPath(path)
-    if (agent !== undefined && !chosen.includes(agent)) records.set(path, sha256)
-  }
+function isBlockEntry(entry: ManifestEntry): boolean {
+  return entry.file === AGENTS_MD_FILE && entry.key === AGENTS_MD_BLOCK_KEY
+}
+
+function skillSummaries(skills: readonly SkillFiles[]): AgentInstructionSkill[] {
+  return skills
+    .map((skill) => {
+      const file = skill.files.find((candidate) => candidate.path === 'SKILL.md')
+      if (file === undefined) throw new Error(`The ${skill.folder} skill has no SKILL.md.`)
+      return skillSummary(file.bytes.toString('utf-8'))
+    })
+    .sort(byName)
+}
+
+interface SkillsInstall {
+  projectDir: string
+  chosen: readonly CodingAgent[]
+  planned: readonly PlannedFile[]
+  listed: ReadonlyMap<string, string>
+  records: Map<string, string>
+  holds: (path: string, agent: CodingAgent) => boolean
+  result: AgentSetupResult
+}
+
+function installSkillFiles(install: SkillsInstall): string[] {
+  const { projectDir, chosen, planned, listed, records, holds, result } = install
   const failures: string[] = []
-  const agentQaSkills = listAgentQaSkills(source.dir).map((skill) => ({
-    folder: skill.name,
-    files: stampedSkillFiles(skill.path, { version: source.version }),
-  }))
-  const planned = planSkillFiles(
-    [...agentQaSkills, ...readPluginSkills(plugins, result.notes, held)],
-    chosen,
-  )
-
   for (const file of planned) {
     const absolute = join(projectDir, file.path)
     const wanted = sha256Of(file.bytes)
@@ -256,6 +249,130 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
       records.set(path, sha256)
     }
   }
+  return failures
+}
+
+function currentBlockText(projectDir: string, content: ManagedBlockContent): string | undefined {
+  const path = join(projectDir, AGENTS_MD_FILE)
+  if (classifyInitPath(path, projectDir) !== 'regular') return undefined
+  const text = readFileSync(path, 'utf-8')
+  const span = locateManagedBlock(text, content)
+  return span === undefined ? undefined : text.slice(span.start, span.end)
+}
+
+// The block is agent-qa's by its markers: an edited one is rewritten and named, never kept.
+function writeAgentsMdBlock(
+  projectDir: string,
+  skills: readonly AgentInstructionSkill[],
+  version: string,
+  listedHash: string | undefined,
+  result: AgentSetupResult,
+): string {
+  const content: ManagedBlockContent = {
+    descriptor: AGENT_QA_INIT_MARKDOWN_BLOCK,
+    target: AGENTS_MD_FILE,
+    body: buildAgentInstructionPointer(skills, version),
+  }
+  const wanted = renderManagedBlock(content)
+  const current = currentBlockText(projectDir, content)
+  const outcome: AgentSetupFileOutcome =
+    current === undefined
+      ? 'created'
+      : current === wanted
+        ? 'unchanged'
+        : sha256Of(current) === listedHash
+          ? 'updated'
+          : 'replaced'
+  if (outcome !== 'unchanged') {
+    upsertManagedBlock({ path: join(projectDir, AGENTS_MD_FILE), root: projectDir, content })
+  }
+  if (outcome === 'replaced') {
+    result.notes.push(`Replaced your edit: the agent-qa block in ${AGENTS_MD_FILE}`)
+  }
+  result.files.push({ path: AGENTS_MD_FILE, outcome })
+  return sha256Of(wanted)
+}
+
+export async function installAgentSetup(options: AgentSetupOptions): Promise<AgentSetupResult> {
+  const projectDir = resolve(options.projectDir)
+  const host = projectHost(options.host)
+  const parts = options.parts ?? AGENT_SETUP_PARTS
+  const chosen = CODING_AGENTS.filter((agent) => options.agents.includes(agent))
+
+  const previous = readAgentSetupManifest(projectDir)
+  const source = await resolveAgentQaSkillSource(projectDir, host)
+  const result: AgentSetupResult = {
+    source: source.source,
+    version: source.version,
+    agents: CODING_AGENTS.filter(
+      (agent) => chosen.includes(agent) || (previous?.agents.includes(agent) ?? false),
+    ),
+    parts: {},
+    files: [],
+    notes: [],
+  }
+  if (source.source === 'running') {
+    result.notes.push(
+      'agent-qa is not installed in the project, so the skills come from the running ' +
+        `agent-qa ${source.version}.`,
+    )
+  }
+  const runSkills = parts.includes('skills')
+  const runBlock = parts.includes('agents-md')
+  if (!runSkills && !runBlock) return result
+  const plugins = await pluginSkillSources(projectDir, source.version)
+  result.notes.push(...plugins.notes)
+  const held = new Set(plugins.held)
+  const holds = (path: string, agent: CodingAgent): boolean => {
+    const folder = skillFolderOf(path, agent)
+    return (
+      held.has(folder) || (!plugins.configLoaded && folder.startsWith(PLUGIN_SKILL_FOLDER_PREFIX))
+    )
+  }
+
+  const listed = new Map((previous?.files ?? []).map((file) => [file.path, file.sha256]))
+  const records = new Map<string, string>()
+  for (const [path, sha256] of listed) {
+    const agent = agentOfManifestPath(path)
+    if (!runSkills || (agent !== undefined && !chosen.includes(agent))) records.set(path, sha256)
+  }
+  const agentQaSkills = listAgentQaSkills(source.dir).map((skill) => ({
+    folder: skill.name,
+    files: stampedSkillFiles(skill.path, { version: source.version }),
+  }))
+  const pluginSkills = readPluginSkills(plugins, result.notes, held)
+
+  const skillFailures = runSkills
+    ? installSkillFiles({
+        projectDir,
+        chosen,
+        planned: planSkillFiles([...agentQaSkills, ...pluginSkills], chosen),
+        listed,
+        records,
+        holds,
+        result,
+      })
+    : []
+
+  const entries = [...(previous?.entries ?? [])]
+  let blockFailure: string | undefined
+  if (runBlock && chosen.length > 0) {
+    const listedEntry = entries.findIndex(isBlockEntry)
+    try {
+      const sha256 = writeAgentsMdBlock(
+        projectDir,
+        [...skillSummaries(agentQaSkills), ...skillSummaries(pluginSkills)],
+        source.version,
+        entries[listedEntry]?.sha256,
+        result,
+      )
+      const entry: ManifestEntry = { file: AGENTS_MD_FILE, key: AGENTS_MD_BLOCK_KEY, sha256 }
+      if (listedEntry === -1) entries.push(entry)
+      else entries[listedEntry] = entry
+    } catch (error) {
+      blockFailure = errorMessage(error)
+    }
+  }
   result.files.sort(byPath)
 
   const manifest: AgentSetupManifest = {
@@ -263,14 +380,26 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
     version: source.version,
     agents: result.agents,
     files: [...records].map(([path, sha256]) => ({ path, sha256 })),
-    entries: previous?.entries ?? [],
+    entries,
   }
+  let manifestFailure: string | undefined
   try {
     writeAgentSetupManifest(projectDir, manifest)
   } catch (error) {
-    failures.push(errorMessage(error))
+    manifestFailure = errorMessage(error)
   }
-  result.parts.skills =
-    failures.length === 0 ? { outcome: 'done' } : { outcome: 'failed', reason: failures[0] }
+  if (runSkills) {
+    const reason = skillFailures[0] ?? manifestFailure
+    result.parts.skills = reason === undefined ? { outcome: 'done' } : { outcome: 'failed', reason }
+  }
+  if (runBlock) {
+    const reason = blockFailure ?? manifestFailure
+    result.parts['agents-md'] =
+      chosen.length === 0
+        ? { outcome: 'skipped', reason: 'no coding agent is chosen' }
+        : reason === undefined
+          ? { outcome: 'done' }
+          : { outcome: 'failed', reason }
+  }
   return result
 }
