@@ -31,6 +31,11 @@ for (const skill of skills) {
   if (!body.includes('description: ')) throw new Error(`${skill}: missing frontmatter description`)
   if (!body.includes('agent_qa_')) throw new Error(`${skill}: missing MCP tool guidance`)
   if (body.includes('agentqa_')) throw new Error(`${skill}: stale agentqa_ MCP tool prefix`)
+  if (/^["']?dependencies["']?\s*:/mu.test(readFileSync(openAiPath, 'utf-8'))) {
+    throw new Error(
+      `${skill}: agents/openai.yaml declares dependencies; a Codex skill dependency cannot name the project's MCP entry`,
+    )
+  }
   for (const reference of quotedReferences(body)) {
     const referencePath = join(dir, reference)
     if (!existsSync(referencePath)) throw new Error(`${skill}: missing ${reference}`)
