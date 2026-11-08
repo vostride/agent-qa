@@ -529,6 +529,31 @@ describe('when init does not start the dashboard', () => {
     expect(result.exit).toBe(3)
   })
 
+  it('an older project agent-qa skips the step and lists the dashboard command last', async () => {
+    const target = project({ agentQa: false })
+    writeInstalledPackage(target.root, 'agent-qa', '0.0.1', {
+      packageJson: { bin: { 'agent-qa': 'cli.js' } },
+      files: { 'cli.js': '' },
+    })
+    const ui = fakeInitUi()
+    const run = runner()
+
+    const result = await init(
+      target,
+      ui,
+      ['--platform', 'web', '--no-browsers', '--agents', 'none', '--pm', 'none', '--llm', 'gemini'],
+      { run, dashboardPort: freePort },
+    )
+
+    expect(dashboardCalls(run)).toEqual([])
+    expect(ui.entries).toContainEqual({
+      kind: 'skipped',
+      text: "Dashboard: skipped (the project's agent-qa differs from this one)",
+    })
+    expect(nextSteps(ui).at(-1)).toBe('npx agent-qa dashboard')
+    expect(result.exit).toBeUndefined()
+  })
+
   it('--no-dashboard skips the step and lists the dashboard command last', async () => {
     const ui = fakeInitUi()
     const run = runner()

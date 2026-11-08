@@ -1431,12 +1431,20 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         const scaffolded = runner
           .records()
           .some((record) => record.name === 'scaffold' && record.outcome === 'done')
+        // The page init opens is one only this agent-qa's dashboard is known to take.
+        const projectCopyDiffers = async (): Promise<boolean> => {
+          const copy = await findProjectAgentQa(range, range.start, host.io)
+          return copy !== undefined && copy.version !== runningVersion
+        }
         if (mode !== 'interactive') {
           runner.skip('dashboard', 'Dashboard: skipped (not interactive)', 'not interactive')
         } else if (opts.dashboard === false) {
           runner.skip('dashboard', 'Dashboard: skipped (--no-dashboard)', '--no-dashboard')
         } else if (!scaffolded) {
           const reason = 'no config was written'
+          runner.skip('dashboard', `Dashboard: skipped (${reason})`, reason)
+        } else if (await projectCopyDiffers()) {
+          const reason = "the project's agent-qa differs from this one"
           runner.skip('dashboard', `Dashboard: skipped (${reason})`, reason)
         } else {
           const ports = hooks.dashboardPort ?? { probe: probeDashboardPort, findFree: findFreePort }
