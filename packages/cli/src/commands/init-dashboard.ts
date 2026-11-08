@@ -36,7 +36,7 @@ export function dashboardPage({
 export function dashboardPortOf(config: Record<string, unknown>): number {
   const services = config.services as { dashboard?: { port?: unknown } } | undefined
   const port = services?.dashboard?.port
-  return typeof port === 'number' && Number.isInteger(port) && port > 0
+  return typeof port === 'number' && Number.isInteger(port) && port > 0 && port <= 65535
     ? port
     : DEFAULT_DASHBOARD_PORT
 }
@@ -54,9 +54,14 @@ export function probeDashboardPort(
     const server = createServer()
     server.unref()
     server.once('error', () => settle('busy'))
-    server.listen({ port, host, exclusive: true }, () => {
-      server.close(() => settle('free'))
-    })
+    try {
+      server.listen({ port, host, exclusive: true }, () => {
+        server.close(() => settle('free'))
+      })
+    } catch {
+      // A port outside 0-65535 throws here rather than emitting an error.
+      settle('busy')
+    }
   })
 }
 

@@ -13,7 +13,9 @@ import { runCli, type CliFailureDeps } from '../cli-error-handler.js'
 import { createInitCommand } from '../commands/init.js'
 import type { InitDocument } from '../commands/init-document.js'
 import {
+  DEFAULT_DASHBOARD_PORT,
   dashboardPage,
+  dashboardPortOf,
   probeDashboardPort,
   type DashboardPort,
 } from '../commands/init-dashboard.js'
@@ -644,6 +646,14 @@ describe('the port probe', () => {
     expect(await probeDashboardPort(port)).toBe('busy')
     await new Promise<void>((closed) => held.close(() => closed()))
     expect(await probeDashboardPort(port)).toBe('free')
+  })
+
+  it('reads a port outside 0-65535 as busy instead of throwing', async () => {
+    expect(await probeDashboardPort(70_000)).toBe('busy')
+  })
+
+  it.each([0, 65_536, 70_000, 3470.5])('takes the default port for a configured %d', (port) => {
+    expect(dashboardPortOf({ services: { dashboard: { port } } })).toBe(DEFAULT_DASHBOARD_PORT)
   })
 })
 

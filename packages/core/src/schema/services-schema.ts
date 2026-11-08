@@ -23,8 +23,15 @@ function isAbsoluteHttpUrl(value: string): boolean {
   }
 }
 
+const DASHBOARD_PORT_MESSAGE = 'services.dashboard.port must be a whole number from 1 to 65535'
+
 export const DashboardConfigSchema = z.strictObject({
-  port: z.number().optional(),
+  port: z
+    .number()
+    .int({ error: DASHBOARD_PORT_MESSAGE })
+    .min(1, { error: DASHBOARD_PORT_MESSAGE })
+    .max(65535, { error: DASHBOARD_PORT_MESSAGE })
+    .optional(),
   dbPath: z.string().optional(),
   artifactsDir: z.string().optional(),
   // Only an absolute http(s) URL: the base composes an `href` inside the served App document.

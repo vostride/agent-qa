@@ -56,3 +56,19 @@ describe('DashboardConfigSchema.baseUrl, the parse-time hop', () => {
     expect(result.success).toBe(false)
   })
 })
+
+describe('DashboardConfigSchema.port', () => {
+  const PORT_MESSAGE = 'services.dashboard.port must be a whole number from 1 to 65535'
+
+  it.each([1, 3470, 65535])('accepts %d', (port) => {
+    expect(DashboardConfigSchema.safeParse({ port }).success).toBe(true)
+  })
+
+  it.each([0, -1, 65536, 70000, 3470.5])('refuses %d, and says what the port must be', (port) => {
+    const result = DashboardConfigSchema.safeParse({ port })
+    expect(result.success).toBe(false)
+    const issues = result.success ? [] : result.error.issues
+    expect(issues.map((issue) => issue.path.join('.'))).toEqual(['port'])
+    expect(issues.map((issue) => issue.message)).toEqual([PORT_MESSAGE])
+  })
+})
