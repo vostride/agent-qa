@@ -10,7 +10,12 @@ import {
   type AgentSetupManifest,
   type CodingAgent,
 } from './agent-setup-manifest.js'
-import { classifyInitPath, writeScaffoldFileAtomic } from './init-filesystem.js'
+import {
+  classifyInitPath,
+  removeEmptyFoldersUpTo,
+  removeFileInsideRoot,
+  writeScaffoldFileAtomic,
+} from './init-filesystem.js'
 import { projectHost, type ProjectHost } from './project-host.js'
 import {
   readSkillFiles,
@@ -92,6 +97,18 @@ function planSkillFiles(source: AgentQaSkillSource, agents: readonly CodingAgent
   return planned.sort(byPath)
 }
 
+// A listed file whose bytes still hash to its record is unedited; any other difference is an edit.
+function fileOutcome(
+  onDisk: string | undefined,
+  wanted: string,
+  listed: string | undefined,
+): AgentSetupFileOutcome {
+  if (onDisk === undefined) return 'created'
+  if (onDisk === wanted) return 'unchanged'
+  if (listed === undefined) return 'kept'
+  return onDisk === listed ? 'updated' : 'replaced'
+}
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
@@ -122,39 +139,72 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
   }
   if (!parts.includes('skills')) return result
 
-  const records: AgentSetupManifest['files'] = []
+  const listed = new Map((previous?.files ?? []).map((file) => [file.path, file.sha256]))
+  const records = new Map<string, string>()
+  for (const [path, sha256] of listed) {
+    const agent = agentOfManifestPath(path)
+    if (agent !== undefined && !chosen.includes(agent)) records.set(path, sha256)
+  }
   const failures: string[] = []
-  for (const file of planSkillFiles(source, chosen)) {
+  const planned = planSkillFiles(source, chosen)
+
+  for (const file of planned) {
     const absolute = join(projectDir, file.path)
+    const wanted = sha256Of(file.bytes)
+    const listedHash = listed.get(file.path)
     try {
-      const hash = sha256Of(file.bytes)
       const existing =
         classifyInitPath(absolute, projectDir) === 'regular' ? readFileSync(absolute) : undefined
-      if (existing !== undefined && sha256Of(existing) === hash) {
-        result.files.push({ path: file.path, outcome: 'unchanged' })
+      const outcome = fileOutcome(
+        existing === undefined ? undefined : sha256Of(existing),
+        wanted,
+        listedHash,
+      )
+      if (outcome === 'kept') {
+        result.notes.push(
+          `${file.path} exists and is not agent-qa's; remove it and run npx agent-qa init`,
+        )
       } else {
-        writeScaffoldFileAtomic({
-          path: absolute,
-          root: projectDir,
-          content: file.bytes,
-          force: true,
-        })
-        result.files.push({
-          path: file.path,
-          outcome: existing === undefined ? 'created' : 'updated',
-        })
+        if (outcome !== 'unchanged') {
+          writeScaffoldFileAtomic({
+            path: absolute,
+            root: projectDir,
+            content: file.bytes,
+            force: true,
+          })
+        }
+        if (outcome === 'replaced') result.notes.push(`Replaced your edit: ${file.path}`)
+        records.set(file.path, wanted)
       }
-      records.push({ path: file.path, sha256: hash })
+      result.files.push({ path: file.path, outcome })
     } catch (error) {
       failures.push(errorMessage(error))
+      if (listedHash !== undefined) records.set(file.path, listedHash)
     }
   }
+
+  const plannedPaths = new Set(planned.map((file) => file.path))
+  for (const [path, sha256] of listed) {
+    const agent = agentOfManifestPath(path)
+    if (agent === undefined || !chosen.includes(agent) || plannedPaths.has(path)) continue
+    const absolute = join(projectDir, path)
+    try {
+      if (removeFileInsideRoot({ path: absolute, root: projectDir }) === 'removed') {
+        result.files.push({ path, outcome: 'removed' })
+      }
+      removeEmptyFoldersUpTo(absolute, join(projectDir, AGENT_SKILL_ROOTS[agent]))
+    } catch (error) {
+      failures.push(errorMessage(error))
+      records.set(path, sha256)
+    }
+  }
+  result.files.sort(byPath)
 
   const manifest: AgentSetupManifest = {
     format: 1,
     version: source.version,
     agents: result.agents,
-    files: records,
+    files: [...records].map(([path, sha256]) => ({ path, sha256 })),
     entries: previous?.entries ?? [],
   }
   try {

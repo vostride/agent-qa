@@ -12,11 +12,12 @@ import {
   openSync,
   readFileSync,
   renameSync,
+  rmdirSync,
   unlinkSync,
   writeFileSync,
   type Stats,
 } from 'node:fs'
-import { basename, dirname, relative, resolve, sep } from 'node:path'
+import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path'
 // The managed block's shape lives with the scaffold content; this file does the writing.
 import { composeManagedBlock, type ManagedBlockContent } from './managed-block.js'
 import { InitRefusal, isInitRefusal } from './init-refusal.js'
@@ -930,6 +931,43 @@ export function writeScaffoldFileAtomic(
     ensureSafeParentDirectories(normalizedPlan.path, normalizedPlan.root)
     return publishExclusive(normalizedPlan, hooks)
   })
+}
+
+export function removeFileInsideRoot(plan: { path: string; root: string }): 'removed' | 'missing' {
+  const absolutePath = resolve(plan.path)
+  if (inspectInitPath(absolutePath, plan.root).classification === 'missing') return 'missing'
+  unlinkSync(absolutePath)
+  return 'removed'
+}
+
+function isStrictlyInside(path: string, folder: string): boolean {
+  const fromFolder = relative(folder, path)
+  return (
+    fromFolder !== ''
+    && fromFolder !== '..'
+    && !fromFolder.startsWith(`..${sep}`)
+    && !isAbsolute(fromFolder)
+  )
+}
+
+export function removeEmptyFoldersUpTo(path: string, stop: string): void {
+  const boundary = resolve(stop)
+  let folder = dirname(resolve(path))
+  while (isStrictlyInside(folder, boundary)) {
+    try {
+      rmdirSync(folder)
+    } catch (error) {
+      if (isErrno(error, 'ENOENT')) {
+        folder = dirname(folder)
+        continue
+      }
+      if (isErrno(error, 'ENOTEMPTY') || isErrno(error, 'EEXIST') || isErrno(error, 'ENOTDIR')) {
+        return
+      }
+      throw error
+    }
+    folder = dirname(folder)
+  }
 }
 
 export function writeConfigMarkerLast(
