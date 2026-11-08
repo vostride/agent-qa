@@ -17,6 +17,7 @@ export const AGENT_QA_CLI_EXTERNAL_DEPENDENCIES = [
   // Lives here because serving stdio owns the process; the projection package stays host-free.
   '@modelcontextprotocol/server',
   'ai',
+  'chalk',
   'commander',
   'jsonc-parser',
   'picocolors',
