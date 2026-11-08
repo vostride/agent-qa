@@ -1065,7 +1065,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           usesSubscription: usesSubscriptionModel(config),
           plugins: (config.plugins ?? []) as readonly { package?: unknown }[],
         })
-        recorder.agentQa({ version: agentQaVersion, via: 'running' })
+        recorder.agentQa({ version: runningVersion, via: 'running' })
         recorder.plugins(
           dependencies
             .filter((dependency) => dependency.name !== 'agent-qa')
@@ -1230,7 +1230,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
 
         const validate = async (): Promise<InitStepResult> => {
           const run = await runAgentQaStep(['validate'], stepContext)
-          recorder.agentQa({ version: agentQaVersion, via: run.via })
+          recorder.agentQa({ version: run.version, via: run.via })
           if (run.code === 0) {
             return { outcome: 'done', text: 'validate: the config and tests are valid' }
           }

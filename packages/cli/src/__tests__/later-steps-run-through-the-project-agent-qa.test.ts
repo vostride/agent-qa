@@ -1,4 +1,4 @@
-// A later step runs through the project's installed agent-qa, and says which agent-qa ran it.
+// A later step runs through the project's installed agent-qa, and says which copy and version ran it.
 import { mkdtempSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -18,6 +18,7 @@ import {
 
 const NODE = '/fake/node'
 const RUNNING = '0.3.3'
+const OLDER = '0.3.1'
 const STEP = ['skills', 'install', '--yes']
 const folders: string[] = []
 
@@ -79,7 +80,7 @@ describe('later steps run through the project agent-qa', () => {
     expect(run.calls).toEqual([])
     expect(result).toEqual({
       via: 'in-process',
-      ranBy: `this agent-qa ${RUNNING}`,
+      version: RUNNING,
       code: 0,
       output: 'in this process\n',
     })
@@ -87,7 +88,7 @@ describe('later steps run through the project agent-qa', () => {
 
   it('another installed copy runs the step as a child on the same Node', async () => {
     const { root, home } = tempProject('step-other-copy')
-    writeCopy(root, RUNNING)
+    writeCopy(root, OLDER)
     const elsewhere = tempFolder('running')
 
     const { result, run, inProcess } = await step(root, home, elsewhere)
@@ -104,7 +105,7 @@ describe('later steps run through the project agent-qa', () => {
     expect(run.calls[0]?.env.AGENT_QA_HANDED_OFF).toBe('1')
     expect(result).toEqual({
       via: 'project',
-      ranBy: `the project's agent-qa ${RUNNING}`,
+      version: OLDER,
       code: 0,
       output: 'from the project\n',
     })
@@ -120,7 +121,7 @@ describe('later steps run through the project agent-qa', () => {
     expect(run.calls).toEqual([])
     expect(result).toEqual({
       via: 'running',
-      ranBy: `this agent-qa ${RUNNING}; the project has none installed`,
+      version: RUNNING,
       code: 0,
       output: 'in this process\n',
     })

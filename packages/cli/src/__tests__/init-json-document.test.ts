@@ -265,6 +265,37 @@ describe('init --json prints one document on stdout', () => {
     expect(run.calls.map((call) => call.args.slice(1))).toContainEqual(['validate'])
   })
 
+  it('agentQa names the running version when package.json declares a newer one under --pm none', async () => {
+    const { root, home } = tempProject('json-declared-newer')
+    writeFileSync(
+      join(root, 'package.json'),
+      `${JSON.stringify({ devDependencies: { 'agent-qa': '99.0.0' } })}\n`,
+    )
+
+    const result = await init(root, home, ['--json', '--platform', 'web', '--pm', 'none'])
+
+    expect(documentOf(result).agentQa).toEqual({ version: VERSION, via: 'running' })
+  })
+
+  it("agentQa names the version of the project's older copy that ran validate", async () => {
+    const { root, home } = tempProject('json-older-copy')
+    writeInstalledPackage(root, 'agent-qa', '0.0.1', {
+      packageJson: { bin: { 'agent-qa': 'cli.js' } },
+      files: { 'cli.js': '' },
+    })
+    const run = probeOr(() => OK)
+
+    const result = await init(
+      root,
+      home,
+      ['--json', '--platform', 'web', '--llm', 'gemini', '--pm', 'npm', '--agents', 'none'],
+      run,
+    )
+
+    expect(documentOf(result).agentQa).toEqual({ version: '0.0.1', via: 'project' })
+    expect(run.calls.map((call) => call.args.slice(1))).toContainEqual(['validate'])
+  })
+
   it('a Gemini init with a saved Gemini key records the model as ready', async () => {
     const { root, home } = tempProject('json-model-ready')
     const authPath = getAuthPath({ env: {}, homeDir: home })

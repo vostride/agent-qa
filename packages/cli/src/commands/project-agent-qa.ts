@@ -152,7 +152,7 @@ export async function handOffToProjectAgentQa(input: {
 
 export interface StepRun {
   via: 'in-process' | 'project' | 'running'
-  ranBy: string
+  version: string
   code: number
   output: string
 }
@@ -171,13 +171,12 @@ export async function runAgentQaStep(
   const { host, range, fromDir, runningVersion } = ctx
   const copy = await findProjectAgentQa(range, fromDir, host.io)
   if (copy === undefined) {
-    const ranBy = `this agent-qa ${runningVersion}; the project has none installed`
-    return { via: 'running', ranBy, ...(await ctx.inProcess(args)) }
+    return { via: 'running', version: runningVersion, ...(await ctx.inProcess(args)) }
   }
   if (copy.realDir === (await host.io.realpath(host.runningPackageDir))) {
     return {
       via: 'in-process',
-      ranBy: `this agent-qa ${runningVersion}`,
+      version: runningVersion,
       ...(await ctx.inProcess(args)),
     }
   }
@@ -191,7 +190,7 @@ export async function runAgentQaStep(
     result.missing === true ? `${host.execPath} was not found to run ${copy.bin}.\n` : result.output
   return {
     via: 'project',
-    ranBy: `the project's agent-qa ${copy.version}`,
+    version: copy.version,
     code: result.code ?? 1,
     output,
   }
