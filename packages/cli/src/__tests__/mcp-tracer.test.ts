@@ -67,6 +67,7 @@ describe('the MCP tracer: one projected tool, end to end on the v2 SDK', () => {
         registry: host.registry,
         caller: MCP_FUNCTION_CALLER,
         maskText: (text: string) => text,
+        version: '0.0.0-test',
       }),
     )
     const transport = new StreamableHTTPClientTransport(new URL('http://tracer.local/mcp'), {
@@ -121,6 +122,7 @@ describe('the MCP tracer: one projected tool, end to end on the v2 SDK', () => {
       registry: host.registry,
       caller: MCP_FUNCTION_CALLER,
       maskText: (text: string) => text,
+      version: '0.0.0-test',
     }))
     const server = createServer((req, res) => {
       void nodeHandler(req, res)

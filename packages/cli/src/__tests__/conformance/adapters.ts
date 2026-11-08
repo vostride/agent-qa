@@ -196,6 +196,7 @@ export async function withMcpClient<Answer>(
       registry: conformanceRegistry(),
       caller,
       maskText: (text: string) => text,
+      version: '0.0.0-test',
     }),
   )
   const client = new Client({ name: 'agent-qa-conformance', version: '0.0.0' })

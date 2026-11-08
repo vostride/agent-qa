@@ -96,7 +96,12 @@ afterEach(async () => {
 })
 
 async function connect(registry: FunctionRegistry, maskText: (text: string) => string = identity): Promise<Client> {
-  const handler = createMcpHandler(() => buildAgentQaMcpServer({ registry, caller: reader, maskText }))
+  const handler = createMcpHandler(() => buildAgentQaMcpServer({
+    registry,
+    caller: reader,
+    maskText,
+    version: '0.0.0-test',
+  }))
   const client = new Client({ name: 'agent-qa-image', version: '0.0.0' })
   openClients.push(client)
   await client.connect(new StreamableHTTPClientTransport(new URL('http://image.local/mcp'), {

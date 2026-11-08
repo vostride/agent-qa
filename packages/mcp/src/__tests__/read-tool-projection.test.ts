@@ -226,7 +226,12 @@ function callerWith(grantedScopes: readonly string[]): FunctionCaller {
 }
 
 async function connect(registry: FunctionRegistry, caller: FunctionCaller): Promise<Client> {
-  const handler = createMcpHandler(() => buildAgentQaMcpServer({ registry, caller, maskText: (text: string) => text }))
+  const handler = createMcpHandler(() => buildAgentQaMcpServer({
+    registry,
+    caller,
+    maskText: (text: string) => text,
+    version: '0.0.0-test',
+  }))
   const client = new Client({ name: 'agent-qa-read-projection', version: '0.0.0' })
   openClients.push(client)
   await client.connect(new StreamableHTTPClientTransport(new URL('http://knowledge.local/mcp'), {

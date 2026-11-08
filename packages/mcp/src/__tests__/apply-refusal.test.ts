@@ -121,7 +121,10 @@ interface Wire {
 async function wire(deps: FunctionDeps, modern = false): Promise<Wire> {
   const registry = createFunctionRegistry({ deps })
   const handler = createMcpHandler(() => buildAgentQaMcpServer({
-    registry, caller: TOKENLESS, maskText: (text: string) => text.replaceAll(PLANTED, '<SECRET>'),
+    registry,
+    caller: TOKENLESS,
+    maskText: (text: string) => text.replaceAll(PLANTED, '<SECRET>'),
+    version: '0.0.0-test',
   }))
   const frames: string[] = []
   const elicited: unknown[] = []

@@ -328,6 +328,7 @@ async function driveFullFlow(options: { readonly leak?: boolean } = {}): Promise
     registry,
     caller,
     maskText: identity,
+    version: '0.0.0-test',
     liveLink: {
       dashboardBaseUrl: () =>
         options.leak === true && minted[0] !== undefined

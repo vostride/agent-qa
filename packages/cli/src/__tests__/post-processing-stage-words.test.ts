@@ -117,7 +117,12 @@ afterEach(async () => {
 async function mcpClient(deps: FunctionDeps): Promise<Client> {
   const registry = createFunctionRegistry({ deps })
   const caller: FunctionCaller = { surface: 'mcp', origin: 'agent' }
-  const handler = createMcpHandler(() => buildAgentQaMcpServer({ registry, caller, maskText: (text: string) => text }))
+  const handler = createMcpHandler(() => buildAgentQaMcpServer({
+    registry,
+    caller,
+    maskText: (text: string) => text,
+    version: '0.0.0-test',
+  }))
   const client = new Client({ name: 'agent-qa', version: '0.0.0' })
   openClients.push(client)
   await client.connect(new StreamableHTTPClientTransport(new URL('http://stage-words.local/mcp'), {

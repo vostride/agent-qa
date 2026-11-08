@@ -22,7 +22,12 @@ function registry(): FunctionRegistry {
   return createFunctionRegistry({ deps: {} as unknown as FunctionDeps })
 }
 
-const deps = () => ({ registry: registry(), caller: CALLER, maskText: (text: string) => text })
+const deps = () => ({
+  registry: registry(),
+  caller: CALLER,
+  maskText: (text: string) => text,
+  version: '0.0.0-test',
+})
 
 const openClients: Client[] = []
 const openServers: NodeHttpServer[] = []

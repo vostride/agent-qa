@@ -117,6 +117,7 @@ async function callTool(
       registry,
       caller,
       maskText: identity,
+      version: '0.0.0-test',
       ...(link.absent === true
         ? {}
         : { liveLink: { dashboardBaseUrl: () => link.base } }),

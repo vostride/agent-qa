@@ -26,9 +26,6 @@ import { McpProjectionError, toRegisterToolConfig } from './projection.js'
 import type { ProjectedOpSpec } from './projection.js'
 import { registerEntityResources } from './resources.js'
 
-// A constant: reading `package.json` at runtime is a host capability this package lacks.
-export const AGENT_QA_MCP_SERVER_VERSION = '2.0.0'
-
 /** What a host must supply to build a server for one caller. */
 export interface AgentQaMcpServerDeps {
   // Built by the host, never by this package.
@@ -37,6 +34,8 @@ export interface AgentQaMcpServerDeps {
   readonly caller: FunctionCaller
   // Required: an optional masker is absent exactly where nobody thought to pass one.
   readonly maskText: (text: string) => string
+  // The host supplies the server version because this package reads no package.json.
+  readonly version: string
   // A factory, because on the co-hosted composition the origin exists only once a port is bound.
   readonly liveLink?: LiveLinkSupplier
 }
@@ -210,7 +209,7 @@ function createProjectionHandler(
 // The listing comes from `registry.list(deps.caller)`, so it describes this composition.
 export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
   const server = new McpServer(
-    { name: 'agent-qa', version: AGENT_QA_MCP_SERVER_VERSION },
+    { name: 'agent-qa', version: deps.version },
     {
       capabilities: {
         tools: {},
