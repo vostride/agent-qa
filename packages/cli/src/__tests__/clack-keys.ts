@@ -83,6 +83,7 @@ export function answeringTerminal(reply: string = DA1_REPLY): AnsweringTerminal 
       listeners.add(listener)
       return () => listeners.delete(listener)
     },
+    intercept: () => () => {},
     setTimeout: globalThis.setTimeout,
     clearTimeout: globalThis.clearTimeout,
   }

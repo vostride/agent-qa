@@ -1,9 +1,16 @@
+import { PassThrough, Writable } from 'node:stream'
+import { setTimeout as sleep } from 'node:timers/promises'
+
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { createClackUi } from '../init-ui/clack-ui.js'
+import { brandPalette } from '../init-ui/palette.js'
 import {
   classifyBackground,
+  createLateReplyFilter,
   parseOsc11,
   probeTerminalBackground,
+  processTerminalPort,
   type TerminalPort,
 } from '../init-ui/terminal-background.js'
 
@@ -16,6 +23,9 @@ interface FakeTerminal {
   events: string[]
   writes: string[]
   listenerCount(): number
+  filterCount(): number
+  // Sends input as the terminal would and returns what the listeners receive.
+  type(chunk: string): string
 }
 
 function fakeTerminal(
@@ -30,6 +40,7 @@ function fakeTerminal(
   const events: string[] = []
   const writes: string[] = []
   const listeners = new Set<(chunk: string) => void>()
+  const filters = new Set<(chunk: string) => string>()
   const port: TerminalPort = {
     isTTY: options.isTTY ?? true,
     env: options.env ?? { TERM: 'xterm-256color' },
@@ -51,10 +62,26 @@ function fakeTerminal(
       listeners.add(listener)
       return () => listeners.delete(listener)
     },
+    intercept: (filter) => {
+      filters.add(filter)
+      return () => filters.delete(filter)
+    },
     setTimeout: globalThis.setTimeout,
     clearTimeout: globalThis.clearTimeout,
   }
-  return { port, events, writes, listenerCount: () => listeners.size }
+  return {
+    port,
+    events,
+    writes,
+    listenerCount: () => listeners.size,
+    filterCount: () => filters.size,
+    type: (chunk) => {
+      let kept = chunk
+      for (const filter of [...filters]) kept = filter(kept)
+      for (const listener of [...listeners]) listener(kept)
+      return kept
+    },
+  }
 }
 
 afterEach(() => {
@@ -156,6 +183,104 @@ describe('probeTerminalBackground', () => {
     const terminal = fakeTerminal({ env: { TERM: 'dumb' }, reply: DARK_REPLY })
     await expect(probeTerminalBackground(terminal.port)).resolves.toBeUndefined()
     expect(terminal.writes).toEqual([])
+  })
+})
+
+describe('a reply that comes after the probe gave up', () => {
+  const LATE_LIGHT_REPLY = '\x1b]11;rgb:aaaa/bbbb/cccc\x1b\\\x1b[?62;22c'
+
+  it('is dropped from the input, keys around it pass, and the filter goes once DA1 has passed', async () => {
+    vi.useFakeTimers()
+    const terminal = fakeTerminal()
+    const probe = probeTerminalBackground(terminal.port)
+    await vi.advanceTimersByTimeAsync(1000)
+    await expect(probe).resolves.toBeUndefined()
+    expect(terminal.filterCount()).toBe(1)
+
+    expect(terminal.type(`j${LATE_LIGHT_REPLY}\r`)).toBe('j\r')
+    expect(terminal.filterCount()).toBe(0)
+    expect(terminal.type('\x1b[?1;2c')).toBe('\x1b[?1;2c')
+  })
+
+  it('finishes a reply the timeout cut in two', async () => {
+    vi.useFakeTimers()
+    const terminal = fakeTerminal()
+    const probe = probeTerminalBackground(terminal.port)
+    await vi.advanceTimersByTimeAsync(10)
+    terminal.type('\x1b]11;rgb:2a2a/')
+    await vi.advanceTimersByTimeAsync(990)
+    await probe
+
+    expect(terminal.type('2a2a/2a2a\x07\x1b[?62;22c')).toBe('')
+    expect(terminal.filterCount()).toBe(0)
+  })
+
+  it('leaves no filter when the terminal answers in time', async () => {
+    const terminal = fakeTerminal({ reply: DARK_REPLY })
+    await probeTerminalBackground(terminal.port)
+    expect(terminal.filterCount()).toBe(0)
+  })
+
+  it('holds a reply split across chunks until it is whole, and passes the Escape key at once', () => {
+    const filter = createLateReplyFilter()
+
+    expect(filter.take('\x1b')).toBe('\x1b')
+    expect(filter.take('\x1b]11;rgb:aa')).toBe('')
+    expect(filter.take('aa/aaaa/aaaa\x07\x1b[?6')).toBe('')
+    expect(filter.finished()).toBe(false)
+    expect(filter.take('2;22c ')).toBe(' ')
+    expect(filter.finished()).toBe(true)
+    expect(filter.take('\x1b[B')).toBe('\x1b[B')
+  })
+
+  it('never changes the answer of the first prompt when it reaches a real Clack multiselect', async () => {
+    const stdin = Object.assign(new PassThrough(), {
+      isTTY: true,
+      setRawMode: () => stdin,
+    })
+    let drawn = ''
+    const stdout = Object.assign(
+      new Writable({
+        write(chunk: Buffer | string, _encoding, done) {
+          drawn += chunk.toString()
+          done()
+        },
+      }),
+      { isTTY: true, columns: 100 },
+    )
+    const port = processTerminalPort(
+      stdin as unknown as NodeJS.ReadStream,
+      stdout as unknown as NodeJS.WriteStream,
+      { TERM: 'xterm-256color' },
+    )
+
+    await expect(probeTerminalBackground(port, 20)).resolves.toBeUndefined()
+    const ui = createClackUi({
+      input: stdin,
+      output: stdout,
+      palette: brandPalette({ background: 'dark', level: 0 }),
+      columns: 100,
+    })
+    const answer = ui.multiselect({
+      message: 'What platform will you test?',
+      options: [
+        { value: 'web', label: 'Web' },
+        { value: 'mobile', label: 'Mobile' },
+      ],
+      initialValues: ['web'],
+      required: true,
+    })
+    for (let waited = 0; !drawn.includes('What platform'); waited += 10) {
+      if (waited > 3000) throw new Error(`the prompt never drew:\n${drawn}`)
+      await sleep(10)
+    }
+    await sleep(20)
+    stdin.write(Buffer.from(LATE_LIGHT_REPLY, 'latin1'))
+    await sleep(20)
+    stdin.write('\r')
+
+    // A required multiselect left empty refuses Enter, so a changed answer shows as no answer.
+    await expect(Promise.race([answer, sleep(2000, 'no answer')])).resolves.toEqual(['web'])
   })
 })
 
