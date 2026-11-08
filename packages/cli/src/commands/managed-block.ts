@@ -158,3 +158,20 @@ export function composeManagedBlock(existing: string, content: ManagedBlockConte
   if (span === undefined) return appendAtEof(existing, `${block}\n`)
   return `${existing.slice(0, span.start)}${block}${existing.slice(span.end)}`
 }
+
+/**
+ * What a file holding `existing` holds once the block is stripped: the block and its line
+ * terminator go, and when it was the last thing in the file, so does the one blank line an
+ * append puts before it. Composing into a file that ends with one newline and stripping again
+ * returns that file unchanged.
+ */
+export function removeManagedBlock(existing: string, content: ManagedBlockContent): string {
+  const span = locateManagedBlock(existing, content)
+  if (span === undefined) return existing
+  let before = existing.slice(0, span.start)
+  let after = existing.slice(span.end)
+  if (after.startsWith('\r\n')) after = after.slice(2)
+  else if (after.startsWith('\n')) after = after.slice(1)
+  if (after.length === 0 && before.endsWith('\n\n')) before = before.slice(0, -1)
+  return `${before}${after}`
+}
