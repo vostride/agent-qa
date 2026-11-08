@@ -137,7 +137,7 @@ describe('a fresh init draws one line per step', () => {
       'Installing dependencies',
       'Installing Chromium',
       'Setting up the coding agents',
-      'Validating the config and tests',
+      'validate: install first (--pm none)',
     ])
     expect(ui.output()).not.toContain('tests/examples/komazon-checkout.yaml')
     expect(ui.output()).not.toContain('agent-qa-knowledge/README.md')
@@ -307,16 +307,22 @@ function stepLines(ui: FakeInitUi): string[] {
     .map((entry) => entry.text)
 }
 
+// The project's agent-qa is in node_modules already, so the fake npm run leaves it installed.
 const CLAUDE_CODE = [
   '--platform',
   'web',
   '--llm',
   'gemini',
   '--pm',
-  'none',
+  'npm',
   '--agents',
   'claude-code',
 ]
+const CLAUDE_CODE_DECLARED = CLAUDE_CODE.map((arg) => (arg === 'npm' ? 'none' : arg))
+
+function agentQaCalls(run: FakeRunner): string[][] {
+  return run.calls.filter((call) => call.command === process.execPath).map((call) => call.args)
+}
 
 describe('the steps after the install', () => {
   it('Chromium, the coding agents and validate follow the install, one line each', async () => {
@@ -335,9 +341,9 @@ describe('the steps after the install', () => {
     ])
     expect(lines[0]).toMatch(/^package\.json created/u)
     expect(lines[1]).toMatch(/^Scaffold:/u)
-    expect(lines[2]).toMatch(/^Declared agent-qa /u)
+    expect(lines[2]).toMatch(/^Installed agent-qa /u)
     const copyBin = join(realpathSync(root), 'node_modules', 'agent-qa', 'cli.js')
-    expect(run.calls.map((call) => call.args)).toEqual([
+    expect(agentQaCalls(run)).toEqual([
       [copyBin, 'install-browsers', '--chromium'],
       [copyBin, 'validate'],
     ])
@@ -401,7 +407,7 @@ describe('the steps after the install', () => {
     const { root, home } = tempProject('steps-running-skills')
     const ui = fakeInitUi()
 
-    await init(root, home, { ui, run: fakeRunner(), args: CLAUDE_CODE })
+    await init(root, home, { ui, run: fakeRunner(), args: CLAUDE_CODE_DECLARED })
 
     const version = installedAgentQaVersion()
     expect(stepLines(ui)).toContainEqual(
@@ -417,6 +423,7 @@ describe('the steps after the install', () => {
 
   it('a validate that exits 1 is failed with its first error line and the validate command', async () => {
     const { root, home } = tempProject('steps-validate-failed')
+    installAgentQaWithTwoSkills(root)
     const ui = fakeInitUi()
     const run = fakeRunner(({ args }) =>
       args.includes('validate')

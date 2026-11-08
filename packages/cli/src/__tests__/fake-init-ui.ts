@@ -3,7 +3,7 @@ import { createPlainUi } from '../init-ui/plain-ui.js'
 
 export type FakeInitUiEntry =
   | {
-      kind: 'banner' | 'intro' | 'step' | 'done' | 'skipped' | 'line' | 'outro'
+      kind: 'banner' | 'intro' | 'step' | 'done' | 'skipped' | 'line' | 'copyable' | 'outro'
       text: string
     }
   | { kind: 'failed'; text: string; command?: string }
@@ -77,6 +77,10 @@ export function fakeInitUi(answers: Record<string, unknown> = {}): FakeInitUi {
     line: (text) => {
       entries.push({ kind: 'line', text })
       plain.line(text)
+    },
+    copyable: (text) => {
+      entries.push({ kind: 'copyable', text })
+      plain.copyable(text)
     },
     outro: (text) => {
       entries.push({ kind: 'outro', text })

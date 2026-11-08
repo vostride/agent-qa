@@ -89,13 +89,10 @@ function scaffoldWithShippedInit(): string {
     env: { ...process.env, HOME: home, USERPROFILE: home, NO_COLOR: '1', FORCE_COLOR: '0' },
   })
   const combined = `${run.stdout ?? ''}${run.stderr ?? ''}`
-  // --pm none installs nothing, so the scaffold is written and init's own validate step fails
-  // on the plugin it declared; that failure is the whole of its exit 3.
-  expect(run.status, `the product's own init writes the scaffold:\n${combined}`).toBe(3)
-  expect(combined).toContain(
-    `✗ Plugin entry subscription names ${SUBSCRIPTION_AUTH_PACKAGE}, which is not installed.`,
-  )
-  expect(combined.match(/^✗ /gmu) ?? [], combined).toHaveLength(1)
+  // --pm none installs nothing, so validate waits for the install and init exits 0.
+  expect(run.status, `the product's own init writes the scaffold:\n${combined}`).toBe(0)
+  expect(combined).toContain('validate: install first (--pm none)')
+  expect(combined.match(/^✗ /gmu) ?? [], combined).toHaveLength(0)
   const configText = readFileSync(join(root, CONFIG_FILE), 'utf-8')
   // THE PRECONDITION OF THE WHOLE DEFECT, ASSERTED RATHER THAN ASSUMED: the default non-interactive
   // scaffold DECLARES the optional subscription-auth plugin. If a later change stops it declaring

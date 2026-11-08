@@ -411,51 +411,37 @@ describe('subscription model defaults', () => {
 const GETTING_STARTED = 'https://vostride.com/docs/agent-qa/quickstart'
 const RUN_EXAMPLES = 'npx agent-qa run suites/examples.suite.yaml'
 
-function lineWith(output: string, text: string): string {
-  const line = output.split('\n').find((entry) => entry.includes(text))
-  expect(line, `init printed ${text}`).toBeDefined()
-  return line!
+function nextStepNotes(ui: FakeInitUi): string[][] {
+  return ui.entries.flatMap((entry) =>
+    entry.kind === 'note' && entry.text === 'Next steps' ? [entry.lines] : [],
+  )
 }
 
 describe('init next steps', () => {
-  it('the next steps follow the route order for a subscription workspace', async () => {
+  it('a Codex subscription under --pm none lists the install, validate, the sign-in, the run and the dashboard in one box', async () => {
     const { ui } = await init(['--platform', 'web', '--llm', 'codex'])
 
-    const output = ui.output()
-    const order = [
-      'npx agent-qa install-browsers --chromium',
-      `npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}`,
-      'npx agent-qa auth login --config codex',
-      'npx agent-qa validate',
-      RUN_EXAMPLES,
-      GETTING_STARTED,
-    ]
-    const positions = order.map((text) => output.indexOf(text))
-    for (const [index, text] of order.entries()) {
-      expect(positions[index], text).toBeGreaterThanOrEqual(0)
-    }
-    expect(positions).toEqual([...positions].sort((a, b) => a - b))
-    const run = lineWith(output, RUN_EXAMPLES)
-    expect(run).toContain('one passes')
-    expect(run).toContain('exit 1')
-    expect(output).not.toContain('agent-qa doctor')
+    expect(nextStepNotes(ui)).toEqual([
+      [
+        'npm install',
+        'npx agent-qa validate',
+        'npx agent-qa auth login --config codex',
+        RUN_EXAMPLES,
+        'npx agent-qa dashboard',
+      ],
+    ])
+    expect(ui.entries.at(-1)).toEqual({ kind: 'outro', text: GETTING_STARTED })
+    expect(ui.output()).not.toContain('agent-qa doctor')
   })
 
-  it('an API-key workspace is told to save its key with auth set and the hidden prompt', async () => {
+  it('an API-key workspace is sent to the dashboard for its key, with no sign-in or plugin line', async () => {
     const { ui } = await init(['--platform', 'web', '--llm', 'anthropic'])
 
-    const output = ui.output()
-    const apiKey = lineWith(output, 'npx agent-qa auth set --config anthropic --type api-key')
-    expect(apiKey).toContain('hidden prompt')
-    lineWith(output, 'npx agent-qa auth set --config anthropic --type bearer-token')
-    expect(output.indexOf('npx agent-qa install-browsers --chromium')).toBeLessThan(
-      output.indexOf('npx agent-qa auth set'),
-    )
-    expect(output.indexOf('npx agent-qa auth set')).toBeLessThan(
-      output.indexOf('npx agent-qa validate'),
-    )
-    expect(output).not.toContain('auth login')
-    expect(output).not.toContain(SUBSCRIPTION_AUTH_PACKAGE)
+    const [box] = nextStepNotes(ui)
+    expect(box).toContain('npx agent-qa dashboard')
+    expect(ui.output()).not.toContain('auth login')
+    expect(ui.output()).not.toContain('auth set')
+    expect(ui.output()).not.toContain(SUBSCRIPTION_AUTH_PACKAGE)
   })
 
   it.each([
@@ -464,12 +450,86 @@ describe('init next steps', () => {
     [['--platform', 'web', '--llm', 'anthropic']],
     [['--platform', 'web', '--llm', 'openai-compatible']],
     [['--platform', 'android']],
-  ])('the next steps of %j name validate', async (args) => {
+  ])('under --pm none the next steps of %j name validate', async (args) => {
     const { ui } = await init(args)
 
     const lines = ui.output().split('\n')
     const start = lines.findIndex((line) => line === 'Next steps')
     expect(start).toBeGreaterThanOrEqual(0)
     expect(lines.slice(start).some((line) => line.includes('npx agent-qa validate'))).toBe(true)
+  })
+})
+
+describe('the example secret line', () => {
+  const WEB = ['--platform', 'web', '--llm', 'gemini', '--agents', 'none', '--pm', 'none']
+  const HINT = 'Add this line to .env.secrets.local so the examples can sign in:'
+
+  async function forceOver(secrets: string, ui: FakeInitUi): Promise<void> {
+    const { root, home } = projectWithStore()
+    await initCommand(root, home, { isTTY: false, ui: fakeInitUi() }).parseAsync([
+      'node',
+      'test',
+      'init',
+      ...WEB,
+    ])
+    writeFileSync(join(root, '.env.secrets.local'), secrets)
+    await initCommand(root, home, { isTTY: false, ui }).parseAsync([
+      'node',
+      'test',
+      'init',
+      ...WEB,
+      '--force',
+    ])
+  }
+
+  function secretEntries(ui: FakeInitUi) {
+    return ui.entries.filter(
+      (entry) =>
+        (entry.kind === 'line' && entry.text === HINT) ||
+        (entry.kind === 'copyable' && entry.text === EXAMPLE_SECRET_LINE),
+    )
+  }
+
+  it('--force over a kept secrets file that holds KOMAZON_PASSWORD prints no example line', async () => {
+    const ui = fakeInitUi()
+
+    await forceOver('KOMAZON_PASSWORD=x\n', ui)
+
+    expect(secretEntries(ui)).toEqual([])
+  })
+
+  it('--force over a kept secrets file without it prints the hint and the line once', async () => {
+    const ui = fakeInitUi()
+
+    await forceOver('OTHER_SECRET=y\n', ui)
+
+    expect(secretEntries(ui)).toEqual([
+      { kind: 'line', text: HINT },
+      { kind: 'copyable', text: EXAMPLE_SECRET_LINE },
+    ])
+  })
+
+  it('on the rail the example line is drawn flush left, so it copies without a gutter', async () => {
+    const { root, home } = projectWithStore()
+    await initCommand(root, home, { isTTY: false, ui: fakeInitUi() }).parseAsync([
+      'node',
+      'test',
+      'init',
+      ...WEB,
+    ])
+    writeFileSync(join(root, '.env.secrets.local'), 'OTHER_SECRET=y\n')
+    const streams = clackStreams()
+
+    await initCommand(root, home, {
+      stdinIsTTY: true,
+      stdoutIsTTY: true,
+      terminal: answeringTerminal().port,
+      rail: { input: streams.input, output: streams.output },
+    }).parseAsync(['node', 'test', 'init', ...WEB, '--force'])
+
+    const lines = stripVTControlCharacters(streams.text()).split('\n')
+    expect(lines.filter((line) => line.includes('KOMAZON_PASSWORD'))).toEqual([
+      EXAMPLE_SECRET_LINE,
+    ])
   })
 })

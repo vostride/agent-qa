@@ -944,7 +944,6 @@ describe("a Yarn Plug'n'Play project installs into node_modules", () => {
   })
 })
 
-const PLUGIN_STEP = `npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}`
 const PLUGIN_STEP_DESCRIPTION = 'Install the subscription sign-in plugin'
 const CLAUDE_CODE = ['--platform', 'web', '--llm', 'claude-code']
 // Any npm install, i or add command that names the plugin, whatever its flags.
@@ -953,10 +952,12 @@ const NPM_PLUGIN_INSTALL = new RegExp(
   'u',
 )
 
-function pluginStepLine(): string | undefined {
-  return printed()
-    .split('\n')
-    .find((line) => line.includes(PLUGIN_STEP))
+// The commands in the plain Next steps box, in order.
+function nextSteps(): string[] {
+  const lines = printed().split('\n')
+  const start = lines.indexOf('Next steps')
+  const end = lines.findIndex((line, index) => index > start && !line.startsWith('  '))
+  return lines.slice(start + 1, end === -1 ? undefined : end).map((line) => line.trim())
 }
 
 describe("init's subscription next step", () => {
@@ -982,26 +983,32 @@ describe("init's subscription next step", () => {
     expect(printed()).toContain('npx agent-qa auth login --config claude-code')
   })
 
-  it('a failed install is followed by the plugins add next step', async () => {
+  it('a failed install is followed by its plain install and the sign-in, with no plugins add line', async () => {
     const { root, home } = tempProject('next-step-failed')
 
     const error = await refusal(init(root, home, failing(1, 'npm error boom\n'), CLAUDE_CODE))
 
     expect(error.exitCode).toBe(3)
-    expect(pluginStepLine()).toContain(PLUGIN_STEP_DESCRIPTION)
+    expect(nextSteps()[0]).toBe('npm install')
+    expect(nextSteps()).toContain('npx agent-qa auth login --config claude-code')
+    expect(printed()).not.toContain('plugins add')
     expect(printed()).not.toMatch(NPM_PLUGIN_INSTALL)
   })
 
-  it('--pm none is followed by the plugins add next step', async () => {
+  it('--pm none is followed by the plain install and the sign-in, with no plugins add line', async () => {
     const { root, home } = tempProject('next-step-none')
 
     await init(root, home, installing(), [...CLAUDE_CODE, '--pm', 'none'])
 
-    expect(pluginStepLine()).toContain(PLUGIN_STEP_DESCRIPTION)
+    const steps = nextSteps()
+    expect(steps[0]).toBe('npm install')
+    expect(steps.indexOf('npx agent-qa validate')).toBeGreaterThan(0)
+    expect(steps).toContain('npx agent-qa auth login --config claude-code')
+    expect(printed()).not.toContain('plugins add')
     expect(printed()).not.toMatch(NPM_PLUGIN_INSTALL)
   })
 
-  it('a plugin installed above the git root does not hide the next step', async () => {
+  it('a plugin installed above the git root does not count: the plain install is still listed', async () => {
     const { root: outside, home } = tempProject('next-step-above')
     writeInstalledPackage(outside, SUBSCRIPTION_AUTH_PACKAGE, VERSION)
     const project = join(outside, 'app')
@@ -1009,7 +1016,8 @@ describe("init's subscription next step", () => {
 
     await init(project, home, installing(), [...CLAUDE_CODE, '--pm', 'none'])
 
-    expect(pluginStepLine()).toContain(PLUGIN_STEP_DESCRIPTION)
+    expect(nextSteps()).toContain('npm install')
+    expect(nextSteps()).toContain('npx agent-qa auth login --config claude-code')
   })
 })
 

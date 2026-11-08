@@ -85,6 +85,7 @@ import {
   type InitModelOption,
   type InitModelPick,
 } from './init-model-choice.js'
+import { DASHBOARD_COMMAND, initNextSteps, nextStepLines } from './init-next-steps.js'
 import {
   ALREADY_INITIALIZED,
   createInitStepRunner,
@@ -113,8 +114,8 @@ import {
   runAgentQaStep,
   runRunningAgentQa,
 } from './project-agent-qa.js'
-import { projectHost, type ProjectHost, type ProjectIo } from './project-host.js'
-import { nearestInstalledPackage, projectRange, type ProjectRange } from './project-range.js'
+import { projectHost, type ProjectHost } from './project-host.js'
+import { nearestInstalledPackage, projectRange } from './project-range.js'
 
 // Re-exported because this module is their public door.
 export { SUPPORTED_INIT_PLATFORMS, parseInitPlatform } from './scaffold-content.js'
@@ -457,8 +458,6 @@ function warnForMissingKnowledgeGitignoreRules(path: string): void {
   }
 }
 
-type InitNextStep = { command: string; description: string }
-
 function configuredLlms(config: Record<string, unknown>): InitLLMConfig[] {
   const registry = config.registry as Record<string, unknown> | undefined
   return (registry?.llms ?? []) as InitLLMConfig[]
@@ -466,85 +465,6 @@ function configuredLlms(config: Record<string, unknown>): InitLLMConfig[] {
 
 function usesSubscriptionModel(config: Record<string, unknown>): boolean {
   return configuredLlms(config).some(llm => isSubscriptionProvider(String(llm.provider)))
-}
-
-interface InitPackageFolder {
-  range: ProjectRange
-  dir: string
-  io: ProjectIo
-}
-
-function connectionSteps(
-  config: Record<string, unknown>,
-  { range, dir, io }: InitPackageFolder,
-): InitNextStep[] {
-  const llms = configuredLlms(config)
-  const steps: InitNextStep[] = []
-  if (
-    usesSubscriptionModel(config)
-    && nearestInstalledPackage(range, dir, SUBSCRIPTION_AUTH_PACKAGE, io) === undefined
-  ) {
-    steps.push({
-      command: `npx agent-qa plugins add ${SUBSCRIPTION_AUTH_PACKAGE}`,
-      description: 'Install the subscription sign-in plugin',
-    })
-  }
-  for (const llm of llms) {
-    const name = String(llm.name)
-    const provider = String(llm.provider)
-    if (isSubscriptionProvider(provider)) {
-      steps.push({
-        command: `npx agent-qa auth login --config ${name}`,
-        description: 'Sign in with your subscription',
-      })
-      continue
-    }
-    steps.push({
-      command: `npx agent-qa auth set --config ${name} --type api-key`,
-      description: 'Save your API key at a hidden prompt',
-    })
-    if (getProvider(provider)?.authModes.includes('bearer-token')) {
-      steps.push({
-        command: `npx agent-qa auth set --config ${name} --type bearer-token`,
-        description: 'Or save a bearer token at a hidden prompt',
-      })
-    }
-  }
-  return steps
-}
-
-// The same commands, in the same order, as the published quickstart.
-function initNextSteps(
-  platform: InitPlatformInput,
-  config: Record<string, unknown>,
-  packageFolder: InitPackageFolder,
-): InitNextStep[] {
-  const steps: InitNextStep[] = []
-  if (hasWeb(platform)) {
-    steps.push({
-      command: 'npx agent-qa install-browsers --chromium',
-      description: 'Install the browser the examples run in',
-    })
-  }
-  if (normalizePlatformSelection(platform).mobileRuntimes.length > 0) {
-    steps.push({
-      command: 'npx agent-qa install-mobile-drivers --all',
-      description: 'Install mobile driver support',
-    })
-  }
-  steps.push(...connectionSteps(config, packageFolder))
-  steps.push({ command: 'npx agent-qa validate', description: 'Check the config and the tests' })
-  if (hasWeb(platform)) {
-    steps.push({
-      command: `npx agent-qa run ${EXAMPLES_SUITE_PATH}`,
-      description: "Run the examples: one passes, one fails on the playground's deliberate bug (exit 1)",
-    })
-  }
-  steps.push({
-    command: GETTING_STARTED_URL,
-    description: 'The rest of the route: the hook sample, the dashboard and what the run taught agent-qa',
-  })
-  return steps
 }
 
 // A refusal exits 2 with its message alone; a bug or a prompt cancel passes through unchanged.
@@ -722,17 +642,14 @@ function buildScaffoldFilePlans(
   return plans
 }
 
-// Printed flush left so the line can be pasted as is.
+// Drawn without the rail's gutter, so the line pastes as it is.
 function showExampleSecretLine(ui: InitUi): void {
   ui.line(`Add this line to ${DEFAULT_SECRETS_FILE} so the examples can sign in:`)
-  ui.line(EXAMPLE_SECRET_LINE)
+  ui.copyable(EXAMPLE_SECRET_LINE)
 }
 
-function showNextSteps(ui: InitUi, steps: readonly InitNextStep[]): void {
-  ui.note(
-    'Next steps',
-    steps.map((step, index) => `${index + 1}. ${step.command}  ${step.description}`),
-  )
+function holdsExamplePassword(text: string | undefined): boolean {
+  return text !== undefined && /^\s*KOMAZON_PASSWORD\s*=/mu.test(text)
 }
 
 // A package.json above the folder is named by its path from the folder, which is real once it
@@ -1321,11 +1238,21 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
                 setUpAgents,
               )
             }
-            await runner.run(
-              'validate',
-              { title: 'Validating the config and tests', command: VALIDATE_COMMAND },
-              validate,
-            )
+            // Nothing is installed yet, so validate would only report the uninstalled plugins.
+            if (opts.pm === 'none') {
+              runner.skip(
+                'validate',
+                'validate: install first (--pm none)',
+                'install first (--pm none)',
+                VALIDATE_COMMAND,
+              )
+            } else {
+              await runner.run(
+                'validate',
+                { title: 'Validating the config and tests', command: VALIDATE_COMMAND },
+                validate,
+              )
+            }
           }
         } finally {
           runner.dispose()
@@ -1337,15 +1264,16 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           installRecord?.outcome === 'done' ||
           (installRecord?.outcome === 'skipped' && installRecord.reason === 'already installed')
         const pluginDir = dirname(packageJsonPlan.path)
+        const pluginInstalled =
+          installed &&
+          nearestInstalledPackage(range, pluginDir, SUBSCRIPTION_AUTH_PACKAGE, host.io) !==
+            undefined
         const status = await modelStatus({
           ...modelSetup,
           configPath,
           projectDir: dir,
           authPath,
-          pluginInstalled:
-            installed &&
-            nearestInstalledPackage(range, pluginDir, SUBSCRIPTION_AUTH_PACKAGE, host.io) !==
-              undefined,
+          pluginInstalled,
         })
         recorder.model({
           ...(modelSetup.entry === undefined
@@ -1358,14 +1286,39 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         const secretsPreserved = outcomes.some(
           result => result.path === secretsPath && result.outcome === 'preserved',
         )
-        if (hasWeb(platform) && secretsPreserved) showExampleSecretLine(ui)
-        const nextSteps = initNextSteps(platform, config, {
-          range,
-          dir: dirname(packageJsonPlan.path),
-          io: host.io,
+        if (
+          hasWeb(platform)
+          && secretsPreserved
+          && !holdsExamplePassword(host.io.readText(secretsPath))
+        ) {
+          showExampleSecretLine(ui)
+        }
+        const records = runner.records()
+        const skillsDone = records.some(
+          (record) => record.name === 'skills' && record.outcome === 'done',
+        )
+        const next = initNextSteps({
+          steps: records,
+          ...(modelSetup.entry === undefined
+            ? {}
+            : {
+                model: {
+                  name: modelSetup.entry.name,
+                  provider: modelSetup.entry.provider,
+                  status: status.status,
+                  subscription: isSubscriptionProvider(modelSetup.entry.provider),
+                  pluginInstalled,
+                },
+              }),
+          web: hasWeb(platform),
+          mobile: normalizePlatformSelection(platform).mobileRuntimes.length > 0,
+          agents: skillsDone ? agents : [],
+          dashboard: { command: DASHBOARD_COMMAND },
         })
-        recorder.nextSteps(nextSteps)
-        showNextSteps(ui, nextSteps)
+        recorder.nextSteps(next.steps)
+        ui.note('Next steps', nextStepLines(next.steps))
+        for (const hint of next.hints) ui.line(hint)
+        ui.outro(GETTING_STARTED_URL)
         if (runner.failed()) throw new CliRefusal([], 3)
       } catch (error) {
         threw = true

@@ -1196,13 +1196,13 @@ describe('init command', () => {
     expect(output).not.toContain('agent-qa install-mobile-drivers --android')
   })
 
-  it('prints both web and mobile setup guidance for mixed projects', async () => {
-    await runInit(['--platform', 'web,android'])
+  it('a mixed project with --no-browsers lists the Chromium, mobile driver and run commands', async () => {
+    await runInit(['--platform', 'web,android', '--no-browsers'])
 
     const output = consoleOutput()
-    expect(output).toContain('agent-qa install-browsers --chromium')
-    expect(output).toContain('agent-qa install-mobile-drivers --all')
-    expect(output).toContain('npx agent-qa validate')
+    expect(output).toContain('npx agent-qa install-browsers --chromium')
+    expect(output).toContain('npx agent-qa install-mobile-drivers --all')
+    expect(output).toContain('npx agent-qa run suites/examples.suite.yaml')
   })
 
   it('prints all-drivers setup guidance when both mobile platforms are selected interactively', async () => {
@@ -1733,12 +1733,9 @@ skills/.staging/
         cwd: projectDir,
         encoding: 'utf8',
       })
-      // --pm none leaves the declared plugin uninstalled, so init's validate step fails on it.
-      expect(init.status, `${init.stdout}${init.stderr}`).toBe(3)
-      expect(init.stderr).toContain(
-        'Plugin entry subscription names @vostride/agent-qa-subscription-auth, '
-          + 'which is not installed.',
-      )
+      // --pm none installs nothing, so validate waits for the install and init exits 0.
+      expect(init.status, `${init.stdout}${init.stderr}`).toBe(0)
+      expect(init.stderr).toContain('validate: install first (--pm none)')
 
       const cliManifest = JSON.parse(
         actualFs.readFileSync(join(cliRoot, 'package.json'), 'utf8'),

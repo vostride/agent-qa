@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { runCli, type CliFailureDeps } from '../cli-error-handler.js'
 import { createInitCommand } from '../commands/init.js'
 import type { InitDocument } from '../commands/init-document.js'
+import { initNextSteps } from '../commands/init-next-steps.js'
 import type { RunResult } from '../commands/project-host.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import {
@@ -131,7 +132,12 @@ describe('init --json prints one document on stdout', () => {
       { name: 'install', outcome: 'skipped', reason: '--pm none', command: 'npm install' },
       { name: 'chromium', outcome: 'done' },
       { name: 'skills', outcome: 'done' },
-      { name: 'validate', outcome: 'done' },
+      {
+        name: 'validate',
+        outcome: 'skipped',
+        reason: 'install first (--pm none)',
+        command: 'npx agent-qa validate',
+      },
     ])
     expect(doc.files).toContainEqual({
       path: '.gitignore',
@@ -160,10 +166,29 @@ describe('init --json prints one document on stdout', () => {
     expect(doc.plugins).toEqual([
       { package: '@vostride/agent-qa-subscription-auth', version: VERSION },
     ])
-    expect(doc.nextSteps).toContainEqual({
-      command: 'npx agent-qa validate',
-      description: 'Check the config and the tests',
-    })
+    expect(doc.nextSteps).toEqual(
+      initNextSteps({
+        steps: doc.steps,
+        model: {
+          name: 'claude-code',
+          provider: 'anthropic-subscription',
+          status: 'pending',
+          subscription: true,
+          pluginInstalled: false,
+        },
+        web: true,
+        mobile: false,
+        agents: doc.agents,
+        dashboard: { command: 'npx agent-qa dashboard' },
+      }).steps,
+    )
+    expect(doc.nextSteps.map((step) => step.command)).toEqual([
+      'npm install',
+      'npx agent-qa validate',
+      'npx agent-qa auth login --config claude-code',
+      'npx agent-qa run suites/examples.suite.yaml',
+      'npx agent-qa dashboard',
+    ])
     expect(result.stderr).toContain('✓ package.json created')
     expect(result.stderr).toContain('– Declared agent-qa')
   })
@@ -203,12 +228,12 @@ describe('init --json prints one document on stdout', () => {
       packageJson: { bin: { 'agent-qa': 'cli.js' } },
       files: { 'cli.js': '', ...skillFolderFiles('agent-qa-alpha') },
     })
-    const run = fakeRunner()
+    const run = probeOr(() => OK)
 
     const result = await init(
       root,
       home,
-      ['--json', '--platform', 'web', '--llm', 'gemini', '--pm', 'none', '--agents', 'claude-code'],
+      ['--json', '--platform', 'web', '--llm', 'gemini', '--pm', 'npm', '--agents', 'claude-code'],
       run,
     )
 
@@ -397,7 +422,7 @@ describe('init --json prints one document on stdout', () => {
       'skipped',
       'done',
       'done',
-      'done',
+      'skipped',
     ])
     expect(doc.files).toContainEqual({
       path: '.env.secrets.local',

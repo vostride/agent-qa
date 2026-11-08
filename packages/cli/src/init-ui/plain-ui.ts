@@ -25,6 +25,7 @@ export function createPlainUi(
       for (const line of lines) print(`  ${line}`)
     },
     line: print,
+    copyable: print,
     outro: print,
   }
 }

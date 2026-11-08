@@ -31,6 +31,8 @@ export interface InitUi {
   step(title: string): InitStepLine
   note(title: string, lines: readonly string[]): void
   line(text: string): void
+  // Drawn flush left, without the rail's gutter, so the line pastes as it is.
+  copyable(text: string): void
   outro(text: string): void
 }
 
