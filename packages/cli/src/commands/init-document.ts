@@ -3,6 +3,7 @@ import { relative, sep } from 'node:path'
 import { guardJsonText } from '@vostride/agent-qa-core/run-text-output'
 
 import { CANCELLED_LINE, CliRefusal, isPromptCancel } from '../composition/cli-refusal.js'
+import type { AgentSetupFileOutcome } from './agent-setup.js'
 import type { CodingAgent } from './agent-setup-manifest.js'
 import type { InitFileOutcome } from './init-filesystem.js'
 import type { InitStepName, InitStepRecord } from './init-steps.js'
@@ -45,7 +46,10 @@ const WITHHELD_MESSAGE =
 export interface InitDocumentRecorder {
   // The folder's real path, for files named through it, such as a package.json the range found.
   realDir(path: string): void
-  file(step: InitStepName, result: { path: string; outcome: InitFileOutcome }): void
+  file(
+    step: InitStepName,
+    result: { path: string; outcome: InitFileOutcome | AgentSetupFileOutcome },
+  ): void
   agents(agents: readonly CodingAgent[]): void
   packageManager(name: string): void
   agentQa(agentQa: NonNullable<InitDocument['agentQa']>): void
@@ -66,8 +70,8 @@ function stripColour(text: string): string {
   return text.replace(/\u001B\[[0-9;]*m/gu, '')
 }
 
-function fileOutcome(outcome: InitFileOutcome): InitDocumentFileOutcome {
-  return outcome === 'preserved' ? 'kept' : outcome
+function fileOutcome(outcome: InitFileOutcome | AgentSetupFileOutcome): InitDocumentFileOutcome {
+  return outcome === 'preserved' || outcome === 'unchanged' ? 'kept' : outcome
 }
 
 type Ending = Pick<InitDocument, 'outcome' | 'exitCode' | 'message'>

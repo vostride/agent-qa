@@ -152,9 +152,13 @@ const mockUpsertManagedGitignoreBlock = vi.mocked(upsertManagedGitignoreBlock)
 const mockVerifyEffectiveGitignore = vi.mocked(verifyEffectiveGitignore)
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
 
-// No test starts a package manager: init declares the dependencies and runs no install.
+// No test starts a package manager or writes coding-agent files: init declares the dependencies,
+// runs no install and chooses no coding agent.
 function withoutInstall(args: readonly string[]): string[] {
-  return args.includes('--pm') || args.includes('--agent') ? [...args] : [...args, '--pm', 'none']
+  if (args.includes('--agent')) return [...args]
+  const pm = args.includes('--pm') ? [] : ['--pm', 'none']
+  const agents = args.includes('--agents') ? [] : ['--agents', 'none']
+  return [...args, ...pm, ...agents]
 }
 
 async function runInit(
@@ -1609,6 +1613,8 @@ skills/.staging/
         'web',
         '--pm',
         'none',
+        '--agents',
+        'none',
       ])
     }
     const createRepository = (): string => {
@@ -1711,7 +1717,7 @@ skills/.staging/
         cwd: projectDir,
         stdio: 'pipe',
       })
-      actualChildProcess.execFileSync(process.execPath, [
+      const init = actualChildProcess.spawnSync(process.execPath, [
         join(bundleDir, 'cli.js'),
         'init',
         '--platform',
@@ -1719,10 +1725,18 @@ skills/.staging/
         '--pm',
         'none',
         '--no-browsers',
+        '--agents',
+        'none',
       ], {
         cwd: projectDir,
-        stdio: 'pipe',
+        encoding: 'utf8',
       })
+      // --pm none leaves the declared plugin uninstalled, so init's validate step fails on it.
+      expect(init.status, `${init.stdout}${init.stderr}`).toBe(3)
+      expect(init.stderr).toContain(
+        'Plugin entry subscription names @vostride/agent-qa-subscription-auth, '
+          + 'which is not installed.',
+      )
 
       const cliManifest = JSON.parse(
         actualFs.readFileSync(join(cliRoot, 'package.json'), 'utf8'),
@@ -1855,7 +1869,9 @@ skills/.staging/
           },
         }),
       )
-      await parent.parseAsync(['node', 'test', 'init', '--platform', 'web', '--pm', 'none'])
+      await parent.parseAsync(
+        ['node', 'test', 'init', '--platform', 'web', '--pm', 'none', '--agents', 'none'],
+      )
 
       const readme = actualFs.readFileSync(join(dir, 'agent-qa-knowledge', 'README.md'), 'utf8')
       const guide = actualFs.readFileSync(join(dir, 'agent-qa-knowledge', 'AGENTS.md'), 'utf8')

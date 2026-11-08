@@ -70,9 +70,13 @@ const PLAYGROUND_HOST = 'playground.vostride.dev'
 const AGENT_QA_RECIPE_URL = 'https://vostride.com/docs/agent-qa/coding-agents'
 const URL_PATTERN = /https?:\/\/[^\s"'<>)\]]+/g
 
-// No test starts a package manager: init declares the dependencies and runs no install.
+// No test starts a package manager or writes coding-agent files: init runs no install and
+// chooses no coding agent.
 function withoutInstall(args: readonly string[]): string[] {
-  return args.includes('--pm') || args.includes('--agent') ? [...args] : [...args, '--pm', 'none']
+  if (args.includes('--agent')) return [...args]
+  const pm = args.includes('--pm') ? [] : ['--pm', 'none']
+  const agents = args.includes('--agents') ? [] : ['--agents', 'none']
+  return [...args, ...pm, ...agents]
 }
 
 async function runInit(args: string[]): Promise<void> {

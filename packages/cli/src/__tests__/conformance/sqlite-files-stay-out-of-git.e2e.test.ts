@@ -114,8 +114,11 @@ function cliHome(): string {
 }
 
 async function cli(root: string, args: readonly string[]): Promise<Leg> {
+  // The scene rewrites the model after init, so init takes one that needs no plugin.
   const pm =
-    args[0] === 'init' && !args.includes('--pm') ? ['--pm', 'none', '--no-browsers'] : []
+    args[0] === 'init' && !args.includes('--pm')
+      ? ['--llm', 'gemini', '--pm', 'none', '--no-browsers', '--agents', 'none']
+      : []
   const child = spawn(process.execPath, [CLI_ENTRY, ...args, ...pm], {
     cwd: root,
     env: {

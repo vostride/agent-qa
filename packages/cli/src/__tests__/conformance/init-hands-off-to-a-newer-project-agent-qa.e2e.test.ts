@@ -18,11 +18,23 @@ import {
 } from './spawned-chat.js'
 
 const CELL_BUDGET_MS = 60_000
-const INIT_ARGS = ['init', '--platform', 'web', '--llm', 'gemini', '--pm', 'none', '--no-browsers']
+const INIT_ARGS = [
+  'init',
+  '--platform',
+  'web',
+  '--llm',
+  'gemini',
+  '--pm',
+  'none',
+  '--no-browsers',
+  '--agents',
+  'none',
+]
 const RUNNING_VERSION = getAgentQaVersion().trim()
 const FAKE_EXIT = 7
+// A copy that does not take over still runs init's validate step, which it passes.
 const FAKE_CLI = `process.stdout.write(JSON.stringify({ argv: process.argv.slice(2), handedOff: process.env.AGENT_QA_HANDED_OFF ?? null }) + '\\n')
-process.exit(${FAKE_EXIT})
+process.exit(process.argv[2] === 'validate' ? 0 : ${FAKE_EXIT})
 `
 
 afterEach(() => {

@@ -23,7 +23,7 @@ import {
 
 const VERSION = getAgentQaVersion().trim()
 const NODE = '/fake/node'
-const INIT_ARGS = ['--platform', 'web', '--llm', 'gemini', '--no-browsers']
+const INIT_ARGS = ['--platform', 'web', '--llm', 'gemini', '--no-browsers', '--agents', 'none']
 let log: MockInstance<typeof console.log>
 let errors: MockInstance<typeof process.stderr.write>
 
@@ -65,8 +65,14 @@ function installsCopy(version: string): Answer {
   }
 }
 
+// init's validate step runs through agent-qa after the install; these cells are about the
+// install and the hand-off.
+function managerAndHandOffCalls(run: FakeRunner): RunnerCall[] {
+  return run.calls.filter((call) => !call.args.includes('validate'))
+}
+
 function commands(run: FakeRunner): RunnerCall[] {
-  return run.calls.filter((call) => !isProbe(call.args))
+  return managerAndHandOffCalls(run).filter((call) => !isProbe(call.args))
 }
 
 function argv(call: RunnerCall): string {
@@ -77,9 +83,11 @@ function initArgv(args: readonly string[]): string[] {
   return ['init', ...args]
 }
 
-// The cells are about the hand-off and the install, so no Chromium step runs.
-function withoutBrowsers(args: readonly string[]): string[] {
-  return args.includes('--no-browsers') ? [...args] : [...args, '--no-browsers']
+// The cells are about the hand-off and the install, so no Chromium or coding-agent step runs.
+function aboutTheInstall(args: readonly string[]): string[] {
+  const browsers = args.includes('--no-browsers') ? [] : ['--no-browsers']
+  const agents = args.includes('--agents') ? [] : ['--agents', 'none']
+  return [...args, ...browsers, ...agents]
 }
 
 async function init(
@@ -88,7 +96,7 @@ async function init(
   run: FakeRunner,
   given: readonly string[] = INIT_ARGS,
 ): Promise<void> {
-  const args = withoutBrowsers(given)
+  const args = aboutTheInstall(given)
   const parent = new Command()
   const command = createInitCommand({
     cwd,
@@ -192,7 +200,7 @@ describe('init installs a declared newer agent-qa, then hands off to it', () => 
 
     await expect(init(root, home, run, [...INIT_ARGS, '--pm', 'none'])).resolves.toBeUndefined()
 
-    expect(run.calls).toEqual([])
+    expect(managerAndHandOffCalls(run)).toEqual([])
     expect(configured(root)).toBe(true)
   })
 
@@ -219,7 +227,7 @@ describe('init installs a declared newer agent-qa, then hands off to it', () => 
 
     await expect(init(root, home, run)).resolves.toBeUndefined()
 
-    expect(run.calls).toEqual([])
+    expect(managerAndHandOffCalls(run)).toEqual([])
     expect(configured(root)).toBe(true)
   })
 
@@ -266,7 +274,7 @@ describe('init installs a declared newer agent-qa, then hands off to it', () => 
       init(root, home, run, ['--platform', 'web', '--llm', 'codex', '--pm', 'none']),
     ).resolves.toBeUndefined()
 
-    expect(run.calls).toEqual([])
+    expect(managerAndHandOffCalls(run)).toEqual([])
     expect(devDependencies(root)).toEqual({
       'agent-qa': '99.0.0',
       '@vostride/agent-qa-subscription-auth': '99.0.0',
@@ -304,6 +312,6 @@ describe('init installs a declared newer agent-qa, then hands off to it', () => 
       ),
     )
     expect(stderr()).not.toContain('already initialized')
-    expect(run.calls).toEqual([])
+    expect(managerAndHandOffCalls(run)).toEqual([])
   })
 })

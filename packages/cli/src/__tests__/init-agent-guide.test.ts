@@ -192,7 +192,7 @@ describe('INIT-GUIDE-LIFECYCLE: init generates the thin knowledge guide', () => 
 
   it('keeps the already-initialized refusal unchanged and writes no guide', async () => {
     const dir = tempProject()
-    await runInit(dir)
+    await runInit(dir, ['--agents', 'none'])
     unlinkSync(join(dir, GUIDE))
     errors.mockClear()
 
@@ -237,20 +237,39 @@ describe('the AGENTS.md block, and the root instruction files init leaves alone'
     expect(text).not.toContain('npx agent-qa skills')
   })
 
-  it('leaves existing root instruction files byte-identical and creates none', async () => {
+  it('with no coding agent chosen, leaves existing root instruction files byte-identical and creates none', async () => {
     const withFiles = tempProject()
     const agents = '# My agents\n\nkeep me\r\nno final newline'
     const claude = '# Claude\n<!-- agent-qa init:start -->\n'
     writeFileSync(join(withFiles, 'AGENTS.md'), agents)
     writeFileSync(join(withFiles, 'CLAUDE.md'), claude)
-    await runInit(withFiles)
+    await runInit(withFiles, ['--agents', 'none'])
     expect(readFileSync(join(withFiles, 'AGENTS.md'), 'utf8')).toBe(agents)
     expect(readFileSync(join(withFiles, 'CLAUDE.md'), 'utf8')).toBe(claude)
 
     const empty = tempProject()
-    await runInit(empty)
+    await runInit(empty, ['--agents', 'none'])
     expect(existsSync(join(empty, 'AGENTS.md'))).toBe(false)
     expect(existsSync(join(empty, 'CLAUDE.md'))).toBe(false)
+  })
+
+  it('with a coding agent chosen, AGENTS.md keeps its bytes and gains the block, and CLAUDE.md is left alone', async () => {
+    const withFiles = tempProject()
+    const agents = '# My agents\n\nkeep me\r\nno final newline'
+    const claude = '# Claude\n<!-- agent-qa init:start -->\n'
+    writeFileSync(join(withFiles, 'AGENTS.md'), agents)
+    writeFileSync(join(withFiles, 'CLAUDE.md'), claude)
+    await runInit(withFiles, ['--agents', 'claude-code'])
+    const written = readFileSync(join(withFiles, 'AGENTS.md'), 'utf8')
+    expect(written.startsWith(agents)).toBe(true)
+    expect(written).toContain(pointerBlock())
+    expect(readFileSync(join(withFiles, 'CLAUDE.md'), 'utf8')).toBe(claude)
+
+    const empty = tempProject()
+    await runInit(empty, ['--agents', 'claude-code'])
+    expect(readFileSync(join(empty, 'AGENTS.md'), 'utf8')).toContain(pointerBlock())
+    expect(existsSync(join(empty, 'CLAUDE.md'))).toBe(false)
+    expect(existsSync(join(empty, 'agent-qa-knowledge', 'CLAUDE.md'))).toBe(false)
   })
 })
 

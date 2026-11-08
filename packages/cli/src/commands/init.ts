@@ -1,6 +1,7 @@
 import { Command, Option } from 'commander'
 import { readFileSync } from 'node:fs'
 import { basename, dirname, join, relative, sep } from 'node:path'
+import { stripVTControlCharacters } from 'node:util'
 import pc from 'picocolors'
 import type { Readable, Writable } from 'node:stream'
 import {
@@ -67,6 +68,11 @@ import {
   readProjectPackageJson,
   sanitizedPackageName,
 } from './package-json-plan.js'
+import {
+  AGENT_SKILL_ROOTS,
+  installAgentSetup,
+  type AgentSetupFileResult,
+} from './agent-setup.js'
 import type { CodingAgent } from './agent-setup-manifest.js'
 import { INIT_AGENT_OPTIONS, detectCodingAgents, parseInitAgentsFlag } from './init-agents.js'
 import {
@@ -588,6 +594,39 @@ function optionFor(options: readonly InitModelOption[], pick: InitModelPick): In
 
 const CHROMIUM_COMMAND = 'npx agent-qa install-browsers --chromium'
 const CHROMIUM_ATTEMPTS = 2
+const SKILLS_COMMAND = 'npx agent-qa init'
+const VALIDATE_COMMAND = 'npx agent-qa validate'
+
+// validate prints the file's path first, so its first error line, without the position, says why.
+function validateReason(lines: readonly string[]): string | undefined {
+  const error = lines.find((line) => /\berror\b/iu.test(line))
+  const line = (error ?? lines[0])?.trim()
+  return line?.replace(/^\d+:\d+\s+error\s+/u, '').replace(/\s+/gu, ' ')
+}
+
+function agentNames(agents: readonly CodingAgent[]): string {
+  return agents
+    .map((agent) => INIT_AGENT_OPTIONS.find((option) => option.value === agent)?.label ?? agent)
+    .join(' and ')
+}
+
+// The skill folders the chosen agents hold now, counted once across agents.
+function skillCount(
+  files: readonly AgentSetupFileResult[],
+  agents: readonly CodingAgent[],
+): number {
+  const folders = new Set<string>()
+  for (const file of files) {
+    if (file.outcome === 'removed' || file.outcome === 'kept') continue
+    for (const agent of agents) {
+      const root = `${AGENT_SKILL_ROOTS[agent]}/`
+      if (!file.path.startsWith(root)) continue
+      const folder = file.path.slice(root.length).split('/')[0]
+      if (folder !== undefined && folder !== '') folders.add(folder)
+    }
+  }
+  return folders.size
+}
 
 const WHAT_TO_EXPECT =
   '3 questions, then: package.json, scaffold, install, Chromium, skills and MCP, validate, '
@@ -1159,7 +1198,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         const stepContext = {
           host,
           range,
-          fromDir: dir,
+          // The range holds real paths, so the folder is found by its real path too.
+          fromDir: range.start,
           runningVersion,
           inProcess: (args: readonly string[]) => runRunningAgentQa(args, host),
         }
@@ -1179,6 +1219,55 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           }
         }
 
+        const setUpAgents = async (): Promise<InitStepResult> => {
+          let setup: Awaited<ReturnType<typeof installAgentSetup>>
+          try {
+            setup = await installAgentSetup({ projectDir: dir, agents, host })
+          } catch (error) {
+            if (!isInitRefusal(error)) throw error
+            return { outcome: 'failed', reason: error.message, command: SKILLS_COMMAND }
+          }
+          for (const file of setup.files) {
+            recorder.file('skills', { path: join(dir, file.path), outcome: file.outcome })
+          }
+          const failed = Object.values(setup.parts).find((part) => part?.outcome === 'failed')
+          if (failed !== undefined) {
+            return {
+              outcome: 'failed',
+              reason: failed.reason ?? 'The coding agent setup failed',
+              command: SKILLS_COMMAND,
+            }
+          }
+          const from =
+            setup.source === 'running'
+              ? ` (from this agent-qa ${setup.version}; the project has none installed)`
+              : ''
+          return {
+            outcome: 'done',
+            text:
+              `${agentNames(agents)}: ${skillCount(setup.files, agents)} skills, MCP entries, ` +
+              `AGENTS.md block${from}`,
+          }
+        }
+
+        const validate = async (): Promise<InitStepResult> => {
+          const run = await runAgentQaStep(['validate'], stepContext)
+          recorder.agentQa({ version: agentQaVersion, via: run.via })
+          if (run.code === 0) {
+            return { outcome: 'done', text: 'validate: the config and tests are valid' }
+          }
+          const shown = await shownOutput(
+            stripVTControlCharacters(run.output),
+            maskInstallOutput,
+            Number.MAX_SAFE_INTEGER,
+          )
+          return {
+            outcome: 'failed',
+            reason: validateReason(shown) ?? `validate exited ${run.code}`,
+            command: VALIDATE_COMMAND,
+          }
+        }
+
         const runner = createInitStepRunner({ ui, plan: freshInitPlan() })
         steps = () => runner.records()
         try {
@@ -1194,6 +1283,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             runner.skip('scaffold', `Scaffold: skipped (${reason})`, reason)
             runner.skip('install', `Install: skipped (${reason})`, reason)
             runner.skip('chromium', `Chromium: skipped (${reason})`, reason)
+            runner.skip('skills', `Coding agents: skipped (${reason})`, reason)
+            runner.skip('validate', `validate: skipped (${reason})`, reason)
           } else {
             const scaffold = await runner.run(
               'scaffold',
@@ -1220,6 +1311,20 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
                 installChromium,
               )
             }
+            if (agents.length === 0) {
+              runner.skip('skills', 'Coding agents: none chosen', 'none chosen')
+            } else {
+              await runner.run(
+                'skills',
+                { title: 'Setting up the coding agents', command: SKILLS_COMMAND },
+                setUpAgents,
+              )
+            }
+            await runner.run(
+              'validate',
+              { title: 'Validating the config and tests', command: VALIDATE_COMMAND },
+              validate,
+            )
           }
         } finally {
           runner.dispose()

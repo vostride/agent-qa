@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 
 import { Command } from 'commander'
@@ -7,14 +7,16 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { createInitCommand } from '../commands/init.js'
 import { InitRefusal } from '../commands/init-refusal.js'
 import { createInitStepRunner, type InitStepName } from '../commands/init-steps.js'
-import { sanitizedPackageName } from '../commands/package-json-plan.js'
+import { installedAgentQaVersion, sanitizedPackageName } from '../commands/package-json-plan.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import { fakeInitUi, type FakeInitUi } from './fake-init-ui.js'
 import {
   cleanupTempProjects,
   fakeRunner,
+  skillFolderFiles,
   tempProject,
+  writeInstalledPackage,
   type FakeRunner,
 } from './project-fixtures.js'
 
@@ -134,6 +136,8 @@ describe('a fresh init draws one line per step', () => {
       'Writing the scaffold',
       'Installing dependencies',
       'Installing Chromium',
+      'Setting up the coding agents',
+      'Validating the config and tests',
     ])
     expect(ui.output()).not.toContain('tests/examples/komazon-checkout.yaml')
     expect(ui.output()).not.toContain('agent-qa-knowledge/README.md')
@@ -176,6 +180,7 @@ describe('a fresh init draws one line per step', () => {
     expect(ui.entries.filter((entry) => entry.kind === 'done').map((entry) => entry.text)).toEqual([
       `package.json created (${sanitizedPackageName(basename(root))})`,
       'Scaffold: config, 3 example tests and a suite (13 files)',
+      expect.stringMatching(/^Claude Code and Codex: \d+ skills, MCP entries, AGENTS\.md block/u),
     ])
     expect(ui.entries).toContainEqual({
       kind: 'failed',
@@ -216,7 +221,9 @@ describe('a fresh init draws one line per step', () => {
       '✗ EACCES: permission denied\n' +
         '– Scaffold: skipped (package.json was not written)\n' +
         '– Install: skipped (package.json was not written)\n' +
-        '– Chromium: skipped (package.json was not written)\n',
+        '– Chromium: skipped (package.json was not written)\n' +
+        '– Coding agents: skipped (package.json was not written)\n' +
+        '– validate: skipped (package.json was not written)\n',
     )
     expect(run.calls).toEqual([])
     expect(existsSync(join(root, 'agent-qa.config.yaml'))).toBe(false)
@@ -280,6 +287,157 @@ describe('a fresh init draws one line per step', () => {
 
     expect(error).toMatchObject({ exitCode: 2 })
     expect(ui.entries.filter((entry) => entry.kind === 'step')).toEqual([])
+  })
+})
+
+function installAgentQaWithTwoSkills(root: string): void {
+  writeInstalledPackage(root, 'agent-qa', installedAgentQaVersion(), {
+    packageJson: { bin: { 'agent-qa': 'cli.js' } },
+    files: {
+      'cli.js': '',
+      ...skillFolderFiles('agent-qa-alpha'),
+      ...skillFolderFiles('agent-qa-beta'),
+    },
+  })
+}
+
+function stepLines(ui: FakeInitUi): string[] {
+  return ui.entries
+    .filter((entry) => ['done', 'skipped', 'failed'].includes(entry.kind))
+    .map((entry) => entry.text)
+}
+
+const CLAUDE_CODE = [
+  '--platform',
+  'web',
+  '--llm',
+  'gemini',
+  '--pm',
+  'none',
+  '--agents',
+  'claude-code',
+]
+
+describe('the steps after the install', () => {
+  it('Chromium, the coding agents and validate follow the install, one line each', async () => {
+    const { root, home } = tempProject('steps-after-install')
+    installAgentQaWithTwoSkills(root)
+    const ui = fakeInitUi()
+    const run = fakeRunner()
+
+    await init(root, home, { ui, run, args: CLAUDE_CODE })
+
+    const lines = stepLines(ui)
+    expect(lines.slice(3)).toEqual([
+      'Chromium installed',
+      'Claude Code: 2 skills, MCP entries, AGENTS.md block',
+      'validate: the config and tests are valid',
+    ])
+    expect(lines[0]).toMatch(/^package\.json created/u)
+    expect(lines[1]).toMatch(/^Scaffold:/u)
+    expect(lines[2]).toMatch(/^Declared agent-qa /u)
+    const copyBin = join(realpathSync(root), 'node_modules', 'agent-qa', 'cli.js')
+    expect(run.calls.map((call) => call.args)).toEqual([
+      [copyBin, 'install-browsers', '--chromium'],
+      [copyBin, 'validate'],
+    ])
+    expect(existsSync(join(root, '.claude', 'skills', 'agent-qa-alpha', 'SKILL.md'))).toBe(true)
+    expect(existsSync(join(root, '.mcp.json'))).toBe(true)
+    expect(readFileSync(join(root, 'AGENTS.md'), 'utf8')).toContain('<!-- agent-qa init:start -->')
+    expect(existsSync(join(root, 'CLAUDE.md'))).toBe(false)
+    expect(existsSync(join(root, 'agent-qa-knowledge', 'CLAUDE.md'))).toBe(false)
+  })
+
+  it("a person's CLAUDE.md keeps its bytes while AGENTS.md gains the block", async () => {
+    const { root, home } = tempProject('steps-own-claude')
+    installAgentQaWithTwoSkills(root)
+    const mine = Buffer.from('# House rules\r\n\nno final newline', 'utf8')
+    writeFileSync(join(root, 'CLAUDE.md'), mine)
+
+    await init(root, home, { ui: fakeInitUi(), run: fakeRunner(), args: CLAUDE_CODE })
+
+    expect(readFileSync(join(root, 'CLAUDE.md')).equals(mine)).toBe(true)
+    expect(readFileSync(join(root, 'AGENTS.md'), 'utf8')).toContain('<!-- agent-qa init:start -->')
+    expect(existsSync(join(root, 'agent-qa-knowledge', 'CLAUDE.md'))).toBe(false)
+  })
+
+  it('a Chromium step that fails twice still lets the coding agents and validate run, and init exits 3', async () => {
+    const { root, home } = tempProject('steps-after-failed-chromium')
+    installAgentQaWithTwoSkills(root)
+    const ui = fakeInitUi()
+    const run = fakeRunner(({ args }) => ({
+      code: args.includes('install-browsers') ? 1 : 0,
+      signal: null,
+      output: '',
+    }))
+
+    const error = await init(root, home, { ui, run, args: CLAUDE_CODE }).catch(
+      (caught: unknown) => caught,
+    )
+
+    expect(error).toMatchObject({ name: 'CliRefusal', exitCode: 3 })
+    expect(stepLines(ui).slice(3)).toEqual([
+      'Chromium download failed twice',
+      'Claude Code: 2 skills, MCP entries, AGENTS.md block',
+      'validate: the config and tests are valid',
+    ])
+  })
+
+  it('--agents none skips the coding agents and writes none of their files', async () => {
+    const { root, home } = tempProject('steps-no-agents')
+    installAgentQaWithTwoSkills(root)
+    const ui = fakeInitUi()
+
+    const args = ['--platform', 'web', '--llm', 'gemini', '--pm', 'none', '--agents', 'none']
+    await init(root, home, { ui, run: fakeRunner(), args })
+
+    expect(ui.entries).toContainEqual({ kind: 'skipped', text: 'Coding agents: none chosen' })
+    for (const path of ['.claude', '.agents', '.mcp.json', '.codex', 'AGENTS.md']) {
+      expect(existsSync(join(root, path)), path).toBe(false)
+    }
+  })
+
+  it('with no agent-qa installed, the skills line says they came from this agent-qa', async () => {
+    const { root, home } = tempProject('steps-running-skills')
+    const ui = fakeInitUi()
+
+    await init(root, home, { ui, run: fakeRunner(), args: CLAUDE_CODE })
+
+    const version = installedAgentQaVersion()
+    expect(stepLines(ui)).toContainEqual(
+      expect.stringMatching(
+        new RegExp(
+          `^Claude Code: \\d+ skills, MCP entries, AGENTS\\.md block \\(from this agent-qa ` +
+            `${version.replaceAll('.', '\\.')}; the project has none installed\\)$`,
+          'u',
+        ),
+      ),
+    )
+  })
+
+  it('a validate that exits 1 is failed with its first error line and the validate command', async () => {
+    const { root, home } = tempProject('steps-validate-failed')
+    const ui = fakeInitUi()
+    const run = fakeRunner(({ args }) =>
+      args.includes('validate')
+        ? {
+            code: 1,
+            signal: null,
+            output: `${join(root, 'agent-qa.config.yaml')}\n  3:5  error  use.llm names no model\n`,
+          }
+        : { code: 0, signal: null, output: '' },
+    )
+
+    const error = await init(root, home, { ui, run, args: CLAUDE_CODE }).catch(
+      (caught: unknown) => caught,
+    )
+
+    expect(error).toMatchObject({ name: 'CliRefusal', exitCode: 3 })
+    expect(ui.entries).toContainEqual({
+      kind: 'failed',
+      text: 'use.llm names no model',
+      command: 'npx agent-qa validate',
+    })
   })
 })
 

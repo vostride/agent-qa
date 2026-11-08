@@ -13,6 +13,7 @@ import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import {
   cleanupTempProjects,
   fakeRunner,
+  skillFolderFiles,
   tempProject,
   writeInstalledPackage,
   type FakeRunner,
@@ -128,6 +129,8 @@ describe('init --json prints one document on stdout', () => {
       { name: 'scaffold', outcome: 'done' },
       { name: 'install', outcome: 'skipped', reason: '--pm none', command: 'npm install' },
       { name: 'chromium', outcome: 'done' },
+      { name: 'skills', outcome: 'done' },
+      { name: 'validate', outcome: 'done' },
     ])
     expect(doc.files).toContainEqual({
       path: '.gitignore',
@@ -144,11 +147,13 @@ describe('init --json prints one document on stdout', () => {
       outcome: 'created',
       step: 'scaffold',
     })
-    expect(doc.files.at(-1)).toEqual({
+    expect(doc.files.filter((file) => file.step === 'scaffold').at(-1)).toEqual({
       path: 'agent-qa.config.yaml',
       outcome: 'created',
       step: 'scaffold',
     })
+    expect(doc.files).toContainEqual({ path: 'AGENTS.md', outcome: 'created', step: 'skills' })
+    expect(doc.files).toContainEqual({ path: '.mcp.json', outcome: 'created', step: 'skills' })
     expect(doc.agents).toEqual(['claude-code', 'codex'])
     expect(doc.agentQa).toEqual({ version: VERSION, via: 'running' })
     expect(doc.plugins).toEqual([
@@ -179,14 +184,41 @@ describe('init --json prints one document on stdout', () => {
       'scaffold',
       'install',
       'chromium',
+      'skills',
+      'validate',
     ])
-    expect(doc.steps.at(-1)).toEqual({
+    expect(doc.steps.find((step) => step.name === 'chromium')).toEqual({
       name: 'chromium',
       outcome: 'skipped',
       reason: '--no-browsers',
       command: 'npx agent-qa install-browsers --chromium',
     })
     expect(run.calls.filter((call) => call.args.includes('install-browsers'))).toEqual([])
+  })
+
+  it('the skills step lists its files, and agentQa.via names the copy that ran validate', async () => {
+    const { root, home } = tempProject('json-skills')
+    writeInstalledPackage(root, 'agent-qa', VERSION, {
+      packageJson: { bin: { 'agent-qa': 'cli.js' } },
+      files: { 'cli.js': '', ...skillFolderFiles('agent-qa-alpha') },
+    })
+    const run = fakeRunner()
+
+    const result = await init(
+      root,
+      home,
+      ['--json', '--platform', 'web', '--llm', 'gemini', '--pm', 'none', '--agents', 'claude-code'],
+      run,
+    )
+
+    const doc = documentOf(result)
+    expect(doc.files.filter((file) => file.step === 'skills')).toEqual([
+      { path: '.claude/skills/agent-qa-alpha/SKILL.md', outcome: 'created', step: 'skills' },
+      { path: '.mcp.json', outcome: 'created', step: 'skills' },
+      { path: 'AGENTS.md', outcome: 'created', step: 'skills' },
+    ])
+    expect(doc.agentQa).toEqual({ version: VERSION, via: 'project' })
+    expect(run.calls.map((call) => call.args.slice(1))).toContainEqual(['validate'])
   })
 
   it('a failed install is a failed document with exit code 3 and the step command', async () => {
@@ -213,6 +245,13 @@ describe('init --json prints one document on stdout', () => {
         outcome: 'failed',
         reason: 'Chromium download failed twice: npm ERR! boom',
         command: 'npx agent-qa install-browsers --chromium',
+      },
+      { name: 'skills', outcome: 'done' },
+      {
+        name: 'validate',
+        outcome: 'failed',
+        reason: 'npm ERR! boom',
+        command: 'npx agent-qa validate',
       },
     ])
     expect(doc.plugins).toEqual([])
@@ -256,6 +295,8 @@ describe('init --json prints one document on stdout', () => {
       { name: 'scaffold', outcome: 'done' },
       { name: 'install', outcome: 'failed', reason: 'interrupted' },
       { name: 'chromium', outcome: 'skipped', reason: 'interrupted' },
+      { name: 'skills', outcome: 'skipped', reason: 'interrupted' },
+      { name: 'validate', outcome: 'skipped', reason: 'interrupted' },
     ])
     expect(result.stderr).toContain('Cancelled.\n')
   })
@@ -274,6 +315,8 @@ describe('init --json prints one document on stdout', () => {
       { name: 'scaffold', outcome: 'skipped', reason: 'already initialized' },
       { name: 'install', outcome: 'skipped', reason: 'already initialized' },
       { name: 'chromium', outcome: 'skipped', reason: 'already initialized' },
+      { name: 'skills', outcome: 'skipped', reason: 'already initialized' },
+      { name: 'validate', outcome: 'skipped', reason: 'already initialized' },
     ])
     expect(result.stderr).toContain('Project is already initialized at')
   })
@@ -295,7 +338,14 @@ describe('init --json prints one document on stdout', () => {
 
     const doc = documentOf(result)
     expect(doc).toMatchObject({ outcome: 'done', exitCode: 0 })
-    expect(doc.steps.map((step) => step.outcome)).toEqual(['done', 'done', 'skipped', 'done'])
+    expect(doc.steps.map((step) => step.outcome)).toEqual([
+      'done',
+      'done',
+      'skipped',
+      'done',
+      'done',
+      'done',
+    ])
     expect(doc.files).toContainEqual({
       path: '.env.secrets.local',
       outcome: 'kept',

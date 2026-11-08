@@ -43,7 +43,9 @@ function init(dir: string, ...extra: string[]): void {
   mkdirSync(join(dir, '.git'), { recursive: true })
   const home = tempDir()
   const pm = extra.includes('--pm') ? [] : ['--pm', 'none']
-  const args = ['init', '--platform', 'web', '--no-browsers', ...extra, ...pm]
+  // A model that needs no plugin, so init's validate passes without an install.
+  const llm = extra.includes('--llm') ? [] : ['--llm', 'gemini']
+  const args = ['init', '--platform', 'web', '--no-browsers', ...extra, ...llm, ...pm]
   const result = spawnSync(process.execPath, [CLI_ENTRY, ...args], {
     cwd: dir,
     env: { ...childEnv(), HOME: home, USERPROFILE: home },

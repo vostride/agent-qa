@@ -56,8 +56,10 @@ function isProbe(args: readonly string[]): boolean {
 }
 
 // A command listed as null is not on PATH; an unlisted one answers --version with no output.
+// init's validate step passes, so the install is the only call a cell scripts.
 function onMachine(versions: Record<string, string | null>, install: Install): FakeRunner {
   return fakeRunner((call) => {
+    if (call.args.includes('validate')) return { code: 0, signal: null, output: '' }
     if (!isProbe(call.args)) return install(call)
     const version = versions[call.command]
     if (version === null) return { code: null, signal: null, output: '', missing: true }
@@ -76,8 +78,13 @@ function installing(...names: string[]): FakeRunner {
   return onMachine({}, writes(...names))
 }
 
+// init's validate step runs through agent-qa after the install; these cells are about the manager.
+function managerCalls(run: FakeRunner): RunnerCall[] {
+  return run.calls.filter((call) => !call.args.includes('validate'))
+}
+
 function installs(run: FakeRunner): RunnerCall[] {
-  return run.calls.filter((call) => !isProbe(call.args))
+  return managerCalls(run).filter((call) => !isProbe(call.args))
 }
 
 function argv(call: RunnerCall): string {
@@ -102,8 +109,9 @@ async function init(
   parent.exitOverride()
   command.exitOverride()
   parent.addCommand(command)
-  // The cells are about the install, so no Chromium step runs.
-  await parent.parseAsync(['node', 'test', 'init', ...args, '--no-browsers'])
+  // The cells are about the install, so no Chromium or coding-agent step runs.
+  const agents = args.includes('--agents') ? [] : ['--agents', 'none']
+  await parent.parseAsync(['node', 'test', 'init', ...args, '--no-browsers', ...agents])
 }
 
 // runInstallStep prints through console.log in these cells; init draws its lines on stderr.
@@ -214,7 +222,7 @@ describe('init installs what it declared', () => {
 
     await init(root, home, run, ['--platform', 'web', '--llm', 'gemini', '--pm', 'none'])
 
-    expect(run.calls).toHaveLength(0)
+    expect(managerCalls(run)).toHaveLength(0)
     expect(printed()).toContain(`Declared agent-qa ${VERSION} in package.json.`)
   })
 
@@ -233,7 +241,7 @@ describe('init installs what it declared', () => {
     const result = await runInstallStep({ ...input, mode: 'run' })
 
     expect(result.outcome).toBe('skipped')
-    expect(run.calls).toHaveLength(0)
+    expect(managerCalls(run)).toHaveLength(0)
     expect(printed()).toBe(`✓ agent-qa ${VERSION} is already installed; nothing to install`)
   })
 
@@ -855,7 +863,7 @@ describe('a pnpm install denies the build scripts pnpm would stop on', () => {
 
     await init(root, home, run, ['--platform', 'web', '--llm', 'gemini', '--pm', 'none'])
 
-    expect(run.calls).toHaveLength(0)
+    expect(managerCalls(run)).toHaveLength(0)
     expect(readFileSync(join(root, 'pnpm-workspace.yaml'), 'utf8')).toBe(DENIED_FILE)
     expect(printed()).toContain(
       `Declared agent-qa ${VERSION} in package.json. Install with: pnpm install; ${DENIED_NOTE}`,
@@ -1099,8 +1107,9 @@ describe('a manager that cancels itself or a runner that throws', () => {
     const error = await refusal(init(root, home, run, undefined, ui))
 
     expect(reportCliFailure(error, failureDeps())).toBe(3)
-    expect(ui.entries.filter((entry) => entry.kind === 'done').map((entry) => entry.text))
-      .toHaveLength(2)
+    const done = ui.entries.filter((entry) => entry.kind === 'done').map((entry) => entry.text)
+    expect(done).toHaveLength(3)
+    expect(done.at(-1)).toBe('validate: the config and tests are valid')
     expect(ui.entries).toContainEqual({
       kind: 'failed',
       text: 'Install failed: spawn EACCES',
@@ -1119,7 +1128,7 @@ describe('a manager that cancels itself or a runner that throws', () => {
     const error = await refusal(init(root, home, run, undefined, ui))
 
     expect(reportCliFailure(error, failureDeps())).toBe(3)
-    expect(run.calls.map(argv)).toEqual(['pnpm --version'])
+    expect(managerCalls(run).map(argv)).toEqual(['pnpm --version'])
     expect(ui.entries).toContainEqual({
       kind: 'failed',
       text: 'Install failed: spawn EACCES',
