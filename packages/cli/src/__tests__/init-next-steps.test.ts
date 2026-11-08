@@ -234,6 +234,24 @@ describe('the next steps are derived from what happened', () => {
 })
 
 describe('the lines under the box', () => {
+  it('a scaffold that was not written lists only what failed and init again, with no hint', () => {
+    const steps = withRecord(
+      withRecord(DONE, { name: 'package-json', outcome: 'failed', reason: 'EACCES' }),
+      { name: 'scaffold', outcome: 'skipped', reason: 'package.json was not written' },
+    )
+    const next = initNextSteps(
+      facts({ steps, model: CLAUDE_PENDING, mobile: true, agents: ['codex'] }),
+    )
+
+    expect(next.steps).toEqual([
+      {
+        command: 'npx agent-qa init',
+        description: 'Set up the folder once the step above is fixed',
+      },
+    ])
+    expect(next.hints).toEqual([])
+  })
+
   it('Codex chosen gives the coding agent hint and the Codex trust line', () => {
     expect(initNextSteps(facts({ agents: ['codex'] })).hints).toEqual([
       CODING_AGENT_HINT,

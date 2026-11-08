@@ -28,6 +28,7 @@ export const SUBSCRIPTION_PLUGIN_COMMAND =
   'npx agent-qa plugins add @vostride/agent-qa-subscription-auth'
 export const EXAMPLES_RUN_COMMAND = 'npx agent-qa run suites/examples.suite.yaml'
 export const DASHBOARD_COMMAND = 'npx agent-qa dashboard'
+export const INIT_COMMAND = 'npx agent-qa init'
 export const CODING_AGENT_HINT =
   'Your coding agent can use agent-qa now: ask it to run the examples.'
 export const CODEX_TRUST_HINT =
@@ -65,6 +66,15 @@ export function initNextSteps(facts: InitNextStepFacts): {
   }
   fromRecords('failed')
   fromRecords('skipped')
+
+  // Without the scaffold there is no config to run, sign in to or open, so init comes again.
+  const unscaffolded = facts.steps.some(
+    (record) => record.name === 'scaffold' && record.outcome !== 'done',
+  )
+  if (unscaffolded) {
+    add(INIT_COMMAND, 'Set up the folder once the step above is fixed')
+    return { steps, hints: [] }
+  }
 
   const { model } = facts
   const install = facts.steps.find((record) => record.name === 'install')

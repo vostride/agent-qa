@@ -232,6 +232,47 @@ describe('a fresh init draws one line per step', () => {
     expect(existsSync(join(root, 'agent-qa.config.yaml'))).toBe(false)
   })
 
+  it('an interactive init that wrote no config skips the dashboard and lists init as the next step', async () => {
+    const { root, home } = tempProject('steps-no-config-no-dashboard')
+    const ui = fakeInitUi()
+    const run = fakeRunner()
+    const parent = new Command()
+    const command = createInitCommand({
+      cwd: root,
+      host: { homedir: home, env: {}, run },
+      isTTY: true,
+      composeAnalytics: silentAnalytics,
+      ui,
+      dashboardPort: {
+        probe: async () => {
+          throw new Error('the port was probed')
+        },
+        findFree: async () => 0,
+      },
+      afterWrite: (result) => {
+        if (result.path.endsWith('package.json')) throw new Error('EACCES: permission denied')
+      },
+    })
+    parent.exitOverride()
+    command.exitOverride()
+    parent.addCommand(command)
+
+    const error = await parent
+      .parseAsync(['node', 'test', 'init', '--platform', 'web', '--llm', 'gemini'])
+      .catch((caught: unknown) => caught)
+
+    expect(error).toMatchObject({ name: 'CliRefusal', exitCode: 3 })
+    expect(ui.entries).toContainEqual({
+      kind: 'skipped',
+      text: 'Dashboard: skipped (no config was written)',
+    })
+    expect(ui.entries.find((entry) => entry.kind === 'note')).toMatchObject({
+      text: 'Next steps',
+      lines: ['npx agent-qa init'],
+    })
+    expect(run.calls).toEqual([])
+  })
+
   it('a Chromium download that fails twice is failed with its last line and command, and init exits 3', async () => {
     const { root, home } = tempProject('steps-chromium-failed')
     const ui = fakeInitUi()

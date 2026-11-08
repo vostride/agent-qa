@@ -1410,10 +1410,16 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
 
         const port = dashboardPortOf(config)
         let dashboard: 'starting' | { command: string } = { command: DASHBOARD_COMMAND }
+        const scaffolded = runner
+          .records()
+          .some((record) => record.name === 'scaffold' && record.outcome === 'done')
         if (mode !== 'interactive') {
           runner.skip('dashboard', 'Dashboard: skipped (not interactive)', 'not interactive')
         } else if (opts.dashboard === false) {
           runner.skip('dashboard', 'Dashboard: skipped (--no-dashboard)', '--no-dashboard')
+        } else if (!scaffolded) {
+          const reason = 'no config was written'
+          runner.skip('dashboard', `Dashboard: skipped (${reason})`, reason)
         } else {
           const ports = hooks.dashboardPort ?? { probe: probeDashboardPort, findFree: findFreePort }
           if ((await ports.probe(port)) === 'free') {
