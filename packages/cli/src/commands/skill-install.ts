@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto'
-import { lstatSync, readdirSync, readFileSync } from 'node:fs'
+import { lstatSync, readdirSync, readFileSync, realpathSync } from 'node:fs'
 import { join, resolve } from 'node:path'
-import { resolvePluginEntry, type AgentQaConfig } from '@vostride/agent-qa-core'
+import { isPathInsideDir, resolvePluginEntry, type AgentQaConfig } from '@vostride/agent-qa-core'
 import { parse, parseDocument, Scalar } from 'yaml'
 
 import { InitRefusal } from './init-refusal.js'
@@ -17,6 +17,8 @@ const SKIPPED_FILES = new Set(['pnpm-lock.yaml', 'package-lock.json', '.DS_Store
 const FRONTMATTER = /^---\n([\s\S]*?\n)?---(?:\n|$)/u
 
 export const PLUGIN_SKILL_FOLDER_PREFIX = 'agent-qa-plugin-'
+const SKILL_NAME = /^[a-z0-9]+(?:-[a-z0-9]+)*$/u
+const SKILL_NAME_MAX_LENGTH = 64
 
 export interface AgentQaSkillSource {
   dir: string
@@ -32,6 +34,7 @@ export interface PluginSkillSource {
 
 export interface PluginSkillSources {
   sources: PluginSkillSource[]
+  held: string[]
   notes: string[]
   configLoaded: boolean
 }
@@ -77,6 +80,7 @@ export async function resolveAgentQaSkillSource(
 }
 
 // Listing a plugin is the trust decision, so each listed plugin's own skill installs beside ours.
+// A listed entry whose skill cannot be read now is held: its installed files stay as they are.
 export async function pluginSkillSources(
   projectDir: string,
   version: string,
@@ -88,38 +92,96 @@ export async function pluginSkillSources(
     plugins = (await resolveConfig({ configPath, loadAuthPlugins: false })).plugins ?? []
   } catch (error) {
     if (error instanceof ConfigFileNotFoundError) {
-      return { sources: [], notes: [], configLoaded: true }
+      return { sources: [], held: [], notes: [], configLoaded: true }
     }
-    throw error
+    return {
+      sources: [],
+      held: [],
+      notes: [`Plugin skills were not updated: ${firstProblem(error)}. Run npx agent-qa validate.`],
+      configLoaded: false,
+    }
   }
-  const sources: PluginSkillSource[] = []
+  const result: PluginSkillSources = { sources: [], held: [], notes: [], configLoaded: true }
   const taken = new Set<string>()
   for (const entry of plugins) {
     const folder = `${PLUGIN_SKILL_FOLDER_PREFIX}${entry.name}`
     if (taken.has(folder)) continue
+    taken.add(folder)
+    if (!SKILL_NAME.test(folder) || folder.length > SKILL_NAME_MAX_LENGTH) {
+      result.notes.push(
+        `Plugin ${entry.name}: ${folder} is not a valid skill name (lowercase letters, digits ` +
+          `and single hyphens, at most ${SKILL_NAME_MAX_LENGTH} characters), so its skill is not ` +
+          'installed.',
+      )
+      continue
+    }
+    const skipped = (note: string): void => {
+      result.held.push(folder)
+      result.notes.push(note)
+    }
     const resolved = resolvePluginEntry(entry, {
       configDir: projectDir,
       configPath,
       agentQaVersion: version,
     })
-    const manifest = resolved.manifest
-    if (
-      resolved.state !== 'ok' ||
-      manifest?.kind !== 'remote' ||
-      manifest.skill === undefined ||
-      resolved.packageDir === undefined ||
-      resolved.version === undefined
-    ) {
+    if (resolved.state !== 'ok') {
+      skipped(
+        `${resolved.reason ?? `Plugin entry ${entry.name} is ${resolved.state}.`} Its skill is not installed.`,
+      )
       continue
     }
-    taken.add(folder)
-    sources.push({
-      folder,
-      dir: resolve(resolved.packageDir, manifest.skill),
-      version: resolved.version,
-    })
+    const manifest = resolved.manifest
+    if (manifest?.kind !== 'remote' || manifest.skill === undefined) continue
+    if (resolved.packageDir === undefined || !resolved.version) {
+      skipped(
+        `Plugin ${entry.name}: its package.json has no version, so its skill is not installed.`,
+      )
+      continue
+    }
+    const dir = containedSkillDir(resolved.packageDir, manifest.skill)
+    if (dir === 'outside') {
+      skipped(
+        `Plugin ${entry.name}: its skill path ${manifest.skill} leaves its package, so its skill ` +
+          'is not installed.',
+      )
+    } else if (dir === 'missing') {
+      skipped(
+        `Plugin ${entry.name}: its skill path ${manifest.skill} holds no SKILL.md, so its skill ` +
+          'is not installed.',
+      )
+    } else {
+      result.sources.push({ folder, dir, version: resolved.version })
+    }
   }
-  return { sources, notes: [], configLoaded: true }
+  return result
+}
+
+// Both sides are real paths, so a symlinked skill folder is judged by where it points.
+function containedSkillDir(packageDir: string, skill: string): string | 'outside' | 'missing' {
+  let realPackage: string
+  let realSkill: string
+  try {
+    realPackage = realpathSync(packageDir)
+    realSkill = realpathSync(resolve(realPackage, skill))
+  } catch {
+    return 'missing'
+  }
+  if (!isPathInsideDir(realSkill, realPackage)) return 'outside'
+  try {
+    return lstatSync(join(realSkill, 'SKILL.md')).isFile() ? realSkill : 'missing'
+  } catch {
+    return 'missing'
+  }
+}
+
+function firstProblem(error: unknown): string {
+  const lines = (error instanceof Error ? error.message : String(error))
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line !== '')
+  const first = lines[0] ?? 'the config did not load'
+  const problem = first.endsWith(':') && lines[1] !== undefined ? `${first} ${lines[1]}` : first
+  return problem.replace(/\.+$/u, '')
 }
 
 // Symlinks are skipped, never followed, so nothing outside the skill folder is read.

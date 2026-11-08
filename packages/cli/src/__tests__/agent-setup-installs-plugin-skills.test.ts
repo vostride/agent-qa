@@ -1,5 +1,13 @@
 // Each plugins entry's skill installs beside agent-qa's own, at the plugin's version.
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
@@ -68,6 +76,16 @@ function installAcme(root: string): string {
 }
 
 function writeConfig(root: string, plugins: readonly { name: string; package: string }[]): void {
+  writeConfigText(root, [
+    ...(plugins.length === 0 ? [] : ['plugins:']),
+    ...plugins.flatMap((plugin) => [
+      `  - name: ${plugin.name}`,
+      `    package: '${plugin.package}'`,
+    ]),
+  ])
+}
+
+function writeConfigText(root: string, lines: readonly string[]): void {
   writeFileSync(
     join(root, 'agent-qa.config.yaml'),
     [
@@ -79,11 +97,7 @@ function writeConfig(root: string, plugins: readonly { name: string; package: st
       '  hooksFile: hooks.yaml',
       '  envFile: .env',
       '  secretsFile: .env.secrets.local',
-      ...(plugins.length === 0 ? [] : ['plugins:']),
-      ...plugins.flatMap((plugin) => [
-        `  - name: ${plugin.name}`,
-        `    package: '${plugin.package}'`,
-      ]),
+      ...lines,
       '',
     ].join('\n'),
   )
@@ -214,5 +228,198 @@ describe('installing the skills of listed plugins', () => {
     expect(result.files.map((file) => file.path).sort()).toEqual(
       ROOTS.map((root) => `${root}/agent-qa-alpha/SKILL.md`).sort(),
     )
+  })
+})
+
+function pluginFolders(root: string): string[] {
+  return ROOTS.filter((skills) => existsSync(join(root, skills))).flatMap((skills) =>
+    readdirSync(join(root, skills))
+      .filter((name) => name.startsWith('agent-qa-plugin-'))
+      .map((name) => `${skills}/${name}`),
+  )
+}
+
+describe('the plugin skills the installer refuses', () => {
+  it('installs nothing of a skill path that leaves its package and says so in one note', async () => {
+    const project = tempProject('plugin-skill-dot-dot')
+    installAgentQa(project.root)
+    writeRemotePluginPackage(project.root, ACME.package, '2.1.0', {
+      manifest: { skill: '../outside' },
+    })
+    const outside = join(project.root, 'node_modules/outside')
+    mkdirSync(outside, { recursive: true })
+    writeFileSync(join(outside, 'SKILL.md'), '---\nname: outside\ndescription: Outside.\n---\n')
+    writeConfig(project.root, [ACME])
+
+    const result = await setup(project)
+
+    expect(pluginFolders(project.root)).toEqual([])
+    expect(result.notes).toEqual([
+      expect.stringMatching(
+        /^Plugin entry acme names acme-agent-qa-plugin, .*skill resolves outside the package.* Its skill is not installed\.$/u,
+      ),
+    ])
+  })
+
+  it('installs nothing of a skill folder that is a symlink out of its package', async () => {
+    const project = tempProject('plugin-skill-symlinked-folder')
+    const outside = tempProject('plugin-skill-symlinked-folder-outside').root
+    installAgentQa(project.root)
+    const packageDir = writeRemotePluginPackage(project.root, ACME.package, '2.1.0')
+    writeFileSync(join(outside, 'SKILL.md'), '---\nname: outside\ndescription: Outside.\n---\n')
+    symlinkSync(outside, join(packageDir, 'skill'))
+    writeConfig(project.root, [ACME])
+
+    const result = await setup(project)
+
+    expect(pluginFolders(project.root)).toEqual([])
+    expect(result.notes).toEqual([
+      expect.stringMatching(
+        /^Plugin entry acme .*skill resolves outside the package.* Its skill is not installed\.$/u,
+      ),
+    ])
+  })
+
+  it('copies the regular files of a skill folder and not a file symlinked out of the package', async () => {
+    const project = tempProject('plugin-skill-symlinked-file')
+    const outside = tempProject('plugin-skill-symlinked-file-outside').root
+    installAgentQa(project.root)
+    const packageDir = installKernel(project.root)
+    writeFileSync(join(outside, 'secret.txt'), 'host file\n')
+    symlinkSync(join(outside, 'secret.txt'), join(packageDir, 'skill/references/secret.txt'))
+    writeConfig(project.root, [KERNEL])
+
+    const result = await setup(project, ['claude-code'])
+
+    const folder = join(project.root, '.claude/skills/agent-qa-plugin-kernel')
+    expect(existsSync(join(folder, 'SKILL.md'))).toBe(true)
+    expect(existsSync(join(folder, 'references/setup.md'))).toBe(true)
+    expect(existsSync(join(folder, 'references/secret.txt'))).toBe(false)
+    expect(result.files.some((file) => file.path.endsWith('secret.txt'))).toBe(false)
+  })
+
+  const invalidNames: [string, string][] = [
+    ['a dot', 'kernel.eu'],
+    ['a double hyphen', 'a--b'],
+    ['a prefixed folder past 64 characters', 'x'.repeat(49)],
+  ]
+
+  it.each(invalidNames)(
+    'skips an entry whose name has %s with one note naming the skill name rule',
+    async (_label, name) => {
+      const project = tempProject('plugin-skill-bad-name')
+      installAgentQa(project.root)
+      installKernel(project.root)
+      writeConfig(project.root, [{ name, package: KERNEL.package }])
+
+      const result = await setup(project)
+
+      expect(pluginFolders(project.root)).toEqual([])
+      expect(result.notes).toEqual([
+        `Plugin ${name}: agent-qa-plugin-${name} is not a valid skill name (lowercase letters, ` +
+          'digits and single hyphens, at most 64 characters), so its skill is not installed.',
+      ])
+    },
+  )
+
+  it("skips an uninstalled, a mismatched and a malformed plugin each with the resolver's reason", async () => {
+    const project = tempProject('plugin-skill-unresolved')
+    installAgentQa(project.root)
+    installKernel(project.root, '1.0.0')
+    writeRemotePluginPackage(project.root, ACME.package, '2.1.0', {
+      manifest: { serves: [] },
+      files: pluginSkill('acme'),
+    })
+    writeConfig(project.root, [
+      { name: 'steel', package: '@vostride/agent-qa-plugin-steel' },
+      KERNEL,
+      ACME,
+    ])
+
+    const result = await setup(project)
+
+    expect(pluginFolders(project.root)).toEqual([])
+    expect(result.notes).toEqual([
+      expect.stringMatching(
+        /^Plugin entry steel names @vostride\/agent-qa-plugin-steel, which is not installed\. Run .+\. Its skill is not installed\.$/u,
+      ),
+      expect.stringMatching(
+        /^Plugin entry kernel names @vostride\/agent-qa-plugin-kernel at 1\.0\.0, and agent-qa is at 1\.4\.2\. Run .+\. Its skill is not installed\.$/u,
+      ),
+      expect.stringMatching(
+        /^Plugin entry acme names acme-agent-qa-plugin, whose package\.json has no valid agent-qa plugin manifest .+ Its skill is not installed\.$/u,
+      ),
+    ])
+  })
+
+  it("leaves a listed plugin's installed skill as it is while its package is not installed", async () => {
+    const project = tempProject('plugin-skill-held')
+    installAgentQa(project.root)
+    installKernel(project.root)
+    writeConfig(project.root, [KERNEL])
+    await setup(project)
+    const before = manifestPaths(project.root)
+    rmSync(join(project.root, 'node_modules/@vostride'), { recursive: true })
+
+    const result = await setup(project)
+
+    expect(result.files.filter((file) => file.path.includes('agent-qa-plugin-'))).toEqual([])
+    expect(pluginFolders(project.root).sort()).toEqual(
+      ROOTS.map((root) => `${root}/agent-qa-plugin-kernel`).sort(),
+    )
+    expect(manifestPaths(project.root)).toEqual(before)
+    expect(result.notes).toEqual([expect.stringMatching(/^Plugin entry kernel .* not installed/u)])
+  })
+
+  it("keeps and names an unlisted plugin skill file that differs from agent-qa's copy", async () => {
+    const project = tempProject('plugin-skill-unlisted')
+    installAgentQa(project.root)
+    installKernel(project.root)
+    writeConfig(project.root, [KERNEL])
+    const mine = '.claude/skills/agent-qa-plugin-kernel/SKILL.md'
+    mkdirSync(join(project.root, mine, '..'), { recursive: true })
+    writeFileSync(join(project.root, mine), 'my own kernel notes\n')
+
+    const result = await setup(project, ['claude-code'])
+
+    expect(outcomeOf(result, mine)).toBe('kept')
+    expect(readFileSync(join(project.root, mine), 'utf-8')).toBe('my own kernel notes\n')
+    expect(manifestPaths(project.root)).not.toContain(mine)
+    expect(result.notes).toEqual([
+      `${mine} exists and is not agent-qa's; remove it and run npx agent-qa init`,
+    ])
+  })
+
+  it("installs agent-qa's skills and leaves the listed plugin skill files alone when the config does not load", async () => {
+    const project = tempProject('plugin-skill-bad-config')
+    installAgentQa(project.root)
+    installKernel(project.root)
+    writeConfig(project.root, [KERNEL])
+    await setup(project)
+    const before = JSON.parse(readFileSync(join(project.root, MANIFEST), 'utf-8')) as {
+      files: { path: string; sha256: string }[]
+    }
+    const edited = join(project.root, '.agents/skills/agent-qa-plugin-kernel/references/setup.md')
+    writeFileSync(edited, 'my edit\n')
+    rmSync(join(project.root, '.claude/skills/agent-qa-alpha'), { recursive: true })
+    writeConfigText(project.root, ['plugins:', '  - name: kernel'])
+
+    const result = await setup(project)
+
+    expect(outcomeOf(result, '.claude/skills/agent-qa-alpha/SKILL.md')).toBe('created')
+    expect(result.files.filter((file) => file.path.includes('agent-qa-plugin-'))).toEqual([])
+    expect(readFileSync(edited, 'utf-8')).toBe('my edit\n')
+    expect(pluginFolders(project.root).sort()).toEqual(
+      ROOTS.map((root) => `${root}/agent-qa-plugin-kernel`).sort(),
+    )
+    const after = JSON.parse(readFileSync(join(project.root, MANIFEST), 'utf-8')) as {
+      files: { path: string; sha256: string }[]
+    }
+    expect(after.files).toEqual(before.files)
+    expect(result.notes).toEqual([
+      expect.stringMatching(
+        /^Plugin skills were not updated: Config validation failed: plugins\.0[^\n]*\. Run npx agent-qa validate\.$/u,
+      ),
+    ])
   })
 })
