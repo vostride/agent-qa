@@ -983,7 +983,7 @@ describe("init's subscription next step", () => {
     expect(printed()).toContain('npx agent-qa auth login --config claude-code')
   })
 
-  it('a failed install is followed by its plain install and the sign-in, with no plugins add line', async () => {
+  it('a failed install is followed by its plain install and the auth login line, with no plugins add line', async () => {
     const { root, home } = tempProject('next-step-failed')
 
     const error = await refusal(init(root, home, failing(1, 'npm error boom\n'), CLAUDE_CODE))
@@ -995,7 +995,7 @@ describe("init's subscription next step", () => {
     expect(printed()).not.toMatch(NPM_PLUGIN_INSTALL)
   })
 
-  it('--pm none is followed by the plain install and the sign-in, with no plugins add line', async () => {
+  it('--pm none is followed by the plain install and the auth login line, with no plugins add line', async () => {
     const { root, home } = tempProject('next-step-none')
 
     await init(root, home, installing(), [...CLAUDE_CODE, '--pm', 'none'])

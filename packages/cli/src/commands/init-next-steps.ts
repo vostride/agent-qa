@@ -34,6 +34,8 @@ export const CODING_AGENT_HINT =
 export const CODEX_TRUST_HINT =
   'Codex reads .codex/config.toml only in a trusted folder: trust this folder when Codex asks.'
 
+const AUTH_LOGIN_DESCRIPTION = 'Sign in with your subscription'
+
 export function authLoginCommand(name: string): string {
   return `npx agent-qa auth login --config ${name}`
 }
@@ -45,7 +47,6 @@ const STEP_DESCRIPTIONS: Record<InitStepName, string> = {
   chromium: 'Install the browser the examples run in',
   skills: 'Set up the coding agents',
   validate: 'Check the config and the tests',
-  'sign-in': 'Sign in with your subscription',
   dashboard: 'Open the dashboard',
 }
 
@@ -85,7 +86,7 @@ export function initNextSteps(facts: InitNextStepFacts): {
     add(SUBSCRIPTION_PLUGIN_COMMAND, 'Install the subscription sign-in plugin')
   }
   if (model?.subscription === true && model.status === 'pending') {
-    add(authLoginCommand(model.name), STEP_DESCRIPTIONS['sign-in'])
+    add(authLoginCommand(model.name), AUTH_LOGIN_DESCRIPTION)
   }
   if (facts.mobile) {
     add('npx agent-qa install-mobile-drivers --all', 'Install mobile driver support')

@@ -3,14 +3,7 @@ import type { InitStepLine, InitUi } from '../init-ui/init-ui.js'
 import { isInitRefusal } from './init-refusal.js'
 
 export type InitStepName =
-  | 'package-json'
-  | 'scaffold'
-  | 'install'
-  | 'chromium'
-  | 'skills'
-  | 'validate'
-  | 'sign-in'
-  | 'dashboard'
+  'package-json' | 'scaffold' | 'install' | 'chromium' | 'skills' | 'validate' | 'dashboard'
 
 export interface InitStepRecord {
   name: InitStepName
@@ -53,16 +46,7 @@ export const NOT_RUN = 'not run'
 
 // The steps a fresh init plans, in the order it runs them.
 export function freshInitPlan(): InitStepName[] {
-  return [
-    'package-json',
-    'scaffold',
-    'install',
-    'chromium',
-    'skills',
-    'validate',
-    'sign-in',
-    'dashboard',
-  ]
+  return ['package-json', 'scaffold', 'install', 'chromium', 'skills', 'validate', 'dashboard']
 }
 
 // A bug is reported with its stack, not drawn as a failed step.

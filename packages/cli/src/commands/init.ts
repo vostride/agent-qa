@@ -86,12 +86,7 @@ import {
   type InitModelPick,
   type InitModelStatus,
 } from './init-model-choice.js'
-import {
-  DASHBOARD_COMMAND,
-  authLoginCommand,
-  initNextSteps,
-  nextStepLines,
-} from './init-next-steps.js'
+import { DASHBOARD_COMMAND, initNextSteps, nextStepLines } from './init-next-steps.js'
 import {
   DASHBOARD_HOST,
   dashboardPage,
@@ -102,7 +97,6 @@ import {
   runDashboardStep,
   type DashboardPort,
 } from './init-dashboard.js'
-import { loadSubscriptionPlugin, runInitSignIn, type InitSignInOutcome } from './init-sign-in.js'
 import {
   ALREADY_INITIALIZED,
   INTERRUPTED,
@@ -135,7 +129,6 @@ import {
   runAgentQaStep,
   runRunningAgentQa,
 } from './project-agent-qa.js'
-import { openInBrowser } from './open-url.js'
 import { projectHost, type ProjectHost, type RunResult } from './project-host.js'
 import { nearestInstalledPackage, projectRange } from './project-range.js'
 
@@ -510,8 +503,6 @@ export interface InitCommandHooks {
   cwd?: string
   host?: Partial<ProjectHost>
   ui?: InitUi
-  // Opens the subscription sign-in page; the default opens it without a shell.
-  openUrl?: (url: string) => void
   // Probes the dashboard's port; the default binds it on loopback and lets it go.
   dashboardPort?: DashboardPort
 }
@@ -666,10 +657,6 @@ function buildScaffoldFilePlans(
 function showExampleSecretLine(ui: InitUi): void {
   ui.line(`Add this line to ${DEFAULT_SECRETS_FILE} so the examples can sign in:`)
   ui.copyable(EXAMPLE_SECRET_LINE)
-}
-
-function skipSignIn(runner: InitStepRunner, reason: string, command?: string): void {
-  runner.skip('sign-in', `Sign-in: skipped (${reason})`, reason, command)
 }
 
 function holdsExamplePassword(text: string | undefined): boolean {
@@ -1259,87 +1246,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           )
         }
 
-        // Signs a pending subscription in on the rail; true when the model is ready after it.
-        const signIn = async (
-          runner: InitStepRunner,
-          current: InitModelStatus,
-          pluginInstalled: boolean,
-        ): Promise<boolean> => {
-          const entry = modelSetup.entry
-          if (entry === undefined || !isSubscriptionProvider(entry.provider)) {
-            skipSignIn(runner, 'not a subscription model')
-            return false
-          }
-          const login = authLoginCommand(entry.name)
-          if (current.status === 'ready') {
-            skipSignIn(runner, 'already signed in')
-            return false
-          }
-          if (mode !== 'interactive') {
-            skipSignIn(runner, 'not interactive', login)
-            return false
-          }
-          if (!pluginInstalled) {
-            skipSignIn(runner, 'the subscription plugin is not installed', login)
-            return false
-          }
-          // The project's own plugin runs here, so only beside the agent-qa that installed it.
-          const copy = await findProjectAgentQa(range, range.start, host.io)
-          if (copy === undefined) {
-            skipSignIn(runner, 'the project has no agent-qa installed', login)
-            return false
-          }
-          if (copy.version !== runningVersion) {
-            skipSignIn(runner, "the project's agent-qa differs from this one", login)
-            return false
-          }
-          // Drawn before the step's own line, so the prompt never sits under a spinner.
-          let outcome: InitSignInOutcome | undefined
-          let failure: unknown
-          try {
-            const plugin = await loadSubscriptionPlugin({
-              provider: entry.provider,
-              projectDir: dir,
-              configPath,
-            })
-            outcome = await runInitSignIn({
-              ui,
-              plugin,
-              configName: entry.name,
-              authPath,
-              openUrl: hooks.openUrl ?? ((url) => openInBrowser(url)),
-            })
-          } catch (error) {
-            failure = error
-          }
-          const record = await runner.run(
-            'sign-in',
-            { title: 'Signing in', command: login },
-            async (): Promise<InitStepResult> => {
-              if (failure !== undefined) {
-                if (isPromptCancel(failure)) throw failure
-                const message = failure instanceof Error ? failure.message : String(failure)
-                const shown = await shownOutput(message, maskInstallOutput, Number.MAX_SAFE_INTEGER)
-                return {
-                  outcome: 'failed',
-                  reason: shown.join('\n') || 'The sign-in failed',
-                  command: login,
-                }
-              }
-              if (outcome === 'deferred') {
-                return {
-                  outcome: 'skipped',
-                  text: 'Sign-in: later',
-                  reason: 'later',
-                  command: login,
-                }
-              }
-              return { outcome: 'done', text: `Signed in: ${entry.name}` }
-            },
-          )
-          return record.outcome === 'done'
-        }
-
         const runner = createInitStepRunner({
           ui,
           plan: freshInitPlan(),
@@ -1423,7 +1329,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           authPath,
           pluginInstalled,
         })
-        if (await signIn(runner, status, pluginInstalled)) status = { status: 'ready' }
         // A Ctrl-C that landed outside a step is read here.
         if (runner.interrupted()) throw new PromptCancelled()
 

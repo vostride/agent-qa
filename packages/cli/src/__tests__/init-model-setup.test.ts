@@ -443,7 +443,7 @@ function nextStepNotes(ui: FakeInitUi): string[][] {
 }
 
 describe('init next steps', () => {
-  it('a Codex subscription under --pm none lists the install, validate, the sign-in, the run and the dashboard in one box', async () => {
+  it('a Codex subscription under --pm none lists the install, validate, the auth login line, the run and the dashboard in one box', async () => {
     const { ui } = await init(['--platform', 'web', '--llm', 'codex'])
 
     expect(nextStepNotes(ui)).toEqual([
@@ -459,7 +459,7 @@ describe('init next steps', () => {
     expect(ui.output()).not.toContain('agent-qa doctor')
   })
 
-  it('an API-key workspace is sent to the dashboard for its key, with no sign-in or plugin line', async () => {
+  it('an API-key workspace is sent to the dashboard for its key, with no auth login or plugin line', async () => {
     const { ui } = await init(['--platform', 'web', '--llm', 'anthropic'])
 
     const [box] = nextStepNotes(ui)

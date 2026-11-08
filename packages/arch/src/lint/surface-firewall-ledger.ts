@@ -130,12 +130,6 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'project scaffolding writes config and model defaults; joins the config mutation class',
   },
   {
-    file: 'packages/cli/src/commands/init-sign-in.ts',
-    specifier: '@vostride/agent-qa-core',
-    clearedBy: '395',
-    reason: 'project scaffolding writes config and model defaults; joins the config mutation class',
-  },
-  {
     file: 'packages/cli/src/commands/install-browsers.ts',
     specifier: '@vostride/agent-qa-web',
     clearedBy: '395',

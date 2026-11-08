@@ -138,7 +138,6 @@ describe('a fresh init draws one line per step', () => {
       'Installing Chromium',
       'Setting up the coding agents',
       'validate: install first (--pm none)',
-      'Sign-in: skipped (not a subscription model)',
       'Dashboard: skipped (not interactive)',
     ])
     expect(ui.output()).not.toContain('tests/examples/komazon-checkout.yaml')
@@ -403,7 +402,6 @@ describe('the steps after the install', () => {
       'Chromium installed',
       'Claude Code: 2 skills, MCP entries, AGENTS.md block',
       'validate: the config and tests are valid',
-      'Sign-in: skipped (not a subscription model)',
       'Dashboard: skipped (not interactive)',
     ])
     expect(lines[0]).toMatch(/^package\.json created/u)
@@ -453,7 +451,6 @@ describe('the steps after the install', () => {
       'Chromium download failed twice',
       'Claude Code: 2 skills, MCP entries, AGENTS.md block',
       'validate: the config and tests are valid',
-      'Sign-in: skipped (not a subscription model)',
       'Dashboard: skipped (not interactive)',
     ])
   })

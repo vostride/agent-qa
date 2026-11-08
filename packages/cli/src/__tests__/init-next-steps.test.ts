@@ -33,7 +33,6 @@ const DONE: InitStepRecord[] = [
   { name: 'chromium', outcome: 'done' },
   { name: 'skills', outcome: 'done' },
   { name: 'validate', outcome: 'done' },
-  { name: 'sign-in', outcome: 'done' },
 ]
 
 function withRecord(records: readonly InitStepRecord[], record: InitStepRecord): InitStepRecord[] {
@@ -57,7 +56,7 @@ function commands(input: InitNextStepFacts): string[] {
 }
 
 describe('the next steps are derived from what happened', () => {
-  it('a failed pnpm install, a pending Claude subscription and no dashboard list the install, the sign-in, the run and the dashboard', () => {
+  it('a failed pnpm install, a pending Claude subscription and no dashboard list the install, the auth login line, the run and the dashboard', () => {
     const steps = withRecord(DONE, {
       name: 'install',
       outcome: 'failed',
@@ -156,18 +155,25 @@ describe('the next steps are derived from what happened', () => {
     ])
   })
 
-  it('a deferred sign-in and the pending model give one auth login line', () => {
-    const steps = withRecord(DONE, {
-      name: 'sign-in',
-      outcome: 'skipped',
-      reason: 'later',
-      command: 'npx agent-qa auth login --config claude-code',
-    })
+  it('a pending subscription gives one auth login line, described as its sign-in', () => {
+    const { steps } = initNextSteps(facts({ model: CLAUDE_PENDING }))
 
-    expect(commands(facts({ steps, model: CLAUDE_PENDING }))).toEqual([
-      'npx agent-qa auth login --config claude-code',
-      'npx agent-qa run suites/examples.suite.yaml',
+    expect(steps).toEqual([
+      {
+        command: 'npx agent-qa auth login --config claude-code',
+        description: 'Sign in with your subscription',
+      },
+      {
+        command: 'npx agent-qa run suites/examples.suite.yaml',
+        description: 'Run the examples in the dashboard, or:',
+      },
     ])
+  })
+
+  it('a ready subscription gives no auth login line', () => {
+    expect(commands(facts({ model: CLAUDE_READY }))).not.toContain(
+      'npx agent-qa auth login --config claude-code',
+    )
   })
 
   it('every command is an npx agent-qa command or a plain install, and none names the config file or an unpinned install', () => {

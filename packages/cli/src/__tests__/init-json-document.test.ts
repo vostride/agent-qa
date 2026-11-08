@@ -147,12 +147,6 @@ describe('init --json prints one document on stdout', () => {
         reason: 'install first (--pm none)',
         command: 'npx agent-qa validate',
       },
-      {
-        name: 'sign-in',
-        outcome: 'skipped',
-        reason: 'not interactive',
-        command: 'npx agent-qa auth login --config claude-code',
-      },
       { name: 'dashboard', outcome: 'skipped', reason: 'not interactive' },
     ])
     expect(doc.files).toContainEqual({
@@ -228,7 +222,6 @@ describe('init --json prints one document on stdout', () => {
       'chromium',
       'skills',
       'validate',
-      'sign-in',
       'dashboard',
     ])
     expect(doc.steps.find((step) => step.name === 'chromium')).toEqual({
@@ -380,7 +373,6 @@ describe('init --json prints one document on stdout', () => {
         reason: 'npm ERR! boom',
         command: 'npx agent-qa validate',
       },
-      { name: 'sign-in', outcome: 'skipped', reason: 'not a subscription model' },
       { name: 'dashboard', outcome: 'skipped', reason: 'not interactive' },
     ])
     expect(doc.plugins).toEqual([])
@@ -426,7 +418,6 @@ describe('init --json prints one document on stdout', () => {
       { name: 'chromium', outcome: 'skipped', reason: 'not run' },
       { name: 'skills', outcome: 'skipped', reason: 'not run' },
       { name: 'validate', outcome: 'skipped', reason: 'not run' },
-      { name: 'sign-in', outcome: 'skipped', reason: 'not run' },
       { name: 'dashboard', outcome: 'skipped', reason: 'not run' },
     ])
   })
@@ -459,7 +450,6 @@ describe('init --json prints one document on stdout', () => {
       { name: 'chromium', outcome: 'skipped', reason: 'not run' },
       { name: 'skills', outcome: 'skipped', reason: 'not run' },
       { name: 'validate', outcome: 'skipped', reason: 'not run' },
-      { name: 'sign-in', outcome: 'skipped', reason: 'not run' },
       { name: 'dashboard', outcome: 'skipped', reason: 'not run' },
     ])
   })
@@ -521,7 +511,6 @@ describe('init --json prints one document on stdout', () => {
       { name: 'chromium', outcome: 'skipped', reason: 'interrupted' },
       { name: 'skills', outcome: 'skipped', reason: 'interrupted' },
       { name: 'validate', outcome: 'skipped', reason: 'interrupted' },
-      { name: 'sign-in', outcome: 'skipped', reason: 'interrupted' },
       { name: 'dashboard', outcome: 'skipped', reason: 'interrupted' },
     ])
     expect(result.stderr).toContain('Cancelled.\n')
@@ -539,7 +528,7 @@ describe('init --json prints one document on stdout', () => {
       if (args.includes('validate')) validated = true
       return OK
     })
-    // Read after validate and before the sign-in is skipped, outside any step.
+    // Read after validate, outside any step.
     const io: ProjectIo = {
       ...defaultProjectIo,
       exists: (path) => {
@@ -571,7 +560,6 @@ describe('init --json prints one document on stdout', () => {
       ['chromium', 'skipped', '--no-browsers'],
       ['skills', 'skipped', 'none chosen'],
       ['validate', 'done', undefined],
-      ['sign-in', 'skipped', 'interrupted'],
       ['dashboard', 'skipped', 'interrupted'],
     ])
     expect(result.stderr).toContain('Cancelled.\n')
@@ -594,7 +582,6 @@ describe('init --json prints one document on stdout', () => {
       { name: 'chromium', outcome: 'skipped', reason: 'already initialized' },
       { name: 'skills', outcome: 'skipped', reason: 'already initialized' },
       { name: 'validate', outcome: 'skipped', reason: 'already initialized' },
-      { name: 'sign-in', outcome: 'skipped', reason: 'already initialized' },
       { name: 'dashboard', outcome: 'skipped', reason: 'already initialized' },
     ])
     expect(result.stderr).toContain('Project is already initialized at')
@@ -623,7 +610,6 @@ describe('init --json prints one document on stdout', () => {
       'skipped',
       'done',
       'done',
-      'skipped',
       'skipped',
       'skipped',
     ])

@@ -21,6 +21,7 @@ import {
 } from '../commands/init-dashboard.js'
 import { installedAgentQaVersion } from '../commands/package-json-plan.js'
 import type { RunResult } from '../commands/project-host.js'
+import { SUBSCRIPTION_AUTH_PACKAGE } from '../commands/scaffold-content.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { CANCELLED_LINE } from '../composition/cli-refusal.js'
 import { fakeInitUi, type FakeInitUi } from './fake-init-ui.js'
@@ -278,6 +279,32 @@ describe('an interactive init starts the dashboard', () => {
     })
     expect(nextSteps(ui).slice(-2)).toEqual(['Run the examples in the dashboard, or:', RUN_COMMAND])
     expect(nextSteps(ui)).not.toContain('npx agent-qa dashboard')
+  })
+
+  it('a pending Claude subscription asks its three questions, signs nothing in and opens the model page', async () => {
+    const target = project()
+    writeInstalledPackage(target.root, SUBSCRIPTION_AUTH_PACKAGE, installedAgentQaVersion())
+    const ui = fakeInitUi({ 'Which coding agents should agent-qa set up?': [] })
+    const run = runner()
+
+    const result = await init(target, ui, ['--no-browsers', '--pm', 'npm'], {
+      run,
+      dashboardPort: freePort,
+    })
+
+    expect(result.exit).toBeUndefined()
+    expect(
+      ui.entries.filter((entry) => entry.kind === 'select' || entry.kind === 'multiselect'),
+    ).toEqual([
+      { kind: 'multiselect', text: 'What platform will you test?', answer: ['web'] },
+      { kind: 'select', text: 'Which model should agent-qa use?', answer: expect.anything() },
+      { kind: 'multiselect', text: 'Which coding agents should agent-qa set up?', answer: [] },
+    ])
+    expect(ui.output()).not.toMatch(/sign(ed|ing)?[ -]in/iu)
+    expect(dashboardCalls(run)).toEqual([
+      [process.execPath, projectBin(target.root), 'dashboard', '--open', '/config/models'],
+    ])
+    expect(nextSteps(ui)).toContain('npx agent-qa auth login --config claude-code')
   })
 
   it('opens on the runs page when the model is ready', async () => {
