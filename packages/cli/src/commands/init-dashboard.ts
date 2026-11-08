@@ -74,7 +74,7 @@ export function findFreePort(host: string = DASHBOARD_HOST): Promise<number> {
   })
 }
 
-// The dashboard always runs as a child, so its own exit, a Ctrl-C included, never decides init's.
+// The dashboard always runs as a child, so a Ctrl-C that stops it ends the child, not init.
 export async function runDashboardStep({
   host,
   range,

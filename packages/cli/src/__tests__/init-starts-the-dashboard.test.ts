@@ -261,11 +261,18 @@ describe('an interactive init starts the dashboard', () => {
     ])
     expect(run.calls.find((call) => call.args.includes('dashboard'))?.stdio).toBe('inherit')
     const note = ui.entries.findIndex((entry) => entry.kind === 'note')
+    const starting = ui.entries.findIndex(
+      (entry) =>
+        entry.kind === 'line' &&
+        entry.text ===
+          `Starting the dashboard on http://127.0.0.1:${configuredPort(target.root)} (Ctrl-C stops it)`,
+    )
     expect(note).toBeGreaterThanOrEqual(0)
-    expect(drawnBefore).toBeGreaterThan(note)
-    expect(ui.entries).toContainEqual({
+    expect(starting).toBeGreaterThan(note)
+    expect(drawnBefore).toBe(starting + 1)
+    expect(ui.entries.slice(drawnBefore)).toContainEqual({
       kind: 'done',
-      text: `Dashboard on http://127.0.0.1:${configuredPort(target.root)} (Ctrl-C stops it)`,
+      text: 'Dashboard stopped',
     })
     expect(nextSteps(ui).slice(-2)).toEqual(['Run the examples in the dashboard, or:', RUN_COMMAND])
     expect(nextSteps(ui)).not.toContain('npx agent-qa dashboard')
@@ -399,6 +406,62 @@ describe('stopping the dashboard ends init with setup code', () => {
       expect(result.stderr).not.toContain(CANCELLED_LINE)
     })
   }
+})
+
+describe('a dashboard that does not start is a failed step', () => {
+  const ends: [string, RunResult, string][] = [
+    ['exits 1 on its own', { code: 1, signal: null, output: '' }, 'The dashboard exited 1'],
+    [
+      'is ended by SIGTERM',
+      { code: null, signal: 'SIGTERM', output: '' },
+      'The dashboard ended by SIGTERM',
+    ],
+  ]
+
+  for (const [label, end, reason] of ends) {
+    it(`a dashboard that ${label} is failed with its command, and init exits 3`, async () => {
+      const ui = fakeInitUi()
+      const run = runner(end)
+
+      const result = await init(project(), ui, [...BASE, '--llm', 'gemini'], {
+        run,
+        dashboardPort: freePort,
+      })
+
+      expect(dashboardCalls(run)).toHaveLength(1)
+      expect(ui.entries).toContainEqual({
+        kind: 'failed',
+        text: reason,
+        command: 'npx agent-qa dashboard',
+      })
+      expect(
+        ui.entries.some((entry) => entry.kind === 'done' && entry.text.startsWith('Dashboard')),
+      ).toBe(false)
+      expect(result.exit).toBe(3)
+      expect(result.stderr).not.toContain(CANCELLED_LINE)
+    })
+  }
+
+  it('a runner that throws starting the dashboard is failed with the message, and init exits 3', async () => {
+    const ui = fakeInitUi()
+    const run = fakeRunner(({ args }) => {
+      if (args[0] === '--version') return { code: 0, signal: null, output: '10.0.0\n' }
+      if (args.includes('dashboard')) throw new Error('spawn EACCES')
+      return OK
+    })
+
+    const result = await init(project(), ui, [...BASE, '--llm', 'gemini'], {
+      run,
+      dashboardPort: freePort,
+    })
+
+    expect(ui.entries).toContainEqual({
+      kind: 'failed',
+      text: 'spawn EACCES',
+      command: 'npx agent-qa dashboard',
+    })
+    expect(result.exit).toBe(3)
+  })
 })
 
 describe('a Ctrl-C before the dashboard starts', () => {
@@ -557,7 +620,8 @@ describe('the setup guard in front of the dashboard', () => {
   })
 
   it('refuses a dashboard started through the default runner before any child', async () => {
-    const result = await init(project(), fakeInitUi(), [...GUARDED, '--llm', 'gemini'], {
+    const ui = fakeInitUi()
+    const result = await init(project(), ui, [...GUARDED, '--llm', 'gemini'], {
       dashboardPort: freePort,
     })
 
@@ -565,7 +629,11 @@ describe('the setup guard in front of the dashboard', () => {
     expect(calls).toHaveLength(1)
     expect(calls[0]).toContain(' dashboard --open /config/models')
     expect(spawned.filter((call) => call.includes('dashboard'))).toEqual([])
-    expect(result.exit).toBe(1)
-    expect(result.stderr).toContain('A test reached a real dashboard.')
+    expect(result.exit).toBe(3)
+    expect(ui.entries).toContainEqual({
+      kind: 'failed',
+      text: expect.stringContaining('A test reached a real dashboard.'),
+      command: 'npx agent-qa dashboard',
+    })
   })
 })

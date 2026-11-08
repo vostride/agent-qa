@@ -126,7 +126,7 @@ import {
   shownOutput,
   type InstallStepResult,
 } from './package-install.js'
-import { detectPackageManager } from './package-manager.js'
+import { detectPackageManager, wasCancelled } from './package-manager.js'
 import {
   agentQaAfterInstall,
   declaredAgentQaVersion,
@@ -136,7 +136,7 @@ import {
   runRunningAgentQa,
 } from './project-agent-qa.js'
 import { openInBrowser } from './open-url.js'
-import { projectHost, type ProjectHost } from './project-host.js'
+import { projectHost, type ProjectHost, type RunResult } from './project-host.js'
 import { nearestInstalledPackage, projectRange } from './project-range.js'
 
 // Re-exported because this module is their public door.
@@ -725,6 +725,24 @@ function asksForJson(cmd: Command): boolean {
   const args = given.slice(given.indexOf(cmd.name()) + 1)
   const end = args.indexOf('--')
   return (end === -1 ? args : args.slice(0, end)).includes('--json')
+}
+
+// A dashboard the person stopped, or that ended cleanly, is done; any other end is a failed start.
+function dashboardStepResult(result: RunResult, execPath: string): InitStepResult {
+  const failed = (reason: string): InitStepResult => ({
+    outcome: 'failed',
+    reason,
+    command: DASHBOARD_COMMAND,
+  })
+  if (result.missing === true) return failed(`${execPath} was not found to run the dashboard`)
+  if (result.code === 0 || wasCancelled(result)) {
+    return { outcome: 'done', text: 'Dashboard stopped' }
+  }
+  return failed(
+    result.code === null
+      ? `The dashboard ended by ${result.signal ?? 'a signal'}`
+      : `The dashboard exited ${result.code}`,
+  )
 }
 
 export function createInitCommand(hooks: InitCommandHooks = {}): Command {
@@ -1474,25 +1492,35 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         recorder.nextSteps(next.steps)
         ui.note('Next steps', nextStepLines(next.steps))
         for (const hint of next.hints) ui.line(hint)
-        // Taken before the dashboard starts: stopping it is the normal end, never a setup failure.
-        const setupFailed = runner.failed()
         if (runner.interrupted()) throw new PromptCancelled()
         if (dashboard === 'starting') {
-          await runner.run('dashboard', { title: 'Starting the dashboard' }, async () => ({
-            outcome: 'done',
-            text: `Dashboard on http://${DASHBOARD_HOST}:${port} (Ctrl-C stops it)`,
-          }))
+          ui.line(`Starting the dashboard on http://${DASHBOARD_HOST}:${port} (Ctrl-C stops it)`)
           // Until here a Ctrl-C interrupts init; while the dashboard runs, the host runner alone
           // holds Ctrl-C, so stopping the dashboard is the normal end.
           runner.dispose()
-          await runDashboardStep({
-            host,
-            range,
-            page: dashboardPage({ model: status.status, dashboard: modelSetup.dashboard }),
-          })
+          let ended: RunResult | undefined
+          let failure: unknown
+          try {
+            ended = await runDashboardStep({
+              host,
+              range,
+              page: dashboardPage({ model: status.status, dashboard: modelSetup.dashboard }),
+            })
+          } catch (error) {
+            failure = error
+          }
+          // Drawn once the child has ended, since the child holds the terminal while it runs.
+          await runner.run(
+            'dashboard',
+            { title: 'Dashboard', command: DASHBOARD_COMMAND },
+            async (): Promise<InitStepResult> => {
+              if (ended === undefined) throw failure
+              return dashboardStepResult(ended, host.execPath)
+            },
+          )
         }
         ui.outro(GETTING_STARTED_URL)
-        if (setupFailed) throw new CliRefusal([], 3)
+        if (runner.failed()) throw new CliRefusal([], 3)
       } catch (error) {
         threw = true
         const interrupted =
