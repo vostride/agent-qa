@@ -18,11 +18,14 @@ import {
 } from './init-filesystem.js'
 import { projectHost, type ProjectHost } from './project-host.js'
 import {
+  pluginSkillSources,
   readSkillFiles,
   resolveAgentQaSkillSource,
   sha256Of,
   stampSkillFrontmatter,
   type AgentQaSkillSource,
+  type PluginSkillSource,
+  type SkillFile,
 } from './skill-install.js'
 import { listAgentQaSkills } from './skills.js'
 
@@ -74,22 +77,46 @@ function byPath<T extends { path: string }>(a: T, b: T): number {
   return a.path < b.path ? -1 : a.path > b.path ? 1 : 0
 }
 
-function planSkillFiles(source: AgentQaSkillSource, agents: readonly CodingAgent[]): PlannedFile[] {
+interface SkillToPlan {
+  folder: string
+  dir: string
+  stamp: { version: string; name?: string }
+}
+
+function stampedSkillFiles(skill: SkillToPlan): SkillFile[] {
+  return readSkillFiles(skill.dir).map((file) =>
+    file.path === 'SKILL.md'
+      ? {
+          path: file.path,
+          bytes: Buffer.from(stampSkillFrontmatter(file.bytes.toString('utf-8'), skill.stamp)),
+        }
+      : file,
+  )
+}
+
+function planSkillFiles(
+  source: AgentQaSkillSource,
+  plugins: readonly PluginSkillSource[],
+  agents: readonly CodingAgent[],
+): PlannedFile[] {
+  const skills: SkillToPlan[] = [
+    ...listAgentQaSkills(source.dir).map((skill) => ({
+      folder: skill.name,
+      dir: skill.path,
+      stamp: { version: source.version },
+    })),
+    ...plugins.map((plugin) => ({
+      folder: plugin.folder,
+      dir: plugin.dir,
+      stamp: { version: plugin.version, name: plugin.folder },
+    })),
+  ]
   const planned: PlannedFile[] = []
-  for (const skill of listAgentQaSkills(source.dir)) {
-    const files = readSkillFiles(skill.path).map((file) =>
-      file.path === 'SKILL.md'
-        ? {
-            path: file.path,
-            bytes: Buffer.from(
-              stampSkillFrontmatter(file.bytes.toString('utf-8'), { version: source.version }),
-            ),
-          }
-        : file,
-    )
+  for (const skill of skills) {
+    const files = stampedSkillFiles(skill)
     for (const agent of agents) {
       for (const file of files) {
-        const path = `${AGENT_SKILL_ROOTS[agent]}/${skill.name}/${file.path}`
+        const path = `${AGENT_SKILL_ROOTS[agent]}/${skill.folder}/${file.path}`
         if (agentOfManifestPath(path) === agent) planned.push({ path, bytes: file.bytes })
       }
     }
@@ -138,6 +165,8 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
     )
   }
   if (!parts.includes('skills')) return result
+  const plugins = await pluginSkillSources(projectDir, source.version)
+  result.notes.push(...plugins.notes)
 
   const listed = new Map((previous?.files ?? []).map((file) => [file.path, file.sha256]))
   const records = new Map<string, string>()
@@ -146,7 +175,7 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
     if (agent !== undefined && !chosen.includes(agent)) records.set(path, sha256)
   }
   const failures: string[] = []
-  const planned = planSkillFiles(source, chosen)
+  const planned = planSkillFiles(source, plugins.sources, chosen)
 
   for (const file of planned) {
     const absolute = join(projectDir, file.path)
