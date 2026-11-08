@@ -7,6 +7,9 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ignoredDirs = new Set(['.git', '.turbo', '.pnpm-store', '.release', 'dist', 'node_modules'])
 const requiredRootSnippets = ['agent-qa', 'AGENT_QA_*', 'agent_qa_*', '@vostride/agent-qa-*']
 const forbiddenBranding = ['AgentQA', 'AGENTQA', 'agentqa', 'agentqa_']
+const sampleSkills = [
+  { name: 'agent-qa-knowledge', shortDescription: 'Read agent-qa runs, evidence and knowledge' },
+]
 
 function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'))
@@ -67,7 +70,7 @@ export async function loadGeneratedInstructions(rootDir = root) {
       label: 'generated root AGENTS.md pointer',
       body: block.renderManagedBlock({
         descriptor: block.AGENT_QA_INIT_MARKDOWN_BLOCK,
-        body: guide.buildAgentInstructionPointer(),
+        body: guide.buildAgentInstructionPointer(sampleSkills, '0.0.0'),
         target: 'AGENTS.md',
       }),
     },

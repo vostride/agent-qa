@@ -46,7 +46,11 @@ import {
   buildKnowledgeAgentGuide,
   KNOWLEDGE_SKILL_NAME,
 } from '../../commands/knowledge-guide.js'
-import { resolveAgentQaSkillsDirectory } from '../../commands/skills.js'
+import { installedAgentQaVersion } from '../../commands/package-json-plan.js'
+import {
+  resolveAgentQaSkillsDirectory,
+  runningAgentQaSkillSummaries,
+} from '../../commands/skills.js'
 import { curationOutcomeLine } from '../../curation/curation-tail.js'
 import { createAgentQaProgram } from '../../program.js'
 import { registryOpIds } from './adapters.js'
@@ -487,7 +491,13 @@ function guidanceInputs(sourceRoot: string, packagedRoot: string): GuidanceInput
   const findings: string[] = []
   const subjects: GuidanceSubject[] = [
     { name: 'generated guide', body: buildKnowledgeAgentGuide() },
-    { name: 'root pointer', body: buildAgentInstructionPointer().join('\n') },
+    {
+      name: 'root pointer',
+      body: buildAgentInstructionPointer(
+        runningAgentQaSkillSummaries(),
+        installedAgentQaVersion(),
+      ).join('\n'),
+    },
     { name: 'MCP instructions', body: AGENT_QA_MCP_INSTRUCTIONS },
   ]
 

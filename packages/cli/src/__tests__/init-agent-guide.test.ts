@@ -40,8 +40,9 @@ import {
   managedBlockMarkers,
   renderManagedBlock,
 } from '../commands/managed-block.js'
+import { installedAgentQaVersion } from '../commands/package-json-plan.js'
 import { createRunsCommand } from '../commands/runs.js'
-import { createSkillsCommand } from '../commands/skills.js'
+import { createSkillsCommand, runningAgentQaSkillSummaries } from '../commands/skills.js'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
 const GUIDE = join('agent-qa-knowledge', 'AGENTS.md')
@@ -69,10 +70,15 @@ function stdout(): string {
   return stripVTControlCharacters(log.mock.calls.map((call) => call.map(String).join(' ')).join('\n'))
 }
 
+// The same skills and version init passes, so these match the block init prints and writes.
+function pointerBody(): readonly string[] {
+  return buildAgentInstructionPointer(runningAgentQaSkillSummaries(), installedAgentQaVersion())
+}
+
 function pointerBlock(): string {
   return renderManagedBlock({
     descriptor: AGENT_QA_INIT_MARKDOWN_BLOCK,
-    body: buildAgentInstructionPointer(),
+    body: pointerBody(),
     target: 'AGENTS.md',
   })
 }
@@ -220,16 +226,22 @@ describe('INIT-POINTER-PRINT: init prints the root pointer and writes no root fi
     const dir = tempProject()
     await runInit(dir)
 
-    const body = buildAgentInstructionPointer()
-    expect(body.length).toBeGreaterThanOrEqual(5)
-    expect(body.length).toBeLessThanOrEqual(9)
+    const body = pointerBody()
     const text = body.join('\n')
     for (const needle of [
-      'agent-qa runs list', 'agent-qa runs overview <runId>', 'agent-qa-knowledge/AGENTS.md', 'agent-qa skills',
-      '--json', 'agent_qa_*', '.agent-qa/', 'SQLite',
+      'agent-qa runs list', 'agent-qa runs overview <runId>', 'agent-qa-knowledge/AGENTS.md',
+      '--json', 'agent_qa_*', 'agent-qa MCP server', '.agent-qa/', 'SQLite',
+      `Skills (agent-qa ${installedAgentQaVersion()}):`,
     ]) {
       expect(text, needle).toContain(needle)
     }
+    const skills = runningAgentQaSkillSummaries()
+    expect(skills.length).toBeGreaterThan(0)
+    for (const skill of skills) {
+      expect(body, skill.name).toContain(`  - ${skill.name}: ${skill.shortDescription}`)
+    }
+    expect(body.at(-1)).toBe('- Skills or MCP server missing or stale: run `npx agent-qa init`')
+    expect(text).not.toContain('npx agent-qa skills')
     expect(stdout()).toContain(`\n${pointerBlock()}\n`)
   })
 
@@ -258,7 +270,7 @@ describe('INIT-POINTER-PRINT: init prints the root pointer and writes no root fi
 const FLAG = WRITE_AGENT_INSTRUCTIONS_FLAG
 const POINTER = {
   descriptor: AGENT_QA_INIT_MARKDOWN_BLOCK,
-  body: buildAgentInstructionPointer(),
+  body: pointerBody(),
   target: 'AGENTS.md',
 }
 const MARKERS = managedBlockMarkers(AGENT_QA_INIT_MARKDOWN_BLOCK)

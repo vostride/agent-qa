@@ -614,7 +614,10 @@ describe('MANAGED-CONCURRENCY', () => {
 describe('MANAGED-POINTER', () => {
   const POINTER: ManagedBlockContent = {
     descriptor: AGENT_QA_INIT_MARKDOWN_BLOCK,
-    body: buildAgentInstructionPointer(),
+    body: buildAgentInstructionPointer(
+      [{ name: 'agent-qa-knowledge', shortDescription: 'Read agent-qa runs and knowledge' }],
+      '1.2.3',
+    ),
     target: 'AGENTS.md',
   }
   const { start, end } = managedBlockMarkers(AGENT_QA_INIT_MARKDOWN_BLOCK)

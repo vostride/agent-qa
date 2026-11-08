@@ -7,7 +7,13 @@ import { fileURLToPath } from 'node:url'
 import { Command } from 'commander'
 import { parse as parseYaml } from 'yaml'
 import { AGENT_QUESTION_MAP, KNOWLEDGE_SKILL_NAME } from '../commands/knowledge-guide.js'
-import { createSkillsCommand, listAgentQaSkills, resolveAgentQaSkillsDirectory } from '../commands/skills.js'
+import {
+  createSkillsCommand,
+  listAgentQaSkills,
+  resolveAgentQaSkillsDirectory,
+  runningAgentQaSkillSummaries,
+  skillSummary,
+} from '../commands/skills.js'
 
 const SOURCE_SKILLS_DIR = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../../../skills')
 const SHIPPED_SKILLS = readdirSync(SOURCE_SKILLS_DIR, { withFileTypes: true })
@@ -198,6 +204,67 @@ describe('skills directory listing', () => {
     const listed = listAgentQaSkills(SOURCE_SKILLS_DIR)
     expect(listed.map(skill => skill.name)).toEqual(SHIPPED_SKILLS)
     for (const skill of listed) expect(skill.description, skill.name).toMatch(/^Use /)
+  })
+})
+
+describe('skill summaries', () => {
+  const roots: string[] = []
+
+  afterEach(async () => {
+    await Promise.all(roots.map(root => rm(root, { recursive: true, force: true })))
+    roots.length = 0
+  })
+
+  it('takes the short description, else the first sentence of the description', () => {
+    expect(skillSummary([
+      '---',
+      'name: agent-qa-knowledge',
+      'description: Use when reading runs. Never through files.',
+      'metadata:',
+      '  short-description: Read agent-qa runs',
+      '---',
+      'body',
+    ].join('\r\n'))).toEqual({ name: 'agent-qa-knowledge', shortDescription: 'Read agent-qa runs' })
+    const folded = [
+      '---',
+      'name: agent-qa-plugin-acme',
+      'description: >',
+      '  Use for acme',
+      '  browsers. Then more.',
+      '---',
+      '',
+    ].join('\n')
+    expect(skillSummary(folded))
+      .toEqual({ name: 'agent-qa-plugin-acme', shortDescription: 'Use for acme browsers.' })
+    expect(skillSummary('---\nname: agent-qa-plugin-acme\ndescription: No full stop\n---\n'))
+      .toEqual({ name: 'agent-qa-plugin-acme', shortDescription: 'No full stop' })
+  })
+
+  it('refuses a SKILL.md whose frontmatter names no skill', () => {
+    expect(() => skillSummary('# no frontmatter\n')).toThrow('names no skill')
+    expect(() => skillSummary('---\ndescription: d\n---\n')).toThrow('names no skill')
+  })
+
+  it('summarizes the running package\'s skills in name order', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'agent-qa-skills-summary-'))
+    roots.push(root)
+    await writeFile(path.join(root, 'package.json'), JSON.stringify({ name: 'agent-qa' }))
+    for (const name of ['agent-qa-zeta', 'agent-qa-alpha']) {
+      await mkdir(path.join(root, 'skills', name), { recursive: true })
+      const frontmatter = [
+        `name: ${name}`,
+        `description: Use ${name}.`,
+        'metadata:',
+        `  short-description: ${name} short`,
+      ]
+      const skillFile = path.join(root, 'skills', name, 'SKILL.md')
+      await writeFile(skillFile, `---\n${frontmatter.join('\n')}\n---\n`)
+    }
+
+    expect(runningAgentQaSkillSummaries(path.join(root, 'dist'))).toEqual([
+      { name: 'agent-qa-alpha', shortDescription: 'agent-qa-alpha short' },
+      { name: 'agent-qa-zeta', shortDescription: 'agent-qa-zeta short' },
+    ])
   })
 })
 
