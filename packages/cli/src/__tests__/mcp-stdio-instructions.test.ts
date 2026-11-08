@@ -99,15 +99,14 @@ describe('the stdio server instructions match the init guide', () => {
 
   it('init writes no CLAUDE.md', () => {
     const fresh = tempDir()
-    init(fresh, '--write-agent-instructions')
-    expect(existsSync(join(fresh, 'AGENTS.md')), 'the pointer was not written to AGENTS.md').toBe(true)
+    init(fresh)
     expect(existsSync(join(fresh, 'CLAUDE.md'))).toBe(false)
     expect(existsSync(join(fresh, 'agent-qa-knowledge', 'CLAUDE.md'))).toBe(false)
 
     const owned = tempDir()
     const before = Buffer.from('# Working agreements\n\nKeep this file as it is.\n', 'utf8')
     writeFileSync(join(owned, 'CLAUDE.md'), before)
-    init(owned, '--write-agent-instructions')
+    init(owned)
     expect(readFileSync(join(owned, 'CLAUDE.md')).equals(before)).toBe(true)
     expect(existsSync(join(owned, 'agent-qa-knowledge', 'CLAUDE.md'))).toBe(false)
   }, 240_000)

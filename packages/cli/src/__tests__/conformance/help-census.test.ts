@@ -35,10 +35,7 @@ import {
   typedVerbs,
 } from '../../capability-catalog/chat-discovery.js'
 import { loadCapabilityCatalog } from '../../capability-catalog/loader.js'
-import {
-  DEDICATED_READ_VERBS,
-  INIT_AGENT_INSTRUCTIONS_VERB,
-} from '../../capability-catalog/manifest.js'
+import { DEDICATED_READ_VERBS } from '../../capability-catalog/manifest.js'
 import { buildKnowledgeReadme } from '../../commands/init.js'
 import {
   AGENT_QUESTION_MAP,
@@ -755,12 +752,6 @@ function manifestFindings(program: Command = createAgentQaProgram()): readonly s
     const longs = sorted(live.options.flatMap((option) => (option.long === undefined ? [] : [option.long])))
     if (JSON.stringify(longs) !== JSON.stringify(sorted(entry.flags))) {
       findings.push(`manifest verb "${entry.verb}" lists ${sorted(entry.flags).join(' ')}, the live command has ${longs.join(' ')}`)
-    }
-  }
-  const init = find(INIT_AGENT_INSTRUCTIONS_VERB.verb)
-  for (const flag of INIT_AGENT_INSTRUCTIONS_VERB.flags) {
-    if (init?.options.some((option) => option.long === flag) !== true) {
-      findings.push(`manifest init flag ${flag} is not an option of the live init command`)
     }
   }
 

@@ -4,8 +4,6 @@ export const KNOWLEDGE_SKILL_NAME = 'agent-qa-knowledge'
 
 export const CODING_AGENTS_URL = 'https://vostride.com/docs/agent-qa/coding-agents'
 
-export const WRITE_AGENT_INSTRUCTIONS_FLAG = '--write-agent-instructions'
-
 export interface AgentQuestion {
   readonly question: string
   readonly cli: string

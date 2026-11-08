@@ -35,30 +35,18 @@ import {
   TARGET_GITIGNORE_PROBES,
   classifyInitPath,
   preflightInitPlan,
-  preflightManagedBlock,
-  upsertManagedBlock,
   upsertManagedGitignoreBlock,
   verifyEffectiveGitignore,
   writeConfigMarkerLast,
   writeScaffoldFileAtomic,
   type InitFileResult,
   type InitPathPlan,
-  type ManagedBlockUpsertPlan,
 } from './init-filesystem.js'
-import {
-  WRITE_AGENT_INSTRUCTIONS_FLAG,
-  buildAgentInstructionPointer,
-  buildKnowledgeAgentGuide,
-} from './knowledge-guide.js'
-import {
-  AGENT_QA_INIT_MARKDOWN_BLOCK,
-  renderManagedBlock,
-  type ManagedBlockContent,
-} from './managed-block.js'
+import { buildKnowledgeAgentGuide } from './knowledge-guide.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
 import type { InitUi } from '../init-ui/init-ui.js'
 import { createPlainUi } from '../init-ui/plain-ui.js'
-import { InitRefusal, isInitRefusal } from './init-refusal.js'
+import { isInitRefusal } from './init-refusal.js'
 import {
   defaultInitFolderIo,
   initFolderOptionRefusal,
@@ -99,7 +87,6 @@ import {
 } from './project-agent-qa.js'
 import { projectHost, type ProjectHost, type ProjectIo } from './project-host.js'
 import { nearestInstalledPackage, projectRange, type ProjectRange } from './project-range.js'
-import { runningAgentQaSkillSummaries } from './skills.js'
 
 // Re-exported because this module is their public door.
 export { SUPPORTED_INIT_PLATFORMS, parseInitPlatform } from './scaffold-content.js'
@@ -585,32 +572,6 @@ function initNextSteps(
   return steps
 }
 
-const ROOT_AGENT_INSTRUCTIONS_FILE = 'AGENTS.md'
-
-function agentInstructionPointerContent(): ManagedBlockContent {
-  return {
-    descriptor: AGENT_QA_INIT_MARKDOWN_BLOCK,
-    body: buildAgentInstructionPointer(runningAgentQaSkillSummaries(), installedAgentQaVersion()),
-    target: ROOT_AGENT_INSTRUCTIONS_FILE,
-  }
-}
-
-function agentInstructionPointerBlock(): string {
-  return renderManagedBlock(agentInstructionPointerContent())
-}
-
-// The config marker records completion, so a failed root block reports the scaffold incomplete.
-function incompleteScaffoldError(error: unknown, configName: string): Error {
-  const reason = error instanceof Error ? error.message : String(error)
-  const message =
-    `${reason}\nThe other scaffold files were written, but ${configName} was not written, `
-    + 'so this project is not initialized. Fix the cause above and rerun agent-qa init; '
-    + 'files it already wrote are kept.'
-  return isInitRefusal(error)
-    ? new InitRefusal(message, { cause: error })
-    : new Error(message, { cause: error })
-}
-
 // A refusal exits 2 with its message alone; a bug or a prompt cancel passes through unchanged.
 function asInitRefusal(error: unknown): unknown {
   if (error instanceof CliRefusal) return error
@@ -618,12 +579,6 @@ function asInitRefusal(error: unknown): unknown {
     return new CliRefusal([pc.red(error.message)], 2, { cause: error })
   }
   return error
-}
-
-// Printed flush left: an indented marker line is not a marker, and the writer would refuse it.
-function showAgentInstructionPointer(ui: InitUi): void {
-  ui.line(`Coding agents: add this block to ${ROOT_AGENT_INSTRUCTIONS_FILE} at the project root:`)
-  ui.line(agentInstructionPointerBlock())
 }
 
 export interface InitCommandHooks {
@@ -807,10 +762,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
     )
     .option('--yes', 'ask nothing and take every default')
     .option('--json', 'print one JSON document on stdout and the steps on stderr; asks nothing')
-    .option(
-      WRITE_AGENT_INSTRUCTIONS_FLAG,
-      'also write the agent-qa pointer block into AGENTS.md at the project root',
-    )
     .option(
       '--agent',
       'print the JSON capability manifest (catalog and local posture) and exit; writes nothing',
@@ -1063,22 +1014,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           content: renderScaffoldConfigYaml(config),
           force,
         }
-        const agentInstructionsPlan: ManagedBlockUpsertPlan | null = opts.writeAgentInstructions === true
-          ? {
-            root: dir,
-            path: join(dir, ROOT_AGENT_INSTRUCTIONS_FILE),
-            content: agentInstructionPointerContent(),
-          }
-          : null
-        const completePlan = [
-          ...filePlans,
-          packageJsonFilePlan,
-          targetGitignorePlan,
-          ...(agentInstructionsPlan ? [{ root: dir, path: agentInstructionsPlan.path, content: '' }] : []),
-          configPlan,
-        ]
+        const completePlan = [...filePlans, packageJsonFilePlan, targetGitignorePlan, configPlan]
         const preflight = preflightInitPlan(completePlan)
-        if (agentInstructionsPlan) preflightManagedBlock(agentInstructionsPlan)
 
         const knowledgeGitignorePath = join(dir, KNOWLEDGE_ROOT_DIR, '.gitignore')
         const knowledgeGitignoreWasPresent = preflight.some(
@@ -1152,14 +1089,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             })
           }
 
-          if (agentInstructionsPlan) {
-            try {
-              recordOutcome('scaffold', upsertManagedBlock(agentInstructionsPlan))
-            } catch (error) {
-              throw incompleteScaffoldError(error, DEFAULT_CONFIG_FILE_NAME)
-            }
-          }
-
           recordOutcome('scaffold', writeConfigMarkerLast(configPlan, {}))
           hooks.onComplete?.([...outcomes])
           return { outcome: 'done', text: scaffoldText(platform, outcomes.length - before) }
@@ -1228,7 +1157,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         })
         recorder.nextSteps(nextSteps)
         showNextSteps(ui, nextSteps)
-        if (!agentInstructionsPlan) showAgentInstructionPointer(ui)
         if (runner.failed()) throw new CliRefusal([], 3)
       } catch (error) {
         threw = true

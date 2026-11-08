@@ -75,6 +75,16 @@ afterEach(() => {
   cleanupTempProjects()
 })
 
+describe('init --help', () => {
+  it('lists --yes and --json and no --write-agent-instructions', () => {
+    const help = createInitCommand().helpInformation()
+
+    expect(help).toContain('--yes')
+    expect(help).toContain('--json')
+    expect(help).not.toContain('--write-agent-instructions')
+  })
+})
+
 describe('init in a terminal', () => {
   it('asks its questions without --yes or --json', async () => {
     const ui = fakeInitUi()
