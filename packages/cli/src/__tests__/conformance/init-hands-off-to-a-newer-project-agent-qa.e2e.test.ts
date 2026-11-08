@@ -202,13 +202,13 @@ describe('init hands off to a newer project agent-qa', () => {
   )
 
   it(
-    'init --agent never hands off',
+    'init --capabilities never hands off',
     async () => {
       expectFresh()
       const root = projectFolder('agent')
       plantCopy(root, { version: '99.0.0' })
 
-      const outcome = await agentQa(root, ['init', '--agent'])
+      const outcome = await agentQa(root, ['init', '--capabilities'])
 
       expect(outcome.code, outcome.text).toBe(0)
       expect(fakeRan(outcome), outcome.text).toBe(false)

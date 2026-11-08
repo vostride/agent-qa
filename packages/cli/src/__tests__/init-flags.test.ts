@@ -1,4 +1,5 @@
-import { existsSync, readdirSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { Command } from 'commander'
@@ -8,6 +9,15 @@ import { parse as parseYaml } from 'yaml'
 import { createInitCommand } from '../commands/init.js'
 import type { InitDocument } from '../commands/init-document.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
+import {
+  CLI_ENTRY,
+  REBUILD_INSTRUCTION,
+  buildFreshness,
+  cleanupTempRoots,
+  spawnCollecting,
+  trackTempRoot,
+  type SpawnOutcome,
+} from './conformance/spawned-chat.js'
 import { fakeInitUi, type FakeInitUi } from './fake-init-ui.js'
 import {
   cleanupTempProjects,
@@ -66,6 +76,7 @@ afterEach(() => {
   vi.clearAllMocks()
   vi.restoreAllMocks()
   cleanupTempProjects()
+  cleanupTempRoots()
 })
 
 describe('init --help', () => {
@@ -83,6 +94,113 @@ describe('init --help', () => {
     expect(help).toContain('--no-dashboard')
     expect(help).toContain('--no-browsers')
   })
+
+  it('lists every init flag and hides --agent, --dir and --config', () => {
+    const flags = createInitCommand()
+      .helpInformation()
+      .split('\n')
+      .flatMap((line) => /^\s+(?:-\w, )?(--[\w-]+)/u.exec(line)?.[1] ?? [])
+
+    expect(flags).toEqual(
+      expect.arrayContaining([
+        '--platform',
+        '--llm',
+        '--model',
+        '--base-url',
+        '--force',
+        '--pm',
+        '--yes',
+        '--json',
+        '--agents',
+        '--no-browsers',
+        '--no-dashboard',
+        '--capabilities',
+      ]),
+    )
+    expect(flags).not.toContain('--agent')
+    expect(flags).not.toContain('--dir')
+    expect(flags).not.toContain('--config')
+  })
+})
+
+const SPAWN_BUDGET_MS = 60_000
+const AGENT_LINE = '--agent is now --capabilities: run npx agent-qa init --capabilities.'
+
+function builtProject(label: string): string {
+  const freshness = buildFreshness()
+  expect(
+    { missing: freshness.missing, stale: freshness.stale },
+    `these cells drive the built CLI: ${REBUILD_INSTRUCTION}`,
+  ).toEqual({ missing: [], stale: [] })
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-init-flags-${label}-`)))
+  mkdirSync(join(root, '.git'))
+  return root
+}
+
+async function builtInit(root: string, args: readonly string[]): Promise<SpawnOutcome> {
+  const home = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-init-flags-home-')))
+  return await spawnCollecting(root, [CLI_ENTRY, 'init', ...args], {
+    HOME: home,
+    USERPROFILE: home,
+  })
+}
+
+describe('init --capabilities prints the capability manifest', () => {
+  it(
+    'prints one JSON manifest on stdout, nothing on stderr, and writes nothing',
+    async () => {
+      const root = builtProject('capabilities')
+      const before = filesUnder(root)
+
+      const outcome = await builtInit(root, ['--capabilities'])
+
+      expect(outcome.code, outcome.stderr).toBe(0)
+      const manifest = JSON.parse(outcome.stdout) as { rows?: unknown; posture?: unknown }
+      expect(manifest.rows).toEqual(expect.any(Array))
+      expect(manifest.posture).toMatchObject({ configuration: 'absent' })
+      expect(outcome.stderr).toBe('')
+      expect(filesUnder(root)).toEqual(before)
+    },
+    SPAWN_BUDGET_MS,
+  )
+})
+
+describe('init --agent is refused with the new flag', () => {
+  it(
+    'prints the line pointing at --capabilities, suggests nothing, exits 2 and writes nothing',
+    async () => {
+      const root = builtProject('agent')
+      const before = filesUnder(root)
+
+      const outcome = await builtInit(root, ['--agent'])
+      const text = `${outcome.stdout}\n${outcome.stderr}`
+
+      expect(outcome.code, text).toBe(2)
+      expect(outcome.stderr.split('\n'), text).toContain(AGENT_LINE)
+      expect(text).not.toContain('Did you mean')
+      expect(filesUnder(root)).toEqual(before)
+    },
+    SPAWN_BUDGET_MS,
+  )
+
+  it(
+    'under --json prints one refused document with the line',
+    async () => {
+      const root = builtProject('agent-json')
+      const before = filesUnder(root)
+
+      const outcome = await builtInit(root, ['--agent', '--json'])
+
+      expect(outcome.code, outcome.stderr).toBe(2)
+      expect(JSON.parse(outcome.stdout)).toMatchObject({
+        outcome: 'refused',
+        exitCode: 2,
+        message: AGENT_LINE,
+      })
+      expect(filesUnder(root)).toEqual(before)
+    },
+    SPAWN_BUDGET_MS,
+  )
 })
 
 describe('init in a terminal', () => {

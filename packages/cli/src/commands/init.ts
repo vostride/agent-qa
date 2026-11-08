@@ -753,14 +753,16 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
     .option('--yes', 'ask nothing and take every default')
     .option('--json', 'print one JSON document on stdout and the steps on stderr; asks nothing')
     .option(
-      '--agent',
+      '--capabilities',
       'print the JSON capability manifest (catalog and local posture) and exit; writes nothing',
     )
+    // Declared so commander does not answer it with a suggestion of --agents.
+    .addOption(new Option('--agent').hideHelp())
     .action(async (opts, command: Command) => {
-      const json = opts.json === true && opts.agent !== true
+      const json = opts.json === true && opts.capabilities !== true
       // Taken first and released only after a run that ended well: a failure's block must go to
       // stderr.
-      const releaseStdout = opts.agent === true || json ? reserveStdoutForData() : undefined
+      const releaseStdout = opts.capabilities === true || json ? reserveStdoutForData() : undefined
       const projectDir = hooks.cwd ?? process.cwd()
       const configPath = join(projectDir, DEFAULT_CONFIG_FILE_NAME)
       const host = projectHost({ cwd: projectDir, ...hooks.host })
@@ -771,10 +773,17 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       let delegated = false
       let threw = false
       try {
+        if (opts.agent === true) {
+          throw new CliRefusal(
+            [pc.red('--agent is now --capabilities: run npx agent-qa init --capabilities.')],
+            2,
+          )
+        }
         const optionRefusal = initFolderOptionRefusal(command, opts)
         if (optionRefusal !== undefined) throw new CliRefusal([pc.red(optionRefusal)], 2)
-        // `--agent` is a read that returns before any prompt or file, so no branch below can write.
-        if (opts.agent === true) {
+        // `--capabilities` is a read that returns before any prompt or file, so no branch below
+        // can write.
+        if (opts.capabilities === true) {
           // IMPORTED HERE AND NOT AT THE TOP, deliberately. The manifest reads the local
           // composition's posture, so its module graph reaches the agent host, and `init`'s
           // ordinary job is to write a scaffold into a directory where no host could compose yet.
@@ -785,10 +794,11 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           const { buildAgentManifest } = await import('../capability-catalog/manifest.js')
           // The posture is read from agent-qa.config.yaml in the folder init runs in.
           const manifest = await buildAgentManifest({ configPath })
-          // STDOUT AND NOTHING ELSE ON IT. The whole of this command's output under `--agent` is
-          // one JSON document, so it pipes into a parser without a filter in between.
+          // STDOUT AND NOTHING ELSE ON IT. The whole of this command's output under
+          // `--capabilities` is one JSON document, so it pipes into a parser without a filter in
+          // between.
           console.log(guardJsonText(JSON.stringify(manifest, null, 2)))
-          // `--agent` writes nothing, so it emits no init event.
+          // `--capabilities` writes nothing, so it emits no init event.
           return
         }
 

@@ -124,12 +124,12 @@ describe('the folder init runs in', () => {
   )
 
   it(
-    'init --agent reads the config in the folder it runs in',
+    'init --capabilities reads the config in the folder it runs in',
     async () => {
       expectFresh()
       const root = projectFolder('agent')
       plantConfig(root)
-      const outcome = await agentQa(root, ['init', '--agent'])
+      const outcome = await agentQa(root, ['init', '--capabilities'])
       expect(outcome.code, outcome.text).toBe(0)
       const manifest = JSON.parse(outcome.stdout) as { posture: { configuration: unknown } }
       expect(manifest.posture.configuration).not.toBe('absent')
@@ -138,11 +138,11 @@ describe('the folder init runs in', () => {
   )
 
   it(
-    'a refused init --agent under GitHub Actions prints its block on stderr and nothing on stdout',
+    'a refused init --capabilities under GitHub Actions prints its block on stderr and nothing on stdout',
     async () => {
       expectFresh()
       const root = projectFolder('agent-refused')
-      const outcome = await agentQa(root, ['init', '--agent', '--dir', 'e2e'], {
+      const outcome = await agentQa(root, ['init', '--capabilities', '--dir', 'e2e'], {
         GITHUB_ACTIONS: 'true',
       })
       expect(outcome.code, outcome.text).toBe(2)

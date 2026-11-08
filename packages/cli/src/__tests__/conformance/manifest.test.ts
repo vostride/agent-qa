@@ -244,7 +244,7 @@ describe('the catalog\'s example calls', () => {
   })
 })
 
-// ---- `init --agent` ---------------------------------------------------------------------
+// ---- `init --capabilities` ---------------------------------------------------------------------
 
 describe('the agent manifest', () => {
   const roots: string[] = []
@@ -404,12 +404,12 @@ describe('the agent manifest', () => {
   })
 
   it('tells a directory that is not a project yet from one whose config will not read', async () => {
-    // `init --agent` is what an agent runs BEFORE there is a project — that is what `init` is for —
-    // so neither state below may be an error, and neither may be reported as `resolved` with no
-    // credentials, which reads as "this workspace declares none" about a workspace nobody could
-    // read. The two are told apart by whether the FILE IS THERE, so the classification never comes
-    // from an exception's message: the message quotes the file, and the file is where credentials
-    // are declared.
+    // `init --capabilities` is what an agent runs BEFORE there is a project — that is what `init`
+    // is for — so neither state below may be an error, and neither may be reported as `resolved`
+    // with no credentials, which reads as "this workspace declares none" about a workspace nobody
+    // could read. The two are told apart by whether the FILE IS THERE, so the classification never
+    // comes from an exception's message: the message quotes the file, and the file is where
+    // credentials are declared.
     const bare = mkdtempSync(join(tmpdir(), 'agent-qa-bare-'))
     roots.push(bare)
     const absent = await buildAgentManifest({ configPath: join(bare, 'agent-qa.config.yaml') })

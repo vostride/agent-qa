@@ -175,13 +175,13 @@ async function driveChatInProcess(configPath: string): Promise<{ stdout: string;
   }
 }
 
-/** Drive the SHIPPED binary's `init --agent` against a project directory. */
+/** Drive the SHIPPED binary's `init --capabilities` against a project directory. */
 async function spawnAgentManifest(
   root: string,
   args: readonly string[],
   extraEnv: Readonly<Record<string, string>> = {},
 ): Promise<SpawnOutcome> {
-  return await spawnCollecting(root, [CLI_ENTRY, 'init', '--agent', ...args], extraEnv)
+  return await spawnCollecting(root, [CLI_ENTRY, 'init', '--capabilities', ...args], extraEnv)
 }
 
 /** Run a one-liner in a child with the same constructed environment — the sentinel's own control. */
@@ -399,7 +399,7 @@ describe('the built-binary anchors', () => {
       expect(committed.rows.length, 'the committed catalog carried no rows').toBeGreaterThan(0)
     }, 180_000)
 
-  it('the shipped init --agent manifest is the committed catalog, row for row',
+  it('the shipped init --capabilities manifest is the committed catalog, row for row',
     async () => {
       // WHAT THIS CELL CAN SEE THAT NOTHING IN `manifest.test.ts` CAN. That file drives
       // `buildAgentManifest` in this process, which is the right fidelity for the manifest's own
@@ -424,7 +424,7 @@ describe('the built-binary anchors', () => {
       // that is the child's own stderr, quoted here rather than found in a rerun.
       expect(
         { code: outcome.code, signal: outcome.signal, stderr: outcome.stderr.trim().slice(0, 600) },
-        'the spawned `init --agent` did not exit cleanly',
+        'the spawned `init --capabilities` did not exit cleanly',
       ).toMatchObject({ code: 0, signal: null })
 
       // The whole of stdout is parsed as the document; a machine entry point needs no filter.
@@ -439,7 +439,7 @@ describe('the built-binary anchors', () => {
       const committed = loadCapabilityCatalog()
       expect(
         manifest.rows,
-        'the shipped `init --agent` and the committed catalog disagree about the capability rows',
+        'the shipped `init --capabilities` and the committed catalog disagree about the capability rows',
       ).toEqual(committed.rows)
 
       // The comparison above is vacuous against two empty documents, so its denominator is
@@ -455,7 +455,7 @@ describe('the built-binary anchors', () => {
         .toEqual(['configuration'])
     }, 120_000)
 
-  it('the shipped init --agent prints a declared credential\'s NAME and never its value',
+  it('the shipped init --capabilities prints a declared credential\'s NAME and never its value',
     async () => {
       // Refs-only on a shipped process's bytes, both streams, with a sentinel that unlocks nothing.
       expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
@@ -470,7 +470,7 @@ describe('the built-binary anchors', () => {
 
       expect(
         { code: outcome.code, signal: outcome.signal },
-        'the spawned `init --agent` did not exit cleanly',
+        'the spawned `init --capabilities` did not exit cleanly',
       ).toEqual({ code: 0, signal: null })
 
       const manifest = AgentManifestSchema.parse(JSON.parse(outcome.stdout) as unknown)
@@ -491,7 +491,7 @@ describe('the built-binary anchors', () => {
       ).toBe(false)
       expect(
         outcome.stderr.includes(sentinel),
-        'the shipped `init --agent` printed the token VALUE on stderr',
+        'the shipped `init --capabilities` printed the token VALUE on stderr',
       ).toBe(false)
 
       // THE CONTROL ON THE CONTROL: the child really could read the sentinel. Without this the two
