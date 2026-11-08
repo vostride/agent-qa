@@ -53,6 +53,29 @@ export function fakeRunner(
   return Object.assign(run, { calls })
 }
 
+export function skillFolderFiles(
+  name: string,
+  extra: Record<string, string> = {},
+): Record<string, string> {
+  const files: Record<string, string> = {
+    [`skills/${name}/SKILL.md`]: [
+      '---',
+      `name: ${name}`,
+      `description: Use when a test needs ${name}, with a description long enough that a YAML writer would fold it at eighty columns if it were allowed to.`,
+      'metadata:',
+      `  short-description: ${name} in short`,
+      '---',
+      '',
+      `# ${name}`,
+      '',
+      'The body stays as it is.',
+      '',
+    ].join('\n'),
+  }
+  for (const [path, content] of Object.entries(extra)) files[`skills/${name}/${path}`] = content
+  return files
+}
+
 export function writeInstalledPackage(
   dir: string,
   name: string,
