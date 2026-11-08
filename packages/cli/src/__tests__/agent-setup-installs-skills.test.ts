@@ -6,6 +6,8 @@ import {
   mkdirSync,
   readFileSync,
   readdirSync,
+  rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs'
 import { join } from 'node:path'
@@ -243,3 +245,258 @@ describe('installing agent-qa skills into a project', () => {
     expect(readdirSync(project.home)).toEqual([])
   })
 })
+
+function shipOnly(root: string, version: string, skills: Record<string, string>): void {
+  rmSync(join(root, 'node_modules', 'agent-qa'), { recursive: true, force: true })
+  installAgentQa(root, version, skills)
+}
+
+function outcomeOf(result: { files: { path: string; outcome: string }[] }, path: string) {
+  return result.files.find((file) => file.path === path)?.outcome
+}
+
+describe('reinstalling agent-qa skills', () => {
+  it("writes agent-qa's copy over an edited file and names it as replaced", async () => {
+    const project = tempProject('reinstall-edit')
+    installAgentQa(project.root, VERSION)
+    await setup(project, BOTH)
+    const edited = '.claude/skills/agent-qa-alpha/SKILL.md'
+    const original = readFileSync(join(project.root, edited))
+    writeFileSync(join(project.root, edited), 'my own version\n')
+
+    const result = await setup(project, BOTH)
+
+    expect(outcomeOf(result, edited)).toBe('replaced')
+    expect(result.notes).toContain(`Replaced your edit: ${edited}`)
+    expect(readFileSync(join(project.root, edited))).toEqual(original)
+    const record = readManifest(project.root).files.find((file) => file.path === edited)
+    expect(record?.sha256).toBe(sha256(original))
+  })
+
+  it('restores a deleted skill folder and leaves the untouched files unchanged', async () => {
+    const project = tempProject('reinstall-restore')
+    installAgentQa(project.root, VERSION)
+    await setup(project, BOTH)
+    rmSync(join(project.root, '.agents/skills/agent-qa-beta'), { recursive: true })
+
+    const result = await setup(project, BOTH)
+
+    expect(outcomeOf(result, '.agents/skills/agent-qa-beta/SKILL.md')).toBe('created')
+    expect(existsSync(join(project.root, '.agents/skills/agent-qa-beta/SKILL.md'))).toBe(true)
+    const others = result.files.filter(
+      (file) => !file.path.startsWith('.agents/skills/agent-qa-beta/'),
+    )
+    expect(others.every((file) => file.outcome === 'unchanged')).toBe(true)
+    expect(result.notes).toEqual([])
+  })
+
+  it("updates an unedited file when the package's copy changed", async () => {
+    const project = tempProject('reinstall-update')
+    installAgentQa(project.root, VERSION)
+    await setup(project, BOTH)
+    shipOnly(project.root, '1.5.0', {
+      ...skillFolderFiles('agent-qa-alpha', {
+        ...ALPHA_EXTRA,
+        'references/notes.md': '# Notes\n\nA newer reference.\n',
+      }),
+      ...skillFolderFiles('agent-qa-beta'),
+    })
+
+    const result = await setup(project, BOTH)
+
+    expect(outcomeOf(result, '.claude/skills/agent-qa-alpha/SKILL.md')).toBe('updated')
+    expect(outcomeOf(result, '.claude/skills/agent-qa-alpha/references/notes.md')).toBe('updated')
+    expect(outcomeOf(result, '.claude/skills/agent-qa-alpha/agents/openai.yaml')).toBe('unchanged')
+    expect(result.files.some((file) => file.outcome === 'replaced')).toBe(false)
+    expect(readManifest(project.root).version).toBe('1.5.0')
+    const installed = readFileSync(
+      join(project.root, '.agents/skills/agent-qa-beta/SKILL.md'),
+      'utf-8',
+    )
+    expect((frontmatter(installed).data.metadata as Record<string, unknown>).version).toBe('1.5.0')
+  })
+
+  it('removes the files and emptied folders of a skill the package no longer ships', async () => {
+    const project = tempProject('reinstall-drop')
+    installAgentQa(project.root, VERSION)
+    await setup(project, BOTH)
+    shipOnly(project.root, VERSION, skillFolderFiles('agent-qa-alpha', ALPHA_EXTRA))
+
+    const result = await setup(project, BOTH)
+
+    for (const root of ['.claude/skills', '.agents/skills']) {
+      expect(outcomeOf(result, `${root}/agent-qa-beta/SKILL.md`)).toBe('removed')
+      expect(existsSync(join(project.root, root, 'agent-qa-beta'))).toBe(false)
+      expect(existsSync(join(project.root, root))).toBe(true)
+    }
+    const paths = readManifest(project.root).files.map((file) => file.path)
+    expect(paths.some((path) => path.includes('/agent-qa-beta/'))).toBe(false)
+    expect(paths).toHaveLength(6)
+  })
+
+  it("never writes or removes a person's own skill or a file they added inside an agent-qa skill", async () => {
+    const project = tempProject('reinstall-unlisted')
+    installAgentQa(project.root, VERSION)
+    await setup(project, BOTH)
+    const ownSkill = join(project.root, '.claude/skills/my-skill/SKILL.md')
+    const ownNotes = join(project.root, '.claude/skills/agent-qa-alpha/my-notes.md')
+    mkdirSync(join(ownSkill, '..'), { recursive: true })
+    writeFileSync(ownSkill, '---\nname: my-skill\n---\nMine.\n')
+    writeFileSync(ownNotes, 'my notes\n')
+
+    await setup(project, BOTH)
+    expect(readFileSync(ownSkill, 'utf-8')).toBe('---\nname: my-skill\n---\nMine.\n')
+    expect(readFileSync(ownNotes, 'utf-8')).toBe('my notes\n')
+
+    shipOnly(project.root, VERSION, skillFolderFiles('agent-qa-beta'))
+    const result = await setup(project, BOTH)
+
+    expect(outcomeOf(result, '.claude/skills/agent-qa-alpha/SKILL.md')).toBe('removed')
+    expect(readFileSync(ownSkill, 'utf-8')).toBe('---\nname: my-skill\n---\nMine.\n')
+    expect(readFileSync(ownNotes, 'utf-8')).toBe('my notes\n')
+    expect(readdirSync(join(project.root, '.claude/skills/agent-qa-alpha'))).toEqual([
+      'my-notes.md',
+    ])
+    expect(existsSync(join(project.root, '.agents/skills/agent-qa-alpha'))).toBe(false)
+    const paths = readManifest(project.root).files.map((file) => file.path)
+    expect(paths.some((path) => path.includes('my-'))).toBe(false)
+  })
+
+  it("adopts an unlisted file equal to agent-qa's copy and keeps and names one that differs", async () => {
+    const reference = tempProject('adopt-reference')
+    installAgentQa(reference.root, VERSION)
+    await setup(reference, ['claude-code'])
+    const project = tempProject('adopt')
+    installAgentQa(project.root, VERSION)
+    const same = '.claude/skills/agent-qa-alpha/SKILL.md'
+    const different = '.claude/skills/agent-qa-beta/SKILL.md'
+    mkdirSync(join(project.root, same, '..'), { recursive: true })
+    mkdirSync(join(project.root, different, '..'), { recursive: true })
+    writeFileSync(join(project.root, same), readFileSync(join(reference.root, same)))
+    writeFileSync(join(project.root, different), 'not agent-qa\n')
+
+    const result = await setup(project, ['claude-code'])
+
+    expect(outcomeOf(result, same)).toBe('unchanged')
+    expect(outcomeOf(result, different)).toBe('kept')
+    expect(readFileSync(join(project.root, different), 'utf-8')).toBe('not agent-qa\n')
+    expect(result.notes).toContain(
+      `${different} exists and is not agent-qa's; remove it and run npx agent-qa init`,
+    )
+    const paths = readManifest(project.root).files.map((file) => file.path)
+    expect(paths).toContain(same)
+    expect(paths).not.toContain(different)
+  })
+
+  it("leaves the other agent's files and records alone when installing for one agent", async () => {
+    const project = tempProject('reinstall-one-agent')
+    installAgentQa(project.root, VERSION)
+    await setup(project, BOTH)
+    const codexRecords = readManifest(project.root).files.filter((file) =>
+      file.path.startsWith('.agents/skills/'),
+    )
+    writeFileSync(join(project.root, '.agents/skills/agent-qa-beta/SKILL.md'), 'edited\n')
+    const codexBefore = snapshot(join(project.root, '.agents/skills'))
+    shipOnly(project.root, '1.5.0', skillFolderFiles('agent-qa-alpha', ALPHA_EXTRA))
+
+    const result = await setup(project, ['claude-code'])
+
+    expect(snapshot(join(project.root, '.agents/skills'))).toEqual(codexBefore)
+    expect(result.files.every((file) => file.path.startsWith('.claude/skills/'))).toBe(true)
+    const manifest = readManifest(project.root)
+    expect(manifest.agents).toEqual(['claude-code', 'codex'])
+    expect(manifest.files.filter((file) => file.path.startsWith('.agents/skills/'))).toEqual(
+      codexRecords,
+    )
+  })
+
+  const malformed: [string, string][] = [
+    ['text that is not JSON', '{ "format": 1,'],
+    [
+      'another format',
+      JSON.stringify({ format: 2, version: VERSION, agents: [], files: [], entries: [] }),
+    ],
+    ['an absolute path', manifestListing('/etc/passwd')],
+    ['a path with a dot-dot segment', manifestListing('.claude/skills/agent-qa-alpha/../../../x')],
+    ['a path with a backslash', manifestListing('.claude\\skills\\agent-qa-alpha\\SKILL.md')],
+    [
+      'a path outside the two skill folders',
+      manifestListing('.codex/skills/agent-qa-alpha/SKILL.md'),
+    ],
+  ]
+
+  it.each(malformed)('refuses a manifest holding %s and writes nothing', async (_label, text) => {
+    const project = tempProject('malformed')
+    installAgentQa(project.root, VERSION)
+    mkdirSync(join(project.root, '.agents'))
+    writeFileSync(join(project.root, MANIFEST), text)
+    const before = snapshot(project.root)
+    const runner = fakeRunner()
+
+    await expect(setup(project, BOTH, runner)).rejects.toThrow(
+      'Refusing malformed .agents/agent-qa-skills.json:',
+    )
+
+    expect(snapshot(project.root)).toEqual(before)
+    expect(runner.calls).toEqual([])
+  })
+
+  it('refuses a symlinked .agents folder before writing anything', async () => {
+    const project = tempProject('symlink-agents')
+    const outside = tempProject('symlink-agents-outside').root
+    installAgentQa(project.root, VERSION)
+    symlinkSync(outside, join(project.root, '.agents'))
+    const runner = fakeRunner()
+
+    await expect(setup(project, BOTH, runner)).rejects.toThrow(/symbolic link/u)
+
+    expect(readdirSync(outside)).toEqual(['.git'])
+    expect(existsSync(join(project.root, '.claude'))).toBe(false)
+    expect(runner.calls).toEqual([])
+  })
+
+  it('fails the skills part and writes nothing through a symlinked .claude folder', async () => {
+    const project = tempProject('symlink-claude')
+    const outside = tempProject('symlink-claude-outside').root
+    installAgentQa(project.root, VERSION)
+    symlinkSync(outside, join(project.root, '.claude'))
+    const runner = fakeRunner()
+
+    const result = await setup(project, BOTH, runner)
+
+    expect(result.parts.skills?.outcome).toBe('failed')
+    expect(result.parts.skills?.reason).toMatch(/symbolic link/u)
+    expect(readdirSync(outside)).toEqual(['.git'])
+    const paths = readManifest(project.root).files.map((file) => file.path)
+    expect(paths.every((path) => path.startsWith('.agents/skills/'))).toBe(true)
+    expect(runner.calls).toEqual([])
+  })
+
+  it('fails the skills part for a folder where a skill file goes and still writes the rest', async () => {
+    const project = tempProject('folder-in-the-way')
+    installAgentQa(project.root, VERSION)
+    const blocked = '.claude/skills/agent-qa-alpha/SKILL.md'
+    mkdirSync(join(project.root, blocked), { recursive: true })
+
+    const result = await setup(project, BOTH)
+
+    expect(result.parts.skills?.outcome).toBe('failed')
+    expect(result.parts.skills?.reason).toContain('directory')
+    expect(lstatSync(join(project.root, blocked)).isDirectory()).toBe(true)
+    expect(existsSync(join(project.root, '.claude/skills/agent-qa-beta/SKILL.md'))).toBe(true)
+    expect(existsSync(join(project.root, '.agents/skills/agent-qa-alpha/SKILL.md'))).toBe(true)
+    const paths = readManifest(project.root).files.map((file) => file.path)
+    expect(paths).not.toContain(blocked)
+    expect(paths).toHaveLength(7)
+  })
+})
+
+function manifestListing(path: string): string {
+  return JSON.stringify({
+    format: 1,
+    version: VERSION,
+    agents: ['claude-code'],
+    files: [{ path, sha256: 'a'.repeat(64) }],
+    entries: [],
+  })
+}
