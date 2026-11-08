@@ -10,7 +10,7 @@ import { runCli, type CliFailureDeps } from '../cli-error-handler.js'
 import { createInitCommand } from '../commands/init.js'
 import type { InitDocument } from '../commands/init-document.js'
 import { initNextSteps } from '../commands/init-next-steps.js'
-import type { RunResult } from '../commands/project-host.js'
+import { defaultProjectIo, type ProjectIo, type RunResult } from '../commands/project-host.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import {
   cleanupTempProjects,
@@ -51,7 +51,7 @@ async function init(
   home: string,
   args: readonly string[],
   run: FakeRunner = fakeRunner(),
-  composeAnalytics: typeof composeAnalyticsHost = silentAnalytics,
+  hooks: { composeAnalytics?: typeof composeAnalyticsHost; io?: ProjectIo } = {},
 ): Promise<InitExit> {
   stdout.mockClear()
   stderr.mockClear()
@@ -60,9 +60,16 @@ async function init(
     .addCommand(
       createInitCommand({
         cwd,
-        host: { homedir: home, env: {}, run, argv: ['init', ...args], execPath: NODE },
+        host: {
+          homedir: home,
+          env: {},
+          run,
+          argv: ['init', ...args],
+          execPath: NODE,
+          ...(hooks.io === undefined ? {} : { io: hooks.io }),
+        },
         isTTY: false,
-        composeAnalytics,
+        composeAnalytics: hooks.composeAnalytics ?? silentAnalytics,
       }),
     )
   const handler: string[] = []
@@ -404,7 +411,7 @@ describe('init --json prints one document on stdout', () => {
       home,
       ['--json', '--platform', 'web', '--pm', 'none'],
       fakeRunner(),
-      broken,
+      { composeAnalytics: broken },
     )
 
     const doc = documentOf(result)
@@ -487,6 +494,57 @@ describe('init --json prints one document on stdout', () => {
       { name: 'dashboard', outcome: 'skipped', reason: 'interrupted' },
     ])
     expect(result.stderr).toContain('Cancelled.\n')
+  })
+
+  it('a Ctrl-C between steps is an interrupted document with exit code 130', async () => {
+    const { root, home } = tempProject('json-interrupted-between-steps')
+    writeInstalledPackage(root, 'agent-qa', VERSION, {
+      packageJson: { bin: { 'agent-qa': 'cli.js' } },
+      files: { 'cli.js': '' },
+    })
+    const before = process.listeners('SIGINT')
+    let validated = false
+    const run = probeOr((args) => {
+      if (args.includes('validate')) validated = true
+      return OK
+    })
+    // Read after validate and before the sign-in is skipped, outside any step.
+    const io: ProjectIo = {
+      ...defaultProjectIo,
+      exists: (path) => {
+        if (validated && path.includes('agent-qa-subscription-auth')) {
+          validated = false
+          for (const listener of process.listeners('SIGINT')) {
+            if (!before.includes(listener)) (listener as () => void)()
+          }
+        }
+        return defaultProjectIo.exists(path)
+      },
+    }
+
+    const result = await init(
+      root,
+      home,
+      ['--json', '--platform', 'web', '--llm', 'gemini', '--no-browsers', '--agents', 'none'],
+      run,
+      { io },
+    )
+
+    const doc = documentOf(result)
+    expect(result.exit).toBe(130)
+    expect(doc).toMatchObject({ outcome: 'interrupted', exitCode: 130, message: 'Cancelled.' })
+    expect(doc.steps.map((step) => [step.name, step.outcome, step.reason])).toEqual([
+      ['package-json', 'done', undefined],
+      ['scaffold', 'done', undefined],
+      ['install', 'done', undefined],
+      ['chromium', 'skipped', '--no-browsers'],
+      ['skills', 'skipped', 'none chosen'],
+      ['validate', 'done', undefined],
+      ['sign-in', 'skipped', 'interrupted'],
+      ['dashboard', 'skipped', 'interrupted'],
+    ])
+    expect(result.stderr).toContain('Cancelled.\n')
+    expect(process.listeners('SIGINT')).toEqual(before)
   })
 
   it('an initialized project is done with every planned step skipped as already initialized', async () => {

@@ -636,6 +636,29 @@ describe('the step runner', () => {
     expect(process.listenerCount('SIGINT')).toBe(before)
   })
 
+  it('a Ctrl-C between steps cancels the next skip and records the rest as interrupted', async () => {
+    const ui = fakeInitUi()
+    const fake = signals()
+    const runner = createInitStepRunner({ ui, plan: PLAN, signals: fake })
+
+    await runner.run('package-json', { title: 'package.json' }, async () => ({
+      outcome: 'done',
+      text: 'package.json created (app)',
+    }))
+    for (const listener of fake.listeners) listener()
+
+    expect(() => runner.skip('scaffold', 'Scaffold: skipped', 'not needed')).toThrow(
+      PromptCancelled,
+    )
+    expect(runner.records()).toEqual([
+      { name: 'package-json', outcome: 'done' },
+      { name: 'scaffold', outcome: 'skipped', reason: 'interrupted' },
+      { name: 'install', outcome: 'skipped', reason: 'interrupted' },
+    ])
+    expect(ui.entries.some((entry) => entry.text === 'Scaffold: skipped')).toBe(false)
+    expect(fake.listeners.size).toBe(0)
+  })
+
   it('a cancelled prompt inside a step is an interrupt', async () => {
     const ui = fakeInitUi()
     const fake = signals()

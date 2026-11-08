@@ -43,7 +43,7 @@ import {
 } from './init-filesystem.js'
 import { buildKnowledgeAgentGuide } from './knowledge-guide.js'
 import { resolveIsCI } from '../ci-env.js'
-import { CliRefusal, isPromptCancel } from '../composition/cli-refusal.js'
+import { CliRefusal, PromptCancelled, isPromptCancel } from '../composition/cli-refusal.js'
 import { createClackUi, type ClackUi } from '../init-ui/clack-ui.js'
 import { initUiMode, type InitUi } from '../init-ui/init-ui.js'
 import { brandPalette, colorLevelFor } from '../init-ui/palette.js'
@@ -1331,84 +1331,82 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         steps = () => runner.records()
         let status: InitModelStatus = { status: 'pending' }
         let pluginInstalled = false
-        try {
-          const packageJsonStep = await runner.run(
-            'package-json',
-            { title: 'Writing package.json' },
-            writePackageJson,
+        const packageJsonStep = await runner.run(
+          'package-json',
+          { title: 'Writing package.json' },
+          writePackageJson,
+        )
+        // The config marker records a complete scaffold and the install reads what package.json
+        // declares, so neither runs over a package.json that was not written.
+        if (packageJsonStep.outcome === 'failed') {
+          const reason = 'package.json was not written'
+          runner.skip('scaffold', `Scaffold: skipped (${reason})`, reason)
+          runner.skip('install', `Install: skipped (${reason})`, reason)
+          runner.skip('chromium', `Chromium: skipped (${reason})`, reason)
+          runner.skip('skills', `Coding agents: skipped (${reason})`, reason)
+          runner.skip('validate', `validate: skipped (${reason})`, reason)
+        } else {
+          const scaffold = await runner.run(
+            'scaffold',
+            { title: 'Writing the scaffold' },
+            writeScaffold,
           )
-          // The config marker records a complete scaffold and the install reads what package.json
-          // declares, so neither runs over a package.json that was not written.
-          if (packageJsonStep.outcome === 'failed') {
-            const reason = 'package.json was not written'
-            runner.skip('scaffold', `Scaffold: skipped (${reason})`, reason)
-            runner.skip('install', `Install: skipped (${reason})`, reason)
-            runner.skip('chromium', `Chromium: skipped (${reason})`, reason)
-            runner.skip('skills', `Coding agents: skipped (${reason})`, reason)
-            runner.skip('validate', `validate: skipped (${reason})`, reason)
-          } else {
-            const scaffold = await runner.run(
-              'scaffold',
-              { title: 'Writing the scaffold' },
-              writeScaffold,
+          // AFTER the config marker — the scaffold's last write — so the event describes a
+          // project that exists rather than one being attempted.
+          if (scaffold.outcome === 'done') await emitInitCompleted(outcomes)
+          await runner.run('install', { title: 'Installing dependencies' }, install)
+          if (opts.browsers === false) {
+            runner.skip(
+              'chromium',
+              'Chromium: skipped (--no-browsers)',
+              '--no-browsers',
+              CHROMIUM_COMMAND,
             )
-            // AFTER the config marker — the scaffold's last write — so the event describes a
-            // project that exists rather than one being attempted.
-            if (scaffold.outcome === 'done') await emitInitCompleted(outcomes)
-            await runner.run('install', { title: 'Installing dependencies' }, install)
-            if (opts.browsers === false) {
-              runner.skip(
-                'chromium',
-                'Chromium: skipped (--no-browsers)',
-                '--no-browsers',
-                CHROMIUM_COMMAND,
-              )
-            } else if (!hasWeb(platform)) {
-              runner.skip('chromium', 'Chromium: no web target', 'no web target')
-            } else {
-              await runner.run(
-                'chromium',
-                { title: 'Installing Chromium', command: CHROMIUM_COMMAND },
-                installChromium,
-              )
-            }
-            if (agents.length === 0) {
-              runner.skip('skills', 'Coding agents: none chosen', 'none chosen')
-            } else {
-              await runner.run(
-                'skills',
-                { title: 'Setting up the coding agents', command: SKILLS_COMMAND },
-                setUpAgents,
-              )
-            }
-            // Nothing is installed yet, so validate would only report the uninstalled plugins.
-            if (opts.pm === 'none') {
-              runner.skip(
-                'validate',
-                'validate: install first (--pm none)',
-                'install first (--pm none)',
-                VALIDATE_COMMAND,
-              )
-            } else {
-              await runner.run(
-                'validate',
-                { title: 'Validating the config and tests', command: VALIDATE_COMMAND },
-                validate,
-              )
-            }
+          } else if (!hasWeb(platform)) {
+            runner.skip('chromium', 'Chromium: no web target', 'no web target')
+          } else {
+            await runner.run(
+              'chromium',
+              { title: 'Installing Chromium', command: CHROMIUM_COMMAND },
+              installChromium,
+            )
           }
-          pluginInstalled = subscriptionPluginInstalled()
-          status = await modelStatus({
-            ...modelSetup,
-            configPath,
-            projectDir: dir,
-            authPath,
-            pluginInstalled,
-          })
-          if (await signIn(runner, status, pluginInstalled)) status = { status: 'ready' }
-        } finally {
-          runner.dispose()
+          if (agents.length === 0) {
+            runner.skip('skills', 'Coding agents: none chosen', 'none chosen')
+          } else {
+            await runner.run(
+              'skills',
+              { title: 'Setting up the coding agents', command: SKILLS_COMMAND },
+              setUpAgents,
+            )
+          }
+          // Nothing is installed yet, so validate would only report the uninstalled plugins.
+          if (opts.pm === 'none') {
+            runner.skip(
+              'validate',
+              'validate: install first (--pm none)',
+              'install first (--pm none)',
+              VALIDATE_COMMAND,
+            )
+          } else {
+            await runner.run(
+              'validate',
+              { title: 'Validating the config and tests', command: VALIDATE_COMMAND },
+              validate,
+            )
+          }
         }
+        pluginInstalled = subscriptionPluginInstalled()
+        status = await modelStatus({
+          ...modelSetup,
+          configPath,
+          projectDir: dir,
+          authPath,
+          pluginInstalled,
+        })
+        if (await signIn(runner, status, pluginInstalled)) status = { status: 'ready' }
+        // A Ctrl-C that landed outside a step is read here.
+        if (runner.interrupted()) throw new PromptCancelled()
 
         const port = dashboardPortOf(config)
         let dashboard: 'starting' | { command: string } = { command: DASHBOARD_COMMAND }
@@ -1472,13 +1470,14 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         for (const hint of next.hints) ui.line(hint)
         // Taken before the dashboard starts: stopping it is the normal end, never a setup failure.
         const setupFailed = runner.failed()
+        if (runner.interrupted()) throw new PromptCancelled()
         if (dashboard === 'starting') {
           await runner.run('dashboard', { title: 'Starting the dashboard' }, async () => ({
             outcome: 'done',
             text: `Dashboard on http://${DASHBOARD_HOST}:${port} (Ctrl-C stops it)`,
           }))
-          // The runner reads a Ctrl-C as an interrupted step; while the dashboard runs, the host
-          // runner alone holds Ctrl-C and forwards it to the child.
+          // Until here a Ctrl-C interrupts init; while the dashboard runs, the host runner alone
+          // holds Ctrl-C, so stopping the dashboard is the normal end.
           runner.dispose()
           await runDashboardStep({
             host,
@@ -1497,6 +1496,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         recorder.fail(refusal)
         throw refusal
       } finally {
+        stepRunner?.dispose()
         // A project agent-qa that took over printed the run's document itself.
         if (json && !delegated) {
           writeDocument(await recorder.document(steps(), installOutputMask(configPath, host.io)))

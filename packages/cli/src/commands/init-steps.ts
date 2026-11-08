@@ -176,6 +176,7 @@ export function createInitStepRunner({
     },
     skip(name, text, reason, command) {
       if (!plan.includes(name)) throw new Error(`init step ${name} is not in this run's plan`)
+      if (interrupted) cancel()
       ui.step(text).skipped(text)
       return record(withCommand({ name, outcome: 'skipped', reason }, command))
     },

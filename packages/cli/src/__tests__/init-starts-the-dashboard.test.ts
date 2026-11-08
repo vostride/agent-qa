@@ -401,6 +401,32 @@ describe('stopping the dashboard ends init with setup code', () => {
   }
 })
 
+describe('a Ctrl-C before the dashboard starts', () => {
+  it('interrupts init with Cancelled. and exit 130, and the dashboard never runs', async () => {
+    const before = process.listeners('SIGINT')
+    const interruptedProbe: DashboardPort = {
+      probe: async () => {
+        for (const listener of process.listeners('SIGINT')) {
+          if (!before.includes(listener)) (listener as () => void)()
+        }
+        return 'free'
+      },
+      findFree: async () => FREE_PORT,
+    }
+    const run = runner()
+
+    const result = await init(project(), fakeInitUi(), [...BASE, '--llm', 'gemini'], {
+      run,
+      dashboardPort: interruptedProbe,
+    })
+
+    expect(dashboardCalls(run)).toEqual([])
+    expect(result.exit).toBe(130)
+    expect(result.stderr).toContain(CANCELLED_LINE)
+    expect(process.listeners('SIGINT')).toEqual(before)
+  })
+})
+
 describe('when init does not start the dashboard', () => {
   it('a busy port skips the step and names a free port in the next steps, with exit 0', async () => {
     const target = project()
