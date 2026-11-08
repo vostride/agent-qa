@@ -59,7 +59,11 @@ import { CliRefusal } from '../composition/cli-refusal.js'
 import type { InitUi } from '../init-ui/init-ui.js'
 import { createPlainUi } from '../init-ui/plain-ui.js'
 import { InitRefusal, isInitRefusal } from './init-refusal.js'
-import { initFolderOptionRefusal, initFolderRefusal } from './init-project-folder.js'
+import {
+  defaultInitFolderIo,
+  initFolderOptionRefusal,
+  initFolderRefusal,
+} from './init-project-folder.js'
 import {
   installedAgentQaVersion,
   parsePackageJson,
@@ -68,7 +72,20 @@ import {
   readProjectPackageJson,
   sanitizedPackageName,
 } from './package-json-plan.js'
-import { createInitStepRunner, type InitStepResult } from './init-steps.js'
+import {
+  ALREADY_INITIALIZED,
+  createInitStepRunner,
+  freshInitPlan,
+  type InitStepName,
+  type InitStepRecord,
+  type InitStepResult,
+} from './init-steps.js'
+import {
+  createInitDocumentRecorder,
+  refusedInitDocument,
+  writeInitDocument,
+  type InitDocument,
+} from './init-document.js'
 import {
   installOutputMask,
   runInstallStep,
@@ -715,13 +732,7 @@ function showExampleSecretLine(ui: InitUi): void {
   ui.line(EXAMPLE_SECRET_LINE)
 }
 
-function showNextSteps(
-  ui: InitUi,
-  platform: InitPlatformInput,
-  config: Record<string, unknown>,
-  packageFolder: InitPackageFolder,
-): void {
-  const steps = initNextSteps(platform, config, packageFolder)
+function showNextSteps(ui: InitUi, steps: readonly InitNextStep[]): void {
   ui.note(
     'Next steps',
     steps.map((step, index) => `${index + 1}. ${step.command}  ${step.description}`),
@@ -764,6 +775,12 @@ function installStepResult(step: InstallStepResult, printed: readonly string[]):
 }
 
 export function createInitCommand(hooks: InitCommandHooks = {}): Command {
+  let documentWritten = false
+  const writeDocument = (doc: InitDocument): void => {
+    if (documentWritten) return
+    documentWritten = true
+    writeInitDocument(doc)
+  }
   const cmd = new Command('init')
     .description('Initialize a new agent-qa project')
     .addOption(new Option('--dir <path>').hideHelp())
@@ -788,6 +805,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         'package manager to install with (default: detected from the project)',
       ).choices(['npm', 'pnpm', 'yarn', 'bun', 'none']),
     )
+    .option('--yes', 'ask nothing and take every default')
+    .option('--json', 'print one JSON document on stdout and the steps on stderr; asks nothing')
     .option(
       WRITE_AGENT_INSTRUCTIONS_FLAG,
       'also write the agent-qa pointer block into AGENTS.md at the project root',
@@ -797,39 +816,48 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       'print the JSON capability manifest (catalog and local posture) and exit; writes nothing',
     )
     .action(async (opts, command: Command) => {
-      // Taken first and released only after the document: a failure's block must go to stderr.
-      const releaseStdout = opts.agent === true ? reserveStdoutForData() : undefined
-      const optionRefusal = initFolderOptionRefusal(command, opts)
-      if (optionRefusal !== undefined) throw new CliRefusal([pc.red(optionRefusal)], 2)
+      const json = opts.json === true && opts.agent !== true
+      // Taken first and released only after a run that ended well: a failure's block must go to
+      // stderr.
+      const releaseStdout = opts.agent === true || json ? reserveStdoutForData() : undefined
       const projectDir = hooks.cwd ?? process.cwd()
       const configPath = join(projectDir, DEFAULT_CONFIG_FILE_NAME)
-      // `--agent` is a read that returns before any prompt or file, so no branch below can write.
-      if (opts.agent === true) {
-        // IMPORTED HERE AND NOT AT THE TOP, deliberately. The manifest reads the local
-        // composition's posture, so its module graph reaches the agent host, and `init`'s
-        // ordinary job is to write a scaffold into a directory where no host could compose yet.
-        // A top-level import would make every `init` run (and every test of one) evaluate a
-        // composition root that only this branch has any use for. It also breaks
-        // `init.test.ts`, whose partial `node:fs` mock the durable-store module underneath that
-        // graph needs more of.
-        const { buildAgentManifest } = await import('../capability-catalog/manifest.js')
-        // The posture is read from agent-qa.config.yaml in the folder init runs in.
-        const manifest = await buildAgentManifest({ configPath })
-        // STDOUT AND NOTHING ELSE ON IT. The whole of this command's output under `--agent` is
-        // one JSON document, so it pipes into a parser without a filter in between.
-        console.log(guardJsonText(JSON.stringify(manifest, null, 2)))
-        releaseStdout?.()
-        // `--agent` writes nothing, so it emits no init event.
-        return
-      }
-
+      const host = projectHost({ cwd: projectDir, ...hooks.host })
       const ui = hooks.ui ?? createPlainUi()
+      const recorder = createInitDocumentRecorder({ dir: projectDir })
+      let steps: () => readonly InitStepRecord[] = () => []
+      let delegated = false
+      let threw = false
       try {
+        const optionRefusal = initFolderOptionRefusal(command, opts)
+        if (optionRefusal !== undefined) throw new CliRefusal([pc.red(optionRefusal)], 2)
+        // `--agent` is a read that returns before any prompt or file, so no branch below can write.
+        if (opts.agent === true) {
+          // IMPORTED HERE AND NOT AT THE TOP, deliberately. The manifest reads the local
+          // composition's posture, so its module graph reaches the agent host, and `init`'s
+          // ordinary job is to write a scaffold into a directory where no host could compose yet.
+          // A top-level import would make every `init` run (and every test of one) evaluate a
+          // composition root that only this branch has any use for. It also breaks
+          // `init.test.ts`, whose partial `node:fs` mock the durable-store module underneath that
+          // graph needs more of.
+          const { buildAgentManifest } = await import('../capability-catalog/manifest.js')
+          // The posture is read from agent-qa.config.yaml in the folder init runs in.
+          const manifest = await buildAgentManifest({ configPath })
+          // STDOUT AND NOTHING ELSE ON IT. The whole of this command's output under `--agent` is
+          // one JSON document, so it pipes into a parser without a filter in between.
+          console.log(guardJsonText(JSON.stringify(manifest, null, 2)))
+          // `--agent` writes nothing, so it emits no init event.
+          return
+        }
+
         const dir = projectDir
-        const folderRefusal = await initFolderRefusal(dir)
+        const folderRefusal = await initFolderRefusal(dir, {
+          ...defaultInitFolderIo,
+          homedir: () => host.homedir,
+        })
         if (folderRefusal !== undefined) throw new CliRefusal([pc.red(folderRefusal)], 2)
-        const host = projectHost({ cwd: dir, ...hooks.host })
         const range = await projectRange(dir, host)
+        recorder.realDir(range.start)
         const packageJson = readProjectPackageJson(range, host.io)
         if (packageJson.text !== undefined) parsePackageJson(packageJson.path, packageJson.text)
         const runningVersion = installedAgentQaVersion()
@@ -866,12 +894,17 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             return step.outcome === 'installed' || step.outcome === 'skipped'
           },
           print: (line) => ui.line(line),
+          onHandOff: () => {
+            delegated = true
+          },
         })
         if (handedOff) return
         const initStartedAt = Date.now()
         const force = opts.force ?? false
 
         const tty = hooks.isTTY ?? process.stdin.isTTY === true
+        // Without a question drawn, every answer takes its flag or its default.
+        const ask = tty && opts.yes !== true && opts.json !== true
         let asked = false
 
         // Derives the outcome from file outcomes; a scaffold that throws reaches neither call site.
@@ -916,6 +949,10 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         if (configClassification === 'regular' && !force) {
           const completed = [{ path: configPath, outcome: 'preserved' }] as const
           ui.line(`Project is already initialized at ${dir}. Use --force to rebuild it.`)
+          const skipped = freshInitPlan().map(
+            (name): InitStepRecord => ({ name, outcome: 'skipped', reason: ALREADY_INITIALIZED }),
+          )
+          steps = () => skipped
           hooks.onComplete?.(completed)
           await emitInitCompleted(completed)
           return
@@ -926,15 +963,16 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           if (refusal) {
             console.error(pc.red(refusal))
             process.exitCode = 2
+            recorder.refused(refusal)
           }
           return refusal !== undefined
         }
-        const askLlm = tty && opts.llm === undefined
+        const askLlm = ask && opts.llm === undefined
         const flaggedLlm = (opts.llm ?? 'claude-code') as InitLLMChoice
         if (!askLlm && refuseBaseUrl(INIT_LLM_ENTRIES[flaggedLlm].provider)) return
 
         let platform: InitPlatformInput
-        if (tty && opts.platform === undefined) {
+        if (ask && opts.platform === undefined) {
           asked = true
           const capabilities = await checkbox<PlatformCapability>({
             message: 'What platform will you test?',
@@ -966,7 +1004,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         if (askLlm && refuseBaseUrl(provider)) return
 
         let model: string = opts.model ?? defaultModelForProvider(provider)
-        if (tty && opts.model === undefined && !isSubscriptionProvider(provider)) {
+        if (ask && opts.model === undefined && !isSubscriptionProvider(provider)) {
           asked = true
           model = (await input({
             message: 'Model:',
@@ -979,7 +1017,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         let baseURL: string | undefined = needsBaseURL
           ? opts.baseUrl ?? INIT_BASE_URL_DEFAULTS[provider]
           : undefined
-        if (tty && opts.baseUrl === undefined && needsBaseURL) {
+        if (ask && opts.baseUrl === undefined && needsBaseURL) {
           asked = true
           baseURL = (await input({
             message: 'Base URL:',
@@ -989,14 +1027,22 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         }
 
         const config = buildDefaultConfig(platform, [{ name: llmName, provider, model, baseURL }])
+        const agentQaVersion = agentQaAfterInstall(packageJson.text, runningVersion)
+        const dependencies = projectDependencies({
+          version: agentQaVersion,
+          usesSubscription: usesSubscriptionModel(config),
+          plugins: (config.plugins ?? []) as readonly { package?: unknown }[],
+        })
+        recorder.agentQa({ version: agentQaVersion, via: 'running' })
+        recorder.plugins(
+          dependencies
+            .filter((dependency) => dependency.name !== 'agent-qa')
+            .map((dependency) => ({ package: dependency.name, version: dependency.version })),
+        )
         const packageJsonPlan = planPackageJson({
           ...packageJson,
           folderName: basename(range.start),
-          dependencies: projectDependencies({
-            version: agentQaAfterInstall(packageJson.text, runningVersion),
-            usesSubscription: usesSubscriptionModel(config),
-            plugins: (config.plugins ?? []) as readonly { package?: unknown }[],
-          }),
+          dependencies,
         })
         const packageJsonFilePlan: InitPathPlan = {
           root: packageJsonPlan.root,
@@ -1054,14 +1100,16 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             if (!isInitRefusal(error)) throw error
             console.error(pc.red(error.message))
             process.exitCode = 2
+            recorder.refused(error.message)
             return
           }
         }
 
         const outcomes: InitFileResult[] = []
         let boundary = 0
-        const recordOutcome = (result: InitFileResult): InitFileResult => {
+        const recordOutcome = (step: InitStepName, result: InitFileResult): InitFileResult => {
           outcomes.push(result)
+          recorder.file(step, result)
           if (result.outcome === 'preserved') return result
           boundary += 1
           hooks.afterWrite?.(result, boundary)
@@ -1070,10 +1118,10 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
 
         const writePackageJson = async (): Promise<InitStepResult> => {
           // Written first, so no later scaffold temporary exists before its ignore rule does.
-          recordOutcome(upsertManagedGitignoreBlock(
-            targetGitignorePath,
-            buildGitignoreEntries(),
-          ))
+          recordOutcome(
+            'package-json',
+            upsertManagedGitignoreBlock(targetGitignorePath, buildGitignoreEntries()),
+          )
           verifyEffectiveGitignore({
             cwd: dir,
             label: 'target .gitignore',
@@ -1081,14 +1129,17 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             // The managed block is on disk by now — the refusal must not say otherwise.
             written: 'managed-gitignore',
           })
-          const written = recordOutcome(writeScaffoldFileAtomic(packageJsonFilePlan, {}))
+          const written = recordOutcome(
+            'package-json',
+            writeScaffoldFileAtomic(packageJsonFilePlan, {}),
+          )
           return { outcome: 'done', text: packageJsonText(written, dir, range.start) }
         }
 
         const writeScaffold = async (): Promise<InitStepResult> => {
           const before = outcomes.length
           for (const plan of filePlans) {
-            recordOutcome(writeScaffoldFileAtomic(plan, {}))
+            recordOutcome('scaffold', writeScaffoldFileAtomic(plan, {}))
           }
 
           if (!knowledgeGitignoreWasPresent) {
@@ -1103,13 +1154,13 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
 
           if (agentInstructionsPlan) {
             try {
-              recordOutcome(upsertManagedBlock(agentInstructionsPlan))
+              recordOutcome('scaffold', upsertManagedBlock(agentInstructionsPlan))
             } catch (error) {
               throw incompleteScaffoldError(error, DEFAULT_CONFIG_FILE_NAME)
             }
           }
 
-          recordOutcome(writeConfigMarkerLast(configPlan, {}))
+          recordOutcome('scaffold', writeConfigMarkerLast(configPlan, {}))
           hooks.onComplete?.([...outcomes])
           return { outcome: 'done', text: scaffoldText(platform, outcomes.length - before) }
         }
@@ -1119,11 +1170,13 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           // A guarded block of the manager's output goes to stderr, never to stdout.
           const releaseInstallStdout = reserveStdoutForData()
           try {
+            const detected = manager()
+            recorder.packageManager(opts.pm === 'none' ? 'none' : detected.name)
             const step = await runInstallStep({
               host,
               range,
               packageJson: packageJsonPlan,
-              manager: manager(),
+              manager: detected,
               mode: opts.pm === 'none' ? 'none' : 'run',
               mask: maskInstallOutput,
               print: (text) => printed.push(text),
@@ -1134,7 +1187,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           }
         }
 
-        const runner = createInitStepRunner({ ui, plan: ['package-json', 'scaffold', 'install'] })
+        const runner = createInitStepRunner({ ui, plan: freshInitPlan() })
+        steps = () => runner.records()
         try {
           const packageJsonStep = await runner.run(
             'package-json',
@@ -1167,21 +1221,34 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           result => result.path === secretsPath && result.outcome === 'preserved',
         )
         if (hasWeb(platform) && secretsPreserved) showExampleSecretLine(ui)
-        showNextSteps(ui, platform, config, {
+        const nextSteps = initNextSteps(platform, config, {
           range,
           dir: dirname(packageJsonPlan.path),
           io: host.io,
         })
+        recorder.nextSteps(nextSteps)
+        showNextSteps(ui, nextSteps)
         if (!agentInstructionsPlan) showAgentInstructionPointer(ui)
         if (runner.failed()) throw new CliRefusal([], 3)
       } catch (error) {
-        throw asInitRefusal(error)
+        threw = true
+        const refusal = asInitRefusal(error)
+        recorder.fail(refusal)
+        throw refusal
+      } finally {
+        // A project agent-qa that took over printed the run's document itself.
+        if (json && !delegated) {
+          writeDocument(await recorder.document(steps(), installOutputMask(configPath, host.io)))
+        }
+        if (!threw) releaseStdout?.()
       }
     })
 
   // Commander has printed its own line; a usage error exits 2, and help returns so commander exits 0.
   cmd.exitOverride((error) => {
-    if (error.exitCode !== 0) throw new CliRefusal([], 2, { cause: error })
+    if (error.exitCode === 0) return
+    if (cmd.opts().json === true) writeDocument(refusedInitDocument(error.message))
+    throw new CliRefusal([], 2, { cause: error })
   })
 
   return cmd

@@ -60,6 +60,7 @@ export async function runAsProjectAgentQa(
   host: ProjectHost,
   line: string,
   print: (line: string) => void = (text) => console.log(text),
+  onHandOff?: () => void,
 ): Promise<void> {
   print(line)
   const result = await host.run(host.execPath, [copy.bin, ...host.argv], {
@@ -67,6 +68,8 @@ export async function runAsProjectAgentQa(
     env: { ...host.env, [HANDED_OFF_ENV]: '1' },
     stdio: 'inherit',
   })
+  // The child ran, so what it printed stands for this run.
+  if (result.missing !== true) onHandOff?.()
   if (wasCancelled(result)) throw new CliRefusal([], 130)
   if (result.missing === true) {
     throw new CliRefusal([pc.red(`${host.execPath} was not found to run ${copy.bin}.`)], 1)
@@ -106,6 +109,7 @@ export async function handOffToProjectAgentQa(input: {
   pm: string | undefined
   install: () => Promise<boolean>
   print?: (line: string) => void
+  onHandOff?: () => void
 }): Promise<boolean> {
   const { host, range, packageJson, runningVersion } = input
   const print = input.print ?? ((line: string) => console.log(line))
@@ -130,7 +134,13 @@ export async function handOffToProjectAgentQa(input: {
     copy = await newerCopy()
     if (copy === undefined) return false
   }
-  await runAsProjectAgentQa(copy, host, handOffLine(copy, range, runningVersion), print)
+  await runAsProjectAgentQa(
+    copy,
+    host,
+    handOffLine(copy, range, runningVersion),
+    print,
+    input.onHandOff,
+  )
   return true
 }
 

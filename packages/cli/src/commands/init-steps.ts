@@ -44,6 +44,13 @@ export interface InitStepRunner {
 
 export const INTERRUPTED = 'interrupted'
 
+export const ALREADY_INITIALIZED = 'already initialized'
+
+// The steps a fresh init plans, in the order it runs them.
+export function freshInitPlan(): InitStepName[] {
+  return ['package-json', 'scaffold', 'install']
+}
+
 // A bug is reported with its stack, not drawn as a failed step.
 function isBug(error: unknown): boolean {
   let cause = error
