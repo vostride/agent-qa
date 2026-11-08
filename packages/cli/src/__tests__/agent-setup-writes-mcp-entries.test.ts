@@ -4,6 +4,7 @@
 import { createHash } from 'node:crypto'
 import {
   chmodSync,
+  linkSync,
   lstatSync,
   mkdirSync,
   readdirSync,
@@ -20,6 +21,7 @@ import { getStaticTOMLValue, parseTOML } from 'toml-eslint-parser'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { installAgentSetup, removeAgentSetup, type CodingAgent } from '../commands/agent-setup.js'
+import { readHostFile, removeHostFile, writeHostFile } from '../commands/init-filesystem.js'
 import {
   cleanupTempProjects,
   fakeRunner,
@@ -377,6 +379,57 @@ describe('the MCP entries the installer writes', () => {
       'AGENTS.md',
       '.mcp.json',
     ])
+  })
+})
+
+describe("the installer's reads and writes of a coding agent's file", () => {
+  it('fails the MCP part and leaves a .mcp.json that is not valid UTF-8 as it was', async () => {
+    const project = tempProject('mcp-latin1')
+    installAgentQa(project.root)
+    const bytes = Buffer.concat([
+      Buffer.from('{\n  // caf'),
+      Buffer.from([0xe9]),
+      Buffer.from('\n  "mcpServers": {}\n}\n'),
+    ])
+    writeFileSync(join(project.root, '.mcp.json'), bytes)
+
+    const result = await setup(project, ['claude-code'])
+
+    expect(result.parts.mcp?.outcome).toBe('failed')
+    expect(result.parts.mcp?.reason).toMatch(/is not valid UTF-8$/u)
+    expect(readFileSync(join(project.root, '.mcp.json')).equals(bytes)).toBe(true)
+  })
+
+  it('fails the MCP part and leaves a .mcp.json with a second hard link as it was', async () => {
+    const project = tempProject('mcp-hard-link')
+    installAgentQa(project.root)
+    const text = '{\n  "mcpServers": {}\n}\n'
+    write(project, '.mcp.json', text)
+    linkSync(join(project.root, '.mcp.json'), join(project.root, 'mcp-copy.json'))
+
+    const result = await setup(project, ['claude-code'])
+
+    expect(result.parts.mcp?.outcome).toBe('failed')
+    expect(result.parts.mcp?.reason).toMatch(/has 2 hard links/u)
+    expect(read(project, '.mcp.json')).toBe(text)
+    expect(read(project, 'mcp-copy.json')).toBe(text)
+  })
+
+  it('refuses to write or delete a file that changed after it was read', () => {
+    const project = tempProject('mcp-changed')
+    const path = join(project.root, '.mcp.json')
+    write(project, '.mcp.json', '{}\n')
+    const before = readHostFile(path, project.root)!
+    write(project, '.mcp.json', '{ "theirs": true }\n')
+    const rerun = 'rerun to try again'
+
+    expect(() =>
+      writeHostFile({ path, root: project.root, content: '{}\n', read: before, rerun }),
+    ).toThrow(/changed while it was being updated; rerun to try again$/u)
+    expect(() => removeHostFile({ path, root: project.root, read: before, rerun })).toThrow(
+      /changed while it was being updated/u,
+    )
+    expect(read(project, '.mcp.json')).toBe('{ "theirs": true }\n')
   })
 })
 
