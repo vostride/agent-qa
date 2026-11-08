@@ -186,10 +186,12 @@ export function ModelList(_props: ModelListProps) {
   }
 
   useEffect(() => {
-    if (addParam === null) return
-    const choice = choiceParam(addParam)
-    const name = nameParam === null || nameParam === "" ? undefined : nameParam
-    openAdd(choice, name, linkReplacesDraft(readAddModelDraft(configPath), choice, name))
+    if (addParam === null && nameParam === null) return
+    if (addParam !== null) {
+      const choice = choiceParam(addParam)
+      const name = nameParam === null || nameParam === "" ? undefined : nameParam
+      openAdd(choice, name, linkReplacesDraft(readAddModelDraft(configPath), choice, name))
+    }
     setSearchParams(
       (current) => {
         const next = new URLSearchParams(current)
@@ -200,7 +202,7 @@ export function ModelList(_props: ModelListProps) {
       { replace: true },
     )
     // eslint-disable-next-line react-hooks/exhaustive-deps -- the link is applied once, then removed
-  }, [addParam])
+  }, [addParam, nameParam])
 
   function addModel() {
     openAdd(undefined)

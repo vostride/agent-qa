@@ -799,6 +799,12 @@ describe('The add row in the list', () => {
     expect(readAddModelDraft(CONFIG_PATH)?.choice).toBe('openai-compatible-key')
   })
 
+  it('a name without an add choice opens no row and is still consumed', async () => {
+    await mount('/config/models?name=work')
+    expect(addRows()).toHaveLength(0)
+    expect(location()).toEqual({ pathname: '/config/models', search: '' })
+  })
+
   it('a link with only the stored draft\'s choice keeps the draft', async () => {
     localStorage.setItem(
       DRAFT_KEY,
