@@ -1,4 +1,5 @@
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
 import { getAgentQaVersion, getAuthPath } from '@vostride/agent-qa-core'
@@ -423,6 +424,22 @@ describe('init --json prints one document on stdout', () => {
       { name: 'sign-in', outcome: 'skipped', reason: 'not run' },
       { name: 'dashboard', outcome: 'skipped', reason: 'not run' },
     ])
+  })
+
+  it('an unsafe agent-qa-knowledge/.gitignore is a refused document through the one handler', async () => {
+    const { root, home } = tempProject('json-knowledge-gitignore')
+    rmSync(join(root, '.git'), { recursive: true })
+    execFileSync('git', ['init', '--quiet'], { cwd: root, stdio: 'pipe' })
+    mkdirSync(join(root, 'agent-qa-knowledge'))
+    writeFileSync(join(root, 'agent-qa-knowledge', '.gitignore'), '# mine\n')
+
+    const result = await init(root, home, ['--json', '--platform', 'web', '--pm', 'none'])
+
+    const doc = documentOf(result)
+    expect(result.exit).toBe(2)
+    expect(doc).toMatchObject({ outcome: 'refused', exitCode: 2, steps: [], files: [] })
+    expect(doc.message).toMatch(/^existing agent-qa-knowledge\/\.gitignore is unsafe: /u)
+    expect(result.stderr).toContain(doc.message)
   })
 
   it('a Ctrl-C during the install is an interrupted document with exit code 130', async () => {

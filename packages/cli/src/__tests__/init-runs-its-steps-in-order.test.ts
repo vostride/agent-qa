@@ -1,4 +1,5 @@
-import { existsSync, readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import { execFileSync } from 'node:child_process'
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 
 import { Command } from 'commander'
@@ -42,13 +43,13 @@ function written(spy: MockInstance<(chunk: never) => boolean>): string {
 async function init(
   cwd: string,
   home: string,
-  options: { args?: readonly string[]; ui?: FakeInitUi; run?: FakeRunner } = {},
+  options: { args?: readonly string[]; ui?: FakeInitUi; run?: FakeRunner; isTTY?: boolean } = {},
 ): Promise<void> {
   const parent = new Command()
   const command = createInitCommand({
     cwd,
     host: { homedir: home, env: {}, run: options.run ?? fakeRunner() },
-    isTTY: false,
+    isTTY: options.isTTY ?? false,
     composeAnalytics: silentAnalytics,
     ...(options.ui === undefined ? {} : { ui: options.ui }),
   })
@@ -278,6 +279,28 @@ describe('a fresh init draws one line per step', () => {
     expect(error).toBeInstanceOf(CliRefusal)
     expect(error).toMatchObject({ exitCode: 2 })
     expect(ui.entries.some((entry) => entry.kind === 'failed')).toBe(false)
+  })
+
+  it('an unsafe agent-qa-knowledge/.gitignore is refused with exit 2 before any question', async () => {
+    const { root, home } = tempProject('steps-knowledge-gitignore')
+    rmSync(join(root, '.git'), { recursive: true })
+    execFileSync('git', ['init', '--quiet'], { cwd: root, stdio: 'pipe' })
+    mkdirSync(join(root, 'agent-qa-knowledge'))
+    writeFileSync(join(root, 'agent-qa-knowledge', '.gitignore'), '# mine\n')
+    const ui = fakeInitUi()
+
+    const error = await init(root, home, { ui, isTTY: true, args: [] }).catch(
+      (caught: unknown) => caught,
+    )
+
+    expect(error).toBeInstanceOf(CliRefusal)
+    expect(error).toMatchObject({ exitCode: 2 })
+    expect(String((error as CliRefusal).message)).toContain(
+      'existing agent-qa-knowledge/.gitignore is unsafe',
+    )
+    expect(ui.entries.map((entry) => entry.kind)).toEqual([])
+    expect(existsSync(join(root, 'package.json'))).toBe(false)
+    expect(existsSync(join(root, 'agent-qa.config.yaml'))).toBe(false)
   })
 
   it('a malformed package.json is refused with exit 2 before any step', async () => {

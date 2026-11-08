@@ -939,6 +939,21 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           throw new CliRefusal([pc.red(flaggedPlatform.refusal)], 2)
         }
 
+        // Every scaffold plans the knowledge .gitignore, so a folder that cannot take it is
+        // refused before any question.
+        const knowledgeGitignorePath = join(dir, KNOWLEDGE_ROOT_DIR, '.gitignore')
+        const knowledgeGitignoreWasPresent =
+          classifyInitPath(knowledgeGitignorePath, dir) === 'regular'
+        if (knowledgeGitignoreWasPresent) {
+          warnForMissingKnowledgeGitignoreRules(knowledgeGitignorePath)
+          verifyEffectiveGitignore({
+            cwd: join(dir, KNOWLEDGE_ROOT_DIR),
+            label: 'existing agent-qa-knowledge/.gitignore',
+            probes: KNOWLEDGE_GITIGNORE_PROBES,
+            written: 'nothing',
+          })
+        }
+
         if (mode !== 'plain' && hooks.ui === undefined) {
           const rail = hooks.rail ?? { input: process.stdin, output: process.stderr }
           const rgb = await probeTerminalBackground(
@@ -1051,32 +1066,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           force,
         }
         const completePlan = [...filePlans, packageJsonFilePlan, targetGitignorePlan, configPlan]
-        const preflight = preflightInitPlan(completePlan)
-
-        const knowledgeGitignorePath = join(dir, KNOWLEDGE_ROOT_DIR, '.gitignore')
-        const knowledgeGitignoreWasPresent = preflight.some(
-          result => result.path === knowledgeGitignorePath
-            && result.classification === 'regular',
-        )
-        if (knowledgeGitignoreWasPresent) {
-          // The refusal prints its message only, never a stack trace.
-          try {
-            warnForMissingKnowledgeGitignoreRules(knowledgeGitignorePath)
-            verifyEffectiveGitignore({
-              cwd: join(dir, KNOWLEDGE_ROOT_DIR),
-              label: 'existing agent-qa-knowledge/.gitignore',
-              probes: KNOWLEDGE_GITIGNORE_PROBES,
-              // Nothing has been written yet at this point in the run.
-              written: 'nothing',
-            })
-          } catch (error) {
-            if (!isInitRefusal(error)) throw error
-            console.error(pc.red(error.message))
-            process.exitCode = 2
-            recorder.refused(error.message)
-            return
-          }
-        }
+        preflightInitPlan(completePlan)
 
         const outcomes: InitFileResult[] = []
         let boundary = 0

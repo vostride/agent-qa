@@ -56,8 +56,6 @@ export interface InitDocumentRecorder {
   plugins(plugins: readonly { package: string; version: string }[]): void
   model(model: InitDocumentModel): void
   nextSteps(steps: readonly { command: string; description: string }[]): void
-  // A refusal init prints itself and ends with exit code 2 rather than throwing.
-  refused(message: string): void
   fail(error: unknown): void
   document(steps: readonly InitStepRecord[], mask: InitMessageMask): Promise<InitDocument>
 }
@@ -78,12 +76,10 @@ type Ending = Pick<InitDocument, 'outcome' | 'exitCode' | 'message'>
 
 async function endingOf(
   error: unknown,
-  refusal: string | undefined,
   steps: readonly InitStepRecord[],
   mask: InitMessageMask,
 ): Promise<Ending> {
   if (error === undefined) {
-    if (refusal !== undefined) return { outcome: 'refused', exitCode: 2, message: refusal }
     const failed = steps.some((step) => step.outcome === 'failed')
     return failed ? { outcome: 'failed', exitCode: 3 } : { outcome: 'done', exitCode: 0 }
   }
@@ -119,7 +115,6 @@ export function createInitDocumentRecorder({ dir }: { dir: string }): InitDocume
   let plugins: InitDocument['plugins'] = []
   let model: InitDocumentModel | undefined
   let nextSteps: InitDocument['nextSteps'] = []
-  let refusal: string | undefined
   let failure: unknown
 
   return {
@@ -150,14 +145,11 @@ export function createInitDocumentRecorder({ dir }: { dir: string }): InitDocume
     nextSteps(list) {
       nextSteps = list.map((step) => ({ command: step.command, description: step.description }))
     },
-    refused(message) {
-      refusal = firstLine(message)
-    },
     fail(error) {
       failure = error
     },
     async document(steps, mask) {
-      const ending = await endingOf(failure, refusal, steps, mask)
+      const ending = await endingOf(failure, steps, mask)
       return {
         format: 1,
         outcome: ending.outcome,
