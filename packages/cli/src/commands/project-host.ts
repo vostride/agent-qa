@@ -77,13 +77,13 @@ function isWindowsExecutable(command: string): boolean {
 // On Windows the managers are .cmd shims that only a shell can start; an .exe such as node.exe
 // starts directly, so the arguments it is handed never meet cmd.exe. The shell gets one command
 // line, which keeps Node from warning about arguments passed with a shell.
-// The spawn is read on each run, so a suite that mocks node:child_process can still load this.
-export function createSpawnRunner({
-  platform = process.platform,
-  spawn: given,
-}: { platform?: NodeJS.Platform; spawn?: typeof nodeSpawn } = {}): CommandRunner {
+// The platform and spawn are read on each run, not when this module loads.
+export function createSpawnRunner(
+  given: { platform?: NodeJS.Platform; spawn?: typeof nodeSpawn } = {},
+): CommandRunner {
   return (command, args, options) => {
-    const spawn = given ?? nodeSpawn
+    const platform = given.platform ?? process.platform
+    const spawn = given.spawn ?? nodeSpawn
     const shell = platform === 'win32' && !isWindowsExecutable(command)
     let line: string | undefined
     try {
