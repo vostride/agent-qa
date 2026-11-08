@@ -1,6 +1,6 @@
 // Loaded before every CLI test file: the default runner refuses a real browser install and a real
-// dashboard, the default opener refuses to open a real browser, and the dashboard's port probe
-// refuses a fixed port.
+// dashboard, the default openers (init's and the dashboard command's) refuse to open a real
+// browser, and the dashboard's port probe refuses a fixed port.
 import { afterEach, vi } from 'vitest'
 
 import type * as InitDashboardModule from '../commands/init-dashboard.js'
@@ -58,14 +58,22 @@ vi.mock('../commands/open-url.js', async (importOriginal) => {
       return 'an address that does not parse'
     }
   }
+  const refuse = (url: string): never => {
+    const calls = ((globalThis as unknown as GuardedGlobal)[store] ??= [])
+    calls.push(`open ${origin(url)}`)
+    throw new Error('A test reached the real browser opener. Inject hooks.openUrl.')
+  }
+  // The dashboard command's default opener is this export; openInBrowser's default is bound
+  // inside the real module, so it is replaced as well.
+  const systemBrowserOpener: OpenUrlModule.BrowserOpener = {
+    platform: process.platform,
+    spawn: (_command, args) => refuse(String(args.at(-1)).replace(/^"|"$/gu, '')),
+  }
   return {
     ...real,
-    openInBrowser: (url: string, opener?: OpenUrlModule.BrowserOpener) => {
-      if (opener !== undefined) return real.openInBrowser(url, opener)
-      const calls = ((globalThis as unknown as GuardedGlobal)[store] ??= [])
-      calls.push(`open ${origin(url)}`)
-      throw new Error('A test reached the real browser opener. Inject hooks.openUrl.')
-    },
+    systemBrowserOpener,
+    openInBrowser: (url: string, opener?: OpenUrlModule.BrowserOpener) =>
+      opener === undefined ? refuse(url) : real.openInBrowser(url, opener),
   }
 })
 
