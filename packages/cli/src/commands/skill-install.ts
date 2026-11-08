@@ -12,7 +12,7 @@ import { projectRange } from './project-range.js'
 import { listAgentQaSkills, resolveAgentQaSkillsDirectory } from './skills.js'
 
 const EXACT_SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u
-const SKIPPED_FOLDERS = new Set(['node_modules', '.turbo', '.git', 'dist', 'scripts'])
+const SKIPPED_FOLDERS = new Set(['node_modules', '.turbo', '.git', 'dist'])
 const SKIPPED_FILES = new Set(['pnpm-lock.yaml', 'package-lock.json', '.DS_Store'])
 const FRONTMATTER = /^---\n([\s\S]*?\n)?---(?:\n|$)/u
 

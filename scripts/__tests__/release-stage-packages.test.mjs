@@ -149,6 +149,40 @@ test('a new skill folder ships with no script change', async () => {
   })
 })
 
+test("a skill's own scripts folder is packaged and staged, and the validator folder is not", async () => {
+  await withTemp(async (tempDir) => {
+    const fixture = await fixtureRepo(tempDir, async (skills) => {
+      await addSkillFolder(skills, 'agent-qa-zzz')
+      await mkdir(join(skills, 'agent-qa-zzz', 'scripts'), { recursive: true })
+      await writeFile(join(skills, 'agent-qa-zzz', 'scripts', 'check.sh'), '#!/bin/sh\necho checked\n')
+    })
+    const packaged = join(fixture, 'packages', 'cli', 'skills')
+    assert.ok(existsSync(join(packaged, 'agent-qa-zzz', 'scripts', 'check.sh')))
+    assert.equal(existsSync(join(packaged, 'scripts')), false)
+
+    const stagedDir = join(tempDir, 'staged')
+    await stagePublishPackages({ rootDir: fixture, targetVersion: '0.1.1', outputDir: stagedDir })
+    const stagedSkills = join(stagedDir, 'cli', 'skills')
+    assertSameFiles(join(fixture, 'skills', 'agent-qa-zzz'), join(stagedSkills, 'agent-qa-zzz'), 'agent-qa-zzz')
+    assert.equal(existsSync(join(stagedSkills, 'scripts')), false)
+  })
+})
+
+test('a checkout inside a folder named dist or scripts still packages and stages every skill file', async () => {
+  await withTemp(async (tempDir) => {
+    const parent = join(tempDir, 'dist', 'scripts')
+    await mkdir(parent, { recursive: true })
+    const fixture = await fixtureRepo(parent)
+
+    const stagedDir = join(tempDir, 'staged')
+    await stagePublishPackages({ rootDir: fixture, targetVersion: '0.1.1', outputDir: stagedDir })
+    const stagedSkills = join(stagedDir, 'cli', 'skills')
+    for (const skillName of shippedSkills) {
+      assertSameFiles(join(fixture, 'skills', skillName), join(stagedSkills, skillName), skillName)
+    }
+  })
+})
+
 test('source skill validation requires every reference a SKILL.md body names', async () => {
   await withTemp(async (tempDir) => {
     const skills = join(tempDir, 'skills')
