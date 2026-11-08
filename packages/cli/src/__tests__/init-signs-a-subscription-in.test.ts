@@ -322,6 +322,40 @@ describe('manual-code sign-in', () => {
     expect(nextSteps(ui)).toContain(LOGIN)
     expectNoSecretOutside(proj, ui)
   })
+
+  it('a refusal that echoes the parts of a code#state paste, raw or encoded, shows none of them', async () => {
+    const proj = project()
+    const codePart = 'CODEPART-7a3e'
+    const statePart = 'STATEPART-c51d'
+    const pasted = `${codePart}#${statePart}`
+    setControl({
+      exchangeCode: vi.fn(async ({ code }: { code: string }) => {
+        const [bare, state] = code.split('#')
+        throw new Error(
+          `Token exchange failed: {"code":"${bare}","state":"${state}"} sent ${encodeURIComponent(code)}`,
+        )
+      }),
+    })
+    const ui = fakeInitUi({ [PASTE_THE_CODE]: pasted })
+
+    const { error } = await init(proj, ui)
+
+    expect(error).toMatchObject({ name: 'CliRefusal', exitCode: 3 })
+    expect(signInEntries(ui)).toEqual([
+      {
+        kind: 'failed',
+        text: 'Token exchange failed: {"code":"***","state":"***"} sent ***',
+        command: LOGIN,
+      },
+    ])
+    const shown = [
+      ui.output(),
+      JSON.stringify(ui.entries.filter((entry) => entry.kind !== 'text')),
+      ...stderr.mock.calls.map((call) => String(call[0])),
+    ].join('\n')
+    expect(shown).not.toContain(codePart)
+    expect(shown).not.toContain(statePart)
+  })
 })
 
 describe('the sign-in on the rail', () => {

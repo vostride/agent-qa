@@ -21,6 +21,15 @@ function cannotSignIn(plugin: LLMAuthProviderPlugin): Error {
   return new Error(`The ${plugin.label} plugin cannot sign in from the command line.`)
 }
 
+// A plugin may split a `code#state` paste and echo either part, raw or URL-encoded, in its
+// error. The whole value, each `#` part and their encoded forms are masked, longest first.
+function maskPasted(message: string, pasted: string): string {
+  const parts = [pasted, ...pasted.split('#')].filter((part) => part !== '')
+  const forms = [...new Set(parts.flatMap((part) => [part, encodeURIComponent(part)]))]
+  forms.sort((a, b) => b.length - a.length)
+  return forms.reduce((text, form) => text.replaceAll(form, '***'), message)
+}
+
 // The pasted code never leaves this function, not even inside an error message.
 async function pasteTheCode(
   ui: InitUi,
@@ -34,7 +43,7 @@ async function pasteTheCode(
     return await plugin.exchangeCode({ code, sessionState: started.sessionState })
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error)
-    throw new Error(message.replaceAll(code, '***'))
+    throw new Error(maskPasted(message, code))
   }
 }
 
