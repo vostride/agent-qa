@@ -1,10 +1,23 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
-import { describe, expect, it } from 'vitest'
+import { Command } from 'commander'
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
+import { createInitCommand } from '../commands/init.js'
+import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { BANNER_GAP, BANNER_ROWS, BANNER_WIDTH } from '../init-ui/banner-art.js'
 import { renderBanner } from '../init-ui/banner.js'
 import { brandPalette, colorLevelFor } from '../init-ui/palette.js'
+import {
+  DARK_BACKGROUND_REPLY,
+  KEY,
+  answeringTerminal,
+  clackStreams,
+  type AnsweringTerminal,
+  type ClackStreams,
+} from './clack-keys.js'
+import { cleanupTempProjects, fakeRunner, tempProject } from './project-fixtures.js'
 
 const ESCAPE = '\x1b['
 const tty = { isTTY: true }
@@ -129,5 +142,176 @@ describe('brandPalette chevron', () => {
   it('is the primary mixed halfway into the measured background', () => {
     const palette = brandPalette({ background: 'light', rgb: { r: 1, g: 1, b: 1 }, level: 3 })
     expect(palette.chevron('›')).toContain('38;2;140;180;185')
+  })
+})
+
+const silentAnalytics: typeof composeAnalyticsHost = async () =>
+  composeAnalyticsHost({
+    surface: 'cli',
+    env: {},
+    transportOverride: { capture: () => {}, flush: () => {}, shutdown: () => {} },
+    resolveIdentity: async () => ({ distinctId: 'u_init-banner', runtimeContext: 'user' }),
+  })
+
+const SGR = /\x1b\[[0-9;]*m/g
+const HIDE_CURSOR = '\x1b[?25l'
+const PLATFORM_QUESTION = 'What platform will you test?'
+const bannerLines = BANNER_ROWS.map(
+  ([chevron, wordmark]) => `${chevron}${' '.repeat(BANNER_GAP)}${wordmark}`,
+)
+
+interface RailRun {
+  root: string
+  streams: ClackStreams
+  terminal: AnsweringTerminal
+  done: Promise<void>
+}
+
+function initOnTheRail(
+  args: readonly string[],
+  options: {
+    streams?: ClackStreams
+    terminal?: AnsweringTerminal
+    env?: NodeJS.ProcessEnv
+    stdinIsTTY?: boolean
+    stdoutIsTTY?: boolean
+  } = {},
+): RailRun {
+  const { root, home } = tempProject('init-banner')
+  const streams = options.streams ?? clackStreams()
+  const terminal = options.terminal ?? answeringTerminal()
+  const parent = new Command()
+  const command = createInitCommand({
+    cwd: root,
+    host: { homedir: home, env: options.env ?? {}, run: fakeRunner() },
+    stdinIsTTY: options.stdinIsTTY ?? true,
+    stdoutIsTTY: options.stdoutIsTTY ?? true,
+    terminal: terminal.port,
+    rail: { input: streams.input, output: streams.output },
+    composeAnalytics: silentAnalytics,
+  })
+  parent.exitOverride()
+  command.exitOverride()
+  parent.addCommand(command)
+  const done = parent
+    .parseAsync(['node', 'test', 'init', ...args, '--llm', 'claude-code', '--pm', 'none'])
+    .then(() => {})
+  return { root, streams, terminal, done }
+}
+
+async function answerTheQuestions(run: RailRun): Promise<string> {
+  await run.streams.waitFor(PLATFORM_QUESTION)
+  await run.streams.press(KEY.enter)
+  await run.done
+  return run.streams.text()
+}
+
+describe('init on the Clack rail', () => {
+  let stderr: MockInstance<typeof process.stderr.write>
+
+  beforeEach(() => {
+    stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+    cleanupTempProjects()
+  })
+
+  it('draws the banner, the intro, the What to expect note and the platform question, and Enter answers Web', async () => {
+    const run = initOnTheRail([], { terminal: answeringTerminal(DARK_BACKGROUND_REPLY) })
+
+    const text = (await answerTheQuestions(run)).replace(SGR, '')
+
+    for (const line of bannerLines) expect(text).toContain(line)
+    expect(text).toContain('agent-qa init')
+    expect(text).toContain('What to expect')
+    expect(text).toContain(PLATFORM_QUESTION)
+    expect(text.indexOf(bannerLines[1]!)).toBeLessThan(text.indexOf(PLATFORM_QUESTION))
+    expect(text).toMatch(/Scaffold: config, 3 example tests and a suite/u)
+    expect(existsSync(join(run.root, 'tests/examples/komazon-checkout.yaml'))).toBe(true)
+    expect(run.terminal.asked()).toBe(1)
+  })
+
+  it('draws no banner row on a 40-column rail', async () => {
+    const run = initOnTheRail([], { streams: clackStreams({ columns: 40 }) })
+
+    const text = (await answerTheQuestions(run)).replace(SGR, '')
+
+    for (const line of bannerLines.filter((row) => row.trim() !== '')) {
+      expect(text).not.toContain(line)
+    }
+    expect(text).toContain(PLATFORM_QUESTION)
+  })
+
+  it('uses the dark palette when the terminal does not report its background', async () => {
+    const run = initOnTheRail([], { env: { FORCE_COLOR: '3' } })
+
+    const text = await answerTheQuestions(run)
+
+    expect(text).toContain('38;2;32;184;205')
+    expect(text).toContain('38;2;43;160;171')
+  })
+
+  it('draws the banner and the note under --yes and asks nothing', async () => {
+    const run = initOnTheRail(['--yes'])
+
+    await run.done
+    const text = run.streams.text().replace(SGR, '')
+
+    expect(text).toContain(bannerLines[1])
+    expect(text).toContain('What to expect')
+    expect(text).not.toContain(PLATFORM_QUESTION)
+    expect(existsSync(join(run.root, 'agent-qa.config.yaml'))).toBe(true)
+  })
+
+  it.each([
+    { name: '--json', args: ['--json'], env: {}, stdoutIsTTY: true },
+    { name: 'CI=true', args: [], env: { CI: 'true' }, stdoutIsTTY: true },
+    { name: 'stdout that is not a terminal', args: [], env: {}, stdoutIsTTY: false },
+  ])('draws no banner or cursor code and never probes the background with $name', async (cell) => {
+    const run = initOnTheRail(cell.args, { env: cell.env, stdoutIsTTY: cell.stdoutIsTTY })
+
+    await run.done
+    const text = `${run.streams.text()}${stderr.mock.calls.map((call) => String(call[0])).join('')}`
+
+    for (const line of bannerLines.filter((row) => row.trim() !== '')) {
+      expect(text).not.toContain(line)
+    }
+    expect(text).not.toContain(HIDE_CURSOR)
+    expect(run.terminal.asked()).toBe(0)
+  })
+
+  it('leaves the banner and the whole rail uncoloured under NO_COLOR', async () => {
+    vi.stubEnv('NO_COLOR', '1')
+    vi.stubEnv('FORCE_COLOR', undefined)
+    const run = initOnTheRail([], {
+      env: { NO_COLOR: '1' },
+      terminal: answeringTerminal(DARK_BACKGROUND_REPLY),
+    })
+
+    const text = await answerTheQuestions(run)
+
+    for (const line of bannerLines) expect(text).toContain(line)
+    expect(text).not.toMatch(/\x1b\[[0-9;]*m/u)
+  })
+
+  it('takes the colour level from the environment init is given, not the process environment', async () => {
+    vi.stubEnv('NO_COLOR', '1')
+    const run = initOnTheRail(['--yes'], {
+      env: { FORCE_COLOR: '1' },
+      streams: clackStreams({ isTTY: false }),
+    })
+
+    await run.done
+    const wordmarkRow = run.streams
+      .text()
+      .split('\n')
+      .find((line) => line.replace(SGR, '') === bannerLines[1])
+
+    expect(wordmarkRow).toContain('\x1b[36m')
   })
 })

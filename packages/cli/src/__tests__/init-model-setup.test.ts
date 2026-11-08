@@ -56,7 +56,6 @@ vi.mock('../commands/install-browsers.js', () => ({
 
 vi.mock('@inquirer/select', () => ({ default: vi.fn() }))
 vi.mock('@inquirer/input', () => ({ default: vi.fn() }))
-vi.mock('@inquirer/checkbox', () => ({ default: vi.fn() }))
 vi.mock('@inquirer/confirm', () => ({ default: vi.fn() }))
 vi.mock('@inquirer/password', () => ({ default: vi.fn() }))
 
@@ -75,16 +74,19 @@ import { preflightInitPlan, writeScaffoldFileAtomic } from '../commands/init-fil
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import select from '@inquirer/select'
 import input from '@inquirer/input'
-import checkbox from '@inquirer/checkbox'
 import confirm from '@inquirer/confirm'
 import password from '@inquirer/password'
 import { getProvider } from '@vostride/agent-qa-model'
 import { DEFAULT_ANTHROPIC_MODEL, DEFAULT_OPENAI_MODEL } from '../model-defaults.js'
+import type { InitUi } from '../init-ui/init-ui.js'
+import { createPlainUi } from '../init-ui/plain-ui.js'
 
 const DIR = '/tmp/init-llm'
 const SUBSCRIPTION_AUTH_PACKAGE = '@vostride/agent-qa-subscription-auth'
 const mockWriteFileSync = vi.mocked(writeFileSync)
-const prompts = [select, input, checkbox, confirm, password].map(fn => vi.mocked(fn))
+// The platform question is drawn through init's UI; the rest are still Inquirer prompts.
+const platform = vi.fn<InitUi['multiselect']>()
+const prompts = [select, input, platform, confirm, password].map(fn => vi.mocked(fn))
 
 let stderr: string[] = []
 let previousExitCode: typeof process.exitCode
@@ -98,7 +100,12 @@ function withoutInstall(args: readonly string[]): string[] {
 
 async function runInit(args: string[], isTTY = false): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand({ cwd: DIR, isTTY } as Parameters<typeof createInitCommand>[0])
+  const init = createInitCommand({
+    cwd: DIR,
+    host: { env: {} },
+    isTTY,
+    ui: { ...createPlainUi(), multiselect: platform },
+  } as Parameters<typeof createInitCommand>[0])
   parent.exitOverride()
   init.exitOverride()
   init.configureOutput({
@@ -282,20 +289,19 @@ describe('init model connection flags', () => {
 type PromptCall = { kind: string; config: any }
 
 function promptCalls(): PromptCall[] {
-  const kinds = ['select', 'input', 'checkbox', 'confirm', 'password']
+  const kinds = ['select', 'input', 'multiselect', 'confirm', 'password']
   return prompts.flatMap((prompt, index) =>
     prompt.mock.calls.map(call => ({ kind: kinds[index]!, config: call[0] as any })))
 }
 
 function answerWithDefaults(): void {
-  vi.mocked(checkbox).mockImplementation((async (config: any) =>
-    config.choices.filter((choice: any) => choice.checked).map((choice: any) => choice.value)) as any)
+  platform.mockImplementation(async (config) => [...config.initialValues])
   vi.mocked(select).mockImplementation((async (config: any) => config.default) as any)
   vi.mocked(input).mockImplementation((async (config: any) => config.default) as any)
 }
 
 function hasDefault(call: PromptCall): boolean {
-  if (call.kind === 'checkbox') return call.config.choices.some((choice: any) => choice.checked)
+  if (call.kind === 'multiselect') return call.config.initialValues.length > 0
   return call.config.default !== undefined && String(call.config.default).length > 0
 }
 
@@ -305,10 +311,8 @@ describe('init prompts', () => {
   it('in a terminal with no flags, init asks the platform and the model connection, each with its default', async () => {
     await initOk([], true)
 
-    expect(vi.mocked(checkbox)).toHaveBeenCalledTimes(1)
-    expect(vi.mocked(checkbox).mock.calls[0]![0].choices).toContainEqual(
-      expect.objectContaining({ value: 'web', checked: true }),
-    )
+    expect(platform).toHaveBeenCalledTimes(1)
+    expect(platform.mock.calls[0]![0].initialValues).toEqual(['web'])
     expect(vi.mocked(select)).toHaveBeenCalledTimes(1)
     const connection = vi.mocked(select).mock.calls[0]![0] as any
     expect(connection.choices.map((choice: any) => choice.value)).toEqual([...INIT_LLM_CHOICES])
@@ -372,7 +376,7 @@ describe('init prompts', () => {
       asked.push(...promptCalls())
     }
 
-    expect(new Set(asked.map(call => call.kind))).toEqual(new Set(['checkbox', 'select', 'input']))
+    expect(new Set(asked.map(call => call.kind))).toEqual(new Set(['multiselect', 'select', 'input']))
     for (const call of asked) expect(hasDefault(call), `${call.kind} ${call.config.message}`).toBe(true)
   })
 

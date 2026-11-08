@@ -85,10 +85,6 @@ vi.mock('@inquirer/input', () => ({
   default: vi.fn(),
 }))
 
-vi.mock('@inquirer/checkbox', () => ({
-  default: vi.fn(),
-}))
-
 vi.mock('@inquirer/confirm', () => ({
   default: vi.fn(),
 }))
@@ -130,7 +126,6 @@ import { writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { execFileSync, execSync } from 'node:child_process'
 import select from '@inquirer/select'
 import input from '@inquirer/input'
-import checkbox from '@inquirer/checkbox'
 import confirm from '@inquirer/confirm'
 import password from '@inquirer/password'
 import { getAgentQaVersion, resolveAppiumExecutable, writeAuth } from '@vostride/agent-qa-core'
@@ -138,6 +133,8 @@ import { clearProviderRegistry, registerProvider, type ProviderDescriptor } from
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { reportCliFailure } from '../cli-error-handler.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
+import type { InitUi } from '../init-ui/init-ui.js'
+import { createPlainUi } from '../init-ui/plain-ui.js'
 
 const mockWriteFileSync = vi.mocked(writeFileSync)
 const mockExistsSync = vi.mocked(existsSync)
@@ -148,7 +145,12 @@ const mockRunBrowserInstall = vi.mocked(runBrowserInstall)
 const mockFormatInstallBrowsersRetryCommand = vi.mocked(formatInstallBrowsersRetryCommand)
 const mockSelect = vi.mocked(select)
 const mockInput = vi.mocked(input)
-const mockCheckbox = vi.mocked(checkbox)
+// The platform question is answered here; every other line draws as plain stderr lines.
+const mockPlatform = vi.fn<InitUi['multiselect']>(async (q) => [...q.initialValues])
+
+function terminalUi(): InitUi {
+  return { ...createPlainUi(), multiselect: mockPlatform as InitUi['multiselect'] }
+}
 const mockConfirm = vi.mocked(confirm)
 const mockPassword = vi.mocked(password)
 const mockWriteAuth = vi.mocked(writeAuth)
@@ -171,7 +173,12 @@ async function runInit(
   hooks: Parameters<typeof createInitCommand>[0] = {},
 ): Promise<void> {
   const parent = new Command()
-  const init = createInitCommand({ cwd: '/tmp/test-project', host: { env: {} }, ...hooks })
+  const init = createInitCommand({
+    cwd: '/tmp/test-project',
+    host: { env: {} },
+    ui: terminalUi(),
+    ...hooks,
+  })
   parent.exitOverride()
   init.exitOverride()
   parent.addCommand(init)
@@ -181,14 +188,14 @@ async function runInit(
 async function runInitUnderRootConfig(args: string[]): Promise<void> {
   const parent = new Command().enablePositionalOptions()
   parent.option('--config <path>', 'config file path', 'agent-qa.config.yaml')
-  const init = createInitCommand({ cwd: '/tmp/test-project', isTTY: true })
+  const init = createInitCommand({ cwd: '/tmp/test-project', isTTY: true, ui: terminalUi() })
   parent.exitOverride()
   parent.addCommand(init)
   await parent.parseAsync(['node', 'test', ...args])
 }
 
 function expectNothingAskedOrWritten(): void {
-  expect(mockCheckbox).not.toHaveBeenCalled()
+  expect(mockPlatform).not.toHaveBeenCalled()
   expect(mockSelect).not.toHaveBeenCalled()
   expect(mockInput).not.toHaveBeenCalled()
   expect(mockPreflightInitPlan).not.toHaveBeenCalled()
@@ -646,7 +653,7 @@ describe('init command', () => {
   )
 
   it('prompts model as free text and does not collect first-party API keys during interactive init', async () => {
-    mockCheckbox.mockResolvedValueOnce(['web'])
+    mockPlatform.mockResolvedValueOnce(['web'])
     mockSelect.mockResolvedValueOnce('anthropic-compatible')
     mockInput
       .mockResolvedValueOnce('claude-remote')
@@ -654,13 +661,14 @@ describe('init command', () => {
 
     await runInit([], { isTTY: true })
 
-    expect(mockCheckbox).toHaveBeenCalledTimes(1)
-    expect(mockCheckbox).toHaveBeenNthCalledWith(1, expect.objectContaining({
+    expect(mockPlatform).toHaveBeenCalledTimes(1)
+    expect(mockPlatform).toHaveBeenNthCalledWith(1, expect.objectContaining({
       message: 'What platform will you test?',
-      choices: [
-        { value: 'web', name: 'Web', description: 'Test web apps with Playwright', checked: true },
-        { value: 'mobile', name: 'Mobile', description: 'Test Android or iOS apps with Appium', checked: false },
+      options: [
+        { value: 'web', label: 'Web', hint: 'Playwright' },
+        { value: 'mobile', label: 'Mobile', hint: 'Appium: Android and iOS' },
       ],
+      initialValues: ['web'],
       required: true,
     }))
     expect(mockSelect).toHaveBeenNthCalledWith(1, expect.objectContaining({
@@ -689,14 +697,13 @@ describe('init command', () => {
   })
 
   it('scaffolds both mobile runtimes when Mobile is selected', async () => {
-    mockCheckbox.mockResolvedValueOnce(['web', 'mobile'])
+    mockPlatform.mockResolvedValueOnce(['web', 'mobile'])
 
     await runInit(['--llm', 'codex'], { isTTY: true })
 
-    expect(mockCheckbox).toHaveBeenCalledTimes(1)
-    const platformValidate = mockCheckbox.mock.calls[0]?.[0].validate
-    expect(platformValidate?.([])).toBe('Select at least one platform.')
-    expect(mockCheckbox).not.toHaveBeenCalledWith(expect.objectContaining({
+    expect(mockPlatform).toHaveBeenCalledTimes(1)
+    expect(mockPlatform.mock.calls[0]?.[0].required).toBe(true)
+    expect(mockPlatform).not.toHaveBeenCalledWith(expect.objectContaining({
       message: 'Which mobile platforms will you test?',
     }))
 
@@ -709,7 +716,7 @@ describe('init command', () => {
   })
 
   it('writes OpenAI subscription config during interactive init', async () => {
-    mockCheckbox.mockResolvedValueOnce(['web'])
+    mockPlatform.mockResolvedValueOnce(['web'])
 
     await runInit(['--llm', 'codex'], { isTTY: true })
 
@@ -727,7 +734,7 @@ describe('init command', () => {
   })
 
   it('keeps compatible Gemini init free of subscription auth plugin', async () => {
-    mockCheckbox.mockResolvedValueOnce(['web'])
+    mockPlatform.mockResolvedValueOnce(['web'])
     mockSelect.mockResolvedValueOnce('gemini')
     mockInput.mockResolvedValueOnce('gemini-3-flash-preview')
 
@@ -933,7 +940,7 @@ describe('init command', () => {
       const onComplete = vi.fn()
       await runInit([], { isTTY: true, onComplete })
 
-      expect(mockCheckbox).not.toHaveBeenCalled()
+      expect(mockPlatform).not.toHaveBeenCalled()
       expect(mockSelect).not.toHaveBeenCalled()
       expect(mockInput).not.toHaveBeenCalled()
       expect(mockWriteConfigMarkerLast).not.toHaveBeenCalled()
@@ -960,13 +967,13 @@ describe('init command', () => {
     })
 
     it('with --force an initialized project is asked the questions and rebuilt', async () => {
-      mockCheckbox.mockResolvedValueOnce(['web'])
+      mockPlatform.mockResolvedValueOnce(['web'])
       mockSelect.mockResolvedValueOnce('gemini')
       mockInput.mockResolvedValueOnce('gemini-3-flash-preview')
 
       await runInit(['--force'], { isTTY: true })
 
-      expect(mockCheckbox).toHaveBeenCalledTimes(1)
+      expect(mockPlatform).toHaveBeenCalledTimes(1)
       expect(consoleOutput()).not.toContain(alreadyInitialized)
       expect(findWriteCallEndingWith(join('/tmp/test-project', 'agent-qa.config.yaml')))
         .toBeDefined()
@@ -1021,7 +1028,7 @@ describe('init command', () => {
     })
 
     function expectNothingAskedOrWritten(): void {
-      expect(mockCheckbox).not.toHaveBeenCalled()
+      expect(mockPlatform).not.toHaveBeenCalled()
       expect(mockSelect).not.toHaveBeenCalled()
       expect(mockInput).not.toHaveBeenCalled()
       expect(mockPreflightInitPlan).not.toHaveBeenCalled()
@@ -1241,13 +1248,13 @@ describe('init command', () => {
   })
 
   it('prints all-drivers setup guidance when both mobile platforms are selected interactively', async () => {
-    mockCheckbox.mockResolvedValueOnce(['mobile'])
+    mockPlatform.mockResolvedValueOnce(['mobile'])
 
     await runInit(['--llm', 'codex'], { isTTY: true })
 
     const output = consoleOutput()
     expect(output).toContain('agent-qa install-mobile-drivers --all')
-    expect(mockCheckbox).not.toHaveBeenCalledWith(expect.objectContaining({
+    expect(mockPlatform).not.toHaveBeenCalledWith(expect.objectContaining({
       message: 'Which mobile platforms will you test?',
     }))
   })

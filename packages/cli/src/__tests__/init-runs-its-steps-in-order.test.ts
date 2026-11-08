@@ -77,7 +77,7 @@ afterEach(() => {
 })
 
 describe('a fresh init draws one line per step', () => {
-  it('writes the package.json, scaffold and install lines to stderr in order and nothing to stdout', async () => {
+  it('writes the What to expect line, then the package.json, scaffold and install lines to stderr in order and nothing to stdout', async () => {
     const { root, home } = tempProject('steps-plain')
 
     await init(root, home)
@@ -89,9 +89,10 @@ describe('a fresh init draws one line per step', () => {
       /^✓ Scaffold: config, 3 example tests and a suite \(\d+ files\)$/u.test(line),
     )
     const install = lines.findIndex((line) => line.startsWith('– Declared agent-qa '))
-    expect(packageJson).toBe(0)
-    expect(scaffold).toBe(1)
-    expect(install).toBe(2)
+    expect(lines[0]).toMatch(/^3 questions, then: package\.json, scaffold, install/u)
+    expect(packageJson).toBe(1)
+    expect(scaffold).toBe(2)
+    expect(install).toBe(3)
     expect(lines[install]).toContain('Install with: npm install')
     expect(written(stdout)).toBe('')
     expect(log).not.toHaveBeenCalled()

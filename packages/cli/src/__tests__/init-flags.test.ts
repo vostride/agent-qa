@@ -5,11 +5,9 @@ import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 
-vi.mock('@inquirer/checkbox', () => ({ default: vi.fn(async () => ['web']) }))
 vi.mock('@inquirer/select', () => ({ default: vi.fn(async () => 'gemini') }))
 vi.mock('@inquirer/input', () => ({ default: vi.fn(async () => 'gemini-model') }))
 
-import checkbox from '@inquirer/checkbox'
 import input from '@inquirer/input'
 import select from '@inquirer/select'
 
@@ -50,7 +48,7 @@ function questions(ui: FakeInitUi): string[] {
 }
 
 function promptsAsked(): number {
-  return [checkbox, select, input].reduce(
+  return [select, input].reduce(
     (sum, prompt) => sum + vi.mocked(prompt).mock.calls.length,
     0,
   )
@@ -91,6 +89,7 @@ describe('init in a terminal', () => {
 
     const root = await initInATerminal([], ui)
 
+    expect(questions(ui)).toEqual(['What platform will you test?'])
     expect(promptsAsked()).toBeGreaterThan(0)
     expect(configuredLlm(root)).toMatchObject({ provider: 'gemini', model: 'gemini-model' })
   })

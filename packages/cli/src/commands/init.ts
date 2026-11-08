@@ -2,9 +2,9 @@ import { Command, Option } from 'commander'
 import { readFileSync } from 'node:fs'
 import { basename, dirname, join, relative, sep } from 'node:path'
 import pc from 'picocolors'
+import type { Readable, Writable } from 'node:stream'
 import select from '@inquirer/select'
 import input from '@inquirer/input'
-import checkbox from '@inquirer/checkbox'
 import {
   DEFAULT_AGENT_QA_AUTH_STATES_DIR,
   DEFAULT_AGENT_QA_CACHE_DIR,
@@ -43,9 +43,18 @@ import {
   type InitPathPlan,
 } from './init-filesystem.js'
 import { buildKnowledgeAgentGuide } from './knowledge-guide.js'
+import { resolveIsCI } from '../ci-env.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
-import type { InitUi } from '../init-ui/init-ui.js'
+import { createClackUi, type ClackUi } from '../init-ui/clack-ui.js'
+import { initUiMode, type InitUi } from '../init-ui/init-ui.js'
+import { brandPalette, colorLevelFor } from '../init-ui/palette.js'
 import { createPlainUi } from '../init-ui/plain-ui.js'
+import {
+  classifyBackground,
+  probeTerminalBackground,
+  processTerminalPort,
+  type TerminalPort,
+} from '../init-ui/terminal-background.js'
 import { isInitRefusal } from './init-refusal.js'
 import {
   defaultInitFolderIo,
@@ -586,11 +595,31 @@ export interface InitCommandHooks {
   onComplete?: (outcomes: readonly InitFileResult[]) => void
   // A seam so a suite observes the one event without touching a home directory.
   composeAnalytics?: typeof ComposeAnalyticsHost
+  // Sets both stdinIsTTY and stdoutIsTTY.
   isTTY?: boolean
+  stdinIsTTY?: boolean
+  stdoutIsTTY?: boolean
+  terminal?: TerminalPort
+  rail?: InitRail
   cwd?: string
   host?: Partial<ProjectHost>
   ui?: InitUi
 }
+
+// The streams the Clack rail reads and draws on: stdin and stderr in production.
+export interface InitRail {
+  input: Readable
+  output: Writable & { isTTY?: boolean; columns?: number }
+}
+
+const PLATFORM_CHOICES = [
+  { value: 'web', label: 'Web', hint: 'Playwright' },
+  { value: 'mobile', label: 'Mobile', hint: 'Appium: Android and iOS' },
+] as const satisfies readonly { value: PlatformCapability; label: string; hint: string }[]
+
+const WHAT_TO_EXPECT =
+  '3 questions, then: package.json, scaffold, install, Chromium, skills and MCP, validate, '
+  + 'sign-in and the dashboard.'
 
 function scaffoldFilePlan(
   root: string,
@@ -774,7 +803,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       const projectDir = hooks.cwd ?? process.cwd()
       const configPath = join(projectDir, DEFAULT_CONFIG_FILE_NAME)
       const host = projectHost({ cwd: projectDir, ...hooks.host })
-      const ui = hooks.ui ?? createPlainUi()
+      let ui: InitUi = hooks.ui ?? createPlainUi()
+      let clackUi: ClackUi | undefined
       const recorder = createInitDocumentRecorder({ dir: projectDir })
       let steps: () => readonly InitStepRecord[] = () => []
       let delegated = false
@@ -853,9 +883,15 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         const initStartedAt = Date.now()
         const force = opts.force ?? false
 
-        const tty = hooks.isTTY ?? process.stdin.isTTY === true
+        const mode = initUiMode({
+          stdinIsTTY: hooks.stdinIsTTY ?? hooks.isTTY ?? process.stdin.isTTY === true,
+          stdoutIsTTY: hooks.stdoutIsTTY ?? hooks.isTTY ?? process.stdout.isTTY === true,
+          ci: resolveIsCI(host.env),
+          yes: opts.yes === true,
+          json,
+        })
         // Without a question drawn, every answer takes its flag or its default.
-        const ask = tty && opts.yes !== true && opts.json !== true
+        const ask = mode === 'interactive'
         let asked = false
 
         // Derives the outcome from file outcomes; a scaffold that throws reaches neither call site.
@@ -922,18 +958,37 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         const flaggedLlm = (opts.llm ?? 'claude-code') as InitLLMChoice
         if (!askLlm && refuseBaseUrl(INIT_LLM_ENTRIES[flaggedLlm].provider)) return
 
+        if (mode !== 'plain' && hooks.ui === undefined) {
+          const rail = hooks.rail ?? { input: process.stdin, output: process.stderr }
+          const rgb = await probeTerminalBackground(
+            hooks.terminal ?? processTerminalPort(process.stdin, process.stdout, host.env),
+          )
+          // The level follows agent-qa's colour rule over the environment and stream init is given.
+          const palette = brandPalette({
+            background: classifyBackground(rgb, host.env),
+            ...(rgb === undefined ? {} : { rgb }),
+            level: colorLevelFor(host.env, rail.output),
+          })
+          clackUi = createClackUi({
+            input: rail.input,
+            output: rail.output,
+            palette,
+            columns: rail.output.columns ?? 0,
+          })
+          ui = clackUi
+        }
+        if (mode !== 'plain') ui.banner()
+        ui.intro(WHAT_TO_EXPECT)
+
         let platform: InitPlatformInput
         if (ask && opts.platform === undefined) {
           asked = true
-          const capabilities = await checkbox<PlatformCapability>({
+          const capabilities = await ui.multiselect<PlatformCapability>({
             message: 'What platform will you test?',
-            choices: [
-              { value: 'web', name: 'Web', description: 'Test web apps with Playwright', checked: true },
-              { value: 'mobile', name: 'Mobile', description: 'Test Android or iOS apps with Appium', checked: false },
-            ],
+            options: PLATFORM_CHOICES,
+            initialValues: ['web'],
             required: true,
-            validate: (value) => value.length > 0 || 'Select at least one platform.',
-          }) as PlatformCapability[]
+          })
 
           const mobileRuntimes: MobileRuntime[] = capabilities.includes('mobile') ? ['android', 'ios'] : []
 
@@ -1168,6 +1223,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         if (json && !delegated) {
           writeDocument(await recorder.document(steps(), installOutputMask(configPath, host.io)))
         }
+        clackUi?.dispose()
         if (!threw) releaseStdout?.()
       }
     })
