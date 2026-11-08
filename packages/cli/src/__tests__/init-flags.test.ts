@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { parse as parseYaml } from 'yaml'
 
 import { createInitCommand } from '../commands/init.js'
+import type { InitDocument } from '../commands/init-document.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { fakeInitUi, type FakeInitUi } from './fake-init-ui.js'
 import { cleanupTempProjects, fakeRunner, tempProject } from './project-fixtures.js'
@@ -78,7 +79,11 @@ describe('init in a terminal', () => {
 
     const root = await initInATerminal([], ui)
 
-    expect(questions(ui)).toEqual(['What platform will you test?', 'Which model should agent-qa use?'])
+    expect(questions(ui)).toEqual([
+      'What platform will you test?',
+      'Which model should agent-qa use?',
+      'Which coding agents should agent-qa set up?',
+    ])
     expect(configuredLlm(root)).toMatchObject({ name: 'gemini', provider: 'gemini' })
   })
 
@@ -206,4 +211,57 @@ describe('--platform takes a CSV of web, android and ios', () => {
       expect(documents[0]).toMatchObject({ outcome: 'refused', exitCode: 2, message })
     },
   )
+})
+
+function lastDocument(): InitDocument {
+  const documents = stdout.mock.calls.map((call) => JSON.parse(String(call[0])) as InitDocument)
+  expect(documents).toHaveLength(1)
+  return documents[0]!
+}
+
+describe('--agents answers the coding agents question', () => {
+  it.each([
+    ['codex', ['codex']],
+    ['all', ['claude-code', 'codex']],
+    ['none', []],
+    ['codex, claude-code', ['claude-code', 'codex']],
+  ])('--agents %s records %j in the document', async (value, agents) => {
+    const { error } = await initWithFlags(['--platform', 'web', '--agents', value, '--json'])
+
+    expect(error).toBeUndefined()
+    expect(lastDocument().agents).toEqual(agents)
+  })
+
+  it('--json with nothing detected records both agents in the document', async () => {
+    const { error } = await initWithFlags(['--platform', 'web', '--json'])
+
+    expect(error).toBeUndefined()
+    expect(lastDocument().agents.join(', ')).toBe('claude-code, codex')
+  })
+
+  it('--agents codex in a terminal answers the question without drawing it', async () => {
+    const ui = fakeInitUi()
+
+    await initInATerminal(['--platform', 'web', '--agents', 'codex'], ui)
+
+    expect(questions(ui)).toEqual(['Which model should agent-qa use?'])
+  })
+
+  it('--agents cursor is refused with exit 2 and writes nothing', async () => {
+    const { root, error } = await initWithFlags(['--platform', 'web', '--agents', 'cursor'])
+
+    expect(error).toMatchObject({
+      exitCode: 2,
+      message: 'Unknown coding agent "cursor". Use claude-code, codex, all or none.',
+    })
+    expect(readdirSync(root)).toEqual(['.git'])
+  })
+
+  it('init help names --agents and its four values', () => {
+    const help = createInitCommand().helpInformation()
+    const line = help.split('\n').find((entry) => entry.startsWith('  --agents <list>'))
+
+    expect(line).toBeDefined()
+    for (const value of ['claude-code', 'codex', 'all', 'none']) expect(help).toContain(value)
+  })
 })

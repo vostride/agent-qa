@@ -148,7 +148,7 @@ describe('init --json prints one document on stdout', () => {
       outcome: 'created',
       step: 'scaffold',
     })
-    expect(doc.agents).toEqual([])
+    expect(doc.agents).toEqual(['claude-code', 'codex'])
     expect(doc.agentQa).toEqual({ version: VERSION, via: 'running' })
     expect(doc.plugins).toEqual([
       { package: '@vostride/agent-qa-subscription-auth', version: VERSION },
