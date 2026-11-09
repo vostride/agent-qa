@@ -193,6 +193,7 @@ describe('createKnowledgeChecks', () => {
     expect(store).toEqual({
       status: 'warn',
       message: `no index at ${relativeRoot} — scanning bundles (${RUNG_CAUSE_LABELS['index-not-built']})`,
+      fix: STORE_NOT_BUILT_FIX,
     })
     expect(rung).toEqual({
       status: 'warn',

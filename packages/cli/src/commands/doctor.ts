@@ -114,6 +114,11 @@ export interface ActiveLLMConfig {
 const NO_MODEL: CheckResult = { status: 'skip', message: 'no model configured' }
 const MODEL_FIX =
   "Set a model on the dashboard's model page, `npx agent-qa dashboard --open /config/models`, or with `npx agent-qa init --llm <choice>`."
+export const CONFIG_UNCHECKED_FIX =
+  'Run `npx agent-qa validate` to see the error that stopped the check.'
+export const VALIDATE_WARNINGS_FIX = 'Run `npx agent-qa validate` to see each warning.'
+export const DISCOVERY_UNCHECKED_FIX =
+  'Run `npx agent-qa validate` to see the error that stopped the scan.'
 
 // Read from the raw config, before validate: an entry that is not a named mapping is left to it.
 function activeLLM(config: Record<string, unknown> | null): ActiveLLMConfig | undefined {
@@ -232,7 +237,7 @@ function checkConfigValidation(
         ).join('; ')
         return { status: 'fail', message: errors }
       } catch {
-        return { status: 'warn', message: 'could not validate config' }
+        return { status: 'warn', message: 'could not validate config', fix: CONFIG_UNCHECKED_FIX }
       }
     },
   }
@@ -490,7 +495,11 @@ function checkLLMConnection(
           return { status: 'fail', message: 'Model not found. Check the model name.' }
         }
         if (/rate.?limit|429/i.test(msg)) {
-          return { status: 'warn', message: 'rate limited — try again later' }
+          return {
+            status: 'warn',
+            message: 'rate limited — try again later',
+            fix: `The provider is rate-limiting requests for this model. Wait, then run \`npx agent-qa auth test --config ${llm.name}\`.`,
+          }
         }
         if (/ECONNREFUSED|ENOTFOUND|timeout|abort/i.test(msg)) {
           return { status: 'fail', message: 'Network error. Check the exact base URL and try again.' }
@@ -686,7 +695,11 @@ function checkValidation(config: Record<string, unknown> | null, configPath: str
           return { status: 'pass', message: `${result.fileCount} files valid` }
         }
         if (result.errorCount === 0) {
-          return { status: 'warn', message: `${result.warningCount} warning(s)` }
+          return {
+            status: 'warn',
+            message: `${result.warningCount} warning(s)`,
+            fix: VALIDATE_WARNINGS_FIX,
+          }
         }
         return { status: 'fail', message: `${result.errorCount} error(s), ${result.warningCount} warning(s)` }
       } catch {
@@ -725,7 +738,11 @@ function checkTestDiscovery(config: Record<string, unknown> | null, configPath: 
         }
         return { status: 'pass', message: total }
       } catch {
-        return { status: 'warn', message: 'could not scan for test files' }
+        return {
+          status: 'warn',
+          message: 'could not scan for test files',
+          fix: DISCOVERY_UNCHECKED_FIX,
+        }
       }
     },
   }

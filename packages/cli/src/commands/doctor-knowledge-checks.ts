@@ -67,6 +67,8 @@ export const EMBEDDER_WORKER_NOT_REGISTERED_TEXT = 'daemon embedder worker not r
 export const EMBEDDER_NO_DAEMON_TEXT = 'embedder worker not registered: no agent-qa daemon is running'
 
 const STORE_FIX_PREFIX = 'Rebuild the index with `npx agent-qa knowledge rebuild-index`, or remove the corrupt file at'
+export const STORE_NOT_BUILT_FIX =
+  'Build the index with `npx agent-qa knowledge rebuild-index`; until then knowledge search scans the bundles.'
 export const EMBEDDER_PROFILE_FIX =
   'v2 does not download the embedding model, and knowledge search works without it. Stop the daemon with `npx agent-qa daemon stop` to clear this row.'
 export const EMBEDDER_CRASH_FIX =
@@ -202,6 +204,7 @@ function createKnowledgeStoreCheck(context: KnowledgeCheckContext): DoctorCheck 
       return {
         status: 'warn',
         message: `no index at ${context.relativeRoot} — scanning bundles (${RUNG_CAUSE_LABELS['index-not-built']})`,
+        fix: STORE_NOT_BUILT_FIX,
       }
     },
   }
