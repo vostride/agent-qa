@@ -218,7 +218,11 @@ async function runDoctorJson(
   program.option('--config <path>', 'config file path', 'agent-qa.config.yaml')
   program.option('--log-level <level>')
   program.addCommand(
-    createDoctorCommand({ chromium: () => ({ found: true, path: '/browsers/chromium-1/chrome' }) }),
+    createDoctorCommand({
+      chromium: () => ({ found: true, path: '/browsers/chromium-1/chrome' }),
+      listDevicesHere: async (platform) =>
+        platform === 'android' ? { attached: [], avds: [] } : { simulators: [] },
+    }),
   )
   await program.parseAsync([
     'node',

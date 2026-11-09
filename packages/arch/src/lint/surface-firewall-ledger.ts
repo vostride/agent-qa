@@ -94,6 +94,12 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'direct run member assembly; relocates with the run-session composition root',
   },
   {
+    file: 'packages/cli/src/commands/doctor-device-checks.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: "doctor's device rows read the config's device profiles as agent-qa devices does; joins the environment action class",
+  },
+  {
     file: 'packages/cli/src/commands/doctor-plugin-checks.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',

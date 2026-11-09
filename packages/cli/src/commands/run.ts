@@ -368,7 +368,7 @@ async function deviceWhere(
   return { name, platform, here: finder.found.description }
 }
 
-function placeText(place: DevicePlaceView): string {
+export function placeText(place: DevicePlaceView): string {
   if ('here' in place) return `here: ${place.here}`
   if ('remote' in place) {
     const { name, plugin, protocol, url } = place.remote

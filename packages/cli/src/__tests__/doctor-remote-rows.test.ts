@@ -192,7 +192,13 @@ async function runDoctor(configPath: string, ...args: string[]): Promise<string>
   process.exitCode = 0
   const program = new Command()
   program.option('--config <path>', 'config file path', 'agent-qa.config.yaml')
-  program.addCommand(createDoctorCommand({ chromium: chromiumResolver }))
+  program.addCommand(
+    createDoctorCommand({
+      chromium: chromiumResolver,
+      listDevicesHere: async (platform) =>
+        platform === 'android' ? { attached: [], avds: [] } : { simulators: [] },
+    }),
+  )
   await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'doctor', ...args])
   return printed.join('\n')
 }

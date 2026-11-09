@@ -6,6 +6,7 @@ import { dirname, resolve } from 'node:path'
 import pc from 'picocolors'
 import { loadConfigFile } from '../config.js'
 import type { InspectDaemonRegistrationOutcome } from '../daemon/registration.js'
+import type { DevicesHereLister } from './run.js'
 import { HARD_CUT_STEPS, INVALID_CONFIG_FIX, isHardCutIssue } from '../hard-cut.js'
 import {
   activeModelEntry,
@@ -28,6 +29,7 @@ import {
 import { guardJsonText, isGitHubActions, printRunText } from '@vostride/agent-qa-core/run-text-output'
 import { createModel, getProvider } from '@vostride/agent-qa-model'
 import { findChromiumByDefault, type ChromiumResolver } from './browser-resolver.js'
+import { createDeviceChecks } from './doctor-device-checks.js'
 import { createKnowledgeChecks } from './doctor-knowledge-checks.js'
 import { createPluginChecks } from './doctor-plugin-checks.js'
 import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
@@ -720,6 +722,7 @@ function getGlobalConfigPath(command: Command): string {
 export interface DoctorCommandHooks {
   chromium?: ChromiumResolver
   daemon?: (agentQaRoot: string) => Promise<InspectDaemonRegistrationOutcome>
+  listDevicesHere?: DevicesHereLister
 }
 
 export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
@@ -798,6 +801,10 @@ export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
         checkAppiumDrivers(config, configPath, skips),
         checkAndroidSDK(config, skips),
         checkXcode(config, skips),
+        ...createDeviceChecks({
+          config,
+          ...(hooks.listDevicesHere === undefined ? {} : { listDevicesHere: hooks.listDevicesHere }),
+        }),
         checkTestDiscovery(config, configPath),
         checkValidation(config, configPath),
       ]

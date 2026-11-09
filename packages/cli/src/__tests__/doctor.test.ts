@@ -198,6 +198,10 @@ const chromium = vi.fn<ChromiumResolver>(() => chromiumAnswer)
 const daemon = vi.fn<NonNullable<DoctorCommandHooks['daemon']>>(
   () => Promise.resolve({ kind: 'absent' }),
 )
+// No phone, emulator or simulator here.
+const listDevicesHere = vi.fn<NonNullable<DoctorCommandHooks['listDevicesHere']>>(
+  async (platform) => (platform === 'android' ? { attached: [], avds: [] } : { simulators: [] }),
+)
 
 afterEach(() => {
   chromiumAnswer = CHROMIUM_FOUND
@@ -209,7 +213,7 @@ async function runDoctor(parentConfig?: string, ...args: string[]): Promise<void
 
   const parent = new Command()
   if (parentConfig) parent.setOptionValue('config', parentConfig)
-  parent.addCommand(createDoctorCommand({ chromium, daemon }))
+  parent.addCommand(createDoctorCommand({ chromium, daemon, listDevicesHere }))
   await parent.parseAsync(['node', 'test', 'doctor', ...args])
 }
 
