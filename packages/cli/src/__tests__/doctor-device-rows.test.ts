@@ -142,6 +142,7 @@ async function doctorRows(
   program.addCommand(
     createDoctorCommand({
       chromium: () => ({ found: true, path: '/browsers/chromium-1/chrome' }),
+      latestVersion: async () => ({ source: 'none' }),
       ...hooks,
     }),
   )

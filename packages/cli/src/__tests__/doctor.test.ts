@@ -207,6 +207,10 @@ afterEach(() => {
   chromiumAnswer = CHROMIUM_FOUND
 })
 
+const latestVersion: NonNullable<DoctorCommandHooks['latestVersion']> = async () => ({
+  source: 'none',
+})
+
 // node:fs is mocked here, so the setup rows read a project with no package.json and nothing installed.
 const NO_PROJECT_HOST: NonNullable<DoctorCommandHooks['host']> = {
   homedir: '/home/doctor',
@@ -224,7 +228,7 @@ async function runDoctor(parentConfig?: string, ...args: string[]): Promise<void
 
   const parent = new Command()
   if (parentConfig) parent.setOptionValue('config', parentConfig)
-  parent.addCommand(createDoctorCommand({ chromium, daemon, listDevicesHere, host: NO_PROJECT_HOST }))
+  parent.addCommand(createDoctorCommand({ chromium, daemon, latestVersion, listDevicesHere, host: NO_PROJECT_HOST }))
   await parent.parseAsync(['node', 'test', 'doctor', ...args])
 }
 

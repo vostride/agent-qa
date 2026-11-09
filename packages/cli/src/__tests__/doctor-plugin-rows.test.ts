@@ -221,6 +221,7 @@ async function runDoctorJson(
   program.addCommand(
     createDoctorCommand({
       chromium: () => ({ found: true, path: '/browsers/chromium-1/chrome' }),
+      latestVersion: async () => ({ source: 'none' }),
       listDevicesHere: async (platform) =>
         platform === 'android' ? { attached: [], avds: [] } : { simulators: [] },
     }),

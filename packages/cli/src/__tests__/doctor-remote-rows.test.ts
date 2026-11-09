@@ -195,6 +195,7 @@ async function runDoctor(configPath: string, ...args: string[]): Promise<string>
   program.addCommand(
     createDoctorCommand({
       chromium: chromiumResolver,
+      latestVersion: async () => ({ source: 'none' }),
       listDevicesHere: async (platform) =>
         platform === 'android' ? { attached: [], avds: [] } : { simulators: [] },
     }),

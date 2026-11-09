@@ -112,6 +112,12 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: "doctor's plugin rows resolve plugins entries and run each plugin's account check through core's plugin host pool directly; joins the environment action class",
   },
   {
+    file: 'packages/cli/src/commands/doctor-setup-checks.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: "doctor's newer-version row checks the registry's answer with core's semver helper before it reaches a message or a link; joins the environment action class",
+  },
+  {
     file: 'packages/cli/src/commands/doctor.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',

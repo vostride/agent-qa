@@ -35,10 +35,14 @@ import { createKnowledgeChecks } from './doctor-knowledge-checks.js'
 import { createPluginChecks } from './doctor-plugin-checks.js'
 import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
 import { createRemoteChecks, listedRemotes } from './doctor-remote-checks.js'
-import { createSetupChecks, projectAgentQaVersion } from './doctor-setup-checks.js'
-import type { LatestVersionAsk } from './latest-version-ask.js'
+import {
+  createNewerVersionCheck,
+  createSetupChecks,
+  projectAgentQaVersion,
+} from './doctor-setup-checks.js'
+import { askLatestVersionByDefault, type LatestVersionAsk } from './latest-version-ask.js'
 import { findProjectAgentQa } from './project-agent-qa.js'
-import { defaultProjectIo, type ProjectHost } from './project-host.js'
+import { defaultProjectIo, projectHost, type ProjectHost } from './project-host.js'
 import { projectRange } from './project-range.js'
 import { getTargetPlatforms, hasWebTarget, resolveWebPlacement, type WebPlacement } from './web-placement.js'
 import {
@@ -824,6 +828,12 @@ export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
         ...createDeviceChecks({
           config,
           ...(hooks.listDevicesHere === undefined ? {} : { listDevicesHere: hooks.listDevicesHere }),
+        }),
+        createNewerVersionCheck({
+          projectVersion: agentQaVersion,
+          latestVersion: hooks.latestVersion ?? askLatestVersionByDefault,
+          homeDir: projectHost(hooks.host).homedir,
+          ...(hooks.now === undefined ? {} : { now: hooks.now }),
         }),
         checkTestDiscovery(config, configPath),
         checkValidation(config, configPath),

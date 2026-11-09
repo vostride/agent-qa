@@ -1,9 +1,13 @@
 import { dirname, resolve } from 'node:path'
 
+import { validSemverVersion, type LatestAgentQaAnswer } from '@vostride/agent-qa-core'
+
 import { AGENT_MCP_FILES, CODING_AGENTS, type CodingAgent } from './agent-setup.js'
 import { AGENT_SETUP_MANIFEST_PATH, readAgentSetupManifest } from './agent-setup-manifest.js'
+import { guideLines, versionMove } from './agent-qa-upgrade.js'
 import type { CheckResult, DoctorCheck } from './doctor.js'
 import { readProjectPackageJson } from './package-json-plan.js'
+import type { LatestVersionAsk } from './latest-version-ask.js'
 import { installedPackageVersion } from './package-install.js'
 import { declaredAgentQaVersion } from './project-agent-qa.js'
 import { projectHost, type ProjectHost } from './project-host.js'
@@ -221,4 +225,44 @@ export function createSetupChecks(input: SetupChecksInput): DoctorCheck[] {
       changed(rows['agents-md'].wouldChange, rows['agents-md'].state, 'agents-md'),
     ),
   ]
+}
+
+export interface NewerVersionInput {
+  // The project's installed agent-qa, else the running one.
+  projectVersion: string
+  latestVersion: LatestVersionAsk
+  homeDir: string
+  now?: () => Date
+}
+
+const PRODUCT = 'agent-qa'
+const COULD_NOT_CHECK: CheckResult = { status: 'skip', message: 'could not check' }
+
+// Only versions that pass semver reach the message or a link, so registry text never does.
+export function createNewerVersionCheck(input: NewerVersionInput): DoctorCheck {
+  return {
+    name: 'Newer agent-qa',
+    fixInstructions: setupFix('upgrade'),
+    check: async () => {
+      let answer: LatestAgentQaAnswer
+      try {
+        answer = await input.latestVersion(input.homeDir, input.now)
+      } catch {
+        return COULD_NOT_CHECK
+      }
+      const latest =
+        answer.source === 'none' || answer.latestVersion === undefined
+          ? undefined
+          : validSemverVersion(answer.latestVersion)
+      const project = validSemverVersion(input.projectVersion)
+      if (latest === undefined || project === undefined) return COULD_NOT_CHECK
+      const move = versionMove(project, latest)
+      if (move === undefined) return { status: 'pass', message: `you're on the latest, ${project}` }
+      return {
+        status: 'warn',
+        message: `${PRODUCT} ${move.to} is out; you're on ${move.from}`,
+        fix: move.breaking ? guideLines(move).join('\n') : setupFix('upgrade'),
+      }
+    },
+  }
 }
