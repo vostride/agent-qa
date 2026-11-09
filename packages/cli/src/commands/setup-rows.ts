@@ -183,6 +183,7 @@ export interface DepsPackage {
 export type DepsRowState = SetupRowState & {
   plan: PackageJsonPlan
   packages: DepsPackage[]
+  move?: VersionMove
 }
 
 function packageLabel(name: string): string {
@@ -192,12 +193,15 @@ function packageLabel(name: string): string {
 }
 
 // A package is missing when it is not declared, or declared and not installed at its version. A
-// non-registry spec and a newer pin are never compared.
+// non-registry spec and a newer pin are never compared. Planned at a version newer than the
+// project's, the row also moves agent-qa there.
 export function checkDepsRow(input: {
   range: ProjectRange
   packageJson: { path: string; text: string | undefined }
   config: ProjectPackages
   version: string
+  // The project's own version, which the move starts from.
+  from?: string
   io: ProjectIo
 }): DepsRowState {
   const plan = planPackageJson({
@@ -220,30 +224,45 @@ export function checkDepsRow(input: {
       ...(version === undefined ? {} : { installed: version }),
     }
   })
+  const agentQa = plan.entries.find((entry) => entry.name === 'agent-qa')
+  const move =
+    agentQa?.outcome === 'pinned' && input.from !== undefined
+      ? versionMove(input.from, input.version)
+      : undefined
   const undeclared = plan.entries.filter((entry) => entry.outcome === 'added')
+  // A pin the move rewrites is the move itself, not a missing package.
   const uninstalled = plan.entries.filter(
     (entry) =>
-      (entry.outcome === 'unchanged' || entry.outcome === 'pinned') &&
+      (entry.outcome === 'unchanged' || (entry.outcome === 'pinned' && move === undefined)) &&
       installed.get(entry.name) !== entry.version,
   )
   const missing = [...undeclared, ...uninstalled]
+  const oneMissing = undeclared.length === 1 ? 'missing' : 'not installed'
   const wouldChange = plan.changed || uninstalled.length > 0
-  const state =
+  const missingState =
     missing.length > 1
       ? `${missing.length} packages missing`
       : missing.length === 1
-        ? `${packageLabel(missing[0]!.name)} ${undeclared.length === 1 ? 'missing' : 'not installed'}`
-        : wouldChange
-          ? 'package.json to update'
-          : 'nothing missing'
+        ? `${packageLabel(missing[0]!.name)} ${oneMissing}`
+        : undefined
+  const moveState =
+    move === undefined
+      ? undefined
+      : `agent-qa ${move.from} → ${move.to}${move.breaking ? ' can change your config' : ''}`
+  const parts = [missingState, moveState].filter((part) => part !== undefined)
+  const state =
+    parts.length > 0 ? parts.join('; ') : wouldChange ? 'package.json to update' : 'nothing missing'
+  const breaking = move?.breaking === true
   return {
     name: 'deps',
     shown: true,
     state,
     wouldChange,
-    prechecked: wouldChange,
+    prechecked: wouldChange && !breaking,
+    ...(breaking ? { breaking: true as const } : {}),
     plan,
     packages,
+    ...(move === undefined ? {} : { move }),
   }
 }
 

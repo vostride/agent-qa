@@ -134,12 +134,19 @@ function versionLines(
   input: InitRerunInput,
   copy: ProjectAgentQa | undefined,
   latest: InitDocumentLatest,
+  depsMove: VersionMove | undefined,
 ): string[] {
   const project = projectVersionOf(input, copy)
   const running = input.runningVersion
-  const differs = project !== running ? [`This agent-qa is ${running}.`] : []
+  const differs =
+    project !== running
+      ? [`The rows run as agent-qa ${running}, not the project's ${project}.`]
+      : []
   const onProject = `You're on agent-qa ${project}`
-  if (latest.version === undefined) return [`${onProject}.`, ...differs]
+  // With an answer, the newer-version lines below already carry the deps row's guide.
+  if (latest.version === undefined) {
+    return [`${onProject}.`, ...differs, ...(depsMove === undefined ? [] : guideLines(depsMove))]
+  }
   const newer = compareSemverVersions(latest.version, running) === 1 ? latest.version : running
   const order = compareSemverVersions(newer, project)
   if (order === 1) return [`${onProject}.`, ...differs, ...newerLines(project, newer)]
@@ -177,13 +184,21 @@ function upgradeRow(
   })
 }
 
-// The packages a project is missing, planned at the project's own version.
-function depsRow(input: InitRerunInput, copy: ProjectAgentQa | undefined): DepsRowState {
+// With an upgrade row, deps adds the missing packages at the project's version; without one, it
+// also moves a project behind this agent-qa to it.
+function depsRow(
+  input: InitRerunInput,
+  copy: ProjectAgentQa | undefined,
+  upgrade: UpgradeRowState,
+): DepsRowState {
+  const from = projectVersionOf(input, copy)
+  const behind = !upgrade.shown && versionMove(from, input.runningVersion) !== undefined
   return checkDepsRow({
     range: input.range,
     packageJson: input.packageJson,
     config: input.upgrade.packages(),
-    version: projectVersionOf(input, copy),
+    version: behind ? input.runningVersion : from,
+    from,
     io: input.host.io,
   })
 }
@@ -406,14 +421,15 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   const latest = await latestAnswer
   input.recorder.latest(latest)
   const upgrade = upgradeRow(input, copy, latest)
-  const deps = depsRow(input, copy)
+  const deps = depsRow(input, copy, upgrade)
   const handed = handedUpgrade(input)
   const reported = handed ?? (upgrade.shown ? upgrade.move : undefined)
   if (reported !== undefined) input.recorder.upgrade({ ...reported, row: 'upgrade' })
+  else if (deps.move !== undefined) input.recorder.upgrade({ ...deps.move, row: 'deps' })
   rows = [upgrade, deps, ...rows]
   const summary = [
     ...(handed === undefined ? [] : [`Upgraded agent-qa ${handed.from} → ${handed.to}.`]),
-    ...versionLines(input, copy, latest),
+    ...versionLines(input, copy, latest, deps.move),
     ...(model === undefined ? [] : [model]),
     agentsLine(setUp),
     ...(rows.some((row) => row.shown && row.wouldChange) ? [] : ['Everything is current.']),

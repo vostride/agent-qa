@@ -258,23 +258,23 @@ describe("a re-run's summary of the project's agent-qa version", () => {
     expect(result.entries[1]?.text).toBe('This project')
     const lines = summaryLines(result.entries) ?? []
     expect(lines[0]).toBe(`You're on agent-qa ${VERSION}.`)
-    expect(lines.join('\n')).not.toMatch(/This agent-qa is/u)
+    expect(lines.join('\n')).not.toMatch(/The rows run as/u)
   })
 
-  it("names the project's installed agent-qa, then this one when they differ", async () => {
+  it("names the project's installed agent-qa, then the one the rows run as when they differ", async () => {
     const project = await initializedProject('rerun-summary-installed')
     writeInstalledPackage(project.root, 'agent-qa', '0.0.1', {
       packageJson: { bin: { 'agent-qa': 'cli.js' } },
       files: { 'cli.js': '' },
     })
 
-    const result = await rerun(project)
+    const result = await rerun(project, ['--setup', 'none'])
 
     expect(result.exit, result.stderr).toBe(0)
     const lines = summaryLines(result.entries) ?? []
     expect(lines.slice(0, 2)).toEqual([
       "You're on agent-qa 0.0.1.",
-      `This agent-qa is ${VERSION}.`,
+      `The rows run as agent-qa ${VERSION}, not the project's 0.0.1.`,
     ])
   })
 
@@ -297,10 +297,13 @@ describe("a re-run's summary of the project's agent-qa version", () => {
       columns: 80,
     })
 
-    ui.summary('This project', ["You're on agent-qa 1.2.3.", 'This agent-qa is 1.2.4.'])
+    ui.summary('This project', [
+      "You're on agent-qa 1.2.3.",
+      "The rows run as agent-qa 1.2.4, not the project's 1.2.3.",
+    ])
 
     expect(stripVTControlCharacters(streams.text())).toBe(
-      "│\n◇  This project\n│  You're on agent-qa 1.2.3.\n│  This agent-qa is 1.2.4.\n",
+      "│\n◇  This project\n│  You're on agent-qa 1.2.3.\n│  The rows run as agent-qa 1.2.4, not the project's 1.2.3.\n",
     )
   })
 })
