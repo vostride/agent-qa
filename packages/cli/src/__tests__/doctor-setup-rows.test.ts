@@ -1,8 +1,9 @@
 // doctor reports a coding agent's setup with the re-run menu's own dry-run checks.
-import { readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 
 import { Command } from 'commander'
+import { parseDocument } from 'yaml'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('node:child_process', async (importOriginal) => ({
@@ -22,21 +23,28 @@ vi.mock('../commands/doctor-knowledge-checks.js', () => ({
 
 // The agent-qa running doctor; unset, it is this build.
 const running = vi.hoisted(() => ({ version: undefined as string | undefined }))
+// Set, the credential rows read the auth store doctor was pointed at, and never the real one.
+const auth = vi.hoisted(() => ({ real: false }))
 
 vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@vostride/agent-qa-core')>()
   return {
     ...actual,
     getAgentQaVersion: () => running.version ?? actual.getAgentQaVersion(),
-    resolveLLMAuth: vi.fn(() =>
-      Promise.resolve({
+    resolveLLMAuth: vi.fn((...args: Parameters<typeof actual.resolveLLMAuth>) => {
+      if (auth.real) {
+        return args[2] === undefined
+          ? Promise.reject(new Error('doctor read the auth store outside the home it was given'))
+          : actual.resolveLLMAuth(...args)
+      }
+      return Promise.resolve({
         kind: 'unauthenticated',
         credentialKey: 'default',
         provider: 'openai-compatible',
         optional: true,
         message: 'Testing without a saved credential.',
-      }),
-    ),
+      })
+    }),
     validateProject: vi.fn(() =>
       Promise.resolve({ errorCount: 0, warningCount: 0, fileCount: 1, results: [] }),
     ),
@@ -53,7 +61,7 @@ vi.mock('ai', async (importOriginal) => ({
   generateText: vi.fn(() => Promise.resolve({ text: 'ok' })),
 }))
 
-import { getAgentQaVersion } from '@vostride/agent-qa-core'
+import { getAgentQaVersion, getAuthPath } from '@vostride/agent-qa-core'
 
 import { createDoctorCommand, type DoctorCommandHooks } from '../commands/doctor.js'
 import type { LatestVersionAsk } from '../commands/latest-version-ask.js'
@@ -85,6 +93,7 @@ afterEach(() => {
   vi.restoreAllMocks()
   cleanupTempProjects()
   running.version = undefined
+  auth.real = false
   process.exitCode = 0
 })
 
@@ -551,5 +560,116 @@ describe("doctor's newer agent-qa row", () => {
       message: "agent-qa 0.3.2 is out; you're on 0.3.0",
       fix: 'Run `npx agent-qa init --setup upgrade`.',
     })
+  })
+})
+
+function addLocalDevice(project: InitializedProject, name: string, platform: string): void {
+  const doc = parseDocument(read(project, 'agent-qa.config.yaml'))
+  doc.setIn(['registry', 'devices', name], doc.createNode({ platform }))
+  write(project, 'agent-qa.config.yaml', doc.toString())
+}
+
+describe("doctor's row order", () => {
+  it('lists setup, model and environment, plugin, device-tool and device rows, then the newer-version row before Test discovery and Validate', async () => {
+    const project = tempProject('doctor-row-order')
+    installAgentQaFixture(project.root, VERSION)
+    const fresh = await rerun(project, [
+      '--yes',
+      '--pm',
+      'none',
+      '--no-browsers',
+      '--agents',
+      'claude-code',
+      '--llm',
+      'codex',
+      '--platform',
+      'web,android',
+    ])
+    if (fresh.exit !== 0) throw new Error(`the fresh init exited ${fresh.exit}:\n${fresh.stderr}`)
+    addLocalDevice(project, 'pixel', 'android')
+
+    const names = (await doctorRows(project)).map((entry) => entry.name)
+
+    expect(names).toEqual([
+      'Node.js',
+      'Config file',
+      'Legacy v1 memory data',
+      'Config validation',
+      'agent-qa versions',
+      'Skills (Claude Code)',
+      'MCP entry (Claude Code)',
+      'AGENTS.md block',
+      'Secrets file',
+      'Workspace files',
+      'Docker',
+      'Model',
+      'LLM credential',
+      'Subscription Auth',
+      'LLM connection',
+      'Playwright',
+      'Plugin subscription',
+      'Appium',
+      'Appium drivers',
+      'Android SDK',
+      'Xcode',
+      'Device pixel',
+      'Newer agent-qa',
+      'Test discovery',
+      'Validate',
+    ])
+  })
+})
+
+describe('doctor right after a fresh init', () => {
+  it('shows no FAIL for a web project with a saved Gemini key and Claude Code', async () => {
+    const project = tempProject('doctor-fresh-init')
+    const authPath = getAuthPath({ env: {}, homeDir: project.home })
+    mkdirSync(dirname(authPath), { recursive: true })
+    writeFileSync(
+      authPath,
+      JSON.stringify({ gemini: { type: 'api', provider: 'gemini', key: 'DUMMY-KEY-D' } }),
+    )
+    installAgentQaFixture(project.root, VERSION)
+    const fresh = await rerun(project, [
+      '--yes',
+      '--pm',
+      'none',
+      '--no-browsers',
+      '--agents',
+      'claude-code',
+      '--llm',
+      'gemini',
+      '--platform',
+      'web',
+    ])
+    if (fresh.exit !== 0) throw new Error(`the fresh init exited ${fresh.exit}:\n${fresh.stderr}`)
+    auth.real = true
+    const probed: string[] = []
+
+    const rows = await doctorRows(project, {
+      latestVersion: latestIs(VERSION),
+      connection: async () => {
+        probed.push('connection')
+        return { status: 'pass', message: 'connected' }
+      },
+      docker: async () => {
+        probed.push('docker')
+        return true
+      },
+    })
+
+    expect(rows.filter((entry) => entry.status === 'fail')).toEqual([])
+    expect(row(rows, 'LLM credential')).toEqual({
+      name: 'LLM credential',
+      status: 'pass',
+      message: 'Saved API key',
+    })
+    expect(row(rows, 'LLM connection')).toEqual({
+      name: 'LLM connection',
+      status: 'pass',
+      message: 'connected',
+    })
+    expect(probed.sort()).toEqual(['connection', 'docker'])
+    expect(process.exitCode).toBe(0)
   })
 })

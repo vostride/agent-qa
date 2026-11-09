@@ -95,14 +95,14 @@ function resolveDoctorWorkspace(
   }
 }
 
-type ResolvedDoctorAuth =
+export type ResolvedDoctorAuth =
   | { kind: 'api-key'; apiKey: string }
   | { kind: 'bearer-token'; token: string }
   | { kind: 'auth-fetch'; fetch: typeof globalThis.fetch; modelAdapter: LLMModelAdapter }
   | { kind: 'unauthenticated'; message: string }
   | { kind: 'missing'; message: string }
 
-interface ActiveLLMConfig {
+export interface ActiveLLMConfig {
   name: string
   provider: string
   model: string
@@ -735,9 +735,17 @@ function getGlobalConfigPath(command: Command): string {
   return command.parent?.opts<{ config?: string }>().config ?? 'agent-qa.config.yaml'
 }
 
+// Asks the model one short question with the resolved credential; throws when it cannot answer.
+export type DoctorConnectionProbe = (
+  llm: ActiveLLMConfig,
+  auth: ResolvedDoctorAuth,
+) => Promise<CheckResult>
+
 export interface DoctorCommandHooks {
   chromium?: ChromiumResolver
+  connection?: DoctorConnectionProbe
   daemon?: (agentQaRoot: string) => Promise<InspectDaemonRegistrationOutcome>
+  docker?: () => Promise<boolean>
   host?: Partial<ProjectHost>
   // The latest agent-qa; the default asks the npm registry under a short deadline.
   latestVersion?: LatestVersionAsk
