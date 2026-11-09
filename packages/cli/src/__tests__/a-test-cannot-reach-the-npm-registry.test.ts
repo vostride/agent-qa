@@ -1,8 +1,13 @@
-// The setup guard refuses the default latest-version ask and fails the test.
+// The setup guard refuses the default latest-version ask and fails the test, and a process the
+// tests spawn sends its requests to a refusing loopback proxy.
+import { execFile } from 'node:child_process'
+import { promisify } from 'node:util'
+
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { askLatestVersionByDefault } from '../commands/latest-version-ask.js'
 import type * as LatestVersionAskModule from '../commands/latest-version-ask.js'
+import { hermeticEnv } from './conformance/spawned-chat.js'
 import { cleanupTempProjects, tempProject } from './project-fixtures.js'
 import { assertNoGuardedCalls, takeGuardedCalls } from './test-side-effect-guard.js'
 
@@ -62,5 +67,38 @@ describe('the default latest-version ask outside a test', () => {
 
     expect(real.LATEST_VERSION_DEADLINE_MS).toBe(1_500)
     expect(coreAsks).toEqual([{ homeDir: home, fetchImpl: globalThis.fetch, timeoutMs: 1_500 }])
+  })
+})
+
+// Only a reserved `.invalid` address is fetched, so a lookup that escapes the proxy fails too.
+const FETCH_AND_PRINT_THE_ERROR_CODE = `fetch('https://agent-qa.invalid/').then(
+  () => console.log('answered'),
+  (error) => console.log(String(error.cause?.code ?? error.code ?? error.message)),
+)`
+
+async function spawnedFetchErrorCode(env: NodeJS.ProcessEnv): Promise<string> {
+  const { stdout } = await promisify(execFile)(
+    process.execPath,
+    ['-e', FETCH_AND_PRINT_THE_ERROR_CODE],
+    { env, timeout: 20_000 },
+  )
+  return stdout.trim()
+}
+
+describe('a process the tests spawn', () => {
+  it('with the hermetic environment fails its request at the loopback proxy, not at a lookup', async () => {
+    const { root } = tempProject('registry')
+
+    const code = await spawnedFetchErrorCode(hermeticEnv(root))
+
+    expect(code).toMatch(/^E[A-Z]+$/u)
+    expect(code).not.toMatch(/^(ENOTFOUND|EAI_AGAIN)$/u)
+  })
+
+  it("with vitest's environment fails its request at the loopback proxy, not at a lookup", async () => {
+    const code = await spawnedFetchErrorCode(process.env)
+
+    expect(code).toMatch(/^E[A-Z]+$/u)
+    expect(code).not.toMatch(/^(ENOTFOUND|EAI_AGAIN)$/u)
   })
 })
