@@ -8,7 +8,7 @@ import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import type { InitUi, InitUiMode } from '../init-ui/init-ui.js'
 import { activeModelEntry } from '../llm-utils.js'
 import { CODING_AGENTS, readAgentSetupManifest, type CodingAgent } from './agent-setup-manifest.js'
-import { guideLines, versionMove } from './agent-qa-upgrade.js'
+import { guideLines, versionMove, type VersionMove } from './agent-qa-upgrade.js'
 import type { ChromiumResolver } from './browser-resolver.js'
 import { INIT_AGENT_OPTIONS, parseInitAgentsFlag } from './init-agents.js'
 import type { InitDocumentLatest, InitDocumentRecorder } from './init-document.js'
@@ -27,6 +27,7 @@ import {
 } from './init-steps.js'
 import type { PackageJsonPlan } from './package-json-plan.js'
 import {
+  HANDED_OFF_ENV,
   UPGRADED_FROM_ENV,
   declaredAgentQaVersion,
   findProjectAgentQa,
@@ -199,6 +200,14 @@ function handOffArgs(
 }
 
 const UPGRADE_TITLE = 'Upgrading agent-qa'
+const INSTALL_FIRST = 'install first (--pm none)'
+
+// The upgrade that handed this run over; it changes what is reported, never what runs.
+function handedUpgrade(input: InitRerunInput): VersionMove | undefined {
+  if (input.host.env[HANDED_OFF_ENV] !== '1') return undefined
+  const from = input.host.env[UPGRADED_FROM_ENV]
+  return from === undefined ? undefined : versionMove(from, input.runningVersion)
+}
 
 type JsonObject = Record<string, unknown>
 
@@ -378,11 +387,12 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   const latest = await latestAnswer
   input.recorder.latest(latest)
   const upgrade = upgradeRow(input, copy, latest)
-  if (upgrade.shown && upgrade.move !== undefined) {
-    input.recorder.upgrade({ ...upgrade.move, row: 'upgrade' })
-  }
+  const handed = handedUpgrade(input)
+  const reported = handed ?? (upgrade.shown ? upgrade.move : undefined)
+  if (reported !== undefined) input.recorder.upgrade({ ...reported, row: 'upgrade' })
   rows = [upgrade, ...rows]
   const summary = [
+    ...(handed === undefined ? [] : [`Upgraded agent-qa ${handed.from} → ${handed.to}.`]),
     ...versionLines(input, copy, latest),
     ...(model === undefined ? [] : [model]),
     agentsLine(setUp),
@@ -414,7 +424,12 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     })),
   )
 
-  const planned = rows.filter((row) => row.shown || namedHidden(row, flagged) !== undefined)
+  const planned = rows.filter(
+    (row) =>
+      row.shown ||
+      namedHidden(row, flagged) !== undefined ||
+      (row.name === 'upgrade' && handed !== undefined),
+  )
   const runner = createInitStepRunner({
     ui,
     plan: rerunPlan(planned.map((row) => row.name)),
@@ -428,7 +443,13 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     host: input.host,
     rows: selected,
   })
+  let installFirst = false
   for (const row of planned) {
+    if (row.name === 'upgrade' && handed !== undefined) {
+      const text = `upgrade: agent-qa ${handed.from} → ${handed.to}`
+      await runner.run('upgrade', { title: UPGRADE_TITLE }, async () => ({ outcome: 'done', text }))
+      continue
+    }
     const hidden = namedHidden(row, flagged)
     if (hidden !== undefined) {
       runner.skip(row.name, `${row.name}: skipped (${hidden})`, hidden)
@@ -464,6 +485,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
         const installed = await input.upgrade.install(plan)
         if (installed.outcome === 'failed') return installed
         if (installed.outcome === 'skipped' && installed.reason === '--pm none') {
+          installFirst = true
           return { ...installed, text: `upgrade: ${installed.text}` }
         }
         const found = await findProjectAgentQa(input.range, input.range.start, input.host.io)
@@ -513,7 +535,12 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
       return step
     })
   }
-  await runner.run('validate', input.validateStep, input.validate)
+  // package.json names versions that are not installed, so validate would check the old ones.
+  if (installFirst) {
+    runner.skip('validate', `validate: ${INSTALL_FIRST}`, INSTALL_FIRST, input.validateStep.command)
+  } else {
+    await runner.run('validate', input.validateStep, input.validate)
+  }
 
   input.onComplete?.(outcomes)
   await input.emitInitCompleted('rerun', outcomes)
