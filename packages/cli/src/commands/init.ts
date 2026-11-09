@@ -1072,6 +1072,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             scaffoldPlans: (platform) => buildScaffoldFilePlans(dir, platform, false),
             latestVersion: hooks.latestVersion ?? askLatestVersionByDefault,
             upgrade: {
+              packages: () => configuredPackages(host.io.readText(configPath)),
               plan: (version) =>
                 planPackageJson({
                   ...packageJson,

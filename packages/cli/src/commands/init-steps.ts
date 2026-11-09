@@ -5,6 +5,7 @@ import type { SetupRowName } from './setup-rows.js'
 
 export type InitStepName =
   | 'upgrade'
+  | 'deps'
   | 'package-json'
   | 'scaffold'
   | 'install'

@@ -42,6 +42,7 @@ function authLoginCommand(name: string): string {
 
 const STEP_DESCRIPTIONS: Record<InitStepName, string> = {
   upgrade: 'Upgrade agent-qa',
+  deps: "Install agent-qa's missing packages",
   'package-json': 'Write package.json',
   scaffold: 'Write the scaffold',
   install: 'Install the dependencies',

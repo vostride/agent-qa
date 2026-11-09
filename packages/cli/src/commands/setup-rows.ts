@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs'
-import { dirname, join, relative, sep } from 'node:path'
+import { basename, dirname, join, relative, sep } from 'node:path'
 
 import { resolveWorkspacePaths, type AgentQaConfig } from '@vostride/agent-qa-core'
 import pc from 'picocolors'
@@ -38,8 +38,12 @@ import { InitRefusal } from './init-refusal.js'
 import type { InitStepResult } from './init-steps.js'
 import { buildKnowledgeAgentGuide } from './knowledge-guide.js'
 import { composeManagedBlock, locateManagedBlock } from './managed-block.js'
+import { installedPackageVersion } from './package-install.js'
+import { planPackageJson, projectDependencies, type PackageJsonPlan } from './package-json-plan.js'
 import { projectHost, type ProjectHost, type ProjectIo } from './project-host.js'
+import type { ProjectRange } from './project-range.js'
 import {
+  SUBSCRIPTION_AUTH_PACKAGE,
   buildGitignoreEntries,
   managedGitignoreContent,
   type InitPlatformInput,
@@ -50,6 +54,7 @@ import { getTargetPlatforms, hasWebTarget, resolveWebPlacement } from './web-pla
 // Every row this build has, in menu order.
 export const SETUP_ROW_NAMES = [
   'upgrade',
+  'deps',
   'skills',
   'mcp',
   'agents-md',
@@ -58,10 +63,10 @@ export const SETUP_ROW_NAMES = [
   'scaffold',
 ] as const
 export type SetupRowName = (typeof SETUP_ROW_NAMES)[number]
-// The rows checked and run by their own code; the upgrade row hands the run to the new copy.
-export type CheckedRowName = Exclude<SetupRowName, 'upgrade'>
+// The rows checked and run by their own code; the version rows install through init's own install.
+export type CheckedRowName = Exclude<SetupRowName, 'upgrade' | 'deps'>
 const CHECKED_ROW_NAMES = SETUP_ROW_NAMES.filter(
-  (name): name is CheckedRowName => name !== 'upgrade',
+  (name): name is CheckedRowName => name !== 'upgrade' && name !== 'deps',
 )
 
 export type SetupSelection =
@@ -159,6 +164,86 @@ export function checkUpgradeRow(input: {
     prechecked: !move.breaking,
     ...(move.breaking ? { breaking: true as const } : {}),
     move,
+  }
+}
+
+// The packages the config makes the project need besides agent-qa.
+export interface ProjectPackages {
+  usesSubscription: boolean
+  plugins: readonly { package?: unknown }[]
+}
+
+export interface DepsPackage {
+  name: string
+  declared: boolean
+  // The version node_modules holds, when one is installed.
+  installed?: string
+}
+
+export type DepsRowState = SetupRowState & {
+  plan: PackageJsonPlan
+  packages: DepsPackage[]
+}
+
+function packageLabel(name: string): string {
+  if (name === SUBSCRIPTION_AUTH_PACKAGE) return 'subscription plugin'
+  const plugin = /^@vostride\/agent-qa-plugin-(.+)$/u.exec(name)?.[1]
+  return plugin === undefined ? name : `${plugin} plugin`
+}
+
+// A package is missing when it is not declared, or declared and not installed at its version. A
+// non-registry spec and a newer pin are never compared.
+export function checkDepsRow(input: {
+  range: ProjectRange
+  packageJson: { path: string; text: string | undefined }
+  config: ProjectPackages
+  version: string
+  io: ProjectIo
+}): DepsRowState {
+  const plan = planPackageJson({
+    ...input.packageJson,
+    folderName: basename(input.range.start),
+    dependencies: projectDependencies({ version: input.version, ...input.config }),
+  })
+  const fromDir = dirname(plan.path)
+  const installed = new Map(
+    plan.entries.map((entry) => [
+      entry.name,
+      installedPackageVersion(input.range, fromDir, entry.name, input.io) ?? undefined,
+    ]),
+  )
+  const packages = plan.entries.map((entry): DepsPackage => {
+    const version = installed.get(entry.name)
+    return {
+      name: entry.name,
+      declared: entry.outcome !== 'added',
+      ...(version === undefined ? {} : { installed: version }),
+    }
+  })
+  const undeclared = plan.entries.filter((entry) => entry.outcome === 'added')
+  const uninstalled = plan.entries.filter(
+    (entry) =>
+      (entry.outcome === 'unchanged' || entry.outcome === 'pinned') &&
+      installed.get(entry.name) !== entry.version,
+  )
+  const missing = [...undeclared, ...uninstalled]
+  const wouldChange = plan.changed || uninstalled.length > 0
+  const state =
+    missing.length > 1
+      ? `${missing.length} packages missing`
+      : missing.length === 1
+        ? `${packageLabel(missing[0]!.name)} ${undeclared.length === 1 ? 'missing' : 'not installed'}`
+        : wouldChange
+          ? 'package.json to update'
+          : 'nothing missing'
+  return {
+    name: 'deps',
+    shown: true,
+    state,
+    wouldChange,
+    prechecked: wouldChange,
+    plan,
+    packages,
   }
 }
 

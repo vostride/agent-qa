@@ -41,11 +41,14 @@ import {
   BREAKING_NOT_IN_ALL,
   SETUP_ROW_NAMES,
   SETUP_ROW_RUNS,
+  checkDepsRow,
   checkSetupRows,
   checkUpgradeRow,
   parseSetupFlag,
   sharedAgentSetup,
   setupRowLabel,
+  type DepsRowState,
+  type ProjectPackages,
   type SetupRowFile,
   type ScaffoldPlans,
   type SetupRowName,
@@ -90,6 +93,8 @@ export interface InitRerunInput {
   scaffoldPlans: ScaffoldPlans
   latestVersion: LatestVersionAsk
   upgrade: {
+    // The packages the config needs besides agent-qa, read when asked.
+    packages: () => ProjectPackages
     // package.json with agent-qa and every first-party package at the version.
     plan: (version: string) => PackageJsonPlan
     // The fresh init's install over that plan.
@@ -172,6 +177,17 @@ function upgradeRow(
   })
 }
 
+// The packages a project is missing, planned at the project's own version.
+function depsRow(input: InitRerunInput, copy: ProjectAgentQa | undefined): DepsRowState {
+  return checkDepsRow({
+    range: input.range,
+    packageJson: input.packageJson,
+    config: input.upgrade.packages(),
+    version: projectVersionOf(input, copy),
+    io: input.host.io,
+  })
+}
+
 const AGENT_ROWS: readonly SetupRowName[] = ['skills', 'mcp', 'agents-md']
 
 // Only public flags reach the new copy, which may be another build than this one.
@@ -180,9 +196,11 @@ function handOffArgs(
   selected: readonly SetupRowName[],
   agents: readonly CodingAgent[],
 ): string[] {
+  // The upgrade declares and installs every package, so the deps row has nothing left to do.
   const rows = SETUP_ROW_NAMES.filter(
     (name) =>
       name !== 'upgrade' &&
+      name !== 'deps' &&
       (selected.includes(name) || (agents.length > 0 && AGENT_ROWS.includes(name))),
   )
   return [
@@ -200,6 +218,7 @@ function handOffArgs(
 }
 
 const UPGRADE_TITLE = 'Upgrading agent-qa'
+const DEPS_TITLE = "Installing agent-qa's missing packages"
 const INSTALL_FIRST = 'install first (--pm none)'
 
 // The upgrade that handed this run over; it changes what is reported, never what runs.
@@ -387,10 +406,11 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   const latest = await latestAnswer
   input.recorder.latest(latest)
   const upgrade = upgradeRow(input, copy, latest)
+  const deps = depsRow(input, copy)
   const handed = handedUpgrade(input)
   const reported = handed ?? (upgrade.shown ? upgrade.move : undefined)
   if (reported !== undefined) input.recorder.upgrade({ ...reported, row: 'upgrade' })
-  rows = [upgrade, ...rows]
+  rows = [upgrade, deps, ...rows]
   const summary = [
     ...(handed === undefined ? [] : [`Upgraded agent-qa ${handed.from} → ${handed.to}.`]),
     ...versionLines(input, copy, latest),
@@ -408,7 +428,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     const chosen = await chooseAgents(ui, input.mode === 'interactive', setUp)
     if (chosen.join(',') !== agents.join(',')) {
       agents = chosen
-      rows = [upgrade, ...(await checkRows(agents))]
+      rows = [upgrade, deps, ...(await checkRows(agents))]
     }
   }
   input.recorder.agents(agents)
@@ -517,6 +537,30 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
       )
       return
     }
+    if (row.name === 'deps') {
+      await runner.run('deps', { title: DEPS_TITLE }, async (): Promise<InitStepResult> => {
+        const { plan } = deps
+        if (!deps.wouldChange) return { outcome: 'done', text: 'deps: nothing missing' }
+        if (plan.changed) {
+          const file = writeScaffoldFileAtomic({
+            root: plan.root,
+            path: plan.path,
+            content: plan.content,
+            force: plan.existed,
+          })
+          outcomes.push(initFileResult(file))
+          input.recorder.file('deps', file)
+        }
+        const installed = await input.upgrade.install(plan)
+        if (installed.outcome === 'failed') return installed
+        if (installed.outcome === 'skipped' && installed.reason === '--pm none') {
+          if (plan.changed) installFirst = true
+          return { ...installed, text: `deps: ${installed.text}` }
+        }
+        return { outcome: 'done', text: `deps: ${installed.text}` }
+      })
+      continue
+    }
     const { title, run } = SETUP_ROW_RUNS[row.name]
     await runner.run(row.name, { title }, async (): Promise<InitStepResult> => {
       const { files, ...step } = await run({
@@ -535,7 +579,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
       return step
     })
   }
-  // package.json names versions that are not installed, so validate would check the old ones.
+  // package.json names packages that are not installed, so validate would check without them.
   if (installFirst) {
     runner.skip('validate', `validate: ${INSTALL_FIRST}`, INSTALL_FIRST, input.validateStep.command)
   } else {

@@ -93,6 +93,7 @@ describe("a re-run's skills row", () => {
 
     expect(menu.exit, menu.stderr).toBe(0)
     expect(menuOf(menu.entries)?.labels ?? 'no menu').toEqual([
+      'deps       nothing missing',
       `skills     1 file differs from agent-qa ${VERSION}'s copy`,
       'mcp        current',
       'agents-md  current',
@@ -183,6 +184,7 @@ describe("a re-run's skills row", () => {
 
     expect(result.exit, result.stderr).toBe(0)
     expect(menuOf(result.entries)?.labels ?? 'no menu').toEqual([
+      'deps       nothing missing',
       `skills     current (${VERSION})`,
       'mcp        current',
       'agents-md  current',
@@ -201,6 +203,7 @@ describe("a re-run's skills row", () => {
     const result = await rerun(project, ['--json'], { plain: true })
 
     expect(menuOf(menu.entries)?.labels ?? 'no menu').toEqual([
+      'deps       nothing missing',
       'agents-md  current',
       'browsers   Chromium found',
       'gitignore  current',
@@ -227,6 +230,7 @@ describe("a re-run's mcp row", () => {
 
     expect(menu.exit, menu.stderr).toBe(0)
     expect(menuOf(menu.entries)?.labels ?? 'no menu').toEqual([
+      'deps       nothing missing',
       `skills     current (${VERSION})`,
       'mcp        Codex entry missing',
       'agents-md  current',
@@ -384,6 +388,7 @@ describe("a re-run's agents-md row", () => {
     const result = await rerun(project, ['--yes'])
 
     expect(menuOf(menu.entries)?.labels ?? 'no menu').toEqual([
+      'deps       nothing missing',
       'agents-md  knowledge guide missing',
       'browsers   Chromium found',
       'gitignore  current',
@@ -414,6 +419,7 @@ describe("a re-run's agent rows together", () => {
     expect(installs.real).toBe(1)
     const doc = JSON.parse(result.stdout) as InitDocument
     expect(doc.steps.map((step) => `${step.name} ${step.outcome}`)).toEqual([
+      'deps skipped',
       'skills done',
       'mcp done',
       'agents-md done',
@@ -471,6 +477,7 @@ describe("a re-run's coding agents question", () => {
 
     expect(result.exit, result.stderr).toBe(0)
     expect(menuOf(result.entries)?.labels ?? 'no menu').toEqual([
+      'deps       nothing missing',
       'skills     Codex not set up',
       'mcp        Codex entry missing',
       'agents-md  Codex not set up',
@@ -502,6 +509,7 @@ describe("a re-run's coding agents question", () => {
 
     expect(result.exit, result.stderr).toBe(0)
     expect(menuOf(result.entries)?.labels ?? 'no menu').toEqual([
+      'deps       nothing missing',
       'agents-md  current',
       'browsers   Chromium found',
       'gitignore  current',
@@ -525,7 +533,7 @@ describe("a re-run's coding agents question", () => {
 
     expect(drawn.exit, drawn.stderr).toBe(0)
     expect(agentsQuestionOf(drawn.entries)?.text ?? 'no question').toBe('no question')
-    expect(menuOf(drawn.entries)?.labels[0] ?? 'no menu').toBe('skills     Codex not set up')
+    expect(menuOf(drawn.entries)?.labels[1] ?? 'no menu').toBe('skills     Codex not set up')
     expect(result.exit, result.stderr).toBe(0)
     const doc = JSON.parse(result.stdout) as InitDocument
     expect(doc.agents).toEqual(['codex'])

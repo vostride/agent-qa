@@ -96,19 +96,29 @@ export function declaredList(entries: PackageJsonPlan['entries']): string {
   return `${items.slice(0, -1).join(', ')} and ${items.at(-1)}`
 }
 
+// Undefined when no copy is installed; null when the installed copy names no version.
+export function installedPackageVersion(
+  range: ProjectRange,
+  fromDir: string,
+  name: string,
+  io: ProjectIo,
+): string | null | undefined {
+  const path = nearestInstalledPackage(range, fromDir, name, io)
+  if (path === undefined) return undefined
+  try {
+    const version = (JSON.parse(io.readText(path) ?? '') as { version?: unknown }).version
+    return typeof version === 'string' ? version : null
+  } catch {
+    return null
+  }
+}
+
 function installedVersion(
   input: Pick<InstallStepInput, 'host' | 'range' | 'packageJson'>,
   name: string,
 ): string | null | undefined {
   const { host, range, packageJson } = input
-  const path = nearestInstalledPackage(range, dirname(packageJson.path), name, host.io)
-  if (path === undefined) return undefined
-  try {
-    const version = (JSON.parse(host.io.readText(path) ?? '') as { version?: unknown }).version
-    return typeof version === 'string' ? version : null
-  } catch {
-    return null
-  }
+  return installedPackageVersion(range, dirname(packageJson.path), name, host.io)
 }
 
 function isInstalled(
