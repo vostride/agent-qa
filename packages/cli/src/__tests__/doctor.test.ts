@@ -1735,16 +1735,47 @@ describe('the LLM auth rows', () => {
     return parts.join(' ')
   }
 
-  it('the LLM rows name auth login, never the dashboard', async () => {
-    const apiFix = await credentialFix('gemini-fast', 'gemini', 'gemini-3-flash-preview')
-    expect(apiFix).toContain('agent-qa auth set --config gemini-fast --type api-key')
-    expect(apiFix).toContain('agent-qa auth login --config')
-    expect(apiFix).not.toContain('from `agent-qa dashboard`')
+  it('a subscription that is not signed in is told to sign in with its configured name', async () => {
+    const fix = await credentialFix('claude-code', 'anthropic-subscription', 'claude-sonnet-4-6')
 
-    const subscriptionFix = await credentialFix('claude-code', 'anthropic-subscription', 'claude-sonnet-4-6')
-    expect(subscriptionFix).toContain('agent-qa auth login --config claude-code')
-    expect(subscriptionFix).not.toContain('from `agent-qa dashboard`')
-    expect(getOutput()).not.toContain('from `agent-qa dashboard`')
+    expect(fix).toBe('Sign in with `npx agent-qa auth login --config claude-code`.')
+  })
+
+  it('an API-key provider without a key is sent to the model page or auth set, never auth login', async () => {
+    const fix = await credentialFix('gemini', 'gemini', 'gemini-3-flash-preview')
+
+    expect(fix).toContain('npx agent-qa dashboard --open /config/models')
+    expect(fix).toContain('`npx agent-qa auth set --config gemini --type api-key`')
+    expect(fix).not.toContain('auth login')
+  })
+
+  it('the connection fix names the configured entry', async () => {
+    await credentialFix('gemini', 'gemini', 'gemini-3-flash-preview')
+
+    expect(rowFor('LLM connection'), getOutput()).toContain('FAIL')
+    expect(fixUnder('LLM connection')).toContain('`npx agent-qa auth test --config gemini`')
+  })
+
+  it('no fix carries a literal <name> once a model is configured', async () => {
+    mockReadFile.mockResolvedValue(
+      'registry:\n  llms:\n    - name: gemini\n      provider: gemini\n      model: gemini-3-flash-preview\n' as never,
+    )
+    mockResolveLLMAuth.mockResolvedValue({
+      kind: 'missing',
+      credentialKey: 'gemini',
+      provider: 'gemini',
+      required: true,
+      message: 'No credential saved.',
+    })
+
+    await runDoctor(undefined, '--json')
+    const rows = JSON.parse(getOutput()).rows as { name: string; fix?: string }[]
+
+    const modelFixes = rows.filter(row => row.name.startsWith('LLM ') && row.fix !== undefined)
+    expect(modelFixes.map(row => row.name)).toEqual(['LLM credential', 'LLM connection'])
+    for (const row of rows) expect(row.fix ?? '', row.name).not.toContain('<name>')
+    const subscription = checkSubscriptionAuth({ registry: { llms: [{ name: 'gemini', provider: 'gemini' }] } })
+    expect(subscription.fixInstructions).not.toContain('<name>')
   })
 
   it('the Subscription Auth fix adds the plugin with plugins add, then signs in', async () => {

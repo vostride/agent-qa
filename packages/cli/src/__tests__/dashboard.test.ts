@@ -68,6 +68,7 @@ vi.mock('@vostride/agent-qa-core', async importOriginal => {
 import { createDashboardCommand, createServeCommand } from '../commands/dashboard.js'
 import { processRemoteSessions, REMOTE_RELEASE_BOUND_MS } from '../commands/run.js'
 import { resolveLLMAuth } from '@vostride/agent-qa-core'
+import { getProvider } from '@vostride/agent-qa-model'
 
 let exitSpy: any
 let logSpy: any
@@ -289,7 +290,7 @@ describe('createDashboardCommand', () => {
     expect(startArg?.llmConfig).not.toHaveProperty('effectiveResolution')
   })
 
-  it('uses the current Claude fallback model when no LLM config is selected', async () => {
+  it("falls back to the provider registry's default model when no LLM config is selected", async () => {
     mockResolveConfig.mockResolvedValue(makeDashboardConfig())
 
     const program = new Command()
@@ -304,7 +305,7 @@ describe('createDashboardCommand', () => {
       expect.objectContaining({
         llmConfig: expect.objectContaining({
           provider: 'anthropic-subscription',
-          model: 'claude-sonnet-5-5',
+          model: getProvider('anthropic-subscription')?.defaultModel,
         }),
       }),
     )

@@ -14,7 +14,6 @@ import { parse as parseYaml } from 'yaml'
 import { createInitCommand, EXAMPLE_SECRET_LINE } from '../commands/init.js'
 import { INIT_MODEL_CHOICES } from '../commands/init-model-choice.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
-import { DEFAULT_ANTHROPIC_MODEL, DEFAULT_OPENAI_MODEL } from '../model-defaults.js'
 import { KEY, answeringTerminal, clackStreams, type ClackStreams } from './clack-keys.js'
 import { fakeInitUi, type FakeInitUi } from './fake-init-ui.js'
 import { cleanupTempProjects, fakeRunner, tempProject } from './project-fixtures.js'
@@ -504,15 +503,6 @@ describe('subscription model defaults', () => {
 
     expect(writtenConfig(root).registry.llms).toEqual([
       { name: 'claude-code', provider: 'anthropic-subscription', model: 'claude-sonnet-5-5' },
-    ])
-  })
-
-  it('the CLI subscription defaults equal the provider registry defaults', () => {
-    expect(DEFAULT_OPENAI_MODEL).toBe(getProvider('openai-subscription')?.defaultModel)
-    expect(DEFAULT_ANTHROPIC_MODEL).toBe(getProvider('anthropic-subscription')?.defaultModel)
-    expect([DEFAULT_OPENAI_MODEL, DEFAULT_ANTHROPIC_MODEL]).toEqual([
-      'gpt-6.1-sol',
-      'claude-sonnet-5-5',
     ])
   })
 })

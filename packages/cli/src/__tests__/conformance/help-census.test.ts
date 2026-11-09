@@ -269,7 +269,7 @@ describe('no second list of what chat understands', () => {
       'the sweep no longer recognises a planted directive listing',
     ).toBeGreaterThanOrEqual(2)
     // …and it must NOT fire on these two path shapes, which an innocent file holds.
-    const paths = "import { X } from '../model-defaults.js'\nconst u = 'https://iana.org/help/x'"
+    const paths = "import { X } from '../model-profile.js'\nconst u = 'https://iana.org/help/x'"
     expect(
       forms.filter((form) => namesDirectiveForm(paths, form)),
       'the sweep reads path segments as directive forms again',
