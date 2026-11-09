@@ -160,7 +160,7 @@ export const ANALYTICS_DAEMON_JOB_OUTCOMES = [
   'unknown',
 ] as const
 
-export const ANALYTICS_INIT_MODES = ['interactive', 'agent', 'scaffold'] as const
+export const ANALYTICS_INIT_MODES = ['interactive', 'agent', 'scaffold', 'rerun'] as const
 export const ANALYTICS_INIT_OUTCOMES = ['created', 'updated', 'unchanged', 'failed'] as const
 
 export const ANALYTICS_CHAT_END_REASONS = ['exit', 'interrupt', 'error', 'unknown'] as const

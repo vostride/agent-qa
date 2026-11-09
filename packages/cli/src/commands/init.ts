@@ -870,6 +870,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
 
         // Derives the outcome from file outcomes; a scaffold that throws reaches neither call site.
         const emitInitCompleted = async (
+          initMode: 'interactive' | 'scaffold' | 'rerun',
           results: readonly { readonly outcome: InitFileResult['outcome'] }[],
         ): Promise<void> => {
           const { analyticsEvent, composeAnalyticsHost } = await import(
@@ -896,7 +897,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             const createdCount = results.filter((result) => result.outcome === 'created').length
             const updatedCount = results.filter((result) => result.outcome === 'updated').length
             analytics.port.capture(analyticsEvent(analytics, 'agent-qa.init.completed', {
-              init_mode: asked ? 'interactive' : 'scaffold',
+              init_mode: initMode,
               outcome: createdCount > 0 ? 'created' : updatedCount > 0 ? 'updated' : 'unchanged',
               created_file_count: createdCount,
               duration_ms: Date.now() - initStartedAt,
@@ -1290,7 +1291,9 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           )
           // AFTER the config marker — the scaffold's last write — so the event describes a
           // project that exists rather than one being attempted.
-          if (scaffold.outcome === 'done') await emitInitCompleted(outcomes)
+          if (scaffold.outcome === 'done') {
+            await emitInitCompleted(asked ? 'interactive' : 'scaffold', outcomes)
+          }
           await runner.run('install', { title: 'Installing dependencies' }, install)
           if (opts.browsers === false) {
             runner.skip(

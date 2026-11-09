@@ -60,7 +60,7 @@ export interface InitRerunInput {
   mask: (text: string) => Promise<string>
   outro: string
   onComplete?: (outcomes: readonly InitFileResult[]) => void
-  emitInitCompleted: (results: readonly InitFileResult[]) => Promise<void>
+  emitInitCompleted: (initMode: 'rerun', results: readonly InitFileResult[]) => Promise<void>
   onRunner: (runner: InitStepRunner) => void
 }
 
@@ -227,7 +227,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   await runner.run('validate', input.validateStep, input.validate)
 
   input.onComplete?.(outcomes)
-  await input.emitInitCompleted(outcomes)
+  await input.emitInitCompleted('rerun', outcomes)
   if (runner.interrupted()) throw new PromptCancelled()
 
   ui.outro(input.outro)
