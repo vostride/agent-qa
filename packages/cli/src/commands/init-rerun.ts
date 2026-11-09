@@ -8,6 +8,7 @@ import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import type { InitUi, InitUiMode } from '../init-ui/init-ui.js'
 import { activeModelEntry } from '../llm-utils.js'
 import { CODING_AGENTS, readAgentSetupManifest, type CodingAgent } from './agent-setup-manifest.js'
+import { guideLines, versionMove } from './agent-qa-upgrade.js'
 import type { ChromiumResolver } from './browser-resolver.js'
 import { INIT_AGENT_OPTIONS, parseInitAgentsFlag } from './init-agents.js'
 import type { InitDocumentLatest, InitDocumentRecorder } from './init-document.js'
@@ -94,8 +95,10 @@ async function askLatest(input: InitRerunInput): Promise<InitDocumentLatest> {
   }
 }
 
-function newerLines(newer: string): string[] {
-  return [`agent-qa ${newer} is out.`]
+function newerLines(project: string, newer: string): string[] {
+  const move = versionMove(project, newer)
+  if (move === undefined) return []
+  return move.breaking ? guideLines(move) : [`agent-qa ${move.to} is out.`, ...move.links]
 }
 
 function versionLines(
@@ -111,7 +114,7 @@ function versionLines(
   if (latest.version === undefined) return [`${onProject}.`, ...differs]
   const newer = compareSemverVersions(latest.version, running) === 1 ? latest.version : running
   const order = compareSemverVersions(newer, project)
-  if (order === 1) return [`${onProject}.`, ...differs, ...newerLines(newer)]
+  if (order === 1) return [`${onProject}.`, ...differs, ...newerLines(project, newer)]
   if (order === undefined) return [`${onProject}.`, ...differs]
   return [`${onProject}, the latest.`, ...differs]
 }

@@ -6,6 +6,7 @@ import {
   getAgentQaVersionCheckCachePath,
   readCachedAgentQaUpdateStatus,
 } from '@vostride/agent-qa-core'
+import { RELEASES_URL } from './commands/agent-qa-upgrade.js'
 import { VERSION } from './index.js'
 import { updateNoticeApplies, type UpdateNoticeGate } from './update-notice-gate.js'
 import { spawnVersionRefresh, type VersionRefreshSpawn } from './version-refresh-spawn.js'
@@ -14,7 +15,7 @@ export { updateNoticeApplies, type UpdateNoticeGate } from './update-notice-gate
 
 export const UPDATE_NOTICE_SHOWN_FILE = 'update-notice.json'
 
-export const RELEASES_URL = 'https://github.com/vostride/agent-qa/releases'
+export { RELEASES_URL }
 const NOTICE_INTERVAL_MS = 24 * 60 * 60 * 1000
 
 export interface UpdateNoticePrint {

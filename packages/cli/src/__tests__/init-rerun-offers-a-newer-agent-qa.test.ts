@@ -6,7 +6,7 @@ import type { FakeInitUiEntry } from './fake-init-ui.js'
 import { cleanupTempProjects, tempProject } from './project-fixtures.js'
 import { initializedProject, rerun } from './rerun-fixtures.js'
 
-const PROJECT_VERSION = '0.3.0'
+const { PROJECT_VERSION } = vi.hoisted(() => ({ PROJECT_VERSION: '0.3.0' }))
 
 vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@vostride/agent-qa-core')>()),

@@ -4,8 +4,8 @@ import {
   validSemverVersion,
   type AgentQaBreakingStep,
 } from '@vostride/agent-qa-core'
-import { RELEASES_URL } from '../version-notice.js'
 
+export const RELEASES_URL = 'https://github.com/vostride/agent-qa/releases'
 export const MIGRATE_GUIDE_BASE = 'https://vostride.com/docs/agent-qa/migrate/'
 
 export interface VersionMove {
