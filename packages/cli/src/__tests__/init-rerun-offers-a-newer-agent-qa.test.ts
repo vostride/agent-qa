@@ -48,16 +48,6 @@ describe('a re-run says whether a newer agent-qa is out', () => {
     expect(lines).toContain('agent-qa 0.3.2 is out.')
   })
 
-  it('names the newer version first when the check answers a release that can change the config', async () => {
-    const result = await rerunAnswered('latest-minor', {
-      source: 'registry',
-      latestVersion: '0.4.0',
-    })
-
-    expect(result.exit, result.stderr).toBe(0)
-    expect(summaryLines(result.entries)[1]).toMatch(/^agent-qa 0\.4\.0 /u)
-  })
-
   it("says the project is on the latest when the answer is the project's version", async () => {
     const result = await rerunAnswered('latest-equal', {
       source: 'registry',
@@ -123,6 +113,51 @@ describe('a re-run says whether a newer agent-qa is out', () => {
 
     expect(result.exit, result.stderr).toBe(0)
     expect((JSON.parse(result.stdout) as InitDocument).latest).toEqual({ source: 'none' })
+  })
+})
+
+describe("a re-run's summary says what upgrading to the newer agent-qa means", () => {
+  it('points the coding agent at the migration guide for a release that can change the config', async () => {
+    const result = await rerunAnswered('guide-one-step', {
+      source: 'registry',
+      latestVersion: '0.4.0',
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(summaryLines(result.entries).slice(0, 3)).toEqual([
+      `You're on agent-qa ${PROJECT_VERSION}.`,
+      'agent-qa 0.4.0 can change your config. To upgrade, point your coding agent at',
+      'https://vostride.com/docs/agent-qa/migrate/v0-3-to-v0-4',
+    ])
+  })
+
+  it('names one migration guide per breaking step crossed', async () => {
+    const result = await rerunAnswered('guide-two-steps', {
+      source: 'cache',
+      latestVersion: '0.5.1',
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(summaryLines(result.entries).slice(0, 4)).toEqual([
+      `You're on agent-qa ${PROJECT_VERSION}.`,
+      'agent-qa 0.5.1 can change your config. To upgrade, point your coding agent at',
+      'https://vostride.com/docs/agent-qa/migrate/v0-3-to-v0-4',
+      'https://vostride.com/docs/agent-qa/migrate/v0-4-to-v0-5',
+    ])
+  })
+
+  it('links the release notes for a patch', async () => {
+    const result = await rerunAnswered('notes-patch', {
+      source: 'registry',
+      latestVersion: '0.3.2',
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(summaryLines(result.entries).slice(0, 3)).toEqual([
+      `You're on agent-qa ${PROJECT_VERSION}.`,
+      'agent-qa 0.3.2 is out.',
+      'https://github.com/vostride/agent-qa/releases/tag/v0.3.2',
+    ])
   })
 })
 
