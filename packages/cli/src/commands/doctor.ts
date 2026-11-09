@@ -27,6 +27,7 @@ import {
 import { guardJsonText, isGitHubActions, printRunText } from '@vostride/agent-qa-core/run-text-output'
 import { isLoopbackHost } from '@vostride/agent-qa-schema'
 import { createModel, getProvider } from '@vostride/agent-qa-model'
+import type { ChromiumResolver } from './browser-resolver.js'
 import { createKnowledgeChecks } from './doctor-knowledge-checks.js'
 import { createPluginChecks } from './doctor-plugin-checks.js'
 import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
@@ -790,7 +791,11 @@ function getGlobalConfigPath(command: Command): string {
   return command.parent?.opts<{ config?: string }>().config ?? 'agent-qa.config.yaml'
 }
 
-export function createDoctorCommand(): Command {
+export interface DoctorCommandHooks {
+  chromium?: ChromiumResolver
+}
+
+export function createDoctorCommand(_hooks: DoctorCommandHooks = {}): Command {
   const cmd = new Command('doctor')
     .description('Validate environment and dependencies')
     .option('--remote <name>', 'Show only this remote among the remote rows')

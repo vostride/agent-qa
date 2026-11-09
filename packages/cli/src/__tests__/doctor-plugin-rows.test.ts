@@ -217,7 +217,9 @@ async function runDoctorJson(
   const program = new Command()
   program.option('--config <path>', 'config file path', 'agent-qa.config.yaml')
   program.option('--log-level <level>')
-  program.addCommand(createDoctorCommand())
+  program.addCommand(
+    createDoctorCommand({ chromium: () => ({ found: true, path: '/browsers/chromium-1/chrome' }) }),
+  )
   await program.parseAsync([
     'node',
     'agent-qa',

@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, realpathSync } from 'node:fs'
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -56,6 +56,7 @@ vi.mock('ai', async (importOriginal) => ({
   generateText: vi.fn(() => Promise.resolve({ text: 'ok' })),
 }))
 
+import type { ChromiumResolver } from '../commands/browser-resolver.js'
 import { createDoctorCommand } from '../commands/doctor.js'
 import { createRemoteChecks } from '../commands/doctor-remote-checks.js'
 
@@ -127,6 +128,11 @@ interface ProjectFiles {
   suites?: Record<string, Record<string, unknown>>
 }
 
+const chromiumResolver = vi.fn<ChromiumResolver>(() => ({
+  found: true,
+  path: '/browsers/chromium-1/chrome',
+}))
+
 let pinned: PinnedTmpdir
 let printed: string[]
 let consoleSpies: { mockRestore(): void }[] = []
@@ -186,7 +192,7 @@ async function runDoctor(configPath: string, ...args: string[]): Promise<string>
   process.exitCode = 0
   const program = new Command()
   program.option('--config <path>', 'config file path', 'agent-qa.config.yaml')
-  program.addCommand(createDoctorCommand())
+  program.addCommand(createDoctorCommand({ chromium: chromiumResolver }))
   await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'doctor', ...args])
   return printed.join('\n')
 }
@@ -212,6 +218,7 @@ describe("doctor's remote rows", () => {
   beforeEach(() => {
     printed = []
     vi.mocked(execSync).mockClear()
+    chromiumResolver.mockClear()
     Object.defineProperty(process.stdout, 'columns', {
       value: 1000,
       configurable: true,
@@ -519,6 +526,7 @@ describe("doctor's remote rows", () => {
       status: 'SKIP',
       message: 'every web test runs on a remote',
     })
+    expect(chromiumResolver).not.toHaveBeenCalled()
     expect(vi.mocked(execSync).mock.calls.map(([command]) => String(command))).not.toContainEqual(
       expect.stringContaining('playwright'),
     )
@@ -545,8 +553,37 @@ describe("doctor's remote rows", () => {
 
     const output = await runDoctor(configPath)
 
-    expect(row(output, 'Playwright')).toEqual({ status: 'PASS', message: 'installed' })
-    expect(vi.mocked(execSync)).toHaveBeenCalledWith('npx playwright --version', { stdio: 'pipe' })
+    expect(row(output, 'Playwright')).toEqual({ status: 'PASS', message: 'Chromium found' })
+    expect(chromiumResolver).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(execSync).mock.calls.map(([command]) => String(command))).not.toContainEqual(
+      expect.stringContaining('playwright'),
+    )
+  })
+
+  it("asks the browser resolver with the real folder of the project's installed agent-qa", async () => {
+    const configPath = await writeProject({ config: baseConfig() })
+    const dir = join(configPath, '..')
+    await mkdir(join(dir, '.git'))
+    const agentQaDir = join(dir, 'node_modules', 'agent-qa')
+    await mkdir(agentQaDir, { recursive: true })
+    await writeFile(
+      join(agentQaDir, 'package.json'),
+      JSON.stringify({ name: 'agent-qa', version: '1.2.3', bin: { 'agent-qa': 'cli.js' } }),
+    )
+    await writeFile(join(agentQaDir, 'cli.js'), '')
+
+    await runDoctor(configPath)
+
+    expect(chromiumResolver).toHaveBeenCalledWith({ projectAgentQaDir: realpathSync(agentQaDir) })
+  })
+
+  it('asks the browser resolver with no folder when the project installs no agent-qa', async () => {
+    const configPath = await writeProject({ config: baseConfig() })
+    await mkdir(join(configPath, '..', '.git'))
+
+    await runDoctor(configPath)
+
+    expect(chromiumResolver).toHaveBeenCalledWith({})
   })
 
   it("warns on a remote's row when a target on this machine's loopback is placed on it", async () => {

@@ -176,6 +176,7 @@ import * as core from '@vostride/agent-qa-core'
 import { clearProviderRegistry, createModel, registerProvider } from '@vostride/agent-qa-model'
 import { generateText } from 'ai'
 import { loadProviderPluginsForRawConfig } from '../provider-plugins.js'
+import type { ChromiumAnswer, ChromiumResolver } from '../commands/browser-resolver.js'
 import { resolveLLMModels } from '../llm-utils.js'
 
 const mockExecSync = vi.mocked(execSync)
@@ -191,13 +192,21 @@ const mockResolveLLMAuth = vi.mocked((core as any).resolveLLMAuth) as any
 const mockResolveAppiumExecutable = vi.mocked(core.resolveAppiumExecutable)
 const mockGenerateText = vi.mocked(generateText)
 
+const CHROMIUM_FOUND: ChromiumAnswer = { found: true, path: '/browsers/chromium-1/chrome' }
+let chromiumAnswer: ChromiumAnswer = CHROMIUM_FOUND
+const chromium = vi.fn<ChromiumResolver>(() => chromiumAnswer)
+
+afterEach(() => {
+  chromiumAnswer = CHROMIUM_FOUND
+})
+
 async function runDoctor(parentConfig?: string, ...args: string[]): Promise<void> {
   consoleLogs.length = 0
   process.exitCode = 0
 
   const parent = new Command()
   if (parentConfig) parent.setOptionValue('config', parentConfig)
-  parent.addCommand(createDoctorCommand())
+  parent.addCommand(createDoctorCommand({ chromium }))
   await parent.parseAsync(['node', 'test', 'doctor', ...args])
 }
 
@@ -751,30 +760,43 @@ use:
     expect(mockCreateModel).not.toHaveBeenCalled()
   })
 
-  it('Playwright check passes when installed', async () => {
-    mockExecSync.mockImplementation((cmd) => {
-      if ((cmd as string).includes('playwright --version')) return Buffer.from('1.50.0')
-      return Buffer.from('')
-    })
-
+  it('Playwright passes with Chromium found when the resolver finds it', async () => {
     await runDoctor()
-    const output = getOutput()
-    expect(output).toContain('installed')
+
+    expect(rowFor('Playwright')).toMatch(/ Chromium found {2}PASS$/)
+    expect(fixUnder('Playwright')).toBe('')
   })
 
-  it('Playwright check fails when not installed', async () => {
-    mockExecSync.mockImplementation((cmd) => {
-      if ((cmd as string).includes('playwright')) throw new Error('not found')
-      return Buffer.from('')
-    })
+  it('Playwright fails with the install-browsers fix when the resolver finds no Chromium', async () => {
+    chromiumAnswer = { found: false, reason: 'no file at /browsers/chromium-1/chrome' }
 
     await runDoctor()
-    const output = getOutput()
-    // Should show Playwright not installed
-    expect(output).toContain('Playwright')
-    expect(fixUnder('Playwright')).toContain('`npx agent-qa install-browsers --chromium`')
-    expect(fixUnder('Playwright')).not.toContain('agent-qa init')
-    expect(output).not.toContain('npx playwright install')
+
+    expect(rowFor('Playwright')).toMatch(/ no Chromium for agent-qa's Playwright {2}FAIL$/)
+    expect(fixUnder('Playwright')).toBe('Run `npx agent-qa install-browsers --chromium`')
+  })
+
+  it('Playwright skips a project with no web target without asking the resolver', async () => {
+    mockReadFile.mockResolvedValue(`
+registry:
+  targets:
+    my-app:
+      platform: android
+` as never)
+
+    await runDoctor()
+
+    expect(rowFor('Playwright')).toMatch(/ not configured {2}SKIP$/)
+    expect(chromium).not.toHaveBeenCalled()
+  })
+
+  it('doctor asks the resolver and runs no npx playwright command', async () => {
+    await runDoctor()
+
+    expect(chromium).toHaveBeenCalledTimes(1)
+    expect(mockExecSync.mock.calls.map(([command]) => String(command))).not.toContainEqual(
+      expect.stringContaining('playwright'),
+    )
   })
 
   it('Appium checks skipped when platform is web-only', async () => {
@@ -805,11 +827,6 @@ targets:
         url: http://localhost
 `
     mockReadFile.mockResolvedValue(mobileConfig as never)
-    mockExecSync.mockImplementation((cmd) => {
-      const cmdStr = cmd as string
-      if (cmdStr.includes('playwright')) throw new Error('not found')
-      return Buffer.from('')
-    })
     mockExecFileSync.mockImplementation((cmd, args) => {
       if (cmd === 'appium' && Array.isArray(args) && args.join(' ') === '--version') return Buffer.from('2.0.0')
       if (cmd === 'appium' && Array.isArray(args) && args.join(' ') === 'driver list --installed') return Buffer.from('uiautomator2')
@@ -879,11 +896,6 @@ use:
 `
     mockReadFile.mockResolvedValue(mobileConfig as never)
     mockExistsSync.mockReturnValue(true)
-    mockExecSync.mockImplementation((cmd) => {
-      const cmdStr = cmd as string
-      if (cmdStr.includes('playwright')) return Buffer.from('1.50.0')
-      return Buffer.from('')
-    })
     mockExecFileSync.mockImplementation((cmd, args) => {
       if (cmd === 'appium' && Array.isArray(args) && args.join(' ') === '--version') return Buffer.from('2.0.0')
       if (cmd === 'appium' && Array.isArray(args) && args.join(' ') === 'driver list --installed') return Buffer.from('')
