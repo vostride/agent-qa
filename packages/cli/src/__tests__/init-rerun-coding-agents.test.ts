@@ -1,12 +1,16 @@
 // A re-run checks a coding agent's setup with a dry run of the installer and repairs it.
-import { existsSync, readFileSync, rmSync } from 'node:fs'
+import { existsSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { stripVTControlCharacters } from 'node:util'
 
 import { getAgentQaVersion } from '@vostride/agent-qa-core'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import type { AgentSetupOptions } from '../commands/agent-setup.js'
 import type { InitDocument } from '../commands/init-document.js'
 import { SETUP_MENU_QUESTION } from '../commands/init-rerun.js'
+import { buildKnowledgeAgentGuide } from '../commands/knowledge-guide.js'
+import { upsertCodexMcpEntry } from '../commands/mcp-entries.js'
 import type { FakeInitUiEntry } from './fake-init-ui.js'
 import { cleanupTempProjects } from './project-fixtures.js'
 import {
@@ -16,9 +20,28 @@ import {
   rerun,
 } from './rerun-fixtures.js'
 
+const installs = vi.hoisted(() => ({ real: 0 }))
+
+vi.mock('../commands/agent-setup.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../commands/agent-setup.js')>()
+  return {
+    ...actual,
+    installAgentSetup: async (options: AgentSetupOptions) => {
+      if (options.dryRun !== true) installs.real += 1
+      return await actual.installAgentSetup(options)
+    },
+  }
+})
+
 const VERSION = getAgentQaVersion().trim()
 const ALPHA = '.claude/skills/agent-qa-alpha/SKILL.md'
+const GUIDE = 'agent-qa-knowledge/AGENTS.md'
+const CODEX_CONFIG = '.codex/config.toml'
 const asked = { hooks: { isTTY: true } }
+
+beforeEach(() => {
+  installs.real = 0
+})
 
 afterEach(() => {
   cleanupTempProjects()
@@ -41,6 +64,16 @@ function skillsRow(doc: InitDocument): unknown {
   return doc.setup?.find((row) => row.name === 'skills') ?? 'no skills row'
 }
 
+function setupRow(doc: InitDocument, name: string): unknown {
+  return doc.setup?.find((row) => row.name === name) ?? `no ${name} row`
+}
+
+function refusalLines(stderr: string): string[] {
+  return stripVTControlCharacters(stderr)
+    .split('\n')
+    .filter((line) => line !== '')
+}
+
 describe("a re-run's skills row", () => {
   it("labels one edited skill file as differing from agent-qa's copy and pre-checks it", async () => {
     const project = await initializedProjectWithAgent('rerun-skills-edited', 'claude-code', VERSION)
@@ -51,6 +84,8 @@ describe("a re-run's skills row", () => {
     expect(menu.exit, menu.stderr).toBe(0)
     expect(menuOf(menu.entries)?.labels ?? 'no menu').toEqual([
       `skills     1 file differs from agent-qa ${VERSION}'s copy`,
+      'mcp        current',
+      'agents-md  current',
       'gitignore  current',
     ])
     expect(menuOf(menu.entries)?.initialValues ?? 'no menu').toEqual(['skills'])
@@ -137,6 +172,8 @@ describe("a re-run's skills row", () => {
     expect(result.exit, result.stderr).toBe(0)
     expect(menuOf(result.entries)?.labels ?? 'no menu').toEqual([
       `skills     current (${VERSION})`,
+      'mcp        current',
+      'agents-md  current',
       'gitignore  current',
     ])
     expect(menuOf(result.entries)?.initialValues ?? 'no menu').toEqual([])
@@ -149,7 +186,10 @@ describe("a re-run's skills row", () => {
     const menu = await rerun(project, [], asked)
     const result = await rerun(project, ['--json'], { plain: true })
 
-    expect(menuOf(menu.entries)?.labels ?? 'no menu').toEqual(['gitignore  current'])
+    expect(menuOf(menu.entries)?.labels ?? 'no menu').toEqual([
+      'agents-md  current',
+      'gitignore  current',
+    ])
     const doc = JSON.parse(result.stdout) as InitDocument
     expect(skillsRow(doc)).toEqual({
       name: 'skills',
@@ -159,5 +199,205 @@ describe("a re-run's skills row", () => {
       hidden: 'no coding agent chosen',
     })
     expect(doc.steps.map((step) => step.name)).not.toContain('skills')
+  })
+})
+
+describe("a re-run's mcp row", () => {
+  it('labels a Codex entry that is missing and pre-checks it', async () => {
+    const project = await initializedProjectWithAgent('rerun-mcp-missing', 'codex', VERSION)
+    writeFileSync(join(project.root, CODEX_CONFIG), 'model = "o3"\n')
+
+    const menu = await rerun(project, [], { ...asked, answers: { [SETUP_MENU_QUESTION]: [] } })
+
+    expect(menu.exit, menu.stderr).toBe(0)
+    expect(menuOf(menu.entries)?.labels ?? 'no menu').toEqual([
+      `skills     current (${VERSION})`,
+      'mcp        Codex entry missing',
+      'agents-md  current',
+      'gitignore  current',
+    ])
+    expect(menuOf(menu.entries)?.initialValues ?? 'no menu').toEqual(['mcp'])
+  })
+
+  it('with --yes writes the Codex entry back and keeps every other byte of the file', async () => {
+    const project = await initializedProjectWithAgent('rerun-mcp-restore', 'codex', VERSION)
+    const mine = '# my settings\nmodel = "o3"\n'
+    writeFileSync(join(project.root, CODEX_CONFIG), mine)
+    const edit = upsertCodexMcpEntry(mine)
+    if ('refused' in edit) throw new Error(edit.refused)
+
+    const result = await rerun(project, ['--yes'])
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(read(project.root, CODEX_CONFIG)).toBe(edit.text)
+    expect(result.entries).toContainEqual({
+      kind: 'done',
+      text: 'mcp: put back the agent-qa entry for Codex',
+    })
+  })
+
+  it("labels an edited Claude Code entry as differing and puts agent-qa's entry back", async () => {
+    const project = await initializedProjectWithAgent('rerun-mcp-differs', 'claude-code', VERSION)
+    const original = read(project.root, '.mcp.json')
+    writeFileSync(join(project.root, '.mcp.json'), original.replace('6000000', '1000'))
+
+    const result = await rerun(project, ['--yes', '--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(setupRow(doc, 'mcp')).toEqual({
+      name: 'mcp',
+      state: 'Claude Code entry differs',
+      prechecked: true,
+      selected: true,
+    })
+    expect(read(project.root, '.mcp.json')).toBe(original)
+    expect(doc.files).toContainEqual({ path: '.mcp.json', outcome: 'replaced', step: 'mcp' })
+    expect(doc.steps).toContainEqual({ name: 'mcp', outcome: 'done' })
+  })
+
+  it('is hidden with no coding agent chosen', async () => {
+    const project = await initializedProject('rerun-mcp-no-agent')
+
+    const result = await rerun(project, ['--json'], { plain: true })
+
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(setupRow(doc, 'mcp')).toEqual({
+      name: 'mcp',
+      state: 'no coding agent chosen',
+      prechecked: false,
+      selected: false,
+      hidden: 'no coding agent chosen',
+    })
+  })
+})
+
+describe("a re-run's agents-md row", () => {
+  it("labels an edited block, pre-checks it, and puts agent-qa's block back keeping the rest", async () => {
+    const project = await initializedProjectWithAgent('rerun-agents-md-edited', 'claude-code', VERSION)
+    const block = read(project.root, 'AGENTS.md')
+    const edited = block.replace('agent-qa-knowledge/AGENTS.md', 'my-notes.md')
+    writeFileSync(join(project.root, 'AGENTS.md'), `# My project\n\n${edited}`)
+
+    const menu = await rerun(project, [], { ...asked, answers: { [SETUP_MENU_QUESTION]: [] } })
+    const result = await rerun(project, ['--yes'])
+
+    expect(menuOf(menu.entries)?.labels ?? 'no menu').toContain('agents-md  the block was edited')
+    expect(menuOf(menu.entries)?.initialValues ?? 'no menu').toEqual(['agents-md'])
+    expect(result.exit, result.stderr).toBe(0)
+    expect(read(project.root, 'AGENTS.md')).toBe(`# My project\n\n${block}`)
+    expect(result.entries).toContainEqual({
+      kind: 'done',
+      text: "agents-md: put back agent-qa's block in AGENTS.md; replaced AGENTS.md",
+    })
+  })
+
+  it('labels a missing block and writes it back', async () => {
+    const project = await initializedProjectWithAgent('rerun-agents-md-missing', 'codex', VERSION)
+    const block = read(project.root, 'AGENTS.md')
+    writeFileSync(join(project.root, 'AGENTS.md'), '# My project\n')
+
+    const result = await rerun(project, ['--yes', '--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(setupRow(doc, 'agents-md')).toMatchObject({ state: 'block missing', prechecked: true })
+    expect(read(project.root, 'AGENTS.md')).toContain(block)
+    expect(doc.files).toContainEqual({ path: 'AGENTS.md', outcome: 'created', step: 'agents-md' })
+  })
+
+  it('refuses a malformed block with one line, exit 2, leaving it as it was', async () => {
+    const project = await initializedProjectWithAgent('rerun-agents-md-malformed', 'codex', VERSION)
+    const block = read(project.root, 'AGENTS.md')
+    writeFileSync(join(project.root, 'AGENTS.md'), `${block}\n${block}`)
+
+    const result = await rerun(project, [], asked)
+
+    expect(result.exit).toBe(2)
+    const lines = refusalLines(result.stderr)
+    expect(lines).toHaveLength(1)
+    expect(lines[0]).toMatch(/^Refusing malformed AGENTS\.md: /u)
+    expect(result.entries).toEqual([])
+    expect(read(project.root, 'AGENTS.md')).toBe(`${block}\n${block}`)
+  })
+
+  it("pre-checks a changed knowledge guide and writes agent-qa's guide back", async () => {
+    const project = await initializedProjectWithAgent('rerun-guide-differs', 'codex', VERSION)
+    writeFileSync(join(project.root, GUIDE), 'hand edited\n')
+
+    const result = await rerun(project, ['--yes', '--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(setupRow(doc, 'agents-md')).toEqual({
+      name: 'agents-md',
+      state: 'knowledge guide differs',
+      prechecked: true,
+      selected: true,
+    })
+    expect(read(project.root, GUIDE)).toBe(buildKnowledgeAgentGuide())
+    expect(doc.files).toContainEqual({ path: GUIDE, outcome: 'updated', step: 'agents-md' })
+  })
+
+  it('pre-checks a deleted knowledge guide and leaves it absent when agents-md is not selected', async () => {
+    const project = await initializedProjectWithAgent('rerun-guide-unselected', 'codex', VERSION)
+    unlinkSync(join(project.root, GUIDE))
+
+    const result = await rerun(project, [], { ...asked, answers: { [SETUP_MENU_QUESTION]: [] } })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(menuOf(result.entries)?.labels ?? 'no menu').toContain(
+      'agents-md  knowledge guide missing',
+    )
+    expect(menuOf(result.entries)?.initialValues ?? 'no menu').toEqual(['agents-md'])
+    expect(existsSync(join(project.root, GUIDE))).toBe(false)
+    expect(result.entries).toContainEqual({ kind: 'skipped', text: 'agents-md: not selected' })
+  })
+
+  it('with no coding agent covers the knowledge guide only and puts it back without AGENTS.md', async () => {
+    const project = await initializedProject('rerun-guide-no-agent')
+    unlinkSync(join(project.root, GUIDE))
+
+    const menu = await rerun(project, [], { ...asked, answers: { [SETUP_MENU_QUESTION]: [] } })
+    const result = await rerun(project, ['--yes'])
+
+    expect(menuOf(menu.entries)?.labels ?? 'no menu').toEqual([
+      'agents-md  knowledge guide missing',
+      'gitignore  current',
+    ])
+    expect(result.exit, result.stderr).toBe(0)
+    expect(read(project.root, GUIDE)).toBe(buildKnowledgeAgentGuide())
+    expect(existsSync(join(project.root, 'AGENTS.md'))).toBe(false)
+    expect(result.entries).toContainEqual({
+      kind: 'done',
+      text: 'agents-md: put back the knowledge guide',
+    })
+  })
+})
+
+describe("a re-run's agent rows together", () => {
+  it('serve skills, mcp and agents-md with one installer run, each row with its own step', async () => {
+    const project = await initializedProjectWithAgent('rerun-agent-rows', 'claude-code', VERSION)
+    editSkillFile(project, ALPHA)
+    const mcp = read(project.root, '.mcp.json')
+    writeFileSync(join(project.root, '.mcp.json'), mcp.replace('6000000', '1000'))
+    writeFileSync(join(project.root, 'AGENTS.md'), '# My project\n')
+    installs.real = 0
+
+    const result = await rerun(project, ['--yes', '--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(installs.real).toBe(1)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.steps.map((step) => `${step.name} ${step.outcome}`)).toEqual([
+      'skills done',
+      'mcp done',
+      'agents-md done',
+      'gitignore skipped',
+      'validate done',
+    ])
+    expect(doc.files).toContainEqual({ path: ALPHA, outcome: 'replaced', step: 'skills' })
+    expect(doc.files).toContainEqual({ path: '.mcp.json', outcome: 'replaced', step: 'mcp' })
+    expect(doc.files).toContainEqual({ path: 'AGENTS.md', outcome: 'created', step: 'agents-md' })
   })
 })

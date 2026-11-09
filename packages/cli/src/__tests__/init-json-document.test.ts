@@ -577,6 +577,8 @@ describe('init --json prints one document on stdout', () => {
     expect(doc).toMatchObject({ outcome: 'done', exitCode: 0, files: [] })
     expect(doc.steps).toEqual([
       { name: 'skills', outcome: 'skipped', reason: 'current' },
+      { name: 'mcp', outcome: 'skipped', reason: 'current' },
+      { name: 'agents-md', outcome: 'skipped', reason: 'current' },
       { name: 'gitignore', outcome: 'skipped', reason: 'current' },
       { name: 'validate', outcome: 'done' },
     ])

@@ -192,14 +192,14 @@ describe('INIT-GUIDE-LIFECYCLE: init generates the thin knowledge guide', () => 
     expect(readFileSync(join(dir, 'agent-qa-knowledge', 'README.md'), 'utf8')).toBe('my readme\n')
   })
 
-  it('a re-run with no coding agent leaves a deleted knowledge guide and AGENTS.md absent', async () => {
+  it('a re-run puts a deleted knowledge guide back through the agents-md row and writes no AGENTS.md', async () => {
     const project = await initializedProject('guide-rerun')
     unlinkSync(join(project.root, GUIDE))
 
     const result = await rerun(project, ['--yes'])
 
     expect(result.exit, result.stderr).toBe(0)
-    expect(existsSync(join(project.root, GUIDE))).toBe(false)
+    expect(readFileSync(join(project.root, GUIDE), 'utf8')).toBe(buildKnowledgeAgentGuide())
     expect(existsSync(join(project.root, 'AGENTS.md'))).toBe(false)
   })
 
