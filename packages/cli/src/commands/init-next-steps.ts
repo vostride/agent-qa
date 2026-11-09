@@ -36,7 +36,7 @@ export const CODEX_TRUST_HINT =
 
 const AUTH_LOGIN_DESCRIPTION = 'Sign in with your subscription'
 
-export function authLoginCommand(name: string): string {
+function authLoginCommand(name: string): string {
   return `npx agent-qa auth login --config ${name}`
 }
 
