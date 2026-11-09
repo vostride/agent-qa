@@ -25,6 +25,7 @@ export interface PluginChecksInput {
   checkTimeoutMs?: number
   // Given only at debug level; the host masks and names each line first.
   debugLog?: (line: string) => void
+  agentQaVersion?: string
 }
 
 interface PluginRemote {

@@ -1,5 +1,5 @@
 // doctor reports a coding agent's setup with the re-run menu's own dry-run checks.
-import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
+import { readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { Command } from 'commander'
@@ -20,21 +20,28 @@ vi.mock('../commands/doctor-knowledge-checks.js', () => ({
   createKnowledgeChecks: () => [],
 }))
 
-vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@vostride/agent-qa-core')>()),
-  resolveLLMAuth: vi.fn(() =>
-    Promise.resolve({
-      kind: 'unauthenticated',
-      credentialKey: 'default',
-      provider: 'openai-compatible',
-      optional: true,
-      message: 'Testing without a saved credential.',
-    }),
-  ),
-  validateProject: vi.fn(() =>
-    Promise.resolve({ errorCount: 0, warningCount: 0, fileCount: 1, results: [] }),
-  ),
-}))
+// The agent-qa running doctor; unset, it is this build.
+const running = vi.hoisted(() => ({ version: undefined as string | undefined }))
+
+vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@vostride/agent-qa-core')>()
+  return {
+    ...actual,
+    getAgentQaVersion: () => running.version ?? actual.getAgentQaVersion(),
+    resolveLLMAuth: vi.fn(() =>
+      Promise.resolve({
+        kind: 'unauthenticated',
+        credentialKey: 'default',
+        provider: 'openai-compatible',
+        optional: true,
+        message: 'Testing without a saved credential.',
+      }),
+    ),
+    validateProject: vi.fn(() =>
+      Promise.resolve({ errorCount: 0, warningCount: 0, fileCount: 1, results: [] }),
+    ),
+  }
+})
 
 vi.mock('@vostride/agent-qa-model', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@vostride/agent-qa-model')>()),
@@ -70,10 +77,12 @@ const VERSION = getAgentQaVersion().trim()
 const CODEX_ALPHA = '.agents/skills/agent-qa-alpha/SKILL.md'
 const MANIFEST = '.agents/agent-qa-skills.json'
 const BLOCK_END = '<!-- agent-qa init:end -->'
+const SUBSCRIPTION = '@vostride/agent-qa-subscription-auth'
 
 afterEach(() => {
   vi.restoreAllMocks()
   cleanupTempProjects()
+  running.version = undefined
   process.exitCode = 0
 })
 
@@ -121,6 +130,25 @@ async function doctorRows(project: InitializedProject): Promise<Row[]> {
 
 function row(rows: readonly Row[], name: string): Row | string {
   return rows.find((entry) => entry.name === name) ?? `no ${name} row`
+}
+
+function json(project: InitializedProject, path: string): Record<string, unknown> {
+  return JSON.parse(read(project, path)) as Record<string, unknown>
+}
+
+function writeJson(project: InitializedProject, path: string, value: unknown): void {
+  write(project, path, `${JSON.stringify(value, null, 2)}\n`)
+}
+
+function setInstalledVersion(project: InitializedProject, name: string, version: string): void {
+  const path = join('node_modules', ...name.split('/'), 'package.json')
+  writeJson(project, path, { ...json(project, path), version })
+}
+
+function setDeclaredVersion(project: InitializedProject, name: string, version: string): void {
+  const pkg = json(project, 'package.json') as { devDependencies: Record<string, string> }
+  pkg.devDependencies[name] = version
+  writeJson(project, 'package.json', pkg)
 }
 
 function read(project: InitializedProject, path: string): string {
@@ -246,13 +274,14 @@ describe("doctor's coding agent rows", () => {
     ).toEqual([])
   })
 
-  it('shows the agent rows right after Config validation', async () => {
+  it('shows the versions row and the agent rows right after Config validation', async () => {
     const project = await projectWithBothAgents('doctor-order')
 
     const names = (await doctorRows(project)).map((entry) => entry.name)
     const after = names.indexOf('Config validation') + 1
 
-    expect(names.slice(after, after + 5)).toEqual([
+    expect(names.slice(after, after + 6)).toEqual([
+      'agent-qa versions',
       'Skills (Claude Code)',
       'Skills (Codex)',
       'MCP entry (Claude Code)',
@@ -303,5 +332,97 @@ describe("doctor's coding agent rows", () => {
     expect(block.message).not.toContain('\n')
     expect(block.fix).toContain('`npx agent-qa init --setup agents-md`')
     expect(rows.some((entry) => entry.status === 'fail' && entry.name.includes('('))).toBe(false)
+  })
+})
+
+describe("doctor's agent-qa versions row", () => {
+  it('warns with the skills fix when the skills are older than the installed agent-qa', async () => {
+    const project = await projectWithBothAgents('doctor-versions-skills')
+    setInstalledVersion(project, 'agent-qa', '0.3.2')
+    setDeclaredVersion(project, 'agent-qa', '0.3.2')
+    writeJson(project, MANIFEST, { ...json(project, MANIFEST), version: '0.3.0' })
+    running.version = '0.3.2'
+
+    const rows = await doctorRows(project)
+
+    expect(row(rows, 'agent-qa versions')).toEqual({
+      name: 'agent-qa versions',
+      status: 'warn',
+      message: 'agent-qa 0.3.2, skills 0.3.0',
+      fix: 'Run `npx agent-qa init --setup skills`.',
+    })
+  })
+
+  it('warns with the deps fix when the subscription plugin is at another version than agent-qa', async () => {
+    const project = await initializedProject('doctor-versions-plugin', { llm: 'codex' })
+    setInstalledVersion(project, SUBSCRIPTION, '0.3.1')
+
+    const rows = await doctorRows(project)
+
+    expect(row(rows, 'agent-qa versions')).toEqual({
+      name: 'agent-qa versions',
+      status: 'warn',
+      message: `agent-qa ${VERSION}, subscription plugin 0.3.1`,
+      fix: 'Run `npx agent-qa init --setup deps`.',
+    })
+  })
+
+  it('passes when agent-qa, its plugins and the skills are on one version', async () => {
+    const project = await projectWithBothAgents('doctor-versions-match')
+
+    const rows = await doctorRows(project)
+
+    expect(row(rows, 'agent-qa versions')).toEqual({
+      name: 'agent-qa versions',
+      status: 'pass',
+      message: `agent-qa ${VERSION}, skills ${VERSION}`,
+    })
+  })
+
+  it("names this agent-qa's version when another copy runs doctor", async () => {
+    const project = await projectWithBothAgents('doctor-versions-running')
+    running.version = '9.9.9'
+
+    const rows = await doctorRows(project)
+
+    expect(row(rows, 'agent-qa versions')).toEqual({
+      name: 'agent-qa versions',
+      status: 'pass',
+      message: `agent-qa ${VERSION}, skills ${VERSION}, this agent-qa 9.9.9`,
+    })
+  })
+
+  it('fails with the deps fix when agent-qa is declared and not installed, and doctor exits 3', async () => {
+    const project = await initializedProject('doctor-versions-missing')
+    rmSync(join(project.root, 'node_modules', 'agent-qa'), { recursive: true, force: true })
+
+    const rows = await doctorRows(project)
+
+    expect(row(rows, 'agent-qa versions')).toEqual({
+      name: 'agent-qa versions',
+      status: 'fail',
+      message: 'agent-qa declared, not installed',
+      fix: 'Run `npx agent-qa init --setup deps`.',
+    })
+    expect(rows.filter((entry) => entry.status === 'fail').map((entry) => entry.name)).toEqual([
+      'agent-qa versions',
+    ])
+    expect(process.exitCode).toBe(3)
+  })
+})
+
+describe("doctor's scaffold file rows", () => {
+  it('name init --setup scaffold as the fix for a missing secrets file or hooks file', async () => {
+    const project = await initializedProject('doctor-scaffold-fix')
+    rmSync(join(project.root, '.env.secrets.local'))
+    rmSync(join(project.root, 'hooks.yaml'))
+
+    const rows = await doctorRows(project)
+
+    for (const name of ['Secrets file', 'Workspace files']) {
+      const found = row(rows, name) as Row
+      expect(found.status, name).toBe('fail')
+      expect(found.fix, name).toContain('Run `npx agent-qa init --setup scaffold` to write the missing file')
+    }
   })
 })

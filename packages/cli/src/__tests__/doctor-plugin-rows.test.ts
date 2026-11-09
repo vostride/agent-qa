@@ -13,6 +13,7 @@ import {
   type ScriptedPluginInput,
 } from '@vostride/agent-qa-plugin-kit/testing'
 
+import { writeInstalledPackage } from './project-fixtures.js'
 import { pinProcessTmpdir, removeTempRoots, type PinnedTmpdir } from './temp-roots.js'
 
 vi.mock('@vostride/agent-qa-runner-local', () => ({
@@ -403,7 +404,7 @@ describe("doctor's plugin rows", () => {
     expect(await rows(project, raw, { only: 'team' })).toEqual([])
   })
 
-  it('puts the plugin rows in the doctor --json document, and none of them fails', async () => {
+  it('puts the plugin rows in the doctor --json document, and only the package that is not installed fails', async () => {
     const project = await newProject()
     installFirstParty(project)
     const raw = config(
@@ -422,11 +423,12 @@ describe("doctor's plugin rows", () => {
     const pluginRows = result.rows.filter((row) => row.name.startsWith('Plugin '))
     expect(pluginRows.map((row) => [row.name, row.status])).toEqual([
       ['Plugin lab', 'pass'],
-      ['Plugin gone', 'warn'],
+      ['Plugin gone', 'fail'],
     ])
     expect(pluginRows[0]?.message).toContain(`${FIRST_PARTY}, first-party, version`)
     expect(pluginRows[0]).not.toHaveProperty('fix')
-    expect(pluginRows[1]?.fix).toContain('`npx agent-qa plugins describe <name>`')
+    expect(pluginRows[1]?.fix).toBe('Run `npx agent-qa init --setup deps`.')
+    expect(result.ok).toBe(false)
     expect(result.format).toBe(1)
     expect(result).not.toHaveProperty('checks')
     expect(result.rows.some((row) => row.name === 'Node.js')).toBe(true)
@@ -514,16 +516,56 @@ describe("doctor's plugin rows for setup problems", () => {
     process.exitCode = 0
   })
 
-  it('tells a missing first-party plugin to run plugins add', async () => {
+  it('fails a first-party plugin that is not installed, with the deps fix', async () => {
     const project = await newProject()
     const raw = config([{ name: 'lab', package: FIRST_PARTY }], [{ name: 'farm', plugin: 'lab' }])
 
     const [row] = await rows(project, raw)
 
-    expect(row?.status).toBe('warn')
-    expect(row?.message).toContain(
-      `Run npx agent-qa plugins add ${FIRST_PARTY}.`,
+    expect(row?.status).toBe('fail')
+    expect(row?.message).toContain('declared, not installed')
+    expect(row?.fix).toBe('Run `npx agent-qa init --setup deps`.')
+  })
+
+  it('keeps the other problems of a plugin that is not installed in its row', async () => {
+    const project = await newProject()
+    const raw = config(
+      [{ name: 'lab', package: FIRST_PARTY, options: { key: '{{secret:LAB_KEY}}' } }],
+      [{ name: 'farm', plugin: 'lab' }],
     )
+
+    const [row] = await rows(project, raw)
+
+    expect(row?.status).toBe('fail')
+    expect(row?.message).toContain('declared, not installed')
+    expect(row?.message).toContain('LAB_KEY')
+  })
+
+  it('compares a first-party plugin with the version of the agent-qa it is given', async () => {
+    const project = await newProject()
+    installFirstParty(project, { version: '0.0.1' })
+    const raw = config([{ name: 'lab', package: FIRST_PARTY }], [{ name: 'farm', plugin: 'lab' }])
+
+    const [row] = await rows(project, raw, { agentQaVersion: '0.0.1' })
+
+    expect(row?.message).toContain('version 0.0.1')
+    expect(row?.message).not.toContain('plugins add')
+  })
+
+  it("compares a first-party plugin with the project's installed agent-qa, not the running one", async () => {
+    const project = await newProject()
+    installFirstParty(project, { version: '0.0.1' })
+    writeInstalledPackage(project.dir, 'agent-qa', '0.0.1')
+    const raw = config(
+      [{ name: 'lab', package: FIRST_PARTY, options: { ledgerFile: project.ledger } }],
+      [{ name: 'farm', plugin: 'lab' }],
+    )
+
+    const result = await runDoctorJson(project, raw)
+
+    const row = result.rows.find((entry) => entry.name === 'Plugin lab')
+    expect(row?.status).toBe('pass')
+    expect(row?.message).toContain(`${FIRST_PARTY}, first-party, version 0.0.1`)
   })
 
   it('tells a first-party plugin at another version to run plugins add', async () => {
@@ -540,7 +582,7 @@ describe("doctor's plugin rows for setup problems", () => {
     )
   })
 
-  it('tells a missing third-party package to run plugins add, with no version', async () => {
+  it('fails a third-party package that is not installed with its plugins add line, with no version', async () => {
     const project = await newProject()
     const raw = config(
       [{ name: 'grid', package: '@acme/agent-qa-plugin-grid' }],
@@ -549,10 +591,10 @@ describe("doctor's plugin rows for setup problems", () => {
 
     const [row] = await rows(project, raw)
 
-    expect(row?.status).toBe('warn')
+    expect(row?.status).toBe('fail')
     expect(row?.message).toContain('third-party')
-    expect(row?.message).toContain('Run npx agent-qa plugins add @acme/agent-qa-plugin-grid.')
-    expect(row?.message).not.toContain('@acme/agent-qa-plugin-grid@')
+    expect(row?.message).toContain('declared, not installed')
+    expect(row?.fix).toBe('Run `npx agent-qa plugins add @acme/agent-qa-plugin-grid`.')
   })
 
   it('names the path of a path plugin that is missing', async () => {
