@@ -571,6 +571,12 @@ describe('init --json prints one document on stdout', () => {
   it('a re-run of an initialized project skips its current rows, validates and writes no file', async () => {
     const { root, home } = tempProject('json-initialized')
     await init(root, home, ['--platform', 'web', '--pm', 'none'])
+    const declared = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
+      devDependencies: Record<string, string>
+    }
+    for (const [name, version] of Object.entries(declared.devDependencies)) {
+      writeInstalledPackage(root, name, version)
+    }
 
     const result = await init(root, home, ['--json', '--pm', 'none'])
 
@@ -578,6 +584,7 @@ describe('init --json prints one document on stdout', () => {
     expect(result.exit).toBeUndefined()
     expect(doc).toMatchObject({ outcome: 'done', exitCode: 0, files: [] })
     expect(doc.steps).toEqual([
+      { name: 'deps', outcome: 'skipped', reason: 'current' },
       { name: 'skills', outcome: 'skipped', reason: 'current' },
       { name: 'mcp', outcome: 'skipped', reason: 'current' },
       { name: 'agents-md', outcome: 'skipped', reason: 'current' },

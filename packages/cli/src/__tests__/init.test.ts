@@ -90,6 +90,7 @@ vi.mock('@vostride/agent-qa-core', () => ({
   resolveLLMAuth: vi.fn(async () => ({ kind: 'missing', required: true, message: '' })),
   compareSemverVersions: vi.fn(() => undefined),
   semverRangeFloor: vi.fn(() => undefined),
+  validSemverVersion: vi.fn(() => undefined),
 }))
 
 // Suppress console output in tests
