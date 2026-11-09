@@ -108,7 +108,6 @@ describe('init and the home folder', () => {
       const before = listing(home)
       const refused = await init(home, home, WEB_GEMINI)
       expectHomeRefusal(refused, home)
-      expect(refused.text).not.toContain('already initialized')
       expect(readFileSync(config)).toEqual(bytes)
       expect(listing(home)).toEqual(before)
     },
@@ -126,7 +125,6 @@ describe('init and the home folder', () => {
       const before = listing(home)
       const refused = await init(home, home, ['--force', ...WEB_GEMINI])
       expectHomeRefusal(refused, home)
-      expect(refused.text).not.toContain('already initialized')
       expect(readFileSync(config)).toEqual(bytes)
       expect(listing(home)).toEqual(before)
     },

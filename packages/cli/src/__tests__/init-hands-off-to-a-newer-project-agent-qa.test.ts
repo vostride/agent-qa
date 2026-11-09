@@ -320,7 +320,7 @@ describe('init installs a declared newer agent-qa, then hands off to it', () => 
     })
   })
 
-  it('a malformed package.json is refused before the already-initialized check', async () => {
+  it('a malformed package.json is refused before a re-run starts', async () => {
     const { root, home } = tempProject('hand-off-malformed')
     writeFileSync(join(root, 'agent-qa.config.yaml'), 'workspace: {}\n')
     writeFileSync(join(root, 'package.json'), '{ not json')
@@ -335,7 +335,7 @@ describe('init installs a declared newer agent-qa, then hands off to it', () => 
         'u',
       ),
     )
-    expect(stderr()).not.toContain('already initialized')
+    expect(readFileSync(join(root, 'agent-qa.config.yaml'), 'utf-8')).toBe('workspace: {}\n')
     expect(managerAndHandOffCalls(run)).toEqual([])
   })
 })
