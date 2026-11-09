@@ -29,6 +29,7 @@ import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
 import { createRemoteChecks, listedRemotes } from './doctor-remote-checks.js'
 import {
   composeRow,
+  doctorDocument,
   formatCheckRow,
   formatFixLines,
   formatStatus,
@@ -41,6 +42,7 @@ export type CheckStatus = 'pass' | 'warn' | 'fail' | 'skip'
 export interface CheckResult {
   status: CheckStatus
   message: string
+  fix?: string
 }
 
 export interface DoctorCheck {
@@ -857,15 +859,7 @@ export function createDoctorCommand(): Command {
           results.push({ check, result })
           if (result.status === 'fail') hasFailure = true
         }
-        const document = {
-          ok: !hasFailure,
-          checks: results.map(({ check, result }) => ({
-            name: check.name,
-            status: result.status,
-            message: result.message,
-          })),
-        }
-        console.log(guardJsonText(JSON.stringify(document, null, 2)))
+        console.log(guardJsonText(JSON.stringify(doctorDocument(results), null, 2)))
         if (hasFailure) process.exitCode = 1
         return
       }

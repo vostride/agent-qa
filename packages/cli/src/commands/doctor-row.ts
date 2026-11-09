@@ -1,11 +1,11 @@
-// The renderer `agent-qa doctor` prints with, kept apart so the test imports it, not the command.
+// What `agent-qa doctor` prints, as rows and as the JSON document, kept apart for tests to import.
 
 // The type import is ERASED at compile time, so it creates NO runtime edge back to `doctor.ts`:
 // the only runtime edge is `doctor.ts -> doctor-row.ts`, and this is not an import cycle.
 // `CheckStatus` stays in `doctor.ts` because it belongs to the CHECK contract — the same three
 // types `doctor-knowledge-checks.ts` imports from there — not to the renderer.
 import pc from 'picocolors'
-import type { CheckStatus } from './doctor.js'
+import type { CheckResult, CheckStatus, DoctorCheck } from './doctor.js'
 
 // The width budget lives in the renderer, because a trimmed message grows again in deeper cwds.
 
@@ -179,4 +179,43 @@ export function formatFixLines(instructions: string, width: number): string[] {
   return wrapped.map((line, index) => (
     index === 0 ? `${FIX_PREFIX}${line}` : `${FIX_HANGING_INDENT}${line}`
   ))
+}
+
+export interface DoctorDocumentRow {
+  name: string
+  status: CheckStatus
+  message: string
+  fix?: string
+}
+
+export interface DoctorDocument {
+  format: 1
+  ok: boolean
+  rows: DoctorDocumentRow[]
+}
+
+export interface DoctorRowResult {
+  check: DoctorCheck
+  result: CheckResult
+}
+
+export function rowFix({ check, result }: DoctorRowResult): string | undefined {
+  if (result.status !== 'warn' && result.status !== 'fail') return undefined
+  return result.fix ?? check.fixInstructions
+}
+
+export function doctorDocument(results: readonly DoctorRowResult[]): DoctorDocument {
+  return {
+    format: 1,
+    ok: !results.some(({ result }) => result.status === 'fail'),
+    rows: results.map((entry) => {
+      const fix = rowFix(entry)
+      return {
+        name: entry.check.name,
+        status: entry.result.status,
+        message: entry.result.message,
+        ...(fix === undefined ? {} : { fix }),
+      }
+    }),
+  }
 }

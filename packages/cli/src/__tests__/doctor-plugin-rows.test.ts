@@ -63,6 +63,7 @@ interface Row {
   name: string
   status: string
   message: string
+  fix?: string
 }
 
 interface Project {
@@ -226,7 +227,7 @@ async function runDoctorJson(
     'doctor',
     '--json',
   ])
-  return JSON.parse(printed.join('\n')) as { ok: boolean; checks: Row[] }
+  return JSON.parse(printed.join('\n')) as { format: number; ok: boolean; rows: Row[] }
 }
 
 describe("doctor's plugin rows", () => {
@@ -396,7 +397,7 @@ describe("doctor's plugin rows", () => {
     expect(await rows(project, raw, { only: 'team' })).toEqual([])
   })
 
-  it('puts the plugin rows in the doctor --json result, and none of them fails', async () => {
+  it('puts the plugin rows in the doctor --json document, and none of them fails', async () => {
     const project = await newProject()
     installFirstParty(project)
     const raw = config(
@@ -412,13 +413,17 @@ describe("doctor's plugin rows", () => {
 
     const result = await runDoctorJson(project, raw)
 
-    const pluginRows = result.checks.filter((row) => row.name.startsWith('Plugin '))
+    const pluginRows = result.rows.filter((row) => row.name.startsWith('Plugin '))
     expect(pluginRows.map((row) => [row.name, row.status])).toEqual([
       ['Plugin lab', 'pass'],
       ['Plugin gone', 'warn'],
     ])
     expect(pluginRows[0]?.message).toContain(`${FIRST_PARTY}, first-party, version`)
-    expect(result.checks.some((row) => row.name === 'Node.js')).toBe(true)
+    expect(pluginRows[0]).not.toHaveProperty('fix')
+    expect(pluginRows[1]?.fix).toEqual(expect.any(String))
+    expect(result.format).toBe(1)
+    expect(result).not.toHaveProperty('checks')
+    expect(result.rows.some((row) => row.name === 'Node.js')).toBe(true)
     expect(ledgerMethods(project)).toEqual(['initialize', 'check', 'shutdown'])
   })
 
@@ -456,7 +461,7 @@ describe("doctor's plugin rows", () => {
 
     const result = await runDoctorJson(project, raw, '--log-level', 'debug')
 
-    const row = result.checks.find((check) => check.name === 'Plugin lab')
+    const row = result.rows.find((check) => check.name === 'Plugin lab')
     expect(row?.status).toBe('pass')
     const stderr = written.join('')
     expect(stderr).toMatch(
@@ -657,14 +662,14 @@ describe("doctor's plugin rows for setup problems", () => {
 
     const result = await runDoctorJson(project, raw)
 
-    const status = (name: string) => result.checks.find((row) => row.name === name)?.status
+    const status = (name: string) => result.rows.find((row) => row.name === name)?.status
     expect(['Appium', 'Appium drivers', 'Android SDK', 'Xcode'].map(status)).toEqual([
       'skip',
       'skip',
       'skip',
       'skip',
     ])
-    expect(result.checks.filter((row) => row.name.startsWith('Plugin ')).map((row) => row.status))
+    expect(result.rows.filter((row) => row.name.startsWith('Plugin ')).map((row) => row.status))
       .toEqual(['pass'])
   })
 })
