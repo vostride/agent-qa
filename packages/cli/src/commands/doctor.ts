@@ -154,7 +154,7 @@ function checkNodeVersion(): DoctorCheck {
 function checkConfigFile(configPath: string): DoctorCheck {
   return {
     name: 'Config file',
-    fixInstructions: 'Run `agent-qa init` to create a config file',
+    fixInstructions: 'Run `npx agent-qa init` to create a config file',
     check: async () => {
       if (existsSync(configPath)) {
         return { status: 'pass', message: 'agent-qa.config.yaml found' }
@@ -336,7 +336,7 @@ export function checkSubscriptionAuth(
   const add = pluginsAddLine(SUBSCRIPTION_AUTH_PACKAGE, configPath)
   return {
     name: 'Subscription Auth',
-    fixInstructions: `Run \`${add}\`, then run \`agent-qa auth login --config ${name}\``,
+    fixInstructions: `Run \`${add}\`, then run \`npx agent-qa auth login --config ${name}\``,
     check: async () => {
       const llm = getActiveLLMConfig(config)
       if (getProvider(llm.provider)?.subscription !== true) {
@@ -423,7 +423,7 @@ function checkLLMConnection(config: Record<string, unknown> | null, configPath?:
 function checkPlaywright(config: Record<string, unknown> | null, placement: WebPlacement): DoctorCheck {
   return {
     name: 'Playwright',
-    fixInstructions: 'Run `agent-qa install-browsers --chromium`',
+    fixInstructions: 'Run `npx agent-qa install-browsers --chromium`',
     check: async () => {
       if (placement.everyWebTestRemote) {
         return { status: 'skip', message: 'every web test runs on a remote' }
@@ -447,7 +447,7 @@ function appiumResolverCwd(configPath: string): string {
 }
 
 function mobileDriverInstallCommand(): string {
-  return 'agent-qa install-mobile-drivers --all'
+  return 'npx agent-qa install-mobile-drivers --all'
 }
 
 function checkAppium(
@@ -566,7 +566,7 @@ function checkXcode(config: Record<string, unknown> | null, skips: DeviceToolSki
 function checkValidation(config: Record<string, unknown> | null, configPath: string): DoctorCheck {
   return {
     name: 'Validate',
-    fixInstructions: 'Run `agent-qa validate` for full details, then fix reported errors',
+    fixInstructions: 'Run `npx agent-qa validate` for full details, then fix reported errors',
     check: async () => {
       if (!config) {
         return { status: 'skip', message: 'no config' }

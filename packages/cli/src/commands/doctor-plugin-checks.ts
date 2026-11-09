@@ -34,16 +34,16 @@ interface PluginRemote {
 }
 
 const PLUGIN_FIX =
-  'Check the entry under plugins in agent-qa.config.yaml; `agent-qa plugins describe <name>` shows what it takes.'
+  'Check the entry under plugins in agent-qa.config.yaml; `npx agent-qa plugins describe <name>` shows what it takes.'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function listedPlugins(config: Record<string, unknown> | null): PluginEntryInput[] {
-  const plugins = config?.plugins
-  if (!Array.isArray(plugins)) return []
-  return plugins.filter(isRecord).flatMap((entry) =>
+  const entries = config?.plugins
+  if (!Array.isArray(entries)) return []
+  return entries.filter(isRecord).flatMap((entry) =>
     typeof entry.name === 'string'
       ? [
           {

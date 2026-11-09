@@ -56,7 +56,7 @@ export const NO_KNOWLEDGE_ROOT_MESSAGE = 'no knowledge root configured'
 // Names the folded failure by its cause; the raw worker stderr never reaches the terminal.
 export const EMBEDDER_WORKER_NOT_REGISTERED_TEXT = 'daemon embedder worker not registered: could not resolve profile (deferred)'
 
-const STORE_FIX_PREFIX = 'Rebuild the index with `agent-qa knowledge rebuild-index`, or remove the corrupt file at'
+const STORE_FIX_PREFIX = 'Rebuild the index with `npx agent-qa knowledge rebuild-index`, or remove the corrupt file at'
 export const EMBEDDER_PROFILE_FIX =
   'v2 does not download the embedding model, and knowledge search works without it. Stop the daemon with `npx agent-qa daemon stop` to clear this row.'
 export const EMBEDDER_WORKER_FIX =
