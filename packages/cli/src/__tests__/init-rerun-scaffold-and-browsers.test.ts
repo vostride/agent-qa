@@ -198,6 +198,22 @@ describe("a re-run's browsers row", () => {
   })
 })
 
+describe('a re-run over a target that is not a mapping', () => {
+  it('runs its rows and validate, and prints no crash', async () => {
+    const project = await initializedProject('rerun-target-not-a-mapping')
+    editConfig(project.root, (doc) => {
+      doc.setIn(['registry', 'targets', 'broken'], null)
+    })
+
+    const result = await rerun(project, ['--yes', '--json'])
+
+    expect(result.stderr).not.toContain('TypeError')
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.message).toBeUndefined()
+    expect(stepOf(doc, 'validate')).toMatchObject({ name: 'validate' })
+  })
+})
+
 describe('a browsers row that cannot apply', () => {
   it('is hidden in a project with no web target and recorded hidden in the document', async () => {
     const project = await initializedProject('rerun-browsers-mobile', { platform: 'android' })

@@ -115,9 +115,17 @@ const NO_MODEL: CheckResult = { status: 'skip', message: 'no model configured' }
 const MODEL_FIX =
   "Set a model on the dashboard's model page, `npx agent-qa dashboard --open /config/models`, or with `npx agent-qa init --llm <choice>`."
 
+// Read from the raw config, before validate: an entry that is not a named mapping is left to it.
 function activeLLM(config: Record<string, unknown> | null): ActiveLLMConfig | undefined {
   if (!config) return undefined
-  return activeModelEntry(config as { registry?: { llms?: ActiveLLMConfig[] }; use?: { llm?: string } })
+  const registry = isRecord(config.registry) ? config.registry : undefined
+  const llms = Array.isArray(registry?.llms)
+    ? registry.llms.filter(
+        (entry): entry is ActiveLLMConfig => isRecord(entry) && typeof entry.name === 'string',
+      )
+    : []
+  const llm = isRecord(config.use) ? config.use.llm : undefined
+  return activeModelEntry({ registry: { llms }, use: typeof llm === 'string' ? { llm } : {} })
 }
 
 async function resolveActiveLLMAuth(

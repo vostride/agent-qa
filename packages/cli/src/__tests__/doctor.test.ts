@@ -2044,6 +2044,21 @@ describe('the Model row', () => {
     expect(JSON.stringify(rows)).not.toContain('anthropic-subscription')
   })
 
+  it('reads a malformed model list and target as validate would leave them, without crashing', async () => {
+    const rows = await doctorRows({ registry: { llms: {}, targets: { web: null } }, use: 'x' })
+
+    expect(row(rows, 'Model')).toMatchObject({ status: 'fail', message: 'no model configured' })
+    expect(row(rows, 'Playwright')).toMatchObject({ status: 'pass' })
+  })
+
+  it('skips a model list item that is not a named mapping', async () => {
+    const rows = await doctorRows({
+      registry: { llms: [null, 'gemini', { name: 'second', provider: 'gemini', model: 'm' }] },
+    })
+
+    expect(row(rows, 'Model')).toMatchObject({ status: 'pass', message: 'second: gemini m' })
+  })
+
   it('checks the entry use.llm names, the one run resolves', async () => {
     const config = { ...twoModels, use: { llm: 'second' } }
     const rows = await doctorRows(config)

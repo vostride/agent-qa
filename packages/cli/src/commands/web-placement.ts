@@ -14,20 +14,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function getTargets(
-  config: Record<string, unknown> | null,
-): Record<string, Record<string, unknown>> {
-  const registry = config?.registry as
-    { targets?: Record<string, Record<string, unknown>> } | undefined
-  return (
-    registry?.targets ??
-    (config?.targets as Record<string, Record<string, unknown>> | undefined) ??
-    {}
+// Read from the raw config, before validate: a target that is not a mapping is left to validate.
+function getTargets(config: Record<string, unknown> | null): [string, Record<string, unknown>][] {
+  const registry = isRecord(config?.registry) ? config.registry : undefined
+  const targets = registry?.targets ?? config?.targets
+  if (!isRecord(targets)) return []
+  return Object.entries(targets).filter(
+    (entry): entry is [string, Record<string, unknown>] => isRecord(entry[1]),
   )
 }
 
+function platformOf(target: Record<string, unknown>): string {
+  return typeof target.platform === 'string' ? target.platform : 'web'
+}
+
 export function getTargetPlatforms(config: Record<string, unknown> | null): string[] {
-  return Object.values(getTargets(config)).map((t) => (t.platform as string) ?? 'web')
+  return getTargets(config).map(([, target]) => platformOf(target))
 }
 
 // A config with no targets counts as web, the default platform.
@@ -49,8 +51,8 @@ const URL_HOST = /^[a-z][a-z0-9+.-]*:\/\/(?:[^@/?#]*@)?(\[[^\]]*\]|[^:/?#]+)/i
 
 function loopbackWebTargets(config: Record<string, unknown> | null): Set<string> {
   const names = new Set<string>()
-  for (const [name, target] of Object.entries(getTargets(config))) {
-    if (((target.platform as string | undefined) ?? 'web') !== 'web') continue
+  for (const [name, target] of getTargets(config)) {
+    if (platformOf(target) !== 'web') continue
     const host = typeof target.url === 'string' ? URL_HOST.exec(target.url)?.[1] : undefined
     if (host !== undefined && isLoopbackHost(host)) names.add(name)
   }
