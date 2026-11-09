@@ -1660,7 +1660,7 @@ describe('the Config validation row', () => {
       registry: REGISTRY,
       use: { llm: 'default' },
     })
-    expect(v1Fix).toContain('agent-qa init --force')
+    expect(v1Fix).toContain('`npx agent-qa init --force`')
     expect(v1Fix).toContain('agent-qa-memory/')
     expect(v1Fix).not.toContain('re-run `agent-qa init`')
 

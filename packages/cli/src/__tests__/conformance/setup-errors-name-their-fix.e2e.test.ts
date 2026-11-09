@@ -320,6 +320,7 @@ describe('setup errors name their fix', () => {
     for (const leg of [scene.validate, scene.run]) {
       expect(leg?.output, seen()).toContain(`"${UNKNOWN_KEY}"`)
       expect(leg?.output, seen()).toContain(INVALID_CONFIG_FIX)
+      expect(leg?.output, seen()).toContain('then run `npx agent-qa validate`')
     }
   })
 

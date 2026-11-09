@@ -480,7 +480,7 @@ describe('upgrading a v1 workspace', () => {
     expect(exited(scene.firstValidate), seen()).toEqual({ code: 1, signal: null })
     const text = output(scene.firstValidate)
     expect(text, seen()).toContain(HARD_CUT_STEPS)
-    expect(text, seen()).toContain('agent-qa init --force')
+    expect(text, seen()).toContain('`npx agent-qa init --force`')
     expect(text, seen()).toContain('agent-qa-memory/')
     expect(text, seen()).not.toContain(OLD_INIT_LINE)
   })
