@@ -161,6 +161,14 @@ export function resolveLLMModels(config: {
   return { planner: modelFields, verifier: modelFields, configName: name }
 }
 
+export function activeModelEntry<T extends { name: string }>(config: {
+  registry?: { llms?: readonly T[] }
+  use?: { llm?: string }
+}): T | undefined {
+  const llms = config.registry?.llms ?? []
+  return llms.find((entry) => entry.name === config.use?.llm) ?? llms[0]
+}
+
 export async function resolveModelAuth(
   configName: string,
   llmConfig: LLMConfigLike,

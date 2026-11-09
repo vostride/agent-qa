@@ -1,8 +1,16 @@
+import { dirname } from 'node:path'
+
+import { getAuthPath } from '@vostride/agent-qa-core'
+import { parse } from 'yaml'
+
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import type { InitUi, InitUiMode } from '../init-ui/init-ui.js'
-import { readAgentSetupManifest } from './agent-setup-manifest.js'
+import { activeModelEntry } from '../llm-utils.js'
+import { readAgentSetupManifest, type CodingAgent } from './agent-setup-manifest.js'
+import { INIT_AGENT_OPTIONS } from './init-agents.js'
 import type { InitDocumentRecorder } from './init-document.js'
 import type { InitFileResult } from './init-filesystem.js'
+import { modelStatus, type InitModelEntry } from './init-model-choice.js'
 import {
   createInitStepRunner,
   rerunPlan,
@@ -11,7 +19,8 @@ import {
 } from './init-steps.js'
 import { declaredAgentQaVersion, findProjectAgentQa } from './project-agent-qa.js'
 import type { ProjectHost } from './project-host.js'
-import type { ProjectRange } from './project-range.js'
+import { nearestInstalledPackage, type ProjectRange } from './project-range.js'
+import { SUBSCRIPTION_AUTH_PACKAGE } from './scaffold-content.js'
 
 export interface InitRerunOptions {
   llm?: string
@@ -54,11 +63,88 @@ async function versionLines(input: InitRerunInput): Promise<string[]> {
   return lines
 }
 
+type JsonObject = Record<string, unknown>
+
+function asObject(value: unknown): JsonObject | undefined {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as JsonObject)
+    : undefined
+}
+
+function modelEntryOf(value: unknown): InitModelEntry[] {
+  const entry = asObject(value)
+  const { name, provider, model, baseURL } = entry ?? {}
+  if (typeof name !== 'string' || typeof provider !== 'string' || typeof model !== 'string') {
+    return []
+  }
+  return [{ name, provider, model, ...(typeof baseURL === 'string' ? { baseURL } : {}) }]
+}
+
+// Undefined when the config does not parse; validate reports that.
+function configuredModels(
+  input: InitRerunInput,
+): { registry: { llms: InitModelEntry[] }; use: { llm?: string } } | undefined {
+  let raw: unknown
+  try {
+    raw = parse(input.host.io.readText(input.configPath) ?? '', { logLevel: 'error' })
+  } catch {
+    return undefined
+  }
+  const config = asObject(raw)
+  const llms = asObject(config?.registry)?.llms
+  const use = asObject(config?.use)?.llm
+  return {
+    registry: { llms: Array.isArray(llms) ? llms.flatMap(modelEntryOf) : [] },
+    use: typeof use === 'string' ? { llm: use } : {},
+  }
+}
+
+async function modelLine(input: InitRerunInput): Promise<string | undefined> {
+  const models = configuredModels(input)
+  if (models === undefined) return undefined
+  const entry = activeModelEntry(models)
+  const pluginInstalled =
+    nearestInstalledPackage(
+      input.range,
+      dirname(input.packageJson.path),
+      SUBSCRIPTION_AUTH_PACKAGE,
+      input.host.io,
+    ) !== undefined
+  const status = await modelStatus({
+    ...(entry === undefined ? {} : { entry }),
+    configPath: input.configPath,
+    projectDir: input.dir,
+    authPath: getAuthPath({ env: input.host.env, homeDir: input.host.homedir }),
+    pluginInstalled,
+  })
+  input.recorder.model({
+    ...(entry === undefined ? {} : { name: entry.name, provider: entry.provider }),
+    ...status,
+  })
+  if (entry === undefined) return 'No model is set up.'
+  return status.status === 'ready'
+    ? `Model ${entry.name} is ready.`
+    : `Model ${entry.name} is pending: ${status.reason}.`
+}
+
+function agentsLine(agents: readonly CodingAgent[]): string {
+  const labels = INIT_AGENT_OPTIONS.filter((option) => agents.includes(option.value)).map(
+    (option) => option.label,
+  )
+  return labels.length === 0 ? 'No coding agent is set up.' : `Coding agents: ${labels.join(', ')}.`
+}
+
 export async function runInitRerun(input: InitRerunInput): Promise<void> {
   // A malformed manifest is refused here, before anything is drawn or written.
   const manifest = readAgentSetupManifest(input.dir)
-  input.recorder.agents(manifest?.agents ?? [])
-  const summary = await versionLines(input)
+  const agents = manifest?.agents ?? []
+  input.recorder.agents(agents)
+  const model = await modelLine(input)
+  const summary = [
+    ...(await versionLines(input)),
+    ...(model === undefined ? [] : [model]),
+    agentsLine(agents),
+  ]
   input.recorder.agentQa({ version: input.runningVersion, via: 'running' })
 
   const ui = await input.openUi()
