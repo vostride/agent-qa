@@ -56,7 +56,11 @@ interface Entry {
   mtimeMs: number
 }
 
-function snapshot(dir: string, prefix = '', out: Record<string, Entry> = {}): Record<string, Entry> {
+function snapshot(
+  dir: string,
+  prefix = '',
+  out: Record<string, Entry> = {},
+): Record<string, Entry> {
   if (!existsSync(dir)) return out
   for (const name of readdirSync(dir).sort()) {
     const path = join(dir, name)
@@ -162,7 +166,11 @@ describe('a dry run of the installer', () => {
     const planned = await install(project, true)
 
     expect(snapshot(project.root)).toEqual(before)
-    expect(planned.files.map((file) => file.outcome)).toEqual(['unchanged', 'unchanged', 'unchanged'])
+    expect(planned.files.map((file) => file.outcome)).toEqual([
+      'unchanged',
+      'unchanged',
+      'unchanged',
+    ])
     expect(planned.notes).toEqual([])
   })
 })

@@ -98,6 +98,8 @@ export interface AgentSetupOptions {
   agents: readonly CodingAgent[]
   parts?: readonly AgentSetupPart[]
   host?: Partial<ProjectHost>
+  // Computes every outcome and note a real run would, and writes nothing.
+  dryRun?: boolean
 }
 
 export interface AgentSetupPartResult {
@@ -247,10 +249,11 @@ interface SkillsInstall {
   records: Map<string, string>
   holds: (path: string, agent: CodingAgent) => boolean
   result: AgentSetupResult
+  dryRun: boolean
 }
 
 function installSkillFiles(install: SkillsInstall): string[] {
-  const { projectDir, chosen, planned, listed, records, holds, result } = install
+  const { projectDir, chosen, planned, listed, records, holds, result, dryRun } = install
   const failures: string[] = []
   for (const file of planned) {
     const absolute = join(projectDir, file.path)
@@ -269,7 +272,7 @@ function installSkillFiles(install: SkillsInstall): string[] {
           `${file.path} exists and is not agent-qa's; remove it and run npx agent-qa init`,
         )
       } else {
-        if (outcome !== 'unchanged') {
+        if (outcome !== 'unchanged' && !dryRun) {
           writeScaffoldFileAtomic({
             path: absolute,
             root: projectDir,
@@ -301,7 +304,12 @@ function installSkillFiles(install: SkillsInstall): string[] {
         classifyInitPath(absolute, projectDir) === 'regular'
           ? sha256Of(readFileSync(absolute))
           : undefined
-      if (removeFileInsideRoot({ path: absolute, root: projectDir }) === 'removed') {
+      const removal = dryRun
+        ? onDisk === undefined
+          ? 'missing'
+          : 'removed'
+        : removeFileInsideRoot({ path: absolute, root: projectDir })
+      if (removal === 'removed') {
         result.files.push({ path, outcome: 'removed' })
         if (onDisk !== undefined && onDisk !== sha256) {
           result.notes.push(`Removed your edit: ${path}`)
@@ -312,6 +320,7 @@ function installSkillFiles(install: SkillsInstall): string[] {
       records.set(path, sha256)
       continue
     }
+    if (dryRun) continue
     tidyEmptyFolders(absolute, join(projectDir, AGENT_SKILL_ROOTS[agent]), projectDir, result.notes)
   }
   return failures
@@ -332,6 +341,7 @@ function writeAgentsMdBlock(
   version: string,
   listedHash: string | undefined,
   result: AgentSetupResult,
+  dryRun: boolean,
 ): string {
   const content: ManagedBlockContent = {
     descriptor: AGENT_QA_INIT_MARKDOWN_BLOCK,
@@ -348,7 +358,7 @@ function writeAgentsMdBlock(
         : sha256Of(current) === listedHash
           ? 'updated'
           : 'replaced'
-  if (outcome !== 'unchanged') {
+  if (outcome !== 'unchanged' && !dryRun) {
     upsertManagedBlock({ path: join(projectDir, AGENTS_MD_FILE), root: projectDir, content })
   }
   if (outcome === 'replaced') {
@@ -365,6 +375,7 @@ function writeMcpEntry(
   agent: CodingAgent,
   listedHash: string | undefined,
   result: AgentSetupResult,
+  dryRun: boolean,
 ): string {
   const file = AGENT_MCP_FILES[agent]
   const path = join(projectDir, file)
@@ -380,7 +391,7 @@ function writeMcpEntry(
         : sha256Of(edit.previous) === listedHash
           ? 'updated'
           : 'replaced'
-  if (edit.text !== existing) {
+  if (edit.text !== existing && !dryRun) {
     writeHostFile({
       path,
       root: projectDir,
@@ -418,6 +429,7 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
   const projectDir = resolve(options.projectDir)
   const host = projectHost(options.host)
   const parts = options.parts ?? AGENT_SETUP_PARTS
+  const dryRun = options.dryRun === true
   const chosen = CODING_AGENTS.filter((agent) => options.agents.includes(agent))
 
   const previous = readAgentSetupManifest(projectDir)
@@ -473,6 +485,7 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
         records,
         holds,
         result,
+        dryRun,
       })
     : []
 
@@ -486,6 +499,7 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
         source.version,
         entries.find(isBlockEntry)?.sha256,
         result,
+        dryRun,
       )
       setEntry(entries, { file: AGENTS_MD_FILE, key: AGENTS_MD_BLOCK_KEY, sha256 })
     } catch (error) {
@@ -500,7 +514,7 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
       const key = AGENT_MCP_ENTRY_KEYS[agent]
       const listedHash = entries.find((entry) => entry.file === file && entry.key === key)?.sha256
       try {
-        const sha256 = writeMcpEntry(projectDir, agent, listedHash, result)
+        const sha256 = writeMcpEntry(projectDir, agent, listedHash, result, dryRun)
         setEntry(entries, { file, key, sha256 })
       } catch (error) {
         mcpFailures.push(errorMessage(error))
@@ -519,7 +533,9 @@ export async function installAgentSetup(options: AgentSetupOptions): Promise<Age
   let manifestFailure: string | undefined
   try {
     // With no agent chosen and nothing installed before, there is nothing to record.
-    if (chosen.length > 0 || previous !== undefined) writeAgentSetupManifest(projectDir, manifest)
+    if (!dryRun && (chosen.length > 0 || previous !== undefined)) {
+      writeAgentSetupManifest(projectDir, manifest)
+    }
   } catch (error) {
     manifestFailure = errorMessage(error)
   }
