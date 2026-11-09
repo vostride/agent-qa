@@ -305,6 +305,7 @@ function handOffArgs(
 const UPGRADE_TITLE = 'Upgrading agent-qa'
 const DEPS_TITLE = "Installing agent-qa's missing packages"
 const INSTALL_FIRST = 'install first (--pm none)'
+const UPGRADE_DECLARED = 'the upgrade declared every package'
 
 // The upgrade that handed this run over; it changes what is reported, never what runs.
 function handedUpgrade(input: InitRerunInput): VersionMove | undefined {
@@ -589,6 +590,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     rows: selected,
   })
   let installFirst = false
+  let upgradeWrotePlan = false
   let modelSetup = before?.setup
   if (modelEdit !== undefined) {
     const { setup, given } = modelEdit
@@ -659,6 +661,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
         })
         outcomes.push(initFileResult(file))
         input.recorder.file('upgrade', file)
+        upgradeWrotePlan = true
         const installed = await input.upgrade.install(plan)
         if (installed.outcome === 'failed') return installed
         if (installed.outcome === 'skipped' && installed.reason === '--pm none') {
@@ -695,6 +698,11 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
       return
     }
     if (row.name === 'deps') {
+      // The upgrade's package.json declares every package; deps' plan predates it.
+      if (upgradeWrotePlan) {
+        runner.skip('deps', `deps: skipped (${UPGRADE_DECLARED})`, UPGRADE_DECLARED)
+        continue
+      }
       await runner.run('deps', { title: DEPS_TITLE }, async (): Promise<InitStepResult> => {
         const { plan } = deps
         if (!deps.wouldChange) return { outcome: 'done', text: 'deps: nothing missing' }

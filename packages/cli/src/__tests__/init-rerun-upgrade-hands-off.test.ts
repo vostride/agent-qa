@@ -584,6 +584,30 @@ describe('an upgrade that is not installed keeps the other rows running', () => 
     expect(doc.upgrade).toMatchObject({ from: PROJECT_VERSION, to: '0.3.2', row: 'upgrade' })
   })
 
+  it('--pm none keeps the upgraded package.json when the deps row is also pre-checked for a missing plugin', async () => {
+    const project = await initializedProject('upgrade-pm-none-with-deps', { llm: 'codex' })
+    writePackageJson(project.root, { 'agent-qa': PROJECT_VERSION })
+
+    const result = await rerun(project, ['--yes', '--json', '--pm', 'none'], {
+      run: upgradeMachine('0.3.2'),
+      hooks: { latestVersion: answering('0.3.2') },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(JSON.parse(packageJsonText(project.root)).devDependencies).toEqual({
+      [SUBSCRIPTION]: '0.3.2',
+      'agent-qa': '0.3.2',
+    })
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.setup?.find((row) => row.name === 'deps')).toMatchObject({ selected: true })
+    expect(doc.steps).toContainEqual({
+      name: 'deps',
+      outcome: 'skipped',
+      reason: 'the upgrade declared every package',
+    })
+    expect(doc.files.filter((file) => file.path.endsWith('package.json'))).toHaveLength(1)
+  })
+
   it('a failed install fails the upgrade with the install command, runs the other rows here and exits 3', async () => {
     const project = await initializedProject('upgrade-install-fails')
     writeFileSync(join(project.root, '.gitignore'), 'dist/\n')
