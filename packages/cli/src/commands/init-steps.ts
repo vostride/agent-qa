@@ -61,12 +61,13 @@ export function freshInitPlan(): InitStepName[] {
   return ['package-json', 'scaffold', 'install', 'chromium', 'skills', 'validate', 'dashboard']
 }
 
-// A re-run plans the model its flags set, then the menu's shown rows in menu order, then validate.
+// A re-run plans the model its flags set, then the menu's shown rows in menu order, then validate
+// and the dashboard.
 export function rerunPlan(
   rows: readonly SetupRowName[],
   { model = false }: { model?: boolean } = {},
 ): InitStepName[] {
-  return [...(model ? (['model'] as const) : []), ...rows, 'validate']
+  return [...(model ? (['model'] as const) : []), ...rows, 'validate', 'dashboard']
 }
 
 // A bug is reported with its stack, not drawn as a failed step.

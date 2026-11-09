@@ -1,5 +1,5 @@
 import type { CodingAgent } from './agent-setup-manifest.js'
-import type { VersionMove } from './agent-qa-upgrade.js'
+import { guideLines, type VersionMove } from './agent-qa-upgrade.js'
 import type { InitStepName, InitStepRecord } from './init-steps.js'
 
 export interface InitNextStep {
@@ -78,20 +78,25 @@ export function initNextSteps(facts: InitNextStepFacts): {
   fromRecords('failed')
   fromRecords('skipped')
 
-  // Without the scaffold there is no config to run, sign in to or open, so init comes again.
-  const unscaffolded = facts.steps.some(
-    (record) => record.name === 'scaffold' && record.outcome !== 'done',
-  )
+  // Without the scaffold there is no config to run, sign in to or open, so init comes again. A
+  // re-run, which writes no package.json, starts from a config.
+  const fresh = facts.steps.some((record) => record.name === 'package-json')
+  const unscaffolded =
+    fresh && facts.steps.some((record) => record.name === 'scaffold' && record.outcome !== 'done')
   if (unscaffolded) {
     add(INIT_COMMAND, 'Set up the folder once the step above is fixed')
     return { steps, hints: [] }
   }
 
   const { model } = facts
-  const install = facts.steps.find((record) => record.name === 'install')
-  // A failed or declared-only install already lists the command that puts the plugin in.
-  const installPending =
-    install !== undefined && install.outcome !== 'done' && install.command !== undefined
+  // A failed or declared-only install, or a deps row left to run, already lists the command that
+  // puts the plugin in.
+  const installPending = facts.steps.some(
+    (record) =>
+      (record.name === 'install' || record.name === 'deps') &&
+      record.outcome !== 'done' &&
+      record.command !== undefined,
+  )
   if (model?.subscription === true && !model.pluginInstalled && !installPending) {
     add(SUBSCRIPTION_PLUGIN_COMMAND, 'Install the subscription sign-in plugin')
   }
@@ -113,7 +118,7 @@ export function initNextSteps(facts: InitNextStepFacts): {
     add(facts.dashboard.command, STEP_DESCRIPTIONS.dashboard)
   }
 
-  const hints: string[] = []
+  const hints: string[] = facts.upgrade === undefined ? [] : guideLines(facts.upgrade)
   if (facts.agents.length > 0) hints.push(CODING_AGENT_HINT)
   if (facts.agents.includes('codex')) hints.push(CODEX_TRUST_HINT)
   return { steps, hints }

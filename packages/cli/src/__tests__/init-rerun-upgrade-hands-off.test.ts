@@ -357,6 +357,7 @@ describe('an upgrade that can break the config is taken only when named', () => 
       name: 'upgrade',
       outcome: 'skipped',
       reason: 'not selected',
+      command: 'npx agent-qa init --setup upgrade',
     })
     expect(childOf(run)).toBeUndefined()
   })
@@ -381,6 +382,7 @@ describe('an upgrade that can break the config is taken only when named', () => 
       name: 'upgrade',
       outcome: 'skipped',
       reason: 'breaking: name it in --setup',
+      command: 'npx agent-qa init --setup upgrade',
     })
     expect(doc.steps).toContainEqual({ name: 'gitignore', outcome: 'done' })
   })

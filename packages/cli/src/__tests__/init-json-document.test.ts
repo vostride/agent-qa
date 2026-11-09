@@ -568,7 +568,7 @@ describe('init --json prints one document on stdout', () => {
     expect(process.listeners('SIGINT')).toEqual(before)
   })
 
-  it('a re-run of an initialized project skips its current rows, validates and writes no file', async () => {
+  it('a re-run of an initialized project skips its current rows and the dashboard, validates and writes no file', async () => {
     const { root, home } = tempProject('json-initialized')
     await init(root, home, ['--platform', 'web', '--pm', 'none'])
     const declared = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
@@ -592,6 +592,7 @@ describe('init --json prints one document on stdout', () => {
       { name: 'gitignore', outcome: 'skipped', reason: 'current' },
       { name: 'scaffold', outcome: 'skipped', reason: 'current' },
       { name: 'validate', outcome: 'done' },
+      { name: 'dashboard', outcome: 'skipped', reason: 'not interactive' },
     ])
     expect(doc.agentQa).toEqual({ version: VERSION, via: 'running' })
   })

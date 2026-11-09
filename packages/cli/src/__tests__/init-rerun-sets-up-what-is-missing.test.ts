@@ -123,7 +123,7 @@ describe('a re-run of init in an initialized project', () => {
     expect(contents(project.root)).toEqual(before)
   })
 
-  it('with --json prints one done document whose steps end in a done validate', async () => {
+  it('with --json prints one done document whose steps end in a done validate and the dashboard skipped', async () => {
     const project = await initializedProject('rerun-json')
 
     const result = await rerun(project, ['--json'], { plain: true })
@@ -131,7 +131,10 @@ describe('a re-run of init in an initialized project', () => {
     expect(result.exit, result.stderr).toBe(0)
     const doc = JSON.parse(result.stdout) as InitDocument
     expect(doc).toMatchObject({ format: 1, outcome: 'done', exitCode: 0, files: [] })
-    expect(doc.steps.at(-1)).toEqual({ name: 'validate', outcome: 'done' })
+    expect(doc.steps.slice(-2)).toEqual([
+      { name: 'validate', outcome: 'done' },
+      { name: 'dashboard', outcome: 'skipped', reason: 'not interactive' },
+    ])
     expect(doc.steps.filter((step) => OLD_STOP.test(step.reason ?? ''))).toEqual([])
     expect(result.stderr).not.toMatch(OLD_STOP)
   })
@@ -149,7 +152,7 @@ describe('a re-run of init in an initialized project', () => {
     expect(result.exit).toBe(3)
     const doc = JSON.parse(result.stdout) as InitDocument
     expect(doc).toMatchObject({ outcome: 'failed', exitCode: 3 })
-    expect(doc.steps.at(-1)).toMatchObject({ name: 'validate', outcome: 'failed' })
+    expect(doc.steps.at(-2)).toMatchObject({ name: 'validate', outcome: 'failed' })
   })
 
   it('reports one agent-qa.init.completed event with the rerun mode that reads unchanged', async () => {
@@ -455,6 +458,7 @@ describe("a re-run's setup menu and its gitignore row", () => {
       { name: 'gitignore', outcome: 'done' },
       { name: 'scaffold', outcome: 'skipped', reason: 'current' },
       { name: 'validate', outcome: 'done' },
+      { name: 'dashboard', outcome: 'skipped', reason: 'not interactive' },
     ])
     expect(doc.files).toEqual([{ path: '.gitignore', outcome: 'updated', step: 'gitignore' }])
   })
@@ -561,6 +565,7 @@ describe('a re-run with nothing to change, and its document', () => {
       'gitignore done',
       'scaffold skipped',
       'validate done',
+      'dashboard skipped',
     ])
   })
 
@@ -667,6 +672,7 @@ describe("--setup answers the re-run's menu", () => {
       'gitignore done',
       'scaffold done',
       'validate done',
+      'dashboard skipped',
     ])
   })
 

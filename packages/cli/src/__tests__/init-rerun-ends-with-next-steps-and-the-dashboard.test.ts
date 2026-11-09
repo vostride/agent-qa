@@ -4,7 +4,6 @@ import { dirname, join } from 'node:path'
 import { getAuthPath } from '@vostride/agent-qa-core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { DashboardPort } from '../commands/init-dashboard.js'
 import type { InitDocument } from '../commands/init-document.js'
 import type { RunResult } from '../commands/project-host.js'
 import { SETUP_MENU_QUESTION } from '../commands/init-rerun.js'
@@ -23,7 +22,6 @@ const NODE = '/fake/node'
 const OK: RunResult = { code: 0, signal: null, output: '' }
 const GUIDE_LINE = 'agent-qa 0.4.0 can change your config. To upgrade, point your coding agent at'
 const GUIDE_0_3_TO_0_4 = 'https://vostride.com/docs/agent-qa/migrate/v0-3-to-v0-4'
-const freePort: DashboardPort = { probe: async () => 'free', findFree: async () => 49_731 }
 
 afterEach(() => {
   cleanupTempProjects()
@@ -65,7 +63,7 @@ function interactive(run: FakeRunner, extra: RerunOptions = {}): RerunOptions {
   return {
     run,
     ...extra,
-    hooks: { isTTY: true, dashboardPort: freePort, ...extra.hooks },
+    hooks: { isTTY: true, ...extra.hooks },
   }
 }
 
@@ -235,10 +233,7 @@ describe('the dashboard never starts on a re-run that is not interactive', () =>
       const project = await initializedProject(`ending-no-dashboard-${index}`)
       const run = recordingRunner()
 
-      const result = await rerun(project, args, {
-        run,
-        hooks: { dashboardPort: freePort, ...hooks },
-      })
+      const result = await rerun(project, args, { run, hooks })
 
       expect(result.exit, result.stderr).toBe(0)
       expect(dashboardCalls(run)).toEqual([])

@@ -7,6 +7,7 @@ import { vi, type MockInstance } from 'vitest'
 import { runCli, type CliFailureDeps } from '../cli-error-handler.js'
 import type { CodingAgent } from '../commands/agent-setup.js'
 import type { ChromiumResolver } from '../commands/browser-resolver.js'
+import type { DashboardPort } from '../commands/init-dashboard.js'
 import { createInitCommand, type InitCommandHooks } from '../commands/init.js'
 import type { LatestVersionAsk } from '../commands/latest-version-ask.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
@@ -25,6 +26,11 @@ const NODE = '/fake/node'
 export const foundChromium: ChromiumResolver = () => ({ found: true, path: '/fake/chromium' })
 export const noChromium: ChromiumResolver = () => ({ found: false, reason: 'no file at /fake' })
 export const noLatestVersion: LatestVersionAsk = async () => ({ source: 'none' })
+// An interactive re-run whose model is pending starts the dashboard through the fake runner.
+export const freeDashboardPort: DashboardPort = {
+  probe: async () => 'free',
+  findFree: async () => 49_731,
+}
 
 export interface InitializedProject {
   root: string
@@ -93,6 +99,7 @@ async function runInit(
           ui: options.plain === true ? createPlainUi() : ui,
           chromium: foundChromium,
           latestVersion: noLatestVersion,
+          dashboardPort: freeDashboardPort,
           ...options.hooks,
           host: {
             homedir: project.home,

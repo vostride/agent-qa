@@ -415,7 +415,12 @@ describe('a deps move that can break the config is taken only when named', () =>
     expect(readFileSync(join(project.root, 'package.json'), 'utf8')).toBe(before)
     expect(installs(run)).toEqual([])
     const doc = JSON.parse(result.stdout) as InitDocument
-    expect(doc.steps).toContainEqual({ name: 'deps', outcome: 'skipped', reason: 'not selected' })
+    expect(doc.steps).toContainEqual({
+      name: 'deps',
+      outcome: 'skipped',
+      reason: 'not selected',
+      command: 'npx agent-qa init --setup deps',
+    })
     expect(doc.upgrade).toEqual({
       from: PROJECT_VERSION,
       to: '0.4.0',
@@ -439,6 +444,7 @@ describe('a deps move that can break the config is taken only when named', () =>
       name: 'deps',
       outcome: 'skipped',
       reason: 'breaking: name it in --setup',
+      command: 'npx agent-qa init --setup deps',
     })
   })
 

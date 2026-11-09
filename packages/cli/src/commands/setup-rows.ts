@@ -599,6 +599,11 @@ function configPlatform(config: Record<string, unknown> | null): InitPlatformSel
   }
 }
 
+// The platforms the config's targets name.
+export function projectPlatform(configPath: string, io: ProjectIo): InitPlatformSelection {
+  return configPlatform(readRawConfig(configPath, io))
+}
+
 // The files runs and doctor read; any other scaffold file never pre-checks the row.
 const WORKSPACE_FILE_KEYS: Readonly<Record<string, 'envFile' | 'secretsFile' | 'hooksFile'>> = {
   '.env': 'envFile',

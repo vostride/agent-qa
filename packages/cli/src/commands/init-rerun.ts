@@ -16,6 +16,7 @@ import { CODING_AGENTS, readAgentSetupManifest, type CodingAgent } from './agent
 import { guideLines, versionMove, type VersionMove } from './agent-qa-upgrade.js'
 import { configWithModelEntry } from './config-model-edit.js'
 import type { ChromiumResolver } from './browser-resolver.js'
+import { dashboardPage, dashboardPortOf, type InitDashboardStep } from './init-dashboard.js'
 import { INIT_AGENT_OPTIONS, parseInitAgentsFlag } from './init-agents.js'
 import type { InitDocumentLatest, InitDocumentRecorder } from './init-document.js'
 import {
@@ -33,7 +34,9 @@ import {
   resolveLlmFlag,
   type InitModelEntry,
   type InitModelSetup,
+  type InitModelStatus,
 } from './init-model-choice.js'
+import { INIT_COMMAND, initNextSteps, nextStepLines } from './init-next-steps.js'
 import type { LatestVersionAsk } from './latest-version-ask.js'
 import {
   createInitStepRunner,
@@ -61,6 +64,7 @@ import {
   checkSetupRows,
   checkUpgradeRow,
   parseSetupFlag,
+  projectPlatform,
   sharedAgentSetup,
   setupRowLabel,
   type DepsRowState,
@@ -119,6 +123,8 @@ export interface InitRerunInput {
   }
   // Called once the newly installed copy has run: its document and exit code stand for this run.
   onHandOff: () => void
+  // The fresh init's own dashboard step.
+  dashboard: InitDashboardStep
 }
 
 const SETUP_BROWSERS_WITH_NO_BROWSERS_LINE =
@@ -130,6 +136,12 @@ const MODEL_FLAGS_WITHOUT_LLM_LINE =
   '--model and --base-url set the model --llm names; pass --llm <choice> with them.'
 const MODEL_TITLE = 'Setting the model'
 const DASHBOARD_FINISHES = 'the dashboard finishes setting it up'
+const MODEL_READY = 'model ready'
+const CONFIG_UNREAD = 'the config does not parse'
+
+function setupCommand(row: SetupRowName): string {
+  return `${INIT_COMMAND} --setup ${row}`
+}
 
 // The model the flags set, resolved and edited in memory before anything is drawn.
 interface ModelEdit {
@@ -319,16 +331,23 @@ function modelEntryOf(value: unknown): InitModelEntry[] {
 }
 
 // Undefined when the config does not parse; validate reports that.
-function configuredModels(
-  input: InitRerunInput,
-): { registry: { llms: InitModelEntry[] }; use: { llm?: string } } | undefined {
-  let raw: unknown
+function readConfig(input: InitRerunInput): { config: JsonObject | undefined } | undefined {
   try {
-    raw = parse(input.host.io.readText(input.configPath) ?? '', { logLevel: 'error' })
+    const raw: unknown = parse(input.host.io.readText(input.configPath) ?? '', {
+      logLevel: 'error',
+    })
+    return { config: asObject(raw) }
   } catch {
     return undefined
   }
-  const config = asObject(raw)
+}
+
+function configuredModels(
+  input: InitRerunInput,
+): { registry: { llms: InitModelEntry[] }; use: { llm?: string } } | undefined {
+  const read = readConfig(input)
+  if (read === undefined) return undefined
+  const { config } = read
   const llms = asObject(config?.registry)?.llms
   const use = asObject(config?.use)?.llm
   return {
@@ -337,7 +356,13 @@ function configuredModels(
   }
 }
 
-async function recordModel(input: InitRerunInput, setup: InitModelSetup) {
+interface RecordedModel {
+  setup: InitModelSetup
+  status: InitModelStatus
+  pluginInstalled: boolean
+}
+
+async function recordModel(input: InitRerunInput, setup: InitModelSetup): Promise<RecordedModel> {
   const pluginInstalled =
     nearestInstalledPackage(
       input.range,
@@ -357,18 +382,24 @@ async function recordModel(input: InitRerunInput, setup: InitModelSetup) {
     ...(entry === undefined ? {} : { name: entry.name, provider: entry.provider }),
     ...status,
   })
-  return status
+  return { setup, status, pluginInstalled }
 }
 
-async function modelLine(input: InitRerunInput): Promise<string | undefined> {
+// The config's model before the run; undefined when the config does not parse.
+async function configuredModel(input: InitRerunInput): Promise<RecordedModel | undefined> {
   const models = configuredModels(input)
   if (models === undefined) return undefined
   const entry = activeModelEntry(models)
-  const status = await recordModel(input, entry === undefined ? {} : { entry })
+  return await recordModel(input, entry === undefined ? {} : { entry })
+}
+
+function modelLine(model: RecordedModel | undefined): string | undefined {
+  if (model === undefined) return undefined
+  const { entry } = model.setup
   if (entry === undefined) return 'No model is set up.'
-  return status.status === 'ready'
+  return model.status.status === 'ready'
     ? `Model ${entry.name} is ready.`
-    : `Model ${entry.name} is pending: ${status.reason}.`
+    : `Model ${entry.name} is pending: ${model.status.reason}.`
 }
 
 function agentsLine(agents: readonly CodingAgent[]): string {
@@ -485,7 +516,8 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     )
   }
   let rows = await checkRows(agents)
-  const model = await modelLine(input)
+  const before = await configuredModel(input)
+  const model = modelLine(before)
   const latest = await latestAnswer
   input.recorder.latest(latest)
   const upgrade = upgradeRow(input, copy, latest)
@@ -494,6 +526,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   const reported = handed ?? (upgrade.shown ? upgrade.move : undefined)
   if (reported !== undefined) input.recorder.upgrade({ ...reported, row: 'upgrade' })
   else if (deps.move !== undefined) input.recorder.upgrade({ ...deps.move, row: 'deps' })
+  const knownMove = reported ?? deps.move
   rows = [upgrade, deps, ...rows]
   const summary = [
     ...(handed === undefined ? [] : [`Upgraded agent-qa ${handed.from} → ${handed.to}.`]),
@@ -553,6 +586,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     rows: selected,
   })
   let installFirst = false
+  let modelSetup = before?.setup
   if (modelEdit !== undefined) {
     const { setup, given } = modelEdit
     const step = await runner.run(
@@ -579,7 +613,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
         return { outcome: 'done', text: `Model ${entry.name}: ${entry.provider} ${entry.model}` }
       },
     )
-    if (step.outcome !== 'failed') await recordModel(input, setup)
+    if (step.outcome !== 'failed') modelSetup = setup
   }
   for (const row of planned) {
     if (row.name === 'upgrade' && handed !== undefined) {
@@ -592,17 +626,20 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
       runner.skip(row.name, `${row.name}: skipped (${hidden})`, hidden)
       continue
     }
+    // A row left out that would change something gives the command that runs it.
+    const left = row.wouldChange ? setupCommand(row.name) : undefined
     if (noBrowsers && row.name === 'browsers' && !selected.includes(row.name)) {
-      runner.skip(row.name, `${row.name}: skipped (--no-browsers)`, '--no-browsers')
+      runner.skip(row.name, `${row.name}: skipped (--no-browsers)`, '--no-browsers', left)
       continue
     }
     if (flagged?.kind === 'all' && row.breaking === true) {
-      runner.skip(row.name, `${row.name}: skipped (${BREAKING_NOT_IN_ALL})`, BREAKING_NOT_IN_ALL)
+      const text = `${row.name}: skipped (${BREAKING_NOT_IN_ALL})`
+      runner.skip(row.name, text, BREAKING_NOT_IN_ALL, left)
       continue
     }
     if (!selected.includes(row.name)) {
       const reason = row.wouldChange ? 'not selected' : 'current'
-      runner.skip(row.name, `${row.name}: ${reason}`, reason)
+      runner.skip(row.name, `${row.name}: ${reason}`, reason, left)
       continue
     }
     if (row.name === 'upgrade') {
@@ -679,7 +716,8 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
       continue
     }
     const { title, run } = SETUP_ROW_RUNS[row.name]
-    await runner.run(row.name, { title }, async (): Promise<InitStepResult> => {
+    const command = setupCommand(row.name)
+    await runner.run(row.name, { title, command }, async (): Promise<InitStepResult> => {
       const { files, ...step } = await run({
         projectDir: input.dir,
         configPath: input.configPath,
@@ -693,7 +731,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
         outcomes.push(initFileResult(file))
         input.recorder.file(row.name, file)
       }
-      return step
+      return step.outcome === 'failed' && step.command === undefined ? { ...step, command } : step
     })
   }
   // package.json names packages that are not installed, so validate would check without them.
@@ -706,6 +744,50 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   input.onComplete?.(outcomes)
   await input.emitInitCompleted('rerun', outcomes)
   if (runner.interrupted()) throw new PromptCancelled()
+
+  // The model as the rows leave it: the deps row may have installed its plugin.
+  const after = modelSetup === undefined ? undefined : await recordModel(input, modelSetup)
+  const pending = after?.status.status === 'pending'
+  const port = dashboardPortOf(readConfig(input)?.config ?? {})
+  const dashboard = await input.dashboard.decide(runner, {
+    port,
+    ...(pending ? {} : { skip: after === undefined ? CONFIG_UNREAD : MODEL_READY }),
+  })
+  const records = runner.records()
+  const agentRowFailed = records.some(
+    (record) => AGENT_ROWS.includes(record.name as SetupRowName) && record.outcome === 'failed',
+  )
+  const entry = after?.setup.entry
+  const platform = projectPlatform(input.configPath, input.host.io)
+  const next = initNextSteps({
+    steps: records,
+    ...(after === undefined || entry === undefined
+      ? {}
+      : {
+          model: {
+            name: entry.name,
+            provider: entry.provider,
+            status: after.status.status,
+            subscription: isSubscriptionModel(entry.provider),
+            pluginInstalled: after.pluginInstalled,
+          },
+        }),
+    web: platform.capabilities.includes('web'),
+    mobile: platform.mobileRuntimes.length > 0,
+    agents: agentRowFailed ? [] : agents,
+    dashboard,
+    ...(knownMove === undefined ? {} : { upgrade: knownMove }),
+  })
+  input.recorder.nextSteps(next.steps)
+  ui.note('Next steps', nextStepLines(next.steps))
+  for (const hint of next.hints) ui.line(hint)
+  if (runner.interrupted()) throw new PromptCancelled()
+  if (dashboard === 'starting') {
+    await input.dashboard.start(runner, ui, {
+      port,
+      page: dashboardPage({ model: 'pending', dashboard: after?.setup.dashboard }),
+    })
+  }
 
   ui.outro(input.outro)
   if (runner.failed()) throw new CliRefusal([], 3)

@@ -85,15 +85,13 @@ import {
   resolveLlmFlag,
   type InitModelPick,
 } from './init-model-choice.js'
-import { DASHBOARD_COMMAND, initNextSteps, nextStepLines } from './init-next-steps.js'
+import { initNextSteps, nextStepLines } from './init-next-steps.js'
 import {
-  DASHBOARD_HOST,
   dashboardPage,
   dashboardPortOf,
   findFreePort,
-  portInUse,
+  initDashboardStep,
   probeDashboardPort,
-  runDashboardStep,
   type DashboardPort,
 } from './init-dashboard.js'
 import {
@@ -122,16 +120,15 @@ import {
   shownOutput,
   type InstallStepResult,
 } from './package-install.js'
-import { detectPackageManager, wasCancelled } from './package-manager.js'
+import { detectPackageManager } from './package-manager.js'
 import {
   agentQaAfterInstall,
   declaredAgentQaVersion,
-  findProjectAgentQa,
   handOffToProjectAgentQa,
   runAgentQaStep,
   runRunningAgentQa,
 } from './project-agent-qa.js'
-import { projectHost, type ProjectHost, type RunResult } from './project-host.js'
+import { projectHost, type ProjectHost } from './project-host.js'
 import { nearestInstalledPackage, projectRange } from './project-range.js'
 
 // Re-exported because this module is their public door.
@@ -693,24 +690,6 @@ function asksForJson(cmd: Command): boolean {
   return (end === -1 ? args : args.slice(0, end)).includes('--json')
 }
 
-// A dashboard the person stopped, or that ended cleanly, is done; any other end is a failed start.
-function dashboardStepResult(result: RunResult, execPath: string): InitStepResult {
-  const failed = (reason: string): InitStepResult => ({
-    outcome: 'failed',
-    reason,
-    command: DASHBOARD_COMMAND,
-  })
-  if (result.missing === true) return failed(`${execPath} was not found to run the dashboard`)
-  if (result.code === 0 || wasCancelled(result)) {
-    return { outcome: 'done', text: 'Dashboard stopped' }
-  }
-  return failed(
-    result.code === null
-      ? `The dashboard ended by ${result.signal ?? 'a signal'}`
-      : `The dashboard exited ${result.code}`,
-  )
-}
-
 const SETUP_ON_FRESH_LINE =
   '--setup picks what a re-run of init sets up, and this folder is not set up yet. '
   + 'Run npx agent-qa init without --setup.'
@@ -894,6 +873,14 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         })
         // Without a question drawn, every answer takes its flag or its default.
         const ask = mode === 'interactive'
+        const dashboardStep = initDashboardStep({
+          interactive: mode === 'interactive',
+          noDashboard: opts.dashboard === false,
+          host,
+          range,
+          runningVersion,
+          ports: hooks.dashboardPort ?? { probe: probeDashboardPort, findFree: findFreePort },
+        })
         let asked = false
 
         // Derives the outcome from file outcomes; a scaffold that throws reaches neither call site.
@@ -1055,6 +1042,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             onHandOff: () => {
               delegated = true
             },
+            dashboard: dashboardStep,
           })
           return
         }
@@ -1377,36 +1365,13 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         if (runner.interrupted()) throw new PromptCancelled()
 
         const port = dashboardPortOf(config)
-        let dashboard: 'starting' | { command: string } = { command: DASHBOARD_COMMAND }
         const scaffolded = runner
           .records()
           .some((record) => record.name === 'scaffold' && record.outcome === 'done')
-        // The page init opens is one only this agent-qa's dashboard is known to take.
-        const projectCopyDiffers = async (): Promise<boolean> => {
-          const copy = await findProjectAgentQa(range, range.start, host.io)
-          return copy !== undefined && copy.version !== runningVersion
-        }
-        if (mode !== 'interactive') {
-          runner.skip('dashboard', 'Dashboard: skipped (not interactive)', 'not interactive')
-        } else if (opts.dashboard === false) {
-          runner.skip('dashboard', 'Dashboard: skipped (--no-dashboard)', '--no-dashboard')
-        } else if (!scaffolded) {
-          const reason = 'no config was written'
-          runner.skip('dashboard', `Dashboard: skipped (${reason})`, reason)
-        } else if (await projectCopyDiffers()) {
-          const reason = "the project's agent-qa differs from this one"
-          runner.skip('dashboard', `Dashboard: skipped (${reason})`, reason)
-        } else {
-          const ports = hooks.dashboardPort ?? { probe: probeDashboardPort, findFree: findFreePort }
-          if ((await ports.probe(port)) === 'free') {
-            dashboard = 'starting'
-          } else {
-            // The config names the port, so init never moves the dashboard to another one itself.
-            const inUse = portInUse(port)
-            runner.skip('dashboard', `Dashboard: skipped (${inUse})`, inUse)
-            dashboard = { command: `${DASHBOARD_COMMAND} --port ${await ports.findFree()}` }
-          }
-        }
+        const dashboard = await dashboardStep.decide(runner, {
+          port,
+          ...(scaffolded ? {} : { skip: 'no config was written' }),
+        })
         recorder.model({
           ...(modelSetup.entry === undefined
             ? {}
@@ -1452,30 +1417,10 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         for (const hint of next.hints) ui.line(hint)
         if (runner.interrupted()) throw new PromptCancelled()
         if (dashboard === 'starting') {
-          ui.line(`Starting the dashboard on http://${DASHBOARD_HOST}:${port} (Ctrl-C stops it)`)
-          // Until here a Ctrl-C interrupts init; while the dashboard runs, the host runner alone
-          // holds Ctrl-C, so stopping the dashboard is the normal end.
-          runner.dispose()
-          let ended: RunResult | undefined
-          let failure: unknown
-          try {
-            ended = await runDashboardStep({
-              host,
-              range,
-              page: dashboardPage({ model: status.status, dashboard: modelSetup.dashboard }),
-            })
-          } catch (error) {
-            failure = error
-          }
-          // Drawn once the child has ended, since the child holds the terminal while it runs.
-          await runner.run(
-            'dashboard',
-            { title: 'Dashboard', command: DASHBOARD_COMMAND },
-            async (): Promise<InitStepResult> => {
-              if (ended === undefined) throw failure
-              return dashboardStepResult(ended, host.execPath)
-            },
-          )
+          await dashboardStep.start(runner, ui, {
+            port,
+            page: dashboardPage({ model: status.status, dashboard: modelSetup.dashboard }),
+          })
         }
         ui.outro(GETTING_STARTED_URL)
         if (runner.failed()) throw new CliRefusal([], 3)
