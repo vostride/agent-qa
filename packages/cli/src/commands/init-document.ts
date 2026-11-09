@@ -7,6 +7,7 @@ import type { AgentSetupFileOutcome } from './agent-setup.js'
 import type { CodingAgent } from './agent-setup-manifest.js'
 import type { InitFileOutcome } from './init-filesystem.js'
 import type { InitStepName, InitStepRecord } from './init-steps.js'
+import type { SetupRowName } from './setup-rows.js'
 
 export type InitDocumentFileOutcome = 'created' | 'updated' | 'kept' | 'replaced' | 'removed'
 
@@ -23,6 +24,14 @@ export interface InitDocumentModel {
   reason?: string
 }
 
+export interface InitDocumentSetupRow {
+  name: SetupRowName
+  state: string
+  prechecked: boolean
+  selected: boolean
+  hidden?: string
+}
+
 export interface InitDocument {
   format: 1
   outcome: 'done' | 'failed' | 'refused' | 'interrupted'
@@ -35,6 +44,8 @@ export interface InitDocument {
   agentQa?: { version: string; via: 'in-process' | 'project' | 'running' }
   plugins: { package: string; version: string }[]
   model?: InitDocumentModel
+  // Only a re-run has a setup menu.
+  setup?: InitDocumentSetupRow[]
   nextSteps: { command: string; description: string }[]
 }
 
@@ -55,6 +66,7 @@ export interface InitDocumentRecorder {
   agentQa(agentQa: NonNullable<InitDocument['agentQa']>): void
   plugins(plugins: readonly { package: string; version: string }[]): void
   model(model: InitDocumentModel): void
+  setup(rows: readonly InitDocumentSetupRow[]): void
   nextSteps(steps: readonly { command: string; description: string }[]): void
   fail(error: unknown): void
   document(steps: readonly InitStepRecord[], mask: InitMessageMask): Promise<InitDocument>
@@ -114,6 +126,7 @@ export function createInitDocumentRecorder({ dir }: { dir: string }): InitDocume
   let agentQa: InitDocument['agentQa']
   let plugins: InitDocument['plugins'] = []
   let model: InitDocumentModel | undefined
+  let setup: InitDocumentSetupRow[] | undefined
   let nextSteps: InitDocument['nextSteps'] = []
   let failure: unknown
 
@@ -142,6 +155,9 @@ export function createInitDocumentRecorder({ dir }: { dir: string }): InitDocume
     model(value) {
       model = { ...value }
     },
+    setup(rows) {
+      setup = rows.map((row) => ({ ...row }))
+    },
     nextSteps(list) {
       nextSteps = list.map((step) => ({ command: step.command, description: step.description }))
     },
@@ -162,6 +178,7 @@ export function createInitDocumentRecorder({ dir }: { dir: string }): InitDocume
         ...(agentQa === undefined ? {} : { agentQa }),
         plugins: [...plugins],
         ...(model === undefined ? {} : { model }),
+        ...(setup === undefined ? {} : { setup: setup.map((row) => ({ ...row })) }),
         nextSteps: [...nextSteps],
       }
     },

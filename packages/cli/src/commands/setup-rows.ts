@@ -31,7 +31,8 @@ export interface SetupRowCheckInput {
 
 export function checkGitignoreRow({ projectDir, io }: SetupRowCheckInput): SetupRowState {
   const existing = io.readText(join(projectDir, '.gitignore'))
-  const content = managedGitignoreContent(buildGitignoreEntries())
+  // A malformed block is refused naming the file a person sees.
+  const content = { ...managedGitignoreContent(buildGitignoreEntries()), target: '.gitignore' }
   const text = existing ?? ''
   const wouldChange = composeManagedBlock(text, content) !== text
   const state =

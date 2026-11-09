@@ -171,6 +171,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     ...(await versionLines(input)),
     ...(model === undefined ? [] : [model]),
     agentsLine(agents),
+    ...(shown.some((row) => row.wouldChange) ? [] : ['Everything is current.']),
   ]
   input.recorder.agentQa({ version: input.runningVersion, via: 'running' })
 
@@ -179,6 +180,15 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   ui.intro()
   ui.summary('This project', summary)
   const selected = await chooseRows(ui, input.mode === 'interactive', shown)
+  input.recorder.setup(
+    rows.map((row) => ({
+      name: row.name,
+      state: row.state,
+      prechecked: row.prechecked,
+      selected: selected.includes(row.name),
+      ...(row.hidden === undefined ? {} : { hidden: row.hidden }),
+    })),
+  )
 
   const runner = createInitStepRunner({
     ui,
