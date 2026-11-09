@@ -4,13 +4,7 @@ import { dirname, join } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { stripVTControlCharacters } from 'node:util'
 
-import {
-  S_BAR_END,
-  S_RADIO_ACTIVE,
-  S_RADIO_INACTIVE,
-  S_STEP_ACTIVE,
-  S_STEP_SUBMIT,
-} from '@clack/prompts'
+import { S_BAR_END, S_RADIO_ACTIVE, S_STEP_ACTIVE, S_STEP_SUBMIT } from '@clack/prompts'
 import { AgentQaConfigSchema, getAuthPath } from '@vostride/agent-qa-core'
 import { getProvider } from '@vostride/agent-qa-model'
 import { Command } from 'commander'
@@ -239,11 +233,7 @@ describe('the model question on the rail', () => {
     expect(active[0]).toContain('claude-code (')
     const headingTexts = ['Connect a new model', 'Saved on this machine (2)']
     const headings = lines.filter((line) => headingTexts.some((text) => line.includes(text)))
-    expect(headings).toHaveLength(2)
-    for (const heading of headings) {
-      expect(heading).not.toContain(S_RADIO_ACTIVE)
-      expect(heading).not.toContain(S_RADIO_INACTIVE)
-    }
+    expect(headings.map((line) => line.replace(/^\S\s\s/u, ''))).toEqual(headingTexts)
     const answered = stripVTControlCharacters(run.streams.text())
       .split('\n')
       .filter((line) => line.includes(MODEL_QUESTION))

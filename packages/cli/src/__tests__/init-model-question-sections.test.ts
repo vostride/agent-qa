@@ -35,6 +35,10 @@ const SAVED_SECTION: InitSection<string> = {
 
 const OPTIONS = [...NEW_SECTION.options, ...SAVED_SECTION.options]
 
+function withoutGutter(line: string): string {
+  return line.replace(/^\S\s\s/u, '')
+}
+
 function headedSelect(
   initialValue: string,
   sections: readonly InitSection<string>[] = [NEW_SECTION, SAVED_SECTION],
@@ -81,8 +85,7 @@ describe('the headed select on the rail', () => {
     for (const heading of [NEW_HEADING, SAVED_HEADING]) {
       const line = lines.find((drawn) => drawn.includes(heading))
       expect(line, `${heading} is drawn`).toBeDefined()
-      expect(line).not.toContain(S_RADIO_ACTIVE)
-      expect(line).not.toContain(S_RADIO_INACTIVE)
+      expect(withoutGutter(line!)).toBe(heading)
     }
     const active = lines.filter((line) => line.includes(S_RADIO_ACTIVE))
     expect(active).toHaveLength(1)
@@ -200,7 +203,7 @@ function frameOf(streams: ClackStreams): string[] {
 
 // The list's lines without the gutter: between the question and the instruction footer.
 function listOf(frame: readonly string[]): string[] {
-  return frame.slice(2, -2).map((line) => line.replace(/^\S\s\s/u, ''))
+  return frame.slice(2, -2).map(withoutGutter)
 }
 
 function activeLine(frame: readonly string[]): string | undefined {
