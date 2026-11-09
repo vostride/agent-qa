@@ -482,6 +482,9 @@ function namedHidden(row: SetupRowState, flagged: SetupSelection | undefined): s
 }
 
 export async function runInitRerun(input: InitRerunInput): Promise<void> {
+  // A re-run's document carries both keys on every exit, a refusal's included.
+  input.recorder.setup([])
+  input.recorder.latest({ source: 'none' })
   if (input.opts.platform !== undefined) {
     throw new CliRefusal([pc.red(PLATFORM_ON_RERUN_LINE)], 2)
   }

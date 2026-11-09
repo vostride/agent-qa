@@ -730,7 +730,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
     .option('--force', 'overwrite existing files')
     .option(
       '--setup <list>',
-      'on an initialized project, the setup rows to run: names separated by commas, all or none',
+      'on an initialized project, the rows to set up: names separated by commas, all or none '
+        + '(all leaves out a version move that can break the config)',
     )
     .addOption(
       new Option(
