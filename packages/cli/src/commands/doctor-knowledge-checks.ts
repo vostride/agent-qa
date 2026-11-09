@@ -3,10 +3,12 @@
  * `Embedder` reports the capability outcome, and `Retrieval rung` reports the fold of the two,
  * the word the run banner would show for the same host.
  *
- * `doctor` sets exit code 1 on a `fail`, so `fail` is reserved for a subsystem that errored: an
- * index file that is present and will not open, or a daemon whose embedder worker never
- * registered. A rung reached by design (the static floor, or `lexical-only` when the floor is
- * disabled) is a warning, and the `Retrieval rung` row is never `fail`.
+ * `doctor` sets a failing exit code on a `fail`, so `fail` is reserved for a subsystem that
+ * errored: an index file that is present and will not open, a writer lease held with no live
+ * daemon, or a daemon whose embedder worker crashed or could not resolve its profile. A worker the
+ * daemon has not started yet is not a failure. A rung reached by design (the static floor, or
+ * `lexical-only` when the floor is disabled) is a warning, and the `Retrieval rung` row is never
+ * `fail`.
  *
  * All three rows read `foldRetrievalRung` from knowledge-local, the same fold the runner's evidence
  * recorder and the dashboard banner read. The probes arrive through `LOCAL_KNOWLEDGE_PROBES`
@@ -67,13 +69,12 @@ export const EMBEDDER_NO_DAEMON_TEXT = 'embedder worker not registered: no agent
 const STORE_FIX_PREFIX = 'Rebuild the index with `npx agent-qa knowledge rebuild-index`, or remove the corrupt file at'
 export const EMBEDDER_PROFILE_FIX =
   'v2 does not download the embedding model, and knowledge search works without it. Stop the daemon with `npx agent-qa daemon stop` to clear this row.'
-export const EMBEDDER_WORKER_FIX =
-  'The daemon starts its embedder worker when a run needs it, so an idle daemon shows this row. Stop the daemon with `npx agent-qa daemon stop` to clear it.'
 export const EMBEDDER_CRASH_FIX =
   'The daemon\'s embedder worker exited with an error, and knowledge search works without it. Stop the daemon with `npx agent-qa daemon stop` to clear this row.'
 export const EMBEDDER_NO_DAEMON_FIX =
   'No agent-qa daemon is running, so `npx agent-qa daemon stop` cannot clear this row: the knowledge writer lease belongs to another agent-qa process, or to one that did not stop cleanly. Once no agent-qa command is running, start `npx agent-qa daemon`, which takes a stale lease over, and stop it with `npx agent-qa daemon stop`.'
 const RUNG_FIX = 'Run the checks above; the rung follows from the store and embedder rows.'
+const NOT_STARTED_SUFFIX = '; the daemon starts its embedder worker when a run needs it'
 
 /** The fold's index axis held OPEN, so the `Embedder` row reads its own subject's cause. */
 const INDEX_PRESENT: IndexFace = { source: 'index' }
@@ -103,8 +104,8 @@ export interface CreateKnowledgeChecksInput {
 
 interface DaemonHalf {
   registration: ReadEmbedderWorkerRegistrationOutcome
+  /** The last worker exit since the live daemon started; always `undefined` with no live daemon. */
   lastExit: DaemonEvent | undefined
-  daemon: InspectDaemonRegistrationOutcome
   live: boolean
 }
 
@@ -141,10 +142,16 @@ function displayPath(absolute: string): string {
   return relative(process.cwd(), absolute) || '.'
 }
 
-function lastEmbedderWorkerExit(events: readonly DaemonEvent[]): DaemonEvent | undefined {
+// The ledger outlives every daemon, so only exits this daemon's own workers recorded count.
+function lastEmbedderWorkerExit(
+  events: readonly DaemonEvent[],
+  startedAtMs: number,
+): DaemonEvent | undefined {
   for (let index = events.length - 1; index >= 0; index -= 1) {
     const event = events[index]
-    if (event?.kind === 'embedder-worker-exit') return event
+    if (event?.kind !== 'embedder-worker-exit') continue
+    const ts = typeof event.ts === 'string' ? Date.parse(event.ts) : Number.NaN
+    if (ts >= startedAtMs) return event
   }
   return undefined
 }
@@ -197,10 +204,9 @@ function createKnowledgeStoreCheck(context: KnowledgeCheckContext): DoctorCheck 
 }
 
 function createEmbedderCheck(context: KnowledgeCheckContext): DoctorCheck {
-  let failState: 'profile' | 'worker' | 'crash' | 'no-daemon' = 'worker'
+  let failState: 'profile' | 'crash' | 'no-daemon' = 'crash'
   const fixes = {
     profile: EMBEDDER_PROFILE_FIX,
-    worker: EMBEDDER_WORKER_FIX,
     crash: EMBEDDER_CRASH_FIX,
     'no-daemon': EMBEDDER_NO_DAEMON_FIX,
   }
@@ -213,29 +219,34 @@ function createEmbedderCheck(context: KnowledgeCheckContext): DoctorCheck {
       if (context.knowledgeRoot === null) return SKIPPED
       const { embedder, embedderRung, daemon } = await context.probe()
 
+      let suffix = ''
       // Consulted first: the standing daemon may lack an embedder this process can resolve.
       if (daemon !== undefined && daemon.registration.kind !== 'parsed') {
+        if (!daemon.live) {
+          failState = 'no-daemon'
+          return { status: 'fail', message: EMBEDDER_NO_DAEMON_TEXT }
+        }
         const stderr = stringField(daemon.lastExit, 'stderr') ?? ''
         const exitReason = stringField(daemon.lastExit, 'reason')
         if (stderr.includes('could not resolve profile')) {
-          failState = daemon.live ? 'profile' : 'no-daemon'
+          failState = 'profile'
           return { status: 'fail', message: EMBEDDER_WORKER_NOT_REGISTERED_TEXT }
         }
-        failState = !daemon.live
-          ? 'no-daemon'
-          : exitReason === 'crash' || exitReason === 'start-error' ? 'crash' : 'worker'
-        const reason = exitReason ?? 'no registration published'
-        return { status: 'fail', message: `embedder worker failed to start: ${reason}` }
+        if (exitReason === 'crash' || exitReason === 'start-error') {
+          failState = 'crash'
+          return { status: 'fail', message: `embedder worker failed to start: ${exitReason}` }
+        }
+        suffix = NOT_STARTED_SUFFIX
       }
 
       if (embedder.kind === 'ready' && embedder.rung === 'native') {
-        return { status: 'pass', message: `native (${embedder.profile.model_id})` }
+        return { status: 'pass', message: `native (${embedder.profile.model_id})${suffix}` }
       }
       const label = causeLabel(embedderRung)
       if (embedderRung.rung === 'static-floor') {
-        return { status: 'warn', message: `static floor — ${label}` }
+        return { status: 'warn', message: `static floor — ${label}${suffix}` }
       }
-      return { status: 'warn', message: `none — ${label}` }
+      return { status: 'warn', message: `none — ${label}${suffix}` }
     },
   }
 }
@@ -299,8 +310,9 @@ export function createKnowledgeChecks(
       const inspected = await inspectDaemon(agentQaRoot)
       daemon = {
         registration: registration(agentQaRoot),
-        lastExit: lastEmbedderWorkerExit(events),
-        daemon: inspected,
+        lastExit: inspected.kind === 'live'
+          ? lastEmbedderWorkerExit(events, inspected.registration.startedAtMs)
+          : undefined,
         live: inspected.kind === 'live',
       }
     }
