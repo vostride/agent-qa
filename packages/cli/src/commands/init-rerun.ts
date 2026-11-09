@@ -6,8 +6,8 @@ import { parse } from 'yaml'
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import type { InitUi, InitUiMode } from '../init-ui/init-ui.js'
 import { activeModelEntry } from '../llm-utils.js'
-import { readAgentSetupManifest, type CodingAgent } from './agent-setup-manifest.js'
-import { INIT_AGENT_OPTIONS } from './init-agents.js'
+import { CODING_AGENTS, readAgentSetupManifest, type CodingAgent } from './agent-setup-manifest.js'
+import { INIT_AGENT_OPTIONS, parseInitAgentsFlag } from './init-agents.js'
 import type { InitDocumentRecorder } from './init-document.js'
 import type { InitFileOutcome, InitFileResult } from './init-filesystem.js'
 import { modelStatus, type InitModelEntry } from './init-model-choice.js'
@@ -158,6 +158,27 @@ function initFileResult(file: SetupRowFile): InitFileResult {
 }
 
 export const SETUP_MENU_QUESTION = 'What should init set up here?'
+export const CODING_AGENTS_QUESTION = 'Which coding agents should agent-qa set up?'
+
+function inAgentOrder(agents: readonly CodingAgent[]): CodingAgent[] {
+  return CODING_AGENTS.filter((agent) => agents.includes(agent))
+}
+
+// A re-run starts from the manifest's agents; it never detects agents from markers or the host.
+async function chooseAgents(
+  ui: InitUi,
+  ask: boolean,
+  setUp: readonly CodingAgent[],
+): Promise<CodingAgent[]> {
+  if (!ask) return [...setUp]
+  const chosen = await ui.multiselect<CodingAgent>({
+    message: CODING_AGENTS_QUESTION,
+    options: INIT_AGENT_OPTIONS,
+    initialValues: [...setUp],
+    required: false,
+  })
+  return inAgentOrder(chosen)
+}
 
 async function chooseRows(
   ui: InitUi,
@@ -184,24 +205,28 @@ async function chooseRows(
 
 export async function runInitRerun(input: InitRerunInput): Promise<void> {
   const flagged = input.opts.setup === undefined ? undefined : parseSetupFlag(input.opts.setup)
+  const flaggedAgents =
+    input.opts.agents === undefined ? undefined : parseInitAgentsFlag(input.opts.agents)
   // A malformed manifest or managed block is refused here, before anything is drawn or written.
   const manifest = readAgentSetupManifest(input.dir)
-  const agents = manifest?.agents ?? []
+  const setUp = manifest?.agents ?? []
+  let agents = flaggedAgents === undefined ? [...setUp] : inAgentOrder(flaggedAgents)
   input.recorder.agents(agents)
-  const rows = await checkSetupRows({
-    projectDir: input.dir,
-    configPath: input.configPath,
-    io: input.host.io,
-    agents,
-    host: input.host,
-  })
-  const shown = rows.filter((row) => row.shown)
+  const checkRows = async (over: readonly CodingAgent[]): Promise<SetupRowState[]> =>
+    await checkSetupRows({
+      projectDir: input.dir,
+      configPath: input.configPath,
+      io: input.host.io,
+      agents: over,
+      host: input.host,
+    })
+  let rows = await checkRows(agents)
   const model = await modelLine(input)
   const summary = [
     ...(await versionLines(input)),
     ...(model === undefined ? [] : [model]),
-    agentsLine(agents),
-    ...(shown.some((row) => row.wouldChange) ? [] : ['Everything is current.']),
+    agentsLine(setUp),
+    ...(rows.some((row) => row.shown && row.wouldChange) ? [] : ['Everything is current.']),
   ]
   input.recorder.agentQa({ version: input.runningVersion, via: 'running' })
 
@@ -209,6 +234,15 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   if (input.mode !== 'plain') ui.banner()
   ui.intro()
   ui.summary('This project', summary)
+  if (flaggedAgents === undefined) {
+    const chosen = await chooseAgents(ui, input.mode === 'interactive', setUp)
+    if (chosen.join(',') !== agents.join(',')) {
+      agents = chosen
+      rows = await checkRows(agents)
+    }
+  }
+  input.recorder.agents(agents)
+  const shown = rows.filter((row) => row.shown)
   const selected = await chooseRows(ui, input.mode === 'interactive', shown, flagged)
   input.recorder.setup(
     rows.map((row) => ({

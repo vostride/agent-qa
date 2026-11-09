@@ -416,7 +416,7 @@ function menuOf(entries: readonly FakeInitUiEntry[]): Extract<
 const asked = { hooks: { isTTY: true } }
 
 describe("a re-run's setup menu and its gitignore row", () => {
-  it('asks what init should set up here after the summary, labelling the gitignore row by its state', async () => {
+  it('asks what init should set up here after the summary and the coding agents question, labelling the gitignore row by its state', async () => {
     const project = await initializedProject('rerun-menu-gitignore-missing')
     writeFileSync(gitignorePath(project.root), 'dist/\n')
 
@@ -424,7 +424,10 @@ describe("a re-run's setup menu and its gitignore row", () => {
 
     expect(result.exit, result.stderr).toBe(0)
     const at = result.entries.findIndex((entry) => entry.kind === 'summary')
-    expect(result.entries[at + 1]?.text ?? 'no question').toBe(MENU)
+    expect(result.entries.slice(at + 1, at + 3).map((entry) => entry.text)).toEqual([
+      'Which coding agents should agent-qa set up?',
+      MENU,
+    ])
     const menu = menuOf(result.entries)
     expect(menu?.labels.join('|') ?? 'no menu').toBe('agents-md  current|gitignore  block missing')
     expect(menu?.initialValues.join('|') ?? 'no menu').toBe('gitignore')

@@ -18,6 +18,7 @@ import {
   type AgentSetupResult,
   type CodingAgent,
 } from './agent-setup.js'
+import { readAgentSetupManifest } from './agent-setup-manifest.js'
 import { INIT_AGENT_OPTIONS } from './init-agents.js'
 import {
   TARGET_GITIGNORE_PROBES,
@@ -196,11 +197,13 @@ function mcpState(agents: readonly CodingAgent[], perAgent: AgentRowsCheck['perA
 
 function agentsMdState(
   block: AgentSetupFileResult | undefined,
+  newAgents: readonly CodingAgent[],
   guide: KnowledgeGuideState,
 ): string {
   if (block?.outcome === 'created') return 'block missing'
   if (block?.outcome === 'replaced') return 'the block was edited'
   if (block?.outcome === 'updated') return 'block to update'
+  if (newAgents.length > 0) return `${newAgents.map(agentLabel).join(' and ')} not set up`
   if (guide === 'missing') return 'knowledge guide missing'
   if (guide === 'differs') return 'knowledge guide differs'
   return 'current'
@@ -273,14 +276,17 @@ export async function checkAgentRows({
 }: SetupRowCheckInput): Promise<AgentRowsCheck> {
   const guidePath = knowledgeGuidePath(projectDir, configPath, io)
   const guide = { path: guidePath, state: knowledgeGuideState(guidePath, io) }
+  const chosen = chosenAgents(agents)
+  // An agent the manifest does not list yet has its share of the block to record.
+  const setUp = readAgentSetupManifest(projectDir)?.agents ?? []
+  const newAgents = chosen.filter((agent) => !setUp.includes(agent))
   const agentsMdRow = (blockFiles: AgentSetupFileResult[]): AgentRowCheck =>
     shownRow(
       'agents-md',
-      agentsMdState(blockFiles[0], guide.state),
+      agentsMdState(blockFiles[0], newAgents, guide.state),
       blockFiles,
-      guide.state !== 'current',
+      newAgents.length > 0 || guide.state !== 'current',
     )
-  const chosen = chosenAgents(agents)
   if (chosen.length === 0) {
     return {
       skills: hiddenRow('skills', NO_AGENT),
