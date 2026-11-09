@@ -452,6 +452,30 @@ describe("doctor's scaffold file rows", () => {
       )
     }
   })
+
+  it('name the path to create for a missing file the config points outside the project', async () => {
+    const project = await initializedProject('doctor-scaffold-outside')
+    const secrets = join(project.home, 'secrets.env')
+    const hooks = join(project.home, 'hooks.yaml')
+    const doc = parseDocument(read(project, 'agent-qa.config.yaml'))
+    doc.setIn(['workspace', 'secretsFile'], secrets)
+    doc.setIn(['workspace', 'hooksFile'], hooks)
+    write(project, 'agent-qa.config.yaml', doc.toString())
+    rmSync(join(project.root, '.env'))
+
+    const rows = await doctorRows(project)
+
+    expect(row(rows, 'Secrets file')).toMatchObject({
+      status: 'fail',
+      fix: `Create ${secrets}; init writes no file outside the project. It may be empty, but it must exist.`,
+    })
+    expect(row(rows, 'Workspace files')).toMatchObject({
+      status: 'fail',
+      fix:
+        `Create ${hooks}; init writes no file outside the project. It may be empty, but it must exist. ` +
+        'Run `npx agent-qa init --setup scaffold` to write the missing file at workspace.hooksFile or workspace.envFile.',
+    })
+  })
 })
 
 function latestIs(version: string): LatestVersionAsk {

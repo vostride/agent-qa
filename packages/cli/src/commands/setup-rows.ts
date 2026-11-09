@@ -637,6 +637,7 @@ function posixPath(path: string): string {
 }
 
 // Each needed file sits where the config points; the knowledge files sit under its knowledge root.
+// A workspace file the config points outside the project is left to the person, as doctor says.
 function scaffoldFiles({
   projectDir,
   configPath,
@@ -655,19 +656,19 @@ function scaffoldFiles({
     needed,
     label: isInside(plan.path, projectDir) ? posixPath(relative(projectDir, plan.path)) : plan.path,
   })
-  const files = scaffoldPlans(configPlatform(config)).map((plan) => {
+  const files = scaffoldPlans(configPlatform(config)).flatMap((plan) => {
     const fromProject = posixPath(relative(projectDir, plan.path))
     const key = WORKSPACE_FILE_KEYS[fromProject]
     if (key !== undefined) {
       const path = workspace?.[key].absolutePath ?? plan.path
-      return file({ ...plan, path, root: projectDir }, true)
+      return isInside(path, projectDir) ? [file({ ...plan, path, root: projectDir }, true)] : []
     }
     if (fromProject.startsWith(`${KNOWLEDGE_ROOT_DIR}/`)) {
       const path = join(knowledgeRoot, fromProject.slice(KNOWLEDGE_ROOT_DIR.length + 1))
       const root = isInside(path, projectDir) ? projectDir : dirname(knowledgeRoot)
-      return file({ ...plan, path, root }, fromProject === KNOWLEDGE_GITIGNORE)
+      return [file({ ...plan, path, root }, fromProject === KNOWLEDGE_GITIGNORE)]
     }
-    return file(plan, false)
+    return [file(plan, false)]
   })
   return { files, knowledgeRoot }
 }

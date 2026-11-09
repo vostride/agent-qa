@@ -21,6 +21,7 @@ import {
   formatAppiumInstallGuidance,
   getAgentQaVersion,
   getAuthPath,
+  isPathInsideDir,
   pluginsAddLine,
   resolveAppiumExecutable,
   resolveWorkspacePaths,
@@ -235,6 +236,15 @@ function checkConfigValidation(
 const WORKSPACE_KEY_FIX =
   'Set the workspace key the message names in agent-qa.config.yaml (workspace.secretsFile, workspace.hooksFile or workspace.envFile), then run `npx agent-qa init --setup scaffold` to write the missing file.'
 
+// init writes no file outside the project, so a missing one there is created by hand.
+function outsideProject(path: string, configPath: string): boolean {
+  return !isPathInsideDir(path, dirname(resolve(configPath)))
+}
+
+function createFix(paths: readonly string[]): string {
+  return `Create ${paths.join(' and ')}; init writes no file outside the project. It may be empty, but it must exist.`
+}
+
 function checkSecretsFile(config: Record<string, unknown> | null, configPath: string): DoctorCheck {
   return {
     name: 'Secrets file',
@@ -250,8 +260,13 @@ function checkSecretsFile(config: Record<string, unknown> | null, configPath: st
         return { status: 'fail', message: resolved.error, fix: WORKSPACE_KEY_FIX }
       }
 
-      if (!existsSync(resolved.workspace.secretsFile.absolutePath)) {
-        return { status: 'fail', message: `not found: ${resolved.workspace.secretsFile.absolutePath}` }
+      const { absolutePath } = resolved.workspace.secretsFile
+      if (!existsSync(absolutePath)) {
+        return {
+          status: 'fail',
+          message: `not found: ${absolutePath}`,
+          ...(outsideProject(absolutePath, configPath) ? { fix: createFix([absolutePath]) } : {}),
+        }
       }
 
       return { status: 'pass', message: `${resolved.workspace.secretsFile.workspaceRelativePath} found` }
@@ -259,11 +274,13 @@ function checkSecretsFile(config: Record<string, unknown> | null, configPath: st
   }
 }
 
+const WORKSPACE_FILES_FIX =
+  'Run `npx agent-qa init --setup scaffold` to write the missing file at workspace.hooksFile or workspace.envFile.'
+
 function checkWorkspaceSupportFiles(config: Record<string, unknown> | null, configPath: string): DoctorCheck {
   return {
     name: 'Workspace files',
-    fixInstructions:
-      'Run `npx agent-qa init --setup scaffold` to write the missing file at workspace.hooksFile or workspace.envFile.',
+    fixInstructions: WORKSPACE_FILES_FIX,
     check: async () => {
       if (!config) {
         return { status: 'skip', message: 'no config' }
@@ -281,9 +298,14 @@ function checkWorkspaceSupportFiles(config: Record<string, unknown> | null, conf
       const missingFiles = missing.filter(([, file]) => !existsSync(file.absolutePath))
 
       if (missingFiles.length > 0) {
+        const outside = missingFiles
+          .map(([, file]) => file.absolutePath)
+          .filter((path) => outsideProject(path, configPath))
+        const scaffolded = outside.length < missingFiles.length ? [WORKSPACE_FILES_FIX] : []
         return {
           status: 'fail',
           message: missingFiles.map(([key, file]) => `${key} -> ${file.absolutePath}`).join('; '),
+          ...(outside.length === 0 ? {} : { fix: [createFix(outside), ...scaffolded].join(' ') }),
         }
       }
 

@@ -413,6 +413,28 @@ describe("a re-run's scaffold row", () => {
     expect(readFileSync(join(project.root, 'hooks.yaml'), 'utf8')).toBe(hooks)
   })
 
+  it('leaves a missing secrets file the config points outside the project out of the row', async () => {
+    const project = await initializedProject('rerun-scaffold-outside-secrets')
+    const outside = join(project.home, 'secrets', '.env.secrets.local')
+    editConfig(project.root, (doc) => {
+      doc.setIn(['workspace', 'secretsFile'], outside)
+    })
+
+    const menu = await rerun(project, [], { ...asked, answers: { [SETUP_MENU_QUESTION]: [] } })
+    const result = await rerun(project, ['--yes', '--json'])
+
+    expect(menu.exit, menu.stderr).toBe(0)
+    expect(labelOf(menu.entries, 'scaffold')).toBe('scaffold   nothing missing')
+    expect(menuOf(menu.entries)?.initialValues ?? 'no menu').not.toContain('scaffold')
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(stepOf(doc, 'scaffold')).toEqual({
+      name: 'scaffold',
+      outcome: 'skipped',
+      reason: 'current',
+    })
+    expect(existsSync(outside)).toBe(false)
+  })
+
   it('writes a missing .env.secrets.local readable by its owner only', async () => {
     const project = await initializedProject('rerun-scaffold-secrets')
     unlinkSync(join(project.root, '.env.secrets.local'))
