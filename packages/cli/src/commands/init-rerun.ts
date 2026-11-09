@@ -1,5 +1,6 @@
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import type { InitUi, InitUiMode } from '../init-ui/init-ui.js'
+import { readAgentSetupManifest } from './agent-setup-manifest.js'
 import type { InitDocumentRecorder } from './init-document.js'
 import type { InitFileResult } from './init-filesystem.js'
 import {
@@ -44,6 +45,10 @@ export interface InitRerunInput {
 }
 
 export async function runInitRerun(input: InitRerunInput): Promise<void> {
+  // A malformed manifest is refused here, before anything is drawn or written.
+  const manifest = readAgentSetupManifest(input.dir)
+  input.recorder.agents(manifest?.agents ?? [])
+
   const ui = await input.openUi()
   if (input.mode !== 'plain') ui.banner()
   ui.intro()
