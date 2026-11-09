@@ -136,6 +136,12 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'project scaffolding writes config and model defaults; joins the config mutation class',
   },
   {
+    file: 'packages/cli/src/commands/init-rerun.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: "init's re-run reads the auth store's path from core to report the model's status; joins the config mutation class with init",
+  },
+  {
     file: 'packages/cli/src/commands/install-browsers.ts',
     specifier: '@vostride/agent-qa-web',
     clearedBy: '395',
@@ -146,6 +152,12 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',
     reason: 'mobile driver installation is host mutation; joins the environment action class',
+  },
+  {
+    file: 'packages/cli/src/commands/latest-version-ask.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: "init and doctor ask for the latest agent-qa with core's registry ask under the CLI's deadline; joins the config mutation class with init",
   },
   {
     file: 'packages/cli/src/commands/mcp.ts',

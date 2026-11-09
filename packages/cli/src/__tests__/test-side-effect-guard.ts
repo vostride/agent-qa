@@ -1,10 +1,11 @@
 // Loaded before every CLI test file: the default runner refuses a real browser install and a real
 // dashboard, the dashboard command's default opener refuses to open a real browser, the
-// dashboard's port probe refuses a fixed port, and the update notice's default spawn
-// refuses to start a real registry refresh.
+// dashboard's port probe refuses a fixed port, the update notice's default spawn refuses to
+// start a real registry refresh, and the default latest-version ask refuses to reach the registry.
 import { afterEach, vi } from 'vitest'
 
 import type * as InitDashboardModule from '../commands/init-dashboard.js'
+import type * as LatestVersionAskModule from '../commands/latest-version-ask.js'
 import type * as OpenUrlModule from '../commands/open-url.js'
 import type * as ProjectHostModule from '../commands/project-host.js'
 import type * as VersionRefreshSpawnModule from '../version-refresh-spawn.js'
@@ -15,6 +16,7 @@ const DASHBOARD_ADVICE = 'Inject host.run or pass --no-dashboard.'
 const OPENER_ADVICE = 'Pass an opener to createDashboardCommand.'
 const PROBE_ADVICE = 'Inject hooks.dashboardPort or pass --no-dashboard.'
 const REFRESH_ADVICE = 'Inject spawnRefresh.'
+const REGISTRY_ADVICE = 'Inject hooks.latestVersion.'
 const REFUSAL = `A test reached the real browser install. ${INSTALL_ADVICE}`
 const DASHBOARD_REFUSAL = `A test reached a real dashboard. ${DASHBOARD_ADVICE}`
 // Linux hands out ports from 32768 and macOS and Windows from 49152, so a lower one is fixed.
@@ -101,9 +103,21 @@ vi.mock('../version-refresh-spawn.js', async (importOriginal) => {
   return { ...real, spawnVersionRefresh }
 })
 
+vi.mock('../commands/latest-version-ask.js', async (importOriginal) => {
+  const real = await importOriginal<typeof LatestVersionAskModule>()
+  const store = Symbol.for('agent-qa.test-side-effect-guard')
+  const askLatestVersionByDefault: LatestVersionAskModule.LatestVersionAsk = async () => {
+    const calls = ((globalThis as unknown as GuardedGlobal)[store] ??= [])
+    calls.push('registry ask')
+    throw new Error(`A test reached the npm registry. ${REGISTRY_ADVICE}`)
+  }
+  return { ...real, askLatestVersionByDefault }
+})
+
 function adviceFor(call: string): string {
   if (call.startsWith('open ')) return OPENER_ADVICE
   if (call.startsWith('refresh ')) return REFRESH_ADVICE
+  if (call.startsWith('registry ')) return REGISTRY_ADVICE
   if (call.startsWith('probe ')) return PROBE_ADVICE
   return call.split(' ').includes('install-browsers') ? INSTALL_ADVICE : DASHBOARD_ADVICE
 }
