@@ -390,6 +390,20 @@ describe("doctor's agent-qa versions row", () => {
     })
   })
 
+  it('leaves a plugin declared with a non-registry spec out of the comparison', async () => {
+    const project = await initializedProject('doctor-versions-file-plugin', { llm: 'codex' })
+    setDeclaredVersion(project, SUBSCRIPTION, 'file:../subscription-auth')
+    setInstalledVersion(project, SUBSCRIPTION, '0.3.1')
+
+    const rows = await doctorRows(project)
+
+    expect(row(rows, 'agent-qa versions')).toEqual({
+      name: 'agent-qa versions',
+      status: 'pass',
+      message: `agent-qa ${VERSION}`,
+    })
+  })
+
   it("names this agent-qa's version when another copy runs doctor", async () => {
     const project = await projectWithBothAgents('doctor-versions-running')
     running.version = '9.9.9'
@@ -532,6 +546,19 @@ describe("doctor's newer agent-qa row", () => {
     await doctorRows(project, { latestVersion })
 
     expect(asked).toEqual([project.home])
+  })
+
+  it('skips when package.json declares agent-qa with a non-registry spec', async () => {
+    const project = await projectOn('doctor-newer-file-spec', '0.3.0')
+    setDeclaredVersion(project, 'agent-qa', 'file:../agent-qa')
+
+    const rows = await doctorRows(project, { latestVersion: latestIs('0.3.2') })
+
+    expect(row(rows, 'Newer agent-qa')).toEqual({
+      name: 'Newer agent-qa',
+      status: 'skip',
+      message: 'agent-qa is not installed from the registry',
+    })
   })
 
   it('compares with the running agent-qa when the project has none installed', async () => {

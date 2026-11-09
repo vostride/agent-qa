@@ -6,7 +6,7 @@ import { AGENT_MCP_FILES, CODING_AGENTS, type CodingAgent } from './agent-setup.
 import { AGENT_SETUP_MANIFEST_PATH, readAgentSetupManifest } from './agent-setup-manifest.js'
 import { guideLines, versionMove } from './agent-qa-upgrade.js'
 import type { CheckResult, DoctorCheck } from './doctor.js'
-import { readProjectPackageJson } from './package-json-plan.js'
+import { declaredSpec, readProjectPackageJson } from './package-json-plan.js'
 import type { LatestVersionAsk } from './latest-version-ask.js'
 import { installedPackageVersion } from './package-install.js'
 import { declaredAgentQaVersion } from './project-agent-qa.js'
@@ -15,8 +15,10 @@ import { projectRange, type ProjectRange } from './project-range.js'
 import {
   agentLabel,
   checkAgentRows,
+  NOT_FROM_REGISTRY,
   checkDepsRow,
   configuredPackages,
+  isFromRegistry,
   packageLabel,
   skillsState,
   type AgentRowsCheck,
@@ -72,12 +74,16 @@ async function projectInstall(configPath: string, host: ProjectHost): Promise<Pr
 }
 
 // The project's installed agent-qa, else the running one; the plugin rows compare against it.
-export async function projectAgentQaVersion(input: SetupChecksInput): Promise<string> {
+export async function projectAgentQa(
+  input: SetupChecksInput,
+): Promise<{ version: string; spec?: string }> {
   try {
     const install = await projectInstall(resolve(input.configPath), projectHost(input.host))
-    return install.agentQa ?? input.runningVersion
+    const spec = declaredSpec(install.packageJson.text, 'agent-qa')
+    const version = install.agentQa ?? input.runningVersion
+    return { version, ...(spec === undefined ? {} : { spec }) }
   } catch {
-    return input.runningVersion
+    return { version: input.runningVersion }
   }
 }
 
@@ -109,8 +115,12 @@ function versionsResult(
     return { status: 'fail', message: 'agent-qa declared, not installed', fix: setupFix('deps') }
   }
   const project = agentQa?.installed ?? running
+  // A non-registry spec is never compared, and deps leaves it as written.
+  const kept = new Set(
+    deps.plan.entries.filter((entry) => entry.outcome === 'kept').map((entry) => entry.name),
+  )
   const installedPlugins = deps.packages.flatMap((pkg) =>
-    pkg.name === 'agent-qa' || pkg.installed === undefined
+    pkg.name === 'agent-qa' || pkg.installed === undefined || kept.has(pkg.name)
       ? []
       : [{ label: packageLabel(pkg.name), version: pkg.installed }],
   )
@@ -230,6 +240,8 @@ export function createSetupChecks(input: SetupChecksInput): DoctorCheck[] {
 export interface NewerVersionInput {
   // The project's installed agent-qa, else the running one.
   projectVersion: string
+  // agent-qa's spec as the project's package.json declares it.
+  agentQaSpec?: string
   latestVersion: LatestVersionAsk
   homeDir: string
   now?: () => Date
@@ -244,6 +256,9 @@ export function createNewerVersionCheck(input: NewerVersionInput): DoctorCheck {
     name: 'Newer agent-qa',
     fixInstructions: setupFix('upgrade'),
     check: async () => {
+      if (!isFromRegistry(input.agentQaSpec)) {
+        return { status: 'skip', message: NOT_FROM_REGISTRY }
+      }
       let answer: LatestAgentQaAnswer
       try {
         answer = await input.latestVersion(input.homeDir, input.now)

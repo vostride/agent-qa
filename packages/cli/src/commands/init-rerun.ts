@@ -44,7 +44,7 @@ import {
   type InitStepResult,
   type InitStepRunner,
 } from './init-steps.js'
-import type { PackageJsonPlan } from './package-json-plan.js'
+import { declaredSpec, type PackageJsonPlan } from './package-json-plan.js'
 import {
   HANDED_OFF_ENV,
   UPGRADED_FROM_ENV,
@@ -250,6 +250,7 @@ function upgradeRow(
     runningVersion: input.runningVersion,
     latest: version,
     plugins: shows ? movedPlugins(input, version) : 0,
+    agentQaSpec: declaredSpec(input.packageJson.text, 'agent-qa'),
   })
 }
 

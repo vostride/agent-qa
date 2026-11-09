@@ -289,6 +289,31 @@ describe("the re-run's upgrade row moves the project to a newer agent-qa patch",
     expect(result.stdout).toBe('')
   })
 
+  it('hides the row when package.json declares agent-qa with a non-registry spec', async () => {
+    const project = await initializedProject('upgrade-row-file-spec')
+    writePackageJson(project.root, { 'agent-qa': 'file:../agent-qa' })
+    installAgentQaFixture(project.root, PROJECT_VERSION)
+    const run = upgradeMachine('0.3.2')
+
+    const result = await rerun(project, ['--yes', '--json'], {
+      run,
+      hooks: { latestVersion: answering('0.3.2') },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.setup?.[0]).toEqual({
+      name: 'upgrade',
+      state: 'agent-qa is not installed from the registry',
+      prechecked: false,
+      selected: false,
+      hidden: 'agent-qa is not installed from the registry',
+    })
+    expect(doc).not.toHaveProperty('upgrade')
+    expect(childOf(run)).toBeUndefined()
+    expect(commands(run).filter((call) => call.command !== NODE)).toEqual([])
+  })
+
   it.each([
     ['nothing newer is published', { source: 'registry', latestVersion: PROJECT_VERSION }],
     ['the version check did not answer', { source: 'none' }],

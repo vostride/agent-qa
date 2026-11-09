@@ -39,7 +39,7 @@ import { createRemoteChecks, listedRemotes } from './doctor-remote-checks.js'
 import {
   createNewerVersionCheck,
   createSetupChecks,
-  projectAgentQaVersion,
+  projectAgentQa,
 } from './doctor-setup-checks.js'
 import { askLatestVersionByDefault, type LatestVersionAsk } from './latest-version-ask.js'
 import { findProjectAgentQa } from './project-agent-qa.js'
@@ -811,7 +811,7 @@ export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
       const host = projectHost(hooks.host)
       const authPath = getAuthPath({ env: host.env, homeDir: host.homedir })
       const setup = { configPath, host: hooks.host ?? {}, runningVersion: getAgentQaVersion().trim() }
-      const agentQaVersion = await projectAgentQaVersion(setup)
+      const { version: agentQaVersion, spec: agentQaSpec } = await projectAgentQa(setup)
       const doorFlags = this.parent?.opts<Parameters<typeof doorLogLevel>[0]>() ?? {}
       const debugLog = pluginDebugLog(doorLogLevel(doorFlags, config))
 
@@ -861,6 +861,7 @@ export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
         }),
         createNewerVersionCheck({
           projectVersion: agentQaVersion,
+          ...(agentQaSpec === undefined ? {} : { agentQaSpec }),
           latestVersion: hooks.latestVersion ?? askLatestVersionByDefault,
           homeDir: host.homedir,
           ...(hooks.now === undefined ? {} : { now: hooks.now }),

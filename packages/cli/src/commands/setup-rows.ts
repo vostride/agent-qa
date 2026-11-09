@@ -40,7 +40,12 @@ import type { InitStepResult } from './init-steps.js'
 import { buildKnowledgeAgentGuide } from './knowledge-guide.js'
 import { composeManagedBlock, locateManagedBlock } from './managed-block.js'
 import { installedPackageVersion } from './package-install.js'
-import { planPackageJson, projectDependencies, type PackageJsonPlan } from './package-json-plan.js'
+import {
+  isNonRegistrySpec,
+  planPackageJson,
+  projectDependencies,
+  type PackageJsonPlan,
+} from './package-json-plan.js'
 import { projectHost, type ProjectHost, type ProjectIo } from './project-host.js'
 import type { ProjectRange } from './project-range.js'
 import {
@@ -129,6 +134,12 @@ export type ScaffoldPlans = (platform: InitPlatformInput) => InitPathPlan[]
 export const NOTHING_NEWER = 'nothing newer is published'
 export const NO_VERSION_ANSWER = 'the version check did not answer'
 export const BREAKING_NOT_IN_ALL = 'breaking: name it in --setup'
+export const NOT_FROM_REGISTRY = 'agent-qa is not installed from the registry'
+
+// A non-registry spec, such as file: or workspace:, is never compared with a published version.
+export function isFromRegistry(agentQaSpec: string | undefined): boolean {
+  return agentQaSpec === undefined || !isNonRegistrySpec(agentQaSpec)
+}
 
 export type UpgradeRowState = SetupRowState & { move?: VersionMove }
 
@@ -144,6 +155,8 @@ export function checkUpgradeRow(input: {
   latest: string | undefined
   // The first-party packages besides agent-qa that the bump moves.
   plugins: number
+  // agent-qa's spec as package.json declares it.
+  agentQaSpec?: string
 }): UpgradeRowState {
   const hidden = (reason: string): UpgradeRowState => ({
     name: 'upgrade',
@@ -153,6 +166,7 @@ export function checkUpgradeRow(input: {
     wouldChange: false,
     prechecked: false,
   })
+  if (!isFromRegistry(input.agentQaSpec)) return hidden(NOT_FROM_REGISTRY)
   if (input.latest === undefined) return hidden(NO_VERSION_ANSWER)
   if (versionMove(input.runningVersion, input.latest) === undefined) return hidden(NOTHING_NEWER)
   const move = versionMove(input.projectVersion, input.latest)
