@@ -111,6 +111,37 @@ describe('the folder init runs in', () => {
   )
 
   it(
+    'a built re-run in a fresh home records a latest answer that did not come from the registry',
+    async () => {
+      expectFresh()
+      const root = projectFolder('latest')
+      const fresh = await agentQa(root, [
+        'init',
+        '--yes',
+        ...WEB_GEMINI,
+        '--pm',
+        'none',
+        '--no-browsers',
+        '--agents',
+        'none',
+      ])
+      expect(fresh.code, fresh.text).toBe(0)
+      const outcome = await agentQa(root, [
+        'init',
+        '--json',
+        '--yes',
+        '--pm',
+        'none',
+        '--no-browsers',
+      ])
+      expect(outcome.code, outcome.text).toBe(0)
+      const doc = JSON.parse(outcome.stdout) as { latest?: { source: string } }
+      expect(['cache', 'none'], outcome.text).toContain(doc.latest?.source)
+    },
+    CELL_BUDGET_MS,
+  )
+
+  it(
     'init --dir is refused and writes nothing',
     async () => {
       await expectRefused(['init', '--dir', 'e2e', ...WEB_GEMINI], DIR_LINE)
