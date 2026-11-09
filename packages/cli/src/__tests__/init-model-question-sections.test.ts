@@ -165,12 +165,15 @@ const LONG_NEW: InitSection<string> = {
 
 const LONG_SAVED_HEADING = 'Saved on this machine (12)'
 
-function longSaved(label: (name: string) => string = (name) => name): InitSection<string> {
+function longSaved(
+  label: (name: string) => string = (name) => name,
+  status = 'key saved',
+): InitSection<string> {
   return {
     heading: LONG_SAVED_HEADING,
     options: Array.from({ length: 12 }, (_, index) => {
       const name = `saved-${String(index + 1).padStart(2, '0')}`
-      return { value: name, label: label(name), status: 'key saved' }
+      return { value: name, label: label(name), status }
     }),
   }
 }
@@ -285,7 +288,7 @@ describe('the headed select in a terminal shorter than its list', () => {
     const wide = (name: string) => `${name} ${'x'.repeat(60 - name.length - 1)}`
     const { streams, answer } = windowedSelect({ rows: 12, columns: 40 }, [
       LONG_NEW,
-      longSaved(wide),
+      longSaved(wide, 'a status too long for this terminal'),
     ])
     await frameOn(streams, 'new-1')
     await streams.press(...Array<string>(LONG_NEW.options.length).fill(KEY.down))
@@ -298,5 +301,32 @@ describe('the headed select in a terminal shorter than its list', () => {
     const row = frame.find((line) => line.includes('saved-01'))
     expect(row?.endsWith('…')).toBe(true)
     for (const line of frame) expect(line.length).toBeLessThanOrEqual(40)
+  })
+
+  it('cuts only an over-long label, so every status is drawn in full at 80 columns', async () => {
+    const long = 'my-company-claude-subscription-for-the-whole-team (Anthropic subscription)'
+    const saved: InitSection<string> = {
+      heading: 'Saved on this machine (1)',
+      options: [{ value: 'long', label: long, status: 'signed in' }],
+    }
+    const { streams, answer } = windowedSelect({ rows: 40, columns: 80 }, [NEW_SECTION, saved])
+    const frame = await frameOn(streams, 'Claude subscription')
+    await streams.press(KEY.enter)
+    await expect(answer).resolves.toBe('sub')
+
+    const columns = [...NEW_SECTION.options, ...saved.options].map(({ label, status }) => {
+      const line = frame.find((drawn) => drawn.includes(label.slice(0, 20)))
+      expect(line, `${label} is drawn`).toBeDefined()
+      expect(line!.endsWith(status)).toBe(true)
+      return line!.indexOf(status)
+    })
+    expect(new Set(columns).size).toBe(1)
+    for (const { label } of NEW_SECTION.options) {
+      expect(frame.some((line) => line.includes(label))).toBe(true)
+    }
+    const longRow = frame.find((line) => line.includes(long.slice(0, 20)))
+    expect(longRow).not.toContain(long)
+    expect(longRow).toContain('…')
+    for (const line of frame) expect(line.length).toBeLessThanOrEqual(80)
   })
 })

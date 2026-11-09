@@ -55,6 +55,13 @@ function fit(pieces: readonly Piece[], width: number): string {
   return `${drawn}…`
 }
 
+function cut(text: string, width: number): string {
+  return text.length <= width ? text : `${text.slice(0, Math.max(0, width - 1))}…`
+}
+
+// The columns a row takes besides its label and status: the radio, a space and two spaces.
+const ROW_SPACING = Math.max(S_RADIO_ACTIVE.length, S_RADIO_INACTIVE.length) + 3
+
 function heightOf(text: string, columns: number): number {
   return text
     .split('\n')
@@ -111,11 +118,19 @@ export function sectionSelect<T>(options: {
   const { input, output, signal, message, sections, initialValue } = options
   const rows = rowsOf(sections)
   const width = Math.max(0, ...rows.map((row) => (row.kind === 'option' ? row.label.length : 0)))
+  const statusWidth = Math.max(
+    0,
+    ...rows.map((row) => (row.kind === 'option' ? row.status.length : 0)),
+  )
   const labelOf = (row: Row<T> | undefined): string => (row?.kind === 'option' ? row.label : '')
+  // An over-long label is cut so the widest status still fits, but keeps at least half the row.
+  const labelWidthIn = (room: number): number =>
+    Math.min(width, Math.max(1, Math.floor(room / 2), room - statusWidth - ROW_SPACING))
 
   const drawRow = (row: Row<T>, active: boolean, room: number): string => {
     if (row.kind === 'heading') return fit([{ text: row.heading, style: styled('bold') }], room)
-    const label = row.label.padEnd(width)
+    const labelWidth = labelWidthIn(room)
+    const label = cut(row.label, labelWidth).padEnd(labelWidth)
     const status = { text: row.status, style: styled('dim') }
     return active
       ? fit(
