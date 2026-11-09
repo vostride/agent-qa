@@ -29,6 +29,7 @@ import {
   renderScaffoldConfigYaml,
 } from '../commands/scaffold-content.js'
 import {
+  activeModelEntry,
   applyResolvedAuthToModelConfig,
   buildAnalysisTokenBudget,
   buildJobModelCapability,
@@ -297,6 +298,26 @@ describe('resolveLLMModels', () => {
       baseURL: 'https://remote.example/api/v1',
     })
     expect(resolved.verifier).toEqual(resolved.planner)
+  })
+})
+
+describe('activeModelEntry', () => {
+  const first = { name: 'first', provider: 'gemini', model: 'gemini-pro' }
+  const second = { name: 'second', provider: 'openai-compatible', model: 'deepseek-chat' }
+
+  it('returns the entry use.llm names', () => {
+    expect(activeModelEntry({ registry: { llms: [first, second] }, use: { llm: 'second' } })).toBe(
+      second,
+    )
+  })
+
+  it('returns the first entry when use.llm names none', () => {
+    expect(activeModelEntry({ registry: { llms: [first, second] } })).toBe(first)
+  })
+
+  it('returns nothing when registry.llms has no entry', () => {
+    expect(activeModelEntry({})).toBeUndefined()
+    expect(activeModelEntry({ registry: { llms: [] }, use: { llm: 'first' } })).toBeUndefined()
   })
 })
 

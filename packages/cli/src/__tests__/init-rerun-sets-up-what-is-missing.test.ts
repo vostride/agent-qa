@@ -1,8 +1,9 @@
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 
-import { getAgentQaVersion } from '@vostride/agent-qa-core'
+import { getAgentQaVersion, getAuthPath } from '@vostride/agent-qa-core'
+import { parseDocument } from 'yaml'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -34,6 +35,24 @@ function plantMalformedManifest(root: string): void {
 function summaryLines(entries: readonly FakeInitUiEntry[]): string[] | undefined {
   const entry = entries.find((item) => item.kind === 'summary')
   return entry?.kind === 'summary' ? entry.lines : undefined
+}
+
+const SAVED_KEY = 'DUMMY-KEY-SUMMARY'
+
+function saveGeminiKey(home: string): void {
+  const authPath = getAuthPath({ env: {}, homeDir: home })
+  mkdirSync(dirname(authPath), { recursive: true })
+  writeFileSync(
+    authPath,
+    JSON.stringify({ gemini: { type: 'api', provider: 'gemini', key: SAVED_KEY } }),
+  )
+}
+
+function editConfig(root: string, change: (doc: ReturnType<typeof parseDocument>) => void): void {
+  const path = join(root, 'agent-qa.config.yaml')
+  const doc = parseDocument(readFileSync(path, 'utf8'))
+  change(doc)
+  writeFileSync(path, doc.toString())
 }
 
 function contents(root: string): Record<string, string> {
@@ -253,5 +272,94 @@ describe("a re-run's summary of the project's agent-qa version", () => {
     expect(stripVTControlCharacters(streams.text())).toBe(
       "│\n◇  This project\n│  You're on agent-qa 1.2.3.\n│  This agent-qa is 1.2.4.\n",
     )
+  })
+})
+
+describe("a re-run's summary of the model and the coding agents", () => {
+  it('says the model is ready when its key is saved in the store', async () => {
+    const project = await initializedProject('rerun-summary-model-ready')
+    saveGeminiKey(project.home)
+
+    const result = await rerun(project)
+
+    expect(result.exit, result.stderr).toBe(0)
+    const lines = summaryLines(result.entries) ?? []
+    expect(lines.find((line) => line.startsWith('Model ')) ?? '').toBe('Model gemini is ready.')
+  })
+
+  it('says the model is pending, with the reason, when no key is saved', async () => {
+    const project = await initializedProject('rerun-summary-model-pending')
+
+    const result = await rerun(project)
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(summaryLines(result.entries)).toContain(
+      "Model gemini is pending: add the key on the dashboard's model page.",
+    )
+  })
+
+  it('says no model is set up when the config has no model entry', async () => {
+    const project = await initializedProject('rerun-summary-no-model')
+    editConfig(project.root, (doc) => {
+      doc.deleteIn(['registry', 'llms'])
+      doc.deleteIn(['use', 'llm'])
+    })
+
+    const result = await rerun(project)
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(summaryLines(result.entries)).toContain('No model is set up.')
+  })
+
+  it('leaves the model out when the config does not parse', async () => {
+    const project = await initializedProject('rerun-summary-unparsed-config')
+    writeFileSync(join(project.root, 'agent-qa.config.yaml'), 'registry: [unclosed\n')
+
+    const result = await rerun(project)
+
+    const lines = summaryLines(result.entries) ?? []
+    expect(lines[0]).toBe(`You're on agent-qa ${VERSION}.`)
+    expect(lines.filter((line) => /model/iu.test(line))).toEqual([])
+  })
+
+  it('names the coding agents the manifest sets up', async () => {
+    const project = await initializedProject('rerun-summary-agents')
+    writeAgentSetupManifest(project.root, {
+      format: 1,
+      version: VERSION,
+      agents: ['claude-code', 'codex'],
+      files: [],
+      entries: [],
+    })
+
+    const result = await rerun(project)
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(summaryLines(result.entries)).toContain('Coding agents: Claude Code, Codex.')
+  })
+
+  it('says no coding agent is set up without a manifest', async () => {
+    const project = await initializedProject('rerun-summary-no-agents')
+
+    const result = await rerun(project)
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(summaryLines(result.entries)).toContain('No coding agent is set up.')
+  })
+
+  it("records the summary's model in the --json document and shows no saved key", async () => {
+    const project = await initializedProject('rerun-summary-model-json')
+    saveGeminiKey(project.home)
+
+    const result = await rerun(project, ['--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(result.stderr).toContain('  Model gemini is ready.\n')
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(`${doc.model?.name} ${doc.model?.provider} ${doc.model?.status}`).toBe(
+      'gemini gemini ready',
+    )
+    expect(result.stdout).not.toContain(SAVED_KEY)
+    expect(result.stderr).not.toContain(SAVED_KEY)
   })
 })
