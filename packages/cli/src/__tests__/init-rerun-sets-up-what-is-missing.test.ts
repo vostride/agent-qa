@@ -523,6 +523,13 @@ describe('a re-run with nothing to change, and its document', () => {
     expect(JSON.stringify(doc.setup ?? 'no setup')).toBe(
       JSON.stringify([
         {
+          name: 'upgrade',
+          state: 'the version check did not answer',
+          prechecked: false,
+          selected: false,
+          hidden: 'the version check did not answer',
+        },
+        {
           name: 'skills',
           state: 'no coding agent chosen',
           prechecked: false,
@@ -595,7 +602,8 @@ const FRESH_SETUP_LINE =
 const FORCE_SETUP_LINE =
   '--setup picks what a re-run of init sets up, and --force rebuilds everything. '
   + 'Use one of them.'
-const SETUP_NAMES_HINT = 'Use skills, mcp, agents-md, browsers, gitignore, scaffold, all or none.'
+const SETUP_NAMES_HINT =
+  'Use upgrade, skills, mcp, agents-md, browsers, gitignore, scaffold, all or none.'
 
 function refusalLines(stderr: string): string {
   return stripVTControlCharacters(stderr)

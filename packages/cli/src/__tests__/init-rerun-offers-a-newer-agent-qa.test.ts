@@ -32,7 +32,10 @@ async function rerunAnswered(
   args: readonly string[] = [],
 ): Promise<Awaited<ReturnType<typeof rerun>>> {
   const project = await initializedProject(label)
-  return await rerun(project, args, { hooks: { latestVersion: answering(answer) } })
+  // A newer patch is a pre-checked upgrade row; these cells are about the summary, so none runs.
+  return await rerun(project, ['--setup', 'none', ...args], {
+    hooks: { latestVersion: answering(answer) },
+  })
 }
 
 describe('a re-run says whether a newer agent-qa is out', () => {

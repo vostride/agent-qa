@@ -4,6 +4,7 @@ import { isInitRefusal } from './init-refusal.js'
 import type { SetupRowName } from './setup-rows.js'
 
 export type InitStepName =
+  | 'upgrade'
   | 'package-json'
   | 'scaffold'
   | 'install'

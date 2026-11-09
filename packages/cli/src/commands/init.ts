@@ -4,6 +4,7 @@ import { basename, dirname, join, relative, sep } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 import pc from 'picocolors'
 import type { Readable, Writable } from 'node:stream'
+import { parse as parseYaml } from 'yaml'
 import {
   DEFAULT_AGENT_QA_AUTH_STATES_DIR,
   DEFAULT_AGENT_QA_CACHE_DIR,
@@ -67,6 +68,7 @@ import {
   projectDependencies,
   readProjectPackageJson,
   sanitizedPackageName,
+  type PackageJsonPlan,
 } from './package-json-plan.js'
 import {
   AGENT_SKILL_ROOTS,
@@ -454,6 +456,39 @@ function usesSubscriptionModel(config: Record<string, unknown>): boolean {
   return configuredLlms(config).some(llm => isSubscriptionProvider(String(llm.provider)))
 }
 
+function asObject(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined
+}
+
+// The packages an upgrade bumps, read from the config as written; one that does not parse names
+// agent-qa alone.
+function configuredPackages(text: string | undefined): {
+  usesSubscription: boolean
+  plugins: readonly { package?: unknown }[]
+} {
+  let config: Record<string, unknown> | undefined
+  try {
+    config = asObject(parseYaml(text ?? '', { logLevel: 'error' }))
+  } catch {
+    config = undefined
+  }
+  const llms = asObject(config?.registry)?.llms
+  const plugins = config?.plugins
+  return {
+    usesSubscription:
+      Array.isArray(llms) &&
+      llms.some(llm => isSubscriptionProvider(String(asObject(llm)?.provider))),
+    plugins: Array.isArray(plugins)
+      ? plugins.flatMap((plugin: unknown): Record<string, unknown>[] => {
+        const entry = asObject(plugin)
+        return entry === undefined ? [] : [entry]
+      })
+      : [],
+  }
+}
+
 // A refusal exits 2 with its message alone; a bug or a prompt cancel passes through unchanged.
 function asInitRefusal(error: unknown): unknown {
   if (error instanceof CliRefusal) return error
@@ -829,6 +864,27 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             ...(opts.pm === undefined || opts.pm === 'none' ? {} : { flag: opts.pm }),
           })
         const maskInstallOutput = installOutputMask(configPath, host.io)
+        const installPlan = async (plan: PackageJsonPlan): Promise<InitStepResult> => {
+          const printed: string[] = []
+          // A guarded block of the manager's output goes to stderr, never to stdout.
+          const releaseInstallStdout = reserveStdoutForData()
+          try {
+            const detected = manager()
+            recorder.packageManager(opts.pm === 'none' ? 'none' : detected.name)
+            const step = await runInstallStep({
+              host,
+              range,
+              packageJson: plan,
+              manager: detected,
+              mode: opts.pm === 'none' ? 'none' : 'run',
+              mask: maskInstallOutput,
+              print: (text) => printed.push(text),
+            })
+            return installStepResult(step, printed)
+          } finally {
+            releaseInstallStdout()
+          }
+        }
         const handedOff = await handOffToProjectAgentQa({
           host,
           range,
@@ -1015,6 +1071,21 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             installChromium,
             scaffoldPlans: (platform) => buildScaffoldFilePlans(dir, platform, false),
             latestVersion: hooks.latestVersion ?? askLatestVersionByDefault,
+            upgrade: {
+              plan: (version) =>
+                planPackageJson({
+                  ...packageJson,
+                  folderName: basename(range.start),
+                  dependencies: projectDependencies({
+                    version,
+                    ...configuredPackages(host.io.readText(configPath)),
+                  }),
+                }),
+              install: installPlan,
+            },
+            onHandOff: () => {
+              delegated = true
+            },
           })
           return
         }
@@ -1201,27 +1272,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           return { outcome: 'done', text: scaffoldText(platform, outcomes.length - before) }
         }
 
-        const install = async (): Promise<InitStepResult> => {
-          const printed: string[] = []
-          // A guarded block of the manager's output goes to stderr, never to stdout.
-          const releaseInstallStdout = reserveStdoutForData()
-          try {
-            const detected = manager()
-            recorder.packageManager(opts.pm === 'none' ? 'none' : detected.name)
-            const step = await runInstallStep({
-              host,
-              range,
-              packageJson: packageJsonPlan,
-              manager: detected,
-              mode: opts.pm === 'none' ? 'none' : 'run',
-              mask: maskInstallOutput,
-              print: (text) => printed.push(text),
-            })
-            return installStepResult(step, printed)
-          } finally {
-            releaseInstallStdout()
-          }
-        }
+        const install = (): Promise<InitStepResult> => installPlan(packageJsonPlan)
 
         const setUpAgents = async (): Promise<InitStepResult> => {
           let setup: Awaited<ReturnType<typeof installAgentSetup>>

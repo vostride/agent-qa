@@ -12,7 +12,11 @@ import { guideLines, versionMove } from './agent-qa-upgrade.js'
 import type { ChromiumResolver } from './browser-resolver.js'
 import { INIT_AGENT_OPTIONS, parseInitAgentsFlag } from './init-agents.js'
 import type { InitDocumentLatest, InitDocumentRecorder } from './init-document.js'
-import type { InitFileOutcome, InitFileResult } from './init-filesystem.js'
+import {
+  writeScaffoldFileAtomic,
+  type InitFileOutcome,
+  type InitFileResult,
+} from './init-filesystem.js'
 import { modelStatus, type InitModelEntry } from './init-model-choice.js'
 import type { LatestVersionAsk } from './latest-version-ask.js'
 import {
@@ -21,17 +25,22 @@ import {
   type InitStepResult,
   type InitStepRunner,
 } from './init-steps.js'
+import type { PackageJsonPlan } from './package-json-plan.js'
 import {
+  UPGRADED_FROM_ENV,
   declaredAgentQaVersion,
   findProjectAgentQa,
+  runAsProjectAgentQa,
   type ProjectAgentQa,
 } from './project-agent-qa.js'
 import type { ProjectHost } from './project-host.js'
 import { nearestInstalledPackage, type ProjectRange } from './project-range.js'
 import { SUBSCRIPTION_AUTH_PACKAGE } from './scaffold-content.js'
 import {
+  SETUP_ROW_NAMES,
   SETUP_ROW_RUNS,
   checkSetupRows,
+  checkUpgradeRow,
   parseSetupFlag,
   sharedAgentSetup,
   setupRowLabel,
@@ -40,6 +49,7 @@ import {
   type SetupRowName,
   type SetupRowState,
   type SetupSelection,
+  type UpgradeRowState,
 } from './setup-rows.js'
 
 export interface InitRerunOptions {
@@ -77,6 +87,14 @@ export interface InitRerunInput {
   installChromium: () => Promise<InitStepResult>
   scaffoldPlans: ScaffoldPlans
   latestVersion: LatestVersionAsk
+  upgrade: {
+    // package.json with agent-qa and every first-party package at the version.
+    plan: (version: string) => PackageJsonPlan
+    // The fresh init's install over that plan.
+    install: (plan: PackageJsonPlan) => Promise<InitStepResult>
+  }
+  // Called once the newly installed copy has run: its document and exit code stand for this run.
+  onHandOff: () => void
 }
 
 const SETUP_BROWSERS_WITH_NO_BROWSERS_LINE =
@@ -101,13 +119,16 @@ function newerLines(project: string, newer: string): string[] {
   return move.breaking ? guideLines(move) : [`agent-qa ${move.to} is out.`, ...move.links]
 }
 
+function projectVersionOf(input: InitRerunInput, copy: ProjectAgentQa | undefined): string {
+  return copy?.version ?? declaredAgentQaVersion(input.packageJson.text) ?? input.runningVersion
+}
+
 function versionLines(
   input: InitRerunInput,
   copy: ProjectAgentQa | undefined,
   latest: InitDocumentLatest,
 ): string[] {
-  const project =
-    copy?.version ?? declaredAgentQaVersion(input.packageJson.text) ?? input.runningVersion
+  const project = projectVersionOf(input, copy)
   const running = input.runningVersion
   const differs = project !== running ? [`This agent-qa is ${running}.`] : []
   const onProject = `You're on agent-qa ${project}`
@@ -118,6 +139,65 @@ function versionLines(
   if (order === undefined) return [`${onProject}.`, ...differs]
   return [`${onProject}, the latest.`, ...differs]
 }
+
+// A non-registry spec stays as written, so only a pinned or added entry moves.
+function movedPlugins(input: InitRerunInput, version: string): number {
+  try {
+    return input.upgrade
+      .plan(version)
+      .entries.filter(
+        (entry) =>
+          entry.name !== 'agent-qa' && (entry.outcome === 'pinned' || entry.outcome === 'added'),
+      ).length
+  } catch {
+    return 0
+  }
+}
+
+function upgradeRow(
+  input: InitRerunInput,
+  copy: ProjectAgentQa | undefined,
+  latest: InitDocumentLatest,
+): UpgradeRowState {
+  const { version } = latest
+  // package.json is planned only for a row that shows.
+  const shows = version !== undefined && versionMove(input.runningVersion, version) !== undefined
+  return checkUpgradeRow({
+    projectVersion: projectVersionOf(input, copy),
+    runningVersion: input.runningVersion,
+    latest: version,
+    plugins: shows ? movedPlugins(input, version) : 0,
+  })
+}
+
+const AGENT_ROWS: readonly SetupRowName[] = ['skills', 'mcp', 'agents-md']
+
+// Only public flags reach the new copy, which may be another build than this one.
+function handOffArgs(
+  opts: InitRerunOptions,
+  selected: readonly SetupRowName[],
+  agents: readonly CodingAgent[],
+): string[] {
+  const rows = SETUP_ROW_NAMES.filter(
+    (name) =>
+      name !== 'upgrade' &&
+      (selected.includes(name) || (agents.length > 0 && AGENT_ROWS.includes(name))),
+  )
+  return [
+    'init',
+    '--setup',
+    rows.length === 0 ? 'none' : rows.join(','),
+    '--agents',
+    agents.length === 0 ? 'none' : agents.join(','),
+    ...(opts.json === true ? ['--json'] : []),
+    ...(opts.yes === true ? ['--yes'] : []),
+    ...(opts.pm === undefined ? [] : ['--pm', opts.pm]),
+    ...(opts.dashboard === false ? ['--no-dashboard'] : []),
+    ...(opts.browsers === false ? ['--no-browsers'] : []),
+  ]
+}
+
+const UPGRADE_TITLE = 'Upgrading agent-qa'
 
 type JsonObject = Record<string, unknown>
 
@@ -292,6 +372,8 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   const model = await modelLine(input)
   const latest = await latestAnswer
   input.recorder.latest(latest)
+  const upgrade = upgradeRow(input, copy, latest)
+  rows = [upgrade, ...rows]
   const summary = [
     ...versionLines(input, copy, latest),
     ...(model === undefined ? [] : [model]),
@@ -308,7 +390,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     const chosen = await chooseAgents(ui, input.mode === 'interactive', setUp)
     if (chosen.join(',') !== agents.join(',')) {
       agents = chosen
-      rows = await checkRows(agents)
+      rows = [upgrade, ...(await checkRows(agents))]
     }
   }
   input.recorder.agents(agents)
@@ -352,6 +434,54 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
       const reason = row.wouldChange ? 'not selected' : 'current'
       runner.skip(row.name, `${row.name}: ${reason}`, reason)
       continue
+    }
+    if (row.name === 'upgrade') {
+      const move = upgrade.move
+      if (move === undefined) continue
+      let newCopy: ProjectAgentQa | undefined
+      await runner.run('upgrade', { title: UPGRADE_TITLE }, async (): Promise<InitStepResult> => {
+        const plan = input.upgrade.plan(move.to)
+        const file = writeScaffoldFileAtomic({
+          root: plan.root,
+          path: plan.path,
+          content: plan.content,
+          force: plan.existed && plan.changed,
+        })
+        outcomes.push(initFileResult(file))
+        input.recorder.file('upgrade', file)
+        const installed = await input.upgrade.install(plan)
+        if (installed.outcome === 'failed') return installed
+        if (installed.outcome === 'skipped' && installed.reason === '--pm none') {
+          return { ...installed, text: `upgrade: ${installed.text}` }
+        }
+        const found = await findProjectAgentQa(input.range, input.range.start, input.host.io)
+        if (found?.version !== move.to) {
+          return {
+            outcome: 'failed',
+            reason:
+              found === undefined
+                ? `agent-qa ${move.to} was installed, but no copy of it was found`
+                : `agent-qa ${move.to} was installed, but the project's copy is ${found.version}`,
+            command: 'npx agent-qa init --setup upgrade',
+          }
+        }
+        newCopy = found
+        return { outcome: 'done', text: `upgrade: agent-qa ${move.from} → ${move.to}` }
+      })
+      if (newCopy === undefined) continue
+      // The new copy runs every row after this one, so this run stops here.
+      await runAsProjectAgentQa(
+        newCopy,
+        input.host,
+        `Handing over to agent-qa ${move.to}, just installed, for the rest of this run.`,
+        (text) => ui.line(text),
+        input.onHandOff,
+        {
+          args: handOffArgs(input.opts, selected, agents),
+          env: { [UPGRADED_FROM_ENV]: move.from },
+        },
+      )
+      return
     }
     const { title, run } = SETUP_ROW_RUNS[row.name]
     await runner.run(row.name, { title }, async (): Promise<InitStepResult> => {

@@ -80,7 +80,9 @@ function newBin(project: InitializedProject): string {
 }
 
 function menuOf(entries: readonly FakeInitUiEntry[]) {
-  const entry = entries.find((item) => item.kind === 'multiselect' && item.text === SETUP_MENU_QUESTION)
+  const entry = entries.find(
+    (item) => item.kind === 'multiselect' && item.text === SETUP_MENU_QUESTION,
+  )
   return entry?.kind === 'multiselect' ? entry : undefined
 }
 
@@ -139,7 +141,9 @@ describe("the re-run's upgrade row moves the project to a newer agent-qa patch",
     })
 
     expect(result.exit, result.stderr).toBe(0)
-    expect(menuOf(result.entries)?.labels[0]).toBe('upgrade    agent-qa and 2 plugins 0.3.0 → 0.3.2')
+    expect(menuOf(result.entries)?.labels[0]).toBe(
+      'upgrade    agent-qa and 2 plugins 0.3.0 → 0.3.2',
+    )
   })
 
   it("bumps agent-qa and every first-party package to exactly the latest, keeping the file's formatting", async () => {
@@ -177,7 +181,9 @@ describe("the re-run's upgrade row moves the project to a newer agent-qa patch",
       hooks: { latestVersion: answering('0.3.2') },
     })
 
-    expect(menuOf(asked.entries)?.labels[0]).toBe('upgrade    agent-qa and the plugin 0.3.0 → 0.3.2')
+    expect(menuOf(asked.entries)?.labels[0]).toBe(
+      'upgrade    agent-qa and the plugin 0.3.0 → 0.3.2',
+    )
     expect(result.exit, result.stderr).toBe(0)
     expect(JSON.parse(packageJsonText(project.root)).devDependencies).toEqual({
       [JIRA]: 'file:../jira',

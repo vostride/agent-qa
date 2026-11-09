@@ -21,6 +21,7 @@ import {
   type CodingAgent,
 } from './agent-setup.js'
 import { readAgentSetupManifest } from './agent-setup-manifest.js'
+import { versionMove, type VersionMove } from './agent-qa-upgrade.js'
 import type { ChromiumResolver } from './browser-resolver.js'
 import { INIT_AGENT_OPTIONS } from './init-agents.js'
 import {
@@ -48,6 +49,7 @@ import { getTargetPlatforms, hasWebTarget, resolveWebPlacement } from './web-pla
 
 // Every row this build has, in menu order.
 export const SETUP_ROW_NAMES = [
+  'upgrade',
   'skills',
   'mcp',
   'agents-md',
@@ -56,6 +58,11 @@ export const SETUP_ROW_NAMES = [
   'scaffold',
 ] as const
 export type SetupRowName = (typeof SETUP_ROW_NAMES)[number]
+// The rows checked and run by their own code; the upgrade row hands the run to the new copy.
+export type CheckedRowName = Exclude<SetupRowName, 'upgrade'>
+const CHECKED_ROW_NAMES = SETUP_ROW_NAMES.filter(
+  (name): name is CheckedRowName => name !== 'upgrade',
+)
 
 export type SetupSelection =
   { kind: 'all' } | { kind: 'none' } | { kind: 'names'; names: SetupRowName[] }
@@ -110,6 +117,46 @@ export interface SetupRowCheckInput {
 
 // The fresh init's scaffold for a platform, every file at its default path, overwriting none.
 export type ScaffoldPlans = (platform: InitPlatformInput) => InitPathPlan[]
+
+export const NOTHING_NEWER = 'nothing newer is published'
+export const NO_VERSION_ANSWER = 'the version check did not answer'
+
+export type UpgradeRowState = SetupRowState & { move?: VersionMove }
+
+function movedPackages(plugins: number): string {
+  if (plugins === 0) return 'agent-qa'
+  return plugins === 1 ? 'agent-qa and the plugin' : `agent-qa and ${plugins} plugins`
+}
+
+// Shown only when the latest is newer than the running agent-qa; the move starts at the project's.
+export function checkUpgradeRow(input: {
+  projectVersion: string
+  runningVersion: string
+  latest: string | undefined
+  // The first-party packages besides agent-qa that the bump moves.
+  plugins: number
+}): UpgradeRowState {
+  const hidden = (reason: string): UpgradeRowState => ({
+    name: 'upgrade',
+    shown: false,
+    hidden: reason,
+    state: reason,
+    wouldChange: false,
+    prechecked: false,
+  })
+  if (input.latest === undefined) return hidden(NO_VERSION_ANSWER)
+  if (versionMove(input.runningVersion, input.latest) === undefined) return hidden(NOTHING_NEWER)
+  const move = versionMove(input.projectVersion, input.latest)
+  if (move === undefined) return hidden(NOTHING_NEWER)
+  return {
+    name: 'upgrade',
+    shown: true,
+    state: `${movedPackages(input.plugins)} ${move.from} → ${move.to}`,
+    wouldChange: true,
+    prechecked: !move.breaking,
+    move,
+  }
+}
 
 export function checkGitignoreRow({
   projectDir,
@@ -487,9 +534,10 @@ export function checkScaffoldRow(
   }
 }
 
+// Every row but upgrade, in menu order.
 export async function checkSetupRows(input: SetupRowCheckInput): Promise<SetupRowState[]> {
   const agentRows = await checkAgentRows(input)
-  const states: Record<SetupRowName, SetupRowState> = {
+  const states: Record<CheckedRowName, SetupRowState> = {
     skills: agentRows.skills,
     mcp: agentRows.mcp,
     'agents-md': agentRows['agents-md'],
@@ -497,7 +545,7 @@ export async function checkSetupRows(input: SetupRowCheckInput): Promise<SetupRo
     gitignore: checkGitignoreRow(input),
     scaffold: checkScaffoldRow(input),
   }
-  return SETUP_ROW_NAMES.map((name) => states[name])
+  return CHECKED_ROW_NAMES.map((name) => states[name])
 }
 
 export function setupRowLabel(row: SetupRowState, width: number): string {
@@ -722,7 +770,7 @@ async function runScaffoldRow({
   return { outcome: 'done', text, files: written }
 }
 
-export const SETUP_ROW_RUNS: Record<SetupRowName, SetupRowRun> = {
+export const SETUP_ROW_RUNS: Record<CheckedRowName, SetupRowRun> = {
   skills: { title: "Putting back agent-qa's skills", run: runSkillsRow },
   mcp: { title: "Putting back the coding agents' MCP entries", run: runMcpRow },
   'agents-md': {

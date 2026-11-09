@@ -8,6 +8,8 @@ import type { ProjectHost, ProjectIo } from './project-host.js'
 import { nearestInstalledPackage, type ProjectRange } from './project-range.js'
 
 export const HANDED_OFF_ENV = 'AGENT_QA_HANDED_OFF'
+// The version an upgrade moved from, set for the copy it hands the run to.
+export const UPGRADED_FROM_ENV = 'AGENT_QA_UPGRADED_FROM'
 
 const EXACT_SEMVER = /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/u
 
@@ -66,11 +68,12 @@ export async function runAsProjectAgentQa(
   line: string,
   print: (line: string) => void = (text) => console.log(text),
   onHandOff?: () => void,
+  options?: { args?: readonly string[]; env?: Record<string, string> },
 ): Promise<void> {
   print(line)
-  const result = await host.run(host.execPath, [copy.bin, ...host.argv], {
+  const result = await host.run(host.execPath, [copy.bin, ...(options?.args ?? host.argv)], {
     cwd: host.cwd,
-    env: { ...host.env, [HANDED_OFF_ENV]: '1' },
+    env: { ...host.env, ...options?.env, [HANDED_OFF_ENV]: '1' },
     stdio: 'inherit',
   })
   if (result.missing === true) {
