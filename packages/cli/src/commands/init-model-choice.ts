@@ -35,8 +35,9 @@ const INIT_MODEL_CHOICE_TEXT: Record<InitModelChoice, { label: string; status: s
   },
 }
 
-// Stored provider → config provider. The stored ids are the subscription-auth plugin's
-// `credentialProviderId`s and the built-in API providers; no plugin is loaded at question time.
+// Stored provider → config provider, in the order the saved section lists them. The stored ids
+// are the subscription-auth plugin's `credentialProviderId`s and the built-in API providers; no
+// plugin is loaded at question time.
 export const SAVED_PROVIDER_TO_CONFIG: Readonly<Record<string, string>> = {
   'anthropic-subscription': 'anthropic-subscription',
   'openai-subscription-oauth': 'openai-subscription',
@@ -61,14 +62,15 @@ const SAVED_KIND_STATUS: Record<SavedCredentialType, string> = {
 }
 
 // A saved credential is listed where the new choice it acts as stands; a compatible key acts as
-// an endpoint.
+// an endpoint. A provider outside the table goes last.
 const SAVED_PROVIDER_ORDER: readonly string[] = [
-  'anthropic-subscription',
-  'openai-subscription',
-  'gemini',
-  'openai-compatible',
-  'anthropic-compatible',
+  ...new Set(Object.values(SAVED_PROVIDER_TO_CONFIG)),
 ]
+
+function savedRank(provider: string): number {
+  const at = SAVED_PROVIDER_ORDER.indexOf(provider)
+  return at === -1 ? SAVED_PROVIDER_ORDER.length : at
+}
 
 function configProviderOf(storedProvider: string): string | undefined {
   return Object.hasOwn(SAVED_PROVIDER_TO_CONFIG, storedProvider)
@@ -98,9 +100,10 @@ export function initModelSections(saved: readonly SavedCredential[]): InitSectio
       ...INIT_MODEL_CHOICE_TEXT[choice],
     })),
   }
-  const rank = (pick: SavedPick) => SAVED_PROVIDER_ORDER.indexOf(pick.provider)
   const picks = savedPicks(saved).sort(
-    (a, b) => rank(a) - rank(b) || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
+    (a, b) =>
+      savedRank(a.provider) - savedRank(b.provider) ||
+      (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
   )
   if (picks.length === 0) return [newChoices]
   return [

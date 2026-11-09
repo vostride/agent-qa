@@ -160,6 +160,24 @@ describe('model question sections', () => {
     ])
   })
 
+  it('lists the saved providers in the order of the provider table', async () => {
+    const stored = [...Object.keys(SAVED_PROVIDER_TO_CONFIG)].reverse()
+    const options = savedOptions(
+      await savedFrom(
+        Object.fromEntries(
+          stored.map((provider, index) => [
+            `saved-${index}`,
+            { type: 'api', provider, key: DUMMY_KEY },
+          ]),
+        ),
+      ),
+    )
+
+    expect(
+      options.map((option) => (option.value.kind === 'saved' ? option.value.provider : '')),
+    ).toEqual([...new Set(Object.values(SAVED_PROVIDER_TO_CONFIG))])
+  })
+
   it('gives the new choices alone when nothing saved can be listed', async () => {
     const sections = initModelSections(
       await savedFrom({
