@@ -9,6 +9,8 @@ export type InitStepName =
   | 'install'
   | 'chromium'
   | 'skills'
+  | 'mcp'
+  | 'agents-md'
   | 'gitignore'
   | 'validate'
   | 'dashboard'

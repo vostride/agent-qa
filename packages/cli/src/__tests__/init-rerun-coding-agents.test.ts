@@ -274,7 +274,11 @@ describe("a re-run's mcp row", () => {
 
 describe("a re-run's agents-md row", () => {
   it("labels an edited block, pre-checks it, and puts agent-qa's block back keeping the rest", async () => {
-    const project = await initializedProjectWithAgent('rerun-agents-md-edited', 'claude-code', VERSION)
+    const project = await initializedProjectWithAgent(
+      'rerun-agents-md-edited',
+      'claude-code',
+      VERSION,
+    )
     const block = read(project.root, 'AGENTS.md')
     const edited = block.replace('agent-qa-knowledge/AGENTS.md', 'my-notes.md')
     writeFileSync(join(project.root, 'AGENTS.md'), `# My project\n\n${edited}`)

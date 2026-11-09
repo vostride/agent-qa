@@ -25,6 +25,7 @@ import {
   SETUP_ROW_RUNS,
   checkSetupRows,
   parseSetupFlag,
+  sharedAgentSetup,
   setupRowLabel,
   type SetupRowFile,
   type SetupRowName,
@@ -189,6 +190,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   input.recorder.agents(agents)
   const rows = await checkSetupRows({
     projectDir: input.dir,
+    configPath: input.configPath,
     io: input.host.io,
     agents,
     host: input.host,
@@ -225,6 +227,12 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   })
   input.onRunner(runner)
   const outcomes: InitFileResult[] = []
+  const agentSetup = sharedAgentSetup({
+    projectDir: input.dir,
+    agents,
+    host: input.host,
+    rows: selected,
+  })
   for (const row of shown) {
     if (!selected.includes(row.name)) {
       const reason = row.wouldChange ? 'not selected' : 'current'
@@ -233,7 +241,13 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     }
     const { title, run } = SETUP_ROW_RUNS[row.name]
     await runner.run(row.name, { title }, async (): Promise<InitStepResult> => {
-      const { files, ...step } = await run({ projectDir: input.dir, agents, host: input.host })
+      const { files, ...step } = await run({
+        projectDir: input.dir,
+        configPath: input.configPath,
+        agents,
+        host: input.host,
+        agentSetup,
+      })
       for (const file of files) {
         outcomes.push(initFileResult(file))
         input.recorder.file(row.name, file)
