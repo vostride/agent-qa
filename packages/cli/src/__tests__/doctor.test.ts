@@ -991,6 +991,51 @@ targets:
     expect(output).toContain('requires macOS')
   })
 
+  describe('the Xcode row', () => {
+    const iosConfig = `
+registry:
+  llms:
+    - name: default
+      provider: openai-compatible
+      model: model-name
+      baseURL: https://remote.example/api/v1
+use:
+  llm: default
+targets:
+  my-app:
+    platform: ios
+`
+
+    it('lists the simulators with a 10 s bound', async () => {
+      mockReadFile.mockResolvedValue(iosConfig as never)
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true })
+      mockExecSync.mockReturnValue(Buffer.from('== Devices =='))
+
+      await runDoctor()
+
+      expect(mockExecSync).toHaveBeenCalledWith(
+        'xcrun simctl list',
+        expect.objectContaining({ timeout: 10_000 }),
+      )
+      expect(rowFor('Xcode')).toMatch(/simctl available {2}PASS$/)
+    })
+
+    it('fails with how long it waited when the simulator listing does not answer in time', async () => {
+      mockReadFile.mockResolvedValue(iosConfig as never)
+      Object.defineProperty(process, 'platform', { value: 'darwin', configurable: true })
+      mockExecSync.mockImplementation((command) => {
+        if (command === 'xcrun simctl list') {
+          throw Object.assign(new Error('spawnSync /bin/sh ETIMEDOUT'), { code: 'ETIMEDOUT' })
+        }
+        return Buffer.from('')
+      })
+
+      await runDoctor()
+
+      expect(rowFor('Xcode')).toMatch(/xcrun simctl did not answer within 10 s {2}FAIL$/)
+    })
+  })
+
   describe('mobile tool rows and remote devices', () => {
     function deviceConfig(targets: string[], devices: string): string {
       return `

@@ -252,6 +252,81 @@ describe("doctor's device rows", () => {
   })
 })
 
+describe('which platforms doctor lists', () => {
+  beforeEach(() => {
+    vi.spyOn(console, 'log').mockImplementation((...parts: unknown[]) => {
+      printed.push(parts.map(String).join(' '))
+    })
+    vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('offline'))))
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllGlobals()
+    process.exitCode = 0
+  })
+
+  it('never lists iOS when every local device profile is Android', async () => {
+    const { list, calls } = lister()
+    const rows = await doctorRows(
+      projectConfig(
+        {
+          pixel: { platform: 'android', model: 'Pixel 8' },
+          'iphone-farm': { platform: 'ios', model: 'iPhone 16', remote: 'farm' },
+        },
+        ['android', 'ios'],
+      ),
+      { listDevicesHere: list },
+    )
+
+    expect(calls).toEqual(['android'])
+    expect(row(rows, 'Device pixel')).toMatchObject({ status: 'pass' })
+    expect(row(rows, 'Device iphone-farm')).toMatchObject({ status: 'pass' })
+  })
+
+  it('lists nothing when every device profile is remote', async () => {
+    const { list, calls } = lister()
+    const rows = await doctorRows(
+      projectConfig(
+        {
+          'galaxy-farm': { platform: 'android', model: 'Galaxy S24', remote: 'farm' },
+          'iphone-farm': { platform: 'ios', model: 'iPhone 16', remote: 'farm' },
+        },
+        ['android', 'ios'],
+      ),
+      { listDevicesHere: list },
+    )
+
+    expect(calls).toEqual([])
+    expect(rows.filter((entry) => entry.name.startsWith('Device')).map((entry) => entry.status))
+      .toEqual(['pass', 'pass'])
+  })
+
+  it('gives no device rows and lists nothing when the config lists no devices', async () => {
+    const { list, calls } = lister()
+    const rows = await doctorRows(projectConfig({}), { listDevicesHere: list })
+
+    expect(calls).toEqual([])
+    expect(rows.filter((entry) => entry.name.startsWith('Device'))).toEqual([])
+  })
+
+  it('gives one SKIP Devices row and lists nothing when the config is not valid', async () => {
+    const { list, calls } = lister()
+    const rows = await doctorRows(
+      projectConfig({
+        pixel: { platform: 'android', model: 42 },
+        galaxy: { platform: 'android', model: 'Galaxy S24' },
+      }),
+      { listDevicesHere: list },
+    )
+
+    expect(calls).toEqual([])
+    expect(rows.filter((entry) => entry.name.startsWith('Device'))).toEqual([
+      { name: 'Devices', status: 'skip', message: 'the config is not valid' },
+    ])
+  })
+})
+
 describe("doctor's device rows in a test without listDevicesHere", () => {
   beforeEach(() => {
     vi.spyOn(console, 'log').mockImplementation((...parts: unknown[]) => {
