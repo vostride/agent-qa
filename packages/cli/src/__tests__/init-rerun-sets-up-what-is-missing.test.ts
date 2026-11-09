@@ -70,6 +70,27 @@ function contents(root: string): Record<string, string> {
   return files
 }
 
+function recordingAnalytics(): {
+  sent: { name: string; properties: Record<string, unknown> }[]
+  composeAnalytics: typeof composeAnalyticsHost
+} {
+  const sent: { name: string; properties: Record<string, unknown> }[] = []
+  const composeAnalytics: typeof composeAnalyticsHost = async () =>
+    composeAnalyticsHost({
+      surface: 'cli',
+      env: {},
+      transportOverride: {
+        capture: (payload) => {
+          sent.push(payload.event as (typeof sent)[number])
+        },
+        flush: () => {},
+        shutdown: () => {},
+      },
+      resolveIdentity: async () => ({ distinctId: 'u_init-rerun', runtimeContext: 'user' }),
+    })
+  return { sent, composeAnalytics }
+}
+
 describe('a re-run of init in an initialized project', () => {
   it('draws the intro, a done validate step and the outro, and exits 0', async () => {
     const project = await initializedProject('rerun-validates')
@@ -131,22 +152,9 @@ describe('a re-run of init in an initialized project', () => {
     expect(doc.steps.at(-1)).toMatchObject({ name: 'validate', outcome: 'failed' })
   })
 
-  it('reports one agent-qa.init.completed event that reads unchanged', async () => {
+  it('reports one agent-qa.init.completed event with the rerun mode that reads unchanged', async () => {
     const project = await initializedProject('rerun-analytics')
-    const sent: { name: string; properties: Record<string, unknown> }[] = []
-    const composeAnalytics: typeof composeAnalyticsHost = async () =>
-      composeAnalyticsHost({
-        surface: 'cli',
-        env: {},
-        transportOverride: {
-          capture: (payload) => {
-            sent.push(payload.event as (typeof sent)[number])
-          },
-          flush: () => {},
-          shutdown: () => {},
-        },
-        resolveIdentity: async () => ({ distinctId: 'u_init-rerun', runtimeContext: 'user' }),
-      })
+    const { sent, composeAnalytics } = recordingAnalytics()
 
     const result = await rerun(project, ['--yes'], { hooks: { composeAnalytics } })
 
@@ -154,9 +162,26 @@ describe('a re-run of init in an initialized project', () => {
     const completed = sent.filter((event) => event.name === 'agent-qa.init.completed')
     expect(completed).toHaveLength(1)
     expect(completed[0]?.properties).toMatchObject({
+      init_mode: 'rerun',
       outcome: 'unchanged',
       created_file_count: 0,
     })
+    expect(typeof completed[0]?.properties.duration_ms).toBe('number')
+  })
+
+  it("reports the rerun mode with an updated outcome when a row restores init's block", async () => {
+    const project = await initializedProject('rerun-analytics-updated')
+    writeFileSync(join(project.root, '.gitignore'), 'dist/\n')
+    const { sent, composeAnalytics } = recordingAnalytics()
+
+    const result = await rerun(project, ['--yes'], { hooks: { composeAnalytics } })
+
+    expect(result.exit, result.stderr).toBe(0)
+    const completed = sent.filter((event) => event.name === 'agent-qa.init.completed')
+    const modes = completed.map(({ properties }) =>
+      [properties.init_mode, properties.outcome].map(String).join(' '),
+    )
+    expect(modes.join('|')).toBe('rerun updated')
   })
 })
 

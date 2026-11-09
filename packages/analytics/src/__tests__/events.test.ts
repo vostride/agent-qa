@@ -146,6 +146,19 @@ describe('no free text is representable', () => {
   })
 })
 
+describe("init's completed member", () => {
+  it("accepts a re-run's init mode and refuses a mode outside the enum", () => {
+    const event = (initMode: string) => ({
+      name: 'agent-qa.init.completed' as const,
+      properties: { agent_qa_version: '0.1.21', surface: 'cli' as const, init_mode: initMode },
+    })
+
+    expect(AgentQaAnalyticsEventSchema.safeParse(event('rerun')).success).toBe(true)
+    expect(AgentQaAnalyticsEventSchema.safeParse(event('scaffold')).success).toBe(true)
+    expect(AgentQaAnalyticsEventSchema.safeParse(event('repair')).success).toBe(false)
+  })
+})
+
 describe('every member REFUSES an unknown key (.strict, never .strip)', () => {
   it('a valid payload plus one unknown key fails to parse', () => {
     const valid = {

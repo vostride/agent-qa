@@ -1760,13 +1760,14 @@ skills/.staging/
       })
       expect(first[0]?.properties.created_file_count).toBeGreaterThan(0)
 
-      // The same directory again: the re-run validates the project and writes nothing, and that
-      // IS an init outcome, so it reports one with an unchanged outcome and nothing created.
+      // The same directory again: the re-run validates the project and writes nothing, and reports
+      // its own mode with an unchanged outcome and nothing created.
       sent.length = 0
       await runRealInit([])
       const second = sent.filter((event) => event.name === 'agent-qa.init.completed')
       expect(second).toHaveLength(1)
       expect(second[0]?.properties).toMatchObject({
+        init_mode: 'rerun',
         outcome: 'unchanged',
         created_file_count: 0,
       })
