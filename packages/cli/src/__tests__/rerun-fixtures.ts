@@ -130,7 +130,7 @@ async function runInit(
 
 export async function initializedProject(
   label: string,
-  { platform = 'web' }: { platform?: string } = {},
+  { platform = 'web', llm = 'gemini' }: { platform?: string; llm?: string } = {},
 ): Promise<InitializedProject> {
   const project = tempProject(label)
   const fresh = await runInit(
@@ -143,7 +143,7 @@ export async function initializedProject(
       '--agents',
       'none',
       '--llm',
-      'gemini',
+      llm,
       '--platform',
       platform,
     ],
