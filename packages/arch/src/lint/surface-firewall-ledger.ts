@@ -280,6 +280,12 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'config and suite validation reads resolved config directly; joins the config action class',
   },
   {
+    file: 'packages/cli/src/commands/web-placement.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: "doctor and the browsers row read where every web test runs from the workspace's test and suite files; joins the environment action class",
+  },
+  {
     // The one host loader for `workspace.secretsFile`, shared with `agent-qa run`.
     file: 'packages/cli/src/composition/declared-secrets.ts',
     specifier: '@vostride/agent-qa-core',

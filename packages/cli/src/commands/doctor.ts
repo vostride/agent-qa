@@ -1,9 +1,9 @@
 import { Command } from 'commander'
 import { execFileSync, execSync } from 'node:child_process'
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import pc from 'picocolors'
-import { parse as parseYaml } from 'yaml'
 import { loadConfigFile } from '../config.js'
 import { HARD_CUT_STEPS, INVALID_CONFIG_FIX, isHardCutIssue } from '../hard-cut.js'
 import {
@@ -25,13 +25,16 @@ import {
   type ResolvedWorkspacePaths,
 } from '@vostride/agent-qa-core'
 import { guardJsonText, isGitHubActions, printRunText } from '@vostride/agent-qa-core/run-text-output'
-import { isLoopbackHost } from '@vostride/agent-qa-schema'
 import { createModel, getProvider } from '@vostride/agent-qa-model'
-import type { ChromiumResolver } from './browser-resolver.js'
+import { findChromiumByDefault, type ChromiumResolver } from './browser-resolver.js'
 import { createKnowledgeChecks } from './doctor-knowledge-checks.js'
 import { createPluginChecks } from './doctor-plugin-checks.js'
 import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
 import { createRemoteChecks, listedRemotes } from './doctor-remote-checks.js'
+import { findProjectAgentQa } from './project-agent-qa.js'
+import { defaultProjectIo } from './project-host.js'
+import { projectRange } from './project-range.js'
+import { getTargetPlatforms, hasWebTarget, resolveWebPlacement, type WebPlacement } from './web-placement.js'
 import {
   composeRow,
   doctorDocument,
@@ -433,7 +436,24 @@ function checkLLMConnection(config: Record<string, unknown> | null, configPath?:
   }
 }
 
-function checkPlaywright(config: Record<string, unknown> | null, placement: WebPlacement): DoctorCheck {
+async function installedAgentQaDir(configPath: string): Promise<string | undefined> {
+  try {
+    const range = await projectRange(dirname(resolve(configPath)), {
+      homedir: homedir(),
+      io: defaultProjectIo,
+    })
+    return (await findProjectAgentQa(range, range.start, defaultProjectIo))?.realDir
+  } catch {
+    return undefined
+  }
+}
+
+function checkPlaywright(
+  config: Record<string, unknown> | null,
+  configPath: string,
+  placement: WebPlacement,
+  chromium: ChromiumResolver,
+): DoctorCheck {
   return {
     name: 'Playwright',
     fixInstructions: 'Run `npx agent-qa install-browsers --chromium`',
@@ -441,16 +461,15 @@ function checkPlaywright(config: Record<string, unknown> | null, placement: WebP
       if (placement.everyWebTestRemote) {
         return { status: 'skip', message: 'every web test runs on a remote' }
       }
-      if (!isWebPlatform(config)) {
+      if (!hasWebTarget(config)) {
         return { status: 'skip', message: 'not configured' }
       }
 
-      try {
-        execSync('npx playwright --version', { stdio: 'pipe' })
-        return { status: 'pass', message: 'installed' }
-      } catch {
-        return { status: 'fail', message: 'not installed' }
-      }
+      const projectAgentQaDir = await installedAgentQaDir(configPath)
+      const answer = chromium(projectAgentQaDir === undefined ? {} : { projectAgentQaDir })
+      return answer.found
+        ? { status: 'pass', message: 'Chromium found' }
+        : { status: 'fail', message: "no Chromium for agent-qa's Playwright" }
     },
   }
 }
@@ -643,96 +662,8 @@ function checkTestDiscovery(config: Record<string, unknown> | null, configPath: 
   }
 }
 
-// Helpers to detect platform from config
-function getTargets(config: Record<string, unknown> | null): Record<string, Record<string, unknown>> {
-  const registry = config?.registry as { targets?: Record<string, Record<string, unknown>> } | undefined
-  return registry?.targets
-    ?? (config?.targets as Record<string, Record<string, unknown>> | undefined)
-    ?? {}
-}
-
-function getTargetPlatforms(config: Record<string, unknown> | null): string[] {
-  return Object.values(getTargets(config)).map((t) => (t.platform as string) ?? 'web')
-}
-
-interface WebPlacement {
-  everyWebTestRemote: boolean
-  loopbackTargetsByRemote: ReadonlyMap<string, readonly string[]>
-}
-
-const LOCAL_PICK = 'local'
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function rawRemotePick(value: unknown): string | undefined {
-  const use = isRecord(value) ? value.use : undefined
-  const browser = isRecord(use) ? use.browser : undefined
-  const remote = isRecord(browser) ? browser.remote : undefined
-  return typeof remote === 'string' ? remote : undefined
-}
-
-// The host is read by pattern so a url with a templated port still counts.
-const URL_HOST = /^[a-z][a-z0-9+.-]*:\/\/(?:[^@/?#]*@)?(\[[^\]]*\]|[^:/?#]+)/i
-
-function loopbackWebTargets(config: Record<string, unknown> | null): Set<string> {
-  const names = new Set<string>()
-  for (const [name, target] of Object.entries(getTargets(config))) {
-    if (((target.platform as string | undefined) ?? 'web') !== 'web') continue
-    const host = typeof target.url === 'string' ? URL_HOST.exec(target.url)?.[1] : undefined
-    if (host !== undefined && isLoopbackHost(host)) names.add(name)
-  }
-  return names
-}
-
-async function readPlacedFiles(
-  workspace: ResolvedWorkspacePaths | undefined,
-): Promise<{ pick?: string; target?: string }[]> {
-  if (!workspace) return []
-  try {
-    const records = (await Promise.all([
-      discoverWorkspaceFiles({ workspace, kind: 'test' }),
-      discoverWorkspaceFiles({ workspace, kind: 'suite' }),
-    ])).flat()
-    return records.flatMap((record) => {
-      try {
-        const parsed: unknown = parseYaml(readFileSync(record.absolutePath, 'utf-8'))
-        const target = isRecord(parsed) && typeof parsed.target === 'string' ? parsed.target : undefined
-        return [{ pick: rawRemotePick(parsed), target }]
-      } catch {
-        return []
-      }
-    })
-  } catch {
-    return []
-  }
-}
-
-async function resolveWebPlacement(
-  config: Record<string, unknown> | null,
-  workspace: ResolvedWorkspacePaths | undefined,
-): Promise<WebPlacement> {
-  if (!config) return { everyWebTestRemote: false, loopbackTargetsByRemote: new Map() }
-  const configPick = rawRemotePick(config)
-  const files = await readPlacedFiles(workspace)
-  const loopbackTargets = loopbackWebTargets(config)
-  const loopbackTargetsByRemote = new Map<string, string[]>()
-  for (const file of files) {
-    if (file.target === undefined || !loopbackTargets.has(file.target)) continue
-    const remote = file.pick ?? configPick
-    if (remote === undefined || remote === LOCAL_PICK) continue
-    const targets = loopbackTargetsByRemote.get(remote) ?? []
-    if (!targets.includes(file.target)) targets.push(file.target)
-    loopbackTargetsByRemote.set(remote, targets)
-  }
-  return {
-    everyWebTestRemote:
-      configPick !== undefined
-      && configPick !== LOCAL_PICK
-      && !files.some((file) => file.pick === LOCAL_PICK),
-    loopbackTargetsByRemote,
-  }
 }
 
 function unknownRemoteSentence(name: string, config: Record<string, unknown> | null): string | undefined {
@@ -742,12 +673,6 @@ function unknownRemoteSentence(name: string, config: Record<string, unknown> | n
     ? 'registry.remotes lists no remotes.'
     : `registry.remotes lists: ${names.join(', ')}.`
   return `Unknown remote "${name}". ${listed}`
-}
-
-function isWebPlatform(config: Record<string, unknown> | null): boolean {
-  const platforms = getTargetPlatforms(config)
-  if (platforms.length === 0) return true // default
-  return platforms.some((p) => p === 'web')
 }
 
 function isMobilePlatform(config: Record<string, unknown> | null): boolean {
@@ -795,7 +720,8 @@ export interface DoctorCommandHooks {
   chromium?: ChromiumResolver
 }
 
-export function createDoctorCommand(_hooks: DoctorCommandHooks = {}): Command {
+export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
+  const chromium = hooks.chromium ?? findChromiumByDefault
   const cmd = new Command('doctor')
     .description('Validate environment and dependencies')
     .option('--remote <name>', 'Show only this remote among the remote rows')
@@ -846,7 +772,7 @@ export function createDoctorCommand(_hooks: DoctorCommandHooks = {}): Command {
         checkLLMApiKey(config, configPath),
         checkSubscriptionAuth(config, configPath),
         checkLLMConnection(config, configPath),
-        checkPlaywright(config, placement),
+        checkPlaywright(config, configPath, placement, chromium),
         ...createRemoteChecks({
           config,
           configPath,
