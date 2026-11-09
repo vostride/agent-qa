@@ -514,6 +514,13 @@ describe('a re-run with nothing to change, and its document', () => {
     expect(`${doc.outcome} ${doc.exitCode}`).toBe('done 0')
     expect(JSON.stringify(doc.setup ?? 'no setup')).toBe(
       JSON.stringify([
+        {
+          name: 'skills',
+          state: 'no coding agent chosen',
+          prechecked: false,
+          selected: false,
+          hidden: 'no coding agent chosen',
+        },
         { name: 'gitignore', state: 'block missing', prechecked: true, selected: true },
       ]),
     )
@@ -567,7 +574,7 @@ const FRESH_SETUP_LINE =
 const FORCE_SETUP_LINE =
   '--setup picks what a re-run of init sets up, and --force rebuilds everything. '
   + 'Use one of them.'
-const SETUP_NAMES_HINT = 'Use gitignore, all or none.'
+const SETUP_NAMES_HINT = 'Use skills, gitignore, all or none.'
 
 function refusalLines(stderr: string): string {
   return stripVTControlCharacters(stderr)

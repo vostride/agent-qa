@@ -1,12 +1,22 @@
+import { readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+
 import { Command } from 'commander'
 import { vi, type MockInstance } from 'vitest'
 
 import { runCli, type CliFailureDeps } from '../cli-error-handler.js'
+import type { CodingAgent } from '../commands/agent-setup.js'
 import { createInitCommand, type InitCommandHooks } from '../commands/init.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { createPlainUi } from '../init-ui/plain-ui.js'
 import { fakeInitUi, type FakeInitUiEntry } from './fake-init-ui.js'
-import { fakeRunner, tempProject, type FakeRunner } from './project-fixtures.js'
+import {
+  fakeRunner,
+  skillFolderFiles,
+  tempProject,
+  writeInstalledPackage,
+  type FakeRunner,
+} from './project-fixtures.js'
 
 const NODE = '/fake/node'
 
@@ -121,6 +131,42 @@ export async function initializedProject(label: string): Promise<InitializedProj
     throw new Error(`the fresh init exited ${fresh.exit}:\n${fresh.stderr}`)
   }
   return project
+}
+
+// The installed agent-qa ships these skills, each with one SKILL.md.
+export const INSTALLED_SKILLS = ['agent-qa-alpha', 'agent-qa-beta'] as const
+
+export function installAgentQaFixture(root: string, version: string): void {
+  const files: Record<string, string> = { 'dist/cli.js': '' }
+  for (const skill of INSTALLED_SKILLS) Object.assign(files, skillFolderFiles(skill))
+  writeInstalledPackage(root, 'agent-qa', version, {
+    packageJson: { bin: { 'agent-qa': 'dist/cli.js' } },
+    files,
+  })
+}
+
+// A fresh init with one coding agent, its skills taken from an installed agent-qa fixture.
+export async function initializedProjectWithAgent(
+  label: string,
+  agent: CodingAgent,
+  version: string,
+): Promise<InitializedProject> {
+  const project = tempProject(label)
+  installAgentQaFixture(project.root, version)
+  const fresh = await runInit(
+    project,
+    ['--yes', '--pm', 'none', '--no-browsers', '--agents', agent, '--llm', 'gemini'],
+    {},
+  )
+  if (fresh.exit !== 0) {
+    throw new Error(`the fresh init exited ${fresh.exit}:\n${fresh.stderr}`)
+  }
+  return project
+}
+
+export function editSkillFile(project: InitializedProject, path: string): void {
+  const file = join(project.root, path)
+  writeFileSync(file, `${readFileSync(file, 'utf-8')}\nMy own note.\n`)
 }
 
 export async function rerun(
