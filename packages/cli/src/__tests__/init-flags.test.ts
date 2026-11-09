@@ -115,6 +115,7 @@ describe('init --help', () => {
         '--no-browsers',
         '--no-dashboard',
         '--capabilities',
+        '--setup',
       ]),
     )
     expect(flags).not.toContain('--agent')

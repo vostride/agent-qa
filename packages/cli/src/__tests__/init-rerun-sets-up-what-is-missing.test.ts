@@ -535,3 +535,131 @@ describe('a re-run with nothing to change, and its document', () => {
     },
   )
 })
+
+const FRESH_SETUP_LINE =
+  '--setup picks what a re-run of init sets up, and this folder is not set up yet. '
+  + 'Run npx agent-qa init without --setup.'
+const FORCE_SETUP_LINE =
+  '--setup picks what a re-run of init sets up, and --force rebuilds everything. '
+  + 'Use one of them.'
+const SETUP_NAMES_HINT = 'Use gitignore, all or none.'
+
+function refusalLines(stderr: string): string {
+  return stripVTControlCharacters(stderr)
+    .split('\n')
+    .filter((line) => line !== '')
+    .join('|')
+}
+
+describe("--setup answers the re-run's menu", () => {
+  it('runs the named row whatever its pre-check, asks nothing and records it done', async () => {
+    const project = await initializedProject('rerun-setup-named')
+
+    const result = await rerun(project, ['--setup', 'gitignore'], asked)
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(menuOf(result.entries)?.text ?? 'no menu').toBe('no menu')
+    expect(result.entries).toContainEqual({
+      kind: 'done',
+      text: "gitignore: init's block is current",
+    })
+  })
+
+  it('with none runs no row, still prints the summary and validates, and changes no byte', async () => {
+    const project = await initializedProject('rerun-setup-none')
+    writeFileSync(gitignorePath(project.root), 'dist/\n')
+    const before = contents(project.root)
+
+    const result = await rerun(project, ['--setup', 'none'], asked)
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(menuOf(result.entries)?.text ?? 'no menu').toBe('no menu')
+    expect(summaryLines(result.entries)?.length ?? 0).toBeGreaterThan(0)
+    expect(result.entries).toContainEqual({ kind: 'skipped', text: 'gitignore: not selected' })
+    expect(result.entries).toContainEqual({
+      kind: 'done',
+      text: 'validate: the config and tests are valid',
+    })
+    expect(contents(project.root)).toEqual(before)
+  })
+
+  it('with all runs every shown row without asking', async () => {
+    const project = await initializedProject('rerun-setup-all')
+    const block = initBlock(project.root)
+    writeFileSync(gitignorePath(project.root), 'dist/\n')
+
+    const result = await rerun(project, ['--setup', 'all', '--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(readFileSync(gitignorePath(project.root), 'utf8')).toBe(`dist/\n\n${block}`)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.steps.map((step) => `${step.name} ${step.outcome}`)).toEqual([
+      'gitignore done',
+      'validate done',
+    ])
+  })
+
+  it('trims the spaces around a name', async () => {
+    const project = await initializedProject('rerun-setup-trims')
+
+    const result = await rerun(project, ['--setup', ' gitignore ', '--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.steps[0]).toEqual({ name: 'gitignore', outcome: 'done' })
+  })
+
+  it.each([
+    ['bogus', `Unknown setup row "bogus". ${SETUP_NAMES_HINT}`],
+    ['all,gitignore', `--setup all cannot be combined with other rows. ${SETUP_NAMES_HINT}`],
+    ['none,gitignore', `--setup none cannot be combined with other rows. ${SETUP_NAMES_HINT}`],
+  ])('refuses --setup %s with one line, exit 2, drawing and writing nothing', async (value, line) => {
+    const project = await initializedProject('rerun-setup-refused')
+    writeFileSync(gitignorePath(project.root), 'dist/\n')
+    const before = contents(project.root)
+
+    const result = await rerun(project, ['--setup', value], asked)
+
+    expect(result.exit).toBe(2)
+    expect(refusalLines(result.stderr)).toBe(line)
+    expect(result.entries).toEqual([])
+    expect(contents(project.root)).toEqual(before)
+  })
+})
+
+describe('a misplaced --setup', () => {
+  it('on a folder with no config is refused with one line, exit 2, writing nothing', async () => {
+    const project = tempProject('fresh-setup-refused')
+
+    const result = await rerun(project, ['--setup', 'gitignore'], asked)
+
+    expect(result.exit).toBe(2)
+    expect(refusalLines(result.stderr)).toBe(FRESH_SETUP_LINE)
+    expect(readdirSync(project.root)).toEqual(['.git'])
+  })
+
+  it('on a folder with no config under --json prints a refused document with that line', async () => {
+    const project = tempProject('fresh-setup-refused-json')
+
+    const result = await rerun(project, ['--setup', 'gitignore', '--json'], { plain: true })
+
+    expect(result.exit).toBe(2)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(`${doc.outcome} ${doc.exitCode} ${doc.message ?? 'no message'}`).toBe(
+      `refused 2 ${FRESH_SETUP_LINE}`,
+    )
+    expect(readdirSync(project.root)).toEqual(['.git'])
+  })
+
+  it('with --force is refused with one line, exit 2, before anything is written', async () => {
+    const project = await initializedProject('rerun-setup-force')
+    writeFileSync(gitignorePath(project.root), 'dist/\n')
+    const before = contents(project.root)
+
+    const result = await rerun(project, ['--setup', 'gitignore', '--force'], asked)
+
+    expect(result.exit).toBe(2)
+    expect(refusalLines(result.stderr)).toBe(FORCE_SETUP_LINE)
+    expect(contents(project.root)).toEqual(before)
+  })
+})
