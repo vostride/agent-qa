@@ -1,5 +1,6 @@
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { stripVTControlCharacters } from 'node:util'
 
 import { getAuthPath } from '@vostride/agent-qa-core'
 import { parse, parseDocument } from 'yaml'
@@ -337,7 +338,7 @@ describe('--platform on a re-run', () => {
     const result = await rerun(project, ['--platform', 'web'])
 
     expect(result.exit).toBe(2)
-    expect(result.stderr.trim().split('\n')).toEqual([PLATFORM_LINE])
+    expect(stripVTControlCharacters(result.stderr).trim().split('\n')).toEqual([PLATFORM_LINE])
     expect(result.entries).toEqual([])
     expect(configText(project)).toBe(before)
   })
