@@ -67,7 +67,7 @@ vi.mock('@vostride/agent-qa-core', async () => {
             error: { issues: [{ path: ['workspace', 'secretsFile'], message: 'Invalid input: expected string' }] },
           }
         }
-        return { success: true }
+        return { success: true, data: config }
       }),
     },
     getCredential: vi.fn(() => null),

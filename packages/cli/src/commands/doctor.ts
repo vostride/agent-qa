@@ -589,9 +589,12 @@ function checkXcode(config: Record<string, unknown> | null, skips: DeviceToolSki
       }
 
       try {
-        execSync('xcrun simctl list', { stdio: 'pipe' })
+        execSync('xcrun simctl list', { stdio: 'pipe', timeout: 10_000 })
         return { status: 'pass', message: 'simctl available' }
-      } catch {
+      } catch (error) {
+        if ((error as { code?: unknown }).code === 'ETIMEDOUT') {
+          return { status: 'fail', message: 'xcrun simctl did not answer within 10 s' }
+        }
         return { status: 'fail', message: 'simctl not available' }
       }
     },

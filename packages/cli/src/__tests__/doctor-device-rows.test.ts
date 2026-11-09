@@ -204,7 +204,9 @@ describe("doctor's device rows", () => {
   it('passes a profile on a remote with its remote, never warning or failing', async () => {
     const { list } = lister({ attached: [], avds: [] })
     const rows = await doctorRows(
-      projectConfig({ 'galaxy-farm': { platform: 'android', model: 'Galaxy S24', remote: 'farm' } }),
+      projectConfig({
+        'galaxy-farm': { platform: 'android', model: 'Galaxy S24', remote: 'farm' },
+      }),
       { listDevicesHere: list },
     )
 

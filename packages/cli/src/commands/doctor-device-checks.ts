@@ -1,4 +1,9 @@
-import type { AgentQaConfig } from '@vostride/agent-qa-core'
+import {
+  AgentQaConfigSchema,
+  type AgentQaConfig,
+  type AndroidHere,
+  type IOSHere,
+} from '@vostride/agent-qa-core'
 
 import type { CheckResult, DoctorCheck } from './doctor.js'
 import type { DevicePlaceView, DevicesHereLister } from './run.js'
@@ -25,6 +30,22 @@ function profileNames(config: Record<string, unknown> | null): string[] {
   return isRecord(devices) ? Object.keys(devices) : []
 }
 
+const NOTHING_LISTED: { readonly android: AndroidHere; readonly ios: IOSHere } = {
+  android: { attached: [], avds: [] },
+  ios: { simulators: [] },
+}
+
+// A platform no local profile runs on answers its empty listing, so its tools are never asked.
+function listingOnlyWhereNeeded(config: AgentQaConfig, list: DevicesHereLister): DevicesHereLister {
+  const needed = new Set(
+    Object.values(config.registry?.devices ?? {})
+      .filter((profile) => profile.remote === undefined)
+      .map((profile) => profile.platform),
+  )
+  return async (platform) =>
+    needed.has(platform) ? await list(platform) : NOTHING_LISTED[platform]
+}
+
 function placeResult(place: DevicePlaceView, text: string): CheckResult {
   if ('notHere' in place) return { status: 'warn', message: text, fix: DEVICE_FIX }
   return { status: 'pass', message: text }
@@ -37,7 +58,9 @@ async function placeResults(
 ): Promise<Map<string, CheckResult>> {
   try {
     const { describeDevices, placeText } = await import('./run.js')
-    const view = await describeDevices(config, { listDevicesHere: list })
+    const view = await describeDevices(config, {
+      listDevicesHere: listingOnlyWhereNeeded(config, list),
+    })
     return new Map(view.devices.map((place) => [place.name, placeResult(place, placeText(place))]))
   } catch (error) {
     const reason = error instanceof Error ? error.message : String(error)
@@ -54,10 +77,20 @@ async function placeResults(
 export function createDeviceChecks(input: DeviceChecksInput): DoctorCheck[] {
   const names = profileNames(input.config)
   if (names.length === 0) return []
+  const parsed = AgentQaConfigSchema.safeParse(input.config)
+  if (!parsed.success) {
+    return [
+      {
+        name: 'Devices',
+        fixInstructions: DEVICE_FIX,
+        check: async () => ({ status: 'skip', message: 'the config is not valid' }),
+      },
+    ]
+  }
+  const config = parsed.data as AgentQaConfig
   const list = input.listDevicesHere ?? listDevicesHereByDefault
   let results: Promise<Map<string, CheckResult>> | undefined
-  const shared = () =>
-    (results ??= placeResults(input.config as unknown as AgentQaConfig, names, list))
+  const shared = () => (results ??= placeResults(config, names, list))
   return names.map((name) => ({
     name: `Device ${name}`,
     fixInstructions: DEVICE_FIX,
