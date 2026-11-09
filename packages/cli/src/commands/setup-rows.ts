@@ -1,5 +1,8 @@
 import { join } from 'node:path'
 
+import pc from 'picocolors'
+
+import { CliRefusal } from '../composition/cli-refusal.js'
 import {
   TARGET_GITIGNORE_PROBES,
   upsertManagedGitignoreBlock,
@@ -13,6 +16,35 @@ import { buildGitignoreEntries, managedGitignoreContent } from './scaffold-conte
 // Every row this build has, in menu order.
 export const SETUP_ROW_NAMES = ['gitignore'] as const
 export type SetupRowName = (typeof SETUP_ROW_NAMES)[number]
+
+export type SetupSelection =
+  { kind: 'all' } | { kind: 'none' } | { kind: 'names'; names: SetupRowName[] }
+
+const SETUP_NAMES_HINT = `Use ${[...SETUP_ROW_NAMES, 'all'].join(', ')} or none.`
+
+function isSetupRowName(name: string): name is SetupRowName {
+  return (SETUP_ROW_NAMES as readonly string[]).includes(name)
+}
+
+export function parseSetupFlag(value: string): SetupSelection {
+  const names = value.split(',').map((name) => name.trim())
+  for (const name of names) {
+    if (name !== 'all' && name !== 'none' && !isSetupRowName(name)) {
+      throw new CliRefusal([pc.red(`Unknown setup row "${name}". ${SETUP_NAMES_HINT}`)], 2)
+    }
+  }
+  for (const word of ['all', 'none'] as const) {
+    if (!names.includes(word)) continue
+    if (names.length > 1) {
+      throw new CliRefusal(
+        [pc.red(`--setup ${word} cannot be combined with other rows. ${SETUP_NAMES_HINT}`)],
+        2,
+      )
+    }
+    return { kind: word }
+  }
+  return { kind: 'names', names: [...new Set(names.filter(isSetupRowName))] }
+}
 
 export interface SetupRowState {
   name: SetupRowName

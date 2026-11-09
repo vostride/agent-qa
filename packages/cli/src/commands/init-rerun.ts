@@ -24,9 +24,11 @@ import { SUBSCRIPTION_AUTH_PACKAGE } from './scaffold-content.js'
 import {
   SETUP_ROW_RUNS,
   checkSetupRows,
+  parseSetupFlag,
   setupRowLabel,
   type SetupRowName,
   type SetupRowState,
+  type SetupSelection,
 } from './setup-rows.js'
 
 export interface InitRerunOptions {
@@ -39,6 +41,7 @@ export interface InitRerunOptions {
   pm?: string
   yes?: boolean
   json?: boolean
+  setup?: string
 }
 
 export interface InitRerunInput {
@@ -147,7 +150,14 @@ async function chooseRows(
   ui: InitUi,
   ask: boolean,
   shown: readonly SetupRowState[],
+  flagged: SetupSelection | undefined,
 ): Promise<SetupRowName[]> {
+  if (flagged !== undefined) {
+    if (flagged.kind === 'none') return []
+    return shown
+      .map((row) => row.name)
+      .filter((name) => flagged.kind === 'all' || flagged.names.includes(name))
+  }
   const prechecked = shown.filter((row) => row.prechecked).map((row) => row.name)
   if (!ask) return prechecked
   const width = Math.max(...shown.map((row) => row.name.length))
@@ -160,6 +170,7 @@ async function chooseRows(
 }
 
 export async function runInitRerun(input: InitRerunInput): Promise<void> {
+  const flagged = input.opts.setup === undefined ? undefined : parseSetupFlag(input.opts.setup)
   // A malformed manifest or managed block is refused here, before anything is drawn or written.
   const manifest = readAgentSetupManifest(input.dir)
   const agents = manifest?.agents ?? []
@@ -179,7 +190,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   if (input.mode !== 'plain') ui.banner()
   ui.intro()
   ui.summary('This project', summary)
-  const selected = await chooseRows(ui, input.mode === 'interactive', shown)
+  const selected = await chooseRows(ui, input.mode === 'interactive', shown, flagged)
   input.recorder.setup(
     rows.map((row) => ({
       name: row.name,

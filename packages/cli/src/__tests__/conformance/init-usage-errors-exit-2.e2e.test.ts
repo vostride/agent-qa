@@ -109,9 +109,7 @@ describe('init usage errors', () => {
           steps: [],
           message: FRESH_SETUP_LINE,
         })
-        expect(stripVTControlCharacters(outcome.stderr), args.join(' ')).toContain(
-          FRESH_SETUP_LINE,
-        )
+        expect(stripVTControlCharacters(outcome.stderr), args.join(' ')).toContain(FRESH_SETUP_LINE)
         expect(readdirSync(outcome.root), args.join(' ')).toEqual([])
       }
     },

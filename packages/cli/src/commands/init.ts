@@ -704,6 +704,13 @@ function dashboardStepResult(result: RunResult, execPath: string): InitStepResul
   )
 }
 
+const SETUP_ON_FRESH_LINE =
+  '--setup picks what a re-run of init sets up, and this folder is not set up yet. '
+  + 'Run npx agent-qa init without --setup.'
+const SETUP_WITH_FORCE_LINE =
+  '--setup picks what a re-run of init sets up, and --force rebuilds everything. '
+  + 'Use one of them.'
+
 export function createInitCommand(hooks: InitCommandHooks = {}): Command {
   let documentWritten = false
   const writeDocument = (doc: InitDocument): void => {
@@ -735,6 +742,10 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
     .option('--no-browsers', 'do not download Chromium for web targets')
     .option('--no-dashboard', 'do not start the dashboard at the end')
     .option('--force', 'overwrite existing files')
+    .option(
+      '--setup <list>',
+      'on an initialized project, the setup rows to run: names separated by commas, all or none',
+    )
     .addOption(
       new Option(
         '--pm <name>',
@@ -951,6 +962,12 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           (await shownOutput(text, maskInstallOutput, Number.MAX_SAFE_INTEGER)).join('\n')
 
         const configClassification = classifyInitPath(configPath, dir)
+        if (opts.setup !== undefined && force) {
+          throw new CliRefusal([pc.red(SETUP_WITH_FORCE_LINE)], 2)
+        }
+        if (opts.setup !== undefined && configClassification !== 'regular') {
+          throw new CliRefusal([pc.red(SETUP_ON_FRESH_LINE)], 2)
+        }
         if (configClassification === 'regular' && !force) {
           await runInitRerun({
             dir,
