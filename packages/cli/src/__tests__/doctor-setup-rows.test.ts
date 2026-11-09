@@ -227,7 +227,11 @@ describe("doctor's coding agent rows", () => {
 
   it('warns the AGENTS.md block when the block was edited', async () => {
     const project = await projectWithBothAgents('doctor-block-edited')
-    write(project, 'AGENTS.md', read(project, 'AGENTS.md').replace(BLOCK_END, `My note.\n${BLOCK_END}`))
+    write(
+      project,
+      'AGENTS.md',
+      read(project, 'AGENTS.md').replace(BLOCK_END, `My note.\n${BLOCK_END}`),
+    )
 
     const rows = await doctorRows(project)
 
@@ -294,7 +298,11 @@ describe("doctor's coding agent rows", () => {
     const project = await projectWithBothAgents('doctor-writes-nothing')
     editSkillFile(project, CODEX_ALPHA)
     write(project, '.codex/config.toml', '# my own settings\n')
-    write(project, 'AGENTS.md', read(project, 'AGENTS.md').replace(BLOCK_END, `My note.\n${BLOCK_END}`))
+    write(
+      project,
+      'AGENTS.md',
+      read(project, 'AGENTS.md').replace(BLOCK_END, `My note.\n${BLOCK_END}`),
+    )
     const before = snapshot(project.root)
 
     const rows = await doctorRows(project)
@@ -422,7 +430,9 @@ describe("doctor's scaffold file rows", () => {
     for (const name of ['Secrets file', 'Workspace files']) {
       const found = row(rows, name) as Row
       expect(found.status, name).toBe('fail')
-      expect(found.fix, name).toContain('Run `npx agent-qa init --setup scaffold` to write the missing file')
+      expect(found.fix, name).toContain(
+        'Run `npx agent-qa init --setup scaffold` to write the missing file',
+      )
     }
   })
 })

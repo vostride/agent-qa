@@ -24,6 +24,7 @@ import { readAgentSetupManifest } from './agent-setup-manifest.js'
 import { versionMove, type VersionMove } from './agent-qa-upgrade.js'
 import type { ChromiumResolver } from './browser-resolver.js'
 import { INIT_AGENT_OPTIONS } from './init-agents.js'
+import { isSubscriptionModel } from './init-model-choice.js'
 import {
   KNOWLEDGE_GITIGNORE_PROBES,
   TARGET_GITIGNORE_PROBES,
@@ -173,6 +174,35 @@ export interface ProjectPackages {
   plugins: readonly { package?: unknown }[]
 }
 
+function asObject(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined
+}
+
+// Read from the config as written; one that does not parse names agent-qa alone.
+export function configuredPackages(text: string | undefined): ProjectPackages {
+  let config: Record<string, unknown> | undefined
+  try {
+    config = asObject(parse(text ?? '', { logLevel: 'error' }))
+  } catch {
+    config = undefined
+  }
+  const llms = asObject(config?.registry)?.llms
+  const plugins = config?.plugins
+  return {
+    usesSubscription:
+      Array.isArray(llms) &&
+      llms.some((llm) => isSubscriptionModel(String(asObject(llm)?.provider))),
+    plugins: Array.isArray(plugins)
+      ? plugins.flatMap((plugin: unknown): Record<string, unknown>[] => {
+          const entry = asObject(plugin)
+          return entry === undefined ? [] : [entry]
+        })
+      : [],
+  }
+}
+
 export interface DepsPackage {
   name: string
   declared: boolean
@@ -186,7 +216,7 @@ export type DepsRowState = SetupRowState & {
   move?: VersionMove
 }
 
-function packageLabel(name: string): string {
+export function packageLabel(name: string): string {
   if (name === SUBSCRIPTION_AUTH_PACKAGE) return 'subscription plugin'
   const plugin = /^@vostride\/agent-qa-plugin-(.+)$/u.exec(name)?.[1]
   return plugin === undefined ? name : `${plugin} plugin`

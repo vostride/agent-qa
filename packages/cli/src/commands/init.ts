@@ -4,7 +4,6 @@ import { basename, dirname, join, relative, sep } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 import pc from 'picocolors'
 import type { Readable, Writable } from 'node:stream'
-import { parse as parseYaml } from 'yaml'
 import {
   DEFAULT_AGENT_QA_AUTH_STATES_DIR,
   DEFAULT_AGENT_QA_CACHE_DIR,
@@ -108,6 +107,7 @@ import {
   type InitStepRunner,
 } from './init-steps.js'
 import { runInitRerun } from './init-rerun.js'
+import { configuredPackages } from './setup-rows.js'
 import { askLatestVersionByDefault, type LatestVersionAsk } from './latest-version-ask.js'
 import { findChromiumByDefault, type ChromiumResolver } from './browser-resolver.js'
 import {
@@ -454,39 +454,6 @@ function configuredLlms(config: Record<string, unknown>): InitLLMConfig[] {
 
 function usesSubscriptionModel(config: Record<string, unknown>): boolean {
   return configuredLlms(config).some(llm => isSubscriptionProvider(String(llm.provider)))
-}
-
-function asObject(value: unknown): Record<string, unknown> | undefined {
-  return value !== null && typeof value === 'object' && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : undefined
-}
-
-// The packages an upgrade bumps, read from the config as written; one that does not parse names
-// agent-qa alone.
-function configuredPackages(text: string | undefined): {
-  usesSubscription: boolean
-  plugins: readonly { package?: unknown }[]
-} {
-  let config: Record<string, unknown> | undefined
-  try {
-    config = asObject(parseYaml(text ?? '', { logLevel: 'error' }))
-  } catch {
-    config = undefined
-  }
-  const llms = asObject(config?.registry)?.llms
-  const plugins = config?.plugins
-  return {
-    usesSubscription:
-      Array.isArray(llms) &&
-      llms.some(llm => isSubscriptionProvider(String(asObject(llm)?.provider))),
-    plugins: Array.isArray(plugins)
-      ? plugins.flatMap((plugin: unknown): Record<string, unknown>[] => {
-        const entry = asObject(plugin)
-        return entry === undefined ? [] : [entry]
-      })
-      : [],
-  }
 }
 
 // A refusal exits 2 with its message alone; a bug or a prompt cancel passes through unchanged.

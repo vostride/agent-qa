@@ -207,13 +207,24 @@ afterEach(() => {
   chromiumAnswer = CHROMIUM_FOUND
 })
 
+// node:fs is mocked here, so the setup rows read a project with no package.json and nothing installed.
+const NO_PROJECT_HOST: NonNullable<DoctorCommandHooks['host']> = {
+  homedir: '/home/doctor',
+  env: {},
+  io: {
+    exists: () => false,
+    readText: () => undefined,
+    realpath: async (path) => path,
+  },
+}
+
 async function runDoctor(parentConfig?: string, ...args: string[]): Promise<void> {
   consoleLogs.length = 0
   process.exitCode = 0
 
   const parent = new Command()
   if (parentConfig) parent.setOptionValue('config', parentConfig)
-  parent.addCommand(createDoctorCommand({ chromium, daemon, listDevicesHere }))
+  parent.addCommand(createDoctorCommand({ chromium, daemon, listDevicesHere, host: NO_PROJECT_HOST }))
   await parent.parseAsync(['node', 'test', 'doctor', ...args])
 }
 
@@ -490,7 +501,8 @@ use:
 
     const output = getOutput()
     expect(output).toContain('Missing required workspace config key: workspace.secretsFile')
-    expect(output).toContain('Set workspace.secretsFile')
+    expect(fixUnder('Secrets file')).toContain('Set the workspace key the message names')
+    expect(fixUnder('Secrets file')).toContain('`npx agent-qa init --setup scaffold`')
   })
 
   it('LLM credential checks resolve by config name without env-var fallback output', async () => {

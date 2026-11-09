@@ -19,6 +19,7 @@ import { loadProviderPluginsForRawConfig } from '../provider-plugins.js'
 import {
   discoverWorkspaceFiles,
   formatAppiumInstallGuidance,
+  getAgentQaVersion,
   pluginsAddLine,
   resolveAppiumExecutable,
   resolveWorkspacePaths,
@@ -34,7 +35,7 @@ import { createKnowledgeChecks } from './doctor-knowledge-checks.js'
 import { createPluginChecks } from './doctor-plugin-checks.js'
 import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
 import { createRemoteChecks, listedRemotes } from './doctor-remote-checks.js'
-import { createSetupChecks } from './doctor-setup-checks.js'
+import { createSetupChecks, projectAgentQaVersion } from './doctor-setup-checks.js'
 import { findProjectAgentQa } from './project-agent-qa.js'
 import { defaultProjectIo, type ProjectHost } from './project-host.js'
 import { projectRange } from './project-range.js'
@@ -223,10 +224,15 @@ function checkConfigValidation(
   return row
 }
 
+// A workspace key the config lacks is set by hand before scaffold can write its file.
+const WORKSPACE_KEY_FIX =
+  'Set the workspace key the message names in agent-qa.config.yaml (workspace.secretsFile, workspace.hooksFile or workspace.envFile), then run `npx agent-qa init --setup scaffold` to write the missing file.'
+
 function checkSecretsFile(config: Record<string, unknown> | null, configPath: string): DoctorCheck {
   return {
     name: 'Secrets file',
-    fixInstructions: 'Set workspace.secretsFile in agent-qa.config.yaml and create the file. It may be empty, but it must exist.',
+    fixInstructions:
+      'Run `npx agent-qa init --setup scaffold` to write the missing file at workspace.secretsFile. It may be empty, but it must exist.',
     check: async () => {
       if (!config) {
         return { status: 'skip', message: 'no config' }
@@ -234,7 +240,7 @@ function checkSecretsFile(config: Record<string, unknown> | null, configPath: st
 
       const resolved = resolveDoctorWorkspace(config, configPath)
       if (!resolved.ok) {
-        return { status: 'fail', message: resolved.error }
+        return { status: 'fail', message: resolved.error, fix: WORKSPACE_KEY_FIX }
       }
 
       if (!existsSync(resolved.workspace.secretsFile.absolutePath)) {
@@ -249,7 +255,8 @@ function checkSecretsFile(config: Record<string, unknown> | null, configPath: st
 function checkWorkspaceSupportFiles(config: Record<string, unknown> | null, configPath: string): DoctorCheck {
   return {
     name: 'Workspace files',
-    fixInstructions: 'Create the files configured by workspace.hooksFile and workspace.envFile.',
+    fixInstructions:
+      'Run `npx agent-qa init --setup scaffold` to write the missing file at workspace.hooksFile or workspace.envFile.',
     check: async () => {
       if (!config) {
         return { status: 'skip', message: 'no config' }
@@ -257,7 +264,7 @@ function checkWorkspaceSupportFiles(config: Record<string, unknown> | null, conf
 
       const resolved = resolveDoctorWorkspace(config, configPath)
       if (!resolved.ok) {
-        return { status: 'fail', message: resolved.error }
+        return { status: 'fail', message: resolved.error, fix: WORKSPACE_KEY_FIX }
       }
 
       const missing = [
@@ -765,6 +772,8 @@ export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
       const workspace = resolved?.ok ? resolved.workspace : undefined
       const placement = await resolveWebPlacement(config, workspace)
       const skips = deviceToolSkips(config)
+      const setup = { configPath, host: hooks.host ?? {}, runningVersion: getAgentQaVersion().trim() }
+      const agentQaVersion = await projectAgentQaVersion(setup)
       const doorFlags = this.parent?.opts<Parameters<typeof doorLogLevel>[0]>() ?? {}
       const debugLog = pluginDebugLog(doorLogLevel(doorFlags, config))
 
@@ -779,7 +788,7 @@ export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
           ...(hooks.daemon === undefined ? {} : { probes: { inspectDaemon: hooks.daemon } }),
         }),
         checkConfigValidation(config, configPath),
-        ...createSetupChecks({ configPath, host: hooks.host ?? {} }),
+        ...createSetupChecks(setup),
         checkSecretsFile(config, configPath),
         checkWorkspaceSupportFiles(config, configPath),
         checkDocker(),
@@ -801,6 +810,7 @@ export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
           configPath,
           secretsFile: workspace?.secretsFile,
           only: options.remote,
+          agentQaVersion,
           ...(debugLog === undefined ? {} : { debugLog }),
         }),
         checkAppium(config, configPath, skips),

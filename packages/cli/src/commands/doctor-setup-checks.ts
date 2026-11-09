@@ -3,21 +3,31 @@ import { dirname, resolve } from 'node:path'
 import { AGENT_MCP_FILES, CODING_AGENTS, type CodingAgent } from './agent-setup.js'
 import { AGENT_SETUP_MANIFEST_PATH, readAgentSetupManifest } from './agent-setup-manifest.js'
 import type { CheckResult, DoctorCheck } from './doctor.js'
+import { readProjectPackageJson } from './package-json-plan.js'
+import { installedPackageVersion } from './package-install.js'
+import { declaredAgentQaVersion } from './project-agent-qa.js'
 import { projectHost, type ProjectHost } from './project-host.js'
+import { projectRange, type ProjectRange } from './project-range.js'
 import {
   agentLabel,
   checkAgentRows,
+  checkDepsRow,
+  configuredPackages,
+  packageLabel,
   skillsState,
   type AgentRowsCheck,
+  type DepsRowState,
   type SetupRowName,
 } from './setup-rows.js'
 
 export interface SetupChecksInput {
   configPath: string
   host: Partial<ProjectHost>
+  // The agent-qa running doctor, which may be another copy than the project's.
+  runningVersion: string
 }
 
-function setupFix(row: SetupRowName): string {
+function setupFix(row: SetupRowName | 'deps,skills'): string {
   return `Run \`npx agent-qa init --setup ${row}\`.`
 }
 
@@ -32,9 +42,7 @@ function oneLine(error: unknown): string {
 }
 
 function changed(wouldChange: boolean, message: string, row: SetupRowName): CheckResult {
-  return wouldChange
-    ? { status: 'warn', message, fix: setupFix(row) }
-    : { status: 'pass', message }
+  return wouldChange ? { status: 'warn', message, fix: setupFix(row) } : { status: 'pass', message }
 }
 
 function mcpMessage(agent: CodingAgent, rows: AgentRowsCheck): string {
@@ -45,18 +53,113 @@ function mcpMessage(agent: CodingAgent, rows: AgentRowsCheck): string {
   return 'current'
 }
 
+interface ProjectInstall {
+  range: ProjectRange
+  packageJson: { path: string; text: string | undefined }
+  agentQa: string | undefined
+}
+
+async function projectInstall(configPath: string, host: ProjectHost): Promise<ProjectInstall> {
+  const range = await projectRange(dirname(configPath), host)
+  const packageJson = readProjectPackageJson(range, host.io)
+  const fromDir = packageJson.text === undefined ? range.start : dirname(packageJson.path)
+  const installed = installedPackageVersion(range, fromDir, 'agent-qa', host.io)
+  return { range, packageJson, agentQa: typeof installed === 'string' ? installed : undefined }
+}
+
+// The project's installed agent-qa, else the running one; the plugin rows compare against it.
+export async function projectAgentQaVersion(input: SetupChecksInput): Promise<string> {
+  try {
+    const install = await projectInstall(resolve(input.configPath), projectHost(input.host))
+    return install.agentQa ?? input.runningVersion
+  } catch {
+    return input.runningVersion
+  }
+}
+
+// The deps row's own report of what the project declares and has installed, at its version.
+async function projectPackages(
+  input: SetupChecksInput,
+  configPath: string,
+  host: ProjectHost,
+): Promise<DepsRowState> {
+  const { range, packageJson, agentQa } = await projectInstall(configPath, host)
+  const version = agentQa ?? declaredAgentQaVersion(packageJson.text) ?? input.runningVersion
+  return checkDepsRow({
+    range,
+    packageJson,
+    config: configuredPackages(host.io.readText(configPath)),
+    version,
+    from: version,
+    io: host.io,
+  })
+}
+
+function versionsResult(
+  deps: DepsRowState,
+  skills: string | undefined,
+  running: string,
+): CheckResult {
+  const agentQa = deps.packages.find((pkg) => pkg.name === 'agent-qa')
+  if (agentQa?.declared === true && agentQa.installed === undefined) {
+    return { status: 'fail', message: 'agent-qa declared, not installed', fix: setupFix('deps') }
+  }
+  const project = agentQa?.installed ?? running
+  const installedPlugins = deps.packages.flatMap((pkg) =>
+    pkg.name === 'agent-qa' || pkg.installed === undefined
+      ? []
+      : [{ label: packageLabel(pkg.name), version: pkg.installed }],
+  )
+  const message = [
+    ['agent-qa', project],
+    ...(skills === undefined ? [] : [['skills', skills]]),
+    ...installedPlugins.map((plugin) => [plugin.label, plugin.version]),
+    ...(running === project ? [] : [['this agent-qa', running]]),
+  ]
+    .map((part) => part.join(' '))
+    .join(', ')
+  const packageDiffers = installedPlugins.some((plugin) => plugin.version !== project)
+  const skillsDiffer = skills !== undefined && skills !== project
+  if (packageDiffers) {
+    return { status: 'warn', message, fix: setupFix(skillsDiffer ? 'deps,skills' : 'deps') }
+  }
+  if (skillsDiffer) return { status: 'warn', message, fix: setupFix('skills') }
+  return { status: 'pass', message }
+}
+
+function versionsCheck(
+  input: SetupChecksInput,
+  configPath: string,
+  host: ProjectHost,
+  skills: string | undefined,
+): DoctorCheck {
+  return {
+    name: 'agent-qa versions',
+    fixInstructions: setupFix('deps'),
+    check: async () => {
+      let deps: DepsRowState
+      try {
+        deps = await projectPackages(input, configPath, host)
+      } catch (error) {
+        return { status: 'warn', message: oneLine(error), fix: refusedFix('deps') }
+      }
+      return versionsResult(deps, skills, input.runningVersion)
+    },
+  }
+}
+
 // The project folder is the config's, where init sets up the coding agents. Every agent row reads
 // one dry run of the installer, the same one the re-run's menu pre-checks with.
 export function createSetupChecks(input: SetupChecksInput): DoctorCheck[] {
   const host = projectHost(input.host)
   const configPath = resolve(input.configPath)
   const projectDir = dirname(configPath)
-  let agents: CodingAgent[]
+  let manifest: ReturnType<typeof readAgentSetupManifest>
   try {
-    const setUp = readAgentSetupManifest(projectDir)?.agents ?? []
-    agents = CODING_AGENTS.filter((agent) => setUp.includes(agent))
+    manifest = readAgentSetupManifest(projectDir)
   } catch (error) {
     return [
+      versionsCheck(input, configPath, host, undefined),
       {
         name: 'Coding agents',
         fixInstructions: MANIFEST_FIX,
@@ -64,8 +167,11 @@ export function createSetupChecks(input: SetupChecksInput): DoctorCheck[] {
       },
     ]
   }
+  const versions = versionsCheck(input, configPath, host, manifest?.version)
+  const agents = CODING_AGENTS.filter((agent) => manifest?.agents.includes(agent) === true)
   if (agents.length === 0) {
     return [
+      versions,
       {
         name: 'Coding agents',
         fixInstructions: setupFix('skills'),
@@ -96,6 +202,7 @@ export function createSetupChecks(input: SetupChecksInput): DoctorCheck[] {
   })
 
   return [
+    versions,
     ...agents.map((agent) =>
       row(`Skills (${agentLabel(agent)})`, 'skills', (rows) =>
         changed(

@@ -25,6 +25,7 @@ export interface PluginChecksInput {
   checkTimeoutMs?: number
   // Given only at debug level; the host masks and names each line first.
   debugLog?: (line: string) => void
+  // The project's installed agent-qa, which first-party plugins must match; else the running one.
   agentQaVersion?: string
 }
 
@@ -36,6 +37,8 @@ interface PluginRemote {
 
 const PLUGIN_FIX =
   'Check the entry under plugins in agent-qa.config.yaml; `npx agent-qa plugins describe <name>` shows what it takes.'
+// init's deps row declares and installs the first-party packages the config needs.
+const DEPS_FIX = 'Run `npx agent-qa init --setup deps`.'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -124,7 +127,7 @@ async function accountCheck(
   const pool = createPluginHostPool({
     configDir: input.configDir,
     plugins: [entry],
-    agentQaVersion: getAgentQaVersion(),
+    agentQaVersion: input.agentQaVersion ?? getAgentQaVersion(),
     hostVersions: pluginHostVersions(import.meta.url),
     resolveSecrets: pluginSecretResolver(
       store,
@@ -168,15 +171,18 @@ async function pluginRow(
     {
       configDir: input.configDir,
       ...(input.configPath === undefined ? {} : { configPath: input.configPath }),
-      agentQaVersion: getAgentQaVersion(),
+      agentQaVersion: input.agentQaVersion ?? getAgentQaVersion(),
     },
   )[0]!
+  // A run that needs a package entry that is not installed fails, so its row fails.
+  const missing = resolved.state === 'not_installed' ? resolved.install : undefined
   const parts = [identity(resolved)]
   const problems: string[] = []
   let checked: AccountCheck | undefined
 
-  // The reason carries the install line for a package and the path for a path plugin.
-  if (resolved.state !== 'ok') problems.push(resolved.reason ?? resolved.state)
+  // Any other reason carries the install line for a package and the path for a path plugin.
+  if (missing !== undefined) problems.push('declared, not installed')
+  else if (resolved.state !== 'ok') problems.push(resolved.reason ?? resolved.state)
   const secretNames = [
     ...new Set([
       ...referenceNames(entry.options),
@@ -210,6 +216,10 @@ async function pluginRow(
   }
 
   const message = [...parts, ...problems, ...(checked?.lines ?? [])].join('; ')
+  if (missing !== undefined) {
+    const fix = resolved.origin === 'first-party' ? DEPS_FIX : `Run \`${missing}\`.`
+    return { status: 'fail', message, fix }
+  }
   return {
     status: problems.length > 0 || checked?.warn === true ? 'warn' : 'pass',
     message,
@@ -217,7 +227,8 @@ async function pluginRow(
 }
 
 // One row per plugins entry. Each row only reads the manifest, except the account check, which
-// starts the plugin for `check` alone. A row never fails.
+// starts the plugin for `check` alone. Only a package entry that is not installed fails; every
+// other problem warns.
 export function createPluginChecks(input: PluginChecksInput): DoctorCheck[] {
   const timeoutMs = input.checkTimeoutMs ?? PLUGIN_CHECK_TIMEOUT_MS
   const remotes = pluginRemotes(input.config)
