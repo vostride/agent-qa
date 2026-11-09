@@ -9,6 +9,7 @@ import {
   type InitStepResult,
   type InitStepRunner,
 } from './init-steps.js'
+import { declaredAgentQaVersion, findProjectAgentQa } from './project-agent-qa.js'
 import type { ProjectHost } from './project-host.js'
 import type { ProjectRange } from './project-range.js'
 
@@ -44,14 +45,26 @@ export interface InitRerunInput {
   onRunner: (runner: InitStepRunner) => void
 }
 
+async function versionLines(input: InitRerunInput): Promise<string[]> {
+  const copy = await findProjectAgentQa(input.range, input.range.start, input.host.io)
+  const project =
+    copy?.version ?? declaredAgentQaVersion(input.packageJson.text) ?? input.runningVersion
+  const lines = [`You're on agent-qa ${project}.`]
+  if (project !== input.runningVersion) lines.push(`This agent-qa is ${input.runningVersion}.`)
+  return lines
+}
+
 export async function runInitRerun(input: InitRerunInput): Promise<void> {
   // A malformed manifest is refused here, before anything is drawn or written.
   const manifest = readAgentSetupManifest(input.dir)
   input.recorder.agents(manifest?.agents ?? [])
+  const summary = await versionLines(input)
+  input.recorder.agentQa({ version: input.runningVersion, via: 'running' })
 
   const ui = await input.openUi()
   if (input.mode !== 'plain') ui.banner()
   ui.intro()
+  ui.summary('This project', summary)
 
   const runner = createInitStepRunner({ ui, plan: rerunPlan(), mask: input.mask })
   input.onRunner(runner)

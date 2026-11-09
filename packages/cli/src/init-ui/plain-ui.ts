@@ -6,6 +6,10 @@ export function createPlainUi(
   write: (text: string) => void = (text) => process.stderr.write(text),
 ): InitUi {
   const print = (text: string): void => write(`${text}\n`)
+  const block = (title: string, lines: readonly string[]): void => {
+    print(title)
+    for (const line of lines) print(`  ${line}`)
+  }
   return {
     banner: () => {},
     intro: () => {},
@@ -19,10 +23,8 @@ export function createPlainUi(
         if (command !== undefined) print(`  Run: ${command}`)
       },
     }),
-    note: (title, lines) => {
-      print(title)
-      for (const line of lines) print(`  ${line}`)
-    },
+    note: block,
+    summary: block,
     line: print,
     copyable: print,
     outro: print,

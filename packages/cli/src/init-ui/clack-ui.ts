@@ -171,6 +171,7 @@ export function createClackUi(options: {
       ),
     step,
     note: (title, lines) => note(lines.join('\n'), palette.accent(title), common),
+    summary: (title, lines) => log.step([title, ...lines].join('\n'), common),
     line: (text) => log.message(text, common),
     copyable: (text) => output.write(`${bar}\n${text}\n`),
     outro: (text) => outro(text, common),

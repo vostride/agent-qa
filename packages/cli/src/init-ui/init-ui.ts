@@ -42,6 +42,8 @@ export interface InitUi {
   }): Promise<T[]>
   step(title: string): InitStepLine
   note(title: string, lines: readonly string[]): void
+  // Lines are drawn as given, never wrapped, so long sentences arrive already broken.
+  summary(title: string, lines: readonly string[]): void
   line(text: string): void
   // Drawn flush left, without the rail's gutter, so the line pastes as it is.
   copyable(text: string): void

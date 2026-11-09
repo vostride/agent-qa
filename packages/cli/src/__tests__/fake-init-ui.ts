@@ -69,6 +69,10 @@ export function fakeInitUi(answers: Record<string, unknown> = {}): FakeInitUi {
       entries.push({ kind: 'note', text: title, lines: [...lines] })
       plain.note(title, lines)
     },
+    summary: (title, lines) => {
+      entries.push({ kind: 'summary', text: title, lines: [...lines] })
+      plain.summary(title, lines)
+    },
     line: (text) => {
       entries.push({ kind: 'line', text })
       plain.line(text)
