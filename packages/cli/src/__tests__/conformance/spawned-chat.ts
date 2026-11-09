@@ -213,6 +213,11 @@ export function hermeticEnv(root: string): Record<string, string> {
     PLAYWRIGHT_CHROMIUM_DOWNLOAD_HOST: 'http://127.0.0.1:0',
     PLAYWRIGHT_FIREFOX_DOWNLOAD_HOST: 'http://127.0.0.1:0',
     PLAYWRIGHT_WEBKIT_DOWNLOAD_HOST: 'http://127.0.0.1:0',
+    // A spawned agent-qa's requests are refused at once on loopback.
+    NODE_USE_ENV_PROXY: '1',
+    HTTPS_PROXY: 'http://127.0.0.1:0',
+    HTTP_PROXY: 'http://127.0.0.1:0',
+    NO_PROXY: '127.0.0.1,localhost,::1',
   }
 }
 
