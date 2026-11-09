@@ -37,6 +37,7 @@ import type { ProjectHost } from './project-host.js'
 import { nearestInstalledPackage, type ProjectRange } from './project-range.js'
 import { SUBSCRIPTION_AUTH_PACKAGE } from './scaffold-content.js'
 import {
+  BREAKING_NOT_IN_ALL,
   SETUP_ROW_NAMES,
   SETUP_ROW_RUNS,
   checkSetupRows,
@@ -304,6 +305,10 @@ async function chooseAgents(
   return inAgentOrder(chosen)
 }
 
+function isBreaking(rows: readonly SetupRowState[], name: SetupRowName): boolean {
+  return rows.some((row) => row.name === name && row.breaking === true)
+}
+
 async function chooseRows(
   ui: InitUi,
   ask: boolean,
@@ -317,7 +322,7 @@ async function chooseRows(
       .map((row) => row.name)
       .filter((name) =>
         flagged.kind === 'all'
-          ? !(noBrowsers && name === 'browsers')
+          ? !(noBrowsers && name === 'browsers') && !isBreaking(shown, name)
           : flagged.names.includes(name),
       )
   }
@@ -428,6 +433,10 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     }
     if (noBrowsers && row.name === 'browsers' && !selected.includes(row.name)) {
       runner.skip(row.name, `${row.name}: skipped (--no-browsers)`, '--no-browsers')
+      continue
+    }
+    if (flagged?.kind === 'all' && row.breaking === true) {
+      runner.skip(row.name, `${row.name}: skipped (${BREAKING_NOT_IN_ALL})`, BREAKING_NOT_IN_ALL)
       continue
     }
     if (!selected.includes(row.name)) {

@@ -101,6 +101,8 @@ export interface SetupRowState {
   state: string
   wouldChange: boolean
   prechecked: boolean
+  // Its version move can break the config, so only naming it in --setup runs it.
+  breaking?: true
 }
 
 export interface SetupRowCheckInput {
@@ -120,6 +122,7 @@ export type ScaffoldPlans = (platform: InitPlatformInput) => InitPathPlan[]
 
 export const NOTHING_NEWER = 'nothing newer is published'
 export const NO_VERSION_ANSWER = 'the version check did not answer'
+export const BREAKING_NOT_IN_ALL = 'breaking: name it in --setup'
 
 export type UpgradeRowState = SetupRowState & { move?: VersionMove }
 
@@ -154,6 +157,7 @@ export function checkUpgradeRow(input: {
     state: `${movedPackages(input.plugins)} ${move.from} → ${move.to}`,
     wouldChange: true,
     prechecked: !move.breaking,
+    ...(move.breaking ? { breaking: true as const } : {}),
     move,
   }
 }
