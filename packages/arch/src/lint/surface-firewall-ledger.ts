@@ -58,6 +58,12 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'model/response cache administration over host paths; joins the config and environment action class',
   },
   {
+    file: 'packages/cli/src/commands/config-model-edit.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: "init's re-run checks its model edit of the config with core's config schema before writing; joins the config mutation class with init",
+  },
+  {
     file: 'packages/cli/src/commands/dashboard.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: 'M5',

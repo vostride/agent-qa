@@ -86,6 +86,26 @@ describe('the comment-keeping edit of the config model', () => {
     expect(edited.startsWith(`# The project's agent-qa config.\n${WORKSPACE}`)).toBe(true)
   })
 
+  it('keeps every byte it does not change, trailing comments and blank lines included', () => {
+    const text = `${WORKSPACE}  # Optional: more patterns.\n\n# Models\n${WITH_MODEL.slice(
+      WITH_MODEL.indexOf('registry:'),
+    )}\n\n`
+
+    const replaced = configWithModelEntry(text, GIVEN, GEMINI, { subscription: false })
+    const appended = configWithModelEntry(text, GIVEN, OPENAI, { subscription: false })
+
+    expect(replaced).toBe(text.replace('model: gemini-old', 'model: gemini-new'))
+    expect(appended).toBe(
+      text
+        .replace(
+          '      model: gemini-old\n',
+          '      model: gemini-old\n    - name: openai\n      provider: openai-compatible\n' +
+            '      model: gpt-x\n      baseURL: https://api.openai.com/v1\n',
+        )
+        .replace('llm: gemini #', 'llm: openai #'),
+    )
+  })
+
   it('creates registry.llms as a block list when the config has no model', () => {
     const text = `# Set up by hand.\n${WORKSPACE}`
 

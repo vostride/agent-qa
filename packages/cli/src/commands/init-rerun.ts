@@ -1,6 +1,11 @@
-import { dirname } from 'node:path'
+import { dirname, relative } from 'node:path'
 
-import { compareSemverVersions, getAuthPath, validSemverVersion } from '@vostride/agent-qa-core'
+import {
+  compareSemverVersions,
+  getAuthPath,
+  listSavedCredentials,
+  validSemverVersion,
+} from '@vostride/agent-qa-core'
 import pc from 'picocolors'
 import { parse } from 'yaml'
 
@@ -9,15 +14,25 @@ import type { InitUi, InitUiMode } from '../init-ui/init-ui.js'
 import { activeModelEntry } from '../llm-utils.js'
 import { CODING_AGENTS, readAgentSetupManifest, type CodingAgent } from './agent-setup-manifest.js'
 import { guideLines, versionMove, type VersionMove } from './agent-qa-upgrade.js'
+import { configWithModelEntry } from './config-model-edit.js'
 import type { ChromiumResolver } from './browser-resolver.js'
 import { INIT_AGENT_OPTIONS, parseInitAgentsFlag } from './init-agents.js'
 import type { InitDocumentLatest, InitDocumentRecorder } from './init-document.js'
 import {
+  readHostFile,
+  writeHostFile,
   writeScaffoldFileAtomic,
+  type HostFileRead,
   type InitFileOutcome,
   type InitFileResult,
 } from './init-filesystem.js'
-import { modelStatus, type InitModelEntry } from './init-model-choice.js'
+import {
+  modelEntryFor,
+  modelStatus,
+  resolveLlmFlag,
+  type InitModelEntry,
+  type InitModelSetup,
+} from './init-model-choice.js'
 import type { LatestVersionAsk } from './latest-version-ask.js'
 import {
   createInitStepRunner,
@@ -106,6 +121,41 @@ export interface InitRerunInput {
 
 const SETUP_BROWSERS_WITH_NO_BROWSERS_LINE =
   '--setup browsers asks for Chromium and --no-browsers refuses it; drop one of them.'
+const MODEL_FLAGS_WITHOUT_LLM_LINE =
+  '--model and --base-url set the model --llm names; pass --llm <choice> with them.'
+const MODEL_TITLE = 'Setting the model'
+const DASHBOARD_FINISHES = 'the dashboard finishes setting it up'
+
+// The model the flags set, resolved and edited in memory before anything is drawn.
+interface ModelEdit {
+  setup: InitModelSetup
+  given: string
+  read?: HostFileRead
+  text?: string
+}
+
+async function modelEditOf(input: InitRerunInput): Promise<ModelEdit | undefined> {
+  const { llm, model, baseUrl } = input.opts
+  if (llm === undefined) {
+    if (model !== undefined || baseUrl !== undefined) {
+      throw new CliRefusal([pc.red(MODEL_FLAGS_WITHOUT_LLM_LINE)], 2)
+    }
+    return undefined
+  }
+  const saved = await listSavedCredentials(
+    getAuthPath({ env: input.host.env, homeDir: input.host.homedir }),
+  )
+  const setup = modelEntryFor(resolveLlmFlag(llm, saved), { model, baseUrl, saved })
+  const given = relative(input.dir, input.configPath) || input.configPath
+  if (setup.entry === undefined) return { setup, given }
+  const read = readHostFile(input.configPath, input.dir)
+  const text = configWithModelEntry(read?.text ?? '', given, setup.entry, { subscription: false })
+  return { setup, given, ...(read === undefined ? {} : { read }), text }
+}
+
+function modelChanges(edit: ModelEdit | undefined): boolean {
+  return edit?.text !== undefined && edit.text !== edit.read?.text
+}
 
 // Only a semver-valid answer is printed or recorded; anything else counts as no answer.
 async function askLatest(input: InitRerunInput): Promise<InitDocumentLatest> {
@@ -279,10 +329,7 @@ function configuredModels(
   }
 }
 
-async function modelLine(input: InitRerunInput): Promise<string | undefined> {
-  const models = configuredModels(input)
-  if (models === undefined) return undefined
-  const entry = activeModelEntry(models)
+async function recordModel(input: InitRerunInput, setup: InitModelSetup) {
   const pluginInstalled =
     nearestInstalledPackage(
       input.range,
@@ -291,16 +338,25 @@ async function modelLine(input: InitRerunInput): Promise<string | undefined> {
       input.host.io,
     ) !== undefined
   const status = await modelStatus({
-    ...(entry === undefined ? {} : { entry }),
+    ...setup,
     configPath: input.configPath,
     projectDir: input.dir,
     authPath: getAuthPath({ env: input.host.env, homeDir: input.host.homedir }),
     pluginInstalled,
   })
+  const { entry } = setup
   input.recorder.model({
     ...(entry === undefined ? {} : { name: entry.name, provider: entry.provider }),
     ...status,
   })
+  return status
+}
+
+async function modelLine(input: InitRerunInput): Promise<string | undefined> {
+  const models = configuredModels(input)
+  if (models === undefined) return undefined
+  const entry = activeModelEntry(models)
+  const status = await recordModel(input, entry === undefined ? {} : { entry })
   if (entry === undefined) return 'No model is set up.'
   return status.status === 'ready'
     ? `Model ${entry.name} is ready.`
@@ -392,6 +448,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   if (noBrowsers && flagged?.kind === 'names' && flagged.names.includes('browsers')) {
     throw new CliRefusal([pc.red(SETUP_BROWSERS_WITH_NO_BROWSERS_LINE)], 2)
   }
+  const modelEdit = await modelEditOf(input)
   const flaggedAgents =
     input.opts.agents === undefined ? undefined : parseInitAgentsFlag(input.opts.agents)
   // A malformed manifest or managed block is refused here, before anything is drawn or written.
@@ -432,7 +489,9 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     ...versionLines(input, copy, latest, deps.move),
     ...(model === undefined ? [] : [model]),
     agentsLine(setUp),
-    ...(rows.some((row) => row.shown && row.wouldChange) ? [] : ['Everything is current.']),
+    ...(modelChanges(modelEdit) || rows.some((row) => row.shown && row.wouldChange)
+      ? []
+      : ['Everything is current.']),
   ]
   input.recorder.agentQa({ version: input.runningVersion, via: 'running' })
 
@@ -468,7 +527,10 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   )
   const runner = createInitStepRunner({
     ui,
-    plan: rerunPlan(planned.map((row) => row.name)),
+    plan: rerunPlan(
+      planned.map((row) => row.name),
+      { model: modelEdit !== undefined },
+    ),
     mask: input.mask,
   })
   input.onRunner(runner)
@@ -480,6 +542,34 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     rows: selected,
   })
   let installFirst = false
+  if (modelEdit !== undefined) {
+    const { setup, given } = modelEdit
+    const step = await runner.run(
+      'model',
+      { title: MODEL_TITLE },
+      async (): Promise<InitStepResult> => {
+        const { entry } = setup
+        if (entry === undefined || modelEdit.text === undefined) {
+          const text = `model: skipped (${DASHBOARD_FINISHES})`
+          return { outcome: 'skipped', text, reason: DASHBOARD_FINISHES }
+        }
+        if (modelChanges(modelEdit)) {
+          writeHostFile({
+            path: input.configPath,
+            root: input.dir,
+            content: modelEdit.text,
+            read: modelEdit.read,
+            rerun: 'rerun npx agent-qa init',
+          })
+          const file = { path: given, outcome: 'updated' as const }
+          outcomes.push(file)
+          input.recorder.file('model', file)
+        }
+        return { outcome: 'done', text: `Model ${entry.name}: ${entry.provider} ${entry.model}` }
+      },
+    )
+    if (step.outcome !== 'failed') await recordModel(input, setup)
+  }
   for (const row of planned) {
     if (row.name === 'upgrade' && handed !== undefined) {
       const text = `upgrade: agent-qa ${handed.from} → ${handed.to}`

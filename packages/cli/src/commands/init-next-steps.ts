@@ -41,6 +41,7 @@ function authLoginCommand(name: string): string {
 }
 
 const STEP_DESCRIPTIONS: Record<InitStepName, string> = {
+  model: 'Set the model',
   upgrade: 'Upgrade agent-qa',
   deps: "Install agent-qa's missing packages",
   'package-json': 'Write package.json',

@@ -53,7 +53,9 @@ function documentOf(stdout: string): InitDocument {
   return JSON.parse(stdout) as InitDocument
 }
 
-async function runModels(project: InitializedProject): Promise<ReturnType<typeof resolveLLMModels>> {
+async function runModels(
+  project: InitializedProject,
+): Promise<ReturnType<typeof resolveLLMModels>> {
   const config = await resolveConfig({ configPath: configPath(project) })
   return resolveLLMModels(config)
 }
