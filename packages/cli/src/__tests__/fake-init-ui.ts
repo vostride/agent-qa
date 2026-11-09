@@ -7,7 +7,7 @@ export type FakeInitUiEntry =
       text: string
     }
   | { kind: 'failed'; text: string; command?: string }
-  | { kind: 'note'; text: string; lines: string[] }
+  | { kind: 'note' | 'summary'; text: string; lines: string[] }
   | { kind: 'select' | 'multiselect'; text: string; answer: unknown }
 
 export type FakeInitUi = InitUi & {

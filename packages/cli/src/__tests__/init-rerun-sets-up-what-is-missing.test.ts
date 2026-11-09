@@ -12,7 +12,11 @@ import {
 } from '../commands/agent-setup-manifest.js'
 import type { InitDocument } from '../commands/init-document.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
-import { cleanupTempProjects, fakeRunner } from './project-fixtures.js'
+import { createClackUi } from '../init-ui/clack-ui.js'
+import { brandPalette } from '../init-ui/palette.js'
+import { clackStreams } from './clack-keys.js'
+import type { FakeInitUiEntry } from './fake-init-ui.js'
+import { cleanupTempProjects, fakeRunner, writeInstalledPackage } from './project-fixtures.js'
 import { initializedProject, rerun } from './rerun-fixtures.js'
 
 const OLD_STOP = /already initialized|Use --force to rebuild/u
@@ -25,6 +29,11 @@ afterEach(() => {
 function plantMalformedManifest(root: string): void {
   mkdirSync(join(root, '.agents'), { recursive: true })
   writeFileSync(join(root, AGENT_SETUP_MANIFEST_PATH), '{ not json')
+}
+
+function summaryLines(entries: readonly FakeInitUiEntry[]): string[] | undefined {
+  const entry = entries.find((item) => item.kind === 'summary')
+  return entry?.kind === 'summary' ? entry.lines : undefined
 }
 
 function contents(root: string): Record<string, string> {
@@ -185,5 +194,64 @@ describe("a re-run reads the project's agent-setup manifest first", () => {
       /^Refusing malformed \.agents\/agent-qa-skills\.json: it is not valid JSON/u,
     )
     expect(doc.steps).toEqual([])
+  })
+})
+
+describe("a re-run's summary of the project's agent-qa version", () => {
+  it('draws a This project summary right after the intro that names the running version', async () => {
+    const project = await initializedProject('rerun-summary-version')
+
+    const result = await rerun(project)
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(result.entries[0]?.kind).toBe('intro')
+    expect(result.entries[1]?.kind).toBe('summary')
+    expect(result.entries[1]?.text).toBe('This project')
+    const lines = summaryLines(result.entries) ?? []
+    expect(lines[0]).toBe(`You're on agent-qa ${VERSION}.`)
+    expect(lines.join('\n')).not.toMatch(/This agent-qa is/u)
+  })
+
+  it("names the project's installed agent-qa, then this one when they differ", async () => {
+    const project = await initializedProject('rerun-summary-installed')
+    writeInstalledPackage(project.root, 'agent-qa', '0.0.1', {
+      packageJson: { bin: { 'agent-qa': 'cli.js' } },
+      files: { 'cli.js': '' },
+    })
+
+    const result = await rerun(project)
+
+    expect(result.exit, result.stderr).toBe(0)
+    const lines = summaryLines(result.entries) ?? []
+    expect(lines.slice(0, 2)).toEqual([
+      "You're on agent-qa 0.0.1.",
+      `This agent-qa is ${VERSION}.`,
+    ])
+  })
+
+  it('in plain mode prints the title and each line indented on stderr, and only the document on stdout', async () => {
+    const project = await initializedProject('rerun-summary-plain')
+
+    const result = await rerun(project, ['--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(result.stderr).toContain(`This project\n  You're on agent-qa ${VERSION}.\n`)
+    expect(JSON.parse(result.stdout)).toMatchObject({ format: 1, outcome: 'done' })
+  })
+
+  it('on the rail draws the summary as one step block', () => {
+    const streams = clackStreams({ columns: 80 })
+    const ui = createClackUi({
+      input: streams.input,
+      output: streams.output,
+      palette: brandPalette({ background: 'dark', level: 0 }),
+      columns: 80,
+    })
+
+    ui.summary('This project', ["You're on agent-qa 1.2.3.", 'This agent-qa is 1.2.4.'])
+
+    expect(stripVTControlCharacters(streams.text())).toBe(
+      "│\n◇  This project\n│  You're on agent-qa 1.2.3.\n│  This agent-qa is 1.2.4.\n",
+    )
   })
 })
