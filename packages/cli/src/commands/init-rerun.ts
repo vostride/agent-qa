@@ -9,7 +9,7 @@ import { activeModelEntry } from '../llm-utils.js'
 import { readAgentSetupManifest, type CodingAgent } from './agent-setup-manifest.js'
 import { INIT_AGENT_OPTIONS } from './init-agents.js'
 import type { InitDocumentRecorder } from './init-document.js'
-import type { InitFileResult } from './init-filesystem.js'
+import type { InitFileOutcome, InitFileResult } from './init-filesystem.js'
 import { modelStatus, type InitModelEntry } from './init-model-choice.js'
 import {
   createInitStepRunner,
@@ -26,6 +26,7 @@ import {
   checkSetupRows,
   parseSetupFlag,
   setupRowLabel,
+  type SetupRowFile,
   type SetupRowName,
   type SetupRowState,
   type SetupSelection,
@@ -144,6 +145,17 @@ function agentsLine(agents: readonly CodingAgent[]): string {
   return labels.length === 0 ? 'No coding agent is set up.' : `Coding agents: ${labels.join(', ')}.`
 }
 
+// The analytics outcome counts a replaced or removed agent file as an update.
+function initFileResult(file: SetupRowFile): InitFileResult {
+  const outcome: InitFileOutcome =
+    file.outcome === 'created'
+      ? 'created'
+      : file.outcome === 'updated' || file.outcome === 'replaced' || file.outcome === 'removed'
+        ? 'updated'
+        : 'preserved'
+  return { path: file.path, outcome }
+}
+
 export const SETUP_MENU_QUESTION = 'What should init set up here?'
 
 async function chooseRows(
@@ -175,7 +187,12 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   const manifest = readAgentSetupManifest(input.dir)
   const agents = manifest?.agents ?? []
   input.recorder.agents(agents)
-  const rows = checkSetupRows({ projectDir: input.dir, io: input.host.io })
+  const rows = await checkSetupRows({
+    projectDir: input.dir,
+    io: input.host.io,
+    agents,
+    host: input.host,
+  })
   const shown = rows.filter((row) => row.shown)
   const model = await modelLine(input)
   const summary = [
@@ -216,12 +233,12 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     }
     const { title, run } = SETUP_ROW_RUNS[row.name]
     await runner.run(row.name, { title }, async (): Promise<InitStepResult> => {
-      const { text, files } = run({ projectDir: input.dir })
+      const { files, ...step } = await run({ projectDir: input.dir, agents, host: input.host })
       for (const file of files) {
-        outcomes.push(file)
+        outcomes.push(initFileResult(file))
         input.recorder.file(row.name, file)
       }
-      return { outcome: 'done', text }
+      return step
     })
   }
   await runner.run('validate', input.validateStep, input.validate)

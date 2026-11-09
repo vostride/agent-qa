@@ -57,7 +57,11 @@ describe("a re-run's skills row", () => {
   })
 
   it("with --yes puts agent-qa's copy back and names the replaced file in the step line", async () => {
-    const project = await initializedProjectWithAgent('rerun-skills-restore', 'claude-code', VERSION)
+    const project = await initializedProjectWithAgent(
+      'rerun-skills-restore',
+      'claude-code',
+      VERSION,
+    )
     const original = read(project.root, ALPHA)
     editSkillFile(project, ALPHA)
 
@@ -90,7 +94,11 @@ describe("a re-run's skills row", () => {
   })
 
   it('pre-checks skills when a skill folder was deleted and brings the folder back', async () => {
-    const project = await initializedProjectWithAgent('rerun-skills-deleted', 'claude-code', VERSION)
+    const project = await initializedProjectWithAgent(
+      'rerun-skills-deleted',
+      'claude-code',
+      VERSION,
+    )
     const beta = '.claude/skills/agent-qa-beta/SKILL.md'
     const original = read(project.root, beta)
     rmSync(join(project.root, '.claude/skills/agent-qa-beta'), { recursive: true })
