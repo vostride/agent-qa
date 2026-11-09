@@ -30,10 +30,12 @@ import { createRemoteChecks, listedRemotes } from './doctor-remote-checks.js'
 import {
   composeRow,
   doctorDocument,
+  doctorExitCode,
   formatCheckRow,
   formatFixLines,
   formatStatus,
   resolveTerminalWidth,
+  rowFix,
 } from './doctor-row.js'
 
 // Exported so `doctor-knowledge-checks.ts` builds rows without restating the row contract.
@@ -850,17 +852,14 @@ export function createDoctorCommand(): Command {
         checkValidation(config, configPath),
       ]
 
-      let hasFailure = false
       const results: { check: DoctorCheck; result: CheckResult }[] = []
 
       if (options.json === true) {
         for (const check of checks) {
-          const result = await check.check()
-          results.push({ check, result })
-          if (result.status === 'fail') hasFailure = true
+          results.push({ check, result: await check.check() })
         }
         console.log(guardJsonText(JSON.stringify(doctorDocument(results), null, 2)))
-        if (hasFailure) process.exitCode = 1
+        process.exitCode = doctorExitCode(results)
         return
       }
 
@@ -879,28 +878,31 @@ export function createDoctorCommand(): Command {
       }
 
       for (const check of checks) {
-        const result = await check.check()
-        results.push({ check, result })
+        const entry = { check, result: await check.check() }
+        results.push(entry)
 
-        const row = formatCheckRow(check.name, result.message, result.status, width)
+        const row = formatCheckRow(check.name, entry.result.message, entry.result.status, width)
         printLine(composeRow(row, { dots: pc.dim, status: formatStatus }))
         for (const line of row.continuations) printLine(line)
 
-        if (result.status === 'fail') {
-          for (const line of formatFixLines(check.fixInstructions, width)) printLine(pc.dim(line))
-          hasFailure = true
+        const fix = rowFix(entry)
+        if (fix !== undefined) {
+          for (const line of formatFixLines(fix, width)) printLine(pc.dim(line))
         }
       }
       if (table !== undefined) printRunText(table.join('\n'))
 
       console.log('')
-      if (hasFailure) {
+      const exitCode = doctorExitCode(results)
+      if (exitCode !== 0) {
         console.log(pc.red('  Some checks failed. See fix instructions above.'))
-        process.exitCode = 1
+      } else if (results.some(({ result }) => result.status === 'warn')) {
+        console.log(pc.yellow('  No check failed. The warnings above say what to fix.'))
       } else {
         console.log(pc.green('  All checks passed! Your environment is ready.'))
       }
       console.log('')
+      process.exitCode = exitCode
     })
 
   return cmd

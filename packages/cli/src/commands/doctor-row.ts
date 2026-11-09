@@ -204,6 +204,10 @@ export function rowFix({ check, result }: DoctorRowResult): string | undefined {
   return result.fix ?? check.fixInstructions
 }
 
+export function doctorExitCode(results: readonly DoctorRowResult[]): 0 | 3 {
+  return results.some(({ result }) => result.status === 'fail') ? 3 : 0
+}
+
 export function doctorDocument(results: readonly DoctorRowResult[]): DoctorDocument {
   return {
     format: 1,

@@ -276,6 +276,11 @@ function rowFor(name: string): string {
   return parts.join(' ')
 }
 
+// Every file a healthy host needs is present, and no retired v1 memory folder is left behind.
+function presentExceptLegacyMemory(): void {
+  mockExistsSync.mockImplementation(path => !String(path).endsWith('agent-qa-memory'))
+}
+
 // The fix printed beneath a row, joined across its hanging lines; empty when none prints.
 function fixUnder(name: string): string {
   const lines = consoleLogs.map(stripAnsi)
@@ -768,8 +773,8 @@ use:
     const output = getOutput()
     // Should show Playwright not installed
     expect(output).toContain('Playwright')
-    expect(output).toContain('agent-qa install-browsers --chromium')
-    expect(output).not.toContain('agent-qa init')
+    expect(fixUnder('Playwright')).toContain('agent-qa install-browsers --chromium')
+    expect(fixUnder('Playwright')).not.toContain('agent-qa init')
     expect(output).not.toContain('npx playwright install')
   })
 
@@ -1091,7 +1096,7 @@ use:
 
   it('Overall result: all pass → exit 0', async () => {
     Object.defineProperty(process, 'version', { value: 'v24.10.0', writable: true })
-    mockExistsSync.mockReturnValue(true)
+    presentExceptLegacyMemory()
     mockExecSync.mockReturnValue(Buffer.from('ok'))
     mockResolveLLMAuth.mockResolvedValue({
       kind: 'unauthenticated',
@@ -1156,7 +1161,7 @@ use:
 
   async function runHealthyHost(...args: string[]): Promise<void> {
     Object.defineProperty(process, 'version', { value: 'v24.10.0', writable: true })
-    mockExistsSync.mockReturnValue(true)
+    presentExceptLegacyMemory()
     mockExecSync.mockReturnValue(Buffer.from('ok'))
     mockResolveLLMAuth.mockResolvedValue({
       kind: 'unauthenticated',
