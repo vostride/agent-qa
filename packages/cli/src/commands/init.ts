@@ -7,7 +7,6 @@ import type { Readable, Writable } from 'node:stream'
 import {
   DEFAULT_AGENT_QA_AUTH_STATES_DIR,
   DEFAULT_AGENT_QA_CACHE_DIR,
-  DEFAULT_AGENT_QA_RUNTIME_DIR,
   getAuthPath,
   listSavedCredentials,
 } from '@vostride/agent-qa-core'
@@ -17,6 +16,7 @@ import { getProvider } from '@vostride/agent-qa-model'
 import {
   SUBSCRIPTION_AUTH_PACKAGE,
   buildHooksFile,
+  buildGitignoreEntries,
   buildScaffoldConfig,
   hasWeb,
   normalizePlatformSelection,
@@ -138,9 +138,6 @@ const INIT_CACHE_DIR = DEFAULT_AGENT_QA_CACHE_DIR || '.agent-qa/cache'
 const INIT_AUTH_STATES_DIR = DEFAULT_AGENT_QA_AUTH_STATES_DIR || '.agent-qa/auth-states'
 
 const DEFAULT_CONFIG_FILE_NAME = 'agent-qa.config.yaml'
-// Kept here rather than moved: it feeds `buildGitignoreEntries`, the deliberate literal
-// copy this file keeps pinned against `init-filesystem.ts`'s own — see scaffold-content.ts.
-const INIT_RUNTIME_DIR = DEFAULT_AGENT_QA_RUNTIME_DIR || '.agent-qa'
 
 function isSubscriptionProvider(provider: string): boolean {
   return getProvider(provider)?.subscription === true
@@ -285,29 +282,6 @@ function buildSecretsFile(platform: InitPlatformInput): string {
   return "# The Komazon playground's public demo password (printed on its sign-in page); "
     + 'the examples type it as {{secret:KOMAZON_PASSWORD}}.\n'
     + `${EXAMPLE_SECRET_LINE}\n`
-}
-
-function directoryGitignoreEntry(value: string): string {
-  return value.endsWith('/') ? value : `${value}/`
-}
-
-function buildGitignoreEntries(): string[] {
-  return [
-    directoryGitignoreEntry(INIT_RUNTIME_DIR),
-    directoryGitignoreEntry(INIT_AUTH_STATES_DIR),
-    // Spelled literally because the init suite mocks init-filesystem.js; a test pins both equal.
-    'tests/.agent-qa-drafts/',
-    'node_modules/',
-    DEFAULT_ENV_FILE,
-    DEFAULT_SECRETS_FILE,
-    // The namespace `writeDurableTemporary` publishes through. The temporary is a sibling of
-    // its destination carrying that destination's content — for the secrets file, live
-    // credential bytes at 0600 — and it outlives any cleanup that cannot run. Spelled
-    // literally rather than imported because init-filesystem.js is mocked wholesale by the
-    // init suite; `DURABLE_TEMPORARY_GITIGNORE_RULE` is the other copy, and the two are
-    // pinned together by the runtime-versus-defaults agreement test.
-    '.*.agent-qa-init-*.tmp',
-  ]
 }
 
 const KNOWLEDGE_ROOT_DIR = 'agent-qa-knowledge'

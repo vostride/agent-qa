@@ -1,9 +1,17 @@
 import { CliRefusal, PromptCancelled, isPromptCancel } from '../composition/cli-refusal.js'
 import type { InitStepLine, InitUi } from '../init-ui/init-ui.js'
 import { isInitRefusal } from './init-refusal.js'
+import type { SetupRowName } from './setup-rows.js'
 
 export type InitStepName =
-  'package-json' | 'scaffold' | 'install' | 'chromium' | 'skills' | 'validate' | 'dashboard'
+  | 'package-json'
+  | 'scaffold'
+  | 'install'
+  | 'chromium'
+  | 'skills'
+  | 'gitignore'
+  | 'validate'
+  | 'dashboard'
 
 export interface InitStepRecord {
   name: InitStepName
@@ -47,9 +55,9 @@ export function freshInitPlan(): InitStepName[] {
   return ['package-json', 'scaffold', 'install', 'chromium', 'skills', 'validate', 'dashboard']
 }
 
-// The steps a re-run of an initialized project plans, in the order it runs them.
-export function rerunPlan(): InitStepName[] {
-  return ['validate']
+// A re-run plans the menu's shown rows, in menu order, then validate.
+export function rerunPlan(rows: readonly SetupRowName[]): InitStepName[] {
+  return [...rows, 'validate']
 }
 
 // A bug is reported with its stack, not drawn as a failed step.

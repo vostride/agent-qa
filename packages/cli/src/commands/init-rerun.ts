@@ -21,6 +21,13 @@ import { declaredAgentQaVersion, findProjectAgentQa } from './project-agent-qa.j
 import type { ProjectHost } from './project-host.js'
 import { nearestInstalledPackage, type ProjectRange } from './project-range.js'
 import { SUBSCRIPTION_AUTH_PACKAGE } from './scaffold-content.js'
+import {
+  SETUP_ROW_RUNS,
+  checkSetupRows,
+  setupRowLabel,
+  type SetupRowName,
+  type SetupRowState,
+} from './setup-rows.js'
 
 export interface InitRerunOptions {
   llm?: string
@@ -134,11 +141,31 @@ function agentsLine(agents: readonly CodingAgent[]): string {
   return labels.length === 0 ? 'No coding agent is set up.' : `Coding agents: ${labels.join(', ')}.`
 }
 
+export const SETUP_MENU_QUESTION = 'What should init set up here?'
+
+async function chooseRows(
+  ui: InitUi,
+  ask: boolean,
+  shown: readonly SetupRowState[],
+): Promise<SetupRowName[]> {
+  const prechecked = shown.filter((row) => row.prechecked).map((row) => row.name)
+  if (!ask) return prechecked
+  const width = Math.max(...shown.map((row) => row.name.length))
+  return await ui.multiselect<SetupRowName>({
+    message: SETUP_MENU_QUESTION,
+    options: shown.map((row) => ({ value: row.name, label: setupRowLabel(row, width) })),
+    initialValues: prechecked,
+    required: false,
+  })
+}
+
 export async function runInitRerun(input: InitRerunInput): Promise<void> {
-  // A malformed manifest is refused here, before anything is drawn or written.
+  // A malformed manifest or managed block is refused here, before anything is drawn or written.
   const manifest = readAgentSetupManifest(input.dir)
   const agents = manifest?.agents ?? []
   input.recorder.agents(agents)
+  const rows = checkSetupRows({ projectDir: input.dir, io: input.host.io })
+  const shown = rows.filter((row) => row.shown)
   const model = await modelLine(input)
   const summary = [
     ...(await versionLines(input)),
@@ -151,12 +178,33 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   if (input.mode !== 'plain') ui.banner()
   ui.intro()
   ui.summary('This project', summary)
+  const selected = await chooseRows(ui, input.mode === 'interactive', shown)
 
-  const runner = createInitStepRunner({ ui, plan: rerunPlan(), mask: input.mask })
+  const runner = createInitStepRunner({
+    ui,
+    plan: rerunPlan(shown.map((row) => row.name)),
+    mask: input.mask,
+  })
   input.onRunner(runner)
+  const outcomes: InitFileResult[] = []
+  for (const row of shown) {
+    if (!selected.includes(row.name)) {
+      const reason = row.wouldChange ? 'not selected' : 'current'
+      runner.skip(row.name, `${row.name}: ${reason}`, reason)
+      continue
+    }
+    const { title, run } = SETUP_ROW_RUNS[row.name]
+    await runner.run(row.name, { title }, async (): Promise<InitStepResult> => {
+      const { text, files } = run({ projectDir: input.dir })
+      for (const file of files) {
+        outcomes.push(file)
+        input.recorder.file(row.name, file)
+      }
+      return { outcome: 'done', text }
+    })
+  }
   await runner.run('validate', input.validateStep, input.validate)
 
-  const outcomes: InitFileResult[] = []
   input.onComplete?.(outcomes)
   await input.emitInitCompleted(outcomes)
   if (runner.interrupted()) throw new PromptCancelled()

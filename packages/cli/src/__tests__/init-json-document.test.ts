@@ -566,7 +566,7 @@ describe('init --json prints one document on stdout', () => {
     expect(process.listeners('SIGINT')).toEqual(before)
   })
 
-  it('a re-run of an initialized project is done with a done validate and writes no file', async () => {
+  it('a re-run of an initialized project skips its current rows, validates and writes no file', async () => {
     const { root, home } = tempProject('json-initialized')
     await init(root, home, ['--platform', 'web', '--pm', 'none'])
 
@@ -575,7 +575,10 @@ describe('init --json prints one document on stdout', () => {
     const doc = documentOf(result)
     expect(result.exit).toBeUndefined()
     expect(doc).toMatchObject({ outcome: 'done', exitCode: 0, files: [] })
-    expect(doc.steps).toEqual([{ name: 'validate', outcome: 'done' }])
+    expect(doc.steps).toEqual([
+      { name: 'gitignore', outcome: 'skipped', reason: 'current' },
+      { name: 'validate', outcome: 'done' },
+    ])
     expect(doc.agentQa).toEqual({ version: VERSION, via: 'running' })
   })
 

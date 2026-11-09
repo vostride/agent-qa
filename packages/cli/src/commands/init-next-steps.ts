@@ -46,6 +46,7 @@ const STEP_DESCRIPTIONS: Record<InitStepName, string> = {
   install: 'Install the dependencies',
   chromium: 'Install the browser the examples run in',
   skills: 'Set up the coding agents',
+  gitignore: "Restore init's .gitignore block",
   validate: 'Check the config and the tests',
   dashboard: 'Open the dashboard',
 }

@@ -271,6 +271,27 @@ export function buildHooksFile(_platform: InitPlatformInput): string {
 
 // The managed `.gitignore` block: the hash-comment variant of the shared writer.
 
+// The runtime and auth-states folders are core's defaults, spelled literally because this module
+// does not name core.
+export function buildGitignoreEntries(): string[] {
+  return [
+    '.agent-qa/',
+    '.agent-qa/auth-states/',
+    // Spelled literally because the init suite mocks init-filesystem.js; a test pins both equal.
+    'tests/.agent-qa-drafts/',
+    'node_modules/',
+    '.env',
+    '.env.secrets.local',
+    // The namespace `writeDurableTemporary` publishes through. The temporary is a sibling of
+    // its destination carrying that destination's content — for the secrets file, live
+    // credential bytes at 0600 — and it outlives any cleanup that cannot run. Spelled
+    // literally rather than imported because init-filesystem.js is mocked wholesale by the
+    // init suite; `DURABLE_TEMPORARY_GITIGNORE_RULE` is the other copy, and the two are
+    // pinned together by the runtime-versus-defaults agreement test.
+    '.*.agent-qa-init-*.tmp',
+  ]
+}
+
 export function managedGitignoreContent(entries: readonly string[]): ManagedBlockContent {
   return {
     descriptor: AGENT_QA_INIT_GITIGNORE_BLOCK,
