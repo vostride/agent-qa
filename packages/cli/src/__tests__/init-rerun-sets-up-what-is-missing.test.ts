@@ -1,18 +1,31 @@
-import { readFileSync, readdirSync } from 'node:fs'
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { stripVTControlCharacters } from 'node:util'
+
+import { getAgentQaVersion } from '@vostride/agent-qa-core'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
+import {
+  AGENT_SETUP_MANIFEST_PATH,
+  writeAgentSetupManifest,
+} from '../commands/agent-setup-manifest.js'
 import type { InitDocument } from '../commands/init-document.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { cleanupTempProjects, fakeRunner } from './project-fixtures.js'
 import { initializedProject, rerun } from './rerun-fixtures.js'
 
 const OLD_STOP = /already initialized|Use --force to rebuild/u
+const VERSION = getAgentQaVersion().trim()
 
 afterEach(() => {
   cleanupTempProjects()
 })
+
+function plantMalformedManifest(root: string): void {
+  mkdirSync(join(root, '.agents'), { recursive: true })
+  writeFileSync(join(root, AGENT_SETUP_MANIFEST_PATH), '{ not json')
+}
 
 function contents(root: string): Record<string, string> {
   const files: Record<string, string> = {}
@@ -111,5 +124,66 @@ describe('a re-run of init in an initialized project', () => {
       outcome: 'unchanged',
       created_file_count: 0,
     })
+  })
+})
+
+describe("a re-run reads the project's agent-setup manifest first", () => {
+  it('records the agents the manifest names in its document', async () => {
+    const project = await initializedProject('rerun-manifest-agents')
+    writeAgentSetupManifest(project.root, {
+      format: 1,
+      version: VERSION,
+      agents: ['claude-code'],
+      files: [],
+      entries: [],
+    })
+
+    const result = await rerun(project, ['--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect((JSON.parse(result.stdout) as InitDocument).agents).toEqual(['claude-code'])
+  })
+
+  it('records no agents when the project has no manifest', async () => {
+    const project = await initializedProject('rerun-no-manifest')
+
+    const result = await rerun(project, ['--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect((JSON.parse(result.stdout) as InitDocument).agents).toEqual([])
+  })
+
+  it('refuses a manifest that is not valid JSON with one line, exit 2, drawing and writing nothing', async () => {
+    const project = await initializedProject('rerun-malformed-manifest')
+    plantMalformedManifest(project.root)
+    const before = contents(project.root)
+
+    const result = await rerun(project)
+
+    expect(result.exit).toBe(2)
+    const lines = stripVTControlCharacters(result.stderr)
+      .split('\n')
+      .filter((line) => line !== '')
+    expect(lines).toHaveLength(1)
+    expect(lines[0]).toMatch(
+      /^Refusing malformed \.agents\/agent-qa-skills\.json: it is not valid JSON/u,
+    )
+    expect(result.entries).toEqual([])
+    expect(contents(project.root)).toEqual(before)
+  })
+
+  it('under --json reports the malformed manifest as a refused document with its line', async () => {
+    const project = await initializedProject('rerun-malformed-manifest-json')
+    plantMalformedManifest(project.root)
+
+    const result = await rerun(project, ['--json'], { plain: true })
+
+    expect(result.exit).toBe(2)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc).toMatchObject({ outcome: 'refused', exitCode: 2, files: [] })
+    expect(doc.message).toMatch(
+      /^Refusing malformed \.agents\/agent-qa-skills\.json: it is not valid JSON/u,
+    )
+    expect(doc.steps).toEqual([])
   })
 })
