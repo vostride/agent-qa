@@ -122,6 +122,15 @@ describe('init --help', () => {
     expect(flags).not.toContain('--dir')
     expect(flags).not.toContain('--config')
   })
+
+  it('says --setup takes row names, all or none, and what all leaves out', () => {
+    const help = createInitCommand().helpInformation().replace(/\s+/gu, ' ')
+
+    expect(help).toContain(
+      '--setup <list> on an initialized project, the rows to set up: names separated by commas, ' +
+        'all or none (all leaves out a version move that can break the config)',
+    )
+  })
 })
 
 const SPAWN_BUDGET_MS = 60_000

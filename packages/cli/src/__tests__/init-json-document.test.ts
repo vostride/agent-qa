@@ -7,9 +7,11 @@ import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
 import { runCli, type CliFailureDeps } from '../cli-error-handler.js'
+import { AGENT_SETUP_MANIFEST_PATH } from '../commands/agent-setup-manifest.js'
 import { createInitCommand } from '../commands/init.js'
 import type { InitDocument } from '../commands/init-document.js'
 import { initNextSteps } from '../commands/init-next-steps.js'
+import type { LatestVersionAsk } from '../commands/latest-version-ask.js'
 import { defaultProjectIo, type ProjectIo, type RunResult } from '../commands/project-host.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import {
@@ -51,7 +53,11 @@ async function init(
   home: string,
   args: readonly string[],
   run: FakeRunner = fakeRunner(),
-  hooks: { composeAnalytics?: typeof composeAnalyticsHost; io?: ProjectIo } = {},
+  hooks: {
+    composeAnalytics?: typeof composeAnalyticsHost
+    io?: ProjectIo
+    latestVersion?: LatestVersionAsk
+  } = {},
 ): Promise<InitExit> {
   stdout.mockClear()
   stderr.mockClear()
@@ -71,7 +77,7 @@ async function init(
         isTTY: false,
         composeAnalytics: hooks.composeAnalytics ?? silentAnalytics,
         chromium: () => ({ found: true, path: '/fake/chromium' }),
-        latestVersion: async () => ({ source: 'none' }),
+        latestVersion: hooks.latestVersion ?? (async () => ({ source: 'none' })),
       }),
     )
   const handler: string[] = []
@@ -666,5 +672,158 @@ describe('init --json prints one document on stdout', () => {
 
     expect(result.exit).toBe(130)
     expect(result.stdout).toBe('')
+  })
+})
+
+// A fresh init whose install went through, with agent-qa runnable from node_modules.
+async function initializedProject(
+  label: string,
+  { agentQaInstalled = true }: { agentQaInstalled?: boolean } = {},
+): Promise<{ root: string; home: string }> {
+  const project = tempProject(label)
+  await init(project.root, project.home, [
+    '--platform',
+    'web',
+    '--pm',
+    'none',
+    '--llm',
+    'gemini',
+    '--agents',
+    'none',
+    '--no-browsers',
+  ])
+  const declared = JSON.parse(readFileSync(join(project.root, 'package.json'), 'utf8')) as {
+    devDependencies: Record<string, string>
+  }
+  for (const [name, version] of Object.entries(declared.devDependencies)) {
+    if (name !== 'agent-qa') writeInstalledPackage(project.root, name, version)
+  }
+  if (agentQaInstalled) {
+    writeInstalledPackage(project.root, 'agent-qa', VERSION, {
+      packageJson: { bin: { 'agent-qa': 'cli.js' } },
+      files: { 'cli.js': '' },
+    })
+  }
+  return project
+}
+
+function nextPatch(version: string): string {
+  const [major, minor, patch] = version.split(/[.-]/u).map(Number)
+  return `${major}.${minor}.${(patch ?? 0) + 1}`
+}
+
+describe("a re-run's --json document on every exit", () => {
+  it('is done with exit 0 and carries setup and latest', async () => {
+    const { root, home } = await initializedProject('json-rerun-done')
+
+    const result = await init(root, home, ['--json'])
+
+    const doc = documentOf(result)
+    expect(result.exit).toBeUndefined()
+    expect(doc).toMatchObject({ outcome: 'done', exitCode: 0, latest: { source: 'none' } })
+    expect(doc.setup?.map((row) => row.name)).toContain('gitignore')
+    expect(doc.upgrade).toBeUndefined()
+  })
+
+  it('carries the upgrade when a newer version is known', async () => {
+    const { root, home } = await initializedProject('json-rerun-upgrade')
+    const newer = nextPatch(VERSION)
+
+    const result = await init(root, home, ['--json', '--setup', 'none'], fakeRunner(), {
+      latestVersion: async () => ({ source: 'registry', latestVersion: newer }),
+    })
+
+    const doc = documentOf(result)
+    expect(result.exit).toBeUndefined()
+    expect(doc).toMatchObject({
+      outcome: 'done',
+      exitCode: 0,
+      latest: { source: 'registry', version: newer },
+      upgrade: { from: VERSION, to: newer, breaking: false, row: 'upgrade' },
+    })
+    expect(doc.setup?.find((row) => row.name === 'upgrade')).toMatchObject({ selected: false })
+  })
+
+  it('is failed with exit 3 when a selected row fails, and still carries setup and latest', async () => {
+    const { root, home } = await initializedProject('json-rerun-failed', {
+      agentQaInstalled: false,
+    })
+    const run = probeOr(() => ({ code: 1, signal: null, output: 'npm error network\n' }))
+
+    const result = await init(root, home, ['--json', '--setup', 'deps', '--pm', 'npm'], run)
+
+    const doc = documentOf(result)
+    expect(result.exit).toBe(3)
+    expect(doc).toMatchObject({ outcome: 'failed', exitCode: 3, latest: { source: 'none' } })
+    expect(doc.steps).toContainEqual(
+      expect.objectContaining({ name: 'deps', outcome: 'failed', command: 'npm install' }),
+    )
+    expect(doc.setup?.find((row) => row.name === 'deps')).toMatchObject({ selected: true })
+  })
+
+  const refusals: [string, readonly string[], (root: string) => void, string][] = [
+    ['a bad --setup value', ['--setup', 'bogus'], () => {}, 'Unknown setup row "bogus".'],
+    ['--platform on a re-run', ['--platform', 'web'], () => {}, '--platform sets up a new project'],
+    ['--model without --llm', ['--model', 'x'], () => {}, '--model and --base-url set the model'],
+    [
+      'a malformed manifest',
+      [],
+      (root) => {
+        mkdirSync(dirname(join(root, AGENT_SETUP_MANIFEST_PATH)), { recursive: true })
+        writeFileSync(join(root, AGENT_SETUP_MANIFEST_PATH), '{ not json')
+      },
+      AGENT_SETUP_MANIFEST_PATH,
+    ],
+  ]
+
+  refusals.forEach(([label, args, plant, line], index) => {
+    it(`is refused with exit 2 and one line for ${label}, carrying setup and latest`, async () => {
+      const { root, home } = await initializedProject(`json-rerun-refused-${index}`)
+      plant(root)
+
+      const result = await init(root, home, ['--json', ...args])
+
+      const doc = documentOf(result)
+      expect(result.exit).toBe(2)
+      expect(doc).toMatchObject({
+        outcome: 'refused',
+        exitCode: 2,
+        steps: [],
+        setup: [],
+        latest: { source: 'none' },
+      })
+      expect(doc.message).toContain(line)
+      expect(doc.message).not.toContain('\n')
+    })
+  })
+
+  it('is interrupted with exit 130 for a Ctrl-C at a step, and carries setup and latest', async () => {
+    const { root, home } = await initializedProject('json-rerun-interrupted')
+    const before = process.listeners('SIGINT')
+    const run = probeOr((args) => {
+      if (args.includes('validate')) {
+        for (const listener of process.listeners('SIGINT')) {
+          if (!before.includes(listener)) (listener as () => void)()
+        }
+      }
+      return OK
+    })
+
+    const result = await init(root, home, ['--json'], run)
+
+    const doc = documentOf(result)
+    expect(result.exit).toBe(130)
+    expect(doc).toMatchObject({
+      outcome: 'interrupted',
+      exitCode: 130,
+      message: 'Cancelled.',
+      latest: { source: 'none' },
+    })
+    expect(doc.setup?.length).toBeGreaterThan(0)
+    expect(doc.steps.slice(-2)).toEqual([
+      { name: 'validate', outcome: 'failed', reason: 'interrupted' },
+      { name: 'dashboard', outcome: 'skipped', reason: 'interrupted' },
+    ])
+    expect(process.listeners('SIGINT')).toEqual(before)
   })
 })
