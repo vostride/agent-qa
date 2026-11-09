@@ -18,10 +18,7 @@ export interface AgentQaUpdateStatus {
   checkedAt?: string
 }
 
-type VersionCheckFetch = (
-  input: string | URL | Request,
-  init?: RequestInit,
-) => Promise<Response>
+type VersionCheckFetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>
 
 export interface VersionCheckOptions {
   cachePath?: string
@@ -67,6 +64,8 @@ interface SemverApi {
   compare(version: string, otherVersion: string): -1 | 0 | 1
   minVersion(range: string): { version: string } | null
   validRange(range: string): string | null
+  major(version: string): number
+  minor(version: string): number
 }
 
 let semverApi: SemverApi | undefined
@@ -82,6 +81,64 @@ export function compareSemverVersions(left: string, right: string): -1 | 0 | 1 |
   const rightVersion = getValidVersion(right, semver)
   if (leftVersion === undefined || rightVersion === undefined) return undefined
   return semver.compare(leftVersion, rightVersion)
+}
+
+export function validSemverVersion(version: unknown): string | undefined {
+  const semver = getSemverApi()
+  return semver ? getValidVersion(version, semver) : undefined
+}
+
+export interface AgentQaBreakingStep {
+  from: string
+  to: string
+}
+
+// A crafted version such as 0.9007199254740991.0 must not make the walk run for ever.
+const MAX_BREAKING_STEPS = 100
+
+// A breaking step is a minor bump in 0.x and a major bump from 1.0 on. Each side is named by its
+// line: `<major>-<minor>` in 0.x, `<major>` from 1.0 on. A prerelease is on its release's line.
+export function agentQaBreakingSteps(from: string, to: string): AgentQaBreakingStep[] {
+  const semver = getSemverApi()
+  if (!semver) return []
+  const fromVersion = getValidVersion(from, semver)
+  const toVersion = getValidVersion(to, semver)
+  if (fromVersion === undefined || toVersion === undefined) return []
+  try {
+    if (semver.compare(toVersion, fromVersion) !== 1) return []
+    const fromMajor = semver.major(fromVersion)
+    const fromMinor = semver.minor(fromVersion)
+    const toMajor = semver.major(toVersion)
+    const toMinor = semver.minor(toVersion)
+    const fromLine = fromMajor === 0 ? `0-${fromMinor}` : `${fromMajor}`
+    const toLine = toMajor === 0 ? `0-${toMinor}` : `${toMajor}`
+    if (fromLine === toLine) return []
+
+    const stepCount =
+      toMajor === 0
+        ? toMinor - fromMinor
+        : toMajor - Math.max(fromMajor, 1) + (fromMajor === 0 ? 1 : 0)
+    if (stepCount > MAX_BREAKING_STEPS) return [{ from: fromLine, to: toLine }]
+
+    const steps: AgentQaBreakingStep[] = []
+    if (toMajor === 0) {
+      for (let minor = fromMinor; minor < toMinor; minor += 1) {
+        steps.push({ from: `0-${minor}`, to: `0-${minor + 1}` })
+      }
+      return steps
+    }
+    let major = fromMajor
+    if (fromMajor === 0) {
+      steps.push({ from: fromLine, to: '1' })
+      major = 1
+    }
+    for (; major < toMajor; major += 1) {
+      steps.push({ from: `${major}`, to: `${major + 1}` })
+    }
+    return steps
+  } catch {
+    return []
+  }
 }
 
 export function semverRangeFloor(range: string): string | undefined {
@@ -453,9 +510,7 @@ function createStatus(
 
   const installedSemver = semver ? getValidVersion(installedVersion, semver) : undefined
   const updateAvailable = Boolean(
-    installedSemver &&
-      semver &&
-      safeSemverGreaterThan(semver, latestVersion, installedSemver),
+    installedSemver && semver && safeSemverGreaterThan(semver, latestVersion, installedSemver),
   )
 
   return {
@@ -474,7 +529,9 @@ function safeSemverGreaterThan(semver: SemverApi, version: string, otherVersion:
   }
 }
 
-async function readVersionCheckCache(cachePath: string): Promise<VersionCheckCacheFile | undefined> {
+async function readVersionCheckCache(
+  cachePath: string,
+): Promise<VersionCheckCacheFile | undefined> {
   try {
     const raw = await readFile(cachePath, 'utf-8')
     const parsed = JSON.parse(raw) as unknown

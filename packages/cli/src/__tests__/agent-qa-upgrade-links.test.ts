@@ -21,7 +21,13 @@ describe('agent-qa upgrade links', () => {
   })
 
   it("a version's release notes are its tag on the releases page", () => {
-    expect(releaseNotesUrl('0.3.2')).toBe('https://github.com/vostride/agent-qa/releases/tag/v0.3.2')
+    expect(releaseNotesUrl('0.3.2')).toBe(
+      'https://github.com/vostride/agent-qa/releases/tag/v0.3.2',
+    )
+  })
+
+  it('a version that is not semver has no release notes link', () => {
+    expect(releaseNotesUrl('0.3.2/../../evil')).toBeUndefined()
   })
 
   it('a move across a 0.x minor is breaking and links its guide', () => {

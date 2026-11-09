@@ -14,7 +14,7 @@ export { updateNoticeApplies, type UpdateNoticeGate } from './update-notice-gate
 
 export const UPDATE_NOTICE_SHOWN_FILE = 'update-notice.json'
 
-const RELEASES_URL = 'https://github.com/vostride/agent-qa/releases'
+export const RELEASES_URL = 'https://github.com/vostride/agent-qa/releases'
 const NOTICE_INTERVAL_MS = 24 * 60 * 60 * 1000
 
 export interface UpdateNoticePrint {

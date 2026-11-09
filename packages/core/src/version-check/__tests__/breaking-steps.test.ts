@@ -55,6 +55,15 @@ describe('agent-qa breaking steps', () => {
     expect(agentQaBreakingSteps('0.5.0', '0.3.0')).toEqual([])
   })
 
+  it('a crafted jump across very many lines is one step naming both lines', () => {
+    expect(agentQaBreakingSteps('0.3.0', '0.9007199254740991.0')).toEqual([
+      { from: '0-3', to: '0-9007199254740991' },
+    ])
+    expect(agentQaBreakingSteps('1.0.0', '9007199254740991.0.0')).toEqual([
+      { from: '1', to: '9007199254740991' },
+    ])
+  })
+
   it('a version that is not semver crosses nothing', () => {
     expect(agentQaBreakingSteps('latest', '0.4.0')).toEqual([])
     expect(agentQaBreakingSteps('0.3.0', '0.4.0/../../evil')).toEqual([])

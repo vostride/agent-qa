@@ -16,6 +16,12 @@ export function surfaceLedgerKey(entry: Pick<SurfaceLedgerEntry, 'file' | 'speci
 
 export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
   {
+    file: 'packages/cli/src/commands/agent-qa-upgrade.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: "init's version moves name their breaking steps with core's semver helpers; joins the config mutation class with init",
+  },
+  {
     file: 'packages/cli/src/commands/auth-state.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',
