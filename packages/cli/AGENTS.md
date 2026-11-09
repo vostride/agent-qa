@@ -18,6 +18,28 @@ it prints one JSON document on stdout on every exit.
 `agent-qa init --capabilities` prints the JSON capability manifest and writes
 nothing.
 
+On a folder that already has `agent-qa.config.yaml`, `agent-qa init` re-runs
+setup instead. It prints a short summary of the project's agent-qa version, a
+newer published version when npm answers in time, the model and the coding
+agents, asks which coding agents to set up, then shows one menu of rows
+(`upgrade`, `deps`, `skills`, `mcp`, `agents-md`, `browsers`, `gitignore`,
+`scaffold`), each pre-checked when running it would change something.
+`--setup <rows|all|none>` answers the menu, and `--yes` and runs without a
+terminal take the pre-checks. A version move that can break the config is
+never pre-checked and never taken by `all`; only naming its row in `--setup`
+runs it. The `upgrade` row bumps agent-qa and its plugins to the latest exact
+version, installs them and hands the rest of the run to the new copy. `--llm`,
+`--model` and `--base-url` set the model. Validate always runs, then the next
+steps, and an interactive re-run opens the dashboard only while the model is
+pending. With `--json` a re-run also prints one JSON document on every exit.
+The menu's checks live in `src/commands/setup-rows.ts`, and doctor uses the
+same ones.
+
+`agent-qa doctor` prints one row per check, with a fix under every warning and
+failure. `--json` prints `{ "format": 1, "ok", "rows" }` instead. It exits 3
+when a row fails and 0 otherwise, and 2 for its own usage errors. A row the
+re-run menu can fix names `npx agent-qa init --setup <row>` as its fix.
+
 ## Read First
 
 - `package.json`
@@ -26,6 +48,9 @@ nothing.
 - `src/config.ts`
 - `src/commands/init.ts`
 - `src/commands/init-steps.ts`
+- `src/commands/init-rerun.ts`
+- `src/commands/setup-rows.ts`
+- `src/commands/doctor.ts`
 - `src/init-ui/`
 - `src/commands/auth.ts`
 - `src/commands/run.ts`
