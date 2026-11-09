@@ -17,7 +17,12 @@ import { createClackUi } from '../init-ui/clack-ui.js'
 import { brandPalette } from '../init-ui/palette.js'
 import { clackStreams } from './clack-keys.js'
 import type { FakeInitUiEntry } from './fake-init-ui.js'
-import { cleanupTempProjects, fakeRunner, writeInstalledPackage } from './project-fixtures.js'
+import {
+  cleanupTempProjects,
+  fakeRunner,
+  tempProject,
+  writeInstalledPackage,
+} from './project-fixtures.js'
 import { initializedProject, rerun } from './rerun-fixtures.js'
 
 const OLD_STOP = /already initialized|Use --force to rebuild/u
@@ -446,4 +451,87 @@ describe("a re-run's setup menu and its gitignore row", () => {
     expect(readFileSync(gitignorePath(project.root), 'utf8')).toBe('dist/\n')
     expect(result.entries).toContainEqual({ kind: 'skipped', text: 'gitignore: not selected' })
   })
+})
+
+describe('a re-run with nothing to change, and its document', () => {
+  it('says everything is current and shows the menu with nothing checked', async () => {
+    const project = await initializedProject('rerun-all-current')
+
+    const result = await rerun(project, [], asked)
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(summaryLines(result.entries)?.at(-1) ?? 'no summary').toBe('Everything is current.')
+    const menu = menuOf(result.entries)
+    expect(menu?.labels.join('|') ?? 'no menu').toBe('gitignore  current')
+    expect(menu?.initialValues.join('|') ?? 'no menu').toBe('')
+  })
+
+  it('with --yes exits 0, changes no byte and skips the gitignore row as current', async () => {
+    const project = await initializedProject('rerun-all-current-yes')
+    const before = contents(project.root)
+
+    const result = await rerun(project, ['--yes', '--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(contents(project.root)).toEqual(before)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.steps[0]).toEqual({ name: 'gitignore', outcome: 'skipped', reason: 'current' })
+  })
+
+  it("--json reports each row's state, pre-check and selection beside the steps", async () => {
+    const project = await initializedProject('rerun-json-setup')
+    writeFileSync(gitignorePath(project.root), 'dist/\n')
+
+    const result = await rerun(project, ['--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(`${doc.outcome} ${doc.exitCode}`).toBe('done 0')
+    expect(JSON.stringify(doc.setup ?? 'no setup')).toBe(
+      JSON.stringify([
+        { name: 'gitignore', state: 'block missing', prechecked: true, selected: true },
+      ]),
+    )
+    expect(doc.steps.map((step) => `${step.name} ${step.outcome}`)).toEqual([
+      'gitignore done',
+      'validate done',
+    ])
+  })
+
+  it("a fresh init's --json document has no setup key", async () => {
+    const project = tempProject('fresh-json-no-setup')
+
+    const result = await rerun(
+      project,
+      ['--yes', '--json', '--pm', 'none', '--no-browsers', '--agents', 'none', '--llm', 'gemini'],
+      { plain: true },
+    )
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(Object.hasOwn(JSON.parse(result.stdout) as object, 'setup')).toBe(false)
+  })
+
+  it.each([
+    ['duplicated', (block: string) => `${block}${block}`],
+    ['unbalanced', (block: string) => block.replace('# agent-qa init:end\n', '')],
+  ])(
+    'refuses a managed block that is %s with one line naming .gitignore, exit 2, leaving it as it was',
+    async (_kind, malform) => {
+      const project = await initializedProject('rerun-gitignore-malformed')
+      const malformed = malform(initBlock(project.root))
+      writeFileSync(gitignorePath(project.root), malformed)
+
+      const result = await rerun(project, [], asked)
+
+      expect(result.exit).toBe(2)
+      const lines = stripVTControlCharacters(result.stderr)
+        .split('\n')
+        .filter((line) => line !== '')
+      expect(lines.join('|')).toBe(
+        'Refusing malformed .gitignore: expected at most one complete agent-qa init managed block',
+      )
+      expect(result.entries).toEqual([])
+      expect(readFileSync(gitignorePath(project.root), 'utf8')).toBe(malformed)
+    },
+  )
 })
