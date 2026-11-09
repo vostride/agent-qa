@@ -36,6 +36,7 @@ import { createPluginChecks } from './doctor-plugin-checks.js'
 import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
 import { createRemoteChecks, listedRemotes } from './doctor-remote-checks.js'
 import { createSetupChecks, projectAgentQaVersion } from './doctor-setup-checks.js'
+import type { LatestVersionAsk } from './latest-version-ask.js'
 import { findProjectAgentQa } from './project-agent-qa.js'
 import { defaultProjectIo, type ProjectHost } from './project-host.js'
 import { projectRange } from './project-range.js'
@@ -734,7 +735,10 @@ export interface DoctorCommandHooks {
   chromium?: ChromiumResolver
   daemon?: (agentQaRoot: string) => Promise<InspectDaemonRegistrationOutcome>
   host?: Partial<ProjectHost>
+  // The latest agent-qa; the default asks the npm registry under a short deadline.
+  latestVersion?: LatestVersionAsk
   listDevicesHere?: DevicesHereLister
+  now?: () => Date
 }
 
 export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {

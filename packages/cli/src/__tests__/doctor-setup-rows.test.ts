@@ -55,13 +55,15 @@ vi.mock('ai', async (importOriginal) => ({
 
 import { getAgentQaVersion } from '@vostride/agent-qa-core'
 
-import { createDoctorCommand } from '../commands/doctor.js'
+import { createDoctorCommand, type DoctorCommandHooks } from '../commands/doctor.js'
+import type { LatestVersionAsk } from '../commands/latest-version-ask.js'
 import { cleanupTempProjects, tempProject } from './project-fixtures.js'
 import {
   editSkillFile,
   foundChromium,
   initializedProject,
   installAgentQaFixture,
+  noLatestVersion,
   rerun,
   type InitializedProject,
 } from './rerun-fixtures.js'
@@ -103,7 +105,10 @@ async function projectWithBothAgents(label: string): Promise<InitializedProject>
   return project
 }
 
-async function doctorRows(project: InitializedProject): Promise<Row[]> {
+async function doctorRows(
+  project: InitializedProject,
+  hooks: DoctorCommandHooks = {},
+): Promise<Row[]> {
   const printed: string[] = []
   const log = vi.spyOn(console, 'log').mockImplementation((...parts: unknown[]) => {
     printed.push(parts.map(String).join(' '))
@@ -118,6 +123,8 @@ async function doctorRows(project: InitializedProject): Promise<Row[]> {
         listDevicesHere: async (platform) =>
           platform === 'android' ? { attached: [], avds: [] } : { simulators: [] },
         host: { homedir: project.home, env: {} },
+        latestVersion: noLatestVersion,
+        ...hooks,
       }),
     )
     const configPath = join(project.root, 'agent-qa.config.yaml')
@@ -434,5 +441,115 @@ describe("doctor's scaffold file rows", () => {
         'Run `npx agent-qa init --setup scaffold` to write the missing file',
       )
     }
+  })
+})
+
+function latestIs(version: string): LatestVersionAsk {
+  return async () => ({ source: 'registry', latestVersion: version })
+}
+
+async function projectOn(label: string, version: string): Promise<InitializedProject> {
+  const project = await initializedProject(label)
+  setInstalledVersion(project, 'agent-qa', version)
+  return project
+}
+
+describe("doctor's newer agent-qa row", () => {
+  it('warns with the upgrade command when a patch is out, and doctor still exits 0', async () => {
+    const project = await projectOn('doctor-newer-patch', '0.3.0')
+
+    const rows = await doctorRows(project, { latestVersion: latestIs('0.3.2') })
+
+    expect(row(rows, 'Newer agent-qa')).toEqual({
+      name: 'Newer agent-qa',
+      status: 'warn',
+      message: "agent-qa 0.3.2 is out; you're on 0.3.0",
+      fix: 'Run `npx agent-qa init --setup upgrade`.',
+    })
+    expect(process.exitCode).toBe(0)
+  })
+
+  it('warns with the migration guide when a breaking release is out', async () => {
+    const project = await projectOn('doctor-newer-breaking', '0.3.0')
+
+    const rows = await doctorRows(project, { latestVersion: latestIs('0.4.0') })
+
+    expect(row(rows, 'Newer agent-qa')).toEqual({
+      name: 'Newer agent-qa',
+      status: 'warn',
+      message: "agent-qa 0.4.0 is out; you're on 0.3.0",
+      fix: [
+        'agent-qa 0.4.0 can change your config. To upgrade, point your coding agent at',
+        'https://vostride.com/docs/agent-qa/migrate/v0-3-to-v0-4',
+      ].join('\n'),
+    })
+  })
+
+  it('passes when the project is on the latest agent-qa', async () => {
+    const project = await projectOn('doctor-newer-latest', '0.3.0')
+
+    const rows = await doctorRows(project, { latestVersion: latestIs('0.3.0') })
+
+    expect(row(rows, 'Newer agent-qa')).toEqual({
+      name: 'Newer agent-qa',
+      status: 'pass',
+      message: "you're on the latest, 0.3.0",
+    })
+  })
+
+  it('skips with could not check when the ask has no answer', async () => {
+    const project = await projectOn('doctor-newer-none', '0.3.0')
+
+    const rows = await doctorRows(project, { latestVersion: noLatestVersion })
+
+    expect(row(rows, 'Newer agent-qa')).toEqual({
+      name: 'Newer agent-qa',
+      status: 'skip',
+      message: 'could not check',
+    })
+  })
+
+  it('skips with could not check when the answer is not a version or the ask fails', async () => {
+    const project = await projectOn('doctor-newer-invalid', '0.3.0')
+    const failing: LatestVersionAsk = async () => {
+      throw new Error('offline')
+    }
+
+    for (const latestVersion of [latestIs('latest; rm -rf ~'), failing]) {
+      const rows = await doctorRows(project, { latestVersion })
+      expect(row(rows, 'Newer agent-qa')).toEqual({
+        name: 'Newer agent-qa',
+        status: 'skip',
+        message: 'could not check',
+      })
+    }
+  })
+
+  it('asks once per doctor run, with the home doctor was given', async () => {
+    const project = await projectOn('doctor-newer-once', '0.3.0')
+    const asked: string[] = []
+    const latestVersion: LatestVersionAsk = async (home) => {
+      asked.push(home)
+      return { source: 'cache', latestVersion: '0.3.2' }
+    }
+
+    await doctorRows(project, { latestVersion })
+
+    expect(asked).toEqual([project.home])
+  })
+
+  it('compares with the running agent-qa when the project has none installed', async () => {
+    const project = await initializedProject('doctor-newer-running')
+    rmSync(join(project.root, 'node_modules', 'agent-qa'), { recursive: true, force: true })
+    running.version = '0.3.0'
+
+    const rows = await doctorRows(project, { latestVersion: latestIs('0.3.2') })
+
+    expect(row(rows, 'Newer agent-qa')).toEqual({
+      name: 'Newer agent-qa',
+      status: 'warn',
+      message: "agent-qa 0.3.2 is out; you're on 0.3.0",
+      fix: 'Run `npx agent-qa init --setup upgrade`.',
+    })
   })
 })
