@@ -118,9 +118,9 @@ const MODEL_FIX =
 // Read from the raw config, before validate: an entry that is not a named mapping is left to it.
 function activeLLM(config: Record<string, unknown> | null): ActiveLLMConfig | undefined {
   if (!config) return undefined
-  const registry = isRecord(config.registry) ? config.registry : undefined
-  const llms = Array.isArray(registry?.llms)
-    ? registry.llms.filter(
+  const listed = isRecord(config.registry) ? config.registry.llms : undefined
+  const llms = Array.isArray(listed)
+    ? listed.filter(
         (entry): entry is ActiveLLMConfig => isRecord(entry) && typeof entry.name === 'string',
       )
     : []
