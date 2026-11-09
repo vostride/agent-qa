@@ -1,7 +1,9 @@
-// The headed select on the rail: headings never chosen, a status on every row, and every cancel.
+// The headed select on the rail: headings never chosen, a status on every row, every cancel, and
+// the window a list taller than the terminal is drawn through.
+import { setTimeout as sleep } from 'node:timers/promises'
 import { stripVTControlCharacters } from 'node:util'
 
-import { S_RADIO_ACTIVE, S_RADIO_INACTIVE } from '@clack/prompts'
+import { S_BAR_END, S_RADIO_ACTIVE, S_RADIO_INACTIVE, S_STEP_ACTIVE } from '@clack/prompts'
 import { describe, expect, it } from 'vitest'
 
 import { PromptCancelled } from '../composition/cli-refusal.js'
@@ -146,5 +148,152 @@ describe('the headed select on the rail', () => {
     await stop(streams)
 
     await expect(answer).rejects.toBeInstanceOf(PromptCancelled)
+  })
+})
+
+const LONG_NEW: InitSection<string> = {
+  heading: NEW_HEADING,
+  options: Array.from({ length: 7 }, (_, index) => ({
+    value: `new-${index + 1}`,
+    label: `new-${index + 1}`,
+    status: 'set up later',
+  })),
+}
+
+const LONG_SAVED_HEADING = 'Saved on this machine (12)'
+
+function longSaved(label: (name: string) => string = (name) => name): InitSection<string> {
+  return {
+    heading: LONG_SAVED_HEADING,
+    options: Array.from({ length: 12 }, (_, index) => {
+      const name = `saved-${String(index + 1).padStart(2, '0')}`
+      return { value: name, label: label(name), status: 'key saved' }
+    }),
+  }
+}
+
+const LONG_VALUES = [...LONG_NEW.options, ...longSaved().options].map(({ value }) => value)
+
+function windowedSelect(
+  terminal: { rows: number; columns?: number },
+  sections: readonly InitSection<string>[] = [LONG_NEW, longSaved()],
+) {
+  const streams = clackStreams(terminal)
+  const ui = createClackUi({
+    input: streams.input,
+    output: streams.output,
+    palette: brandPalette({ background: 'dark', level: 0 }),
+    columns: terminal.columns ?? 100,
+  })
+  const answer = ui.select({ message: MESSAGE, sections, initialValue: 'new-1' })
+  answer.catch(() => {})
+  return { streams, answer }
+}
+
+// The question as a terminal shows it now, from the guide line above it to its └.
+function frameOf(streams: ClackStreams): string[] {
+  const lines = streams.screen()
+  const at = lines.findIndex((line) => line.startsWith(S_STEP_ACTIVE) && line.includes(MESSAGE))
+  const end = lines.findIndex((line, index) => index > at && line.startsWith(S_BAR_END))
+  return at < 1 || end < 0 ? [] : lines.slice(at - 1, end + 1)
+}
+
+// The list's lines without the gutter: between the question and the instruction footer.
+function listOf(frame: readonly string[]): string[] {
+  return frame.slice(2, -2).map((line) => line.replace(/^\S\s\s/u, ''))
+}
+
+function activeLine(frame: readonly string[]): string | undefined {
+  return frame.find((line) => line.includes(S_RADIO_ACTIVE))
+}
+
+async function frameOn(streams: ClackStreams, value: string): Promise<string[]> {
+  for (let waited = 0; waited < 3000; waited += 10) {
+    const frame = frameOf(streams)
+    if (activeLine(frame)?.includes(value)) return frame
+    await sleep(10)
+  }
+  throw new Error(`the cursor never reached ${value}:\n${streams.screen().join('\n')}`)
+}
+
+describe('the headed select in a terminal shorter than its list', () => {
+  it('fits the terminal at every cursor position of a full lap, with the visible section heading first', async () => {
+    const { streams, answer } = windowedSelect({ rows: 12 })
+    const walk = [...LONG_VALUES, LONG_VALUES[0]!]
+    const frames: string[][] = []
+    for (const [step, value] of walk.entries()) {
+      if (step > 0) await streams.press(KEY.down)
+      frames.push(await frameOn(streams, value))
+    }
+    await streams.press(KEY.enter)
+    await expect(answer).resolves.toBe('new-1')
+
+    for (const frame of frames) {
+      expect(frame.length).toBeLessThan(12)
+      expect(frame.filter((line) => line.includes(S_RADIO_ACTIVE))).toHaveLength(1)
+      const list = listOf(frame)
+      expect([NEW_HEADING, LONG_SAVED_HEADING]).toContain(list[0])
+      for (const heading of [NEW_HEADING, LONG_SAVED_HEADING]) {
+        expect(list.filter((line) => line === heading).length).toBeLessThanOrEqual(1)
+      }
+      const topOption = list.find(
+        (line) => line.startsWith(S_RADIO_ACTIVE) || line.startsWith(S_RADIO_INACTIVE),
+      )
+      if (topOption?.includes('saved-')) expect(list[0]).toBe(LONG_SAVED_HEADING)
+      if (frame.some((line) => line.includes('saved-12'))) {
+        expect(list).not.toContain('...')
+      } else {
+        expect(list.at(-1)).toBe('...')
+      }
+    }
+    expect(frames.some((frame) => listOf(frame).at(-1) === '...')).toBe(true)
+    expect(frames.some((frame) => listOf(frame)[0] === LONG_SAVED_HEADING)).toBe(true)
+  })
+
+  it.each(LONG_VALUES.map((value, downs) => ({ value, downs })))(
+    'Enter after $downs presses of ↓ takes $value, the row under the active radio',
+    async ({ value, downs }) => {
+      const { streams, answer } = windowedSelect({ rows: 12 })
+      await frameOn(streams, 'new-1')
+      await streams.press(...Array<string>(downs).fill(KEY.down))
+      const frame = await frameOn(streams, value)
+      await streams.press(KEY.enter)
+
+      expect(activeLine(frame)).toContain(value)
+      await expect(answer).resolves.toBe(value)
+    },
+  )
+
+  it('draws every row, both headings and no ... when the terminal is tall enough', async () => {
+    const { streams, answer } = windowedSelect({ rows: 40 })
+    const frame = await frameOn(streams, 'new-1')
+    await streams.press(KEY.enter)
+    await answer
+
+    const list = listOf(frame)
+    expect(list).toHaveLength(LONG_VALUES.length + 2)
+    expect(list).toContain(NEW_HEADING)
+    expect(list).toContain(LONG_SAVED_HEADING)
+    for (const value of LONG_VALUES) expect(frame.some((line) => line.includes(value))).toBe(true)
+    expect(list).not.toContain('...')
+  })
+
+  it('cuts a row wider than the terminal to one line ending in …', async () => {
+    const wide = (name: string) => `${name} ${'x'.repeat(60 - name.length - 1)}`
+    const { streams, answer } = windowedSelect({ rows: 12, columns: 40 }, [
+      LONG_NEW,
+      longSaved(wide),
+    ])
+    await frameOn(streams, 'new-1')
+    await streams.press(...Array<string>(LONG_NEW.options.length).fill(KEY.down))
+    const frame = await frameOn(streams, 'saved-01')
+    await streams.press(KEY.enter)
+    await expect(answer).resolves.toBe('saved-01')
+
+    expect(wide('saved-01')).toHaveLength(60)
+    expect(frame.length).toBeLessThan(12)
+    const row = frame.find((line) => line.includes('saved-01'))
+    expect(row?.endsWith('…')).toBe(true)
+    for (const line of frame) expect(line.length).toBeLessThanOrEqual(40)
   })
 })
