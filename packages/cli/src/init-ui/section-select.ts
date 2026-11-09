@@ -92,7 +92,10 @@ function windowFrom<T>(rows: readonly Row<T>[], first: number, lines: number): W
   if (rows.length - first <= room) {
     return { sticky, first, last: rows.length - 1, hiddenBelow: false }
   }
-  return { sticky, first, last: first + room - 2, hiddenBelow: true }
+  // A heading is never drawn alone just above the ... line.
+  let last = first + room - 2
+  while (last > first && rows[last]?.kind === 'heading') last -= 1
+  return { sticky, first, last, hiddenBelow: true }
 }
 
 // The highest window that shows the cursor with a row under it before the ... line, as Clack's

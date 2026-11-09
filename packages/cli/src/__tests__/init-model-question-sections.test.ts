@@ -223,38 +223,42 @@ async function frameOn(streams: ClackStreams, value: string): Promise<string[]> 
 }
 
 describe('the headed select in a terminal shorter than its list', () => {
-  it('fits the terminal at every cursor position of a full lap, with the visible section heading first', async () => {
-    const { streams, answer } = windowedSelect({ rows: 12 })
-    const walk = [...LONG_VALUES, LONG_VALUES[0]!]
-    const frames: string[][] = []
-    for (const [step, value] of walk.entries()) {
-      if (step > 0) await streams.press(KEY.down)
-      frames.push(await frameOn(streams, value))
-    }
-    await streams.press(KEY.enter)
-    await expect(answer).resolves.toBe('new-1')
+  it.each([12, 15])(
+    'fits a %i-row terminal at every cursor position of a full lap, with the visible section heading first',
+    async (rows) => {
+      const { streams, answer } = windowedSelect({ rows })
+      const walk = [...LONG_VALUES, LONG_VALUES[0]!]
+      const frames: string[][] = []
+      for (const [step, value] of walk.entries()) {
+        if (step > 0) await streams.press(KEY.down)
+        frames.push(await frameOn(streams, value))
+      }
+      await streams.press(KEY.enter)
+      await expect(answer).resolves.toBe('new-1')
 
-    for (const frame of frames) {
-      expect(frame.length).toBeLessThan(12)
-      expect(frame.filter((line) => line.includes(S_RADIO_ACTIVE))).toHaveLength(1)
-      const list = listOf(frame)
-      expect([NEW_HEADING, LONG_SAVED_HEADING]).toContain(list[0])
-      for (const heading of [NEW_HEADING, LONG_SAVED_HEADING]) {
-        expect(list.filter((line) => line === heading).length).toBeLessThanOrEqual(1)
+      for (const frame of frames) {
+        expect(frame.length).toBeLessThan(rows)
+        expect(frame.filter((line) => line.includes(S_RADIO_ACTIVE))).toHaveLength(1)
+        const list = listOf(frame)
+        expect([NEW_HEADING, LONG_SAVED_HEADING]).toContain(list[0])
+        for (const heading of [NEW_HEADING, LONG_SAVED_HEADING]) {
+          expect(list.filter((line) => line === heading).length).toBeLessThanOrEqual(1)
+        }
+        const topOption = list.find(
+          (line) => line.startsWith(S_RADIO_ACTIVE) || line.startsWith(S_RADIO_INACTIVE),
+        )
+        if (topOption?.includes('saved-')) expect(list[0]).toBe(LONG_SAVED_HEADING)
+        if (frame.some((line) => line.includes('saved-12'))) {
+          expect(list).not.toContain('...')
+        } else {
+          expect(list.at(-1)).toBe('...')
+          expect([NEW_HEADING, LONG_SAVED_HEADING]).not.toContain(list.at(-2))
+        }
       }
-      const topOption = list.find(
-        (line) => line.startsWith(S_RADIO_ACTIVE) || line.startsWith(S_RADIO_INACTIVE),
-      )
-      if (topOption?.includes('saved-')) expect(list[0]).toBe(LONG_SAVED_HEADING)
-      if (frame.some((line) => line.includes('saved-12'))) {
-        expect(list).not.toContain('...')
-      } else {
-        expect(list.at(-1)).toBe('...')
-      }
-    }
-    expect(frames.some((frame) => listOf(frame).at(-1) === '...')).toBe(true)
-    expect(frames.some((frame) => listOf(frame)[0] === LONG_SAVED_HEADING)).toBe(true)
-  })
+      expect(frames.some((frame) => listOf(frame).at(-1) === '...')).toBe(true)
+      expect(frames.some((frame) => listOf(frame)[0] === LONG_SAVED_HEADING)).toBe(true)
+    },
+  )
 
   it.each(LONG_VALUES.map((value, downs) => ({ value, downs })))(
     'Enter after $downs presses of ↓ takes $value, the row under the active radio',
