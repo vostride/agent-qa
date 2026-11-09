@@ -328,7 +328,7 @@ function isMcpFileOf(path: string, agents: readonly CodingAgent[]): boolean {
   return agents.some((agent) => path === AGENT_MCP_FILES[agent])
 }
 
-function agentLabel(agent: CodingAgent): string {
+export function agentLabel(agent: CodingAgent): string {
   return INIT_AGENT_OPTIONS.find((option) => option.value === agent)?.label ?? agent
 }
 
@@ -341,7 +341,7 @@ function chosenAgents(agents: readonly CodingAgent[]): CodingAgent[] {
 }
 
 // Short enough for a narrow terminal; the files themselves are in --json.
-function skillsState(
+export function skillsState(
   agents: readonly CodingAgent[],
   perAgent: AgentRowsCheck['perAgent'],
   version: string,
@@ -467,7 +467,10 @@ export async function checkAgentRows({
   io,
   agents,
   host,
-}: SetupRowCheckInput): Promise<AgentRowsCheck> {
+}: Pick<
+  SetupRowCheckInput,
+  'projectDir' | 'configPath' | 'io' | 'agents' | 'host'
+>): Promise<AgentRowsCheck> {
   const guidePath = knowledgeGuidePath(projectDir, configPath, io)
   const guide = { path: guidePath, state: knowledgeGuideState(guidePath, io) }
   const chosen = chosenAgents(agents)

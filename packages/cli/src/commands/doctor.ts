@@ -34,6 +34,7 @@ import { createKnowledgeChecks } from './doctor-knowledge-checks.js'
 import { createPluginChecks } from './doctor-plugin-checks.js'
 import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
 import { createRemoteChecks, listedRemotes } from './doctor-remote-checks.js'
+import { createSetupChecks } from './doctor-setup-checks.js'
 import { findProjectAgentQa } from './project-agent-qa.js'
 import { defaultProjectIo, type ProjectHost } from './project-host.js'
 import { projectRange } from './project-range.js'
@@ -778,6 +779,7 @@ export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
           ...(hooks.daemon === undefined ? {} : { probes: { inspectDaemon: hooks.daemon } }),
         }),
         checkConfigValidation(config, configPath),
+        ...createSetupChecks({ configPath, host: hooks.host ?? {} }),
         checkSecretsFile(config, configPath),
         checkWorkspaceSupportFiles(config, configPath),
         checkDocker(),
