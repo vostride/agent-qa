@@ -128,6 +128,18 @@ async function runInit(
   }
 }
 
+// Each package the fresh init declared is in node_modules at its version. With no bin, none of them
+// is a copy of agent-qa that runs a step, so the running agent-qa still runs every one.
+export function installDeclaredPackages(root: string): void {
+  const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
+    devDependencies?: Record<string, string>
+  }
+  for (const [name, version] of Object.entries(pkg.devDependencies ?? {})) {
+    writeInstalledPackage(root, name, version)
+  }
+}
+
+// A fresh init whose install went through.
 export async function initializedProject(
   label: string,
   { platform = 'web', llm = 'gemini' }: { platform?: string; llm?: string } = {},
@@ -152,6 +164,7 @@ export async function initializedProject(
   if (fresh.exit !== 0) {
     throw new Error(`the fresh init exited ${fresh.exit}:\n${fresh.stderr}`)
   }
+  installDeclaredPackages(project.root)
   return project
 }
 
