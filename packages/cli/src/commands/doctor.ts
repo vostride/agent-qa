@@ -6,8 +6,12 @@ import pc from 'picocolors'
 import { parse as parseYaml } from 'yaml'
 import { loadConfigFile } from '../config.js'
 import { HARD_CUT_STEPS, INVALID_CONFIG_FIX, isHardCutIssue } from '../hard-cut.js'
-import { loadAuthPluginsForRawConfig, toModelProfileAndAuth, type LLMModelAdapter } from '../llm-utils.js'
-import { DEFAULT_ANTHROPIC_MODEL } from '../model-defaults.js'
+import {
+  activeModelEntry,
+  loadAuthPluginsForRawConfig,
+  toModelProfileAndAuth,
+  type LLMModelAdapter,
+} from '../llm-utils.js'
 import { NODE_FLOOR_INSTALL_LINE, NODE_FLOOR_MAJOR, nodeFloorRefusal } from '../node-floor.js'
 import { loadProviderPluginsForRawConfig } from '../provider-plugins.js'
 import {
@@ -92,21 +96,11 @@ interface ActiveLLMConfig {
   providerHeaders?: Record<string, string>
 }
 
-function getActiveLLMConfig(config: Record<string, unknown> | null): ActiveLLMConfig {
-  const registry = config?.registry as { llms?: ActiveLLMConfig[] } | undefined
-  const use = config?.use as { llm?: string } | undefined
-  const llms = registry?.llms ?? []
-  const selected = llms.find(llm => llm.name === use?.llm) ?? llms[0]
+const NO_MODEL: CheckResult = { status: 'skip', message: 'no model configured' }
 
-  if (selected) {
-    return selected
-  }
-
-  return {
-    name: 'default',
-    provider: 'anthropic-subscription',
-    model: DEFAULT_ANTHROPIC_MODEL,
-  }
+function activeLLM(config: Record<string, unknown> | null): ActiveLLMConfig | undefined {
+  if (!config) return undefined
+  return activeModelEntry(config as { registry?: { llms?: ActiveLLMConfig[] }; use?: { llm?: string } })
 }
 
 async function resolveActiveLLMAuth(
@@ -293,20 +287,26 @@ function checkDocker(): DoctorCheck {
   }
 }
 
-function configuredLLMName(config: Record<string, unknown> | null): string {
-  const registry = config?.registry as { llms?: ActiveLLMConfig[] } | undefined
-  const use = config?.use as { llm?: string } | undefined
-  const llms = registry?.llms ?? []
-  return (llms.find(llm => llm.name === use?.llm) ?? llms[0])?.name ?? '<name>'
+function checkModel(config: Record<string, unknown> | null): DoctorCheck {
+  return {
+    name: 'Model',
+    fixInstructions: "Set a model on the dashboard's model page, `npx agent-qa dashboard --open /config/models`, or with `npx agent-qa init --llm <choice>`.",
+    check: async () => {
+      const llm = activeLLM(config)
+      if (!llm) return { status: 'fail', message: 'no model configured' }
+      return { status: 'pass', message: `${llm.name}: ${llm.provider} ${llm.model}` }
+    },
+  }
 }
 
 function checkLLMApiKey(config: Record<string, unknown> | null, configPath?: string): DoctorCheck {
-  const name = configuredLLMName(config)
+  const llm = activeLLM(config)
+  const name = llm?.name ?? '<name>'
   return {
     name: 'LLM credential',
     fixInstructions: `Run \`agent-qa auth set --config ${name} --type api-key\` (it asks for the key), or for a subscription run \`agent-qa auth login --config ${name}\``,
     check: async () => {
-      const llm = getActiveLLMConfig(config)
+      if (!llm) return NO_MODEL
       try {
         const auth = await resolveActiveLLMAuth(llm, configPath)
         switch (auth.kind) {
@@ -332,13 +332,13 @@ export function checkSubscriptionAuth(
   config: Record<string, unknown> | null,
   configPath?: string,
 ): DoctorCheck {
-  const name = configuredLLMName(config)
+  const llm = activeLLM(config)
   const add = pluginsAddLine(SUBSCRIPTION_AUTH_PACKAGE, configPath)
   return {
     name: 'Subscription Auth',
-    fixInstructions: `Run \`${add}\`, then run \`npx agent-qa auth login --config ${name}\``,
+    fixInstructions: `Run \`${add}\`, then run \`npx agent-qa auth login --config ${llm?.name ?? '<name>'}\``,
     check: async () => {
-      const llm = getActiveLLMConfig(config)
+      if (!llm) return NO_MODEL
       if (getProvider(llm.provider)?.subscription !== true) {
         return { status: 'skip', message: `subscription not used for ${llm.provider}` }
       }
@@ -364,11 +364,9 @@ function checkLLMConnection(config: Record<string, unknown> | null, configPath?:
     name: 'LLM connection',
     fixInstructions: 'Check the saved credential, model name, and exact base URL. Run `agent-qa auth test --config <name>` for details.',
     check: async () => {
-      if (!config) {
-        return { status: 'skip', message: 'no config' }
-      }
+      const llm = activeLLM(config)
+      if (!llm) return NO_MODEL
 
-      const llm = getActiveLLMConfig(config)
       const provider = llm.provider
       const baseURL = llm.baseURL
 
@@ -825,6 +823,7 @@ export function createDoctorCommand(): Command {
         checkSecretsFile(config, configPath),
         checkWorkspaceSupportFiles(config, configPath),
         checkDocker(),
+        checkModel(config),
         checkLLMApiKey(config, configPath),
         checkSubscriptionAuth(config, configPath),
         checkLLMConnection(config, configPath),

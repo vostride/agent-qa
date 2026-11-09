@@ -2,7 +2,6 @@ import { dirname, resolve as resolvePath } from 'node:path'
 import { createModel, createTokenAccounting, getProviderOptions, resolveCapabilities, resolveVisionGate } from '@vostride/agent-qa-model'
 import { generateText } from 'ai'
 import { createDeclaredSecretMask } from './composition/declared-secrets.js'
-import { DEFAULT_ANTHROPIC_MODEL } from './model-defaults.js'
 import { pluginRemotesOfRawConfig } from './plugin-remotes.js'
 import { loadProviderPluginsForRawConfig } from './provider-plugins.js'
 
@@ -148,15 +147,8 @@ export function resolveLLMModels(config: {
   verifier: LLMConfigLike
   configName: string
 } {
-  if (!config.registry?.llms?.length) throw new NoModelConfiguredError()
-  const defaults: LLMConfigLike = { provider: 'anthropic-subscription', model: DEFAULT_ANTHROPIC_MODEL }
-  if (!config.use?.llm) {
-    return { planner: defaults, verifier: defaults, configName: '' }
-  }
-  const found = config.registry.llms.find(c => c.name === config.use!.llm)
-  if (!found) {
-    return { planner: defaults, verifier: defaults, configName: '' }
-  }
+  const found = activeModelEntry(config)
+  if (!found) throw new NoModelConfiguredError()
   const { name, ...modelFields } = normalizeLLMConfig(found as NamedLLMConfigLike & Record<string, unknown>)
   return { planner: modelFields, verifier: modelFields, configName: name }
 }
