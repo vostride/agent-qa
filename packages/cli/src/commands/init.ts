@@ -106,6 +106,7 @@ import {
   type InitStepRunner,
 } from './init-steps.js'
 import { runInitRerun } from './init-rerun.js'
+import type { ChromiumResolver } from './browser-resolver.js'
 import {
   createInitDocumentRecorder,
   refusedInitDocument,
@@ -477,6 +478,7 @@ export interface InitCommandHooks {
   ui?: InitUi
   // Probes the dashboard's port; the default binds it on loopback and lets it go.
   dashboardPort?: DashboardPort
+  chromium?: ChromiumResolver
 }
 
 // The streams the Clack rail reads and draws on: stdin and stderr in production.
