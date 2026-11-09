@@ -102,6 +102,13 @@ describe('the commands, flags and keys doctor fixes name', () => {
     expect(found.size, 'the scan found no agent-qa command in a doctor fix').toBeGreaterThan(0)
   }, HELP_BUDGET_MS)
 
+  it('every agent-qa command a doctor fix names starts with npx agent-qa', () => {
+    const bare = doctorSubjects().flatMap((subject) => commandSpans(subject.body)
+      .filter((span) => !span.startsWith('npx agent-qa '))
+      .map((span) => `${subject.name}: ${span}`))
+    expect(bare, 'a doctor fix names a bare agent-qa command').toEqual([])
+  })
+
   it('every config key a doctor fix names resolves in the config schema', () => {
     const { scanned, findings } = configKeyFindings(doctorSubjects(), catalogOpIds())
     expect(findings, 'a doctor fix names a config key the schema refuses').toEqual([])

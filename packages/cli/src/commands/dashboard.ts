@@ -32,7 +32,7 @@ import type {
   RunServicePorts,
   RunServiceStartInput,
 } from '@vostride/agent-qa-dashboard'
-import { resolveVisionConfig } from '@vostride/agent-qa-model'
+import { getProvider, resolveVisionConfig } from '@vostride/agent-qa-model'
 import type {
   ExecutionContext,
   FunctionCaller,
@@ -82,7 +82,6 @@ import {
   resolveModelAuth,
   type LLMConfigLike,
 } from '../llm-utils.js'
-import { DEFAULT_ANTHROPIC_MODEL } from '../model-defaults.js'
 import {
   openUrlWithoutShell,
   systemBrowserOpener,
@@ -754,9 +753,10 @@ async function startDashboardBackedServices(
     const useLlm = (config as any).use?.llm
     const defaultCfg = registryLlms.find((c: any) => c.name === useLlm) ?? {}
     const configName = defaultCfg.name ?? useLlm ?? ''
+    const provider = defaultCfg.provider ?? 'anthropic-subscription'
     const llmConfig: LLMConfigLike = {
-      provider: defaultCfg.provider ?? 'anthropic-subscription',
-      model: defaultCfg.model ?? DEFAULT_ANTHROPIC_MODEL,
+      provider,
+      model: defaultCfg.model ?? getProvider(provider)?.defaultModel ?? '',
       baseURL: defaultCfg.baseURL,
       providerHeaders: defaultCfg.providerHeaders,
       vision: defaultCfg.vision,

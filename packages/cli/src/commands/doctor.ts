@@ -97,6 +97,8 @@ interface ActiveLLMConfig {
 }
 
 const NO_MODEL: CheckResult = { status: 'skip', message: 'no model configured' }
+const MODEL_FIX =
+  "Set a model on the dashboard's model page, `npx agent-qa dashboard --open /config/models`, or with `npx agent-qa init --llm <choice>`."
 
 function activeLLM(config: Record<string, unknown> | null): ActiveLLMConfig | undefined {
   if (!config) return undefined
@@ -290,7 +292,7 @@ function checkDocker(): DoctorCheck {
 function checkModel(config: Record<string, unknown> | null): DoctorCheck {
   return {
     name: 'Model',
-    fixInstructions: "Set a model on the dashboard's model page, `npx agent-qa dashboard --open /config/models`, or with `npx agent-qa init --llm <choice>`.",
+    fixInstructions: MODEL_FIX,
     check: async () => {
       const llm = activeLLM(config)
       if (!llm) return { status: 'fail', message: 'no model configured' }
@@ -299,12 +301,20 @@ function checkModel(config: Record<string, unknown> | null): DoctorCheck {
   }
 }
 
+function credentialFix(llm: ActiveLLMConfig | undefined): string {
+  if (!llm) return MODEL_FIX
+  if (getProvider(llm.provider)?.subscription === true) {
+    return `Sign in with \`npx agent-qa auth login --config ${llm.name}\`.`
+  }
+  return "Save the key on the dashboard's model page, `npx agent-qa dashboard --open /config/models`, or with "
+    + `\`npx agent-qa auth set --config ${llm.name} --type api-key\`.`
+}
+
 function checkLLMApiKey(config: Record<string, unknown> | null, configPath?: string): DoctorCheck {
   const llm = activeLLM(config)
-  const name = llm?.name ?? '<name>'
   return {
     name: 'LLM credential',
-    fixInstructions: `Run \`agent-qa auth set --config ${name} --type api-key\` (it asks for the key), or for a subscription run \`agent-qa auth login --config ${name}\``,
+    fixInstructions: credentialFix(llm),
     check: async () => {
       if (!llm) return NO_MODEL
       try {
@@ -336,7 +346,9 @@ export function checkSubscriptionAuth(
   const add = pluginsAddLine(SUBSCRIPTION_AUTH_PACKAGE, configPath)
   return {
     name: 'Subscription Auth',
-    fixInstructions: `Run \`${add}\`, then run \`npx agent-qa auth login --config ${llm?.name ?? '<name>'}\``,
+    fixInstructions: llm
+      ? `Run \`${add}\`, then run \`npx agent-qa auth login --config ${llm.name}\``
+      : MODEL_FIX,
     check: async () => {
       if (!llm) return NO_MODEL
       if (getProvider(llm.provider)?.subscription !== true) {
@@ -360,11 +372,13 @@ export function checkSubscriptionAuth(
 }
 
 function checkLLMConnection(config: Record<string, unknown> | null, configPath?: string): DoctorCheck {
+  const llm = activeLLM(config)
   return {
     name: 'LLM connection',
-    fixInstructions: 'Check the saved credential, model name, and exact base URL. Run `agent-qa auth test --config <name>` for details.',
+    fixInstructions: llm
+      ? `Check the saved credential, model name, and exact base URL. Run \`npx agent-qa auth test --config ${llm.name}\` for details.`
+      : MODEL_FIX,
     check: async () => {
-      const llm = activeLLM(config)
       if (!llm) return NO_MODEL
 
       const provider = llm.provider
