@@ -20,8 +20,10 @@ export interface RemoteChecksInput {
   fetchTimeoutMs?: number
 }
 
-const REMOTE_FIX =
+export const REMOTE_FIX =
   'Check the remote under registry.remotes in agent-qa.config.yaml and its secrets in workspace.secretsFile.'
+export const REMOTE_LOOPBACK_FIX =
+  'Run a tunnel that lets the remote reach this machine, or point the target at an address the remote can reach.'
 
 const HTTP_SCHEMES: Partial<Record<string, string>> = {
   ws: 'http',
@@ -184,7 +186,12 @@ function remoteCheck(
       )
     }
 
-    if (problems.length > 0) return { status: 'warn', message: problems.join(' ') }
+    if (problems.length > 0) {
+      const message = problems.join(' ')
+      if (loopback.length === 0) return { status: 'warn', message }
+      const fix = problems.length > 1 ? `${REMOTE_FIX} ${REMOTE_LOOPBACK_FIX}` : REMOTE_LOOPBACK_FIX
+      return { status: 'warn', message, fix }
+    }
     return {
       status: 'pass',
       message: `${label} ${answered}; credentials are checked when a test connects.`,
