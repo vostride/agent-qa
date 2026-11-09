@@ -20,6 +20,7 @@ import {
   discoverWorkspaceFiles,
   formatAppiumInstallGuidance,
   getAgentQaVersion,
+  getAuthPath,
   pluginsAddLine,
   resolveAppiumExecutable,
   resolveWorkspacePaths,
@@ -122,6 +123,7 @@ function activeLLM(config: Record<string, unknown> | null): ActiveLLMConfig | un
 async function resolveActiveLLMAuth(
   llm: ActiveLLMConfig,
   configPath?: string,
+  authPath?: string,
 ): Promise<ResolvedDoctorAuth> {
   const { resolveLLMAuth } = await import('@vostride/agent-qa-core') as unknown as {
     resolveLLMAuth: (
@@ -141,7 +143,7 @@ async function resolveActiveLLMAuth(
     model: llm.model,
     ...(llm.baseURL ? { baseURL: llm.baseURL } : {}),
     ...(llm.providerHeaders ? { providerHeaders: llm.providerHeaders } : {}),
-  }, undefined, configPath) as ResolvedDoctorAuth
+  }, authPath, configPath) as ResolvedDoctorAuth
 }
 
 function checkNodeVersion(): DoctorCheck {
@@ -290,14 +292,18 @@ function checkWorkspaceSupportFiles(config: Record<string, unknown> | null, conf
   }
 }
 
-function checkDocker(): DoctorCheck {
+async function dockerAvailableByDefault(): Promise<boolean> {
+  const { checkDockerAvailable } = await import('@vostride/agent-qa-runner-local')
+  return await checkDockerAvailable()
+}
+
+function checkDocker(docker: () => Promise<boolean>): DoctorCheck {
   return {
     name: 'Docker',
     fixInstructions: 'Install Docker Desktop from https://docker.com/ and ensure the daemon is running',
     check: async () => {
       try {
-        const { checkDockerAvailable } = await import('@vostride/agent-qa-runner-local')
-        const available = await checkDockerAvailable()
+        const available = await docker()
         if (available) {
           return { status: 'pass', message: 'Docker daemon running' }
         }
@@ -330,7 +336,11 @@ function credentialFix(llm: ActiveLLMConfig | undefined): string {
     + `\`npx agent-qa auth set --config ${llm.name} --type api-key\`.`
 }
 
-function checkLLMApiKey(config: Record<string, unknown> | null, configPath?: string): DoctorCheck {
+function checkLLMApiKey(
+  config: Record<string, unknown> | null,
+  configPath?: string,
+  authPath?: string,
+): DoctorCheck {
   const llm = activeLLM(config)
   return {
     name: 'LLM credential',
@@ -338,7 +348,7 @@ function checkLLMApiKey(config: Record<string, unknown> | null, configPath?: str
     check: async () => {
       if (!llm) return NO_MODEL
       try {
-        const auth = await resolveActiveLLMAuth(llm, configPath)
+        const auth = await resolveActiveLLMAuth(llm, configPath, authPath)
         switch (auth.kind) {
           case 'api-key':
             return { status: 'pass', message: 'Saved API key' }
@@ -361,6 +371,7 @@ function checkLLMApiKey(config: Record<string, unknown> | null, configPath?: str
 export function checkSubscriptionAuth(
   config: Record<string, unknown> | null,
   configPath?: string,
+  authPath?: string,
 ): DoctorCheck {
   const llm = activeLLM(config)
   const add = pluginsAddLine(SUBSCRIPTION_AUTH_PACKAGE, configPath)
@@ -376,7 +387,7 @@ export function checkSubscriptionAuth(
       }
 
       try {
-        const auth = await resolveActiveLLMAuth(llm, configPath)
+        const auth = await resolveActiveLLMAuth(llm, configPath, authPath)
         if (auth.kind === 'auth-fetch') {
           return { status: 'pass', message: 'OAuth connected' }
         }
@@ -391,7 +402,34 @@ export function checkSubscriptionAuth(
   }
 }
 
-function checkLLMConnection(config: Record<string, unknown> | null, configPath?: string): DoctorCheck {
+const probeModelConnection: DoctorConnectionProbe = async (llm, auth) => {
+  const { generateText } = await import('ai')
+  const { profile, auth: modelAuth } = toModelProfileAndAuth(llm, auth as any)
+  // Fixed probe text, nothing to mask.
+  const testModel = createModel(profile, modelAuth, (text) => text)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 10000)
+  try {
+    await generateText({
+      model: testModel,
+      prompt: 'Say "ok"',
+      abortSignal: controller.signal,
+    })
+  } finally {
+    clearTimeout(timeout)
+  }
+  if (auth.kind === 'unauthenticated') {
+    return { status: 'pass', message: auth.message }
+  }
+  return { status: 'pass', message: 'connected' }
+}
+
+function checkLLMConnection(
+  config: Record<string, unknown> | null,
+  configPath: string | undefined,
+  connection: DoctorConnectionProbe,
+  authPath?: string,
+): DoctorCheck {
   const llm = activeLLM(config)
   return {
     name: 'LLM connection',
@@ -409,29 +447,11 @@ function checkLLMConnection(config: Record<string, unknown> | null, configPath?:
       }
 
       try {
-        const auth = await resolveActiveLLMAuth(llm, configPath)
+        const auth = await resolveActiveLLMAuth(llm, configPath, authPath)
         if (auth.kind === 'missing') {
           return { status: 'fail', message: auth.message }
         }
-        const { generateText } = await import('ai')
-        const { profile, auth: modelAuth } = toModelProfileAndAuth(llm, auth as any)
-        // Fixed probe text, nothing to mask.
-        const testModel = createModel(profile, modelAuth, (text) => text)
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 10000)
-        try {
-          await generateText({
-            model: testModel,
-            prompt: 'Say "ok"',
-            abortSignal: controller.signal,
-          })
-        } finally {
-          clearTimeout(timeout)
-        }
-        if (auth.kind === 'unauthenticated') {
-          return { status: 'pass', message: auth.message }
-        }
-        return { status: 'pass', message: 'connected' }
+        return await connection(llm, auth)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
         if (/auth|unauthorized|401|invalid.*key/i.test(msg)) {
@@ -788,6 +808,8 @@ export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
       const workspace = resolved?.ok ? resolved.workspace : undefined
       const placement = await resolveWebPlacement(config, workspace)
       const skips = deviceToolSkips(config)
+      const host = projectHost(hooks.host)
+      const authPath = getAuthPath({ env: host.env, homeDir: host.homedir })
       const setup = { configPath, host: hooks.host ?? {}, runningVersion: getAgentQaVersion().trim() }
       const agentQaVersion = await projectAgentQaVersion(setup)
       const doorFlags = this.parent?.opts<Parameters<typeof doorLogLevel>[0]>() ?? {}
@@ -807,11 +829,11 @@ export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
         ...createSetupChecks(setup),
         checkSecretsFile(config, configPath),
         checkWorkspaceSupportFiles(config, configPath),
-        checkDocker(),
+        checkDocker(hooks.docker ?? dockerAvailableByDefault),
         checkModel(config),
-        checkLLMApiKey(config, configPath),
-        checkSubscriptionAuth(config, configPath),
-        checkLLMConnection(config, configPath),
+        checkLLMApiKey(config, configPath, authPath),
+        checkSubscriptionAuth(config, configPath, authPath),
+        checkLLMConnection(config, configPath, hooks.connection ?? probeModelConnection, authPath),
         checkPlaywright(config, configPath, placement, chromium),
         ...createRemoteChecks({
           config,
@@ -840,7 +862,7 @@ export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
         createNewerVersionCheck({
           projectVersion: agentQaVersion,
           latestVersion: hooks.latestVersion ?? askLatestVersionByDefault,
-          homeDir: projectHost(hooks.host).homedir,
+          homeDir: host.homedir,
           ...(hooks.now === undefined ? {} : { now: hooks.now }),
         }),
         checkTestDiscovery(config, configPath),

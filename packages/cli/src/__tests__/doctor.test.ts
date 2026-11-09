@@ -222,6 +222,8 @@ const NO_PROJECT_HOST: NonNullable<DoctorCommandHooks['host']> = {
   },
 }
 
+const NO_PROJECT_AUTH_PATH = '/home/doctor/.agent-qa/auth.json'
+
 async function runDoctor(parentConfig?: string, ...args: string[]): Promise<void> {
   consoleLogs.length = 0
   process.exitCode = 0
@@ -536,7 +538,7 @@ use:
       provider: 'anthropic-compatible',
       model: 'claude-remote',
       baseURL: 'https://remote.example/messages',
-    }), undefined, 'agent-qa.config.yaml')
+    }), NO_PROJECT_AUTH_PATH, 'agent-qa.config.yaml')
     expect(output).not.toContain('ANTHROPIC_API_KEY')
     expect(output).not.toContain('OPENAI_API_KEY')
     expect(output).not.toContain('GOOGLE_GENERATIVE_AI_KEY')
@@ -636,7 +638,7 @@ use:
     expect(mockResolveLLMAuth).toHaveBeenCalledWith('planner', expect.objectContaining({
       provider: 'anthropic-compatible',
       providerHeaders: { 'x-workspace': 'agent-qa' },
-    }), undefined, 'agent-qa.config.yaml')
+    }), NO_PROJECT_AUTH_PATH, 'agent-qa.config.yaml')
     expect(mockCreateModel).toHaveBeenCalledWith(
       expect.objectContaining({
         provider: 'anthropic-compatible',
@@ -736,7 +738,7 @@ use:
     expect(mockResolveLLMAuth).toHaveBeenCalledWith('sixth', expect.objectContaining({
       provider: 'sixth-subscription',
       model: 'hosted-sixth',
-    }), undefined, 'agent-qa.config.yaml')
+    }), NO_PROJECT_AUTH_PATH, 'agent-qa.config.yaml')
   })
 
   it('classifies a registered sixth provider as requiring baseURL through registry metadata', async () => {
@@ -2052,9 +2054,9 @@ describe('the Model row', () => {
       message: 'second: gemini gemini-3-flash-preview',
     })
     expect(mockResolveLLMAuth).toHaveBeenCalledWith(
-      'second', expect.objectContaining({ provider: 'gemini' }), undefined, 'agent-qa.config.yaml',
+      'second', expect.objectContaining({ provider: 'gemini' }), NO_PROJECT_AUTH_PATH, 'agent-qa.config.yaml',
     )
-    expect(mockResolveLLMAuth).not.toHaveBeenCalledWith('first', expect.anything(), undefined, expect.anything())
+    expect(mockResolveLLMAuth).not.toHaveBeenCalledWith('first', expect.anything(), expect.anything(), expect.anything())
   })
 
   it('checks the first entry when use.llm is not set, the one run resolves', async () => {
@@ -2066,9 +2068,9 @@ describe('the Model row', () => {
       message: 'first: openai-compatible deepseek-chat',
     })
     expect(mockResolveLLMAuth).toHaveBeenCalledWith(
-      'first', expect.objectContaining({ model: 'deepseek-chat' }), undefined, 'agent-qa.config.yaml',
+      'first', expect.objectContaining({ model: 'deepseek-chat' }), NO_PROJECT_AUTH_PATH, 'agent-qa.config.yaml',
     )
-    expect(mockResolveLLMAuth).not.toHaveBeenCalledWith('second', expect.anything(), undefined, expect.anything())
+    expect(mockResolveLLMAuth).not.toHaveBeenCalledWith('second', expect.anything(), expect.anything(), expect.anything())
   })
 
   it('keeps the credential FAIL for a configured subscription that is not signed in', async () => {

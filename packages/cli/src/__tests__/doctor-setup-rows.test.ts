@@ -12,11 +12,6 @@ vi.mock('node:child_process', async (importOriginal) => ({
   execFileSync: vi.fn(() => Buffer.from('')),
 }))
 
-vi.mock('@vostride/agent-qa-runner-local', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@vostride/agent-qa-runner-local')>()),
-  checkDockerAvailable: vi.fn(() => Promise.resolve(true)),
-}))
-
 vi.mock('../commands/doctor-knowledge-checks.js', () => ({
   createKnowledgeChecks: () => [],
 }))
@@ -50,16 +45,6 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
     ),
   }
 })
-
-vi.mock('@vostride/agent-qa-model', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@vostride/agent-qa-model')>()),
-  createModel: vi.fn(() => ({})),
-}))
-
-vi.mock('ai', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('ai')>()),
-  generateText: vi.fn(() => Promise.resolve({ text: 'ok' })),
-}))
 
 import { getAgentQaVersion, getAuthPath } from '@vostride/agent-qa-core'
 
@@ -133,6 +118,8 @@ async function doctorRows(
           platform === 'android' ? { attached: [], avds: [] } : { simulators: [] },
         host: { homedir: project.home, env: {} },
         latestVersion: noLatestVersion,
+        connection: async () => ({ status: 'pass', message: 'connected' }),
+        docker: async () => true,
         ...hooks,
       }),
     )
