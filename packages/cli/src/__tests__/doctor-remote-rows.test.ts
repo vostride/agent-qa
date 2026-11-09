@@ -58,7 +58,11 @@ vi.mock('ai', async (importOriginal) => ({
 
 import type { ChromiumResolver } from '../commands/browser-resolver.js'
 import { createDoctorCommand } from '../commands/doctor.js'
-import { createRemoteChecks } from '../commands/doctor-remote-checks.js'
+import {
+  REMOTE_FIX,
+  REMOTE_LOOPBACK_FIX,
+  createRemoteChecks,
+} from '../commands/doctor-remote-checks.js'
 
 const { startFakeAppiumServer } = (await import(
   new URL('../../../android/src/__tests__/fixtures/fake-appium-server.js', import.meta.url).href
@@ -210,6 +214,19 @@ function row(output: string, name: string): { status: string; message: string } 
   if (line === undefined) return undefined
   const match = /^ {4}.+? {2}\.+ {2}(.*) {2}(PASS|WARN|FAIL|SKIP)$/.exec(line)
   return match ? { message: match[1] as string, status: match[2] as string } : undefined
+}
+
+// The fix on the line under a row, joined with its hanging-indent lines.
+function fixUnder(output: string, name: string): string | undefined {
+  const lines = output.split('\n')
+  const start = lines.findIndex((text) => text.startsWith(`    ${name}  `))
+  const first = start < 0 ? null : /^ {6}Fix: (.*)$/.exec(lines[start + 1] ?? '')
+  if (!first) return undefined
+  const parts = [first[1] as string]
+  for (let index = start + 2; /^ {11}\S/.test(lines[index] ?? ''); index += 1) {
+    parts.push((lines[index] as string).trim())
+  }
+  return parts.join(' ')
 }
 
 describe("doctor's remote rows", () => {
@@ -616,6 +633,73 @@ describe("doctor's remote rows", () => {
         'which the remote reaches only through a tunnel you run.',
     })
     expect(row(output, 'Remote spare')?.status).toBe('PASS')
+    expect(process.exitCode).toBe(0)
+  })
+
+  it('a remote whose only warning is a loopback target prints how to reach the target', async () => {
+    const probe = await startProbeServer()
+    servers.push(probe)
+    const configPath = await writeProject({
+      config: baseConfig({
+        remotes: [{ name: 'grid', protocol: 'playwright', url: `ws://${probe.origin}/grid` }],
+        remote: 'grid',
+        targetUrl: 'http://127.0.0.1:4173/app',
+      }),
+    })
+
+    const output = await runDoctor(configPath)
+
+    expect(row(output, 'Remote grid')?.status).toBe('WARN')
+    expect(row(output, 'Remote grid')?.message).toContain("on this machine's loopback")
+    expect(fixUnder(output, 'Remote grid')).toContain('tunnel')
+    expect(fixUnder(output, 'Remote grid')).toBe(REMOTE_LOOPBACK_FIX)
+    expect(process.exitCode).toBe(0)
+  })
+
+  it('a loopback target beside an undeclared secret prints the config-and-secrets fix, then how to reach the target', async () => {
+    const probe = await startProbeServer()
+    servers.push(probe)
+    const configPath = await writeProject({
+      config: baseConfig({
+        remotes: [
+          {
+            name: 'grid',
+            protocol: 'playwright',
+            url: `ws://${probe.origin}/`,
+            headers: { Authorization: 'Bearer {{secret:MISSING_TOKEN}}' },
+          },
+        ],
+        remote: 'grid',
+        targetUrl: 'http://127.0.0.1:4173/app',
+      }),
+    })
+
+    const output = await runDoctor(configPath)
+
+    expect(row(output, 'Remote grid')?.status).toBe('WARN')
+    expect(row(output, 'Remote grid')?.message).toContain('MISSING_TOKEN not declared')
+    expect(row(output, 'Remote grid')?.message).toContain("on this machine's loopback")
+    expect(fixUnder(output, 'Remote grid')).toContain('tunnel')
+    expect(fixUnder(output, 'Remote grid')).toBe(`${REMOTE_FIX} ${REMOTE_LOOPBACK_FIX}`)
+    expect(process.exitCode).toBe(0)
+  })
+
+  it('a remote that does not answer keeps the fix that names its config and secrets', async () => {
+    const port = await closedLoopbackPort()
+    const configPath = await writeProject({
+      config: baseConfig({
+        remotes: [
+          { name: 'cloud', protocol: 'cdp', url: `wss://127.0.0.1:${String(port)}/chromium` },
+        ],
+      }),
+    })
+
+    const output = await runDoctor(configPath)
+
+    expect(row(output, 'Remote cloud')?.status).toBe('WARN')
+    expect(row(output, 'Remote cloud')?.message).toContain('did not answer')
+    expect(fixUnder(output, 'Remote cloud')).not.toContain('tunnel')
+    expect(fixUnder(output, 'Remote cloud')).toBe(REMOTE_FIX)
     expect(process.exitCode).toBe(0)
   })
 
