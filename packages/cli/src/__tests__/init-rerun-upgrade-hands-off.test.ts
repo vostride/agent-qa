@@ -290,6 +290,40 @@ describe("the re-run's upgrade row moves the project to a newer agent-qa patch",
     expect(childOf(run)?.args.slice(1)).toEqual(['init', '--setup', 'browsers', '--agents', 'none'])
   })
 
+  it('passes on the model flags, so the new copy records the model step and adds no second entry', async () => {
+    const project = await initializedProject('upgrade-passes-model-flags')
+    const run = upgradeMachine('0.3.2')
+    const hooks = { latestVersion: answering('0.3.2') }
+
+    const parent = await rerun(project, ['--yes', '--json', '--llm', 'openai'], { run, hooks })
+    const args = childOf(run)?.args.slice(2) ?? []
+    running.version = '0.3.2'
+    const env = { AGENT_QA_HANDED_OFF: '1', AGENT_QA_UPGRADED_FROM: PROJECT_VERSION }
+    const child = await rerun(project, args, { run, hooks: { ...hooks, host: { env } } })
+
+    expect(parent.exit, parent.stderr).toBe(0)
+    expect(args).toEqual([
+      '--setup',
+      'none',
+      '--agents',
+      'none',
+      '--llm',
+      'openai',
+      '--json',
+      '--yes',
+    ])
+    expect(child.exit, child.stderr).toBe(0)
+    const doc = JSON.parse(child.stdout) as InitDocument
+    expect(doc.steps.filter((step) => step.name === 'model')).toEqual([
+      { name: 'model', outcome: 'done' },
+    ])
+    expect(doc.model).toMatchObject({ name: 'openai', provider: 'openai-compatible' })
+    const config = parseDocument(readFileSync(join(project.root, 'agent-qa.config.yaml'), 'utf8'))
+    const llms = (config.getIn(['registry', 'llms']) as YAMLSeq).toJSON() as { name: string }[]
+    expect(llms.map((entry) => entry.name)).toEqual(['gemini', 'openai'])
+    expect(config.getIn(['use', 'llm'])).toBe('openai')
+  })
+
   it("exits with the new copy's exit code", async () => {
     const project = await initializedProject('upgrade-child-exit')
     const run = upgradeMachine('0.3.2', { child: { code: 3, signal: null, output: '' } })

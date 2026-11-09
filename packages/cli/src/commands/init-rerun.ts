@@ -296,6 +296,11 @@ function handOffArgs(
     rows.length === 0 ? 'none' : rows.join(','),
     '--agents',
     agents.length === 0 ? 'none' : agents.join(','),
+    // The new copy runs the model step again, so its one document records it; its edit then
+    // finds the entry this run wrote and changes nothing.
+    ...(opts.llm === undefined ? [] : ['--llm', opts.llm]),
+    ...(opts.model === undefined ? [] : ['--model', opts.model]),
+    ...(opts.baseUrl === undefined ? [] : ['--base-url', opts.baseUrl]),
     ...(opts.json === true ? ['--json'] : []),
     ...(opts.yes === true ? ['--yes'] : []),
     ...(opts.pm === undefined ? [] : ['--pm', opts.pm]),
