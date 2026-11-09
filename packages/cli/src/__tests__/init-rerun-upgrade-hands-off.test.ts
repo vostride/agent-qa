@@ -308,3 +308,103 @@ describe("the re-run's upgrade row moves the project to a newer agent-qa patch",
     expect(commands(run).filter((call) => call.command !== NODE)).toEqual([])
   })
 })
+
+function summaryLines(entries: readonly FakeInitUiEntry[]): string[] {
+  const entry = entries.find((item) => item.kind === 'summary')
+  return entry?.kind === 'summary' ? entry.lines : []
+}
+
+describe('an upgrade that can break the config is taken only when named', () => {
+  it('starts unchecked, keeps the versions in its label and puts the migration guide in the summary', async () => {
+    const project = await initializedProject('upgrade-breaking-unchecked')
+
+    const result = await rerun(project, [], {
+      hooks: { isTTY: true, latestVersion: answering('0.4.0') },
+      answers: { [SETUP_MENU_QUESTION]: [] },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    const menu = menuOf(result.entries)
+    expect(menu?.labels[0]).toBe('upgrade    agent-qa 0.3.0 → 0.4.0')
+    expect(menu?.initialValues).not.toContain('upgrade')
+    expect(summaryLines(result.entries)).toEqual(
+      expect.arrayContaining([
+        'agent-qa 0.4.0 can change your config. To upgrade, point your coding agent at',
+        'https://vostride.com/docs/agent-qa/migrate/v0-3-to-v0-4',
+      ]),
+    )
+  })
+
+  it('--yes leaves package.json as it was and records the upgrade not selected', async () => {
+    const project = await initializedProject('upgrade-breaking-yes')
+    const before = packageJsonText(project.root)
+    const run = upgradeMachine('0.4.0')
+
+    const result = await rerun(project, ['--yes', '--json'], {
+      run,
+      hooks: { latestVersion: answering('0.4.0') },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(packageJsonText(project.root)).toBe(before)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.steps).toContainEqual({
+      name: 'upgrade',
+      outcome: 'skipped',
+      reason: 'not selected',
+    })
+    expect(childOf(run)).toBeUndefined()
+  })
+
+  it('--setup all runs the other shown rows and leaves a breaking upgrade out with its reason', async () => {
+    const project = await initializedProject('upgrade-breaking-setup-all')
+    writeFileSync(join(project.root, '.gitignore'), 'dist/\n')
+    const before = packageJsonText(project.root)
+    const run = upgradeMachine('0.4.0')
+
+    const result = await rerun(project, ['--setup', 'all', '--json'], {
+      run,
+      hooks: { latestVersion: answering('0.4.0') },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(childOf(run)).toBeUndefined()
+    expect(commands(run).filter((call) => call.command !== NODE)).toEqual([])
+    expect(packageJsonText(project.root)).toBe(before)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.steps).toContainEqual({
+      name: 'upgrade',
+      outcome: 'skipped',
+      reason: 'breaking: name it in --setup',
+    })
+    expect(doc.steps).toContainEqual({ name: 'gitignore', outcome: 'done' })
+  })
+
+  it('--setup all takes an upgrade that crosses no breaking step', async () => {
+    const project = await initializedProject('upgrade-patch-setup-all')
+    const run = upgradeMachine('0.3.2')
+
+    const result = await rerun(project, ['--setup', 'all'], {
+      run,
+      hooks: { latestVersion: answering('0.3.2') },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(childOf(run)?.env.AGENT_QA_UPGRADED_FROM).toBe(PROJECT_VERSION)
+  })
+
+  it('--setup upgrade takes a breaking upgrade and hands off to the new copy', async () => {
+    const project = await initializedProject('upgrade-breaking-named')
+    const run = upgradeMachine('0.4.0')
+
+    const result = await rerun(project, ['--setup', 'upgrade'], {
+      run,
+      hooks: { latestVersion: answering('0.4.0') },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(JSON.parse(packageJsonText(project.root)).devDependencies['agent-qa']).toBe('0.4.0')
+    expect(childOf(run)?.args.slice(1)).toEqual(['init', '--setup', 'none', '--agents', 'none'])
+    expect(childOf(run)?.env.AGENT_QA_UPGRADED_FROM).toBe(PROJECT_VERSION)
+  })
+})
