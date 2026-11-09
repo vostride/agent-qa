@@ -152,6 +152,9 @@ vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => {
 
 import pc from 'picocolors'
 import {
+  CONFIG_UNCHECKED_FIX,
+  DISCOVERY_UNCHECKED_FIX,
+  VALIDATE_WARNINGS_FIX,
   checkSubscriptionAuth,
   createDoctorCommand,
   type CheckStatus,
@@ -1283,6 +1286,62 @@ use:
 
     expect(rowFor('Validate')).toContain('FAIL')
     expect(fixUnder('Validate')).toContain('`npx agent-qa validate`')
+  })
+
+  it('a config doctor could not check warns with the command that shows why, not the key fix', async () => {
+    vi.mocked(core.AgentQaConfigSchema.safeParse).mockImplementationOnce(() => {
+      throw new Error('schema module failed to load')
+    })
+
+    await runHealthyHost()
+
+    expect(rowFor('Config validation')).toContain('could not validate config')
+    expect(rowFor('Config validation')).toContain('WARN')
+    expect(fixUnder('Config validation')).not.toContain('key named above')
+    expect(fixUnder('Config validation')).toBe(CONFIG_UNCHECKED_FIX)
+  })
+
+  it('a rate-limited model connection warns to wait and test again, not to check the credential', async () => {
+    mockGenerateText.mockRejectedValueOnce(new Error('429 Too Many Requests: rate limit reached'))
+
+    await runHealthyHost()
+
+    expect(rowFor('LLM connection')).toContain('rate limited — try again later')
+    expect(rowFor('LLM connection')).toContain('WARN')
+    expect(fixUnder('LLM connection')).not.toContain('Check the saved credential')
+    expect(fixUnder('LLM connection')).toContain(
+      'Wait, then run `npx agent-qa auth test --config default`',
+    )
+  })
+
+  it('validation warnings print the command that lists them, not a fix for errors', async () => {
+    vi.mocked(core.validateProject).mockResolvedValueOnce(
+      { errorCount: 0, warningCount: 2, fileCount: 5, results: [] } as never,
+    )
+
+    await runHealthyHost()
+
+    expect(rowFor('Validate')).toContain('2 warning(s)')
+    expect(rowFor('Validate')).toContain('WARN')
+    expect(fixUnder('Validate')).not.toContain('fix reported errors')
+    expect(fixUnder('Validate')).toBe(VALIDATE_WARNINGS_FIX)
+  })
+
+  it('a test scan that throws warns with the command that shows why, not the patterns fix', async () => {
+    const discover = vi.mocked(core.discoverWorkspaceFiles)
+    const scan = discover.getMockImplementation()!
+    // Web placement scans first and swallows the error, so every scan in this run throws.
+    discover.mockRejectedValue(new Error('EACCES: permission denied'))
+    try {
+      await runHealthyHost()
+    } finally {
+      discover.mockImplementation(scan)
+    }
+
+    expect(rowFor('Test discovery')).toContain('could not scan for test files')
+    expect(rowFor('Test discovery')).toContain('WARN')
+    expect(fixUnder('Test discovery')).not.toContain('testMatch')
+    expect(fixUnder('Test discovery')).toBe(DISCOVERY_UNCHECKED_FIX)
   })
 
   it('prints three rows between Legacy v1 memory data and Config validation, store then embedder then rung', async () => {

@@ -19,6 +19,7 @@ import {
   EMBEDDER_WORKER_NOT_REGISTERED_TEXT,
   NO_KNOWLEDGE_ROOT_MESSAGE,
   RUNG_CAUSE_LABELS,
+  STORE_NOT_BUILT_FIX,
   createKnowledgeChecks,
   type KnowledgeCheckProbes,
 } from '../commands/doctor-knowledge-checks.js'
@@ -201,6 +202,23 @@ describe('createKnowledgeChecks', () => {
     expect(resolveEmbedderCapability).toHaveBeenCalledTimes(1)
   })
 
+  it('an index that is not built yet warns with the fix that builds it, never the corrupt-file advice', async () => {
+    const { checks, store } = await runChecks(makeProject(), baseProbes({
+      classifyIndexFace: () => ({
+        source: 'scan',
+        reason: 'absent',
+        detail: 'derived index file is absent',
+        filePresent: false,
+      }),
+    }))
+    const fix = rowFix({ check: checks[0]!, result: store })
+    expect(store.status).toBe('warn')
+    expect(store.message.startsWith('no index at '), store.message).toBe(true)
+    expect(fix).not.toContain('corrupt')
+    expect(fix).toBe(STORE_NOT_BUILT_FIX)
+    expect(fix).toContain('`npx agent-qa knowledge rebuild-index`')
+  })
+
   it.each(['corrupt', 'locked', 'schema-version'] as const)(
     'fails the store row on a present-but-unopenable index (%s), naming the reason word not the driver detail',
     async (reason) => {
@@ -218,6 +236,7 @@ describe('createKnowledgeChecks', () => {
       expect(store.message).toBe(`index at ${indexPath} could not be opened: ${reason}`)
       expect(store.message).not.toContain('SQLITE_NOTADB')
       expect(checks[0].fixInstructions).toContain('`npx agent-qa knowledge rebuild-index`')
+      expect(rowFix({ check: checks[0], result: store })).toContain('remove the corrupt file at')
       expect(rung.status).toBe('warn')
     },
   )
