@@ -582,6 +582,7 @@ describe('init --json prints one document on stdout', () => {
       { name: 'agents-md', outcome: 'skipped', reason: 'current' },
       { name: 'browsers', outcome: 'skipped', reason: 'current' },
       { name: 'gitignore', outcome: 'skipped', reason: 'current' },
+      { name: 'scaffold', outcome: 'skipped', reason: 'current' },
       { name: 'validate', outcome: 'done' },
     ])
     expect(doc.agentQa).toEqual({ version: VERSION, via: 'running' })

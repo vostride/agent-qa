@@ -1010,6 +1010,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             },
             chromium: hooks.chromium ?? findChromiumByDefault,
             installChromium,
+            scaffoldPlans: (platform) => buildScaffoldFilePlans(dir, platform, false),
           })
           return
         }

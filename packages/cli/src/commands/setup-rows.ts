@@ -24,23 +24,37 @@ import { readAgentSetupManifest } from './agent-setup-manifest.js'
 import type { ChromiumResolver } from './browser-resolver.js'
 import { INIT_AGENT_OPTIONS } from './init-agents.js'
 import {
+  KNOWLEDGE_GITIGNORE_PROBES,
   TARGET_GITIGNORE_PROBES,
   classifyInitPath,
   upsertManagedGitignoreBlock,
   verifyEffectiveGitignore,
   writeScaffoldFileAtomic,
   type InitFileOutcome,
+  type InitPathPlan,
 } from './init-filesystem.js'
 import { InitRefusal } from './init-refusal.js'
 import type { InitStepResult } from './init-steps.js'
 import { buildKnowledgeAgentGuide } from './knowledge-guide.js'
 import { composeManagedBlock, locateManagedBlock } from './managed-block.js'
 import { projectHost, type ProjectHost, type ProjectIo } from './project-host.js'
-import { buildGitignoreEntries, managedGitignoreContent } from './scaffold-content.js'
-import { hasWebTarget, resolveWebPlacement } from './web-placement.js'
+import {
+  buildGitignoreEntries,
+  managedGitignoreContent,
+  type InitPlatformInput,
+  type InitPlatformSelection,
+} from './scaffold-content.js'
+import { getTargetPlatforms, hasWebTarget, resolveWebPlacement } from './web-placement.js'
 
 // Every row this build has, in menu order.
-export const SETUP_ROW_NAMES = ['skills', 'mcp', 'agents-md', 'browsers', 'gitignore'] as const
+export const SETUP_ROW_NAMES = [
+  'skills',
+  'mcp',
+  'agents-md',
+  'browsers',
+  'gitignore',
+  'scaffold',
+] as const
 export type SetupRowName = (typeof SETUP_ROW_NAMES)[number]
 
 export type SetupSelection =
@@ -91,7 +105,11 @@ export interface SetupRowCheckInput {
   chromium: ChromiumResolver
   // The real folder of the project's installed agent-qa, whose Playwright runs the web tests.
   projectAgentQaDir?: string
+  scaffoldPlans: ScaffoldPlans
 }
+
+// The fresh init's scaffold for a platform, every file at its default path, overwriting none.
+export type ScaffoldPlans = (platform: InitPlatformInput) => InitPathPlan[]
 
 export function checkGitignoreRow({
   projectDir,
@@ -381,6 +399,94 @@ export async function checkBrowsersRow({
     : row("no Chromium for agent-qa's Playwright", true)
 }
 
+function configPlatform(config: Record<string, unknown> | null): InitPlatformSelection {
+  const platforms = getTargetPlatforms(config)
+  const mobileRuntimes = (['android', 'ios'] as const).filter((name) => platforms.includes(name))
+  return {
+    capabilities: [
+      ...(hasWebTarget(config) ? (['web'] as const) : []),
+      ...(mobileRuntimes.length > 0 ? (['mobile'] as const) : []),
+    ],
+    mobileRuntimes,
+  }
+}
+
+// The files runs and doctor read; any other scaffold file never pre-checks the row.
+const WORKSPACE_FILE_KEYS: Readonly<Record<string, 'envFile' | 'secretsFile' | 'hooksFile'>> = {
+  '.env': 'envFile',
+  '.env.secrets.local': 'secretsFile',
+  'hooks.yaml': 'hooksFile',
+}
+const KNOWLEDGE_GITIGNORE = `${KNOWLEDGE_ROOT_DIR}/.gitignore`
+
+interface ScaffoldFile {
+  plan: InitPathPlan
+  label: string
+  needed: boolean
+}
+
+function posixPath(path: string): string {
+  return path.split(sep).join('/')
+}
+
+// Each needed file sits where the config points; the knowledge files sit under its knowledge root.
+function scaffoldFiles({
+  projectDir,
+  configPath,
+  io,
+  scaffoldPlans,
+}: Pick<SetupRowCheckInput, 'projectDir' | 'configPath' | 'io' | 'scaffoldPlans'>): {
+  files: ScaffoldFile[]
+  knowledgeRoot: string
+} {
+  const config = readRawConfig(configPath, io)
+  const workspace = rawWorkspace(config, configPath)
+  const knowledgeRoot =
+    resolveRawConfigKnowledgeRoot(config, configPath) ?? join(projectDir, KNOWLEDGE_ROOT_DIR)
+  const file = (plan: InitPathPlan, needed: boolean): ScaffoldFile => ({
+    plan,
+    needed,
+    label: isInside(plan.path, projectDir) ? posixPath(relative(projectDir, plan.path)) : plan.path,
+  })
+  const files = scaffoldPlans(configPlatform(config)).map((plan) => {
+    const fromProject = posixPath(relative(projectDir, plan.path))
+    const key = WORKSPACE_FILE_KEYS[fromProject]
+    if (key !== undefined) {
+      const path = workspace?.[key].absolutePath ?? plan.path
+      return file({ ...plan, path, root: projectDir }, true)
+    }
+    if (fromProject.startsWith(`${KNOWLEDGE_ROOT_DIR}/`)) {
+      const path = join(knowledgeRoot, fromProject.slice(KNOWLEDGE_ROOT_DIR.length + 1))
+      const root = isInside(path, projectDir) ? projectDir : dirname(knowledgeRoot)
+      return file({ ...plan, path, root }, fromProject === KNOWLEDGE_GITIGNORE)
+    }
+    return file(plan, false)
+  })
+  return { files, knowledgeRoot }
+}
+
+export function checkScaffoldRow(
+  input: Pick<SetupRowCheckInput, 'projectDir' | 'configPath' | 'io' | 'scaffoldPlans'>,
+): SetupRowState {
+  const missing = scaffoldFiles(input).files.filter((file) => !input.io.exists(file.plan.path))
+  const needed = missing.filter((file) => file.needed)
+  const state =
+    needed.length === 1
+      ? `${needed[0]!.label} missing`
+      : needed.length > 1
+        ? `${needed.length} needed files missing`
+        : missing.length > 0
+          ? 'nothing needed is missing'
+          : 'nothing missing'
+  return {
+    name: 'scaffold',
+    shown: true,
+    state,
+    wouldChange: missing.length > 0,
+    prechecked: needed.length > 0,
+  }
+}
+
 export async function checkSetupRows(input: SetupRowCheckInput): Promise<SetupRowState[]> {
   const agentRows = await checkAgentRows(input)
   const states: Record<SetupRowName, SetupRowState> = {
@@ -389,6 +495,7 @@ export async function checkSetupRows(input: SetupRowCheckInput): Promise<SetupRo
     'agents-md': agentRows['agents-md'],
     browsers: await checkBrowsersRow(input),
     gitignore: checkGitignoreRow(input),
+    scaffold: checkScaffoldRow(input),
   }
   return SETUP_ROW_NAMES.map((name) => states[name])
 }
@@ -413,6 +520,7 @@ export interface SetupRowRunInput {
   agentSetup: () => Promise<AgentSetupResult>
   // The fresh init's Chromium step.
   installChromium: () => Promise<InitStepResult>
+  scaffoldPlans: ScaffoldPlans
 }
 
 export interface SetupRowRun {
@@ -580,6 +688,40 @@ async function runBrowsersRow({ installChromium }: SetupRowRunInput): Promise<Se
     : { ...step, files: [] }
 }
 
+// Only a missing file is written, so an existing one keeps its bytes and its mode.
+async function runScaffoldRow({
+  projectDir,
+  configPath,
+  host,
+  scaffoldPlans,
+}: SetupRowRunInput): Promise<SetupRowRunResult> {
+  const { io } = projectHost(host)
+  const { files, knowledgeRoot } = scaffoldFiles({ projectDir, configPath, io, scaffoldPlans })
+  const written: SetupRowFile[] = []
+  const labels: string[] = []
+  let knowledgeGitignore: ScaffoldFile | undefined
+  for (const file of files) {
+    if (io.exists(file.plan.path)) continue
+    const result = writeScaffoldFileAtomic({ ...file.plan, force: false })
+    written.push(result)
+    if (result.outcome === 'created') labels.push(file.label)
+    if (file.plan.path === join(knowledgeRoot, '.gitignore')) knowledgeGitignore = file
+  }
+  if (knowledgeGitignore !== undefined) {
+    verifyEffectiveGitignore({
+      cwd: knowledgeRoot,
+      label: knowledgeGitignore.label,
+      probes: KNOWLEDGE_GITIGNORE_PROBES,
+      written: 'managed-gitignore-and-scaffold',
+    })
+  }
+  const text =
+    labels.length === 0
+      ? 'scaffold: nothing missing'
+      : `scaffold: wrote ${labels.length === 1 ? labels[0] : fileCount(labels.length)}`
+  return { outcome: 'done', text, files: written }
+}
+
 export const SETUP_ROW_RUNS: Record<SetupRowName, SetupRowRun> = {
   skills: { title: "Putting back agent-qa's skills", run: runSkillsRow },
   mcp: { title: "Putting back the coding agents' MCP entries", run: runMcpRow },
@@ -589,4 +731,5 @@ export const SETUP_ROW_RUNS: Record<SetupRowName, SetupRowRun> = {
   },
   browsers: { title: 'Installing Chromium', run: runBrowsersRow },
   gitignore: { title: "Restoring init's .gitignore block", run: runGitignoreRow },
+  scaffold: { title: 'Writing the missing scaffold files', run: runScaffoldRow },
 }

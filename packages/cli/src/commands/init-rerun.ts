@@ -34,6 +34,7 @@ import {
   sharedAgentSetup,
   setupRowLabel,
   type SetupRowFile,
+  type ScaffoldPlans,
   type SetupRowName,
   type SetupRowState,
   type SetupSelection,
@@ -72,6 +73,7 @@ export interface InitRerunInput {
   onRunner: (runner: InitStepRunner) => void
   chromium: ChromiumResolver
   installChromium: () => Promise<InitStepResult>
+  scaffoldPlans: ScaffoldPlans
 }
 
 const SETUP_BROWSERS_WITH_NO_BROWSERS_LINE =
@@ -249,6 +251,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
       agents: over,
       host: input.host,
       chromium: input.chromium,
+      scaffoldPlans: input.scaffoldPlans,
       ...(copy === undefined ? {} : { projectAgentQaDir: copy.realDir }),
     })
     return checked.map((row) =>
@@ -327,6 +330,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
         host: input.host,
         agentSetup,
         installChromium: input.installChromium,
+        scaffoldPlans: input.scaffoldPlans,
       })
       for (const file of files) {
         outcomes.push(initFileResult(file))

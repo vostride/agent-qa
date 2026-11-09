@@ -98,6 +98,7 @@ describe("a re-run's skills row", () => {
       'agents-md  current',
       'browsers   Chromium found',
       'gitignore  current',
+      'scaffold   nothing missing',
     ])
     expect(menuOf(menu.entries)?.initialValues ?? 'no menu').toEqual(['skills'])
   })
@@ -187,6 +188,7 @@ describe("a re-run's skills row", () => {
       'agents-md  current',
       'browsers   Chromium found',
       'gitignore  current',
+      'scaffold   nothing missing',
     ])
     expect(menuOf(result.entries)?.initialValues ?? 'no menu').toEqual([])
     expect(result.entries).toContainEqual({ kind: 'skipped', text: 'skills: current' })
@@ -202,6 +204,7 @@ describe("a re-run's skills row", () => {
       'agents-md  current',
       'browsers   Chromium found',
       'gitignore  current',
+      'scaffold   nothing missing',
     ])
     const doc = JSON.parse(result.stdout) as InitDocument
     expect(skillsRow(doc)).toEqual({
@@ -229,6 +232,7 @@ describe("a re-run's mcp row", () => {
       'agents-md  current',
       'browsers   Chromium found',
       'gitignore  current',
+      'scaffold   nothing missing',
     ])
     expect(menuOf(menu.entries)?.initialValues ?? 'no menu').toEqual(['mcp'])
   })
@@ -383,6 +387,7 @@ describe("a re-run's agents-md row", () => {
       'agents-md  knowledge guide missing',
       'browsers   Chromium found',
       'gitignore  current',
+      'scaffold   nothing needed is missing',
     ])
     expect(result.exit, result.stderr).toBe(0)
     expect(read(project.root, GUIDE)).toBe(buildKnowledgeAgentGuide())
@@ -414,6 +419,7 @@ describe("a re-run's agent rows together", () => {
       'agents-md done',
       'browsers skipped',
       'gitignore skipped',
+      'scaffold skipped',
       'validate done',
     ])
     expect(doc.files).toContainEqual({ path: ALPHA, outcome: 'replaced', step: 'skills' })
@@ -470,6 +476,7 @@ describe("a re-run's coding agents question", () => {
       'agents-md  Codex not set up',
       'browsers   Chromium found',
       'gitignore  current',
+      'scaffold   nothing missing',
     ])
     expect(menuOf(result.entries)?.initialValues ?? 'no menu').toEqual([
       'skills',
@@ -498,6 +505,7 @@ describe("a re-run's coding agents question", () => {
       'agents-md  current',
       'browsers   Chromium found',
       'gitignore  current',
+      'scaffold   nothing missing',
     ])
     expect(read(project.root, ALPHA)).toBe(skill)
     expect(read(project.root, MANIFEST)).toBe(manifest)
