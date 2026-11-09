@@ -1249,7 +1249,6 @@ use:
     // about them. "Degraded by design still exits 0" is the WARN cell below, on a healthy host.
     expect(getOutput()).not.toContain('Fix: Rebuild the index')
     expect(getOutput()).not.toContain('Fix: v2 does not download the embedding model')
-    expect(getOutput()).not.toContain('Fix: The daemon starts its embedder worker')
   })
 
   it('passes the retrieval rows on a healthy host', async () => {
@@ -1398,6 +1397,19 @@ use:
     expect(getOutput()).not.toContain('/home/u/worker.js')
     expect(getOutput()).toContain('Fix: v2 does not download the embedding model')
     expect(getOutput()).not.toContain('agent-qa.config.yaml (the daemon')
+  })
+
+  it('an idle daemon whose embedder worker has not started passes the Embedder row and doctor exits 0', async () => {
+    knowledgeProbeStubs.readWriterLease.mockReturnValue({ kind: 'parsed', lease: {} } as never)
+    knowledgeProbeStubs.readEmbedderWorkerRegistration.mockReturnValue({ kind: 'absent' })
+    daemon.mockResolvedValueOnce({ kind: 'live', registration: { pid: 4242, startedAtMs: 1_000 } } as never)
+
+    await runHealthyHost()
+
+    expect(rowFor('Embedder')).toContain('PASS')
+    expect(rowFor('Embedder')).toContain('when a run needs it')
+    expect(rowFor('Embedder')).not.toContain('FAIL')
+    expect(process.exitCode).toBe(0)
   })
 
   // The command measured against the width it resolved.
