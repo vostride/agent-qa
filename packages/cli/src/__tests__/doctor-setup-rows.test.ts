@@ -50,6 +50,7 @@ import { getAgentQaVersion, getAuthPath } from '@vostride/agent-qa-core'
 
 import { createDoctorCommand, type DoctorCommandHooks } from '../commands/doctor.js'
 import type { LatestVersionAsk } from '../commands/latest-version-ask.js'
+import { defaultProjectIo, type ProjectIo } from '../commands/project-host.js'
 import { cleanupTempProjects, tempProject } from './project-fixtures.js'
 import {
   editSkillFile,
@@ -475,6 +476,31 @@ describe("doctor's scaffold file rows", () => {
         `Create ${hooks}; init writes no file outside the project. It may be empty, but it must exist. ` +
         'Run `npx agent-qa init --setup scaffold` to write the missing file at workspace.hooksFile or workspace.envFile.',
     })
+  })
+})
+
+describe("doctor's Playwright row", () => {
+  it("asks the resolver with the project's agent-qa as the host doctor was given finds it", async () => {
+    const project = await initializedProject('doctor-playwright-host')
+    const dir = join(project.root, 'node_modules', 'agent-qa')
+    const manifest = JSON.stringify({ name: 'agent-qa', version: VERSION, bin: 'cli.js' })
+    const io: ProjectIo = {
+      exists: (path) => path === join(dir, 'cli.js') || defaultProjectIo.exists(path),
+      readText: (path) =>
+        path === join(dir, 'package.json') ? manifest : defaultProjectIo.readText(path),
+      realpath: async (path) => path,
+    }
+    const asked: unknown[] = []
+
+    await doctorRows(project, {
+      host: { homedir: project.home, env: {}, io },
+      chromium: (input) => {
+        asked.push(input)
+        return { found: true, path: '/fake/chromium' }
+      },
+    })
+
+    expect(asked).toEqual([{ projectAgentQaDir: dir }])
   })
 })
 

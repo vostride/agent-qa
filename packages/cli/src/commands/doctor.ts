@@ -1,7 +1,6 @@
 import { Command } from 'commander'
 import { execFileSync, execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import pc from 'picocolors'
 import { loadConfigFile } from '../config.js'
@@ -44,7 +43,7 @@ import {
 } from './doctor-setup-checks.js'
 import { askLatestVersionByDefault, type LatestVersionAsk } from './latest-version-ask.js'
 import { findProjectAgentQa } from './project-agent-qa.js'
-import { defaultProjectIo, projectHost, type ProjectHost } from './project-host.js'
+import { projectHost, type ProjectHost } from './project-host.js'
 import { projectRange } from './project-range.js'
 import { getTargetPlatforms, hasWebTarget, resolveWebPlacement, type WebPlacement } from './web-placement.js'
 import {
@@ -494,13 +493,13 @@ function checkLLMConnection(
   }
 }
 
-async function installedAgentQaDir(configPath: string): Promise<string | undefined> {
+async function installedAgentQaDir(
+  configPath: string,
+  host: ProjectHost,
+): Promise<string | undefined> {
   try {
-    const range = await projectRange(dirname(resolve(configPath)), {
-      homedir: homedir(),
-      io: defaultProjectIo,
-    })
-    return (await findProjectAgentQa(range, range.start, defaultProjectIo))?.realDir
+    const range = await projectRange(dirname(resolve(configPath)), host)
+    return (await findProjectAgentQa(range, range.start, host.io))?.realDir
   } catch {
     return undefined
   }
@@ -511,6 +510,7 @@ function checkPlaywright(
   configPath: string,
   placement: WebPlacement,
   chromium: ChromiumResolver,
+  host: ProjectHost,
 ): DoctorCheck {
   return {
     name: 'Playwright',
@@ -523,7 +523,7 @@ function checkPlaywright(
         return { status: 'skip', message: 'not configured' }
       }
 
-      const projectAgentQaDir = await installedAgentQaDir(configPath)
+      const projectAgentQaDir = await installedAgentQaDir(configPath, host)
       const answer = chromium(projectAgentQaDir === undefined ? {} : { projectAgentQaDir })
       return answer.found
         ? { status: 'pass', message: 'Chromium found' }
@@ -856,7 +856,7 @@ export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
         checkLLMApiKey(config, configPath, authPath),
         checkSubscriptionAuth(config, configPath, authPath),
         checkLLMConnection(config, configPath, hooks.connection ?? probeModelConnection, authPath),
-        checkPlaywright(config, configPath, placement, chromium),
+        checkPlaywright(config, configPath, placement, chromium, host),
         ...createRemoteChecks({
           config,
           configPath,
