@@ -1,5 +1,5 @@
 // A re-run checks a coding agent's setup with a dry run of the installer and repairs it.
-import { existsSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 
@@ -37,6 +37,9 @@ const VERSION = getAgentQaVersion().trim()
 const ALPHA = '.claude/skills/agent-qa-alpha/SKILL.md'
 const GUIDE = 'agent-qa-knowledge/AGENTS.md'
 const CODEX_CONFIG = '.codex/config.toml'
+const CODEX_ALPHA = '.agents/skills/agent-qa-alpha/SKILL.md'
+const MANIFEST = '.agents/agent-qa-skills.json'
+const AGENTS_QUESTION = 'Which coding agents should agent-qa set up?'
 const asked = { hooks: { isTTY: true } }
 
 beforeEach(() => {
@@ -62,6 +65,13 @@ function read(root: string, path: string): string {
 
 function skillsRow(doc: InitDocument): unknown {
   return doc.setup?.find((row) => row.name === 'skills') ?? 'no skills row'
+}
+
+function agentsQuestionOf(
+  entries: readonly FakeInitUiEntry[],
+): Extract<FakeInitUiEntry, { kind: 'multiselect' }> | undefined {
+  const entry = entries.find((item) => item.kind === 'multiselect' && item.text === AGENTS_QUESTION)
+  return entry?.kind === 'multiselect' ? entry : undefined
 }
 
 function setupRow(doc: InitDocument, name: string): unknown {
@@ -403,5 +413,147 @@ describe("a re-run's agent rows together", () => {
     expect(doc.files).toContainEqual({ path: ALPHA, outcome: 'replaced', step: 'skills' })
     expect(doc.files).toContainEqual({ path: '.mcp.json', outcome: 'replaced', step: 'mcp' })
     expect(doc.files).toContainEqual({ path: 'AGENTS.md', outcome: 'created', step: 'agents-md' })
+  })
+})
+
+describe("a re-run's coding agents question", () => {
+  it('comes after the summary and before the menu, pre-checked with the manifest agents', async () => {
+    const project = await initializedProjectWithAgent('rerun-agents-order', 'claude-code', VERSION)
+
+    const result = await rerun(project, [], asked)
+
+    expect(result.exit, result.stderr).toBe(0)
+    const kinds = result.entries
+      .filter((entry) => entry.kind === 'summary' || entry.kind === 'multiselect')
+      .map((entry) => entry.text)
+    expect(kinds).toEqual(['This project', AGENTS_QUESTION, SETUP_MENU_QUESTION])
+    expect(agentsQuestionOf(result.entries)?.labels ?? 'no question').toEqual([
+      'Claude Code',
+      'Codex',
+    ])
+    expect(agentsQuestionOf(result.entries)?.initialValues ?? 'no question').toEqual([
+      'claude-code',
+    ])
+  })
+
+  it('starts with nothing checked without a manifest, whatever markers the folder has', async () => {
+    const project = await initializedProject('rerun-agents-no-manifest')
+    mkdirSync(join(project.root, '.claude'))
+    mkdirSync(join(project.root, '.codex'))
+
+    const result = await rerun(project, [], {
+      hooks: { isTTY: true, host: { env: { CLAUDECODE: '1' } } },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(agentsQuestionOf(result.entries)?.initialValues ?? 'no question').toEqual([])
+  })
+
+  it('checking Codex in a Claude Code project pre-checks its three rows and sets Codex up', async () => {
+    const project = await initializedProjectWithAgent('rerun-agents-add', 'claude-code', VERSION)
+
+    const result = await rerun(project, [], {
+      ...asked,
+      answers: { [AGENTS_QUESTION]: ['claude-code', 'codex'] },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(menuOf(result.entries)?.labels ?? 'no menu').toEqual([
+      'skills     Codex not set up',
+      'mcp        Codex entry missing',
+      'agents-md  Codex not set up',
+      'gitignore  current',
+    ])
+    expect(menuOf(result.entries)?.initialValues ?? 'no menu').toEqual([
+      'skills',
+      'mcp',
+      'agents-md',
+    ])
+    expect(existsSync(join(project.root, CODEX_ALPHA))).toBe(true)
+    expect(read(project.root, CODEX_CONFIG)).toContain('[mcp_servers.agent-qa]')
+    expect(JSON.parse(read(project.root, MANIFEST))).toMatchObject({
+      agents: ['claude-code', 'codex'],
+    })
+  })
+
+  it("unchecking Claude Code leaves its files and its manifest records as they were", async () => {
+    const project = await initializedProjectWithAgent('rerun-agents-drop', 'claude-code', VERSION)
+    editSkillFile(project, ALPHA)
+    const skill = read(project.root, ALPHA)
+    const manifest = read(project.root, MANIFEST)
+    const mcp = read(project.root, '.mcp.json')
+    const block = read(project.root, 'AGENTS.md')
+
+    const result = await rerun(project, [], { ...asked, answers: { [AGENTS_QUESTION]: [] } })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(menuOf(result.entries)?.labels ?? 'no menu').toEqual([
+      'agents-md  current',
+      'gitignore  current',
+    ])
+    expect(read(project.root, ALPHA)).toBe(skill)
+    expect(read(project.root, MANIFEST)).toBe(manifest)
+    expect(read(project.root, '.mcp.json')).toBe(mcp)
+    expect(read(project.root, 'AGENTS.md')).toBe(block)
+  })
+
+  it('--agents answers the question without drawing it, and the document records the chosen agents', async () => {
+    const project = await initializedProjectWithAgent('rerun-agents-flag', 'claude-code', VERSION)
+    const mcp = read(project.root, '.mcp.json')
+
+    const drawn = await rerun(project, ['--agents', 'codex'], {
+      ...asked,
+      answers: { [SETUP_MENU_QUESTION]: [] },
+    })
+    const result = await rerun(project, ['--agents', 'codex', '--yes', '--json'], { plain: true })
+
+    expect(drawn.exit, drawn.stderr).toBe(0)
+    expect(agentsQuestionOf(drawn.entries)?.text ?? 'no question').toBe('no question')
+    expect(menuOf(drawn.entries)?.labels[0] ?? 'no menu').toBe('skills     Codex not set up')
+    expect(result.exit, result.stderr).toBe(0)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.agents).toEqual(['codex'])
+    expect(existsSync(join(project.root, CODEX_ALPHA))).toBe(true)
+    expect(read(project.root, '.mcp.json')).toBe(mcp)
+  })
+
+  it('refuses an unknown --agents value with one line, exit 2, drawing nothing', async () => {
+    const project = await initializedProjectWithAgent('rerun-agents-bogus', 'claude-code', VERSION)
+
+    const result = await rerun(project, ['--agents', 'bogus'], asked)
+
+    expect(result.exit).toBe(2)
+    expect(refusalLines(result.stderr)).toEqual([
+      'Unknown coding agent "bogus". Use claude-code, codex, all or none.',
+    ])
+    expect(result.entries).toEqual([])
+  })
+
+  it('--yes keeps the manifest agents and asks nothing', async () => {
+    const project = await initializedProjectWithAgent('rerun-agents-yes', 'codex', VERSION)
+
+    const result = await rerun(project, ['--yes'], asked)
+    const json = await rerun(project, ['--yes', '--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(agentsQuestionOf(result.entries)?.text ?? 'no question').toBe('no question')
+    expect((JSON.parse(json.stdout) as InitDocument).agents).toEqual(['codex'])
+  })
+
+  it('--setup runs its rows over the agents the question chose', async () => {
+    const project = await initializedProjectWithAgent('rerun-agents-setup', 'claude-code', VERSION)
+
+    const result = await rerun(project, ['--setup', 'mcp'], {
+      ...asked,
+      answers: { [AGENTS_QUESTION]: ['claude-code', 'codex'] },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(agentsQuestionOf(result.entries)?.initialValues ?? 'no question').toEqual([
+      'claude-code',
+    ])
+    expect(menuOf(result.entries)?.text ?? 'no menu').toBe('no menu')
+    expect(read(project.root, CODEX_CONFIG)).toContain('[mcp_servers.agent-qa]')
+    expect(existsSync(join(project.root, CODEX_ALPHA))).toBe(false)
   })
 })
