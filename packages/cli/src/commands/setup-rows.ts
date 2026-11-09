@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 
 import pc from 'picocolors'
@@ -22,6 +23,7 @@ import { readAgentSetupManifest } from './agent-setup-manifest.js'
 import { INIT_AGENT_OPTIONS } from './init-agents.js'
 import {
   TARGET_GITIGNORE_PROBES,
+  classifyInitPath,
   upsertManagedGitignoreBlock,
   verifyEffectiveGitignore,
   writeScaffoldFileAtomic,
@@ -483,20 +485,16 @@ async function runAgentsMdRow({
     }
     replaced.push(...replacedPaths(blockFiles))
   }
-  const { io } = projectHost(host)
-  const guidePath = knowledgeGuidePath(projectDir, configPath, io)
-  const guide = knowledgeGuideState(guidePath, io)
-  if (guide !== 'current') {
-    files.push(
-      writeScaffoldFileAtomic({
-        path: guidePath,
-        root: isInside(guidePath, projectDir) ? projectDir : dirname(dirname(guidePath)),
-        content: buildKnowledgeAgentGuide(),
-        force: true,
-      }),
-    )
+  const guidePath = knowledgeGuidePath(projectDir, configPath, projectHost(host).io)
+  const root = isInside(guidePath, projectDir) ? projectDir : dirname(dirname(guidePath))
+  // Decided from the file this run writes, as the installer decides its own files.
+  const onDisk =
+    classifyInitPath(guidePath, root) === 'regular' ? readFileSync(guidePath, 'utf-8') : undefined
+  const guide = buildKnowledgeAgentGuide()
+  if (onDisk !== guide) {
+    files.push(writeScaffoldFileAtomic({ path: guidePath, root, content: guide, force: true }))
     restored.push('the knowledge guide')
-    if (guide === 'differs') replaced.push(relative(projectDir, guidePath).split(sep).join('/'))
+    if (onDisk !== undefined) replaced.push(relative(projectDir, guidePath).split(sep).join('/'))
   }
   if (restored.length === 0) return { outcome: 'done', text: 'agents-md: current', files }
   return {
