@@ -1,4 +1,5 @@
 import type { CodingAgent } from './agent-setup-manifest.js'
+import type { VersionMove } from './agent-qa-upgrade.js'
 import type { InitStepName, InitStepRecord } from './init-steps.js'
 
 export interface InitNextStep {
@@ -22,6 +23,8 @@ export interface InitNextStepFacts {
   // The coding agents whose setup went through.
   agents: readonly CodingAgent[]
   dashboard: 'starting' | { command: string }
+  // The version move a re-run knows of.
+  upgrade?: VersionMove
 }
 
 export const SUBSCRIPTION_PLUGIN_COMMAND =

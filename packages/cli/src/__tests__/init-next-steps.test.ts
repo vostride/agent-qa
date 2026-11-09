@@ -273,3 +273,98 @@ describe('the lines under the box', () => {
     expect(initNextSteps(facts({ agents: [] })).hints).toEqual([])
   })
 })
+
+describe("a re-run's next steps", () => {
+  const RERUN_DONE: InitStepRecord[] = [
+    { name: 'deps', outcome: 'skipped', reason: 'current' },
+    { name: 'browsers', outcome: 'skipped', reason: 'current' },
+    { name: 'gitignore', outcome: 'skipped', reason: 'current' },
+    { name: 'scaffold', outcome: 'skipped', reason: 'current' },
+    { name: 'validate', outcome: 'done' },
+  ]
+  const rerunFacts = (overrides: Partial<InitNextStepFacts> = {}): InitNextStepFacts =>
+    facts({
+      steps: RERUN_DONE,
+      model: GEMINI_READY,
+      dashboard: { command: 'npx agent-qa dashboard' },
+      ...overrides,
+    })
+
+  it('a scaffold row that is current never asks for init again', () => {
+    expect(commands(rerunFacts())).toEqual([
+      'npx agent-qa run suites/examples.suite.yaml',
+      'npx agent-qa dashboard',
+    ])
+  })
+
+  it('a row left unchecked lists its --setup command with the row description, after a failed row', () => {
+    const steps = withRecord(
+      withRecord(RERUN_DONE, {
+        name: 'gitignore',
+        outcome: 'skipped',
+        reason: 'not selected',
+        command: 'npx agent-qa init --setup gitignore',
+      }),
+      {
+        name: 'browsers',
+        outcome: 'failed',
+        reason: 'Chromium download failed twice',
+        command: 'npx agent-qa init --setup browsers',
+      },
+    )
+
+    expect(initNextSteps(rerunFacts({ steps })).steps.slice(0, 2)).toEqual([
+      {
+        command: 'npx agent-qa init --setup browsers',
+        description: "Install Chromium for agent-qa's Playwright",
+      },
+      {
+        command: 'npx agent-qa init --setup gitignore',
+        description: "Restore init's .gitignore block",
+      },
+    ])
+  })
+
+  it('a deps row left to run already lists the command that puts the subscription plugin in', () => {
+    const steps = withRecord(RERUN_DONE, {
+      name: 'deps',
+      outcome: 'skipped',
+      reason: 'not selected',
+      command: 'npx agent-qa init --setup deps',
+    })
+
+    expect(
+      commands(rerunFacts({ steps, model: { ...CLAUDE_PENDING, pluginInstalled: false } })),
+    ).not.toContain('npx agent-qa plugins add @vostride/agent-qa-subscription-auth')
+  })
+
+  it('a breaking version move puts the guide line and one URL per step under the box', () => {
+    const upgrade = {
+      from: '0.3.0',
+      to: '0.5.0',
+      breaking: true,
+      links: [
+        'https://vostride.com/docs/agent-qa/migrate/v0-3-to-v0-4',
+        'https://vostride.com/docs/agent-qa/migrate/v0-4-to-v0-5',
+      ],
+    }
+
+    expect(initNextSteps(rerunFacts({ upgrade, agents: ['claude-code'] })).hints).toEqual([
+      'agent-qa 0.5.0 can change your config. To upgrade, point your coding agent at',
+      'https://vostride.com/docs/agent-qa/migrate/v0-3-to-v0-4',
+      'https://vostride.com/docs/agent-qa/migrate/v0-4-to-v0-5',
+      CODING_AGENT_HINT,
+    ])
+  })
+
+  it('a patch move adds no guide line', () => {
+    const upgrade = {
+      from: '0.3.0',
+      to: '0.3.2',
+      breaking: false,
+      links: ['https://github.com/vostride/agent-qa/releases/tag/v0.3.2'],
+    }
+
+    expect(initNextSteps(rerunFacts({ upgrade })).hints).toEqual([])
+  })
+})
