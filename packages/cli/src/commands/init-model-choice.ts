@@ -97,7 +97,8 @@ export function initModelSections(saved: readonly SavedCredential[]): InitSectio
     heading: 'Connect a new model',
     options: INIT_MODEL_CHOICES.map((choice) => ({
       value: { kind: 'new', choice } as const,
-      ...INIT_MODEL_CHOICE_TEXT[choice],
+      label: INIT_MODEL_CHOICE_TEXT[choice].label,
+      status: newChoiceStatus(choice, saved),
     })),
   }
   const picks = savedPicks(saved).sort(
@@ -227,6 +228,19 @@ function freeName(stable: string, provider: string, saved: readonly SavedCredent
   for (let suffix = 2; ; suffix += 1) {
     if (fits(`${stable}-${suffix}`)) return `${stable}-${suffix}`
   }
+}
+
+// A new choice that would reuse a saved credential under its stable name shows that
+// credential's status, as its saved row does.
+function newChoiceStatus(choice: InitModelChoice, saved: readonly SavedCredential[]): string {
+  const { name, provider } = NEW_CHOICE_TARGETS[choice]
+  const shared =
+    freeName(name, provider, saved) === name
+      ? saved.find((credential) => credential.name === name)
+      : undefined
+  return shared === undefined
+    ? INIT_MODEL_CHOICE_TEXT[choice].status
+    : SAVED_KIND_STATUS[shared.type]
 }
 
 export function modelEntryFor(pick: InitModelPick, flags: InitModelFlags): InitModelSetup {

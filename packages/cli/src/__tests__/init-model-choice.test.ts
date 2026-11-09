@@ -208,6 +208,47 @@ describe('model question sections', () => {
   })
 })
 
+describe('the status of a new choice that reuses a saved credential', () => {
+  const statusOf = (saved: readonly SavedCredential[], choice: InitModelChoice) =>
+    initModelSections(saved)[0]?.options.find(
+      (option) => option.value.kind === 'new' && option.value.choice === choice,
+    )?.status
+
+  it('says signed in on a new subscription whose stable name holds a saved sign-in for it', async () => {
+    const saved = await savedFrom({
+      'claude-code': FIXTURE_STORE['claude-code'],
+      codex: { type: 'oauth', provider: 'openai-subscription-oauth', tokens: oauthTokens },
+    })
+
+    expect(statusOf(saved, 'claude-code')).toBe('signed in')
+    expect(statusOf(saved, 'codex')).toBe('signed in')
+    const signedIn = savedOptions(saved).map((option) => option.status)
+    expect(signedIn).toEqual(['signed in', 'signed in'])
+  })
+
+  it('says key saved on the Gemini choice whose stable name holds a saved Gemini key', async () => {
+    const saved = await savedFrom({ gemini: { type: 'api', provider: 'gemini', key: DUMMY_KEY } })
+
+    expect(statusOf(saved, 'gemini')).toBe('key saved')
+  })
+
+  it('keeps sign in after setup when the stable name is saved for another provider', async () => {
+    const saved = await savedFrom({
+      'claude-code': { type: 'api', provider: 'gemini', key: DUMMY_KEY },
+    })
+
+    expect(statusOf(saved, 'claude-code')).toBe('sign in after setup')
+  })
+
+  it('keeps key in the dashboard on an API preset even when its name holds a compatible key', async () => {
+    const saved = await savedFrom({
+      anthropic: { type: 'api', provider: 'anthropic-compatible', key: DUMMY_KEY },
+    })
+
+    expect(statusOf(saved, 'anthropic')).toBe('key in the dashboard')
+  })
+})
+
 function defaultModel(provider: string): string {
   const model = getProvider(provider)?.defaultModel
   if (model === undefined) throw new Error(`no default model for ${provider}`)
