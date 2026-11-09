@@ -8,6 +8,7 @@ import { runCli, type CliFailureDeps } from '../cli-error-handler.js'
 import type { CodingAgent } from '../commands/agent-setup.js'
 import type { ChromiumResolver } from '../commands/browser-resolver.js'
 import { createInitCommand, type InitCommandHooks } from '../commands/init.js'
+import type { LatestVersionAsk } from '../commands/latest-version-ask.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { createPlainUi } from '../init-ui/plain-ui.js'
 import { fakeInitUi, type FakeInitUiEntry } from './fake-init-ui.js'
@@ -23,6 +24,7 @@ const NODE = '/fake/node'
 
 export const foundChromium: ChromiumResolver = () => ({ found: true, path: '/fake/chromium' })
 export const noChromium: ChromiumResolver = () => ({ found: false, reason: 'no file at /fake' })
+export const noLatestVersion: LatestVersionAsk = async () => ({ source: 'none' })
 
 export interface InitializedProject {
   root: string
@@ -90,6 +92,7 @@ async function runInit(
           composeAnalytics: silentAnalytics,
           ui: options.plain === true ? createPlainUi() : ui,
           chromium: foundChromium,
+          latestVersion: noLatestVersion,
           ...options.hooks,
           host: {
             homedir: project.home,

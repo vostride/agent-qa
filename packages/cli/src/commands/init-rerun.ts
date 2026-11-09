@@ -1,6 +1,6 @@
 import { dirname } from 'node:path'
 
-import { getAuthPath } from '@vostride/agent-qa-core'
+import { compareSemverVersions, getAuthPath, validSemverVersion } from '@vostride/agent-qa-core'
 import pc from 'picocolors'
 import { parse } from 'yaml'
 
@@ -10,9 +10,10 @@ import { activeModelEntry } from '../llm-utils.js'
 import { CODING_AGENTS, readAgentSetupManifest, type CodingAgent } from './agent-setup-manifest.js'
 import type { ChromiumResolver } from './browser-resolver.js'
 import { INIT_AGENT_OPTIONS, parseInitAgentsFlag } from './init-agents.js'
-import type { InitDocumentRecorder } from './init-document.js'
+import type { InitDocumentLatest, InitDocumentRecorder } from './init-document.js'
 import type { InitFileOutcome, InitFileResult } from './init-filesystem.js'
 import { modelStatus, type InitModelEntry } from './init-model-choice.js'
+import type { LatestVersionAsk } from './latest-version-ask.js'
 import {
   createInitStepRunner,
   rerunPlan,
@@ -74,20 +75,45 @@ export interface InitRerunInput {
   chromium: ChromiumResolver
   installChromium: () => Promise<InitStepResult>
   scaffoldPlans: ScaffoldPlans
+  latestVersion: LatestVersionAsk
 }
 
 const SETUP_BROWSERS_WITH_NO_BROWSERS_LINE =
   '--setup browsers asks for Chromium and --no-browsers refuses it; drop one of them.'
 
-async function versionLines(
+// Only a semver-valid answer is printed or recorded; anything else counts as no answer.
+async function askLatest(input: InitRerunInput): Promise<InitDocumentLatest> {
+  try {
+    const answer = await input.latestVersion(input.host.homedir)
+    const version =
+      answer.latestVersion === undefined ? undefined : validSemverVersion(answer.latestVersion)
+    if (answer.source === 'none' || version === undefined) return { source: 'none' }
+    return { source: answer.source, version }
+  } catch {
+    return { source: 'none' }
+  }
+}
+
+function newerLines(newer: string): string[] {
+  return [`agent-qa ${newer} is out.`]
+}
+
+function versionLines(
   input: InitRerunInput,
   copy: ProjectAgentQa | undefined,
-): Promise<string[]> {
+  latest: InitDocumentLatest,
+): string[] {
   const project =
     copy?.version ?? declaredAgentQaVersion(input.packageJson.text) ?? input.runningVersion
-  const lines = [`You're on agent-qa ${project}.`]
-  if (project !== input.runningVersion) lines.push(`This agent-qa is ${input.runningVersion}.`)
-  return lines
+  const running = input.runningVersion
+  const differs = project !== running ? [`This agent-qa is ${running}.`] : []
+  const onProject = `You're on agent-qa ${project}`
+  if (latest.version === undefined) return [`${onProject}.`, ...differs]
+  const newer = compareSemverVersions(latest.version, running) === 1 ? latest.version : running
+  const order = compareSemverVersions(newer, project)
+  if (order === 1) return [`${onProject}.`, ...differs, ...newerLines(newer)]
+  if (order === undefined) return [`${onProject}.`, ...differs]
+  return [`${onProject}, the latest.`, ...differs]
 }
 
 type JsonObject = Record<string, unknown>
@@ -242,6 +268,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   const setUp = manifest?.agents ?? []
   let agents = flaggedAgents === undefined ? [...setUp] : inAgentOrder(flaggedAgents)
   input.recorder.agents(agents)
+  const latestAnswer = askLatest(input)
   const copy = await findProjectAgentQa(input.range, input.range.start, input.host.io)
   const checkRows = async (over: readonly CodingAgent[]): Promise<SetupRowState[]> => {
     const checked = await checkSetupRows({
@@ -260,8 +287,10 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   }
   let rows = await checkRows(agents)
   const model = await modelLine(input)
+  const latest = await latestAnswer
+  input.recorder.latest(latest)
   const summary = [
-    ...(await versionLines(input, copy)),
+    ...versionLines(input, copy, latest),
     ...(model === undefined ? [] : [model]),
     agentsLine(setUp),
     ...(rows.some((row) => row.shown && row.wouldChange) ? [] : ['Everything is current.']),

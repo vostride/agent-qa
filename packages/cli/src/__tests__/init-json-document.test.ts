@@ -71,6 +71,7 @@ async function init(
         isTTY: false,
         composeAnalytics: hooks.composeAnalytics ?? silentAnalytics,
         chromium: () => ({ found: true, path: '/fake/chromium' }),
+        latestVersion: async () => ({ source: 'none' }),
       }),
     )
   const handler: string[] = []

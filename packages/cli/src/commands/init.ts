@@ -106,6 +106,7 @@ import {
   type InitStepRunner,
 } from './init-steps.js'
 import { runInitRerun } from './init-rerun.js'
+import { askLatestVersionByDefault, type LatestVersionAsk } from './latest-version-ask.js'
 import { findChromiumByDefault, type ChromiumResolver } from './browser-resolver.js'
 import {
   createInitDocumentRecorder,
@@ -479,6 +480,8 @@ export interface InitCommandHooks {
   // Probes the dashboard's port; the default binds it on loopback and lets it go.
   dashboardPort?: DashboardPort
   chromium?: ChromiumResolver
+  // The re-run's latest agent-qa; the default asks the npm registry under a short deadline.
+  latestVersion?: LatestVersionAsk
 }
 
 // The streams the Clack rail reads and draws on: stdin and stderr in production.
@@ -1011,6 +1014,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             chromium: hooks.chromium ?? findChromiumByDefault,
             installChromium,
             scaffoldPlans: (platform) => buildScaffoldFilePlans(dir, platform, false),
+            latestVersion: hooks.latestVersion ?? askLatestVersionByDefault,
           })
           return
         }

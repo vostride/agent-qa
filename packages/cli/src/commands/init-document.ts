@@ -32,6 +32,11 @@ export interface InitDocumentSetupRow {
   hidden?: string
 }
 
+export interface InitDocumentLatest {
+  source: 'registry' | 'cache' | 'none'
+  version?: string
+}
+
 export interface InitDocument {
   format: 1
   outcome: 'done' | 'failed' | 'refused' | 'interrupted'
@@ -42,6 +47,8 @@ export interface InitDocument {
   agents: CodingAgent[]
   packageManager?: string
   agentQa?: { version: string; via: 'in-process' | 'project' | 'running' }
+  // Only a re-run asks for the latest agent-qa.
+  latest?: InitDocumentLatest
   plugins: { package: string; version: string }[]
   model?: InitDocumentModel
   // Only a re-run has a setup menu.
@@ -64,6 +71,7 @@ export interface InitDocumentRecorder {
   agents(agents: readonly CodingAgent[]): void
   packageManager(name: string): void
   agentQa(agentQa: NonNullable<InitDocument['agentQa']>): void
+  latest(latest: InitDocumentLatest): void
   plugins(plugins: readonly { package: string; version: string }[]): void
   model(model: InitDocumentModel): void
   setup(rows: readonly InitDocumentSetupRow[]): void
@@ -124,6 +132,7 @@ export function createInitDocumentRecorder({ dir }: { dir: string }): InitDocume
   let agents: CodingAgent[] = []
   let packageManager: string | undefined
   let agentQa: InitDocument['agentQa']
+  let latest: InitDocumentLatest | undefined
   let plugins: InitDocument['plugins'] = []
   let model: InitDocumentModel | undefined
   let setup: InitDocumentSetupRow[] | undefined
@@ -148,6 +157,12 @@ export function createInitDocumentRecorder({ dir }: { dir: string }): InitDocume
     },
     agentQa(value) {
       agentQa = { version: value.version, via: value.via }
+    },
+    latest(value) {
+      latest = {
+        source: value.source,
+        ...(value.version === undefined ? {} : { version: value.version }),
+      }
     },
     plugins(list) {
       plugins = list.map((plugin) => ({ package: plugin.package, version: plugin.version }))
@@ -176,6 +191,7 @@ export function createInitDocumentRecorder({ dir }: { dir: string }): InitDocume
         agents: [...agents],
         ...(packageManager === undefined ? {} : { packageManager }),
         ...(agentQa === undefined ? {} : { agentQa }),
+        ...(latest === undefined ? {} : { latest }),
         plugins: [...plugins],
         ...(model === undefined ? {} : { model }),
         ...(setup === undefined ? {} : { setup: setup.map((row) => ({ ...row })) }),

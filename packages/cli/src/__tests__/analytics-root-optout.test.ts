@@ -309,6 +309,7 @@ async function runInit(
       createInitCommand({
         cwd: dir,
         chromium: () => ({ found: true, path: '/fake/chromium' }),
+        latestVersion: async () => ({ source: 'none' }),
         ...extraHooks,
         host,
       }),

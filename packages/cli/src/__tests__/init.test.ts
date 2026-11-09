@@ -1739,6 +1739,7 @@ skills/.staging/
           cwd: dir,
           composeAnalytics,
           chromium: () => ({ found: true, path: '/fake/chromium' }),
+          latestVersion: async () => ({ source: 'none' }),
           host: {
             homedir: `${dir}-home`,
             env: {},
