@@ -49,7 +49,9 @@ describe('askLatestAgentQaVersion', () => {
       checkedAt: yearOldCheckedAt,
       refreshStartedAt: yearOldCheckedAt,
     })
-    const fetchImpl = vi.fn(async () => registryAnswer('0.4.0'))
+    const fetchImpl = vi.fn(async (_input: string | URL | Request, _init?: RequestInit) =>
+      registryAnswer('0.4.0'),
+    )
 
     const answer = await askLatestAgentQaVersion({
       homeDir,

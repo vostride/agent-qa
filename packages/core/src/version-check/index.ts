@@ -126,6 +126,65 @@ export async function readCachedAgentQaUpdateStatus(options: {
   }
 }
 
+export interface LatestAgentQaAnswer {
+  source: 'registry' | 'cache' | 'none'
+  latestVersion?: string
+}
+
+// Asks the registry once under the deadline. Only a fresh answer is written back, so a failed ask
+// never holds back the daily refresh.
+export async function askLatestAgentQaVersion(options: {
+  homeDir?: string
+  fetchImpl: VersionCheckFetch
+  timeoutMs: number
+  now?: () => Date
+}): Promise<LatestAgentQaAnswer> {
+  try {
+    const semver = getSemverApi()
+    if (!semver) return { source: 'none' }
+    const cachePath = getAgentQaVersionCheckCachePath(options.homeDir)
+    const timeoutMs = getPositiveNumber(options.timeoutMs, VERSION_CHECK_TIMEOUT_MS)
+    const latestVersion =
+      typeof options.fetchImpl === 'function'
+        ? await withDeadline(fetchLatestVersion(options.fetchImpl, timeoutMs, semver), timeoutMs)
+        : undefined
+    const cache = await readVersionCheckCache(cachePath)
+    if (latestVersion !== undefined) {
+      const nowIso = getNow(options.now).toISOString()
+      await writeVersionCheckCache(cachePath, {
+        ...cache,
+        latestVersion,
+        checkedAt: nowIso,
+        lastAttemptedAt: nowIso,
+      })
+      return { source: 'registry', latestVersion }
+    }
+    const cachedLatestVersion = getValidVersion(cache?.latestVersion, semver)
+    return cachedLatestVersion === undefined
+      ? { source: 'none' }
+      : { source: 'cache', latestVersion: cachedLatestVersion }
+  } catch {
+    return { source: 'none' }
+  }
+}
+
+// A fetch that ignores its abort signal must not hold the caller past the deadline either.
+function withDeadline<T>(work: Promise<T | undefined>, ms: number): Promise<T | undefined> {
+  return new Promise((resolve) => {
+    const timer = setTimeout(() => resolve(undefined), ms)
+    work.then(
+      (value) => {
+        clearTimeout(timer)
+        resolve(value)
+      },
+      () => {
+        clearTimeout(timer)
+        resolve(undefined)
+      },
+    )
+  })
+}
+
 // A refresh that started this recently is still running, or its process was stopped; either way
 // the next command leaves it alone.
 export const VERSION_REFRESH_START_WINDOW_MS = 10 * 60 * 1000
