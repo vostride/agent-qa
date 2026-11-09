@@ -60,6 +60,7 @@ import {
   BREAKING_NOT_IN_ALL,
   SETUP_ROW_NAMES,
   SETUP_ROW_RUNS,
+  checkAgentRows,
   checkDepsRow,
   checkSetupRows,
   checkUpgradeRow,
@@ -559,15 +560,17 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   input.recorder.agents(agents)
   const shown = rows.filter((row) => row.shown)
   const selected = await chooseRows(ui, input.mode === 'interactive', shown, flagged, noBrowsers)
-  input.recorder.setup(
-    rows.map((row) => ({
-      name: row.name,
-      state: row.state,
-      prechecked: row.prechecked,
-      selected: selected.includes(row.name),
-      ...(row.hidden === undefined ? {} : { hidden: row.hidden }),
-    })),
-  )
+  const recordSetup = (): void =>
+    input.recorder.setup(
+      rows.map((row) => ({
+        name: row.name,
+        state: row.state,
+        prechecked: row.prechecked,
+        selected: selected.includes(row.name),
+        ...(row.hidden === undefined ? {} : { hidden: row.hidden }),
+      })),
+    )
+  recordSetup()
 
   const planned = rows.filter(
     (row) =>
@@ -585,12 +588,14 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   })
   input.onRunner(runner)
   const outcomes: InitFileResult[] = []
-  const agentSetup = sharedAgentSetup({
+  let agentSetup = sharedAgentSetup({
     projectDir: input.dir,
     agents,
     host: input.host,
     rows: selected,
   })
+  // The agent rows as the newly installed agent-qa leaves them, once deps has moved it.
+  const rechecked = new Map<SetupRowName, SetupRowState>()
   let installFirst = false
   let upgradeWrotePlan = false
   let modelSetup = before?.setup
@@ -622,7 +627,8 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     )
     if (step.outcome !== 'failed') modelSetup = setup
   }
-  for (const row of planned) {
+  for (const listed of planned) {
+    const row = rechecked.get(listed.name) ?? listed
     if (row.name === 'upgrade' && handed !== undefined) {
       const text = `upgrade: agent-qa ${handed.from} → ${handed.to}`
       await runner.run('upgrade', { title: UPGRADE_TITLE }, async () => ({ outcome: 'done', text }))
@@ -705,7 +711,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
         runner.skip('deps', `deps: skipped (${UPGRADE_DECLARED})`, UPGRADE_DECLARED)
         continue
       }
-      await runner.run('deps', { title: DEPS_TITLE }, async (): Promise<InitStepResult> => {
+      const step = await runner.run('deps', { title: DEPS_TITLE }, async () => {
         const { plan } = deps
         if (!deps.wouldChange) return { outcome: 'done', text: 'deps: nothing missing' }
         if (plan.changed) {
@@ -726,6 +732,28 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
         }
         return { outcome: 'done', text: `deps: ${installed.text}` }
       })
+      // As after an upgrade, the coding agents' share follows the version deps installed.
+      if (step.outcome === 'done' && deps.move !== undefined && agents.length > 0) {
+        const checked = await checkAgentRows({
+          projectDir: input.dir,
+          configPath: input.configPath,
+          io: input.host.io,
+          agents,
+          host: input.host,
+        })
+        for (const name of ['skills', 'mcp', 'agents-md'] as const) {
+          const state = checked[name]
+          rechecked.set(name, state)
+          if (state.wouldChange && !selected.includes(name)) selected.push(name)
+        }
+        agentSetup = sharedAgentSetup({
+          projectDir: input.dir,
+          agents,
+          host: input.host,
+          rows: selected,
+        })
+        recordSetup()
+      }
       continue
     }
     const { title, run } = SETUP_ROW_RUNS[row.name]

@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import { parseDocument, type YAMLSeq } from 'yaml'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
+import { readAgentSetupManifest } from '../commands/agent-setup-manifest.js'
 import type { InitDocument } from '../commands/init-document.js'
 import { SETUP_MENU_QUESTION } from '../commands/init-rerun.js'
 import type { RunResult } from '../commands/project-host.js'
@@ -15,7 +16,13 @@ import {
   type FakeRunner,
   type RunnerCall,
 } from './project-fixtures.js'
-import { initializedProject, rerun, type InitializedProject } from './rerun-fixtures.js'
+import {
+  initializedProject,
+  initializedProjectWithAgent,
+  installAgentQaFixture,
+  rerun,
+  type InitializedProject,
+} from './rerun-fixtures.js'
 
 const { PROJECT_VERSION, running } = vi.hoisted(() => ({
   PROJECT_VERSION: '0.3.0',
@@ -372,6 +379,48 @@ describe('through a newer agent-qa the deps row moves the project to it', () => 
     expect(depsLabel(asking.entries)).toBe('deps       nothing missing')
     expect(result.exit, result.stderr).toBe(0)
     expect((JSON.parse(result.stdout) as InitDocument).upgrade?.row).toBe('upgrade')
+  })
+})
+
+describe("a deps move refreshes the coding agents' share to the version it installed", () => {
+  it('--yes puts back the skills and the block at the new version, so the manifest names it', async () => {
+    const project = await initializedProjectWithAgent(
+      'deps-move-refreshes-agents',
+      'claude-code',
+      PROJECT_VERSION,
+    )
+    running.version = '0.3.2'
+    const run = fakeRunner(({ command, args, options }) => {
+      if (isProbe(args)) return { code: 0, signal: null, output: '11.0.0\n' }
+      if (command !== NODE) installAgentQaFixture(options.cwd, '0.3.2')
+      return OK
+    })
+
+    const result = await rerun(project, ['--yes', '--json'], { run })
+
+    expect(result.exit, result.stderr).toBe(0)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.steps).toContainEqual({ name: 'deps', outcome: 'done' })
+    expect(doc.steps).toContainEqual({ name: 'skills', outcome: 'done' })
+    expect(doc.steps).toContainEqual({ name: 'agents-md', outcome: 'done' })
+    expect(doc.setup?.find((row) => row.name === 'skills')).toMatchObject({ selected: true })
+    expect(readAgentSetupManifest(project.root)?.version).toBe('0.3.2')
+  })
+
+  it('leaves the agent rows as the menu set them when the move is not installed', async () => {
+    const project = await initializedProjectWithAgent(
+      'deps-move-pm-none-agents',
+      'claude-code',
+      PROJECT_VERSION,
+    )
+    running.version = '0.3.2'
+
+    const result = await rerun(project, ['--yes', '--json', '--pm', 'none'])
+
+    expect(result.exit, result.stderr).toBe(0)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.steps).toContainEqual({ name: 'skills', outcome: 'skipped', reason: 'current' })
+    expect(readAgentSetupManifest(project.root)?.version).toBe(PROJECT_VERSION)
   })
 })
 
