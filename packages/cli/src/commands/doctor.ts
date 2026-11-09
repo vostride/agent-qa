@@ -35,7 +35,7 @@ import { createPluginChecks } from './doctor-plugin-checks.js'
 import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
 import { createRemoteChecks, listedRemotes } from './doctor-remote-checks.js'
 import { findProjectAgentQa } from './project-agent-qa.js'
-import { defaultProjectIo } from './project-host.js'
+import { defaultProjectIo, type ProjectHost } from './project-host.js'
 import { projectRange } from './project-range.js'
 import { getTargetPlatforms, hasWebTarget, resolveWebPlacement, type WebPlacement } from './web-placement.js'
 import {
@@ -725,6 +725,7 @@ function getGlobalConfigPath(command: Command): string {
 export interface DoctorCommandHooks {
   chromium?: ChromiumResolver
   daemon?: (agentQaRoot: string) => Promise<InspectDaemonRegistrationOutcome>
+  host?: Partial<ProjectHost>
   listDevicesHere?: DevicesHereLister
 }
 
