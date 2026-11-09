@@ -11,6 +11,7 @@ export type InitStepName =
   | 'skills'
   | 'mcp'
   | 'agents-md'
+  | 'browsers'
   | 'gitignore'
   | 'validate'
   | 'dashboard'

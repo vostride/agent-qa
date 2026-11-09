@@ -96,6 +96,7 @@ describe("a re-run's skills row", () => {
       `skills     1 file differs from agent-qa ${VERSION}'s copy`,
       'mcp        current',
       'agents-md  current',
+      'browsers   Chromium found',
       'gitignore  current',
     ])
     expect(menuOf(menu.entries)?.initialValues ?? 'no menu').toEqual(['skills'])
@@ -184,6 +185,7 @@ describe("a re-run's skills row", () => {
       `skills     current (${VERSION})`,
       'mcp        current',
       'agents-md  current',
+      'browsers   Chromium found',
       'gitignore  current',
     ])
     expect(menuOf(result.entries)?.initialValues ?? 'no menu').toEqual([])
@@ -198,6 +200,7 @@ describe("a re-run's skills row", () => {
 
     expect(menuOf(menu.entries)?.labels ?? 'no menu').toEqual([
       'agents-md  current',
+      'browsers   Chromium found',
       'gitignore  current',
     ])
     const doc = JSON.parse(result.stdout) as InitDocument
@@ -224,6 +227,7 @@ describe("a re-run's mcp row", () => {
       `skills     current (${VERSION})`,
       'mcp        Codex entry missing',
       'agents-md  current',
+      'browsers   Chromium found',
       'gitignore  current',
     ])
     expect(menuOf(menu.entries)?.initialValues ?? 'no menu').toEqual(['mcp'])
@@ -377,6 +381,7 @@ describe("a re-run's agents-md row", () => {
 
     expect(menuOf(menu.entries)?.labels ?? 'no menu').toEqual([
       'agents-md  knowledge guide missing',
+      'browsers   Chromium found',
       'gitignore  current',
     ])
     expect(result.exit, result.stderr).toBe(0)
@@ -407,6 +412,7 @@ describe("a re-run's agent rows together", () => {
       'skills done',
       'mcp done',
       'agents-md done',
+      'browsers skipped',
       'gitignore skipped',
       'validate done',
     ])
@@ -462,6 +468,7 @@ describe("a re-run's coding agents question", () => {
       'skills     Codex not set up',
       'mcp        Codex entry missing',
       'agents-md  Codex not set up',
+      'browsers   Chromium found',
       'gitignore  current',
     ])
     expect(menuOf(result.entries)?.initialValues ?? 'no menu').toEqual([
@@ -489,6 +496,7 @@ describe("a re-run's coding agents question", () => {
     expect(result.exit, result.stderr).toBe(0)
     expect(menuOf(result.entries)?.labels ?? 'no menu').toEqual([
       'agents-md  current',
+      'browsers   Chromium found',
       'gitignore  current',
     ])
     expect(read(project.root, ALPHA)).toBe(skill)

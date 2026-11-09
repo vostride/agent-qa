@@ -429,7 +429,7 @@ describe("a re-run's setup menu and its gitignore row", () => {
       MENU,
     ])
     const menu = menuOf(result.entries)
-    expect(menu?.labels.join('|') ?? 'no menu').toBe('agents-md  current|gitignore  block missing')
+    expect(menu?.labels.join('|') ?? 'no menu').toBe('agents-md  current|browsers   Chromium found|gitignore  block missing')
     expect(menu?.initialValues.join('|') ?? 'no menu').toBe('gitignore')
   })
 
@@ -447,6 +447,7 @@ describe("a re-run's setup menu and its gitignore row", () => {
     const doc = JSON.parse(result.stdout) as InitDocument
     expect(doc.steps).toEqual([
       { name: 'agents-md', outcome: 'skipped', reason: 'current' },
+      { name: 'browsers', outcome: 'skipped', reason: 'current' },
       { name: 'gitignore', outcome: 'done' },
       { name: 'validate', outcome: 'done' },
     ])
@@ -464,7 +465,7 @@ describe("a re-run's setup menu and its gitignore row", () => {
     expect(result.exit, result.stderr).toBe(0)
     const menu = menuOf(result.entries)
     expect(menu?.labels.join('|') ?? 'no menu').toBe(
-      'agents-md  current|gitignore  the block was edited',
+      'agents-md  current|browsers   Chromium found|gitignore  the block was edited',
     )
     expect(menu?.initialValues.join('|') ?? 'no menu').toBe('gitignore')
     expect(readFileSync(gitignorePath(project.root), 'utf8')).toBe(
@@ -493,7 +494,7 @@ describe('a re-run with nothing to change, and its document', () => {
     expect(result.exit, result.stderr).toBe(0)
     expect(summaryLines(result.entries)?.at(-1) ?? 'no summary').toBe('Everything is current.')
     const menu = menuOf(result.entries)
-    expect(menu?.labels.join('|') ?? 'no menu').toBe('agents-md  current|gitignore  current')
+    expect(menu?.labels.join('|') ?? 'no menu').toBe('agents-md  current|browsers   Chromium found|gitignore  current')
     expect(menu?.initialValues.join('|') ?? 'no menu').toBe('')
   })
 
@@ -535,11 +536,13 @@ describe('a re-run with nothing to change, and its document', () => {
           hidden: 'no coding agent chosen',
         },
         { name: 'agents-md', state: 'current', prechecked: false, selected: false },
+        { name: 'browsers', state: 'Chromium found', prechecked: false, selected: false },
         { name: 'gitignore', state: 'block missing', prechecked: true, selected: true },
       ]),
     )
     expect(doc.steps.map((step) => `${step.name} ${step.outcome}`)).toEqual([
       'agents-md skipped',
+      'browsers skipped',
       'gitignore done',
       'validate done',
     ])
@@ -589,7 +592,7 @@ const FRESH_SETUP_LINE =
 const FORCE_SETUP_LINE =
   '--setup picks what a re-run of init sets up, and --force rebuilds everything. '
   + 'Use one of them.'
-const SETUP_NAMES_HINT = 'Use skills, mcp, agents-md, gitignore, all or none.'
+const SETUP_NAMES_HINT = 'Use skills, mcp, agents-md, browsers, gitignore, all or none.'
 
 function refusalLines(stderr: string): string {
   return stripVTControlCharacters(stderr)
@@ -642,6 +645,7 @@ describe("--setup answers the re-run's menu", () => {
     const doc = JSON.parse(result.stdout) as InitDocument
     expect(doc.steps.map((step) => `${step.name} ${step.outcome}`)).toEqual([
       'agents-md done',
+      'browsers done',
       'gitignore done',
       'validate done',
     ])

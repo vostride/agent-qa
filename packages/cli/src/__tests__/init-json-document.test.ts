@@ -70,6 +70,7 @@ async function init(
         },
         isTTY: false,
         composeAnalytics: hooks.composeAnalytics ?? silentAnalytics,
+        chromium: () => ({ found: true, path: '/fake/chromium' }),
       }),
     )
   const handler: string[] = []
@@ -579,6 +580,7 @@ describe('init --json prints one document on stdout', () => {
       { name: 'skills', outcome: 'skipped', reason: 'current' },
       { name: 'mcp', outcome: 'skipped', reason: 'current' },
       { name: 'agents-md', outcome: 'skipped', reason: 'current' },
+      { name: 'browsers', outcome: 'skipped', reason: 'current' },
       { name: 'gitignore', outcome: 'skipped', reason: 'current' },
       { name: 'validate', outcome: 'done' },
     ])

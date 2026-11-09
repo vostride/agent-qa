@@ -106,7 +106,7 @@ import {
   type InitStepRunner,
 } from './init-steps.js'
 import { runInitRerun } from './init-rerun.js'
-import type { ChromiumResolver } from './browser-resolver.js'
+import { findChromiumByDefault, type ChromiumResolver } from './browser-resolver.js'
 import {
   createInitDocumentRecorder,
   refusedInitDocument,
@@ -937,6 +937,21 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           }
         }
 
+        const installChromium = async (): Promise<InitStepResult> => {
+          let output = ''
+          for (let attempt = 0; attempt < CHROMIUM_ATTEMPTS; attempt += 1) {
+            const run = await runAgentQaStep(['install-browsers', '--chromium'], stepContext)
+            if (run.code === 0) return { outcome: 'done', text: 'Chromium installed' }
+            output = run.output
+          }
+          const [last] = await shownOutput(output, maskInstallOutput, 1)
+          return {
+            outcome: 'failed',
+            reason: `Chromium download failed twice${last === undefined ? '' : `: ${last}`}`,
+            command: CHROMIUM_COMMAND,
+          }
+        }
+
         const openUi = async (): Promise<InitUi> => {
           if (mode !== 'plain' && hooks.ui === undefined) {
             const rail = hooks.rail ?? { input: process.stdin, output: process.stderr }
@@ -993,6 +1008,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
               stepRunner = runner
               steps = () => runner.records()
             },
+            chromium: hooks.chromium ?? findChromiumByDefault,
+            installChromium,
           })
           return
         }
@@ -1198,21 +1215,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             return installStepResult(step, printed)
           } finally {
             releaseInstallStdout()
-          }
-        }
-
-        const installChromium = async (): Promise<InitStepResult> => {
-          let output = ''
-          for (let attempt = 0; attempt < CHROMIUM_ATTEMPTS; attempt += 1) {
-            const run = await runAgentQaStep(['install-browsers', '--chromium'], stepContext)
-            if (run.code === 0) return { outcome: 'done', text: 'Chromium installed' }
-            output = run.output
-          }
-          const [last] = await shownOutput(output, maskInstallOutput, 1)
-          return {
-            outcome: 'failed',
-            reason: `Chromium download failed twice${last === undefined ? '' : `: ${last}`}`,
-            command: CHROMIUM_COMMAND,
           }
         }
 

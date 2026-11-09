@@ -305,7 +305,14 @@ async function runInit(
   try {
     const parent = new Command().option('--config <path>', 'config file path')
     const host = { homedir: home, env: {}, run: fakeRunner(), ...extraHooks.host }
-    parent.addCommand(createInitCommand({ cwd: dir, ...extraHooks, host }))
+    parent.addCommand(
+      createInitCommand({
+        cwd: dir,
+        chromium: () => ({ found: true, path: '/fake/chromium' }),
+        ...extraHooks,
+        host,
+      }),
+    )
     parent.exitOverride()
     await parent.parseAsync(['node', 'agent-qa', 'init', '--platform', 'web', '--pm', 'none'])
     return { exitCode: process.exitCode }

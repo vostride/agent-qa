@@ -1738,6 +1738,7 @@ skills/.staging/
         actualInit.createInitCommand({
           cwd: dir,
           composeAnalytics,
+          chromium: () => ({ found: true, path: '/fake/chromium' }),
           host: {
             homedir: `${dir}-home`,
             env: {},

@@ -1,12 +1,14 @@
 import { dirname } from 'node:path'
 
 import { getAuthPath } from '@vostride/agent-qa-core'
+import pc from 'picocolors'
 import { parse } from 'yaml'
 
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import type { InitUi, InitUiMode } from '../init-ui/init-ui.js'
 import { activeModelEntry } from '../llm-utils.js'
 import { CODING_AGENTS, readAgentSetupManifest, type CodingAgent } from './agent-setup-manifest.js'
+import type { ChromiumResolver } from './browser-resolver.js'
 import { INIT_AGENT_OPTIONS, parseInitAgentsFlag } from './init-agents.js'
 import type { InitDocumentRecorder } from './init-document.js'
 import type { InitFileOutcome, InitFileResult } from './init-filesystem.js'
@@ -17,7 +19,11 @@ import {
   type InitStepResult,
   type InitStepRunner,
 } from './init-steps.js'
-import { declaredAgentQaVersion, findProjectAgentQa } from './project-agent-qa.js'
+import {
+  declaredAgentQaVersion,
+  findProjectAgentQa,
+  type ProjectAgentQa,
+} from './project-agent-qa.js'
 import type { ProjectHost } from './project-host.js'
 import { nearestInstalledPackage, type ProjectRange } from './project-range.js'
 import { SUBSCRIPTION_AUTH_PACKAGE } from './scaffold-content.js'
@@ -64,10 +70,17 @@ export interface InitRerunInput {
   onComplete?: (outcomes: readonly InitFileResult[]) => void
   emitInitCompleted: (initMode: 'rerun', results: readonly InitFileResult[]) => Promise<void>
   onRunner: (runner: InitStepRunner) => void
+  chromium: ChromiumResolver
+  installChromium: () => Promise<InitStepResult>
 }
 
-async function versionLines(input: InitRerunInput): Promise<string[]> {
-  const copy = await findProjectAgentQa(input.range, input.range.start, input.host.io)
+const SETUP_BROWSERS_WITH_NO_BROWSERS_LINE =
+  '--setup browsers asks for Chromium and --no-browsers refuses it; drop one of them.'
+
+async function versionLines(
+  input: InitRerunInput,
+  copy: ProjectAgentQa | undefined,
+): Promise<string[]> {
   const project =
     copy?.version ?? declaredAgentQaVersion(input.packageJson.text) ?? input.runningVersion
   const lines = [`You're on agent-qa ${project}.`]
@@ -185,12 +198,17 @@ async function chooseRows(
   ask: boolean,
   shown: readonly SetupRowState[],
   flagged: SetupSelection | undefined,
+  noBrowsers: boolean,
 ): Promise<SetupRowName[]> {
   if (flagged !== undefined) {
     if (flagged.kind === 'none') return []
     return shown
       .map((row) => row.name)
-      .filter((name) => flagged.kind === 'all' || flagged.names.includes(name))
+      .filter((name) =>
+        flagged.kind === 'all'
+          ? !(noBrowsers && name === 'browsers')
+          : flagged.names.includes(name),
+      )
   }
   const prechecked = shown.filter((row) => row.prechecked).map((row) => row.name)
   if (!ask) return prechecked
@@ -203,8 +221,18 @@ async function chooseRows(
   })
 }
 
+// A row --setup names that is hidden here is skipped with its reason; all never names one.
+function namedHidden(row: SetupRowState, flagged: SetupSelection | undefined): string | undefined {
+  if (row.hidden === undefined || flagged?.kind !== 'names') return undefined
+  return flagged.names.includes(row.name) ? row.hidden : undefined
+}
+
 export async function runInitRerun(input: InitRerunInput): Promise<void> {
   const flagged = input.opts.setup === undefined ? undefined : parseSetupFlag(input.opts.setup)
+  const noBrowsers = input.opts.browsers === false
+  if (noBrowsers && flagged?.kind === 'names' && flagged.names.includes('browsers')) {
+    throw new CliRefusal([pc.red(SETUP_BROWSERS_WITH_NO_BROWSERS_LINE)], 2)
+  }
   const flaggedAgents =
     input.opts.agents === undefined ? undefined : parseInitAgentsFlag(input.opts.agents)
   // A malformed manifest or managed block is refused here, before anything is drawn or written.
@@ -212,18 +240,25 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   const setUp = manifest?.agents ?? []
   let agents = flaggedAgents === undefined ? [...setUp] : inAgentOrder(flaggedAgents)
   input.recorder.agents(agents)
-  const checkRows = async (over: readonly CodingAgent[]): Promise<SetupRowState[]> =>
-    await checkSetupRows({
+  const copy = await findProjectAgentQa(input.range, input.range.start, input.host.io)
+  const checkRows = async (over: readonly CodingAgent[]): Promise<SetupRowState[]> => {
+    const checked = await checkSetupRows({
       projectDir: input.dir,
       configPath: input.configPath,
       io: input.host.io,
       agents: over,
       host: input.host,
+      chromium: input.chromium,
+      ...(copy === undefined ? {} : { projectAgentQaDir: copy.realDir }),
     })
+    return checked.map((row) =>
+      noBrowsers && row.name === 'browsers' ? { ...row, prechecked: false } : row,
+    )
+  }
   let rows = await checkRows(agents)
   const model = await modelLine(input)
   const summary = [
-    ...(await versionLines(input)),
+    ...(await versionLines(input, copy)),
     ...(model === undefined ? [] : [model]),
     agentsLine(setUp),
     ...(rows.some((row) => row.shown && row.wouldChange) ? [] : ['Everything is current.']),
@@ -243,7 +278,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   }
   input.recorder.agents(agents)
   const shown = rows.filter((row) => row.shown)
-  const selected = await chooseRows(ui, input.mode === 'interactive', shown, flagged)
+  const selected = await chooseRows(ui, input.mode === 'interactive', shown, flagged, noBrowsers)
   input.recorder.setup(
     rows.map((row) => ({
       name: row.name,
@@ -254,9 +289,10 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     })),
   )
 
+  const planned = rows.filter((row) => row.shown || namedHidden(row, flagged) !== undefined)
   const runner = createInitStepRunner({
     ui,
-    plan: rerunPlan(shown.map((row) => row.name)),
+    plan: rerunPlan(planned.map((row) => row.name)),
     mask: input.mask,
   })
   input.onRunner(runner)
@@ -267,7 +303,16 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
     host: input.host,
     rows: selected,
   })
-  for (const row of shown) {
+  for (const row of planned) {
+    const hidden = namedHidden(row, flagged)
+    if (hidden !== undefined) {
+      runner.skip(row.name, `${row.name}: skipped (${hidden})`, hidden)
+      continue
+    }
+    if (noBrowsers && row.name === 'browsers' && !selected.includes(row.name)) {
+      runner.skip(row.name, `${row.name}: skipped (--no-browsers)`, '--no-browsers')
+      continue
+    }
     if (!selected.includes(row.name)) {
       const reason = row.wouldChange ? 'not selected' : 'current'
       runner.skip(row.name, `${row.name}: ${reason}`, reason)
@@ -281,6 +326,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
         agents,
         host: input.host,
         agentSetup,
+        installChromium: input.installChromium,
       })
       for (const file of files) {
         outcomes.push(initFileResult(file))

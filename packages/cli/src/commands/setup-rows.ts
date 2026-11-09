@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 
+import { resolveWorkspacePaths, type AgentQaConfig } from '@vostride/agent-qa-core'
 import pc from 'picocolors'
 import { parse } from 'yaml'
 
@@ -20,6 +21,7 @@ import {
   type CodingAgent,
 } from './agent-setup.js'
 import { readAgentSetupManifest } from './agent-setup-manifest.js'
+import type { ChromiumResolver } from './browser-resolver.js'
 import { INIT_AGENT_OPTIONS } from './init-agents.js'
 import {
   TARGET_GITIGNORE_PROBES,
@@ -35,9 +37,10 @@ import { buildKnowledgeAgentGuide } from './knowledge-guide.js'
 import { composeManagedBlock, locateManagedBlock } from './managed-block.js'
 import { projectHost, type ProjectHost, type ProjectIo } from './project-host.js'
 import { buildGitignoreEntries, managedGitignoreContent } from './scaffold-content.js'
+import { hasWebTarget, resolveWebPlacement } from './web-placement.js'
 
 // Every row this build has, in menu order.
-export const SETUP_ROW_NAMES = ['skills', 'mcp', 'agents-md', 'gitignore'] as const
+export const SETUP_ROW_NAMES = ['skills', 'mcp', 'agents-md', 'browsers', 'gitignore'] as const
 export type SetupRowName = (typeof SETUP_ROW_NAMES)[number]
 
 export type SetupSelection =
@@ -85,6 +88,9 @@ export interface SetupRowCheckInput {
   io: ProjectIo
   agents: readonly CodingAgent[]
   host: Partial<ProjectHost>
+  chromium: ChromiumResolver
+  // The real folder of the project's installed agent-qa, whose Playwright runs the web tests.
+  projectAgentQaDir?: string
 }
 
 export function checkGitignoreRow({
@@ -235,18 +241,31 @@ function shownRow(
 
 const KNOWLEDGE_ROOT_DIR = 'agent-qa-knowledge'
 
-// The knowledge root the config's `knowledge.dir` names, else the default one init scaffolds.
-export function knowledgeGuidePath(projectDir: string, configPath: string, io: ProjectIo): string {
+// Null when the config does not parse; validate reports that.
+function readRawConfig(configPath: string, io: ProjectIo): Record<string, unknown> | null {
   let raw: unknown
   try {
     raw = parse(io.readText(configPath) ?? '', { logLevel: 'error' })
   } catch {
-    raw = undefined
+    return null
   }
-  const config =
-    raw !== null && typeof raw === 'object' && !Array.isArray(raw)
-      ? (raw as Record<string, unknown>)
-      : null
+  return raw !== null && typeof raw === 'object' && !Array.isArray(raw)
+    ? (raw as Record<string, unknown>)
+    : null
+}
+
+function rawWorkspace(config: Record<string, unknown> | null, configPath: string) {
+  if (config === null) return undefined
+  try {
+    return resolveWorkspacePaths({ config: config as AgentQaConfig, configPath })
+  } catch {
+    return undefined
+  }
+}
+
+// The knowledge root the config's `knowledge.dir` names, else the default one init scaffolds.
+export function knowledgeGuidePath(projectDir: string, configPath: string, io: ProjectIo): string {
+  const config = readRawConfig(configPath, io)
   const root =
     resolveRawConfigKnowledgeRoot(config, configPath) ?? join(projectDir, KNOWLEDGE_ROOT_DIR)
   return join(root, 'AGENTS.md')
@@ -331,12 +350,44 @@ export async function checkAgentRows({
   }
 }
 
+export const NO_WEB_TARGET = 'no web target'
+
+// The resolver is asked only when this machine runs some web test itself.
+export async function checkBrowsersRow({
+  configPath,
+  io,
+  chromium,
+  projectAgentQaDir,
+}: Pick<
+  SetupRowCheckInput,
+  'configPath' | 'io' | 'chromium' | 'projectAgentQaDir'
+>): Promise<SetupRowState> {
+  const row = (state: string, wouldChange: boolean): SetupRowState => ({
+    name: 'browsers',
+    shown: true,
+    state,
+    wouldChange,
+    prechecked: wouldChange,
+  })
+  const config = readRawConfig(configPath, io)
+  if (!hasWebTarget(config)) {
+    return { ...row(NO_WEB_TARGET, false), shown: false, hidden: NO_WEB_TARGET }
+  }
+  const placement = await resolveWebPlacement(config, rawWorkspace(config, configPath))
+  if (placement.everyWebTestRemote) return row('every web run uses a remote', false)
+  const answer = chromium(projectAgentQaDir === undefined ? {} : { projectAgentQaDir })
+  return answer.found
+    ? row('Chromium found', false)
+    : row("no Chromium for agent-qa's Playwright", true)
+}
+
 export async function checkSetupRows(input: SetupRowCheckInput): Promise<SetupRowState[]> {
   const agentRows = await checkAgentRows(input)
   const states: Record<SetupRowName, SetupRowState> = {
     skills: agentRows.skills,
     mcp: agentRows.mcp,
     'agents-md': agentRows['agents-md'],
+    browsers: await checkBrowsersRow(input),
     gitignore: checkGitignoreRow(input),
   }
   return SETUP_ROW_NAMES.map((name) => states[name])
@@ -360,6 +411,8 @@ export interface SetupRowRunInput {
   host: Partial<ProjectHost>
   // The one real installer run every selected agent row shares.
   agentSetup: () => Promise<AgentSetupResult>
+  // The fresh init's Chromium step.
+  installChromium: () => Promise<InitStepResult>
 }
 
 export interface SetupRowRun {
@@ -520,6 +573,13 @@ async function runGitignoreRow({ projectDir }: SetupRowRunInput): Promise<SetupR
   return { outcome: 'done', text, files: [file] }
 }
 
+async function runBrowsersRow({ installChromium }: SetupRowRunInput): Promise<SetupRowRunResult> {
+  const step = await installChromium()
+  return step.outcome === 'done'
+    ? { outcome: 'done', text: `browsers: ${step.text}`, files: [] }
+    : { ...step, files: [] }
+}
+
 export const SETUP_ROW_RUNS: Record<SetupRowName, SetupRowRun> = {
   skills: { title: "Putting back agent-qa's skills", run: runSkillsRow },
   mcp: { title: "Putting back the coding agents' MCP entries", run: runMcpRow },
@@ -527,5 +587,6 @@ export const SETUP_ROW_RUNS: Record<SetupRowName, SetupRowRun> = {
     title: "Putting back agent-qa's block in AGENTS.md and the knowledge guide",
     run: runAgentsMdRow,
   },
+  browsers: { title: 'Installing Chromium', run: runBrowsersRow },
   gitignore: { title: "Restoring init's .gitignore block", run: runGitignoreRow },
 }
