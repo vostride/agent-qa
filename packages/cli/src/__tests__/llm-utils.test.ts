@@ -260,22 +260,34 @@ describe('resolveLLMModels', () => {
     )
   })
 
-  it('uses the current Claude fallback when the selected LLM is missing', () => {
+  it('takes the first entry when use.llm is not set', () => {
     const resolved = resolveLLMModels({
       registry: {
-        llms: [{
-          name: 'configured',
-          provider: 'openai-compatible',
-          model: 'deepseek-chat',
-          baseURL: 'https://remote.example/api/v1',
-        }],
+        llms: [
+          { name: 'first', provider: 'gemini', model: 'gemini-3-flash-preview' },
+          { name: 'second', provider: 'openai-compatible', model: 'deepseek-chat' },
+        ],
       },
-      use: { llm: 'missing' },
     })
 
-    expect(resolved.configName).toBe('')
-    expect(resolved.planner.model).toBe('claude-sonnet-5-5')
-    expect(resolved.verifier.model).toBe('claude-sonnet-5-5')
+    expect(resolved.configName).toBe('first')
+    expect(resolved.planner).toEqual({ provider: 'gemini', model: 'gemini-3-flash-preview' })
+    expect(resolved.verifier).toEqual(resolved.planner)
+  })
+
+  it('takes the entry use.llm names among several', () => {
+    const resolved = resolveLLMModels({
+      registry: {
+        llms: [
+          { name: 'first', provider: 'gemini', model: 'gemini-3-flash-preview' },
+          { name: 'second', provider: 'openai-compatible', model: 'deepseek-chat' },
+        ],
+      },
+      use: { llm: 'second' },
+    })
+
+    expect(resolved.configName).toBe('second')
+    expect(resolved.planner).toEqual({ provider: 'openai-compatible', model: 'deepseek-chat' })
   })
 
   it('preserves explicit named model configs', () => {

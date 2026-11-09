@@ -176,6 +176,7 @@ import * as core from '@vostride/agent-qa-core'
 import { clearProviderRegistry, createModel, registerProvider } from '@vostride/agent-qa-model'
 import { generateText } from 'ai'
 import { loadProviderPluginsForRawConfig } from '../provider-plugins.js'
+import { resolveLLMModels } from '../llm-utils.js'
 
 const mockExecSync = vi.mocked(execSync)
 const mockExecFileSync = vi.mocked(execFileSync)
@@ -397,13 +398,10 @@ describe('doctor command', () => {
     expect(mockExistsSync).toHaveBeenCalledWith(legacyMemoryDir)
   })
 
-  it('uses the current Claude fallback model when config is missing', async () => {
+  it('looks up no model credential when config is missing', async () => {
     await runDoctor()
 
-    expect(mockResolveLLMAuth).toHaveBeenCalledWith('default', expect.objectContaining({
-      provider: 'anthropic-subscription',
-      model: 'claude-sonnet-5-5',
-    }), undefined, 'agent-qa.config.yaml')
+    expect(mockResolveLLMAuth).not.toHaveBeenCalled()
   })
 
   it('uses the parent global config path when loading config', async () => {
@@ -1852,6 +1850,123 @@ describe('the LLM auth rows', () => {
       mockReadFile.mockRejectedValue({ code: 'ENOENT' })
       await rm(tempDir, { recursive: true, force: true })
     }
+  })
+})
+
+describe('the Model row', () => {
+  type DocumentRow = { name: string; status: string; message: string; fix?: string }
+
+  const twoModels = {
+    registry: {
+      llms: [
+        { name: 'first', provider: 'openai-compatible', model: 'deepseek-chat', baseURL: 'https://one.example/v1' },
+        { name: 'second', provider: 'gemini', model: 'gemini-3-flash-preview' },
+      ],
+    },
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    mockExistsSync.mockReturnValue(false)
+    mockLoadLLMAuthPlugins.mockResolvedValue([])
+    mockLoadProviderPluginsForRawConfig.mockResolvedValue()
+    mockResolveAppiumExecutable.mockReturnValue({ command: 'appium', source: 'path' })
+    mockReadFileSync.mockReturnValue('')
+    knowledgeProbeStubs.classifyIndexFace.mockReturnValue({ source: 'index' })
+    knowledgeProbeStubs.resolveEmbedderCapability.mockResolvedValue(NATIVE_READY)
+    knowledgeProbeStubs.readWriterLease.mockReturnValue({ kind: 'absent' })
+    knowledgeProbeStubs.readEmbedderWorkerRegistration.mockReturnValue({ kind: 'absent' })
+    mockResolveLLMAuth.mockResolvedValue({
+      kind: 'unauthenticated',
+      credentialKey: 'planner',
+      provider: 'openai-compatible',
+      optional: true,
+      message: 'Testing without a saved credential.',
+    })
+  })
+
+  afterEach(() => {
+    mockReadFile.mockRejectedValue({ code: 'ENOENT' })
+    process.exitCode = 0
+  })
+
+  async function doctorRows(config: Record<string, unknown>): Promise<DocumentRow[]> {
+    const { stringify } = await import('yaml')
+    mockReadFile.mockResolvedValue(stringify(config) as never)
+    await runDoctor(undefined, '--json')
+    return JSON.parse(getOutput()).rows as DocumentRow[]
+  }
+
+  function row(rows: readonly DocumentRow[], name: string): DocumentRow | undefined {
+    return rows.find(entry => entry.name === name)
+  }
+
+  it('fails a config with no model, names the dashboard and init --llm, and exits 3', async () => {
+    const rows = await doctorRows({ use: {} })
+
+    const model = row(rows, 'Model')
+    expect(model?.status).toBe('fail')
+    expect(model?.message).toBe('no model configured')
+    expect(model?.fix).toContain('npx agent-qa dashboard --open /config/models')
+    expect(model?.fix).toContain('npx agent-qa init --llm <choice>')
+    expect(process.exitCode).toBe(3)
+  })
+
+  it('skips the credential, Subscription Auth and connection rows when no model is configured', async () => {
+    const rows = await doctorRows({ registry: { llms: [] } })
+
+    for (const name of ['LLM credential', 'Subscription Auth', 'LLM connection']) {
+      expect(row(rows, name), name).toMatchObject({ status: 'skip', message: 'no model configured' })
+    }
+    expect(mockResolveLLMAuth).not.toHaveBeenCalled()
+    expect(JSON.stringify(rows)).not.toContain('anthropic-subscription')
+  })
+
+  it('checks the entry use.llm names, the one run resolves', async () => {
+    const config = { ...twoModels, use: { llm: 'second' } }
+    const rows = await doctorRows(config)
+
+    expect(resolveLLMModels(config).configName).toBe('second')
+    expect(row(rows, 'Model')).toMatchObject({
+      status: 'pass',
+      message: 'second: gemini gemini-3-flash-preview',
+    })
+    expect(mockResolveLLMAuth).toHaveBeenCalledWith(
+      'second', expect.objectContaining({ provider: 'gemini' }), undefined, 'agent-qa.config.yaml',
+    )
+    expect(mockResolveLLMAuth).not.toHaveBeenCalledWith('first', expect.anything(), undefined, expect.anything())
+  })
+
+  it('checks the first entry when use.llm is not set, the one run resolves', async () => {
+    const rows = await doctorRows(twoModels)
+
+    expect(resolveLLMModels(twoModels).configName).toBe('first')
+    expect(row(rows, 'Model')).toMatchObject({
+      status: 'pass',
+      message: 'first: openai-compatible deepseek-chat',
+    })
+    expect(mockResolveLLMAuth).toHaveBeenCalledWith(
+      'first', expect.objectContaining({ model: 'deepseek-chat' }), undefined, 'agent-qa.config.yaml',
+    )
+    expect(mockResolveLLMAuth).not.toHaveBeenCalledWith('second', expect.anything(), undefined, expect.anything())
+  })
+
+  it('keeps the credential FAIL for a configured subscription that is not signed in', async () => {
+    mockResolveLLMAuth.mockResolvedValue({
+      kind: 'missing',
+      credentialKey: 'claude-code',
+      provider: 'anthropic-subscription',
+      required: true,
+      message: 'Sign in to use claude-code.',
+    })
+    const rows = await doctorRows({
+      registry: { llms: [{ name: 'claude-code', provider: 'anthropic-subscription', model: 'claude-sonnet-5-5' }] },
+      use: { llm: 'claude-code' },
+    })
+
+    expect(row(rows, 'Model')?.status).toBe('pass')
+    expect(row(rows, 'LLM credential')).toMatchObject({ status: 'fail', message: 'Sign in to use claude-code.' })
+    expect(process.exitCode).toBe(3)
   })
 })
 
