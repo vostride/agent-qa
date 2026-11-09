@@ -566,25 +566,17 @@ describe('init --json prints one document on stdout', () => {
     expect(process.listeners('SIGINT')).toEqual(before)
   })
 
-  it('an initialized project is done with every planned step skipped as already initialized', async () => {
+  it('a re-run of an initialized project is done with a done validate and writes no file', async () => {
     const { root, home } = tempProject('json-initialized')
     await init(root, home, ['--platform', 'web', '--pm', 'none'])
 
-    const result = await init(root, home, ['--json', '--platform', 'web', '--pm', 'none'])
+    const result = await init(root, home, ['--json', '--pm', 'none'])
 
     const doc = documentOf(result)
     expect(result.exit).toBeUndefined()
     expect(doc).toMatchObject({ outcome: 'done', exitCode: 0, files: [] })
-    expect(doc.steps).toEqual([
-      { name: 'package-json', outcome: 'skipped', reason: 'already initialized' },
-      { name: 'scaffold', outcome: 'skipped', reason: 'already initialized' },
-      { name: 'install', outcome: 'skipped', reason: 'already initialized' },
-      { name: 'chromium', outcome: 'skipped', reason: 'already initialized' },
-      { name: 'skills', outcome: 'skipped', reason: 'already initialized' },
-      { name: 'validate', outcome: 'skipped', reason: 'already initialized' },
-      { name: 'dashboard', outcome: 'skipped', reason: 'already initialized' },
-    ])
-    expect(result.stderr).toContain('Project is already initialized at')
+    expect(doc.steps).toEqual([{ name: 'validate', outcome: 'done' }])
+    expect(doc.agentQa).toEqual({ version: VERSION, via: 'running' })
   })
 
   it('--force on an initialized project runs the fresh path and keeps the secrets file', async () => {

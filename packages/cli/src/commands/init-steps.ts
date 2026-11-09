@@ -39,14 +39,17 @@ export interface InitStepRunner {
 
 export const INTERRUPTED = 'interrupted'
 
-export const ALREADY_INITIALIZED = 'already initialized'
-
 // The reason a step after a refusal or a bug carries: init stopped before it.
 export const NOT_RUN = 'not run'
 
 // The steps a fresh init plans, in the order it runs them.
 export function freshInitPlan(): InitStepName[] {
   return ['package-json', 'scaffold', 'install', 'chromium', 'skills', 'validate', 'dashboard']
+}
+
+// The steps a re-run of an initialized project plans, in the order it runs them.
+export function rerunPlan(): InitStepName[] {
+  return ['validate']
 }
 
 // A bug is reported with its stack, not drawn as a failed step.

@@ -1,6 +1,6 @@
 // init sets up the folder it runs in, and refuses --dir and --config in either position.
 
-import { mkdirSync, mkdtempSync, readdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -85,16 +85,27 @@ async function expectRefused(args: readonly string[], line: string): Promise<voi
 
 describe('the folder init runs in', () => {
   it(
-    'init in a folder with a config is already initialized and writes nothing',
+    'init in a folder with a config re-runs setup and keeps the config',
     async () => {
       expectFresh()
       const root = projectFolder('existing')
-      plantConfig(root)
-      const before = listing(root)
-      const outcome = await agentQa(root, ['init', ...WEB_GEMINI, '--pm', 'none', '--no-browsers'])
+      const fresh = await agentQa(root, [
+        'init',
+        '--yes',
+        ...WEB_GEMINI,
+        '--pm',
+        'none',
+        '--no-browsers',
+        '--agents',
+        'none',
+      ])
+      expect(fresh.code, fresh.text).toBe(0)
+      const config = join(root, 'agent-qa.config.yaml')
+      const bytes = readFileSync(config)
+      const outcome = await agentQa(root, ['init', '--yes', '--pm', 'none', '--no-browsers'])
       expect(outcome.code, outcome.text).toBe(0)
-      expect(outcome.text).toContain('Project is already initialized at')
-      expect(listing(root)).toEqual(before)
+      expect(outcome.text).not.toMatch(/already initialized|Use --force to rebuild/u)
+      expect(readFileSync(config)).toEqual(bytes)
     },
     CELL_BUDGET_MS,
   )

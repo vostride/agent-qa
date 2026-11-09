@@ -867,9 +867,6 @@ describe('init command', () => {
   })
 
   describe('an initialized project', () => {
-    const alreadyInitialized =
-      'Project is already initialized at /tmp/test-project. Use --force to rebuild it.'
-
     beforeEach(() => {
       process.exitCode = undefined
       vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -882,35 +879,6 @@ describe('init command', () => {
       process.exitCode = undefined
     })
 
-    it('an initialized project asks nothing and writes nothing without --force', async () => {
-      const onComplete = vi.fn()
-      await runInit([], { isTTY: true, onComplete })
-
-      expect(mockPlatform).not.toHaveBeenCalled()
-      expect(mockModel).not.toHaveBeenCalled()
-      expect(mockWriteConfigMarkerLast).not.toHaveBeenCalled()
-      expect(findWriteCallEndingWith('agent-qa.config.yaml')).toBeUndefined()
-      expect(consoleOutput()).toContain(alreadyInitialized)
-      expect(onComplete).toHaveBeenCalledWith([
-        { path: join('/tmp/test-project', 'agent-qa.config.yaml'), outcome: 'preserved' },
-      ])
-      expect(vi.mocked(console.log)).not.toHaveBeenCalled()
-      expect(process.exitCode).toBeUndefined()
-    })
-
-    it('a flag init would refuse is not checked on an initialized project', async () => {
-      await runInit([
-        '--llm',
-        'codex',
-        '--base-url',
-        'https://x.test/v1',
-      ])
-
-      expect(consoleOutput()).toContain(alreadyInitialized)
-      expect(vi.mocked(console.error)).not.toHaveBeenCalled()
-      expect(process.exitCode).toBeUndefined()
-    })
-
     it('with --force an initialized project is asked the questions and rebuilt', async () => {
       mockPlatform.mockResolvedValueOnce(['web'])
       mockModel.mockResolvedValueOnce({ kind: 'new', choice: 'gemini' })
@@ -918,7 +886,6 @@ describe('init command', () => {
       await runInit(['--force'], { isTTY: true })
 
       expect(mockPlatform).toHaveBeenCalledTimes(1)
-      expect(consoleOutput()).not.toContain(alreadyInitialized)
       expect(findWriteCallEndingWith(join('/tmp/test-project', 'agent-qa.config.yaml')))
         .toBeDefined()
     })
@@ -928,7 +895,6 @@ describe('init command', () => {
 
       expect(findWriteCallEndingWith(join('/tmp/test-project/pkg', 'agent-qa.config.yaml')))
         .toBeDefined()
-      expect(consoleOutput()).not.toContain('already initialized')
     })
   })
 
@@ -1794,12 +1760,10 @@ skills/.staging/
       })
       expect(first[0]?.properties.created_file_count).toBeGreaterThan(0)
 
-      // The same directory again. `init` answers "already initialized, use --force" and returns —
-      // and that IS an init outcome, so it reports one: `unchanged`, nothing created. A member that
-      // only fired on the write path would count first-time scaffolds and silently drop every
-      // re-run, which is the shape of a usage number that flatters itself.
+      // The same directory again: the re-run validates the project and writes nothing, and that
+      // IS an init outcome, so it reports one with an unchanged outcome and nothing created.
       sent.length = 0
-      await runRealInit(['--platform', 'web'])
+      await runRealInit([])
       const second = sent.filter((event) => event.name === 'agent-qa.init.completed')
       expect(second).toHaveLength(1)
       expect(second[0]?.properties).toMatchObject({

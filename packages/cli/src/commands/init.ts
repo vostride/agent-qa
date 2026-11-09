@@ -96,7 +96,6 @@ import {
   type DashboardPort,
 } from './init-dashboard.js'
 import {
-  ALREADY_INITIALIZED,
   INTERRUPTED,
   NOT_RUN,
   createInitStepRunner,
@@ -106,6 +105,7 @@ import {
   type InitStepResult,
   type InitStepRunner,
 } from './init-steps.js'
+import { runInitRerun } from './init-rerun.js'
 import {
   createInitDocumentRecorder,
   refusedInitDocument,
@@ -921,16 +921,85 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           }
         }
 
+        // Later steps run through the project's agent-qa, or this one as a captured child.
+        const stepContext = {
+          host,
+          range,
+          // The range holds real paths, so the folder is found by its real path too.
+          fromDir: range.start,
+          runningVersion,
+          inProcess: (args: readonly string[]) => runRunningAgentQa(args, host),
+        }
+
+        const validate = async (): Promise<InitStepResult> => {
+          const run = await runAgentQaStep(['validate'], stepContext)
+          recorder.agentQa({ version: run.version, via: run.via })
+          if (run.code === 0) {
+            return { outcome: 'done', text: 'validate: the config and tests are valid' }
+          }
+          const shown = await shownOutput(
+            stripVTControlCharacters(run.output),
+            maskInstallOutput,
+            Number.MAX_SAFE_INTEGER,
+          )
+          return {
+            outcome: 'failed',
+            reason: validateReason(shown) ?? `validate exited ${run.code}`,
+            command: VALIDATE_COMMAND,
+          }
+        }
+
+        const openUi = async (): Promise<InitUi> => {
+          if (mode !== 'plain' && hooks.ui === undefined) {
+            const rail = hooks.rail ?? { input: process.stdin, output: process.stderr }
+            const rgb = await probeTerminalBackground(
+              hooks.terminal ?? processTerminalPort(process.stdin, process.stdout, host.env),
+            )
+            // The level follows agent-qa's colour rule over the environment and stream init is
+            // given.
+            const palette = brandPalette({
+              background: classifyBackground(rgb, host.env),
+              ...(rgb === undefined ? {} : { rgb }),
+              level: colorLevelFor(host.env, rail.output),
+            })
+            clackUi = createClackUi({
+              input: rail.input,
+              output: rail.output,
+              palette,
+              columns: rail.output.columns ?? 0,
+            })
+            ui = clackUi
+          }
+          return ui
+        }
+
+        const maskStepText = async (text: string): Promise<string> =>
+          (await shownOutput(text, maskInstallOutput, Number.MAX_SAFE_INTEGER)).join('\n')
+
         const configClassification = classifyInitPath(configPath, dir)
         if (configClassification === 'regular' && !force) {
-          const completed = [{ path: configPath, outcome: 'preserved' }] as const
-          ui.line(`Project is already initialized at ${dir}. Use --force to rebuild it.`)
-          const skipped = freshInitPlan().map(
-            (name): InitStepRecord => ({ name, outcome: 'skipped', reason: ALREADY_INITIALIZED }),
-          )
-          steps = () => skipped
-          hooks.onComplete?.(completed)
-          await emitInitCompleted(completed)
+          await runInitRerun({
+            dir,
+            configPath,
+            host,
+            range,
+            packageJson,
+            runningVersion,
+            opts,
+            mode,
+            openUi,
+            recorder,
+            validate,
+            validateStep: { title: 'Validating the config and tests', command: VALIDATE_COMMAND },
+            mask: maskStepText,
+            outro: GETTING_STARTED_URL,
+            ...(hooks.onComplete === undefined ? {} : { onComplete: hooks.onComplete }),
+            emitInitCompleted,
+            onRunner: (runner) => {
+              stepRunner = runner
+              steps = () => runner.records()
+            },
+          })
           return
         }
 
@@ -969,25 +1038,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           })
         }
 
-        if (mode !== 'plain' && hooks.ui === undefined) {
-          const rail = hooks.rail ?? { input: process.stdin, output: process.stderr }
-          const rgb = await probeTerminalBackground(
-            hooks.terminal ?? processTerminalPort(process.stdin, process.stdout, host.env),
-          )
-          // The level follows agent-qa's colour rule over the environment and stream init is given.
-          const palette = brandPalette({
-            background: classifyBackground(rgb, host.env),
-            ...(rgb === undefined ? {} : { rgb }),
-            level: colorLevelFor(host.env, rail.output),
-          })
-          clackUi = createClackUi({
-            input: rail.input,
-            output: rail.output,
-            palette,
-            columns: rail.output.columns ?? 0,
-          })
-          ui = clackUi
-        }
+        await openUi()
         if (mode !== 'plain') ui.banner()
         ui.intro()
 
@@ -1156,16 +1207,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           }
         }
 
-        // Later steps run through the project's agent-qa, or this one as a captured child.
-        const stepContext = {
-          host,
-          range,
-          // The range holds real paths, so the folder is found by its real path too.
-          fromDir: range.start,
-          runningVersion,
-          inProcess: (args: readonly string[]) => runRunningAgentQa(args, host),
-        }
-
         const installChromium = async (): Promise<InitStepResult> => {
           let output = ''
           for (let attempt = 0; attempt < CHROMIUM_ATTEMPTS; attempt += 1) {
@@ -1212,24 +1253,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           }
         }
 
-        const validate = async (): Promise<InitStepResult> => {
-          const run = await runAgentQaStep(['validate'], stepContext)
-          recorder.agentQa({ version: run.version, via: run.via })
-          if (run.code === 0) {
-            return { outcome: 'done', text: 'validate: the config and tests are valid' }
-          }
-          const shown = await shownOutput(
-            stripVTControlCharacters(run.output),
-            maskInstallOutput,
-            Number.MAX_SAFE_INTEGER,
-          )
-          return {
-            outcome: 'failed',
-            reason: validateReason(shown) ?? `validate exited ${run.code}`,
-            command: VALIDATE_COMMAND,
-          }
-        }
-
         const authPath = getAuthPath({ env: host.env, homeDir: host.homedir })
         const subscriptionPluginInstalled = (): boolean => {
           const installRecord = runner.records().find((record) => record.name === 'install')
@@ -1250,8 +1273,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         const runner = createInitStepRunner({
           ui,
           plan: freshInitPlan(),
-          mask: async (text) =>
-            (await shownOutput(text, maskInstallOutput, Number.MAX_SAFE_INTEGER)).join('\n'),
+          mask: maskStepText,
         })
         stepRunner = runner
         steps = () => runner.records()

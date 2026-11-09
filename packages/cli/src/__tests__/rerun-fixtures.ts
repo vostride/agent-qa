@@ -39,9 +39,8 @@ const silentAnalytics: typeof composeAnalyticsHost = async () =>
 
 function capture(stream: NodeJS.WriteStream): { text(): string; release(): void } {
   const mocked = vi.isMockFunction(stream.write)
-  const spy = (
-    mocked ? stream.write : vi.spyOn(stream, 'write').mockImplementation(() => true)
-  ) as unknown as MockInstance<(chunk: unknown) => boolean>
+  if (!mocked) vi.spyOn(stream, 'write').mockImplementation(() => true)
+  const spy = stream.write as unknown as MockInstance<(chunk: unknown) => boolean>
   const start = spy.mock.calls.length
   return {
     text: () =>

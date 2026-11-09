@@ -31,7 +31,8 @@ import { AGENT_QA_INIT_MARKDOWN_BLOCK, renderManagedBlock } from '../commands/ma
 import { installedAgentQaVersion } from '../commands/package-json-plan.js'
 import { createRunsCommand } from '../commands/runs.js'
 import { createSkillsCommand, runningAgentQaSkillSummaries } from '../commands/skills.js'
-import { fakeRunner } from './project-fixtures.js'
+import { cleanupTempProjects, fakeRunner } from './project-fixtures.js'
+import { initializedProject, rerun } from './rerun-fixtures.js'
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
 const GUIDE = join('agent-qa-knowledge', 'AGENTS.md')
@@ -106,6 +107,7 @@ afterEach(() => {
   log.mockRestore()
   errors.mockRestore()
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
+  cleanupTempProjects()
 })
 
 describe('INIT-GUIDE-LIFECYCLE: init generates the thin knowledge guide', () => {
@@ -190,17 +192,15 @@ describe('INIT-GUIDE-LIFECYCLE: init generates the thin knowledge guide', () => 
     expect(readFileSync(join(dir, 'agent-qa-knowledge', 'README.md'), 'utf8')).toBe('my readme\n')
   })
 
-  it('keeps the already-initialized refusal unchanged and writes no guide', async () => {
-    const dir = tempProject()
-    await runInit(dir, ['--agents', 'none'])
-    unlinkSync(join(dir, GUIDE))
-    errors.mockClear()
+  it('a re-run with no coding agent leaves a deleted knowledge guide and AGENTS.md absent', async () => {
+    const project = await initializedProject('guide-rerun')
+    unlinkSync(join(project.root, GUIDE))
 
-    await runInit(dir)
+    const result = await rerun(project, ['--yes'])
 
-    expect(stderr()).toContain(`Project is already initialized at ${dir}. Use --force to rebuild it.`)
-    expect(existsSync(join(dir, GUIDE))).toBe(false)
-    expect(existsSync(join(dir, 'AGENTS.md'))).toBe(false)
+    expect(result.exit, result.stderr).toBe(0)
+    expect(existsSync(join(project.root, GUIDE))).toBe(false)
+    expect(existsSync(join(project.root, 'AGENTS.md'))).toBe(false)
   })
 
   it('passes the instruction-branding validator, which reds a known-bad generated document', async () => {
