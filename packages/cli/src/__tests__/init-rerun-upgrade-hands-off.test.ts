@@ -25,11 +25,14 @@ import {
   type InitializedProject,
 } from './rerun-fixtures.js'
 
-const { PROJECT_VERSION } = vi.hoisted(() => ({ PROJECT_VERSION: '0.3.0' }))
+const { PROJECT_VERSION, running } = vi.hoisted(() => ({
+  PROJECT_VERSION: '0.3.0',
+  running: { version: '0.3.0' },
+}))
 
 vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@vostride/agent-qa-core')>()),
-  getAgentQaVersion: () => PROJECT_VERSION,
+  getAgentQaVersion: () => running.version,
 }))
 
 const NODE = '/fake/node'
@@ -38,6 +41,7 @@ const JIRA = '@vostride/agent-qa-plugin-jira'
 const OK: RunResult = { code: 0, signal: null, output: '' }
 
 afterEach(() => {
+  running.version = PROJECT_VERSION
   cleanupTempProjects()
 })
 
@@ -473,5 +477,137 @@ describe("the re-run's document reports the version move the upgrade row offers"
 
     expect(result.exit, result.stderr).toBe(0)
     expect(JSON.parse(result.stdout)).not.toHaveProperty('upgrade')
+  })
+})
+
+// A project the upgrade moved to 0.4.0, re-run by the newly installed copy.
+async function upgradedProject(label: string): Promise<InitializedProject> {
+  const project = await initializedProject(label)
+  installAgentQaFixture(project.root, '0.4.0')
+  const pkg = JSON.parse(packageJsonText(project.root)) as {
+    devDependencies: Record<string, string>
+  }
+  pkg.devDependencies['agent-qa'] = '0.4.0'
+  writeFileSync(join(project.root, 'package.json'), `${JSON.stringify(pkg, null, 2)}\n`)
+  running.version = '0.4.0'
+  return project
+}
+
+const HANDED_ARGS = ['--setup', 'none', '--agents', 'none', '--yes']
+
+function stepTexts(entries: readonly FakeInitUiEntry[], kind: 'done' | 'skipped'): string[] {
+  return entries.flatMap((entry) => (entry.kind === kind ? [entry.text] : []))
+}
+
+describe('the newly installed copy reports the upgrade it was handed', () => {
+  it('records the upgrade done in its step line, summary and document', async () => {
+    const project = await upgradedProject('upgrade-child-reports')
+    const env = { AGENT_QA_HANDED_OFF: '1', AGENT_QA_UPGRADED_FROM: PROJECT_VERSION }
+    const run = upgradeMachine('0.4.0')
+    const hooks = { latestVersion: answering('0.4.0'), host: { env } }
+
+    const drawn = await rerun(project, HANDED_ARGS, { run, hooks })
+    const result = await rerun(project, [...HANDED_ARGS, '--json'], { run, hooks })
+
+    expect(drawn.exit, drawn.stderr).toBe(0)
+    expect(stepTexts(drawn.entries, 'done')).toContain(
+      `upgrade: agent-qa ${PROJECT_VERSION} → 0.4.0`,
+    )
+    expect(summaryLines(drawn.entries)).toContain(`Upgraded agent-qa ${PROJECT_VERSION} → 0.4.0.`)
+    expect(result.exit, result.stderr).toBe(0)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.steps).toContainEqual({ name: 'upgrade', outcome: 'done' })
+    expect(doc.upgrade).toEqual({
+      from: PROJECT_VERSION,
+      to: '0.4.0',
+      breaking: true,
+      links: [GUIDE_0_3_TO_0_4],
+      row: 'upgrade',
+    })
+    expect(childOf(run)).toBeUndefined()
+  })
+
+  it.each([
+    [
+      'a value that is not a version',
+      { AGENT_QA_HANDED_OFF: '1', AGENT_QA_UPGRADED_FROM: 'latest' },
+    ],
+    ['the running version', { AGENT_QA_HANDED_OFF: '1', AGENT_QA_UPGRADED_FROM: '0.4.0' }],
+    ['a newer version', { AGENT_QA_HANDED_OFF: '1', AGENT_QA_UPGRADED_FROM: '0.5.0' }],
+    ['an older version without the hand-off', { AGENT_QA_UPGRADED_FROM: PROJECT_VERSION }],
+  ] as const)('ignores %s', async (_label, env) => {
+    const project = await upgradedProject('upgrade-child-ignores')
+
+    const result = await rerun(project, [...HANDED_ARGS, '--json'], {
+      run: upgradeMachine('0.4.0'),
+      hooks: { latestVersion: answering('0.4.0'), host: { env } },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc).not.toHaveProperty('upgrade')
+    expect(doc.steps.map((step) => step.name)).not.toContain('upgrade')
+  })
+})
+
+describe('an upgrade that is not installed keeps the other rows running', () => {
+  it('--pm none declares the latest versions, hands nothing off and leaves validate for after the install', async () => {
+    const project = await initializedProject('upgrade-pm-none')
+    writeFileSync(join(project.root, '.gitignore'), 'dist/\n')
+    const run = upgradeMachine('0.3.2')
+
+    const result = await rerun(project, ['--yes', '--json', '--pm', 'none'], {
+      run,
+      hooks: { latestVersion: answering('0.3.2') },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(JSON.parse(packageJsonText(project.root)).devDependencies['agent-qa']).toBe('0.3.2')
+    expect(childOf(run)).toBeUndefined()
+    expect(commands(run)).toEqual([])
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.steps).toContainEqual({
+      name: 'upgrade',
+      outcome: 'skipped',
+      reason: '--pm none',
+      command: 'npm install',
+    })
+    expect(doc.steps).toContainEqual({ name: 'gitignore', outcome: 'done' })
+    expect(doc.steps).toContainEqual({
+      name: 'validate',
+      outcome: 'skipped',
+      reason: 'install first (--pm none)',
+      command: 'npx agent-qa validate',
+    })
+    expect(doc.upgrade).toMatchObject({ from: PROJECT_VERSION, to: '0.3.2', row: 'upgrade' })
+  })
+
+  it('a failed install fails the upgrade with the install command, runs the other rows here and exits 3', async () => {
+    const project = await initializedProject('upgrade-install-fails')
+    writeFileSync(join(project.root, '.gitignore'), 'dist/\n')
+    const run = fakeRunner(({ command, args }) => {
+      if (isProbe(args)) return { code: 0, signal: null, output: '11.0.0\n' }
+      if (command === NODE) return OK
+      return { code: 1, signal: null, output: 'npm error network\n' }
+    })
+
+    const result = await rerun(project, ['--yes', '--json'], {
+      run,
+      hooks: { latestVersion: answering('0.3.2') },
+    })
+
+    expect(result.exit, result.stderr).toBe(3)
+    expect(childOf(run)).toBeUndefined()
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.outcome).toBe('failed')
+    expect(doc.exitCode).toBe(3)
+    expect(doc.steps).toContainEqual({
+      name: 'upgrade',
+      outcome: 'failed',
+      reason: expect.stringContaining('npm exited 1'),
+      command: 'npm install',
+    })
+    expect(doc.steps).toContainEqual({ name: 'gitignore', outcome: 'done' })
+    expect(doc.steps).toContainEqual({ name: 'validate', outcome: 'done' })
   })
 })
