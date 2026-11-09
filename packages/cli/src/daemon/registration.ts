@@ -225,9 +225,18 @@ export async function inspectDaemonHandshake(
 ): Promise<InspectDaemonRegistrationOutcome> {
   const outcome = deps.readRegistration(agentQaRoot)
   if (outcome.kind !== 'parsed') return outcome
-  return deps.processIsAlive(outcome.registration.pid)
-    ? { kind: 'live', registration: outcome.registration }
-    : { kind: 'stale', registration: outcome.registration }
+  if (!deps.processIsAlive(outcome.registration.pid)) {
+    return { kind: 'stale', registration: outcome.registration }
+  }
+  try {
+    const identity = await deps.readIdentity(outcome.registration)
+    return identity.instanceId === outcome.registration.instanceId
+      && identity.pid === outcome.registration.pid
+      ? { kind: 'live', registration: outcome.registration }
+      : { kind: 'stale', registration: outcome.registration }
+  } catch {
+    return { kind: 'stale', registration: outcome.registration }
+  }
 }
 
 class DaemonIdentityHandshakeTimeoutError extends Error {

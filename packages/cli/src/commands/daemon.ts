@@ -28,6 +28,7 @@ import type { DaemonHostOptions } from '../daemon/host.js'
 import { fetchDaemonIdentity } from '../daemon/server.js'
 import type { DaemonIdentity } from '../daemon/server.js'
 import {
+  inspectDaemonHandshake,
   processIsAlive,
   readDaemonRegistration,
 } from '../daemon/registration.js'
@@ -115,31 +116,6 @@ function configPathFor(command: Command): string {
   return resolve(globalOpts.config ?? 'agent-qa.config.yaml')
 }
 
-async function inspectRegistration(
-  deps: DaemonCommandDeps,
-  agentQaRoot: string,
-): Promise<
-  | { kind: 'absent' }
-  | { kind: 'malformed' }
-  | { kind: 'live'; registration: DaemonRegistration }
-  | { kind: 'stale'; registration: DaemonRegistration }
-> {
-  const outcome = deps.readRegistration(agentQaRoot)
-  if (outcome.kind !== 'parsed') return outcome
-  if (!deps.processIsAlive(outcome.registration.pid)) {
-    return { kind: 'stale', registration: outcome.registration }
-  }
-  try {
-    const identity = await deps.readIdentity(outcome.registration)
-    return identity.instanceId === outcome.registration.instanceId
-      && identity.pid === outcome.registration.pid
-      ? { kind: 'live', registration: outcome.registration }
-      : { kind: 'stale', registration: outcome.registration }
-  } catch {
-    return { kind: 'stale', registration: outcome.registration }
-  }
-}
-
 function formatUptime(uptimeMs: number): string {
   const seconds = Math.floor(uptimeMs / 1_000)
   if (seconds < 60) return `${seconds}s`
@@ -222,7 +198,7 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
       const releaseStdout = opts.json ? reserveStdoutForData() : undefined
       try {
         const paths = await deps.resolvePaths(configPathFor(command))
-        const inspected = await inspectRegistration(deps, paths.agentQaRoot)
+        const inspected = await inspectDaemonHandshake(deps, paths.agentQaRoot)
         let status: DaemonStatusDto
         if (inspected.kind === 'absent') {
           status = { state: 'stopped' }
@@ -265,7 +241,7 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
       try {
         // `stop` reads only `.agent-qa/`, so a pre-v2 config cannot block it.
         const agentQaRoot = deps.resolveAgentQaRoot(configPathFor(command))
-        const inspected = await inspectRegistration(deps, agentQaRoot)
+        const inspected = await inspectDaemonHandshake(deps, agentQaRoot)
         if (inspected.kind !== 'live') {
           console.log(
             inspected.kind === 'stale'
