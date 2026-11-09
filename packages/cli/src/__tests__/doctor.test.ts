@@ -39,13 +39,8 @@ const knowledgeProbeStubs = vi.hoisted(() => ({
   readEmbedderWorkerRegistration: vi.fn(() => ({ kind: 'absent' as const })),
 }))
 
-// The Embedder fix reads daemon liveness from the registration, as `daemon stop` does.
-const daemonRegistrationStubs = vi.hoisted(() => ({
-  readDaemonRegistration: vi.fn(() => ({ kind: 'absent' as const })),
-  processIsAlive: vi.fn(() => false),
-}))
-
-vi.mock('../daemon/registration.js', () => daemonRegistrationStubs)
+// doctor asks `hooks.daemon` for the daemon; the real module needs the agent-local mocked below.
+vi.mock('../daemon/registration.js', () => ({}))
 
 vi.mock('@vostride/agent-qa-agent-local', async () => {
   const knowledge = await vi.importActual<typeof import('@vostride/agent-qa-knowledge-local')>(
@@ -156,7 +151,12 @@ vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => {
 })
 
 import pc from 'picocolors'
-import { checkSubscriptionAuth, createDoctorCommand, type CheckStatus } from '../commands/doctor.js'
+import {
+  checkSubscriptionAuth,
+  createDoctorCommand,
+  type CheckStatus,
+  type DoctorCommandHooks,
+} from '../commands/doctor.js'
 import {
   DEFAULT_TERMINAL_WIDTH,
   IDENTITY_DECORATION,
@@ -195,6 +195,9 @@ const mockGenerateText = vi.mocked(generateText)
 const CHROMIUM_FOUND: ChromiumAnswer = { found: true, path: '/browsers/chromium-1/chrome' }
 let chromiumAnswer: ChromiumAnswer = CHROMIUM_FOUND
 const chromium = vi.fn<ChromiumResolver>(() => chromiumAnswer)
+const daemon = vi.fn<NonNullable<DoctorCommandHooks['daemon']>>(
+  () => Promise.resolve({ kind: 'absent' }),
+)
 
 afterEach(() => {
   chromiumAnswer = CHROMIUM_FOUND
@@ -206,7 +209,7 @@ async function runDoctor(parentConfig?: string, ...args: string[]): Promise<void
 
   const parent = new Command()
   if (parentConfig) parent.setOptionValue('config', parentConfig)
-  parent.addCommand(createDoctorCommand({ chromium }))
+  parent.addCommand(createDoctorCommand({ chromium, daemon }))
   await parent.parseAsync(['node', 'test', 'doctor', ...args])
 }
 
@@ -1374,14 +1377,11 @@ use:
   it('names the worker profile failure by its cause when a live daemon lease published no worker registration', async () => {
     knowledgeProbeStubs.readWriterLease.mockReturnValue({ kind: 'parsed', lease: {} } as never)
     knowledgeProbeStubs.readEmbedderWorkerRegistration.mockReturnValue({ kind: 'absent' })
-    daemonRegistrationStubs.readDaemonRegistration.mockReturnValueOnce({
-      kind: 'parsed',
-      registration: { pid: 4242 },
-    } as never)
-    daemonRegistrationStubs.processIsAlive.mockReturnValueOnce(true)
+    daemon.mockResolvedValueOnce({ kind: 'live', registration: { pid: 4242, startedAtMs: 1_000 } } as never)
     mockReadFileSync.mockImplementation((target) => (
       String(target).endsWith('daemon-events.jsonl')
         ? `${JSON.stringify({
+          ts: new Date(2_000).toISOString(),
           kind: 'embedder-worker-exit',
           reason: 'crash',
           stderr: 'Error: Embedder worker could not resolve profile: deferred\n    at /home/u/worker.js',

@@ -5,6 +5,7 @@ import { homedir } from 'node:os'
 import { dirname, resolve } from 'node:path'
 import pc from 'picocolors'
 import { loadConfigFile } from '../config.js'
+import type { InspectDaemonRegistrationOutcome } from '../daemon/registration.js'
 import { HARD_CUT_STEPS, INVALID_CONFIG_FIX, isHardCutIssue } from '../hard-cut.js'
 import {
   activeModelEntry,
@@ -718,6 +719,7 @@ function getGlobalConfigPath(command: Command): string {
 
 export interface DoctorCommandHooks {
   chromium?: ChromiumResolver
+  daemon?: (agentQaRoot: string) => Promise<InspectDaemonRegistrationOutcome>
 }
 
 export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
@@ -763,7 +765,11 @@ export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
         checkConfigFile(configPath),
         checkLegacyV1MemoryData(configPath),
         // After the legacy v1 memory row and before config validation, concluding the store rows.
-        ...createKnowledgeChecks({ config, configPath }),
+        ...createKnowledgeChecks({
+          config,
+          configPath,
+          ...(hooks.daemon === undefined ? {} : { probes: { inspectDaemon: hooks.daemon } }),
+        }),
         checkConfigValidation(config, configPath),
         checkSecretsFile(config, configPath),
         checkWorkspaceSupportFiles(config, configPath),

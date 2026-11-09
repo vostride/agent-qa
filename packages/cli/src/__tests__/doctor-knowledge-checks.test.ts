@@ -10,12 +10,21 @@ import {
 } from '@vostride/agent-qa-schema'
 
 import {
+  EMBEDDER_NO_DAEMON_FIX,
   EMBEDDER_WORKER_NOT_REGISTERED_TEXT,
   NO_KNOWLEDGE_ROOT_MESSAGE,
   RUNG_CAUSE_LABELS,
   createKnowledgeChecks,
   type KnowledgeCheckProbes,
 } from '../commands/doctor-knowledge-checks.js'
+import {
+  DAEMON_REGISTRATION_SCHEMA_VERSION,
+  inspectDaemonHandshake,
+  type DaemonHandshakeDeps,
+  type DaemonRegistration,
+  type InspectDaemonRegistrationOutcome,
+} from '../daemon/registration.js'
+import { DAEMON_IDENTITY_SCHEMA_VERSION } from '../daemon/server.js'
 
 const STATIC_PROFILE: EmbeddingProfile = { ...DEFAULT_EMBEDDING_PROFILE, backend: 'static' }
 
@@ -29,6 +38,18 @@ function deferred(reason: string) {
 }
 
 const LEXICAL_ONLY = { kind: 'lexical-only' } as never
+
+const REGISTRATION: DaemonRegistration = {
+  schemaVersion: DAEMON_REGISTRATION_SCHEMA_VERSION,
+  instanceId: '5b0c2f7e-8a41-4f3b-9d2e-6c1a7b3e9f04',
+  pid: 4242,
+  socketPath: '/sockets/agent-qa-daemon.sock',
+  startedAtMs: 1_000,
+}
+
+function daemonOutcome(live: boolean): InspectDaemonRegistrationOutcome {
+  return { kind: live ? 'live' : 'stale', registration: REGISTRATION }
+}
 
 interface Project {
   config: Record<string, unknown>
@@ -65,6 +86,7 @@ function baseProbes(overrides: Partial<KnowledgeCheckProbes> = {}): KnowledgeChe
     readWriterLease: () => ({ kind: 'absent' }),
     readEmbedderWorkerRegistration: () => ({ kind: 'absent' }),
     readDaemonEventLedger: () => ({ events: [] }),
+    inspectDaemon: () => Promise.resolve({ kind: 'absent' }),
     ...overrides,
   }
 }
@@ -254,7 +276,7 @@ describe('createKnowledgeChecks', () => {
     const { checks, embedder, rung } = await runChecks(project, baseProbes({
       readWriterLease: () => ({ kind: 'parsed', lease: {} as never }),
       readEmbedderWorkerRegistration: () => ({ kind: 'absent' }),
-      daemonLive: () => true,
+      inspectDaemon: () => Promise.resolve(daemonOutcome(true)),
       readDaemonEventLedger: () => ({
         events: [
           { kind: 'embedder-worker-start' },
@@ -436,7 +458,7 @@ describe('the Embedder row fix text', () => {
     const { checks, embedder } = await runChecks(makeProject(), baseProbes({
       ...liveLease,
       readEmbedderWorkerRegistration: () => ({ kind: 'absent' }),
-      daemonLive: () => live,
+      inspectDaemon: () => Promise.resolve(daemonOutcome(live)),
       readDaemonEventLedger: () => ({ events: events as never }),
     }))
     return { embedder, fix: checks[1]!.fixInstructions }
@@ -531,5 +553,95 @@ describe('the Embedder row fix text', () => {
       fixes.add(fix)
     }
     expect(fixes.size).toBe(1)
+  })
+})
+
+describe('daemon liveness by the handshake', () => {
+  const liveLease = { readWriterLease: () => ({ kind: 'parsed', lease: {} as never }) as const }
+
+  function handshake(overrides: Partial<DaemonHandshakeDeps> = {}): DaemonHandshakeDeps {
+    return {
+      readRegistration: () => ({ kind: 'parsed', registration: REGISTRATION }),
+      processIsAlive: () => true,
+      readIdentity: (registration) => Promise.resolve({
+        schemaVersion: DAEMON_IDENTITY_SCHEMA_VERSION,
+        instanceId: registration.instanceId,
+        pid: registration.pid,
+      }),
+      ...overrides,
+    }
+  }
+
+  async function embedderRow(deps: DaemonHandshakeDeps) {
+    const { checks, embedder } = await runChecks(makeProject(), baseProbes({
+      ...liveLease,
+      readEmbedderWorkerRegistration: () => ({ kind: 'absent' }),
+      inspectDaemon: (agentQaRoot) => inspectDaemonHandshake(deps, agentQaRoot),
+      readDaemonEventLedger: () => ({
+        events: [{
+          ts: new Date(REGISTRATION.startedAtMs + 1).toISOString(),
+          kind: 'embedder-worker-exit',
+          reason: 'crash',
+          stderr: 'Error: worker exited with code 1',
+        }],
+      }),
+    }))
+    return { embedder, fix: checks[1]!.fixInstructions }
+  }
+
+  it('a live pid whose identity request fails is stale, and the Embedder row gets the no-daemon fix', async () => {
+    const deps = handshake({ readIdentity: () => Promise.reject(new Error('connect ECONNREFUSED')) })
+    expect(await inspectDaemonHandshake(deps, '/project/.agent-qa')).toEqual({
+      kind: 'stale',
+      registration: REGISTRATION,
+    })
+    const { embedder, fix } = await embedderRow(deps)
+    expect(embedder.status).toBe('fail')
+    expect(fix).toBe(EMBEDDER_NO_DAEMON_FIX)
+    expect(fix).not.toContain('Stop the daemon with')
+  })
+
+  it('a live pid whose identity answers another instanceId or pid is stale, and the Embedder row gets the no-daemon fix', async () => {
+    for (const identity of [
+      { instanceId: '0f9e8d7c-6b5a-4c3d-8e2f-1a0b9c8d7e6f', pid: REGISTRATION.pid },
+      { instanceId: REGISTRATION.instanceId, pid: 4343 },
+    ]) {
+      const deps = handshake({
+        readIdentity: () => Promise.resolve({ schemaVersion: DAEMON_IDENTITY_SCHEMA_VERSION, ...identity }),
+      })
+      expect(await inspectDaemonHandshake(deps, '/project/.agent-qa'), JSON.stringify(identity)).toEqual({
+        kind: 'stale',
+        registration: REGISTRATION,
+      })
+      const { fix } = await embedderRow(deps)
+      expect(fix, JSON.stringify(identity)).toBe(EMBEDDER_NO_DAEMON_FIX)
+    }
+  })
+
+  it('a live pid whose identity matches is live, and the Embedder row sends a person to daemon stop', async () => {
+    const deps = handshake()
+    expect(await inspectDaemonHandshake(deps, '/project/.agent-qa')).toEqual({
+      kind: 'live',
+      registration: REGISTRATION,
+    })
+    const { fix } = await embedderRow(deps)
+    expect(fix).toContain('Stop the daemon with `npx agent-qa daemon stop`')
+  })
+
+  it('a dead pid is stale without asking for the identity', async () => {
+    const readIdentity = vi.fn<DaemonHandshakeDeps['readIdentity']>()
+    const deps = handshake({ processIsAlive: () => false, readIdentity })
+    expect(await inspectDaemonHandshake(deps, '/project/.agent-qa')).toEqual({
+      kind: 'stale',
+      registration: REGISTRATION,
+    })
+    expect(readIdentity).not.toHaveBeenCalled()
+  })
+
+  it('an absent or malformed registration answers as read', async () => {
+    for (const kind of ['absent', 'malformed'] as const) {
+      const deps = handshake({ readRegistration: () => ({ kind }) })
+      expect(await inspectDaemonHandshake(deps, '/project/.agent-qa')).toEqual({ kind })
+    }
   })
 })

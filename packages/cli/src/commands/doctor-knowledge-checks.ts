@@ -31,7 +31,13 @@ import {
 
 import { resolveRawConfigKnowledgeRoot } from '../config.js'
 import { readDaemonEventLedger, type DaemonEvent } from '../daemon/events.js'
-import { processIsAlive, readDaemonRegistration } from '../daemon/registration.js'
+import {
+  inspectDaemonHandshake,
+  processIsAlive,
+  readDaemonRegistration,
+  type InspectDaemonRegistrationOutcome,
+} from '../daemon/registration.js'
+import { fetchDaemonIdentity } from '../daemon/server.js'
 import type { CheckResult, DoctorCheck } from './doctor.js'
 
 const { foldRetrievalRung, indexDbPath } = LOCAL_KNOWLEDGE_PROBES
@@ -82,7 +88,7 @@ export interface KnowledgeCheckProbes {
   readWriterLease?: (knowledgeRoot: string) => ReadWriterLeaseOutcome
   readEmbedderWorkerRegistration?: (agentQaRoot: string) => ReadEmbedderWorkerRegistrationOutcome
   readDaemonEventLedger?: (agentQaRoot: string) => { events: readonly DaemonEvent[] }
-  daemonLive?: (agentQaRoot: string) => boolean
+  inspectDaemon?: (agentQaRoot: string) => Promise<InspectDaemonRegistrationOutcome>
 }
 
 export interface CreateKnowledgeChecksInput {
@@ -96,6 +102,7 @@ export interface CreateKnowledgeChecksInput {
 interface DaemonHalf {
   registration: ReadEmbedderWorkerRegistrationOutcome
   lastExit: DaemonEvent | undefined
+  daemon: InspectDaemonRegistrationOutcome
   live: boolean
 }
 
@@ -140,10 +147,13 @@ function lastEmbedderWorkerExit(events: readonly DaemonEvent[]): DaemonEvent | u
   return undefined
 }
 
-// The first two checks `daemon stop` makes: a parsed registration whose pid is alive.
-function registeredDaemonLive(agentQaRoot: string): boolean {
-  const outcome = readDaemonRegistration(agentQaRoot)
-  return outcome.kind === 'parsed' && processIsAlive(outcome.registration.pid)
+// Live as `daemon stop` decides it, by the daemon's identity handshake.
+function inspectDaemonByHandshake(agentQaRoot: string): Promise<InspectDaemonRegistrationOutcome> {
+  return inspectDaemonHandshake({
+    readRegistration: readDaemonRegistration,
+    processIsAlive,
+    readIdentity: (registration) => fetchDaemonIdentity(registration.socketPath),
+  }, agentQaRoot)
 }
 
 function stringField(event: DaemonEvent | undefined, field: string): string | undefined {
@@ -260,7 +270,7 @@ export function createKnowledgeChecks(
   const registration =
     probes.readEmbedderWorkerRegistration ?? LOCAL_KNOWLEDGE_PROBES.readEmbedderWorkerRegistration
   const ledger = probes.readDaemonEventLedger ?? readDaemonEventLedger
-  const daemonLive = probes.daemonLive ?? registeredDaemonLive
+  const inspectDaemon = probes.inspectDaemon ?? inspectDaemonByHandshake
 
   let pending: Promise<KnowledgeProbe> | undefined
 
@@ -284,10 +294,12 @@ export function createKnowledgeChecks(
       } catch {
         events = []
       }
+      const inspected = await inspectDaemon(agentQaRoot)
       daemon = {
         registration: registration(agentQaRoot),
         lastExit: lastEmbedderWorkerExit(events),
-        live: daemonLive(agentQaRoot),
+        daemon: inspected,
+        live: inspected.kind === 'live',
       }
     }
 

@@ -213,6 +213,23 @@ export function inspectDaemonRegistration(
     : { kind: 'stale', registration: outcome.registration }
 }
 
+export interface DaemonHandshakeDeps {
+  readRegistration(agentQaRoot: string): ReadDaemonRegistrationOutcome
+  processIsAlive(pid: number): boolean
+  readIdentity(registration: DaemonRegistration): Promise<DaemonIdentity>
+}
+
+export async function inspectDaemonHandshake(
+  deps: DaemonHandshakeDeps,
+  agentQaRoot: string,
+): Promise<InspectDaemonRegistrationOutcome> {
+  const outcome = deps.readRegistration(agentQaRoot)
+  if (outcome.kind !== 'parsed') return outcome
+  return deps.processIsAlive(outcome.registration.pid)
+    ? { kind: 'live', registration: outcome.registration }
+    : { kind: 'stale', registration: outcome.registration }
+}
+
 class DaemonIdentityHandshakeTimeoutError extends Error {
   constructor() {
     super(`Daemon identity handshake exceeded ${DAEMON_IDENTITY_HANDSHAKE_TIMEOUT_MS}ms`)
