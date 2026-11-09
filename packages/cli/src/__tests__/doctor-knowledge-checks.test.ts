@@ -230,6 +230,7 @@ describe('createKnowledgeChecks', () => {
     expect(embedder).toEqual({
       status: 'warn',
       message: `static floor — ${RUNG_CAUSE_LABELS['native-runtime-unavailable']}`,
+      fix: EMBEDDER_FLOOR_FIX,
     })
     expect(rung).toEqual({
       status: 'warn',
@@ -251,6 +252,7 @@ describe('createKnowledgeChecks', () => {
     expect(embedder).toEqual({
       status: 'warn',
       message: `static floor — ${RUNG_CAUSE_LABELS['profile-static-configured']}`,
+      fix: EMBEDDER_FLOOR_FIX,
     })
     expect(rung).toEqual({
       status: 'warn',
@@ -267,7 +269,11 @@ describe('createKnowledgeChecks', () => {
     const { embedder, rung } = await runChecks(project, baseProbes({
       resolveEmbedderCapability: () => Promise.resolve(deferred(reason)),
     }))
-    expect(embedder).toEqual({ status: 'warn', message: `none — ${RUNG_CAUSE_LABELS[expected]}` })
+    expect(embedder).toEqual({
+      status: 'warn',
+      message: `none — ${RUNG_CAUSE_LABELS[expected]}`,
+      fix: EMBEDDER_NONE_FIX,
+    })
     expect(rung).toEqual({ status: 'warn', message: `lexical-only — ${RUNG_CAUSE_LABELS[expected]}` })
   })
 
@@ -279,6 +285,7 @@ describe('createKnowledgeChecks', () => {
     expect(embedder).toEqual({
       status: 'warn',
       message: `none — ${RUNG_CAUSE_LABELS['floor-disabled']}`,
+      fix: EMBEDDER_NONE_FIX,
     })
     expect(rung).toEqual({
       status: 'warn',
@@ -329,7 +336,11 @@ describe('createKnowledgeChecks', () => {
         ],
       }),
     }))
-    expect(embedder).toEqual({ status: 'fail', message: EMBEDDER_WORKER_NOT_REGISTERED_TEXT })
+    expect(embedder).toEqual({
+      status: 'fail',
+      message: EMBEDDER_WORKER_NOT_REGISTERED_TEXT,
+      fix: EMBEDDER_PROFILE_FIX,
+    })
     expect(embedder.message).not.toContain('/home/u/.agent-qa/worker.js')
     expect(rowFix({ check: checks[1]!, result: embedder })).toContain(
       'v2 does not download the embedding model',
@@ -344,7 +355,11 @@ describe('createKnowledgeChecks', () => {
       readEmbedderWorkerRegistration: () => ({ kind: 'absent' }),
       readDaemonEventLedger: () => ({ events: [] }),
     }))
-    expect(embedder).toEqual({ status: 'fail', message: EMBEDDER_NO_DAEMON_TEXT })
+    expect(embedder).toEqual({
+      status: 'fail',
+      message: EMBEDDER_NO_DAEMON_TEXT,
+      fix: EMBEDDER_NO_DAEMON_FIX,
+    })
     expect(rowFix({ check: checks[1]!, result: embedder })).toBe(EMBEDDER_NO_DAEMON_FIX)
   })
 
@@ -516,6 +531,7 @@ describe('the Embedder row beside a daemon', () => {
     expect(floor.embedder).toEqual({
       status: 'warn',
       message: `static floor — ${RUNG_CAUSE_LABELS['native-runtime-unavailable']}${NOT_STARTED}`,
+      fix: EMBEDDER_FLOOR_FIX,
     })
 
     const none = await daemonState([], true, {
@@ -524,6 +540,7 @@ describe('the Embedder row beside a daemon', () => {
     expect(none.embedder).toEqual({
       status: 'warn',
       message: `none — ${RUNG_CAUSE_LABELS['floor-disabled']}${NOT_STARTED}`,
+      fix: EMBEDDER_NONE_FIX,
     })
   })
 
@@ -571,7 +588,11 @@ describe('the Embedder row beside a daemon', () => {
         { kind: 'embedder-worker-start' },
         { kind: 'embedder-worker-exit', reason, stderr: 'Error: worker exited with code 1' },
       ])
-      expect(embedder, reason).toEqual({ status: 'fail', message: `embedder worker failed to start: ${reason}` })
+      expect(embedder, reason).toEqual({
+        status: 'fail',
+        message: `embedder worker failed to start: ${reason}`,
+        fix: EMBEDDER_CRASH_FIX,
+      })
       expect(fix, reason).toBe(EMBEDDER_CRASH_FIX)
       expect(fix, reason).toContain('exited with an error')
       expect(fix, reason).toContain('npx agent-qa daemon stop')
@@ -580,7 +601,11 @@ describe('the Embedder row beside a daemon', () => {
 
   it('a worker that could not resolve its profile since the daemon started fails with the not-registered text and the profile fix', async () => {
     const { embedder, fix } = await daemonState([{ kind: 'embedder-worker-start' }, profileExit])
-    expect(embedder).toEqual({ status: 'fail', message: EMBEDDER_WORKER_NOT_REGISTERED_TEXT })
+    expect(embedder).toEqual({
+      status: 'fail',
+      message: EMBEDDER_WORKER_NOT_REGISTERED_TEXT,
+      fix: EMBEDDER_PROFILE_FIX,
+    })
     expect(fix).toBe(EMBEDDER_PROFILE_FIX)
     expect(fix).toContain('v2 does not download the embedding model')
     expect(fix).not.toContain('/home/u/.agent-qa/worker.js')
@@ -636,7 +661,11 @@ describe('the Embedder row beside a daemon', () => {
       [],
     ]) {
       const { embedder, fix } = await daemonState(events, false)
-      expect(embedder).toEqual({ status: 'fail', message: EMBEDDER_NO_DAEMON_TEXT })
+      expect(embedder).toEqual({
+        status: 'fail',
+        message: EMBEDDER_NO_DAEMON_TEXT,
+        fix: EMBEDDER_NO_DAEMON_FIX,
+      })
       expect(fix).toBe(EMBEDDER_NO_DAEMON_FIX)
       expect(fix).toContain('No agent-qa daemon is running')
       expect(fix).toContain('cannot clear')

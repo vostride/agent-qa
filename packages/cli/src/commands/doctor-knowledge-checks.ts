@@ -73,6 +73,10 @@ export const EMBEDDER_CRASH_FIX =
   'The daemon\'s embedder worker exited with an error, and knowledge search works without it. Stop the daemon with `npx agent-qa daemon stop` to clear this row.'
 export const EMBEDDER_NO_DAEMON_FIX =
   'No agent-qa daemon is running, so `npx agent-qa daemon stop` cannot clear this row: the knowledge writer lease belongs to another agent-qa process, or to one that did not stop cleanly. Once no agent-qa command is running, start `npx agent-qa daemon`, which takes a stale lease over, and stop it with `npx agent-qa daemon stop`.'
+export const EMBEDDER_FLOOR_FIX =
+  'Knowledge search works on the static floor without the native embedder, so no command is needed.'
+export const EMBEDDER_NONE_FIX =
+  'Knowledge search works on keyword and anchor matching without an embedder, so no command is needed.'
 const RUNG_FIX = 'Run the checks above; the rung follows from the store and embedder rows.'
 const NOT_STARTED_SUFFIX = '; the daemon starts its embedder worker when a run needs it'
 
@@ -204,17 +208,10 @@ function createKnowledgeStoreCheck(context: KnowledgeCheckContext): DoctorCheck 
 }
 
 function createEmbedderCheck(context: KnowledgeCheckContext): DoctorCheck {
-  let failState: 'profile' | 'crash' | 'no-daemon' = 'crash'
-  const fixes = {
-    profile: EMBEDDER_PROFILE_FIX,
-    crash: EMBEDDER_CRASH_FIX,
-    'no-daemon': EMBEDDER_NO_DAEMON_FIX,
-  }
   return {
     name: 'Embedder',
-    get fixInstructions() {
-      return fixes[failState]
-    },
+    // Every warn and fail result carries its own fix; this names a fresh project's state.
+    fixInstructions: EMBEDDER_NONE_FIX,
     check: async (): Promise<CheckResult> => {
       if (context.knowledgeRoot === null) return SKIPPED
       const { embedder, embedderRung, daemon } = await context.probe()
@@ -223,18 +220,23 @@ function createEmbedderCheck(context: KnowledgeCheckContext): DoctorCheck {
       // Consulted first: the standing daemon may lack an embedder this process can resolve.
       if (daemon !== undefined && daemon.registration.kind !== 'parsed') {
         if (!daemon.live) {
-          failState = 'no-daemon'
-          return { status: 'fail', message: EMBEDDER_NO_DAEMON_TEXT }
+          return { status: 'fail', message: EMBEDDER_NO_DAEMON_TEXT, fix: EMBEDDER_NO_DAEMON_FIX }
         }
         const stderr = stringField(daemon.lastExit, 'stderr') ?? ''
         const exitReason = stringField(daemon.lastExit, 'reason')
         if (stderr.includes('could not resolve profile')) {
-          failState = 'profile'
-          return { status: 'fail', message: EMBEDDER_WORKER_NOT_REGISTERED_TEXT }
+          return {
+            status: 'fail',
+            message: EMBEDDER_WORKER_NOT_REGISTERED_TEXT,
+            fix: EMBEDDER_PROFILE_FIX,
+          }
         }
         if (exitReason === 'crash' || exitReason === 'start-error') {
-          failState = 'crash'
-          return { status: 'fail', message: `embedder worker failed to start: ${exitReason}` }
+          return {
+            status: 'fail',
+            message: `embedder worker failed to start: ${exitReason}`,
+            fix: EMBEDDER_CRASH_FIX,
+          }
         }
         suffix = NOT_STARTED_SUFFIX
       }
@@ -244,9 +246,13 @@ function createEmbedderCheck(context: KnowledgeCheckContext): DoctorCheck {
       }
       const label = causeLabel(embedderRung)
       if (embedderRung.rung === 'static-floor') {
-        return { status: 'warn', message: `static floor — ${label}${suffix}` }
+        return {
+          status: 'warn',
+          message: `static floor — ${label}${suffix}`,
+          fix: EMBEDDER_FLOOR_FIX,
+        }
       }
-      return { status: 'warn', message: `none — ${label}${suffix}` }
+      return { status: 'warn', message: `none — ${label}${suffix}`, fix: EMBEDDER_NONE_FIX }
     },
   }
 }
