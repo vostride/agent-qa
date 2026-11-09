@@ -119,6 +119,39 @@ describe('the comment-keeping edit of the config model', () => {
     expect(AgentQaConfigSchema.safeParse(config).success).toBe(true)
   })
 
+  it('declares the subscription plugin with a subscription model', () => {
+    const claude = { name: 'claude-code', provider: 'anthropic-subscription', model: 'claude-x' }
+
+    const edited = configWithModelEntry(WITH_MODEL, GIVEN, claude, { subscription: true })
+
+    expect(edited).toContain('# the active model')
+    const config = parse(edited) as { plugins: unknown[]; use: { llm: string } }
+    expect(config.plugins).toEqual([
+      { name: 'subscription', package: '@vostride/agent-qa-subscription-auth' },
+    ])
+    expect(config.use.llm).toBe('claude-code')
+    expect(edited).toBe(
+      `${WITH_MODEL.replace(
+        '      model: gemini-old\n',
+        '      model: gemini-old\n    - name: claude-code\n' +
+          '      provider: anthropic-subscription\n      model: claude-x\n',
+      ).replace('llm: gemini #', 'llm: claude-code #')}plugins:\n  - name: subscription\n` +
+        '    package: "@vostride/agent-qa-subscription-auth"\n',
+    )
+    expect(AgentQaConfigSchema.safeParse(config).success).toBe(true)
+  })
+
+  it('keeps a plugins entry that already declares the subscription package', () => {
+    const text = `${WITH_MODEL}plugins:\n  - name: mine\n    package: "@vostride/agent-qa-subscription-auth"\n`
+    const claude = { name: 'claude-code', provider: 'anthropic-subscription', model: 'claude-x' }
+
+    const edited = configWithModelEntry(text, GIVEN, claude, { subscription: true })
+
+    expect((parse(edited) as { plugins: unknown[] }).plugins).toEqual([
+      { name: 'mine', package: '@vostride/agent-qa-subscription-auth' },
+    ])
+  })
+
   it('refuses a config that is not valid YAML with one line', () => {
     const refusal = refusalOf(() =>
       configWithModelEntry('registry: [unclosed\n', GIVEN, GEMINI, { subscription: false }),
