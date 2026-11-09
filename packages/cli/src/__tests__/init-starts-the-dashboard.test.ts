@@ -294,7 +294,9 @@ describe('an interactive init starts the dashboard', () => {
 
     expect(result.exit).toBeUndefined()
     expect(
-      ui.entries.filter((entry) => entry.kind === 'select' || entry.kind === 'multiselect'),
+      ui.entries
+        .filter((entry) => entry.kind === 'select' || entry.kind === 'multiselect')
+        .map((entry) => ({ kind: entry.kind, text: entry.text, answer: entry.answer })),
     ).toEqual([
       { kind: 'multiselect', text: 'What platform will you test?', answer: ['web'] },
       { kind: 'select', text: 'Which model should agent-qa use?', answer: expect.anything() },

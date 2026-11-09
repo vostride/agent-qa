@@ -363,3 +363,87 @@ describe("a re-run's summary of the model and the coding agents", () => {
     expect(result.stderr).not.toContain(SAVED_KEY)
   })
 })
+
+const MENU = 'What should init set up here?'
+
+function gitignorePath(root: string): string {
+  return join(root, '.gitignore')
+}
+
+// A fresh init into a folder without a .gitignore writes init's block and nothing else.
+function initBlock(root: string): string {
+  return readFileSync(gitignorePath(root), 'utf8')
+}
+
+function menuOf(entries: readonly FakeInitUiEntry[]): Extract<
+  FakeInitUiEntry,
+  { kind: 'multiselect' }
+> | undefined {
+  const entry = entries.find((item) => item.kind === 'multiselect' && item.text === MENU)
+  return entry?.kind === 'multiselect' ? entry : undefined
+}
+
+const asked = { hooks: { isTTY: true } }
+
+describe("a re-run's setup menu and its gitignore row", () => {
+  it('asks what init should set up here after the summary, labelling the gitignore row by its state', async () => {
+    const project = await initializedProject('rerun-menu-gitignore-missing')
+    writeFileSync(gitignorePath(project.root), 'dist/\n')
+
+    const result = await rerun(project, [], asked)
+
+    expect(result.exit, result.stderr).toBe(0)
+    const at = result.entries.findIndex((entry) => entry.kind === 'summary')
+    expect(result.entries[at + 1]?.text ?? 'no question').toBe(MENU)
+    const menu = menuOf(result.entries)
+    expect(menu?.labels.join('|') ?? 'no menu').toBe('gitignore  block missing')
+    expect(menu?.initialValues.join('|') ?? 'no menu').toBe('gitignore')
+  })
+
+  it("with --yes restores init's block and keeps every other byte of .gitignore", async () => {
+    const project = await initializedProject('rerun-gitignore-restores')
+    const block = initBlock(project.root)
+    writeFileSync(gitignorePath(project.root), 'dist/\n# mine\ncoverage/\n')
+
+    const result = await rerun(project, ['--yes', '--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(readFileSync(gitignorePath(project.root), 'utf8')).toBe(
+      `dist/\n# mine\ncoverage/\n\n${block}`,
+    )
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.steps).toEqual([
+      { name: 'gitignore', outcome: 'done' },
+      { name: 'validate', outcome: 'done' },
+    ])
+    expect(doc.files).toEqual([{ path: '.gitignore', outcome: 'updated', step: 'gitignore' }])
+  })
+
+  it("labels an edited block, pre-checks it, and running it puts agent-qa's block back", async () => {
+    const project = await initializedProject('rerun-gitignore-edited')
+    const block = initBlock(project.root)
+    const edited = block.replace('node_modules/\n', '')
+    writeFileSync(gitignorePath(project.root), `dist/\n${edited}coverage/\n`)
+
+    const result = await rerun(project, [], asked)
+
+    expect(result.exit, result.stderr).toBe(0)
+    const menu = menuOf(result.entries)
+    expect(menu?.labels.join('|') ?? 'no menu').toBe('gitignore  the block was edited')
+    expect(menu?.initialValues.join('|') ?? 'no menu').toBe('gitignore')
+    expect(readFileSync(gitignorePath(project.root), 'utf8')).toBe(
+      `dist/\n${block}coverage/\n`,
+    )
+  })
+
+  it('leaves .gitignore as it was when the row is unchecked, and skips it as not selected', async () => {
+    const project = await initializedProject('rerun-gitignore-unchecked')
+    writeFileSync(gitignorePath(project.root), 'dist/\n')
+
+    const result = await rerun(project, [], { ...asked, answers: { [MENU]: [] } })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(readFileSync(gitignorePath(project.root), 'utf8')).toBe('dist/\n')
+    expect(result.entries).toContainEqual({ kind: 'skipped', text: 'gitignore: not selected' })
+  })
+})

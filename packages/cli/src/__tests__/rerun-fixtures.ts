@@ -26,6 +26,8 @@ export interface RerunOptions {
   run?: FakeRunner
   // Draws through the plain renderer on stderr instead of recording entries.
   plain?: boolean
+  // The fake UI's answers, by question; unanswered questions take their defaults.
+  answers?: Record<string, unknown>
   hooks?: InitCommandHooks
 }
 
@@ -59,7 +61,7 @@ async function runInit(
   args: readonly string[],
   options: RerunOptions,
 ): Promise<RerunResult> {
-  const ui = fakeInitUi()
+  const ui = fakeInitUi(options.answers)
   const out = capture(process.stdout)
   const err = capture(process.stderr)
   const handler: string[] = []
