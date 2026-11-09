@@ -190,14 +190,14 @@ const mockResolveLLMAuth = vi.mocked((core as any).resolveLLMAuth) as any
 const mockResolveAppiumExecutable = vi.mocked(core.resolveAppiumExecutable)
 const mockGenerateText = vi.mocked(generateText)
 
-async function runDoctor(parentConfig?: string): Promise<void> {
+async function runDoctor(parentConfig?: string, ...args: string[]): Promise<void> {
   consoleLogs.length = 0
   process.exitCode = 0
 
   const parent = new Command()
   if (parentConfig) parent.setOptionValue('config', parentConfig)
   parent.addCommand(createDoctorCommand())
-  await parent.parseAsync(['node', 'test', 'doctor'])
+  await parent.parseAsync(['node', 'test', 'doctor', ...args])
 }
 
 function getOutput(): string {
@@ -273,6 +273,21 @@ function rowFor(name: string): string {
     if (!CONTINUATION_PATTERN.test(line)) break
     parts.push(line.trim())
   }
+  return parts.join(' ')
+}
+
+// The fix printed beneath a row, joined across its hanging lines; empty when none prints.
+function fixUnder(name: string): string {
+  const lines = consoleLogs.map(stripAnsi)
+  const start = lines.findIndex(line => line.startsWith(`    ${name}  `))
+  if (start < 0) return ''
+  let index = start + 1
+  while (!FIX_LINE_PATTERN.test(lines[index] ?? '') && CONTINUATION_PATTERN.test(lines[index] ?? '')) {
+    index += 1
+  }
+  if (!FIX_LINE_PATTERN.test(lines[index] ?? '')) return ''
+  const parts = [(lines[index] ?? '').replace(FIX_LINE_PATTERN, '')]
+  for (index += 1; /^ {11}\S/.test(lines[index] ?? ''); index += 1) parts.push((lines[index] ?? '').trim())
   return parts.join(' ')
 }
 
@@ -1113,13 +1128,22 @@ use:
     expect(output).toContain('All checks passed')
   })
 
-  it('Overall result: any fail → exit 1', async () => {
+  it('exits 3 when a row fails', async () => {
     Object.defineProperty(process, 'version', { value: 'v18.0.0', writable: true })
 
     await runDoctor()
-    expect(process.exitCode).toBe(1)
+    expect(process.exitCode).toBe(3)
     const output = getOutput()
-    expect(output).toContain('Some checks failed')
+    expect(output).toContain('Some checks failed. See fix instructions above.')
+  })
+
+  it('exits 3 from doctor --json when a row fails', async () => {
+    Object.defineProperty(process, 'version', { value: 'v18.0.0', writable: true })
+
+    await runDoctor(undefined, '--json')
+    const document = JSON.parse(getOutput())
+    expect(document.ok).toBe(false)
+    expect(process.exitCode).toBe(3)
   })
 
   it('Fix instructions printed for each failure', async () => {
@@ -1130,7 +1154,7 @@ use:
     expect(output).toContain('Install Node.js 24 or newer')
   })
 
-  async function runHealthyHost(): Promise<void> {
+  async function runHealthyHost(...args: string[]): Promise<void> {
     Object.defineProperty(process, 'version', { value: 'v24.10.0', writable: true })
     mockExistsSync.mockReturnValue(true)
     mockExecSync.mockReturnValue(Buffer.from('ok'))
@@ -1160,7 +1184,7 @@ use:
         llm: 'default',
       },
     }) as never)
-    await runDoctor()
+    await runDoctor(undefined, ...args)
   }
 
   it('prints three rows between Legacy v1 memory data and Config validation, store then embedder then rung', async () => {
@@ -1231,10 +1255,79 @@ use:
     expect(rowFor('Knowledge store')).toContain('scanning bundles')
     expect(rowFor('Embedder')).toContain('static floor — native ONNX runtime unavailable')
     expect(rowFor('Retrieval rung')).toContain('bundle-scan — knowledge index not built yet')
-    expect(process.exitCode).not.toBe(1)
+    expect(process.exitCode).toBe(0)
+    expect(getOutput()).toContain('No check failed. The warnings above say what to fix.')
+    expect(getOutput()).not.toContain('All checks passed')
   })
 
-  it('fails the store row and exits 1 when the index file is present and will not open', async () => {
+  function degradeKnowledgeByDesign(): void {
+    knowledgeProbeStubs.classifyIndexFace.mockReturnValue({
+      source: 'scan',
+      reason: 'absent',
+      detail: 'derived index file is absent',
+      filePresent: false,
+    })
+  }
+
+  it('prints the fix under a WARN row and none under a PASS or SKIP row', async () => {
+    degradeKnowledgeByDesign()
+
+    await runHealthyHost()
+
+    expect(rowFor('Knowledge store')).toContain('WARN')
+    expect(fixUnder('Knowledge store')).not.toBe('')
+    expect(rowFor('Node.js')).toContain('PASS')
+    expect(fixUnder('Node.js')).toBe('')
+    expect(rowFor('Subscription Auth')).toContain('SKIP')
+    expect(fixUnder('Subscription Auth')).toBe('')
+  })
+
+  it('prints the same fix under a WARN row as doctor --json gives it', async () => {
+    degradeKnowledgeByDesign()
+    await runHealthyHost()
+    const printed = fixUnder('Knowledge store')
+
+    await runHealthyHost('--json')
+    const document = JSON.parse(getOutput())
+    const row = document.rows.find((entry: { name: string }) => entry.name === 'Knowledge store')
+
+    expect(row.status).toBe('warn')
+    expect(printed).toBe(row.fix.replace(/\s+/gu, ' ').trim())
+  })
+
+  it('exits 0 from doctor --json with warnings and no failure', async () => {
+    degradeKnowledgeByDesign()
+
+    await runHealthyHost('--json')
+    const document = JSON.parse(getOutput())
+
+    expect(document.ok).toBe(true)
+    expect(document.rows.some((entry: { status: string }) => entry.status === 'warn')).toBe(true)
+    expect(process.exitCode).toBe(0)
+  })
+
+  it('prints the plugins add command under the Subscription Auth warning', async () => {
+    mockReadFile.mockResolvedValue(
+      'registry:\n  llms:\n    - name: claude-code\n      provider: anthropic-subscription\n'
+        + '      model: claude-sonnet-4-6\nuse:\n  llm: claude-code\n' as never,
+    )
+    mockResolveLLMAuth.mockResolvedValue({
+      kind: 'missing',
+      credentialKey: 'claude-code',
+      provider: 'anthropic-subscription',
+      required: true,
+      message: 'Provider "anthropic-subscription" needs the subscription-auth plugin.',
+    })
+
+    await runDoctor()
+
+    expect(rowFor('Subscription Auth'), getOutput()).toContain('WARN')
+    expect(fixUnder('Subscription Auth'), getOutput()).toContain(
+      'npx agent-qa plugins add @vostride/agent-qa-subscription-auth',
+    )
+  })
+
+  it('fails the store row and exits 3 when the index file is present and will not open', async () => {
     knowledgeProbeStubs.classifyIndexFace.mockReturnValue({
       source: 'scan',
       reason: 'corrupt',
@@ -1248,7 +1341,7 @@ use:
     expect(rowFor('Knowledge store')).toContain('FAIL')
     expect(getOutput()).toContain('Fix: Rebuild the index with `agent-qa knowledge rebuild-index`')
     expect(rowFor('Retrieval rung')).not.toContain('FAIL')
-    expect(process.exitCode).toBe(1)
+    expect(process.exitCode).toBe(3)
   })
 
   it('names the worker profile failure by its cause when a live daemon lease published no worker registration', async () => {
@@ -1736,7 +1829,7 @@ describe('the LLM auth rows', () => {
       expect(connectionRow, getOutput()).toContain('FAIL')
       expect(connectionRow, getOutput()).toContain(expected.message)
       expect(mockGenerateText).not.toHaveBeenCalled()
-      expect(process.exitCode).toBe(1)
+      expect(process.exitCode).toBe(3)
     } finally {
       mockResolveLLMAuth.mockImplementation(defaultResolve)
       mockReadFile.mockRejectedValue({ code: 'ENOENT' })

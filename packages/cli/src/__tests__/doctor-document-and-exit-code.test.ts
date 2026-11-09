@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { CheckResult, DoctorCheck } from '../commands/doctor.js'
-import { doctorDocument } from '../commands/doctor-row.js'
+import { doctorDocument, doctorExitCode } from '../commands/doctor-row.js'
 
 function row(name: string, result: CheckResult, fixInstructions = `fix ${name}`) {
   const check: DoctorCheck = { name, fixInstructions, check: async () => result }
@@ -60,5 +60,27 @@ describe('doctor document', () => {
     const document = doctorDocument([row('Node.js', { status: 'pass', message: 'ok' })])
 
     expect(Object.keys(document)).toEqual(['format', 'ok', 'rows'])
+  })
+})
+
+describe('doctor exit code', () => {
+  it('is 3 when any row failed', () => {
+    expect(
+      doctorExitCode([
+        row('Node.js', { status: 'pass', message: 'ok' }),
+        row('Docker', { status: 'warn', message: 'daemon not running' }),
+        row('Config file', { status: 'fail', message: 'not found' }),
+      ]),
+    ).toBe(3)
+  })
+
+  it('is 0 with warnings and no failure', () => {
+    expect(
+      doctorExitCode([
+        row('Node.js', { status: 'pass', message: 'ok' }),
+        row('Docker', { status: 'warn', message: 'daemon not running' }),
+        row('Xcode', { status: 'skip', message: 'no iOS target' }),
+      ]),
+    ).toBe(0)
   })
 })
