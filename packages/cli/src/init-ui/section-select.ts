@@ -76,6 +76,8 @@ interface Window {
   // The heading drawn on the first line for the section the window opens in, when the window
   // opens on an option rather than on a heading.
   sticky?: number
+  // Rows of the sticky heading's section hidden between it and the first drawn row.
+  hiddenAbove: boolean
   first: number
   last: number
   hiddenBelow: boolean
@@ -88,20 +90,25 @@ function headingAbove<T>(rows: readonly Row<T>[], index: number): number | undef
 
 function windowFrom<T>(rows: readonly Row<T>[], first: number, lines: number): Window {
   const sticky = rows[first]?.kind === 'heading' ? undefined : headingAbove(rows, first)
-  const room = lines - (sticky === undefined ? 0 : 1)
+  const hiddenAbove = sticky !== undefined && first > sticky + 1
+  const room = lines - (sticky === undefined ? 0 : 1) - (hiddenAbove ? 1 : 0)
   if (rows.length - first <= room) {
-    return { sticky, first, last: rows.length - 1, hiddenBelow: false }
+    return { sticky, hiddenAbove, first, last: rows.length - 1, hiddenBelow: false }
   }
   // A heading is never drawn alone just above the ... line.
   let last = first + room - 2
   while (last > first && rows[last]?.kind === 'heading') last -= 1
-  return { sticky, first, last, hiddenBelow: true }
+  return { sticky, hiddenAbove, first, last, hiddenBelow: true }
 }
 
-// The highest window that shows the cursor with a row under it before the ... line, as Clack's
-// own select scrolls; worked out from the cursor alone, so moving up scrolls the same way.
+// The highest window that shows the cursor with a row under it before the bottom ... line, worked
+// out from the cursor alone, so moving up scrolls the same way. As in Clack's own select, a ...
+// line marks the rows hidden below the window, and under the sticky heading the rows of its
+// section hidden above it.
 function windowAround<T>(rows: readonly Row<T>[], cursor: number, lines: number): Window {
-  if (rows.length <= lines) return { first: 0, last: rows.length - 1, hiddenBelow: false }
+  if (rows.length <= lines) {
+    return { hiddenAbove: false, first: 0, last: rows.length - 1, hiddenBelow: false }
+  }
   for (let first = 0; first < cursor; first += 1) {
     const window = windowFrom(rows, first, lines)
     if (window.hiddenBelow ? cursor < window.last : cursor <= window.last) return window
@@ -197,6 +204,7 @@ export function sectionSelect<T>(options: {
             ...(window.sticky === undefined
               ? []
               : [drawRow(this.options[window.sticky]!, false, room)]),
+            ...(window.hiddenAbove ? [styleText('dim', '...')] : []),
             ...this.options
               .slice(window.first, window.last + 1)
               .map((row, index) => drawRow(row, window.first + index === this.cursor, room)),

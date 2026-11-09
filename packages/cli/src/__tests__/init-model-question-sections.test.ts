@@ -248,8 +248,15 @@ describe('the headed select in a terminal shorter than its list', () => {
           (line) => line.startsWith(S_RADIO_ACTIVE) || line.startsWith(S_RADIO_INACTIVE),
         )
         if (topOption?.includes('saved-')) expect(list[0]).toBe(LONG_SAVED_HEADING)
+        const sectionFirst = list[0] === NEW_HEADING ? 'new-1' : 'saved-01'
+        if (list[1] === '...') {
+          expect(list[2]).not.toContain(sectionFirst)
+          expect([NEW_HEADING, LONG_SAVED_HEADING]).not.toContain(list[2])
+        } else {
+          expect(list[1]).toContain(sectionFirst)
+        }
         if (frame.some((line) => line.includes('saved-12'))) {
-          expect(list).not.toContain('...')
+          expect(list.at(-1)).not.toBe('...')
         } else {
           expect(list.at(-1)).toBe('...')
           expect([NEW_HEADING, LONG_SAVED_HEADING]).not.toContain(list.at(-2))
@@ -257,6 +264,7 @@ describe('the headed select in a terminal shorter than its list', () => {
       }
       expect(frames.some((frame) => listOf(frame).at(-1) === '...')).toBe(true)
       expect(frames.some((frame) => listOf(frame)[0] === LONG_SAVED_HEADING)).toBe(true)
+      expect(frames.some((frame) => listOf(frame)[1] === '...')).toBe(true)
     },
   )
 
