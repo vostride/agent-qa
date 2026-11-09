@@ -168,6 +168,7 @@ import {
   resolveTerminalWidth,
   type CheckRow,
 } from '../commands/doctor-row.js'
+import { EMBEDDER_FLOOR_FIX, EMBEDDER_NONE_FIX } from '../commands/doctor-knowledge-checks.js'
 import { execFileSync, execSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
@@ -1477,6 +1478,49 @@ use:
     expect(rowFor('Embedder')).toContain('when a run needs it')
     expect(rowFor('Embedder')).not.toContain('FAIL')
     expect(process.exitCode).toBe(0)
+  })
+
+  it("prints the Embedder WARN's own fix in the table and in doctor --json for a fresh project with no daemon", async () => {
+    knowledgeProbeStubs.resolveEmbedderCapability.mockResolvedValue({
+      kind: 'deferred',
+      reason: 'cold-artifact',
+    })
+
+    await runHealthyHost()
+
+    expect(rowFor('Embedder')).toContain('none — embedding model not downloaded')
+    expect(rowFor('Embedder')).toContain('WARN')
+    expect(fixUnder('Embedder')).not.toContain('exited with an error')
+    expect(fixUnder('Embedder')).toBe(EMBEDDER_NONE_FIX)
+
+    await runHealthyHost('--json')
+    const document = JSON.parse(getOutput())
+    const row = document.rows.find((entry: { name: string }) => entry.name === 'Embedder')
+
+    expect(row.status).toBe('warn')
+    expect(row.fix).toBe(EMBEDDER_NONE_FIX)
+  })
+
+  it("beside an idle daemon the Embedder WARN prints the static floor's fix, never the crash fix", async () => {
+    knowledgeProbeStubs.readWriterLease.mockReturnValue({ kind: 'parsed', lease: {} } as never)
+    knowledgeProbeStubs.readEmbedderWorkerRegistration.mockReturnValue({ kind: 'absent' })
+    daemon.mockResolvedValueOnce({ kind: 'live', registration: { pid: 4242, startedAtMs: 1_000 } } as never)
+    knowledgeProbeStubs.resolveEmbedderCapability.mockResolvedValue({
+      kind: 'ready',
+      rung: 'floor',
+      profile: DEFAULT_EMBEDDING_PROFILE,
+      embedder: {},
+    } as never)
+
+    await runHealthyHost()
+
+    expect(rowFor('Embedder')).toContain('static floor — native ONNX runtime unavailable')
+    expect(rowFor('Embedder')).toContain('when a run needs it')
+    expect(rowFor('Embedder')).toContain('WARN')
+    const fix = fixUnder('Embedder')
+    expect(fix).not.toContain('exited with an error')
+    expect(fix).not.toContain('daemon stop')
+    expect(fix).toBe(EMBEDDER_FLOOR_FIX)
   })
 
   // The command measured against the width it resolved.

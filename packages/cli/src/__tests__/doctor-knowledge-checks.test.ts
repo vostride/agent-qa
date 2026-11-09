@@ -11,6 +11,8 @@ import {
 
 import {
   EMBEDDER_CRASH_FIX,
+  EMBEDDER_FLOOR_FIX,
+  EMBEDDER_NONE_FIX,
   EMBEDDER_NO_DAEMON_FIX,
   EMBEDDER_NO_DAEMON_TEXT,
   EMBEDDER_PROFILE_FIX,
@@ -20,6 +22,7 @@ import {
   createKnowledgeChecks,
   type KnowledgeCheckProbes,
 } from '../commands/doctor-knowledge-checks.js'
+import { rowFix } from '../commands/doctor-row.js'
 import {
   DAEMON_REGISTRATION_SCHEMA_VERSION,
   inspectDaemonHandshake,
@@ -56,6 +59,21 @@ const NOT_STARTED = '; the daemon starts its embedder worker when a run needs it
 
 function daemonOutcome(live: boolean): InspectDaemonRegistrationOutcome {
   return { kind: live ? 'live' : 'stale', registration: REGISTRATION }
+}
+
+// Each Embedder WARN outcome, the words its message opens with, and the fix printed under it.
+const EMBEDDER_WARNS = [
+  { outcome: ready('floor'), opens: 'static floor — ', fix: EMBEDDER_FLOOR_FIX },
+  { outcome: deferred('cold-artifact'), opens: 'none — ', fix: EMBEDDER_NONE_FIX },
+  { outcome: deferred('load-failure'), opens: 'none — ', fix: EMBEDDER_NONE_FIX },
+  { outcome: deferred('worker-unavailable'), opens: 'none — ', fix: EMBEDDER_NONE_FIX },
+  { outcome: LEXICAL_ONLY, opens: 'none — ', fix: EMBEDDER_NONE_FIX },
+]
+
+function expectWarnFix(fix: string | undefined, expected: string, label: string): void {
+  expect(fix, label).not.toContain('exited with an error')
+  expect(fix, label).not.toContain('daemon stop')
+  expect(fix, label).toBe(expected)
 }
 
 interface Project {
@@ -278,6 +296,21 @@ describe('createKnowledgeChecks', () => {
     expect(embedder.message).not.toContain('probe exploded')
   })
 
+  it("with no daemon, a static floor Embedder WARN prints the static floor's fix and a none WARN prints the none fix", async () => {
+    for (const { outcome, opens, fix } of EMBEDDER_WARNS) {
+      const { checks, embedder } = await runChecks(makeProject(), baseProbes({
+        resolveEmbedderCapability: () => Promise.resolve(outcome),
+      }))
+      expect(embedder.status, opens).toBe('warn')
+      expect(embedder.message.startsWith(opens), embedder.message).toBe(true)
+      expectWarnFix(rowFix({ check: checks[1]!, result: embedder }), fix, embedder.message)
+    }
+
+    const native = await runChecks(makeProject(), baseProbes())
+    expect(native.embedder.status).toBe('pass')
+    expect(rowFix({ check: native.checks[1]!, result: native.embedder })).toBeUndefined()
+  })
+
   it('fails the embedder row with the worker-not-registered wording when a live daemon lease has no worker registration', async () => {
     const project = makeProject()
     const { checks, embedder, rung } = await runChecks(project, baseProbes({
@@ -298,7 +331,9 @@ describe('createKnowledgeChecks', () => {
     }))
     expect(embedder).toEqual({ status: 'fail', message: EMBEDDER_WORKER_NOT_REGISTERED_TEXT })
     expect(embedder.message).not.toContain('/home/u/.agent-qa/worker.js')
-    expect(checks[1].fixInstructions).toContain('v2 does not download the embedding model')
+    expect(rowFix({ check: checks[1]!, result: embedder })).toContain(
+      'v2 does not download the embedding model',
+    )
     expect(rung.status).not.toBe('fail')
   })
 
@@ -310,7 +345,7 @@ describe('createKnowledgeChecks', () => {
       readDaemonEventLedger: () => ({ events: [] }),
     }))
     expect(embedder).toEqual({ status: 'fail', message: EMBEDDER_NO_DAEMON_TEXT })
-    expect(checks[1]!.fixInstructions).toBe(EMBEDDER_NO_DAEMON_FIX)
+    expect(rowFix({ check: checks[1]!, result: embedder })).toBe(EMBEDDER_NO_DAEMON_FIX)
   })
 
   it('does not consult the daemon half at all when no writer lease is live', async () => {
@@ -465,7 +500,7 @@ describe('the Embedder row beside a daemon', () => {
       }),
       ...overrides,
     }))
-    return { embedder, fix: checks[1]!.fixInstructions }
+    return { embedder, fix: rowFix({ check: checks[1]!, result: embedder }) }
   }
 
   it('an idle daemon with no worker registration and no worker exit reports the in-process result and says the worker starts when a run needs it', async () => {
@@ -490,6 +525,31 @@ describe('the Embedder row beside a daemon', () => {
       status: 'warn',
       message: `none — ${RUNG_CAUSE_LABELS['floor-disabled']}${NOT_STARTED}`,
     })
+  })
+
+  it('beside an idle daemon, the static floor and none Embedder WARNs print the fix for their rung, never the crash fix or daemon stop', async () => {
+    const idleStates: Record<string, unknown>[][] = [
+      [],
+      [{ kind: 'embedder-worker-start' }, { kind: 'embedder-worker-exit', reason: 'idle', stderr: '' }],
+    ]
+    for (const events of idleStates) {
+      for (const { outcome, opens, fix } of EMBEDDER_WARNS) {
+        const state = await daemonState(events, true, {
+          resolveEmbedderCapability: () => Promise.resolve(outcome),
+        })
+        expect(state.embedder.status, opens).toBe('warn')
+        expect(state.embedder.message.startsWith(opens), state.embedder.message).toBe(true)
+        expect(state.embedder.message.endsWith(NOT_STARTED), state.embedder.message).toBe(true)
+        expectWarnFix(state.fix, fix, state.embedder.message)
+      }
+
+      const native = await daemonState(events)
+      expect(native.embedder).toEqual({
+        status: 'pass',
+        message: `native (${DEFAULT_EMBEDDING_PROFILE.model_id})${NOT_STARTED}`,
+      })
+      expect(native.fix).toBeUndefined()
+    }
   })
 
   it('idle, daemon-stop and replace exits since the daemon started read as not started', async () => {
@@ -568,7 +628,7 @@ describe('the Embedder row beside a daemon', () => {
   })
 
   it('with no live daemon the row fails, the fix says daemon stop cannot clear it, and names the daemon start that takes the lease over', async () => {
-    const fixes = new Set<string>()
+    const fixes = new Set<string | undefined>()
     for (const events of [
       [profileExit],
       [{ kind: 'embedder-worker-exit', reason: 'crash', stderr: 'Error: worker exited with code 1' }],
@@ -618,7 +678,7 @@ describe('daemon liveness by the handshake', () => {
         }],
       }),
     }))
-    return { embedder, fix: checks[1]!.fixInstructions }
+    return { embedder, fix: rowFix({ check: checks[1]!, result: embedder }) }
   }
 
   it('a live pid whose identity request fails is stale, and the Embedder row gets the no-daemon fix', async () => {
