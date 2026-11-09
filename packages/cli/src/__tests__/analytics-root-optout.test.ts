@@ -290,7 +290,7 @@ describe('the chat composition root honours analytics.privacy', () => {
 
 const INIT_ROOT = 'packages/cli/src/commands/init.ts'
 
-/** Drive the SHIPPED init command, non-interactively (no prompts on the `--platform` arm). */
+/** Drive the SHIPPED init command, non-interactively; a directory with a config re-runs it. */
 async function runInit(
   dir: string,
   extraHooks: Parameters<typeof createInitCommand>[0] = {},
@@ -315,7 +315,9 @@ async function runInit(
       }),
     )
     parent.exitOverride()
-    await parent.parseAsync(['node', 'agent-qa', 'init', '--platform', 'web', '--pm', 'none'])
+    // A re-run refuses --platform, so only a directory with no config is given it.
+    const platform = existsSync(join(dir, 'agent-qa.config.yaml')) ? [] : ['--platform', 'web']
+    await parent.parseAsync(['node', 'agent-qa', 'init', ...platform, '--pm', 'none'])
     return { exitCode: process.exitCode }
   } finally {
     process.exitCode = previousExitCode

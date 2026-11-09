@@ -168,13 +168,13 @@ function loadingAgentQaVersion(input: {
   )
 }
 
-interface ConfigEdit {
+export interface ConfigEdit {
   entryName: string
   content?: string
 }
 
 // parseDocument keeps the config's comments; an entry already declaring the package is kept.
-function configWithEntry(
+export function configWithEntry(
   text: string,
   given: string,
   packageName: string,

@@ -27,6 +27,7 @@ import {
   type InitFileResult,
 } from './init-filesystem.js'
 import {
+  isSubscriptionModel,
   modelEntryFor,
   modelStatus,
   resolveLlmFlag,
@@ -73,6 +74,7 @@ import {
 } from './setup-rows.js'
 
 export interface InitRerunOptions {
+  platform?: string
   llm?: string
   model?: string
   baseUrl?: string
@@ -108,8 +110,8 @@ export interface InitRerunInput {
   scaffoldPlans: ScaffoldPlans
   latestVersion: LatestVersionAsk
   upgrade: {
-    // The packages the config needs besides agent-qa, read when asked.
-    packages: () => ProjectPackages
+    // The packages the config text needs besides agent-qa; without one, the config file's.
+    packages: (configText?: string) => ProjectPackages
     // package.json with agent-qa and every first-party package at the version.
     plan: (version: string) => PackageJsonPlan
     // The fresh init's install over that plan.
@@ -121,6 +123,9 @@ export interface InitRerunInput {
 
 const SETUP_BROWSERS_WITH_NO_BROWSERS_LINE =
   '--setup browsers asks for Chromium and --no-browsers refuses it; drop one of them.'
+const PLATFORM_ON_RERUN_LINE =
+  "--platform sets up a new project; this one's platforms are its config's targets. " +
+  'Run npx agent-qa init without --platform, or with --force to rebuild.'
 const MODEL_FLAGS_WITHOUT_LLM_LINE =
   '--model and --base-url set the model --llm names; pass --llm <choice> with them.'
 const MODEL_TITLE = 'Setting the model'
@@ -149,7 +154,9 @@ async function modelEditOf(input: InitRerunInput): Promise<ModelEdit | undefined
   const given = relative(input.dir, input.configPath) || input.configPath
   if (setup.entry === undefined) return { setup, given }
   const read = readHostFile(input.configPath, input.dir)
-  const text = configWithModelEntry(read?.text ?? '', given, setup.entry, { subscription: false })
+  const text = configWithModelEntry(read?.text ?? '', given, setup.entry, {
+    subscription: isSubscriptionModel(setup.entry.provider),
+  })
   return { setup, given, ...(read === undefined ? {} : { read }), text }
 }
 
@@ -235,18 +242,19 @@ function upgradeRow(
 }
 
 // With an upgrade row, deps adds the missing packages at the project's version; without one, it
-// also moves a project behind this agent-qa to it.
+// also moves a project behind this agent-qa to it. It reads the config as the model step leaves it.
 function depsRow(
   input: InitRerunInput,
   copy: ProjectAgentQa | undefined,
   upgrade: UpgradeRowState,
+  configText: string | undefined,
 ): DepsRowState {
   const from = projectVersionOf(input, copy)
   const behind = !upgrade.shown && versionMove(from, input.runningVersion) !== undefined
   return checkDepsRow({
     range: input.range,
     packageJson: input.packageJson,
-    config: input.upgrade.packages(),
+    config: input.upgrade.packages(configText),
     version: behind ? input.runningVersion : from,
     from,
     io: input.host.io,
@@ -443,6 +451,9 @@ function namedHidden(row: SetupRowState, flagged: SetupSelection | undefined): s
 }
 
 export async function runInitRerun(input: InitRerunInput): Promise<void> {
+  if (input.opts.platform !== undefined) {
+    throw new CliRefusal([pc.red(PLATFORM_ON_RERUN_LINE)], 2)
+  }
   const flagged = input.opts.setup === undefined ? undefined : parseSetupFlag(input.opts.setup)
   const noBrowsers = input.opts.browsers === false
   if (noBrowsers && flagged?.kind === 'names' && flagged.names.includes('browsers')) {
@@ -478,7 +489,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   const latest = await latestAnswer
   input.recorder.latest(latest)
   const upgrade = upgradeRow(input, copy, latest)
-  const deps = depsRow(input, copy, upgrade)
+  const deps = depsRow(input, copy, upgrade, modelEdit?.text)
   const handed = handedUpgrade(input)
   const reported = handed ?? (upgrade.shown ? upgrade.move : undefined)
   if (reported !== undefined) input.recorder.upgrade({ ...reported, row: 'upgrade' })

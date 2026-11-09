@@ -183,6 +183,10 @@ const ENDPOINT_FLAGS_REFUSAL =
 const BASE_URL_PROVIDER_REFUSAL =
   '--base-url applies only to --llm anthropic, openai, openai-compatible or anthropic-compatible'
 
+export function isSubscriptionModel(provider: string): boolean {
+  return getProvider(provider)?.subscription === true
+}
+
 function needsDashboard(provider: string): boolean {
   return Object.hasOwn(DASHBOARD_ADD, provider)
 }

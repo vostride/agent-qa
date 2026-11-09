@@ -19,6 +19,8 @@ import {
 import { CliRefusal } from '../composition/cli-refusal.js'
 import { normalizeConfigForValidation } from '../config.js'
 import type { InitModelEntry } from './init-model-choice.js'
+import { configWithEntry } from './plugins-add.js'
+import { SUBSCRIPTION_AUTH_PACKAGE } from './scaffold-content.js'
 
 function refuse(line: string): never {
   throw new CliRefusal([pc.red(line)], 2)
@@ -46,7 +48,23 @@ function checked(edited: string, given: string): string {
   refuse(`Setting the model would leave ${given} invalid: ${path}: ${issue?.message ?? ''}`)
 }
 
-function documentEdit(text: string, given: string, entry: InitModelEntry): string {
+interface PluginEntry {
+  name: string
+  package: string
+}
+
+interface DocumentEdit {
+  text: string
+  // The plugins entry the edit adds, when it adds one.
+  plugin?: PluginEntry
+}
+
+function documentEdit(
+  text: string,
+  given: string,
+  entry: InitModelEntry,
+  subscription: boolean,
+): DocumentEdit {
   const doc = parseDocument(text)
   if (doc.errors.length > 0) refuse(`${given} is not valid YAML: ${doc.errors[0]!.message}`)
   if (!isMap(doc.contents)) refuse(`${given} must hold a YAML mapping.`)
@@ -72,7 +90,15 @@ function documentEdit(text: string, given: string, entry: InitModelEntry): strin
 
   mappingAt(doc, 'use', given)
   doc.setIn(['use', 'llm'], entry.name)
-  return doc.toString()
+  const edited = doc.toString()
+  if (!subscription) return { text: edited }
+  // plugins add's own edit, which keeps an entry that already declares the package.
+  const plugin = configWithEntry(edited, given, SUBSCRIPTION_AUTH_PACKAGE, undefined)
+  if (plugin.content === undefined) return { text: edited }
+  return {
+    text: plugin.content,
+    plugin: { name: plugin.entryName, package: SUBSCRIPTION_AUTH_PACKAGE },
+  }
 }
 
 // The token edit below keeps every byte it does not change, which a Document re-render does not:
@@ -176,13 +202,25 @@ function setUseLlm(top: CST.BlockMap, name: string): boolean {
   return true
 }
 
-function tokenEdit(text: string, entry: InitModelEntry): string | undefined {
+function addPlugin(top: CST.BlockMap, plugin: PluginEntry): boolean {
+  const plugins = pairOf(top, 'plugins')
+  if (plugins === undefined) return graft(top, stringify({ plugins: [plugin] }))
+  if (plugins.value?.type !== 'block-seq') return false
+  return graft(plugins.value, stringify([plugin]))
+}
+
+function tokenEdit(
+  text: string,
+  entry: InitModelEntry,
+  plugin: PluginEntry | undefined,
+): string | undefined {
   const tokens = [...new Parser().parse(text)]
   const documents = tokens.filter((token) => token.type === 'document')
   const [document] = documents
   if (documents.length !== 1 || document?.value?.type !== 'block-map') return undefined
   const top = document.value
   if (!setModelEntry(top, entry) || !setUseLlm(top, entry.name)) return undefined
+  if (plugin !== undefined && !addPlugin(top, plugin)) return undefined
   return tokens.map((token) => CST.stringify(token)).join('')
 }
 
@@ -195,13 +233,15 @@ function sameConfig(a: string, b: string): boolean {
 }
 
 // parseDocument decides and checks the edit; the token edit is written only when it reads the same.
+// A subscription model also declares the subscription plugin.
 export function configWithModelEntry(
   text: string,
   given: string,
   entry: InitModelEntry,
-  _options: { subscription: boolean },
+  options: { subscription: boolean },
 ): string {
-  const edited = checked(documentEdit(text, given, entry), given)
-  const kept = tokenEdit(text, entry)
+  const edit = documentEdit(text, given, entry, options.subscription)
+  const edited = checked(edit.text, given)
+  const kept = tokenEdit(text, entry, edit.plugin)
   return kept !== undefined && sameConfig(kept, edited) ? kept : edited
 }
