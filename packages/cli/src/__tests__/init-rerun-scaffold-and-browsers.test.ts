@@ -1,6 +1,14 @@
 // A re-run's browsers and scaffold rows: what pre-checks them, what running them does, and when
 // they are hidden.
-import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  realpathSync,
+  statSync,
+  unlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { join } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 
@@ -299,5 +307,144 @@ describe('--no-browsers on a re-run', () => {
       '--setup browsers asks for Chromium and --no-browsers refuses it; drop one of them.',
     ])
     expect(result.entries).toEqual([])
+  })
+})
+
+const EXAMPLE_FILES = [
+  'tests/examples/komazon-checkout.yaml',
+  'suites/examples.suite.yaml',
+  'scripts/examples/make-shipping-address.mjs',
+] as const
+
+function snapshot(root: string): Record<string, string> {
+  const files: Record<string, string> = {}
+  for (const entry of readdirSync(root, { recursive: true, withFileTypes: true })) {
+    if (!entry.isFile()) continue
+    const path = join(entry.parentPath, entry.name)
+    files[path] = readFileSync(path, 'base64')
+  }
+  return files
+}
+
+describe("a re-run's scaffold row", () => {
+  it('pre-checks the row and names the file when hooks.yaml was deleted', async () => {
+    const project = await initializedProject('rerun-scaffold-hooks-missing')
+    unlinkSync(join(project.root, 'hooks.yaml'))
+
+    const result = await rerun(project, [], asked)
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(labelOf(result.entries, 'scaffold')).toBe('scaffold   hooks.yaml missing')
+    expect(menuOf(result.entries)?.initialValues ?? 'no menu').toContain('scaffold')
+  })
+
+  it("with --yes writes every missing scaffold file and keeps every existing file's bytes", async () => {
+    const project = await initializedProject('rerun-scaffold-writes-missing')
+    const hooks = readFileSync(join(project.root, 'hooks.yaml'), 'utf8')
+    const script = readFileSync(join(project.root, EXAMPLE_FILES[2]), 'utf8')
+    unlinkSync(join(project.root, 'hooks.yaml'))
+    unlinkSync(join(project.root, EXAMPLE_FILES[2]))
+    writeFileSync(join(project.root, EXAMPLE_FILES[0]), 'name: my own checkout\n')
+    writeFileSync(join(project.root, '.env'), 'MY_OWN=1\n')
+    const before = snapshot(project.root)
+
+    const result = await rerun(project, ['--yes', '--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(readFileSync(join(project.root, 'hooks.yaml'), 'utf8')).toBe(hooks)
+    expect(readFileSync(join(project.root, EXAMPLE_FILES[2]), 'utf8')).toBe(script)
+    const after = snapshot(project.root)
+    for (const [path, bytes] of Object.entries(before)) expect(after[path], path).toBe(bytes)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(stepOf(doc, 'scaffold')).toEqual({ name: 'scaffold', outcome: 'done' })
+    expect(doc.files.filter((file) => file.step === 'scaffold')).toEqual([
+      { path: 'hooks.yaml', outcome: 'created', step: 'scaffold' },
+      { path: EXAMPLE_FILES[2], outcome: 'created', step: 'scaffold' },
+    ])
+  })
+
+  it('leaves the row unchecked when only examples and knowledge docs are missing', async () => {
+    const project = await initializedProject('rerun-scaffold-examples-missing')
+    for (const path of EXAMPLE_FILES) unlinkSync(join(project.root, path))
+    unlinkSync(join(project.root, 'agent-qa-knowledge', 'README.md'))
+    unlinkSync(join(project.root, 'agent-qa-knowledge', 'policies', 'global.md'))
+
+    const result = await rerun(project, [], asked)
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(labelOf(result.entries, 'scaffold')).toBe('scaffold   nothing needed is missing')
+    expect(menuOf(result.entries)?.initialValues ?? 'no menu').not.toContain('scaffold')
+    for (const path of EXAMPLE_FILES) expect(existsSync(join(project.root, path))).toBe(false)
+  })
+
+  it('checked, writes the deleted examples and knowledge docs back', async () => {
+    const project = await initializedProject('rerun-scaffold-examples-back')
+    const readme = join(project.root, 'agent-qa-knowledge', 'README.md')
+    const texts = EXAMPLE_FILES.map((path) => readFileSync(join(project.root, path), 'utf8'))
+    const readmeText = readFileSync(readme, 'utf8')
+    for (const path of EXAMPLE_FILES) unlinkSync(join(project.root, path))
+    unlinkSync(readme)
+
+    const result = await rerun(project, ['--setup', 'scaffold'])
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(EXAMPLE_FILES.map((path) => readFileSync(join(project.root, path), 'utf8'))).toEqual(
+      texts,
+    )
+    expect(readFileSync(readme, 'utf8')).toBe(readmeText)
+    expect(result.entries).toContainEqual({ kind: 'done', text: 'scaffold: wrote 4 files' })
+  })
+
+  it('reads the hooks file the config points at, and writes the scaffold hooks there', async () => {
+    const project = await initializedProject('rerun-scaffold-custom-hooks')
+    const hooks = readFileSync(join(project.root, 'hooks.yaml'), 'utf8')
+    editConfig(project.root, (doc) => {
+      doc.setIn(['workspace', 'hooksFile'], 'hooks/custom.yaml')
+    })
+
+    const menu = await rerun(project, [], { ...asked, answers: { [SETUP_MENU_QUESTION]: [] } })
+    const result = await rerun(project, ['--yes'])
+
+    expect(menu.exit, menu.stderr).toBe(0)
+    expect(labelOf(menu.entries, 'scaffold')).toBe('scaffold   hooks/custom.yaml missing')
+    expect(menuOf(menu.entries)?.initialValues ?? 'no menu').toContain('scaffold')
+    expect(result.exit, result.stderr).toBe(0)
+    expect(readFileSync(join(project.root, 'hooks', 'custom.yaml'), 'utf8')).toBe(hooks)
+    expect(readFileSync(join(project.root, 'hooks.yaml'), 'utf8')).toBe(hooks)
+  })
+
+  it('writes a missing .env.secrets.local readable by its owner only', async () => {
+    const project = await initializedProject('rerun-scaffold-secrets')
+    unlinkSync(join(project.root, '.env.secrets.local'))
+
+    const result = await rerun(project, ['--yes'])
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(statSync(join(project.root, '.env.secrets.local')).mode & 0o777).toBe(0o600)
+    expect(result.entries).toContainEqual({
+      kind: 'done',
+      text: 'scaffold: wrote .env.secrets.local',
+    })
+  })
+
+  it('counts the needed files that are missing', async () => {
+    const project = await initializedProject('rerun-scaffold-counts')
+    unlinkSync(join(project.root, '.env'))
+    unlinkSync(join(project.root, 'agent-qa-knowledge', '.gitignore'))
+
+    const result = await rerun(project, [], asked)
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(labelOf(result.entries, 'scaffold')).toBe('scaffold   2 needed files missing')
+  })
+
+  it('says nothing missing and leaves the row unchecked after a fresh init', async () => {
+    const project = await initializedProject('rerun-scaffold-current')
+
+    const result = await rerun(project, [], asked)
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(labelOf(result.entries, 'scaffold')).toBe('scaffold   nothing missing')
+    expect(menuOf(result.entries)?.initialValues ?? 'no menu').not.toContain('scaffold')
   })
 })
