@@ -83,7 +83,6 @@ import {
   preselectedModel,
   resolveLlmFlag,
   type InitModelPick,
-  type InitModelStatus,
 } from './init-model-choice.js'
 import { DASHBOARD_COMMAND, initNextSteps, nextStepLines } from './init-next-steps.js'
 import {
@@ -1256,8 +1255,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         })
         stepRunner = runner
         steps = () => runner.records()
-        let status: InitModelStatus = { status: 'pending' }
-        let pluginInstalled = false
         const packageJsonStep = await runner.run(
           'package-json',
           { title: 'Writing package.json' },
@@ -1323,8 +1320,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             )
           }
         }
-        pluginInstalled = subscriptionPluginInstalled()
-        status = await modelStatus({
+        const pluginInstalled = subscriptionPluginInstalled()
+        const status = await modelStatus({
           ...modelSetup,
           configPath,
           projectDir: dir,
