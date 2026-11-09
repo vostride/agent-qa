@@ -299,7 +299,8 @@ function handOffArgs(
     ...(opts.yes === true ? ['--yes'] : []),
     ...(opts.pm === undefined ? [] : ['--pm', opts.pm]),
     ...(opts.dashboard === false ? ['--no-dashboard'] : []),
-    ...(opts.browsers === false ? ['--no-browsers'] : []),
+    // A browsers row checked in the menu wins; the new copy refuses it with --no-browsers.
+    ...(opts.browsers === false && !rows.includes('browsers') ? ['--no-browsers'] : []),
   ]
 }
 

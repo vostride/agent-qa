@@ -276,6 +276,20 @@ describe("the re-run's upgrade row moves the project to a newer agent-qa patch",
     expect(result.stdout).toBe('')
   })
 
+  it('passes on browsers checked in the menu without --no-browsers, which the new copy refuses with it', async () => {
+    const project = await initializedProject('upgrade-browsers-checked')
+    const run = upgradeMachine('0.3.2')
+
+    const result = await rerun(project, ['--no-browsers'], {
+      run,
+      hooks: { isTTY: true, latestVersion: answering('0.3.2') },
+      answers: { [SETUP_MENU_QUESTION]: ['upgrade', 'browsers'] },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(childOf(run)?.args.slice(1)).toEqual(['init', '--setup', 'browsers', '--agents', 'none'])
+  })
+
   it("exits with the new copy's exit code", async () => {
     const project = await initializedProject('upgrade-child-exit')
     const run = upgradeMachine('0.3.2', { child: { code: 3, signal: null, output: '' } })
