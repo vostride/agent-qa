@@ -12,6 +12,7 @@ import type { FakeInitUiEntry } from './fake-init-ui.js'
 import {
   cleanupTempProjects,
   fakeRunner,
+  tempProject,
   writeInstalledPackage,
   type FakeRunner,
   type RunnerCall,
@@ -406,5 +407,71 @@ describe('an upgrade that can break the config is taken only when named', () => 
     expect(JSON.parse(packageJsonText(project.root)).devDependencies['agent-qa']).toBe('0.4.0')
     expect(childOf(run)?.args.slice(1)).toEqual(['init', '--setup', 'none', '--agents', 'none'])
     expect(childOf(run)?.env.AGENT_QA_UPGRADED_FROM).toBe(PROJECT_VERSION)
+  })
+})
+
+const GUIDE_0_3_TO_0_4 = 'https://vostride.com/docs/agent-qa/migrate/v0-3-to-v0-4'
+
+describe("the re-run's document reports the version move the upgrade row offers", () => {
+  it('names a breaking move with its migration guide when the row is not run', async () => {
+    const project = await initializedProject('upgrade-document-breaking')
+
+    const result = await rerun(project, ['--yes', '--json'], {
+      run: upgradeMachine('0.4.0'),
+      hooks: { latestVersion: answering('0.4.0') },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.upgrade).toEqual({
+      from: PROJECT_VERSION,
+      to: '0.4.0',
+      breaking: true,
+      links: [GUIDE_0_3_TO_0_4],
+      row: 'upgrade',
+    })
+  })
+
+  it('names a patch move with its release notes', async () => {
+    const project = await initializedProject('upgrade-document-patch')
+
+    const result = await rerun(project, ['--setup', 'none', '--json'], {
+      run: upgradeMachine('0.3.2'),
+      hooks: { latestVersion: answering('0.3.2') },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.upgrade).toEqual({
+      from: PROJECT_VERSION,
+      to: '0.3.2',
+      breaking: false,
+      links: ['https://github.com/vostride/agent-qa/releases/tag/v0.3.2'],
+      row: 'upgrade',
+    })
+  })
+
+  it('has no upgrade when nothing newer is published', async () => {
+    const project = await initializedProject('upgrade-document-current')
+
+    const result = await rerun(project, ['--yes', '--json'], {
+      hooks: { latestVersion: answering(PROJECT_VERSION) },
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(JSON.parse(result.stdout)).not.toHaveProperty('upgrade')
+  })
+
+  it('has no upgrade on a fresh init', async () => {
+    const project = tempProject('upgrade-document-fresh')
+
+    const result = await rerun(
+      project,
+      ['--yes', '--json', '--pm', 'none', '--no-browsers', '--agents', 'none', '--llm', 'gemini'],
+      { hooks: { latestVersion: answering('0.4.0') } },
+    )
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(JSON.parse(result.stdout)).not.toHaveProperty('upgrade')
   })
 })
