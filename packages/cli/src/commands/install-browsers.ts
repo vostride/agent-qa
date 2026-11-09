@@ -1,8 +1,8 @@
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process'
-import { createRequire } from 'node:module'
-import { dirname, join } from 'node:path'
+import { join } from 'node:path'
 import { Command } from 'commander'
 import pc from 'picocolors'
+import { resolveWebPlaywrightCoreDir } from './browser-resolver.js'
 
 export interface BrowserInstallSelection {
   all?: boolean
@@ -73,13 +73,8 @@ export function formatInstallBrowsersRetryCommand(selection: BrowserInstallSelec
   return args.join(' ')
 }
 
-export function resolvePlaywrightCoreCli(): string {
-  const require = createRequire(import.meta.url)
-  const webEntry = require.resolve('@vostride/agent-qa-web')
-  const webRequire = createRequire(webEntry)
-  const packagePath = webRequire.resolve('playwright-core/package.json')
-
-  return join(dirname(packagePath), 'cli.js')
+export function resolvePlaywrightCoreCli(fromDir?: string): string {
+  return join(resolveWebPlaywrightCoreDir(fromDir), 'cli.js')
 }
 
 function normalizeSpawnStatus(result: SpawnSyncReturns<Buffer>): number {

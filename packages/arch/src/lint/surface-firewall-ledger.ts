@@ -46,6 +46,12 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'probe builds a run session in-process; relocates with the run-session composition root',
   },
   {
+    file: 'packages/cli/src/commands/browser-resolver.ts',
+    specifier: '@vostride/agent-qa-web',
+    clearedBy: '395',
+    reason: "browser installation and doctor's Chromium check resolve the web package's playwright-core on the host; joins the environment action class",
+  },
+  {
     file: 'packages/cli/src/commands/cache.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',
@@ -140,12 +146,6 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',
     reason: "init's re-run reads the auth store's path from core to report the model's status; joins the config mutation class with init",
-  },
-  {
-    file: 'packages/cli/src/commands/install-browsers.ts',
-    specifier: '@vostride/agent-qa-web',
-    clearedBy: '395',
-    reason: 'browser driver installation is host mutation; joins the environment action class',
   },
   {
     file: 'packages/cli/src/commands/install-mobile-drivers.ts',

@@ -1,3 +1,4 @@
+import { realpathSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join } from 'node:path'
 
@@ -21,9 +22,10 @@ function playwrightCore(executablePath: () => string) {
   return { module: { chromium: { executablePath, launch } }, launch }
 }
 
-// A project's own agent-qa, with its web package and that package's playwright-core.
+// A project's own agent-qa, with its web package and that package's playwright-core. Module
+// resolution answers real paths, so the folder is named by its real path.
 function projectAgentQa(): { agentQaDir: string; playwrightCoreDir: string } {
-  const { root } = tempProject('browser-resolver')
+  const root = realpathSync(tempProject('browser-resolver').root)
   const agentQa = writeInstalledPackage(root, 'agent-qa', '1.2.3', {
     packageJson: { bin: { 'agent-qa': 'cli.js' } },
     files: { 'cli.js': '' },
