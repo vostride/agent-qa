@@ -1,9 +1,16 @@
 // Init's model question, the flags that answer it, the entry it writes and the next steps.
 import { mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
+import { setTimeout as sleep } from 'node:timers/promises'
 import { stripVTControlCharacters } from 'node:util'
 
-import { S_RADIO_ACTIVE, S_RADIO_INACTIVE, S_STEP_ACTIVE, S_STEP_SUBMIT } from '@clack/prompts'
+import {
+  S_BAR_END,
+  S_RADIO_ACTIVE,
+  S_RADIO_INACTIVE,
+  S_STEP_ACTIVE,
+  S_STEP_SUBMIT,
+} from '@clack/prompts'
 import { AgentQaConfigSchema, getAuthPath } from '@vostride/agent-qa-core'
 import { getProvider } from '@vostride/agent-qa-model'
 import { Command } from 'commander'
@@ -94,9 +101,12 @@ interface RailRun {
 }
 
 // The coding agents are given, so the model question is the only one drawn.
-function initOnTheRail(args: readonly string[], store: Record<string, unknown>): RailRun {
+function initOnTheRail(
+  args: readonly string[],
+  store: Record<string, unknown>,
+  streams: ClackStreams = clackStreams(),
+): RailRun {
   const { root, home } = projectWithStore(store)
-  const streams = clackStreams()
   const done = initCommand(root, home, {
     stdinIsTTY: true,
     stdoutIsTTY: true,
@@ -124,6 +134,26 @@ async function pickOnTheRail(downs: number): Promise<RailRun> {
   await run.streams.press(...Array<string>(downs).fill(KEY.down), KEY.enter)
   await run.done
   return run
+}
+
+// The question as a terminal shows it now, from the guide line above it to its └.
+function questionFrame(streams: ClackStreams): string[] {
+  const lines = streams.screen()
+  const at = lines.findIndex((line) => line.includes(MODEL_QUESTION))
+  const end = lines.findIndex((line, index) => index > at && line.startsWith(S_BAR_END))
+  return at < 1 || end < 0 ? [] : lines.slice(at - 1, end + 1)
+}
+
+async function frameWhere(
+  streams: ClackStreams,
+  drawn: (frame: string[]) => boolean,
+): Promise<string[]> {
+  for (let waited = 0; waited < 3000; waited += 10) {
+    const frame = questionFrame(streams)
+    if (drawn(frame)) return frame
+    await sleep(10)
+  }
+  throw new Error(`the question never drew the expected frame:\n${streams.screen().join('\n')}`)
 }
 
 function configText(root: string): string {
@@ -261,6 +291,46 @@ describe('the model question on the rail', () => {
     expect(config.use.llm).toBeUndefined()
     expect(AgentQaConfigSchema.safeParse(config).success).toBe(true)
     expectNoDummySecret(run.root, run.streams.text(), processOutput())
+  })
+})
+
+describe('the model question in a terminal shorter than its list', () => {
+  const TWELVE_GEMINI_KEYS = Object.fromEntries(
+    Array.from({ length: 12 }, (_, index) => [
+      `g${String(index + 1).padStart(2, '0')}`,
+      { type: 'api', provider: 'gemini', key: DUMMY_KEY },
+    ]),
+  )
+
+  it('scrolls to the saved credentials with their heading on the first list line, and Enter takes the row under the cursor', async () => {
+    const streams = clackStreams({ rows: 12 })
+    const run = initOnTheRail(['--platform', 'web'], TWELVE_GEMINI_KEYS, streams)
+    await streams.waitFor(MODEL_QUESTION)
+    await frameWhere(streams, (frame) =>
+      frame.some((line) => line.includes(S_RADIO_ACTIVE) && line.includes('g01 (')),
+    )
+    await streams.press(...Array<string>(6).fill(KEY.down))
+    const frame = await frameWhere(streams, (lines) =>
+      lines.some((line) => line.includes(S_RADIO_ACTIVE) && line.includes('g07 (')),
+    )
+    await streams.press(KEY.enter)
+    await run.done
+
+    expect(frame.length).toBeLessThan(12)
+    const question = frame.findIndex((line) => line.includes(MODEL_QUESTION))
+    expect(frame[question]?.startsWith(S_STEP_ACTIVE)).toBe(true)
+    expect(frame[question + 1]).toContain('Saved on this machine (12)')
+    expect(frame.some((line) => line.includes('Connect a new model'))).toBe(false)
+    const active = frame.filter((line) => line.includes(S_RADIO_ACTIVE))
+    expect(active).toHaveLength(1)
+    expect(active[0]).toContain('g07 (')
+
+    const config = writtenConfig(run.root)
+    expect(config.registry.llms).toEqual([
+      { name: 'g07', provider: 'gemini', model: registryDefault('gemini') },
+    ])
+    expect(config.use.llm).toBe('g07')
+    expectNoDummySecret(run.root, streams.text(), processOutput())
   })
 })
 
@@ -577,8 +647,6 @@ describe('the example secret line', () => {
     }).parseAsync(['node', 'test', 'init', ...WEB, '--force', '--no-dashboard'])
 
     const lines = stripVTControlCharacters(streams.text()).split('\n')
-    expect(lines.filter((line) => line.includes('KOMAZON_PASSWORD'))).toEqual([
-      EXAMPLE_SECRET_LINE,
-    ])
+    expect(lines.filter((line) => line.includes('KOMAZON_PASSWORD'))).toEqual([EXAMPLE_SECRET_LINE])
   })
 })

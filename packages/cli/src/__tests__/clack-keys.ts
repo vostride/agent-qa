@@ -12,19 +12,23 @@ export const KEY = {
   escape: '\x1b',
 } as const
 
-export type ClackOutput = Writable & { isTTY: boolean; columns: number }
+export type ClackOutput = Writable & { isTTY: boolean; columns: number; rows?: number }
 
 export interface ClackStreams {
   input: PassThrough
   output: ClackOutput
   text(): string
+  // What a terminal shows now: everything written, replayed with Clack's cursor and erase codes.
+  screen(): string[]
   // Each key is written after a short tick, so the prompt has drawn and is listening.
   press(...keys: string[]): Promise<void>
   waitFor(expected: string, timeoutMs?: number): Promise<void>
 }
 
 // Real Clack prompts read the input and draw on the output, as they would on a terminal.
-export function clackStreams(options: { columns?: number; isTTY?: boolean } = {}): ClackStreams {
+export function clackStreams(
+  options: { columns?: number; rows?: number; isTTY?: boolean } = {},
+): ClackStreams {
   const input = new PassThrough()
   let written = ''
   const output = Object.assign(
@@ -34,12 +38,17 @@ export function clackStreams(options: { columns?: number; isTTY?: boolean } = {}
         done()
       },
     }),
-    { isTTY: options.isTTY ?? true, columns: options.columns ?? 100 },
+    {
+      isTTY: options.isTTY ?? true,
+      columns: options.columns ?? 100,
+      ...(options.rows === undefined ? {} : { rows: options.rows }),
+    },
   )
   return {
     input,
     output,
     text: () => written,
+    screen: () => replay(written),
     press: async (...keys) => {
       for (const key of keys) {
         await sleep(20)
@@ -55,6 +64,81 @@ export function clackStreams(options: { columns?: number; isTTY?: boolean } = {}
       }
     },
   }
+}
+
+// SGR and the cursor's show and hide change nothing on the grid; other escapes are skipped.
+function replay(written: string): string[] {
+  const lines: string[][] = [[]]
+  let row = 0
+  let column = 0
+  const lineAt = (at: number): string[] => {
+    while (lines.length <= at) lines.push([])
+    return lines[at]!
+  }
+  const csi = (params: string, final: string): void => {
+    const count = Math.max(1, Number.parseInt(params, 10) || 1)
+    switch (final) {
+      case 'A':
+        row = Math.max(0, row - count)
+        break
+      case 'B':
+        row += count
+        break
+      case 'C':
+        column += count
+        break
+      case 'D':
+        column = Math.max(0, column - count)
+        break
+      case 'G':
+        column = count - 1
+        break
+      case 'K':
+        if (params === '2') lineAt(row).length = 0
+        else lineAt(row).splice(column)
+        break
+      case 'J':
+        lineAt(row).splice(column)
+        lines.length = row + 1
+        break
+    }
+  }
+  const characters = [...written]
+  for (let index = 0; index < characters.length; index += 1) {
+    const character = characters[index]!
+    if (character === '\x1b') {
+      const next = characters[index + 1]
+      if (next === '[') {
+        let end = index + 2
+        while (end < characters.length && !/[@-~]/u.test(characters[end]!)) end += 1
+        csi(characters.slice(index + 2, end).join(''), characters[end] ?? '')
+        index = end
+      } else if (next === ']') {
+        let end = index + 2
+        while (
+          end < characters.length &&
+          characters[end] !== '\x07' &&
+          characters[end] !== '\x1b'
+        ) {
+          end += 1
+        }
+        index = characters[end] === '\x1b' ? end + 1 : end
+      } else {
+        index += 1
+      }
+    } else if (character === '\n') {
+      row += 1
+      column = 0
+    } else if (character === '\r') {
+      column = 0
+    } else if (character >= ' ') {
+      const line = lineAt(row)
+      while (line.length < column) line.push(' ')
+      line[column] = character
+      column += 1
+    }
+  }
+  return lines.map((line) => line.join('').trimEnd())
 }
 
 export interface AnsweringTerminal {
