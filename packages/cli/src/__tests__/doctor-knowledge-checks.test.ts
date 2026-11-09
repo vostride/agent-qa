@@ -170,7 +170,7 @@ describe('createKnowledgeChecks', () => {
       expect(store.status).toBe('fail')
       expect(store.message).toBe(`index at ${indexPath} could not be opened: ${reason}`)
       expect(store.message).not.toContain('SQLITE_NOTADB')
-      expect(checks[0].fixInstructions).toContain('agent-qa knowledge rebuild-index')
+      expect(checks[0].fixInstructions).toContain('`npx agent-qa knowledge rebuild-index`')
       expect(rung.status).toBe('warn')
     },
   )

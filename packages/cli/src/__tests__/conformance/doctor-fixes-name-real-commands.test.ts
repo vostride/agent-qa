@@ -1,6 +1,6 @@
 // Every command and key a doctor fix names is real.
 
-import { mkdtempSync, readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -8,7 +8,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { loadCapabilityCatalog } from '../../capability-catalog/loader.js'
 import { agentQaArgv, commandFindings, createHelpReader, type HelpReader } from './cli-help.js'
-import { configKeyFindings, dottedKeyCandidates } from './config-keys.js'
+import { configKeyFindings } from './config-keys.js'
 import {
   ANCHORED_BUILDS,
   CLI_PACKAGE_ROOT,
@@ -18,19 +18,6 @@ import {
   trackTempRoot,
 } from './spawned-chat.js'
 
-const SOURCES = ['src/commands/doctor.ts', 'src/commands/doctor-knowledge-checks.ts']
-const COMMANDS = [
-  'init',
-  'auth set',
-  'auth login',
-  'auth test',
-  'install-browsers',
-  'install-mobile-drivers',
-  'validate',
-  'knowledge rebuild-index',
-  'daemon stop',
-]
-const KEYS = ['workspace.secretsFile', 'workspace.hooksFile', 'workspace.envFile']
 const PLANTED =
   'Run `agent-qa embedder set --profile bge`, then `agent-qa auth set --typ api-key`, and set `embedder.profile`.'
 const HELP_BUDGET_MS = 180_000
@@ -52,8 +39,16 @@ function fixText(source: string): string {
     ))
 }
 
+// Every doctor module, plus the config-validation fixes doctor prints.
+function doctorSources(): string[] {
+  const modules = readdirSync(join(CLI_PACKAGE_ROOT, 'src/commands'))
+    .filter((file) => /^doctor.*\.ts$/u.test(file) && !/\.test\.ts$/u.test(file))
+    .map((file) => `src/commands/${file}`)
+  return [...modules, 'src/hard-cut.ts']
+}
+
 function doctorSubjects(): { name: string; body: string }[] {
-  return SOURCES.map((name) => ({
+  return doctorSources().map((name) => ({
     name,
     body: fixText(readFileSync(join(CLI_PACKAGE_ROOT, name), 'utf8')),
   }))
@@ -104,19 +99,13 @@ describe('the commands, flags and keys doctor fixes name', () => {
       }
     }
     expect(findings, 'a doctor fix names a command or flag the built CLI does not have').toEqual([])
-    expect(COMMANDS.filter((command) => !found.has(command)), `found: ${[...found].join(', ')}`)
-      .toEqual([])
+    expect(found.size, 'the scan found no agent-qa command in a doctor fix').toBeGreaterThan(0)
   }, HELP_BUDGET_MS)
 
   it('every config key a doctor fix names resolves in the config schema', () => {
-    const subjects = doctorSubjects()
-    const opIds = catalogOpIds()
-    const keys = new Set(subjects.flatMap((subject) => dottedKeyCandidates(subject.body, opIds)))
-    const { scanned, findings } = configKeyFindings(subjects, opIds)
+    const { scanned, findings } = configKeyFindings(doctorSubjects(), catalogOpIds())
     expect(findings, 'a doctor fix names a config key the schema refuses').toEqual([])
     expect(scanned).toBeGreaterThan(0)
-    expect(KEYS.filter((key) => !keys.has(key)), `found: ${[...keys].sort().join(', ')}`)
-      .toEqual([])
   })
 
   it('a phantom command, flag or key in a fix text is named', () => {

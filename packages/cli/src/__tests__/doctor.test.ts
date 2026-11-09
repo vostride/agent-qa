@@ -228,7 +228,7 @@ const CONTINUATION_PATTERN = /^ {6}\S/
 const MEASURED_INDEX_PATH = 'agent-qa-knowledge/memory/index/knowledge.db'
 const MEASURED_FAIL_MESSAGE = `index at ${MEASURED_INDEX_PATH} could not be opened: corrupt`
 const MEASURED_FIX_INSTRUCTIONS =
-  'Rebuild the index with `agent-qa knowledge rebuild-index`, or remove the corrupt file at '
+  'Rebuild the index with `npx agent-qa knowledge rebuild-index`, or remove the corrupt file at '
   + `${MEASURED_INDEX_PATH} and re-run.`
 
 // The one-line row template (`padDots` to 60 columns), written out so the bytes are visible.
@@ -370,6 +370,7 @@ describe('doctor command', () => {
     const output = getOutput()
     expect(output).toContain('not found')
     expect(output).toContain('WARN')
+    expect(fixUnder('Config file')).toContain('`npx agent-qa init`')
   })
 
   it('warns with the resolved path when legacy v1 memory data exists', async () => {
@@ -773,7 +774,7 @@ use:
     const output = getOutput()
     // Should show Playwright not installed
     expect(output).toContain('Playwright')
-    expect(fixUnder('Playwright')).toContain('agent-qa install-browsers --chromium')
+    expect(fixUnder('Playwright')).toContain('`npx agent-qa install-browsers --chromium`')
     expect(fixUnder('Playwright')).not.toContain('agent-qa init')
     expect(output).not.toContain('npx playwright install')
   })
@@ -895,7 +896,7 @@ use:
 
     const output = getOutput()
     expect(output).toContain('no drivers installed')
-    expect(output).toContain('agent-qa install-mobile-drivers --all')
+    expect(output).toContain('`npx agent-qa install-mobile-drivers --all`')
     expect(output).not.toContain('appium driver install uiautomator2')
   })
 
@@ -923,7 +924,7 @@ targets:
 
     const output = getOutput()
     expect(output).toContain('Install Appium locally with `npm install -D appium`')
-    expect(output).toContain('agent-qa install-mobile-drivers --all')
+    expect(output).toContain('`npx agent-qa install-mobile-drivers --all`')
   })
 
   it('Android SDK check validates ANDROID_HOME', async () => {
@@ -1192,6 +1193,17 @@ use:
     await runDoctor(undefined, ...args)
   }
 
+  it('a project with validation errors fails the Validate row with npx agent-qa validate as its fix', async () => {
+    vi.mocked(core.validateProject).mockResolvedValueOnce(
+      { errorCount: 2, warningCount: 0, fileCount: 5, results: [] } as never,
+    )
+
+    await runHealthyHost()
+
+    expect(rowFor('Validate')).toContain('FAIL')
+    expect(fixUnder('Validate')).toContain('`npx agent-qa validate`')
+  })
+
   it('prints three rows between Legacy v1 memory data and Config validation, store then embedder then rung', async () => {
     await runHealthyHost()
 
@@ -1344,7 +1356,7 @@ use:
 
     expect(rowFor('Knowledge store')).toContain('could not be opened: corrupt')
     expect(rowFor('Knowledge store')).toContain('FAIL')
-    expect(getOutput()).toContain('Fix: Rebuild the index with `agent-qa knowledge rebuild-index`')
+    expect(getOutput()).toContain('Fix: Rebuild the index with `npx agent-qa knowledge rebuild-index`')
     expect(rowFor('Retrieval rung')).not.toContain('FAIL')
     expect(process.exitCode).toBe(3)
   })
@@ -1755,7 +1767,7 @@ describe('the LLM auth rows', () => {
     expect((await row.check()).status).toBe('warn')
     expect(row.fixInstructions).toBe(
       'Run `npx agent-qa plugins add @vostride/agent-qa-subscription-auth`, then run '
-        + '`agent-qa auth login --config claude-code`',
+        + '`npx agent-qa auth login --config claude-code`',
     )
     expect(row.fixInstructions).not.toContain('npm install')
   })
@@ -1773,7 +1785,7 @@ describe('the LLM auth rows', () => {
 
     expect(row.fixInstructions).toBe(
       'Run `npx agent-qa --config staging.yaml plugins add @vostride/agent-qa-subscription-auth`, '
-        + 'then run `agent-qa auth login --config claude-code`',
+        + 'then run `npx agent-qa auth login --config claude-code`',
     )
   })
 
@@ -2048,8 +2060,8 @@ describe('doctor row renderer', () => {
     for (const line of row.continuations) expect(line.startsWith('      ')).toBe(true)
   })
 
-  it('wraps the measured 156-column Fix line with a hanging indent, keeping its six-space prefix', () => {
-    expect(`      Fix: ${MEASURED_FIX_INSTRUCTIONS}`).toHaveLength(156)
+  it('wraps the measured 160-column Fix line with a hanging indent, keeping its six-space prefix', () => {
+    expect(`      Fix: ${MEASURED_FIX_INSTRUCTIONS}`).toHaveLength(160)
 
     const lines = formatFixLines(MEASURED_FIX_INSTRUCTIONS, 80)
 

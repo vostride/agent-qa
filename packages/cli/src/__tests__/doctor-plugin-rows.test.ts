@@ -420,7 +420,7 @@ describe("doctor's plugin rows", () => {
     ])
     expect(pluginRows[0]?.message).toContain(`${FIRST_PARTY}, first-party, version`)
     expect(pluginRows[0]).not.toHaveProperty('fix')
-    expect(pluginRows[1]?.fix).toEqual(expect.any(String))
+    expect(pluginRows[1]?.fix).toContain('`npx agent-qa plugins describe <name>`')
     expect(result.format).toBe(1)
     expect(result).not.toHaveProperty('checks')
     expect(result.rows.some((row) => row.name === 'Node.js')).toBe(true)
