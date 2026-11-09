@@ -37,6 +37,14 @@ export interface InitDocumentLatest {
   version?: string
 }
 
+export interface InitDocumentUpgrade {
+  from: string
+  to: string
+  breaking: boolean
+  links: string[]
+  row: 'upgrade' | 'deps'
+}
+
 export interface InitDocument {
   format: 1
   outcome: 'done' | 'failed' | 'refused' | 'interrupted'
@@ -49,6 +57,8 @@ export interface InitDocument {
   agentQa?: { version: string; via: 'in-process' | 'project' | 'running' }
   // Only a re-run asks for the latest agent-qa.
   latest?: InitDocumentLatest
+  // Only a re-run that offers or finished a version move reports one.
+  upgrade?: InitDocumentUpgrade
   plugins: { package: string; version: string }[]
   model?: InitDocumentModel
   // Only a re-run has a setup menu.
@@ -72,6 +82,7 @@ export interface InitDocumentRecorder {
   packageManager(name: string): void
   agentQa(agentQa: NonNullable<InitDocument['agentQa']>): void
   latest(latest: InitDocumentLatest): void
+  upgrade(upgrade: InitDocumentUpgrade): void
   plugins(plugins: readonly { package: string; version: string }[]): void
   model(model: InitDocumentModel): void
   setup(rows: readonly InitDocumentSetupRow[]): void
@@ -133,6 +144,7 @@ export function createInitDocumentRecorder({ dir }: { dir: string }): InitDocume
   let packageManager: string | undefined
   let agentQa: InitDocument['agentQa']
   let latest: InitDocumentLatest | undefined
+  let upgrade: InitDocumentUpgrade | undefined
   let plugins: InitDocument['plugins'] = []
   let model: InitDocumentModel | undefined
   let setup: InitDocumentSetupRow[] | undefined
@@ -164,6 +176,15 @@ export function createInitDocumentRecorder({ dir }: { dir: string }): InitDocume
         ...(value.version === undefined ? {} : { version: value.version }),
       }
     },
+    upgrade(value) {
+      upgrade = {
+        from: value.from,
+        to: value.to,
+        breaking: value.breaking,
+        links: [...value.links],
+        row: value.row,
+      }
+    },
     plugins(list) {
       plugins = list.map((plugin) => ({ package: plugin.package, version: plugin.version }))
     },
@@ -192,6 +213,7 @@ export function createInitDocumentRecorder({ dir }: { dir: string }): InitDocume
         ...(packageManager === undefined ? {} : { packageManager }),
         ...(agentQa === undefined ? {} : { agentQa }),
         ...(latest === undefined ? {} : { latest }),
+        ...(upgrade === undefined ? {} : { upgrade: { ...upgrade, links: [...upgrade.links] } }),
         plugins: [...plugins],
         ...(model === undefined ? {} : { model }),
         ...(setup === undefined ? {} : { setup: setup.map((row) => ({ ...row })) }),

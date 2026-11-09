@@ -378,6 +378,9 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   const latest = await latestAnswer
   input.recorder.latest(latest)
   const upgrade = upgradeRow(input, copy, latest)
+  if (upgrade.shown && upgrade.move !== undefined) {
+    input.recorder.upgrade({ ...upgrade.move, row: 'upgrade' })
+  }
   rows = [upgrade, ...rows]
   const summary = [
     ...versionLines(input, copy, latest),
