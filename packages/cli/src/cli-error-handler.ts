@@ -5,12 +5,15 @@ import { printRunText, type RunTextEnv } from '@vostride/agent-qa-core/run-text-
 
 import { CANCELLED_LINE, CliRefusal, isPromptCancel } from './composition/cli-refusal.js'
 import { createDeclaredSecretMask } from './composition/declared-secrets.js'
+import { errorReporter, settleReporting } from './composition/error-reporting.js'
 
 export interface CliFailureDeps {
   readonly print: (text: string) => void
   readonly printFixed: (line: string) => void
   readonly mask: (text: string) => string
   readonly setExitCode: (code: number) => void
+  readonly capture: (error: unknown) => void
+  readonly settle: () => Promise<void>
   readonly flush: () => Promise<void>
   readonly exit: (code: number) => void
   readonly env: RunTextEnv
@@ -43,6 +46,10 @@ export function defaultCliFailureDeps(program: Command): CliFailureDeps {
     setExitCode: (code) => {
       process.exitCode = code
     },
+    capture: (error) => {
+      errorReporter()?.capture(error)
+    },
+    settle: () => settleReporting(),
     flush: async () => {
       await Promise.all([drain(process.stdout), drain(process.stderr)])
     },
@@ -80,10 +87,16 @@ export async function runCli(
     await program.parseAsync(argv)
   } catch (error) {
     const code = reportCliFailure(error, deps)
-    // The code is set before the flush, so a rejection that lands while the process is already
-    // exiting still leaves it.
+    // The code is set before the settle and the flush, so a rejection that lands while the process
+    // is already exiting still leaves it.
     deps.setExitCode(code)
+    // What exits 130 is a cancellation, not an error.
+    if (code !== 130) deps.capture(error)
+    await deps.settle()
     await deps.flush()
     deps.exit(code)
+    return
   }
+  // No exit on success: dashboard and serve return while they serve.
+  await deps.settle()
 }

@@ -300,6 +300,8 @@ function failureDeps() {
     printFixed: () => {},
     mask: (text: string) => text,
     setExitCode: () => {},
+    capture: () => {},
+    settle: async () => {},
     flush: async () => {},
     exit: () => {},
     env: {},

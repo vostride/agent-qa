@@ -4,20 +4,31 @@ import { join } from 'node:path'
 
 import { reserveStdoutForData, type RunTextEnv } from '@vostride/agent-qa-core/run-text-output'
 import { Command } from 'commander'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { defaultCliFailureDeps, runCli, type CliFailureDeps } from '../cli-error-handler.js'
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
+import { closeErrorReporting, startErrorReporting } from '../composition/error-reporting.js'
+import {
+  projectWithPrivacy,
+  recordingReportTransport,
+  removeReportProjects,
+  serializedEnvelopes,
+} from './error-report-recorder.js'
+import type { RecordedEnvelope, RecordingReportTransport } from './error-report-recorder.js'
 
 const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
 const FRAME = /^\s+at /m
 const SECRET = 'Hunter-42-zz'
+const INVENTED_DSN = 'http://key@127.0.0.1:9/1'
 
 const folders: string[] = []
 
-afterEach(() => {
+afterEach(async () => {
   vi.unstubAllEnvs()
   vi.restoreAllMocks()
+  await closeErrorReporting()
+  removeReportProjects()
   for (const folder of folders.splice(0)) rmSync(folder, { recursive: true, force: true })
 })
 
@@ -25,6 +36,7 @@ interface Recorded {
   readonly events: string[]
   readonly printed: string[]
   readonly fixed: string[]
+  readonly captured: unknown[]
   readonly deps: CliFailureDeps
 }
 
@@ -32,6 +44,7 @@ function recorded(env: RunTextEnv = {}): Recorded {
   const events: string[] = []
   const printed: string[] = []
   const fixed: string[] = []
+  const captured: unknown[] = []
   const deps: CliFailureDeps = {
     print: (text) => {
       printed.push(text)
@@ -43,6 +56,13 @@ function recorded(env: RunTextEnv = {}): Recorded {
     setExitCode: (code) => {
       events.push(`code ${code}`)
     },
+    capture: (error) => {
+      events.push('capture')
+      captured.push(error)
+    },
+    settle: async () => {
+      events.push('settle')
+    },
     flush: async () => {
       events.push('flush')
     },
@@ -51,7 +71,7 @@ function recorded(env: RunTextEnv = {}): Recorded {
     },
     env,
   }
-  return { events, printed, fixed, deps }
+  return { events, printed, fixed, captured, deps }
 }
 
 function programThrowing(thrown: () => unknown): Command {
@@ -117,7 +137,7 @@ describe('the CLI failure handler', () => {
     )
     expect(withLines.printed).toEqual(['\u001B[31mNo tests matched.\u001B[39m\nAdd one.'])
     expect(withLines.printed.join('\n')).not.toMatch(FRAME)
-    expect(withLines.events).toEqual(['code 2', 'flush', 'exit 2'])
+    expect(withLines.events).toEqual(['code 2', 'capture', 'settle', 'flush', 'exit 2'])
 
     const silent = recorded()
     await drive(
@@ -125,14 +145,14 @@ describe('the CLI failure handler', () => {
       silent.deps,
     )
     expect(silent.printed).toEqual([])
-    expect(silent.events).toEqual(['code 2', 'flush', 'exit 2'])
+    expect(silent.events).toEqual(['code 2', 'capture', 'settle', 'flush', 'exit 2'])
 
     const zero = recorded()
     await drive(
       programThrowing(() => new CliRefusal(['Refused.'], 0)),
       zero.deps,
     )
-    expect(zero.events).toEqual(['code 1', 'flush', 'exit 1'])
+    expect(zero.events).toEqual(['code 1', 'capture', 'settle', 'flush', 'exit 1'])
   })
 
   it('a bug prints Unexpected error with its stack frames and exits 1, and a thrown value prints as text', async () => {
@@ -146,7 +166,7 @@ describe('the CLI failure handler', () => {
     expect(first).toBe("Unexpected error: Cannot read properties of undefined (reading 'x')")
     expect(rest.length).toBeGreaterThan(0)
     for (const line of rest) expect(line).toMatch(FRAME)
-    expect(bug.events).toEqual(['code 1', 'flush', 'exit 1'])
+    expect(bug.events).toEqual(['code 1', 'capture', 'settle', 'flush', 'exit 1'])
 
     const text = recorded()
     await drive(
@@ -154,10 +174,10 @@ describe('the CLI failure handler', () => {
       text.deps,
     )
     expect(text.printed).toEqual(['Unexpected error: plain words'])
-    expect(text.events).toEqual(['code 1', 'flush', 'exit 1'])
+    expect(text.events).toEqual(['code 1', 'capture', 'settle', 'flush', 'exit 1'])
   })
 
-  it('a cancelled prompt prints Cancelled. and exits 130', async () => {
+  it('a cancelled prompt prints Cancelled., is not captured, and exits 130', async () => {
     for (const cancel of [
       () =>
         Object.assign(new Error('User force closed the prompt with SIGINT'), {
@@ -169,27 +189,49 @@ describe('the CLI failure handler', () => {
       await drive(programThrowing(cancel), outcome.deps)
       expect(outcome.fixed).toEqual(['Cancelled.'])
       expect(outcome.printed).toEqual([])
-      expect(outcome.events).toEqual(['code 130', 'flush', 'exit 130'])
+      expect(outcome.events).toEqual(['code 130', 'settle', 'flush', 'exit 130'])
+      expect(outcome.captured).toEqual([])
     }
   })
 
-  it('the exit code is set before the flush and the exit follows it, and a command that resolves reaches none of them', async () => {
-    const failing = recorded()
+  it('a refusal that exits 130 prints its lines and is not captured', async () => {
+    const outcome = recorded()
     await drive(
-      programThrowing(() => new CliRefusal(['Refused.'], 3)),
-      failing.deps,
+      programThrowing(() => new CliRefusal(['Stopped by a signal.'], 130)),
+      outcome.deps,
     )
-    expect(failing.events).toEqual(['code 3', 'flush', 'exit 3'])
+    expect(outcome.printed).toEqual(['Stopped by a signal.'])
+    expect(outcome.events).toEqual(['code 130', 'settle', 'flush', 'exit 130'])
+    expect(outcome.captured).toEqual([])
+  })
 
+  it('the exit code is set first, then the thrown error itself is captured and settled, and the exit follows the flush', async () => {
+    for (const [thrown, code] of [
+      [new CliRefusal(['Refused.'], 3), 3],
+      [new TypeError('a bug'), 1],
+    ] as const) {
+      const failing = recorded()
+      await drive(
+        programThrowing(() => thrown),
+        failing.deps,
+      )
+      expect(failing.events).toEqual([`code ${code}`, 'capture', 'settle', 'flush', `exit ${code}`])
+      expect(failing.captured).toHaveLength(1)
+      expect(failing.captured[0]).toBe(thrown)
+    }
+  })
+
+  it('a command that resolves settles once and is neither flushed nor exited', async () => {
     const passing = recorded()
     await drive(
       programThrowing(() => new Error('unused')),
       passing.deps,
       ['fine'],
     )
-    expect(passing.events).toEqual([])
+    expect(passing.events).toEqual(['settle'])
     expect(passing.printed).toEqual([])
     expect(passing.fixed).toEqual([])
+    expect(passing.captured).toEqual([])
   })
 
   it('under GitHub Actions a block gets one stop-commands pair on stdout, on stderr when stdout is reserved, and prints unchanged without it', async () => {
@@ -265,5 +307,119 @@ describe('the CLI failure handler', () => {
       'boom',
     ])
     expect(outcome.printed).toEqual([`Login failed for ${SECRET}.`])
+  })
+})
+
+interface ReportedEvent {
+  readonly exception?: {
+    readonly values?: ReadonlyArray<{
+      readonly value?: string
+      readonly stacktrace?: { readonly frames?: readonly unknown[] }
+    }>
+  }
+}
+
+// Read back from the JSON text, as an envelope leaves the process. The thrown error is the last
+// exception value, after any cause.
+function reportedErrors(
+  envelopes: readonly RecordedEnvelope[],
+): Array<{ readonly message: string; readonly frames: number }> {
+  const parsed = JSON.parse(serializedEnvelopes(envelopes)) as Array<
+    [unknown, Array<[{ readonly type?: string }, ReportedEvent]>]
+  >
+  return parsed
+    .flatMap(([, items]) => items)
+    .filter(([header]) => header.type === 'event')
+    .map(([, event]) => event.exception?.values?.at(-1))
+    .map((thrown) => ({
+      message: thrown?.value ?? '',
+      frames: thrown?.stacktrace?.frames?.length ?? 0,
+    }))
+}
+
+describe('reporting from the CLI failure handler', () => {
+  // No cell reads the auth store in the real home folder.
+  beforeEach(() => {
+    const dataHome = mkdtempSync(join(tmpdir(), 'agent-qa-cli-error-handler-'))
+    folders.push(dataHome)
+    vi.stubEnv('XDG_DATA_HOME', dataHome)
+  })
+
+  // The handler's own capture and settle, with only the printer and the process effects recorded.
+  async function runFailing(
+    thrown: () => unknown,
+    options: { readonly recorder: RecordingReportTransport; readonly reporting: boolean },
+  ) {
+    const { configPath } = projectWithPrivacy()
+    if (options.reporting) {
+      await startErrorReporting({
+        configPath,
+        dsn: INVENTED_DSN,
+        transport: options.recorder.transport,
+      })
+    }
+    const program = programThrowing(thrown)
+    const outcome = recorded()
+    const { print, setExitCode, flush, exit } = outcome.deps
+    const before = options.recorder.envelopes.length
+    await drive(program, { ...defaultCliFailureDeps(program), print, setExitCode, flush, exit }, [
+      '--config',
+      configPath,
+      'boom',
+    ])
+    await closeErrorReporting()
+    return { ...outcome, envelopes: options.recorder.envelopes.slice(before) }
+  }
+
+  it('sends a refusal thrown by a command with its message and stack when a reporter is started, and exits 2 with and without one', async () => {
+    const recorder = recordingReportTransport()
+
+    const off = await runFailing(() => new CliRefusal(['nope'], 2), { recorder, reporting: false })
+    const on = await runFailing(() => new CliRefusal(['nope'], 2), { recorder, reporting: true })
+
+    const reported = reportedErrors(on.envelopes)
+    expect(reported.map((error) => error.message)).toEqual(['nope'])
+    expect(reported[0]?.frames ?? 0).toBeGreaterThan(0)
+    expect(off.envelopes).toEqual([])
+    for (const arm of [off, on]) {
+      expect(arm.events).toEqual(['code 2', 'flush', 'exit 2'])
+      expect(arm.printed).toEqual(['nope'])
+      expect(arm.fixed).toEqual([])
+    }
+  })
+
+  it('prints the same lines for a refusal and for a bug with a reporter started as with none, and writes nothing else', async () => {
+    const recorder = recordingReportTransport()
+    const refusal = new CliRefusal(['nope'], 2)
+    const bug = new Error('a bug')
+    const linesByArm: string[][] = []
+    const output = captured()
+    try {
+      for (const reporting of [false, true]) {
+        const lines: string[] = []
+        for (const thrown of [refusal, bug]) {
+          const outcome = await runFailing(() => thrown, { recorder, reporting })
+          lines.push(...outcome.printed, ...outcome.fixed)
+        }
+        linesByArm.push(lines)
+      }
+    } finally {
+      vi.restoreAllMocks()
+    }
+
+    expect(reportedErrors(recorder.envelopes).map((error) => error.message)).toEqual([
+      'nope',
+      'a bug',
+    ])
+    const [off, on] = linesByArm
+    expect(on).toEqual(off)
+    const [refused, failed] = off ?? []
+    expect(refused).toBe('nope')
+    const [first, ...frames] = (failed ?? '').split('\n')
+    expect(first).toBe('Unexpected error: a bug')
+    expect(frames.length).toBeGreaterThan(0)
+    for (const line of frames) expect(line).toMatch(FRAME)
+    expect(output.stdout).toEqual([])
+    expect(output.stderr).toEqual([])
   })
 })

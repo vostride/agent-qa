@@ -176,6 +176,8 @@ async function init(
     printFixed: (line) => printed.push(line),
     mask: (text) => text,
     setExitCode: () => {},
+    capture: () => {},
+    settle: async () => {},
     flush: async () => {},
     exit: (code) => {
       exit = code
