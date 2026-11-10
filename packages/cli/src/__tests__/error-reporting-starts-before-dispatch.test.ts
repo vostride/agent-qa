@@ -115,12 +115,13 @@ function recorded(): Recorded {
 }
 
 // The real starter, whose start hands the reporter an invented DSN and the recording transport,
-// since a source checkout bakes no DSN.
+// since a source checkout bakes no DSN. Its global handlers stay off the test worker.
 function reportingThrough(recorder: RecordingReportTransport): StartReporting {
   return (program, action) =>
     startCliErrorReporting(program, action, {
       start: (input) =>
         startErrorReporting({ ...input, dsn: INVENTED_DSN, transport: recorder.transport }),
+      installHandlers: () => {},
     })
 }
 
@@ -177,8 +178,34 @@ function startedFrom(cwd: string, recorder: RecordingReportTransport) {
         handed.push(input.configPath)
         return startErrorReporting({ ...input, dsn: INVENTED_DSN, transport: recorder.transport })
       },
+      installHandlers: () => {},
     })
   return { handed, startReporting }
+}
+
+interface AddedListeners {
+  readonly uncaughtException: number
+  readonly unhandledRejection: number
+}
+
+// Counts the failure listeners `work` adds to the worker's process, and removes them again.
+async function failureListenersAddedBy(work: () => Promise<unknown>): Promise<AddedListeners> {
+  const uncaught = process.listeners('uncaughtException')
+  const unhandled = process.listeners('unhandledRejection')
+  try {
+    await work()
+    return {
+      uncaughtException: process.listenerCount('uncaughtException') - uncaught.length,
+      unhandledRejection: process.listenerCount('unhandledRejection') - unhandled.length,
+    }
+  } finally {
+    for (const listener of process.listeners('uncaughtException')) {
+      if (!uncaught.includes(listener)) process.off('uncaughtException', listener)
+    }
+    for (const listener of process.listeners('unhandledRejection')) {
+      if (!unhandled.includes(listener)) process.off('unhandledRejection', listener)
+    }
+  }
 }
 
 describe('the root preAction hook', () => {
@@ -314,6 +341,60 @@ describe('the reporting starter', () => {
 
       expect(reporting).toEqual([false])
     }
+  })
+})
+
+describe("agent-qa's own global failure handlers", () => {
+  it('are installed once when a reporter starts, and not for a project with analytics.privacy true or with a blank DSN', async () => {
+    const recorder = recordingReportTransport()
+    const installsFor = async (configPath: string, dsn: string) => {
+      let installs = 0
+      const { program } = programWith({
+        startReporting: (root, action) =>
+          startCliErrorReporting(root, action, {
+            start: (input) => startErrorReporting({ ...input, dsn, transport: recorder.transport }),
+            installHandlers: () => {
+              installs += 1
+            },
+          }),
+      })
+      await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'probe'])
+      await closeErrorReporting()
+      return installs
+    }
+
+    const on = await installsFor(projectWithPrivacy().configPath, INVENTED_DSN)
+    const optedOut = await installsFor(
+      projectWithPrivacy({ privacy: true }).configPath,
+      INVENTED_DSN,
+    )
+    const blank = await installsFor(projectWithPrivacy().configPath, '')
+
+    expect([on, optedOut, blank]).toEqual([1, 0, 0])
+  })
+
+  it('are by default one listener for each event when a reporter starts, and none when reporting is off', async () => {
+    const recorder = recordingReportTransport()
+    const addedFor = async (configPath: string) => {
+      const { program } = programWith({
+        startReporting: (root, action) =>
+          startCliErrorReporting(root, action, {
+            start: (input) =>
+              startErrorReporting({ ...input, dsn: INVENTED_DSN, transport: recorder.transport }),
+          }),
+      })
+      const added = await failureListenersAddedBy(() =>
+        program.parseAsync(['node', 'agent-qa', '--config', configPath, 'probe']),
+      )
+      await closeErrorReporting()
+      return added
+    }
+
+    const on = await addedFor(projectWithPrivacy().configPath)
+    const optedOut = await addedFor(projectWithPrivacy({ privacy: true }).configPath)
+
+    expect(on).toEqual({ uncaughtException: 1, unhandledRejection: 1 })
+    expect(optedOut).toEqual({ uncaughtException: 0, unhandledRejection: 0 })
   })
 })
 

@@ -674,6 +674,7 @@ describe('environment facts and log lines', () => {
     await startCliErrorReporting(root, action, {
       start: (input) =>
         startErrorReporting({ ...input, dsn: INVENTED_DSN, transport: recorder.transport }),
+      installHandlers: () => {},
     })
 
     errorReporter()?.capture(new Error('an error with the facts set'))

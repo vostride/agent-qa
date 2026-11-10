@@ -6,7 +6,13 @@ import { reserveStdoutForData, type RunTextEnv } from '@vostride/agent-qa-core/r
 import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { defaultCliFailureDeps, runCli, type CliFailureDeps } from '../cli-error-handler.js'
+import {
+  createGlobalFailureHandler,
+  defaultCliFailureDeps,
+  installGlobalFailureHandlers,
+  runCli,
+  type CliFailureDeps,
+} from '../cli-error-handler.js'
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import { closeErrorReporting, startErrorReporting } from '../composition/error-reporting.js'
 import {
@@ -307,6 +313,134 @@ describe('the CLI failure handler', () => {
       'boom',
     ])
     expect(outcome.printed).toEqual([`Login failed for ${SECRET}.`])
+  })
+})
+
+function failureListeners() {
+  return {
+    uncaughtException: process.listeners('uncaughtException'),
+    unhandledRejection: process.listeners('unhandledRejection'),
+  }
+}
+
+function addedTo<T>(before: readonly T[], after: readonly T[]): T[] {
+  return after.filter((listener) => !before.includes(listener))
+}
+
+// No cell emits either event on the worker's own process: each calls the handler, or a listener
+// the installer added, with recorded deps.
+describe("agent-qa's own global failure handlers", () => {
+  it('print an error as one masked Unexpected error block with its stack frames, then set 1, capture, settle, flush and exit 1', async () => {
+    const configPath = projectWithSecret()
+    const program = programThrowing(() => new Error('unused'))
+    await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'fine'])
+    const outcome = recorded()
+    const { mask: _unused, ...recorders } = outcome.deps
+    const error = new Error(`Login failed for ${SECRET}.`)
+
+    await createGlobalFailureHandler({ ...defaultCliFailureDeps(program), ...recorders })(error)
+
+    expect(outcome.printed).toHaveLength(1)
+    const [first, ...frames] = outcome.printed[0]!.split('\n')
+    expect(first).toBe('Unexpected error: Login failed for [secret:ACCOUNT_PASSWORD].')
+    expect(frames.length).toBeGreaterThan(0)
+    for (const line of frames) expect(line).toMatch(FRAME)
+    expect(outcome.printed[0]).not.toContain(SECRET)
+    expect(outcome.events).toEqual(['code 1', 'capture', 'settle', 'flush', 'exit 1'])
+    expect(outcome.captured).toHaveLength(1)
+    expect(outcome.captured[0]).toBe(error)
+  })
+
+  it('print a rejection reason that is not an Error as text and take the same path', async () => {
+    const outcome = recorded()
+
+    await createGlobalFailureHandler(outcome.deps)('plain words')
+
+    expect(outcome.printed).toEqual(['Unexpected error: plain words'])
+    expect(outcome.events).toEqual(['code 1', 'capture', 'settle', 'flush', 'exit 1'])
+    expect(outcome.captured).toEqual(['plain words'])
+  })
+
+  it('print a prompt cancel and exit 1 without capturing it', async () => {
+    for (const cancel of [
+      Object.assign(new Error('User force closed the prompt with SIGINT'), {
+        name: 'ExitPromptError',
+      }),
+      new PromptCancelled(),
+    ]) {
+      const outcome = recorded()
+
+      await createGlobalFailureHandler(outcome.deps)(cancel)
+
+      expect(outcome.printed).toHaveLength(1)
+      expect(outcome.printed[0]?.split('\n')[0]).toBe(`Unexpected error: ${cancel.message}`)
+      expect(outcome.events).toEqual(['code 1', 'settle', 'flush', 'exit 1'])
+      expect(outcome.captured).toEqual([])
+    }
+  })
+
+  it('exit 1 at once, settling nothing, for a second error while the first is still settling', async () => {
+    const outcome = recorded()
+    let finishSettling = () => {}
+    const settling = new Promise<void>((resolve) => {
+      finishSettling = resolve
+    })
+    const handle = createGlobalFailureHandler({
+      ...outcome.deps,
+      settle: async () => {
+        outcome.events.push('settle')
+        await settling
+      },
+    })
+
+    const first = handle(new Error('the first error'))
+    await handle(new Error('the second error'))
+    const atSecond = [...outcome.events]
+    finishSettling()
+    await first
+
+    expect(atSecond).toEqual(['code 1', 'capture', 'settle', 'exit 1'])
+    expect(outcome.events).toEqual(['code 1', 'capture', 'settle', 'exit 1', 'flush', 'exit 1'])
+    expect(outcome.printed).toHaveLength(1)
+    expect(outcome.captured).toHaveLength(1)
+  })
+
+  it('still exit 1 when a step throws, and never reject', async () => {
+    const outcome = recorded()
+    const handle = createGlobalFailureHandler({
+      ...outcome.deps,
+      settle: async () => {
+        outcome.events.push('settle')
+        throw new Error('the settle failed')
+      },
+    })
+
+    await expect(handle(new Error('a bug'))).resolves.toBeUndefined()
+
+    expect(outcome.events).toEqual(['code 1', 'capture', 'settle', 'exit 1'])
+  })
+
+  it('are installed as one listener for each event, both running the one handler, and removed together', async () => {
+    const before = failureListeners()
+    const outcome = recorded()
+
+    const uninstall = installGlobalFailureHandlers(outcome.deps)
+    const during = failureListeners()
+    uninstall()
+    const after = failureListeners()
+
+    const onRejection = addedTo(before.unhandledRejection, during.unhandledRejection)
+    const onException = addedTo(before.uncaughtException, during.uncaughtException)
+    expect(onRejection).toHaveLength(1)
+    expect(onException).toHaveLength(1)
+    expect(after).toEqual(before)
+
+    onRejection[0]?.('a rejection nobody handled', Promise.resolve())
+    await vi.waitFor(() => expect(outcome.events).toContain('exit 1'))
+    onException[0]?.(new Error('an error nobody caught'), 'uncaughtException')
+
+    expect(outcome.printed).toEqual(['Unexpected error: a rejection nobody handled'])
+    expect(outcome.events).toEqual(['code 1', 'capture', 'settle', 'flush', 'exit 1', 'exit 1'])
   })
 })
 
