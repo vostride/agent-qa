@@ -1,7 +1,8 @@
 // The CLI's error reporter. The decision is made before anything loads, so with reporting off the
 // SDK is never imported; with it on, one client is built by hand and held for the process.
 
-import { existsSync } from 'node:fs'
+import { existsSync, realpathSync } from 'node:fs'
+import { homedir } from 'node:os'
 import { resolve } from 'node:path'
 
 import type * as SentryNode from '@sentry/node'
@@ -14,7 +15,7 @@ import { declaresAnalyticsPrivacy, readConfigDeclaration } from '../config.js'
 import { CLI_ANALYTICS_AGENT_QA_VERSION } from './analytics-host.js'
 import { createDeclaredSecretMask, DeclaredSecretsUnavailableError } from './declared-secrets.js'
 import type { DeclaredSecretMask } from './declared-secrets.js'
-import { createMaskingTransport } from './error-reporting-mask.js'
+import { createMaskingTransport, homeSpellings } from './error-reporting-mask.js'
 import type { TextMask } from './error-reporting-mask.js'
 
 export const TRACE_SAMPLE_RATE = 1
@@ -31,6 +32,7 @@ export interface ErrorReporter {
 export interface StartErrorReportingInput {
   readonly configPath: string
   readonly dsn?: string
+  readonly homeDir?: string
   readonly transport?: ReportTransportFactory
   readonly loadSdk?: () => Promise<SentrySdk>
 }
@@ -87,6 +89,8 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
     if (!decision.on) return undefined
 
     const masks = createReportMasks(configPath)
+    const home = input.homeDir ?? homedir()
+    const spellings = homeSpellings(home, realPath(home))
     const Sentry = await (input.loadSdk ?? loadSentrySdk)()
     // Built by hand, since the SDK's init adopts the shell's trace variables whatever it is passed.
     const client = new Sentry.NodeClient({
@@ -128,7 +132,11 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
         Sentry.nodeContextIntegration({ cloudResource: false, culture: false }),
       ],
       stackParser: Sentry.defaultStackParser,
-      transport: createMaskingTransport(input.transport ?? Sentry.makeNodeTransport, masks.resolve),
+      transport: createMaskingTransport(
+        input.transport ?? Sentry.makeNodeTransport,
+        masks.resolve,
+        { homeSpellings: spellings },
+      ),
     })
     Sentry.setCurrentClient(client)
     client.init()
@@ -154,6 +162,14 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
     return reporter
   } catch {
     return undefined
+  }
+}
+
+function realPath(path: string): string {
+  try {
+    return realpathSync(path)
+  } catch {
+    return path
   }
 }
 
