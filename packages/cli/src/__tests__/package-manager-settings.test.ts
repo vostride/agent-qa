@@ -120,7 +120,7 @@ describe('pnpm build scripts are denied in pnpm-workspace.yaml', () => {
     expect(ignoredBuildNames('nothing here')).toEqual([])
   })
 
-  it("the deny list init writes is the false entries of agent-qa's own pnpm-workspace.yaml", () => {
+  it("the deny list init writes is the false entries of agent-qa's own pnpm-workspace.yaml, less the repository's own dev tools", () => {
     const path = fileURLToPath(new URL('../../../../pnpm-workspace.yaml', import.meta.url))
     const allowBuilds = parseDocument(readFileSync(path, 'utf8')).get('allowBuilds', true)
     expect(isMap(allowBuilds)).toBe(true)
@@ -129,8 +129,15 @@ describe('pnpm build scripts are denied in pnpm-workspace.yaml', () => {
           .filter((pair) => isScalar(pair.value) && pair.value.value === false)
           .map((pair) => String(isScalar(pair.key) ? pair.key.value : pair.key))
       : []
+    // A root devDependency never reaches a project that installs agent-qa.
+    const manifest = fileURLToPath(new URL('../../../../package.json', import.meta.url))
+    const devTools = Object.keys(
+      (JSON.parse(readFileSync(manifest, 'utf8')) as { devDependencies?: Record<string, string> })
+        .devDependencies ?? {},
+    )
+    const pulledByAProject = deniedHere.filter((name) => !devTools.includes(name))
 
-    expect([...PNPM_DENIED_BUILDS].sort()).toEqual(deniedHere.sort())
+    expect([...PNPM_DENIED_BUILDS].sort()).toEqual(pulledByAProject.sort())
   })
 })
 
