@@ -1114,8 +1114,12 @@ export class LiveSession {
     this.connectionSecretNames = config.connectionSecretNames ?? new Set()
     this.secretRedactor = config.secretRedactor
     const redactor = config.secretRedactor
-    if (redactor !== undefined && this.deps.bindSessionMask !== undefined) {
-      this.endMaskBinding = this.deps.bindSessionMask((text) => redactor.redactString(text))
+    const bindMask = this.deps.bindSessionMask
+    // One binding per session, and a host that throws never fails the open.
+    if (redactor !== undefined && bindMask !== undefined && this.endMaskBinding === null) {
+      try {
+        this.endMaskBinding = bindMask((text) => redactor.redactString(text))
+      } catch {}
     }
     if (config.envVars) {
       this.variableStore.setAll(config.envVars, 'env')
@@ -2041,7 +2045,9 @@ export class LiveSession {
         this.releaseMobileAppiumLease('session-cleanup')
         const endMaskBinding = this.endMaskBinding
         this.endMaskBinding = null
-        endMaskBinding?.()
+        try {
+          endMaskBinding?.()
+        } catch {}
         this.messageSink = null
         this.status = 'terminated'
       }

@@ -10,6 +10,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { bindLiveSessionMask } from '../commands/dashboard.js'
 import {
   closeErrorReporting,
+  errorReporter,
   settleReporting,
   startErrorReporting,
 } from '../composition/error-reporting.js'
@@ -66,7 +67,59 @@ function reportedMessages(envelopes: readonly RecordedEnvelope[]): string[] {
     )
 }
 
+// Replaces one marker word and counts the texts it was handed, so a cell reads which masks an
+// envelope passed.
+function markerMask(word: string): { readonly apply: (text: string) => string; calls: number } {
+  const mask = {
+    calls: 0,
+    apply: (text: string) => {
+      mask.calls += 1
+      return text.replaceAll(word, `[${word} masked]`)
+    },
+  }
+  return mask
+}
+
 describe('the mask a live-editor session hands the dashboard', () => {
+  it('binds nothing with reporting off, and neither the binder nor the end it returns throws', () => {
+    const mask = markerMask('alpha')
+
+    const end = bindLiveSessionMask(mask.apply)
+
+    expect(typeof end).toBe('function')
+    expect(() => end()).not.toThrow()
+    expect(mask.calls).toBe(0)
+    expect(errorReporter()).toBeUndefined()
+  })
+
+  it('applies two bindings made through it to a report, and ending one leaves the other applied', async () => {
+    const recorder = recordingReportTransport()
+    const reporter = await startReporting(recorder)
+    const alpha = markerMask('alpha')
+    const beta = markerMask('beta')
+    const reported = async (message: string): Promise<string[]> => {
+      const before = recorder.envelopes.length
+      reporter.capture(new Error(message))
+      await settleReporting()
+      return reportedMessages(recorder.envelopes.slice(before))
+    }
+
+    const endAlpha = bindLiveSessionMask(alpha.apply)
+    const endBeta = bindLiveSessionMask(beta.apply)
+    expect(await reported('alpha beta one')).toEqual(['[alpha masked] [beta masked] one'])
+
+    endBeta()
+    const alphaCalls = alpha.calls
+    expect(await reported('alpha beta two')).toEqual(['[alpha masked] [beta masked] two'])
+    expect(alpha.calls, 'the binding still open').toBeGreaterThan(alphaCalls)
+
+    // The reporter keeps the binding that ended last, so ending alpha lets beta go.
+    endAlpha()
+    const betaCalls = beta.calls
+    expect(await reported('alpha beta three')).toEqual(['[alpha masked] beta three'])
+    expect(beta.calls, 'a binding that ended before the last one').toBe(betaCalls)
+  })
+
   it('keeps a connection URL a plugin answered out of a report made while the session is bound and of one made just after it ended', async () => {
     const recorder = recordingReportTransport()
     const reporter = await startReporting(recorder)
