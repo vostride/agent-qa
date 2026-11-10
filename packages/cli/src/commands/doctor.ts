@@ -448,6 +448,8 @@ const probeModelConnection: DoctorConnectionProbe = async (llm, auth) => {
       model: testModel,
       prompt: 'Say "ok"',
       abortSignal: controller.signal,
+      // A retried 429 waits out retry-after past the 10 s abort and reads as a network error.
+      maxRetries: 0,
     })
   } finally {
     clearTimeout(timeout)
@@ -456,6 +458,12 @@ const probeModelConnection: DoctorConnectionProbe = async (llm, auth) => {
     return { status: 'pass', message: auth.message }
   }
   return { status: 'pass', message: 'connected' }
+}
+
+function httpStatusOf(err: unknown): number | undefined {
+  const last = (err as { lastError?: unknown } | null | undefined)?.lastError ?? err
+  const status = (last as { statusCode?: unknown } | null | undefined)?.statusCode
+  return typeof status === 'number' ? status : undefined
 }
 
 function checkLLMConnection(
@@ -488,19 +496,19 @@ function checkLLMConnection(
         return await connection(llm, auth)
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err)
+        const rateLimited = {
+          status: 'warn',
+          message: 'rate limited — try again later',
+          fix: `The provider is rate-limiting requests for this model. Wait, then run \`npx agent-qa auth test --config ${llm.name}\`.`,
+        } as const
+        if (httpStatusOf(err) === 429) return rateLimited
         if (/auth|unauthorized|401|invalid.*key/i.test(msg)) {
           return { status: 'fail', message: 'Authentication failed. Check the saved credential for this config.' }
         }
         if (/model|not found|404/i.test(msg)) {
           return { status: 'fail', message: 'Model not found. Check the model name.' }
         }
-        if (/rate.?limit|429/i.test(msg)) {
-          return {
-            status: 'warn',
-            message: 'rate limited — try again later',
-            fix: `The provider is rate-limiting requests for this model. Wait, then run \`npx agent-qa auth test --config ${llm.name}\`.`,
-          }
-        }
+        if (/rate.?limit|429/i.test(msg)) return rateLimited
         if (/ECONNREFUSED|ENOTFOUND|timeout|abort/i.test(msg)) {
           return { status: 'fail', message: 'Network error. Check the exact base URL and try again.' }
         }

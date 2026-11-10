@@ -178,7 +178,7 @@ import { readFile } from 'node:fs/promises'
 import { DEFAULT_EMBEDDING_PROFILE } from '@vostride/agent-qa-schema'
 import * as core from '@vostride/agent-qa-core'
 import { clearProviderRegistry, createModel, registerProvider } from '@vostride/agent-qa-model'
-import { generateText } from 'ai'
+import { APICallError, generateText, RetryError } from 'ai'
 import { loadProviderPluginsForRawConfig } from '../provider-plugins.js'
 import type { ChromiumAnswer, ChromiumResolver } from '../commands/browser-resolver.js'
 import { resolveLLMModels } from '../llm-utils.js'
@@ -195,6 +195,14 @@ const mockLoadProviderPluginsForRawConfig = vi.mocked(loadProviderPluginsForRawC
 const mockResolveLLMAuth = vi.mocked((core as any).resolveLLMAuth) as any
 const mockResolveAppiumExecutable = vi.mocked(core.resolveAppiumExecutable)
 const mockGenerateText = vi.mocked(generateText)
+
+const GEMINI_QUOTA_429 = new APICallError({
+  message:
+    'You exceeded your current quota. Quota exceeded for metric: generate_content_free_tier_requests, limit: 5, model: gemini-2.5-pro',
+  url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent',
+  requestBodyValues: {},
+  statusCode: 429,
+})
 
 const CHROMIUM_FOUND: ChromiumAnswer = { found: true, path: '/browsers/chromium-1/chrome' }
 let chromiumAnswer: ChromiumAnswer = CHROMIUM_FOUND
@@ -1312,6 +1320,60 @@ use:
     expect(fixUnder('LLM connection')).toContain(
       'Wait, then run `npx agent-qa auth test --config default`',
     )
+  })
+
+  it('a 429 whose provider message names the model warns to wait, not that the model is missing', async () => {
+    mockGenerateText.mockRejectedValueOnce(GEMINI_QUOTA_429)
+
+    await runHealthyHost()
+
+    expect(rowFor('LLM connection')).toContain('rate limited — try again later')
+    expect(rowFor('LLM connection')).toContain('WARN')
+    expect(rowFor('LLM connection')).not.toContain('Model not found')
+    expect(fixUnder('LLM connection')).toContain(
+      'Wait, then run `npx agent-qa auth test --config default`',
+    )
+  })
+
+  it('a 429 wrapped in a retry error warns to wait, not that the model is missing', async () => {
+    mockGenerateText.mockRejectedValueOnce(
+      new RetryError({
+        message: `Failed after 3 attempts. Last error: ${GEMINI_QUOTA_429.message}`,
+        reason: 'maxRetriesExceeded',
+        errors: [GEMINI_QUOTA_429, GEMINI_QUOTA_429, GEMINI_QUOTA_429],
+      }),
+    )
+
+    await runHealthyHost()
+
+    expect(rowFor('LLM connection')).toContain('rate limited — try again later')
+    expect(rowFor('LLM connection')).toContain('WARN')
+    expect(fixUnder('LLM connection')).toContain(
+      'Wait, then run `npx agent-qa auth test --config default`',
+    )
+  })
+
+  it('a model error that is not a 429 still fails as model not found', async () => {
+    mockGenerateText.mockRejectedValueOnce(
+      new APICallError({
+        message: 'models/gemini-9 is not found for API version v1beta',
+        url: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-9:generateContent',
+        requestBodyValues: {},
+        statusCode: 404,
+      }),
+    )
+
+    await runHealthyHost()
+
+    expect(rowFor('LLM connection')).toContain('Model not found. Check the model name.')
+    expect(rowFor('LLM connection')).toContain('FAIL')
+    expect(fixUnder('LLM connection')).not.toContain('rate-limiting')
+  })
+
+  it('the connection probe does not retry into its own timeout', async () => {
+    await runHealthyHost()
+
+    expect(mockGenerateText).toHaveBeenCalledWith(expect.objectContaining({ maxRetries: 0 }))
   })
 
   it('validation warnings print the command that lists them, not a fix for errors', async () => {
