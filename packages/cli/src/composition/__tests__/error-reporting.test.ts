@@ -1,12 +1,13 @@
 // The reporter decides from the raw config, loads the SDK only when on, and builds its client by
 // hand with every option passed, through a recording transport that sends nothing.
 
-import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS } from '@vostride/agent-qa-analytics'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
   projectWithPrivacy,
@@ -19,6 +20,7 @@ import type {
   RecordingReportTransport,
 } from '../../__tests__/error-report-recorder.js'
 import { CLI_ANALYTICS_AGENT_QA_VERSION } from '../analytics-host.js'
+import { readSavedCredentialValues } from '../declared-secrets.js'
 import {
   closeErrorReporting,
   decideErrorReporting,
@@ -30,11 +32,31 @@ import {
 const INVENTED_DSN = 'http://key@127.0.0.1:9/1'
 const SECRET = 'tok-7f3a9c2e5b'
 
+const authDirs: string[] = []
+
+function authFolder(): string {
+  const dir = mkdtempSync(join(tmpdir(), 'agent-qa-error-reporting-auth-'))
+  authDirs.push(dir)
+  return dir
+}
+
+function authStore(entries: Readonly<Record<string, unknown>>): string {
+  const path = join(authFolder(), 'auth.json')
+  writeFileSync(path, JSON.stringify(entries), 'utf8')
+  return path
+}
+
+// No cell reads the auth store in the real home folder.
+beforeEach(() => {
+  vi.stubEnv('XDG_DATA_HOME', authFolder())
+})
+
 afterEach(async () => {
   vi.unstubAllEnvs()
   vi.restoreAllMocks()
   await closeErrorReporting()
   removeReportProjects()
+  for (const dir of authDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
 interface RecordedEvent {
@@ -470,6 +492,134 @@ describe('the report mask', () => {
     const alphaCalls = alpha.inputs.length
     expect(await reported('alpha beta two')).toEqual(['alpha [beta masked] two'])
     expect(alpha.inputs.length).toBe(alphaCalls)
+  })
+})
+
+describe('saved credentials', () => {
+  it('are the tokens and keys of the auth store, and none from a missing or malformed store', async () => {
+    const authPath = authStore({
+      anthropic: {
+        type: 'oauth',
+        provider: 'anthropic',
+        tokens: {
+          access: 'access-Hunter-42-zz',
+          refresh: 'refresh-Hunter-42-zz',
+          expires: 0,
+          accountId: 'account-canary',
+        },
+      },
+      openai: { type: 'api', provider: 'openai', key: 'key-Hunter-42-zz' },
+      gateway: { type: 'bearer', provider: 'gateway', token: 'token-Hunter-42-zz' },
+      broken: { type: 'oauth', provider: 'broken', tokens: null },
+      blank: { type: 'api', provider: 'blank', key: '' },
+    })
+    const malformed = join(authFolder(), 'auth.json')
+    writeFileSync(malformed, '{ "anthropic": ', 'utf8')
+
+    await expect(readSavedCredentialValues(authPath)).resolves.toEqual([
+      'access-Hunter-42-zz',
+      'refresh-Hunter-42-zz',
+      'key-Hunter-42-zz',
+      'token-Hunter-42-zz',
+    ])
+    await expect(readSavedCredentialValues(join(authFolder(), 'auth.json'))).resolves.toEqual([])
+    await expect(readSavedCredentialValues(malformed)).resolves.toEqual([])
+  })
+
+  it('are masked when an error message quotes a saved refresh token', async () => {
+    const refresh = 'refresh-Hunter-42-zz'
+    const authPath = authStore({
+      anthropic: {
+        type: 'oauth',
+        provider: 'anthropic',
+        tokens: { access: 'access-Hunter-42-zz', refresh, expires: 0 },
+      },
+    })
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      authPath,
+      transport: recorder.transport,
+    })
+
+    reporter?.capture(
+      new Error(`Token refresh failed: {"error":"invalid_grant","refresh_token":"${refresh}"}`),
+    )
+    await settleReporting()
+
+    expect(recorder.envelopes.length).toBeGreaterThan(0)
+    expect(serializedEnvelopes(recorder.envelopes)).not.toContain(refresh)
+    expect(exceptionValues(recorder.envelopes)).toEqual([
+      'Token refresh failed: {"error":"invalid_grant","refresh_token":"[secret:SAVED_CREDENTIAL]"}',
+    ])
+  })
+})
+
+describe('repeats', () => {
+  async function startRecording() {
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+    })
+    return { recorder, reporter }
+  }
+
+  const errorFrom = (message: string) => new Error(message)
+
+  it('sends error A and error B once each when A is captured, again, then B, then A', async () => {
+    const { recorder, reporter } = await startRecording()
+
+    for (const message of ['error A', 'error A', 'error B', 'error A']) {
+      reporter?.capture(errorFrom(message))
+    }
+    await settleReporting()
+
+    expect(exceptionValues(recorder.envelopes).sort()).toEqual(['error A', 'error B'])
+  })
+
+  it('sends the same message thrown from two call sites as two errors', async () => {
+    const { recorder, reporter } = await startRecording()
+
+    reporter?.capture(new Error('one message'))
+    reporter?.capture(new Error('one message'))
+    await settleReporting()
+
+    expect(exceptionValues(recorder.envelopes)).toEqual(['one message', 'one message'])
+  })
+
+  it('sends forty distinct errors, since there is no cap', async () => {
+    const { recorder, reporter } = await startRecording()
+
+    const messages = Array.from({ length: 40 }, (_, index) => `distinct error ${index}`)
+    for (const message of messages) reporter?.capture(errorFrom(message))
+    await settleReporting()
+
+    expect(exceptionValues(recorder.envelopes).sort()).toEqual(messages.sort())
+  })
+
+  it('sends two errors that wrap one cause in different messages', async () => {
+    const { recorder, reporter } = await startRecording()
+    const causeFrom = () => new Error('the shared cause')
+    const wrapped = (message: string) => new Error(message, { cause: causeFrom() })
+
+    // The unrelated error sits between them, since the SDK drops an event equal to the one before.
+    for (const message of ['loading the config failed', 'loading the tests failed']) {
+      reporter?.capture(wrapped(message))
+      reporter?.capture(errorFrom('an unrelated error'))
+    }
+    await settleReporting()
+
+    const reported = recordedEvents(recorder.envelopes).map(
+      (event) => event.exception?.values?.at(-1)?.value,
+    )
+    expect(reported.sort()).toEqual([
+      'an unrelated error',
+      'loading the config failed',
+      'loading the tests failed',
+    ])
   })
 })
 
