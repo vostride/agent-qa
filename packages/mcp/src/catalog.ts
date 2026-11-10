@@ -31,6 +31,14 @@ export type AgentQaMcpPosture =
   | { readonly state: 'not-initialized'; readonly configPath: string }
   | { readonly state: 'config-invalid'; readonly configPath: string; readonly problem: string }
 
+/** One tool call as it settled; `error` is the thrown value, absent when nothing was thrown. */
+export interface McpToolSettled {
+  readonly tool: string
+  readonly durationMs: number
+  readonly outcome: 'success' | 'error'
+  readonly error?: unknown
+}
+
 /** What a host must supply to build a server for one caller. */
 export interface AgentQaMcpServerDeps {
   // Built by the host, never by this package.
@@ -45,6 +53,8 @@ export interface AgentQaMcpServerDeps {
   readonly liveLink?: LiveLinkSupplier
   // Present when there is no project to serve; no call then reaches the registry.
   readonly posture?: AgentQaMcpPosture
+  // The host observes every tool call here; this package never learns where the observation goes.
+  readonly onToolSettled?: (settled: McpToolSettled) => void
 }
 
 /** The host-bound `(registry, caller)` closure over `invokeFunction`. */
@@ -176,6 +186,26 @@ function decorateCarrierResult(input: {
   }
 }
 
+// A returned result is an error when it says so, since masking or a decoration can refuse.
+function settleToolCall(
+  onToolSettled: ((settled: McpToolSettled) => void) | undefined,
+  tool: string,
+  startedAt: number,
+  arm: { readonly result: CallToolResult } | { readonly error: unknown },
+): void {
+  if (onToolSettled === undefined) return
+  try {
+    const durationMs = Math.max(0, Math.round(performance.now() - startedAt))
+    onToolSettled(
+      'error' in arm
+        ? { tool, durationMs, outcome: 'error', error: arm.error }
+        : { tool, durationMs, outcome: arm.result.isError === true ? 'error' : 'success' },
+    )
+  } catch {
+    // An observer that throws must not fail a tool call that has already answered.
+  }
+}
+
 /**
  * The one generic tool handler.
  *
@@ -188,8 +218,10 @@ function createProjectionHandler(
   invoke: BoundInvoke,
   maskText: (text: string) => string,
   liveLink?: LiveLinkSupplier,
+  onToolSettled?: (settled: McpToolSettled) => void,
 ) {
   return async (args: unknown): Promise<CallToolResult> => {
+    const startedAt = performance.now()
     try {
       const { opId, output } = await runProjection(projection, args, invoke)
       // Both channels come from one masked serialization, so `structuredContent` holds no secret.
@@ -198,7 +230,7 @@ function createProjectionHandler(
       const result = opId === RUNS_ARTIFACT_FUNCTION_ID
         ? decorateRunEvidenceImage({ result: masked, output, maskText })
         : masked
-      return decorateCarrierResult({
+      const decorated = decorateCarrierResult({
         result,
         projection,
         args,
@@ -206,7 +238,10 @@ function createProjectionHandler(
         maskText,
         ...(liveLink === undefined ? {} : { liveLink }),
       })
+      settleToolCall(onToolSettled, projection.name, startedAt, { result: decorated })
+      return decorated
     } catch (err) {
+      settleToolCall(onToolSettled, projection.name, startedAt, { error: err })
       // A refusal is a readable tool error, masked because an error string can carry a credential.
       return maskedToolError(err, maskText)
     }
@@ -217,7 +252,11 @@ function createProjectionHandler(
 const RESTART = 'restart this MCP server (reconnect it in your coding agent)'
 
 // `isError` skips the SDK's output-schema check, so the same result fits every tool.
-function createPostureHandler(posture: AgentQaMcpPosture) {
+function createPostureHandler(
+  projection: ToolProjection,
+  posture: AgentQaMcpPosture,
+  onToolSettled?: (settled: McpToolSettled) => void,
+) {
   const { text, structuredContent } = posture.state === 'not-initialized'
     ? {
         text: `agent-qa is not set up here: there is no agent-qa config at ${posture.configPath} `
@@ -242,11 +281,16 @@ function createPostureHandler(posture: AgentQaMcpPosture) {
           then: RESTART,
         },
       }
-  return async (): Promise<CallToolResult> => ({
-    isError: true,
-    content: [{ type: 'text', text }],
-    structuredContent,
-  })
+  return async (): Promise<CallToolResult> => {
+    const startedAt = performance.now()
+    const result: CallToolResult = {
+      isError: true,
+      content: [{ type: 'text', text }],
+      structuredContent,
+    }
+    settleToolCall(onToolSettled, projection.name, startedAt, { result })
+    return result
+  }
 }
 
 // The listing comes from `registry.list(deps.caller)`, so it describes this composition.
@@ -321,8 +365,14 @@ export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
       projection.name,
       config,
       deps.posture === undefined
-        ? createProjectionHandler(projection, invoke, deps.maskText, deps.liveLink)
-        : createPostureHandler(deps.posture),
+        ? createProjectionHandler(
+            projection,
+            invoke,
+            deps.maskText,
+            deps.liveLink,
+            deps.onToolSettled,
+          )
+        : createPostureHandler(projection, deps.posture, deps.onToolSettled),
     )
   }
 
