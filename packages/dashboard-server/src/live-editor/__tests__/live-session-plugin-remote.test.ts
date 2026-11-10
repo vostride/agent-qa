@@ -213,6 +213,51 @@ async function expectPluginGone(project: PluginProject): Promise<void> {
   })
 }
 
+type SessionMask = (text: string) => string
+
+interface RecordingMaskBinder {
+  readonly bindSessionMask: NonNullable<SessionManagerDeps['bindSessionMask']>
+  // Each mask handed over, in the order the sessions opened.
+  readonly masks: SessionMask[]
+  // How often each binding's end was called, at its mask's index.
+  readonly ends: number[]
+}
+
+function recordingMaskBinder(): RecordingMaskBinder {
+  const masks: SessionMask[] = []
+  const ends: number[] = []
+  return {
+    masks,
+    ends,
+    bindSessionMask: (mask) => {
+      const index = masks.push(mask) - 1
+      ends.push(0)
+      return () => {
+        ends[index] = (ends[index] ?? 0) + 1
+      }
+    },
+  }
+}
+
+// Shaped like the answer-mask cell's: the token rides in the connection URL and is listed in mask.
+function tokenAnswer(token: string): { protocol: string; url: string; mask: string[] } {
+  return {
+    protocol: 'playwright',
+    url: `ws://127.0.0.1:9/playwright?token=${encodeURIComponent(token)}`,
+    mask: [token],
+  }
+}
+
+function expectAnswerHidden(mask: SessionMask, token: string): void {
+  const masked = mask(`the remote at ${tokenAnswer(token).url} stopped answering`)
+  expect(masked).toBe(
+    'the remote at ws://127.0.0.1:9/playwright?token=[secret:PLUGIN_LAB] stopped answering',
+  )
+  for (const value of [token, encodeURIComponent(token)]) {
+    expect(masked.includes(value), 'the mask let a form of the token through').toBe(false)
+  }
+}
+
 describe('a live-editor session on a plugin remote', () => {
   it('leases once, and its end releases the lease and shuts the plugin down', async () => {
     const project = pluginProject()
@@ -301,6 +346,47 @@ describe("a live-editor session and its plugin's answer mask", () => {
     for (const value of [token, encodeURIComponent(token)]) {
       expect(shown.includes(value), 'the session showed a mask value').toBe(false)
     }
+  }, 60_000)
+})
+
+describe("a live-editor session's mask and its host", () => {
+  const TOKEN = 'tok/live 9f3a'
+
+  it('hands its host one mask that hides what the plugin answered, once it is open', async () => {
+    const project = pluginProject(tokenAnswer(TOKEN))
+    const binder = recordingMaskBinder()
+
+    await openSession({ ...project.deps, bindSessionMask: binder.bindSessionMask })
+
+    expect(binder.masks).toHaveLength(1)
+    expect(binder.ends).toEqual([0])
+    expectAnswerHidden(binder.masks[0]!, TOKEN)
+  }, 60_000)
+
+  it('ends that binding once when it ends, and the mask it handed over still hides the answer', async () => {
+    const project = pluginProject(tokenAnswer(TOKEN))
+    const binder = recordingMaskBinder()
+    const { manager, sessionId } = await openSession({
+      ...project.deps,
+      bindSessionMask: binder.bindSessionMask,
+    })
+
+    expect(await manager.terminateSession(sessionId)).toBe(true)
+
+    expect(binder.ends).toEqual([1])
+    expectAnswerHidden(binder.masks[0]!, TOKEN)
+    await expectPluginGone(project)
+  }, 60_000)
+
+  it('opens and ends as before when its host takes no mask', async () => {
+    const project = pluginProject(tokenAnswer(TOKEN))
+    const { manager, sessionId } = await openSession(project.deps)
+    expect(methodsOf(project)).toEqual(['initialize', 'acquire'])
+
+    expect(await manager.terminateSession(sessionId)).toBe(true)
+
+    await expectPluginGone(project)
+    expect(methodsOf(project)).toEqual(['initialize', 'acquire', 'release', 'shutdown'])
   }, 60_000)
 })
 

@@ -467,6 +467,8 @@ export interface LiveSessionDeps {
   remoteInactivityMs?: number
   // A plugin's stderr and the host's own lines, masked; the dashboard gives one only at debug.
   pluginDebugLog?: (line: string) => void
+  // The session's mask, handed to the host while the session lives; the host returns what ends it.
+  bindSessionMask?: (mask: (text: string) => string) => () => void
 }
 
 // The plugins entries the strict config parse accepts; an entry it refuses refuses the session.
@@ -681,6 +683,7 @@ export class LiveSession {
   private secretStore: SecretStore | undefined
   private connectionSecretNames: ReadonlySet<string> = new Set()
   private secretRedactor: SecretRedactor | undefined
+  private endMaskBinding: (() => void) | null = null
   // One hub per session at handle 0, created once the adapter exists; no adapter means no hub.
   private liveHub: LiveStreamHub | null = null
   private attachment: LiveEditorAttachment | null = null
@@ -1110,6 +1113,10 @@ export class LiveSession {
     this.secretStore = config.secretStore
     this.connectionSecretNames = config.connectionSecretNames ?? new Set()
     this.secretRedactor = config.secretRedactor
+    const redactor = config.secretRedactor
+    if (redactor !== undefined && this.deps.bindSessionMask !== undefined) {
+      this.endMaskBinding = this.deps.bindSessionMask((text) => redactor.redactString(text))
+    }
     if (config.envVars) {
       this.variableStore.setAll(config.envVars, 'env')
     }
@@ -2032,6 +2039,9 @@ export class LiveSession {
         await this.runLifecycleHooks('teardown', this.teardownHooks)
       } finally {
         this.releaseMobileAppiumLease('session-cleanup')
+        const endMaskBinding = this.endMaskBinding
+        this.endMaskBinding = null
+        endMaskBinding?.()
         this.messageSink = null
         this.status = 'terminated'
       }

@@ -65,7 +65,11 @@ vi.mock('@vostride/agent-qa-core', async importOriginal => {
   }
 })
 
-import { createDashboardCommand, createServeCommand } from '../commands/dashboard.js'
+import {
+  bindLiveSessionMask,
+  createDashboardCommand,
+  createServeCommand,
+} from '../commands/dashboard.js'
 import { processRemoteSessions, REMOTE_RELEASE_BOUND_MS } from '../commands/run.js'
 import * as errorReporting from '../composition/error-reporting.js'
 import { resolveLLMAuth } from '@vostride/agent-qa-core'
@@ -353,8 +357,8 @@ describe('createDashboardCommand', () => {
   })
 
   it('on a signal, waits for session cleanup, then closes, settles and exits 0', async () => {
-    // This cell measures the shutdown path and the remote registry the server is handed; source
-    // pins cover analytics.
+    // This cell measures the shutdown path, and the remote registry and live-session mask binder
+    // the server is handed; source pins cover analytics.
     const config = makeDashboardConfig({ analytics: { privacy: true } })
     const steps: string[] = []
     const close = vi.fn(() => {
@@ -403,7 +407,10 @@ describe('createDashboardCommand', () => {
       expect(exitSpy).toHaveBeenCalledWith(0)
       expect(steps).toEqual(['close', 'settle', 'settled', 'exit 0'])
       expect(mockStartServer).toHaveBeenCalledWith(
-        expect.objectContaining({ remoteSessions: processRemoteSessions }),
+        expect.objectContaining({
+          remoteSessions: processRemoteSessions,
+          bindSessionMask: bindLiveSessionMask,
+        }),
       )
     } finally {
       processOnSpy.mockRestore()
