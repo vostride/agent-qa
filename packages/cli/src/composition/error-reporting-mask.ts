@@ -76,30 +76,96 @@ function maskValue(value: unknown, mask: TextMask): unknown {
   return value
 }
 
+export type RepeatFilter = <T>(envelope: T) => T | undefined
+
+interface ReportedFrame {
+  readonly filename?: unknown
+  readonly function?: unknown
+  readonly lineno?: unknown
+  readonly colno?: unknown
+}
+
+interface ReportedException {
+  readonly type?: unknown
+  readonly value?: unknown
+  readonly stacktrace?: { readonly frames?: unknown } | null
+}
+
+// Every exception value counts, not the first alone: the SDK puts a linked cause before the error
+// that wraps it, so two errors around one cause would otherwise read as one.
+export function reportKey(event: unknown): string | undefined {
+  const values = (event as { exception?: { values?: unknown } | null } | null)?.exception?.values
+  if (!Array.isArray(values) || values.length === 0) return undefined
+  return JSON.stringify(
+    values.map((value: ReportedException | null) => {
+      const frames: unknown = value?.stacktrace?.frames
+      return [
+        value?.type,
+        value?.value,
+        (Array.isArray(frames) ? frames : []).map((frame: ReportedFrame | null) => [
+          frame?.filename,
+          frame?.function,
+          frame?.lineno,
+          frame?.colno,
+        ]),
+      ]
+    }),
+  )
+}
+
+// The set lives as long as the process: an error event already sent leaves every later envelope,
+// with no cap. Span containers and every other item are kept.
+export function createRepeatFilter(): RepeatFilter {
+  const sent = new Set<string>()
+  return <T>(envelope: T): T | undefined => {
+    if (!Array.isArray(envelope) || !Array.isArray(envelope[1])) return envelope
+    const items: unknown[] = envelope[1]
+    const kept = items.filter((item) => {
+      const key = errorEventKey(item)
+      if (key === undefined) return true
+      if (sent.has(key)) return false
+      sent.add(key)
+      return true
+    })
+    if (kept.length === 0) return undefined
+    return kept.length === items.length ? envelope : ([envelope[0], kept] as T)
+  }
+}
+
+function errorEventKey(item: unknown): string | undefined {
+  if (!Array.isArray(item)) return undefined
+  const [header, payload]: unknown[] = item
+  return (header as { type?: unknown } | null)?.type === 'event' ? reportKey(payload) : undefined
+}
+
 export interface MaskingTransportOptions {
   readonly homeSpellings?: readonly string[]
+  readonly dropRepeats?: RepeatFilter
 }
 
 // Each string passes the secret mask first and the home rewrite after, so a secret that holds the
-// home path is still found whole.
+// home path is still found whole. Repeats are dropped from the masked envelope, which is sent only
+// while an item is left.
 export function createMaskingTransport<TOptions, TEnvelope, TResult extends object>(
   inner: (options: TOptions) => EnvelopeTransport<TEnvelope, TResult>,
   resolveMask: () => TextMask,
   options: MaskingTransportOptions = {},
 ): (options: TOptions) => EnvelopeTransport<TEnvelope, Partial<TResult>> {
   const spellings = options.homeSpellings ?? []
+  const { dropRepeats } = options
   return (transportOptions) => {
     const transport = inner(transportOptions)
     return {
       send: (envelope) => {
-        let masked: TEnvelope
+        let outgoing: TEnvelope | undefined
         try {
           const mask = resolveMask()
-          masked = maskEnvelope(envelope, (text) => rewriteHome(mask(text), spellings))
+          const masked = maskEnvelope(envelope, (text) => rewriteHome(mask(text), spellings))
+          outgoing = dropRepeats === undefined ? masked : dropRepeats(masked)
         } catch {
           return Promise.resolve({})
         }
-        return transport.send(masked)
+        return outgoing === undefined ? Promise.resolve({}) : transport.send(outgoing)
       },
       flush: (timeout) => transport.flush(timeout),
     }

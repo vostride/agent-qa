@@ -13,9 +13,18 @@ import {
 
 import { declaresAnalyticsPrivacy, readConfigDeclaration } from '../config.js'
 import { CLI_ANALYTICS_AGENT_QA_VERSION } from './analytics-host.js'
-import { createDeclaredSecretMask, DeclaredSecretsUnavailableError } from './declared-secrets.js'
+import {
+  createDeclaredSecretMask,
+  DeclaredSecretsUnavailableError,
+  maskSavedCredentials,
+  readSavedCredentialValues,
+} from './declared-secrets.js'
 import type { DeclaredSecretMask } from './declared-secrets.js'
-import { createMaskingTransport, homeSpellings } from './error-reporting-mask.js'
+import {
+  createMaskingTransport,
+  createRepeatFilter,
+  homeSpellings,
+} from './error-reporting-mask.js'
 import type { TextMask } from './error-reporting-mask.js'
 
 export const TRACE_SAMPLE_RATE = 1
@@ -32,6 +41,7 @@ export interface ErrorReporter {
 export interface StartErrorReportingInput {
   readonly configPath: string
   readonly dsn?: string
+  readonly authPath?: string
   readonly homeDir?: string
   readonly transport?: ReportTransportFactory
   readonly loadSdk?: () => Promise<SentrySdk>
@@ -88,7 +98,7 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
     const decision = await decideErrorReporting({ configPath, dsn })
     if (!decision.on) return undefined
 
-    const masks = createReportMasks(configPath)
+    const masks = createReportMasks(configPath, await readSavedCredentialValues(input.authPath))
     const home = input.homeDir ?? homedir()
     const spellings = homeSpellings(home, realPath(home))
     const Sentry = await (input.loadSdk ?? loadSentrySdk)()
@@ -135,7 +145,7 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
       transport: createMaskingTransport(
         input.transport ?? Sentry.makeNodeTransport,
         masks.resolve,
-        { homeSpellings: spellings },
+        { homeSpellings: spellings, dropRepeats: createRepeatFilter() },
       ),
     })
     Sentry.setCurrentClient(client)
@@ -178,15 +188,18 @@ interface ReportMasks {
   bind(mask: TextMask): () => void
 }
 
-// Each envelope passes the declared secrets, then every open binding's mask, then the mask of the
-// binding that ended last: a report made just after a run still passes that run's mask.
-function createReportMasks(configPath: string): ReportMasks {
+// Each envelope passes the saved credentials, the declared secrets, then every open binding's mask,
+// then the mask of the binding that ended last: a report made just after a run still passes that
+// run's mask.
+function createReportMasks(configPath: string, savedCredentials: readonly string[]): ReportMasks {
   const declared = createDeclaredSecretMask(configPath)
+  const saved = savedCredentials.length === 0 ? [] : [maskSavedCredentials(savedCredentials)]
   const open = new Set<{ readonly mask: TextMask }>()
   let endedLast: TextMask | undefined
   return {
     resolve: () => {
       const masks = [
+        ...saved,
         declaredSecretMask(configPath, declared),
         ...[...open].map((binding) => binding.mask),
         ...(endedLast === undefined ? [] : [endedLast]),

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, statSync } from 'node:fs'
 import { parse as parseYaml } from 'yaml'
-import { resolveWorkspacePaths } from '@vostride/agent-qa-core'
+import { readAuth, resolveWorkspacePaths } from '@vostride/agent-qa-core'
 import type { AgentQaConfig } from '@vostride/agent-qa-core'
 import { basicAuthMaskEntries, SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import type { MaskFn } from '@vostride/agent-qa-schema'
@@ -144,6 +144,43 @@ export function createDeclaredSecretMask(configPath: string): DeclaredSecretMask
   }
 
   return { mask: (text) => redactor().redactString(text), redactor }
+}
+
+// A token endpoint's error body can quote a saved token, and none of them is a declared secret.
+export async function readSavedCredentialValues(authPath?: string): Promise<string[]> {
+  try {
+    const store: unknown = await readAuth(authPath)
+    if (typeof store !== 'object' || store === null || Array.isArray(store)) return []
+    return Object.values(store).flatMap(credentialValues)
+  } catch {
+    return []
+  }
+}
+
+function credentialValues(entry: unknown): string[] {
+  const credential = (entry ?? {}) as {
+    type?: unknown
+    tokens?: { access?: unknown; refresh?: unknown } | null
+    key?: unknown
+    token?: unknown
+  }
+  const values =
+    credential.type === 'oauth'
+      ? [credential.tokens?.access, credential.tokens?.refresh]
+      : credential.type === 'api'
+        ? [credential.key]
+        : credential.type === 'bearer'
+          ? [credential.token]
+          : []
+  return values.filter((value): value is string => typeof value === 'string' && value !== '')
+}
+
+export function maskSavedCredentials(values: readonly string[]): MaskFn {
+  const redactor = new SecretRedactor(
+    SecretStore.empty(),
+    values.map((value) => ['SAVED_CREDENTIAL', value] as const),
+  )
+  return (text) => redactor.redactString(text)
 }
 
 // With no loadable project there are no declared secrets to read.

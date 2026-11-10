@@ -10,6 +10,7 @@ import {
 import type { RecordedEnvelope } from '../../__tests__/error-report-recorder.js'
 import {
   createMaskingTransport,
+  createRepeatFilter,
   homeSpellings,
   maskEnvelope,
   rewriteHome,
@@ -293,6 +294,56 @@ describe('the masking transport', () => {
     await expect(throwing.send(envelope)).resolves.toEqual({})
     expect(recorder.envelopes).toEqual([])
     await wrap(() => maskSecret).send(envelope)
+    expect(recorder.envelopes).toHaveLength(1)
+  })
+})
+
+function errorItem(value: string) {
+  const frame = { filename: '/srv/app.js', function: 'load', lineno: 3, colno: 7 }
+  return [
+    { type: 'event' },
+    { exception: { values: [{ type: 'Error', value, stacktrace: { frames: [frame] } }] } },
+  ]
+}
+
+const SPAN_ITEM = [
+  { type: 'span', item_count: 1, content_type: 'application/vnd.sentry.items.span.v2+json' },
+  { version: 2, items: [{ trace_id: 'a1'.repeat(16), span_id: 'b3'.repeat(8), name: 'run' }] },
+]
+
+describe('repeats', () => {
+  it('never drops a span container, however often it is sent', () => {
+    const dropRepeats = createRepeatFilter()
+    const spanOnly = [{ sent_at: '2026-11-10T12:00:00.000Z' }, [SPAN_ITEM]]
+
+    expect(dropRepeats(spanOnly)).toEqual(spanOnly)
+    expect(dropRepeats(spanOnly)).toEqual(spanOnly)
+  })
+
+  it('removes an error event already sent and keeps the span container beside it', () => {
+    const dropRepeats = createRepeatFilter()
+    const header = { event_id: 'e0'.repeat(16) }
+
+    expect(dropRepeats([header, [errorItem('error A'), SPAN_ITEM]])).toEqual([
+      header,
+      [errorItem('error A'), SPAN_ITEM],
+    ])
+    expect(dropRepeats([header, [errorItem('error A'), SPAN_ITEM]])).toEqual([header, [SPAN_ITEM]])
+    expect(dropRepeats([header, [errorItem('error B')]])).toEqual([header, [errorItem('error B')]])
+  })
+
+  it('sends nothing for an envelope whose only item is an error already sent', async () => {
+    const { recorder, transport } = maskingTransport(() => unmasked, {
+      dropRepeats: createRepeatFilter(),
+    })
+    const envelope = [
+      { event_id: 'e0'.repeat(16) },
+      [errorItem('error A')],
+    ] as unknown as RecordedEnvelope
+
+    await expect(transport.send(envelope)).resolves.toEqual({})
+    await expect(transport.send(envelope)).resolves.toEqual({})
+
     expect(recorder.envelopes).toHaveLength(1)
   })
 })
