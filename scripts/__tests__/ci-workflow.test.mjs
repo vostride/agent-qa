@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import test from 'node:test'
 
@@ -13,7 +13,7 @@ const usesOf = (step) => String(step.uses ?? '')
 const indexOfUse = (steps, prefix) => steps.findIndex((step) => usesOf(step).startsWith(prefix))
 const needsBuild = (job) => [job.needs ?? []].flat().includes('build')
 
-test('only the build job builds and keeps turbo cache, and every later turbo command runs without building', () => {
+test('only the build job builds and keeps turbo cache, every later turbo command runs without building, and the packed build carries both generated key files', () => {
   for (const [id, job] of jobs) {
     if (id === 'build') continue
     for (const step of stepsOf(job)) {
@@ -32,6 +32,20 @@ test('only the build job builds and keeps turbo cache, and every later turbo com
   assert.ok(pack, 'the build job packs its output with tar')
   assert.match(runOf(pack), /build\.tgz/)
   assert.doesNotMatch(runOf(pack), /\.turbo/, 'the build artifact carries no turbo cache')
+  const packLines = runOf(pack).split('\n')
+  const writeKeys = packLines.findIndex((line) => line.includes('ensure-posthog-project.cjs'))
+  const tar = packLines.findIndex((line) => /\btar -c/.test(line))
+  assert.ok(writeKeys >= 0 && writeKeys < tar, 'the pack step writes the keyless key files before packing')
+  for (const keyFile of ['posthog-project.ts', 'sentry-project.ts']) {
+    const path = `packages/analytics/src/${keyFile}`
+    assert.ok(packLines[tar].split(/\s+/).includes(path), `the build artifact carries ${path}`)
+  }
+})
+
+test('CI names no Sentry secret or variable, so every job builds and tests with a blank DSN', () => {
+  const text = readFileSync(join(REPO_ROOT, '.github', 'workflows', 'ci.yml'), 'utf8')
+  assert.doesNotMatch(text, /SENTRY_/i)
+  assert.doesNotMatch(text, /\b(?:secrets|vars)\.\w*sentry/i)
 })
 
 test('every job that needs the build downloads it after checkout and unpacks it with extraction-time mtimes', () => {
