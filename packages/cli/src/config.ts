@@ -273,24 +273,36 @@ export function formatConfigDebug(
   return [header, sep, ...lines].join('\n')
 }
 
+export type ConfigDeclaration =
+  | { readonly state: 'missing' }
+  | { readonly state: 'unreadable' }
+  | { readonly state: 'read'; readonly document: unknown }
+
+// The raw file with no schema parse and no plugin load, so a config that fails the schema is read.
+export async function readConfigDeclaration(configPath: string): Promise<ConfigDeclaration> {
+  try {
+    return { state: 'read', document: await loadRequiredConfigFile(configPath) }
+  } catch (err: unknown) {
+    return err instanceof ConfigFileNotFoundError ? { state: 'missing' } : { state: 'unreadable' }
+  }
+}
+
+export function declaresAnalyticsPrivacy(document: unknown): boolean {
+  if (typeof document !== 'object' || document === null || Array.isArray(document)) return false
+  const analytics = (document as Record<string, unknown>).analytics
+  if (typeof analytics !== 'object' || analytics === null || Array.isArray(analytics)) return false
+  return (analytics as Record<string, unknown>).privacy === true
+}
+
 // The privacy flag from the raw file, so an invalid config still opts out; bad YAML does too.
 export async function readAnalyticsPrivacyDeclaration(
   configPath?: string,
 ): Promise<{ analytics: { privacy: boolean } } | undefined> {
-  const resolvedPath = configPath ?? 'agent-qa.config.yaml'
-  let raw: unknown
-  try {
-    raw = await loadRequiredConfigFile(resolvedPath)
-  } catch (err: unknown) {
-    if (err instanceof ConfigFileNotFoundError) return undefined
-    // Present but unreadable (ConfigFileNotYamlError, or an I/O error): fail closed.
-    return { analytics: { privacy: true } }
-  }
-
-  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return undefined
-  const analytics = (raw as Record<string, unknown>).analytics
-  if (typeof analytics !== 'object' || analytics === null || Array.isArray(analytics)) return undefined
-  return (analytics as Record<string, unknown>).privacy === true
+  const declaration = await readConfigDeclaration(configPath ?? 'agent-qa.config.yaml')
+  if (declaration.state === 'missing') return undefined
+  // Present but unreadable (not YAML, or an I/O error): fail closed.
+  if (declaration.state === 'unreadable') return { analytics: { privacy: true } }
+  return declaresAnalyticsPrivacy(declaration.document)
     ? { analytics: { privacy: true } }
     : undefined
 }

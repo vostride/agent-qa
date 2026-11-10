@@ -12,7 +12,7 @@ export type {
   ComposedAnalytics,
 } from './compose.js'
 
-export { createAnalyticsPort } from './port.js'
+export { createAnalyticsPort, DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS } from './port.js'
 export type {
   AnalyticsCapturePayload,
   AnalyticsEventEnvelope,
