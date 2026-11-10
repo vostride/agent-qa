@@ -5,16 +5,34 @@ import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
 import test from 'node:test'
 import {
+  debugIdTargets,
+  injectDebugIds,
   parseSentryArgs,
   redactDsn,
   renderSentryProjectFile,
   runCli as runSentryCli,
+  uploadSourceMaps,
   validateSentryReleaseArtifacts,
 } from '../release/sentry.mjs'
 
 const dsn = 'https://key@o0.ingest.example/1'
 const dsnFile = 'packages/analytics/src/sentry-project.ts'
 const debugIdComment = '//# debugId=0b6e8a52-2f4c-4d1e-9b3a-6c7d8e9f0a1b'
+const token = 'tok_test'
+const release = 'agent-qa@0.0.1'
+const shellPath = '/usr/bin:/bin'
+// The shell a release step runs in, with the variables sentry-cli would also read.
+const releaseEnv = {
+  PATH: shellPath,
+  HOME: '/home/release',
+  SENTRY_AUTH_TOKEN: token,
+  SENTRY_ORG: 'example-org',
+  SENTRY_PROJECT: 'example-project',
+  SENTRY_DSN: dsn,
+  SENTRY_URL: 'https://sentry.example',
+  SENTRY_PROPERTIES: 'sentry.properties',
+  SENTRY_RELEASE: 'agent-qa@9.9.9',
+}
 
 function writeFile(path, text) {
   mkdirSync(dirname(path), { recursive: true })
@@ -66,7 +84,7 @@ async function withReleaseFixture(run) {
   }
 }
 
-// The message of the error the check throws, which must never carry the DSN.
+// The message of the error a check throws, which must never carry the DSN.
 function refusal(check) {
   try {
     check()
@@ -74,7 +92,7 @@ function refusal(check) {
     assert.ok(!error.message.includes(dsn), 'a refusal never prints the DSN')
     return error.message
   }
-  assert.fail('the release check passed')
+  assert.fail('nothing was refused')
 }
 
 // The script falls back to the shell's SENTRY_DSN, so a cell that needs it absent removes it.
@@ -85,6 +103,52 @@ async function withoutShellDsn(run) {
     await run()
   } finally {
     if (shellDsn !== undefined) process.env.SENTRY_DSN = shellDsn
+  }
+}
+
+async function withPackagesFixture(dists, run) {
+  const rootDir = await mkdtemp(join(tmpdir(), 'agent-qa-release-sentry-packages-'))
+  try {
+    for (const dist of dists) writeFile(join(rootDir, dist, 'index.js'), 'export {}\n')
+    writeFile(join(rootDir, 'packages/arch/package.json'), '{}\n')
+    await run(rootDir)
+  } finally {
+    await rm(rootDir, { recursive: true, force: true })
+  }
+}
+
+const releaseDists = [
+  'packages/core/dist',
+  'packages/cli/dist',
+  'packages/dashboard-ui/dist',
+  'plugins/kernel/dist',
+]
+
+function recordingRunner() {
+  const calls = []
+  return {
+    calls,
+    run: (command, args, options) => {
+      calls.push({ command, args, options })
+      return ''
+    },
+  }
+}
+
+// Fails the way execFileSync does, with sentry-cli's own output, token included, on the error.
+function failingRunner(status) {
+  const calls = []
+  return {
+    calls,
+    run: (command, args, options) => {
+      calls.push({ command, args, options })
+      const output = `error: API request failed for token ${token}`
+      const error = new Error(`Command failed: ${command} ${args.join(' ')}\n${output}`)
+      if (status === undefined) error.code = 'ENOENT'
+      else error.status = status
+      error.stderr = output
+      throw error
+    },
   }
 }
 
@@ -139,11 +203,29 @@ test('the --write entry refuses to write when SENTRY_DSN is absent', async () =>
   }
 })
 
-test('the argument parser accepts --write alone', () => {
+test('the argument parser accepts --write, --inject and --upload --release <name> only', () => {
   assert.deepEqual(parseSentryArgs(['--write']), { mode: 'write' })
-  assert.throws(() => parseSentryArgs([]), /missing --write/)
-  for (const argv of [['--write', '--write'], ['--write', '--bad'], ['write'], ['--dsn']]) {
-    assert.throws(() => parseSentryArgs(argv), /invalid args:/)
+  assert.deepEqual(parseSentryArgs(['--inject']), { mode: 'inject' })
+  assert.deepEqual(parseSentryArgs(['--upload', '--release', release]), {
+    mode: 'upload',
+    release,
+  })
+  for (const argv of [
+    [],
+    ['--upload'],
+    ['--upload', '--release'],
+    ['--upload', '--release', ''],
+    ['--upload', '--release', '--inject'],
+    ['--release', release, '--upload'],
+    ['--inject', '--write'],
+    ['--write', '--bad'],
+    ['write'],
+  ]) {
+    const message = refusal(() => parseSentryArgs(argv))
+    assert.match(message, /^invalid args:/)
+    for (const form of ['--write', '--inject', '--upload --release <name>']) {
+      assert.ok(message.includes(form), `${message} names ${form}`)
+    }
   }
 })
 
@@ -220,5 +302,176 @@ test('the release check names a runtime source that reads SENTRY_DSN from the en
       "expect(source).not.toContain('process.env.SENTRY_DSN')\n",
     )
     assert.doesNotThrow(() => validateSentryReleaseArtifacts({ rootDir, stagedDir, dsn }))
+  })
+})
+
+test('debug IDs go into every package dist but the dashboard UI, and into no plugin', async () => {
+  await withPackagesFixture(releaseDists, (rootDir) => {
+    assert.deepEqual(debugIdTargets(rootDir), ['packages/cli/dist', 'packages/core/dist'])
+  })
+})
+
+test('the --inject entry runs sentry-cli over the targets from the root with no token in its environment', async () => {
+  await withPackagesFixture(releaseDists, async (rootDir) => {
+    const runner = recordingRunner()
+    await runSentryCli(['--inject'], {
+      rootDir,
+      env: releaseEnv,
+      execFileSync: runner.run,
+      log: () => {},
+    })
+    assert.equal(runner.calls.length, 1)
+    const [{ command, args, options }] = runner.calls
+    assert.equal(command, 'sentry-cli')
+    assert.deepEqual(args, ['sourcemaps', 'inject', 'packages/cli/dist', 'packages/core/dist'])
+    assert.equal(options.cwd, rootDir)
+    assert.equal(options.stdio, 'pipe')
+    assert.deepEqual(options.env, { PATH: shellPath, SENTRY_LOAD_DOTENV: '0' })
+  })
+})
+
+test('inject fails when sentry-cli fails or there is no package dist to inject', async () => {
+  await withPackagesFixture(releaseDists, (rootDir) => {
+    const runner = failingRunner(1)
+    assert.throws(
+      () => injectDebugIds({ rootDir, env: releaseEnv, execFileSync: runner.run, log: () => {} }),
+      /Command failed: sentry-cli sourcemaps inject/,
+    )
+  })
+
+  await withPackagesFixture(['packages/dashboard-ui/dist', 'plugins/kernel/dist'], (rootDir) => {
+    const runner = recordingRunner()
+    assert.throws(
+      () => injectDebugIds({ rootDir, env: releaseEnv, execFileSync: runner.run, log: () => {} }),
+      /no package dist/,
+    )
+    assert.equal(runner.calls.length, 0)
+  })
+})
+
+test('upload runs sentry-cli with the release, the targets and exactly five environment keys, and no --url', async () => {
+  await withPackagesFixture(releaseDists, (rootDir) => {
+    const runner = recordingRunner()
+    const lines = []
+    const result = uploadSourceMaps({
+      rootDir,
+      release,
+      env: releaseEnv,
+      execFileSync: runner.run,
+      log: (line) => lines.push(line),
+    })
+    assert.deepEqual(result, { uploaded: true })
+    assert.equal(runner.calls.length, 1)
+    const [{ command, args, options }] = runner.calls
+    assert.equal(command, 'sentry-cli')
+    assert.deepEqual(args, [
+      'sourcemaps',
+      'upload',
+      '--release',
+      release,
+      'packages/cli/dist',
+      'packages/core/dist',
+    ])
+    assert.ok(!args.some((arg) => arg.startsWith('--url')))
+    assert.equal(options.cwd, rootDir)
+    assert.equal(options.stdio, 'pipe')
+    assert.deepEqual(options.env, {
+      PATH: shellPath,
+      SENTRY_AUTH_TOKEN: token,
+      SENTRY_ORG: 'example-org',
+      SENTRY_PROJECT: 'example-project',
+      SENTRY_LOAD_DOTENV: '0',
+    })
+    assert.ok(lines.every((line) => !line.startsWith('::warning::')), lines.join('\n'))
+  })
+})
+
+test('upload warns and runs nothing when SENTRY_AUTH_TOKEN, SENTRY_ORG or SENTRY_PROJECT is blank', async () => {
+  const names = ['SENTRY_AUTH_TOKEN', 'SENTRY_ORG', 'SENTRY_PROJECT']
+  await withPackagesFixture(releaseDists, (rootDir) => {
+    for (const name of names) {
+      const { [name]: _removed, ...absent } = releaseEnv
+      for (const env of [absent, { ...releaseEnv, [name]: '' }, { ...releaseEnv, [name]: '  ' }]) {
+        const runner = recordingRunner()
+        const lines = []
+        const result = uploadSourceMaps({
+          rootDir,
+          release,
+          env,
+          execFileSync: runner.run,
+          log: (line) => lines.push(line),
+        })
+        assert.deepEqual(result, { uploaded: false })
+        assert.equal(runner.calls.length, 0)
+        assert.equal(lines.length, 1)
+        assert.ok(lines[0].startsWith('::warning::'), lines[0])
+        assert.ok(lines[0].includes(name), lines[0])
+        for (const other of names.filter((candidate) => candidate !== name)) {
+          assert.ok(!lines[0].includes(other), lines[0])
+        }
+      }
+    }
+  })
+})
+
+test('upload warns with a fixed sentence and the exit status, never sentry-cli output, when it fails', async () => {
+  await withPackagesFixture(releaseDists, (rootDir) => {
+    for (const status of [3, undefined]) {
+      const runner = failingRunner(status)
+      const lines = []
+      const result = uploadSourceMaps({
+        rootDir,
+        release,
+        env: releaseEnv,
+        execFileSync: runner.run,
+        log: (line) => lines.push(line),
+      })
+      assert.deepEqual(result, { uploaded: false })
+      assert.equal(runner.calls.length, 1)
+      assert.equal(lines.length, 1)
+      assert.ok(lines[0].startsWith('::warning::'), lines[0])
+      assert.doesNotMatch(lines[0], /API request failed|Command failed/)
+      if (status === undefined) assert.doesNotMatch(lines[0], /exit status/)
+      else assert.match(lines[0], /exit status 3/)
+    }
+  })
+})
+
+test('the --upload entry resolves with no failing exit code when a value is missing or the upload fails', async () => {
+  await withPackagesFixture(releaseDists, async (rootDir) => {
+    const { SENTRY_AUTH_TOKEN: _token, ...noToken } = releaseEnv
+    for (const [env, runner] of [
+      [noToken, recordingRunner()],
+      [releaseEnv, failingRunner(1)],
+    ]) {
+      const result = await runSentryCli(['--upload', '--release', release], {
+        rootDir,
+        env,
+        execFileSync: runner.run,
+        log: () => {},
+      })
+      assert.deepEqual(result, { uploaded: false })
+      assert.equal(process.exitCode ?? 0, 0)
+    }
+  })
+})
+
+test('no log line of inject or upload holds the token', async () => {
+  await withPackagesFixture(releaseDists, (rootDir) => {
+    const lines = []
+    const log = (line) => lines.push(line)
+    const env = releaseEnv
+    injectDebugIds({ rootDir, env, execFileSync: recordingRunner().run, log })
+    uploadSourceMaps({ rootDir, release, env, execFileSync: recordingRunner().run, log })
+    uploadSourceMaps({ rootDir, release, env, execFileSync: failingRunner(1).run, log })
+    uploadSourceMaps({
+      rootDir,
+      release,
+      env: { ...env, SENTRY_ORG: '' },
+      execFileSync: recordingRunner().run,
+      log,
+    })
+    assert.equal(lines.length, 4)
+    assert.ok(lines.every((line) => !line.includes(token)), lines.join('\n'))
   })
 })
