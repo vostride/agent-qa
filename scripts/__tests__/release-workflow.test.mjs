@@ -539,6 +539,23 @@ test('a release calls CI with read-only contents and no secrets, and publishes n
   assert.match(release.jobs.npm.if, /needs\.ci\.result == 'success'/)
 })
 
+const sentryCredential = /\bsecrets\.SENTRY_(?:DSN|AUTH_TOKEN)\b/
+const runsSentryRelease = /scripts\/release\/sentry\.mjs|\bsentry-cli\b/
+
+test('the release ci job stays keyless: it passes ci.yml no secret, and ci.yml names no Sentry credential and runs no Sentry release script', () => {
+  const release = loadWorkflow('release.yml')
+  const ci = loadWorkflow('ci.yml')
+  const steps = Object.values(ci.jobs).flatMap((job) => job.steps ?? [])
+
+  assert.equal(release.jobs.ci.uses, './.github/workflows/ci.yml')
+  assert.equal(release.jobs.ci.secrets, undefined, 'neither secrets: inherit nor a secrets map')
+  assert.deepEqual(placesNaming(ci, sentryCredential), [])
+  assert.ok(steps.some((step) => step.run), 'ci.yml has steps that run commands')
+  for (const step of steps) {
+    assert.doesNotMatch(String(step.run ?? ''), runsSentryRelease, step.name)
+  }
+})
+
 test('no release job runs a test, a typecheck or a browser install, and none downloads a build artifact', () => {
   const release = loadWorkflow('release.yml')
   const forbidden = /\b(pnpm|turbo)\b[^\n]*\b(test|typecheck)\b|playwright(-core)? install|apt-get install/
@@ -697,4 +714,26 @@ test('docker release workflow moves latest for all six images once the builds an
   )
   assert.match(latest, /image: \$\{\{ fromJson\(needs\.preflight\.outputs\.images\) \}\}/)
   assert.match(latest, /docker buildx imagetools create -t "\$\{\{ matrix\.image\.image \}\}:latest" "\$\{\{ matrix\.image\.image \}\}:\$\{\{ needs\.preflight\.outputs\.version \}\}"/)
+})
+
+test('docker-release.yml stays keyless: no job or step names the Sentry DSN or upload token, and no build argument holds a secret', () => {
+  const docker = loadWorkflow('docker-release.yml')
+  const buildArgs = Object.values(docker.jobs)
+    .flatMap((job) => job.steps ?? [])
+    .filter((step) => step.with && 'build-args' in step.with)
+    .map((step) => String(step.with['build-args']))
+
+  assert.deepEqual(placesNaming(docker, sentryCredential), [])
+  assert.ok(buildArgs.length > 0, 'docker-release.yml passes build arguments')
+  for (const value of buildArgs) assert.doesNotMatch(value, /\bsecrets\./)
+})
+
+test('docker-release.yml stays keyless: no step runs the Sentry release script or sentry-cli', () => {
+  const { jobs } = loadWorkflow('docker-release.yml')
+  const steps = Object.values(jobs).flatMap((job) => job.steps ?? [])
+
+  assert.ok(steps.some((step) => step.run), 'docker-release.yml has steps that run commands')
+  for (const step of steps) {
+    assert.doesNotMatch(String(step.run ?? ''), runsSentryRelease, step.name)
+  }
 })
