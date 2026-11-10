@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { generateRunId } from '@vostride/agent-qa-ids'
+import { pluginMaskName } from '@vostride/agent-qa-runner'
 import { RUNS_SUBDIR, slugBranch } from '@vostride/agent-qa-runner-local'
 import { WebPlatformAdapter } from '@vostride/agent-qa-web'
 import { Command } from 'commander'
@@ -33,6 +34,16 @@ import type {
   InProcessFixtureInput,
 } from '../composition/__tests__/in-process-run-fixture.js'
 import { startRemoteBrowserEndpoint } from '../composition/__tests__/remote-browser-endpoint.js'
+import {
+  canaryError,
+  canaryLine,
+  canaryProject,
+  expectNoCanary,
+  expectUsefulReport,
+  pluginAnswerCanary,
+  removeCanaryProjects,
+  startCanaryReporting,
+} from './error-report-canaries.js'
 import {
   projectWithPrivacy,
   recordingReportTransport,
@@ -71,6 +82,7 @@ afterEach(async () => {
   vi.unstubAllEnvs()
   await closeErrorReporting()
   removeReportProjects()
+  removeCanaryProjects()
   for (const dir of authDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
   // A first stop signal sets the exit code of the process the cells run in.
   process.exitCode = exitCodeBefore
@@ -645,4 +657,80 @@ describe('a second stop signal', () => {
     },
     RUN_BUDGET_MS,
   )
+})
+
+describe("what a report from run's outer catch leaves out and keeps", () => {
+  // The run's browser fails to start with the canary error while the reporter decides from the
+  // canary project, its home and its environment, and a line quoting the canaries is printed
+  // just before the run.
+  async function reportFromRun(): Promise<readonly RecordedEnvelope[]> {
+    const canaries = canaryProject()
+    const recorder = recordingReportTransport()
+    await onProject({}, async ({ project }) => {
+      failEveryLaunchWith(canaryError(canaries))
+      await startCanaryReporting(canaries, recorder, 'run')
+      console.error(canaryLine(canaries))
+      const run = await invokeRun(project, [project.testPattern], recorder)
+      expect(run.exits).toEqual([2])
+      await closeErrorReporting()
+    })
+    return recorder.envelopes
+  }
+
+  it('sends no secret, Basic value, env value, hostname or home folder name', async () => {
+    expectNoCanary(await reportFromRun())
+  }, RUN_BUDGET_MS)
+
+  it('still sends the message, both stacks, the line printed before and the command', async () => {
+    expectUsefulReport(await reportFromRun(), 'run')
+  }, RUN_BUDGET_MS)
+})
+
+// A run's redactor learns a plugin's answer the way the run's plugin host teaches it, and the run
+// binds that redactor on the reporter.
+describe('a connection URL a remote plugin answered for a run', () => {
+  it('stays out of a report made while the run is bound and of one made just after it ended', async () => {
+    const project = canaryProject()
+    const recorder = recordingReportTransport()
+    const reporter = await startCanaryReporting(project, recorder, 'run')
+    const answer = pluginAnswerCanary(project)
+    const unbind = reporter.bindMask((text) => answer.redactor.redactString(text))
+
+    reporter.capture(
+      new Error(`the session at ${answer.url} closed`, {
+        cause: new Error(`no answer came from ${answer.url}`),
+      }),
+    )
+    unbind()
+    reporter.capture(new Error(`the next session reused ${answer.url}`))
+    await settleReporting()
+
+    const masked = `[secret:${pluginMaskName('lab')}]`
+    expect(reportedErrors(recorder.envelopes).map(messagesOf).sort()).toEqual([
+      `no answer came from ${masked}\nthe session at ${masked} closed`,
+      `the next session reused ${masked}`,
+    ])
+    expectNoCanary(recorder.envelopes)
+  })
+
+  it('stays out of a report made while two runs were bound and sent after both ended', async () => {
+    const project = canaryProject()
+    const recorder = recordingReportTransport()
+    const reporter = await startCanaryReporting(project, recorder, 'mcp')
+    const first = pluginAnswerCanary(project, 'lab')
+    const second = pluginAnswerCanary(project, 'farm')
+    const unbindFirst = reporter.bindMask((text) => first.redactor.redactString(text))
+    const unbindSecond = reporter.bindMask((text) => second.redactor.redactString(text))
+
+    reporter.capture(new Error(`two sessions closed: ${first.url} and ${second.url}`))
+    unbindFirst()
+    unbindSecond()
+    await settleReporting()
+
+    const [lab, farm] = ['lab', 'farm'].map((entry) => `[secret:${pluginMaskName(entry)}]`)
+    expect(reportedErrors(recorder.envelopes).map(messagesOf)).toEqual([
+      `two sessions closed: ${lab} and ${farm}`,
+    ])
+    expectNoCanary(recorder.envelopes)
+  })
 })

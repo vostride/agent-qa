@@ -143,12 +143,12 @@ export interface MaskingTransportOptions {
   readonly dropRepeats?: RepeatFilter
 }
 
-// Each string passes the secret mask first and the home rewrite after, so a secret that holds the
-// home path is still found whole. Repeats are dropped from the masked envelope, which is sent only
-// while an item is left.
+// Each string passes the secret mask resolved for its envelope first and the home rewrite after, so
+// a secret that holds the home path is still found whole. Repeats are dropped from the masked
+// envelope, which is sent only while an item is left.
 export function createMaskingTransport<TOptions, TEnvelope, TResult extends object>(
   inner: (options: TOptions) => EnvelopeTransport<TEnvelope, TResult>,
-  resolveMask: () => TextMask,
+  resolveMask: (envelope: TEnvelope) => TextMask,
   options: MaskingTransportOptions = {},
 ): (options: TOptions) => EnvelopeTransport<TEnvelope, Partial<TResult>> {
   const spellings = options.homeSpellings ?? []
@@ -159,7 +159,7 @@ export function createMaskingTransport<TOptions, TEnvelope, TResult extends obje
       send: (envelope) => {
         let outgoing: TEnvelope | undefined
         try {
-          const mask = resolveMask()
+          const mask = resolveMask(envelope)
           const masked = maskEnvelope(envelope, (text) => rewriteHome(mask(text), spellings))
           outgoing = dropRepeats === undefined ? masked : dropRepeats(masked)
         } catch {

@@ -201,6 +201,7 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
         { homeSpellings: spellings, dropRepeats: createRepeatFilter() },
       ),
       transportOptions: { httpModule: boundedRequestModule(URL.parse(dsn)?.protocol ?? 'https:') },
+      beforeSend: (event, hint) => masks.keepCaptureBindings(event, hint),
     })
     Sentry.setCurrentClient(client)
     client.init()
@@ -219,7 +220,7 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
       },
       capture: (error) => {
         try {
-          Sentry.captureException(error)
+          Sentry.captureException(error, { data: masks.captureBindings() })
         } catch {
           // A report that cannot be made never fails the command that hit the error.
         }
@@ -374,27 +375,36 @@ function sdkAttributes(attributes: ReportSpanAttributes): SdkSpanAttributes {
   )
 }
 
-interface ReportMasks {
-  resolve(): TextMask
-  bind(mask: TextMask): () => void
+interface CaptureBindings {
+  readonly boundAtCapture: readonly TextMask[]
 }
 
-// Each envelope passes the saved credentials, the declared secrets, then every open binding's mask,
-// then the mask of the binding that ended last: a report made just after a run still passes that
-// run's mask.
+interface ReportMasks {
+  resolve(envelope: unknown): TextMask
+  bind(mask: TextMask): () => void
+  // A capture hands the SDK the bindings in force as it is made, and its event keeps them.
+  captureBindings(): CaptureBindings
+  keepCaptureBindings<T extends object>(event: T, hint: { readonly data?: unknown }): T
+}
+
+// Each envelope passes the saved credentials, the declared secrets, then each binding's mask once:
+// those in force when an event in it was captured, those open now, and the one that ended last. A
+// report made just after a run still passes that run's mask, and so does one captured during a
+// run and sent after it ended.
 function createReportMasks(configPath: string, savedCredentials: readonly string[]): ReportMasks {
   const declared = createDeclaredSecretMask(configPath)
   const saved = savedCredentials.length === 0 ? [] : [maskSavedCredentials(savedCredentials)]
   const open = new Set<{ readonly mask: TextMask }>()
   let endedLast: TextMask | undefined
+  const atCapture = new WeakMap<object, readonly TextMask[]>()
+  const inForce = (): TextMask[] => [
+    ...[...open].map((binding) => binding.mask),
+    ...(endedLast === undefined ? [] : [endedLast]),
+  ]
   return {
-    resolve: () => {
-      const masks = [
-        ...saved,
-        declaredSecretMask(configPath, declared),
-        ...[...open].map((binding) => binding.mask),
-        ...(endedLast === undefined ? [] : [endedLast]),
-      ]
+    resolve: (envelope) => {
+      const bindings = new Set([...capturedUnder(envelope, atCapture), ...inForce()])
+      const masks = [...saved, declaredSecretMask(configPath, declared), ...bindings]
       return (text) => masks.reduce((masked, mask) => mask(masked), text)
     },
     bind: (mask) => {
@@ -404,7 +414,23 @@ function createReportMasks(configPath: string, savedCredentials: readonly string
         if (open.delete(binding)) endedLast = mask
       }
     },
+    captureBindings: () => ({ boundAtCapture: inForce() }),
+    // The SDK puts this same event object in the envelope it hands the transport.
+    keepCaptureBindings: (event, hint) => {
+      const bindings = (hint.data as Partial<CaptureBindings> | undefined)?.boundAtCapture
+      if (Array.isArray(bindings)) atCapture.set(event, bindings)
+      return event
+    },
   }
+}
+
+function capturedUnder(envelope: unknown, atCapture: WeakMap<object, readonly TextMask[]>) {
+  const items: unknown = Array.isArray(envelope) ? envelope[1] : undefined
+  if (!Array.isArray(items)) return []
+  return items.flatMap((item: unknown) => {
+    const payload: unknown = Array.isArray(item) ? item[1] : undefined
+    return typeof payload === 'object' && payload !== null ? (atCapture.get(payload) ?? []) : []
+  })
 }
 
 // No config file, no secrets file named, or a named one that is not there: no secrets are

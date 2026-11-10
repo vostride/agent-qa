@@ -34,6 +34,15 @@ import {
 } from '../composition/error-reporting.js'
 import { createToolSettledObserver } from '../composition/mcp-tool-observer.js'
 import {
+  canaryError,
+  canaryLine,
+  canaryProject,
+  expectNoCanary,
+  expectUsefulReport,
+  removeCanaryProjects,
+  startCanaryReporting,
+} from './error-report-canaries.js'
+import {
   projectWithPrivacy,
   recordingReportTransport,
   removeReportProjects,
@@ -71,6 +80,7 @@ afterEach(async () => {
   vi.unstubAllEnvs()
   await closeErrorReporting()
   removeReportProjects()
+  removeCanaryProjects()
   for (const dir of scratch.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
@@ -494,5 +504,32 @@ describe('an observer that throws inside', () => {
 
     expect(JSON.stringify(observed)).toBe(JSON.stringify(plain))
     expect(reached).toEqual(['capture', 'capture'])
+  })
+})
+
+describe('what a report of a tool error leaves out and keeps', () => {
+  // The op throws the canary error while the reporter decides from the canary project, its home
+  // and its environment, and a line quoting the canaries is printed just before the call.
+  async function reportFromTool(): Promise<readonly RecordedEnvelope[]> {
+    const project = canaryProject()
+    const recorder = recordingReportTransport()
+    await startCanaryReporting(project, recorder, 'mcp')
+    const client = await serve({
+      registry: markRegistry(() => Promise.reject(canaryError(project))),
+      maskText: unmasked,
+    })
+    console.error(canaryLine(project))
+    expect((await client.callTool(MARK)).isError).toBe(true)
+    await drain()
+    await closeErrorReporting()
+    return recorder.envelopes
+  }
+
+  it('sends no secret, Basic value, env value, hostname or home folder name', async () => {
+    expectNoCanary(await reportFromTool())
+  })
+
+  it('still sends the message, both stacks, the line printed before and the command', async () => {
+    expectUsefulReport(await reportFromTool(), 'mcp')
   })
 })
