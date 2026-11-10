@@ -202,6 +202,7 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
       ),
       transportOptions: { httpModule: boundedRequestModule(URL.parse(dsn)?.protocol ?? 'https:') },
       beforeSend: (event, hint) => masks.keepCaptureBindings(event, hint),
+      beforeBreadcrumb: (breadcrumb) => masks.keepRecordBindings(breadcrumb),
     })
     Sentry.setCurrentClient(client)
     client.init()
@@ -379,18 +380,26 @@ interface CaptureBindings {
   readonly boundAtCapture: readonly TextMask[]
 }
 
+// The masks in force when a breadcrumb was recorded ride on it under a symbol: the SDK's copies of
+// a breadcrumb keep it, and the envelope walk keeps string keys alone, so it never leaves.
+const BOUND_AT_RECORD = Symbol('masks in force when the breadcrumb was recorded')
+
 interface ReportMasks {
   resolve(envelope: unknown): TextMask
   bind(mask: TextMask): () => void
   // A capture hands the SDK the bindings in force as it is made, and its event keeps them.
   captureBindings(): CaptureBindings
   keepCaptureBindings<T extends object>(event: T, hint: { readonly data?: unknown }): T
+  // A breadcrumb holds the bindings in force as it is recorded, so a mask is kept only while the
+  // SDK keeps a line recorded under it.
+  keepRecordBindings<T extends object>(breadcrumb: T): T
 }
 
 // Each envelope passes the saved credentials, the declared secrets, then each binding's mask once:
-// those in force when an event in it was captured, those open now, and the one that ended last. A
-// report made just after a run still passes that run's mask, and so does one captured during a
-// run and sent after it ended.
+// those in force when an event in it was captured or one of its breadcrumbs was recorded, those
+// open now, and the one that ended last. A report made just after a run still passes that run's
+// mask, and so do one captured during a run and sent after it ended, and a line printed during a
+// run, however many bindings ended since.
 function createReportMasks(configPath: string, savedCredentials: readonly string[]): ReportMasks {
   const declared = createDeclaredSecretMask(configPath)
   const saved = savedCredentials.length === 0 ? [] : [maskSavedCredentials(savedCredentials)]
@@ -403,7 +412,11 @@ function createReportMasks(configPath: string, savedCredentials: readonly string
   ]
   return {
     resolve: (envelope) => {
-      const bindings = new Set([...capturedUnder(envelope, atCapture), ...inForce()])
+      const bindings = new Set([
+        ...capturedUnder(envelope, atCapture),
+        ...recordedUnder(envelope),
+        ...inForce(),
+      ])
       const masks = [...saved, declaredSecretMask(configPath, declared), ...bindings]
       return (text) => masks.reduce((masked, mask) => mask(masked), text)
     },
@@ -421,15 +434,39 @@ function createReportMasks(configPath: string, savedCredentials: readonly string
       if (Array.isArray(bindings)) atCapture.set(event, bindings)
       return event
     },
+    keepRecordBindings: (breadcrumb) => {
+      const bindings = inForce()
+      return bindings.length === 0
+        ? breadcrumb
+        : Object.assign(breadcrumb, { [BOUND_AT_RECORD]: bindings })
+    },
   }
 }
 
-function capturedUnder(envelope: unknown, atCapture: WeakMap<object, readonly TextMask[]>) {
+function payloadsOf(envelope: unknown): object[] {
   const items: unknown = Array.isArray(envelope) ? envelope[1] : undefined
   if (!Array.isArray(items)) return []
   return items.flatMap((item: unknown) => {
     const payload: unknown = Array.isArray(item) ? item[1] : undefined
-    return typeof payload === 'object' && payload !== null ? (atCapture.get(payload) ?? []) : []
+    return typeof payload === 'object' && payload !== null ? [payload] : []
+  })
+}
+
+function capturedUnder(envelope: unknown, atCapture: WeakMap<object, readonly TextMask[]>) {
+  return payloadsOf(envelope).flatMap((payload) => atCapture.get(payload) ?? [])
+}
+
+function recordedUnder(envelope: unknown): TextMask[] {
+  return payloadsOf(envelope).flatMap((payload) => {
+    const breadcrumbs: unknown = (payload as { readonly breadcrumbs?: unknown }).breadcrumbs
+    if (!Array.isArray(breadcrumbs)) return []
+    return breadcrumbs.flatMap((breadcrumb: unknown) => {
+      const bindings: unknown =
+        typeof breadcrumb === 'object' && breadcrumb !== null
+          ? (breadcrumb as { readonly [BOUND_AT_RECORD]?: unknown })[BOUND_AT_RECORD]
+          : undefined
+      return Array.isArray(bindings) ? (bindings as TextMask[]) : []
+    })
   })
 }
 

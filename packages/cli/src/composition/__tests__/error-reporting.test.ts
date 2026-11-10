@@ -1,12 +1,14 @@
 // The reporter decides from the raw config, loads the SDK only when on, and builds its client by
 // hand with every option passed, through a recording transport that sends nothing.
 
+import { randomBytes } from 'node:crypto'
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { release, tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS } from '@vostride/agent-qa-analytics'
+import { pluginMaskName, RunSecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -778,6 +780,125 @@ describe('environment facts and log lines', () => {
     expect(before?.tags).toMatchObject({ command: 'first command' })
     expect(after?.tags ?? {}).toEqual({})
     expect(after?.contexts).not.toHaveProperty('agent_qa')
+  })
+})
+
+// The SDK keeps this many breadcrumbs, as the reporter's client is built to.
+const BREADCRUMB_BUFFER = 100
+
+// Breadcrumbs sit on the SDK's process-wide scope, so each cell here starts and ends without any.
+async function sdkWithNoBreadcrumbs(): Promise<SentrySdk> {
+  const sdk = await import('@sentry/node')
+  sdk.getIsolationScope().clearBreadcrumbs()
+  return sdk
+}
+
+// The breadcrumbs of every event, as the envelope reached the transport, before it is serialized.
+function breadcrumbsHandedToTransport(envelopes: readonly RecordedEnvelope[]): object[] {
+  return (envelopes as unknown as Array<[unknown, Array<[unknown, { breadcrumbs?: object[] }]>]>)
+    .flatMap(([, items]) => items)
+    .flatMap(([, payload]) => payload.breadcrumbs ?? [])
+}
+
+describe('a line printed while a binding is open', () => {
+  afterEach(async () => {
+    await sdkWithNoBreadcrumbs()
+  })
+
+  it('leaves with the masks in force when it was printed, after other bindings ended and once the mask learned what it quotes', async () => {
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+      loadSdk: sdkWithNoBreadcrumbs,
+    })
+    // Minted here, so the only way into a report is the printed line.
+    const token = ['lab', 'token', randomBytes(6).toString('hex')].join('-')
+    const url = `wss://lab.invalid/playwright?token=${token}`
+    const redactor = new RunSecretRedactor(new SecretStore([]))
+    const end = reporter?.bindMask((text) => redactor.redactString(text))
+
+    console.error(`connecting to ${url}`)
+    redactor.addMaskExtras([
+      [pluginMaskName('lab'), url],
+      [pluginMaskName('lab'), token],
+    ])
+    end?.()
+    console.error(`closed the session at ${url}`)
+    reporter?.bindMask((text) => text)()
+    console.error('a line printed after both bindings ended')
+    reporter?.capture(new Error('an error after both bindings ended'))
+    await settleReporting()
+
+    const masked = `[secret:${pluginMaskName('lab')}]`
+    expect(consoleLines(recordedEvents(recorder.envelopes).at(-1))).toEqual([
+      `connecting to ${masked}`,
+      `closed the session at ${masked}`,
+      'a line printed after both bindings ended',
+    ])
+    expect(serializedEnvelopes(recorder.envelopes)).not.toContain(token)
+    const marked = breadcrumbsHandedToTransport(recorder.envelopes).filter(
+      (breadcrumb) => Object.getOwnPropertySymbols(breadcrumb).length > 0,
+    )
+    expect(marked, 'a breadcrumb reached the transport with a marker on it').toEqual([])
+  })
+
+  it('keeps the mask that ended last on a line printed just after its binding ended', async () => {
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+      loadSdk: sdkWithNoBreadcrumbs,
+    })
+    const kappa = markerMask('kappa')
+
+    reporter?.bindMask(kappa.apply)()
+    console.error('the kappa run has ended')
+    reporter?.bindMask((text) => text)()
+    reporter?.capture(new Error('an error after another binding ended'))
+    await settleReporting()
+
+    expect(consoleLines(recordedEvents(recorder.envelopes).at(-1))).toEqual([
+      'the [kappa masked] run has ended',
+    ])
+  })
+
+  it('lets a mask go once every line printed under it has left the breadcrumb buffer', async () => {
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+      loadSdk: sdkWithNoBreadcrumbs,
+    })
+    const sdk = await import('@sentry/node')
+    const kappa = markerMask('kappa')
+    const end = reporter?.bindMask(kappa.apply)
+    console.error('a line printed while kappa was bound')
+    end?.()
+    reporter?.bindMask((text) => text)()
+    const reported = async (message: string) => {
+      const before = { envelopes: recorder.envelopes.length, calls: kappa.inputs.length }
+      reporter?.capture(new Error(message))
+      await settleReporting()
+      return {
+        values: exceptionValues(recorder.envelopes.slice(before.envelopes)),
+        calls: kappa.inputs.length - before.calls,
+      }
+    }
+
+    const whileBuffered = await reported('kappa one')
+    for (let line = 0; line < BREADCRUMB_BUFFER; line += 1) {
+      sdk.addBreadcrumb({ category: 'console', message: `a later line ${line}` })
+    }
+    const afterwards = await reported('kappa two')
+
+    expect(whileBuffered.values).toEqual(['[kappa masked] one'])
+    expect(whileBuffered.calls, 'kappa while its line is buffered').toBeGreaterThan(0)
+    expect(afterwards.values).toEqual(['kappa two'])
+    expect(afterwards.calls, 'kappa once its line has left the buffer').toBe(0)
   })
 })
 
