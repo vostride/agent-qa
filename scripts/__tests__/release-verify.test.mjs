@@ -12,6 +12,8 @@ import {
   validateStagedPackDryRuns,
 } from '../release/verify.mjs'
 
+const sentryDsn = 'https://key@o0.ingest.example/1'
+
 function createPackage(rootDir, name, version = '0.1.1') {
   const dir = join(rootDir, name.replace('@vostride/', '').replaceAll('/', '-'))
   mkdirSync(dir, { recursive: true })
@@ -76,14 +78,24 @@ test('validates staged pack dry-runs from .release/staged-packages with exact in
 
 test('postbuild verification runs staged pack dry-runs before any release mutation action', async () => {
   const calls = []
+  const sentryChecks = []
+  const rootDir = join(tmpdir(), 'agent-qa-release-verify-postbuild')
+  const env = { POSTHOG_PROJECT_KEY: 'phc_test_key', SENTRY_DSN: sentryDsn }
   await runReleaseVerification({
     stage: 'postbuild',
     bump: 'patch',
     targetVersion: '0.1.1',
     stagedDir: '.release/staged-packages',
+    rootDir,
+    env,
+    npmVersion: '11.5.1',
     validatePublishSurface: () => calls.push('validate publish surface'),
     validateStagedPackageManifests: () => calls.push('validate staged manifests'),
     validatePosthogReleaseArtifacts: () => calls.push('validate posthog'),
+    validateSentryReleaseArtifacts: (input) => {
+      calls.push('validate sentry')
+      sentryChecks.push(input)
+    },
     validateStagedPackDryRuns: () => calls.push('npm pack dry-run'),
     assertTrustedPublishEnvironment: () => calls.push('trusted publish env'),
   })
@@ -92,8 +104,12 @@ test('postbuild verification runs staged pack dry-runs before any release mutati
     'validate publish surface',
     'validate staged manifests',
     'validate posthog',
+    'validate sentry',
     'npm pack dry-run',
     'trusted publish env',
+  ])
+  assert.deepEqual(sentryChecks, [
+    { rootDir, stagedDir: join(rootDir, '.release/staged-packages'), dsn: sentryDsn, env },
   ])
   assert.equal(calls.includes('create release commit and tag'), false)
   assert.equal(calls.includes('git push'), false)
@@ -106,10 +122,16 @@ test('postbuild verification checks the actual npm version before release mutati
     bump: 'patch',
     targetVersion: '0.1.1',
     stagedDir: '.release/staged-packages',
-    env: { POSTHOG_PROJECT_KEY: 'phc_test_key', GITHUB_ACTIONS: 'true', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'token' },
+    env: {
+      POSTHOG_PROJECT_KEY: 'phc_test_key',
+      SENTRY_DSN: sentryDsn,
+      GITHUB_ACTIONS: 'true',
+      ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'token',
+    },
     validatePublishSurface: () => {},
     validateStagedPackageManifests: () => {},
     validatePosthogReleaseArtifacts: () => {},
+    validateSentryReleaseArtifacts: () => {},
     validateStagedPackDryRuns: () => {},
   }
   const calls = []
@@ -128,7 +150,7 @@ test('postbuild verification checks the actual npm version before release mutati
   }), /npm CLI >=11\.5\.1/)
 })
 
-test('preflight verification checks bump, git tag, npm registry, and POSTHOG_PROJECT_KEY', async () => {
+test('preflight verification checks bump, git tag, npm registry, POSTHOG_PROJECT_KEY and SENTRY_DSN', async () => {
   const calls = []
   const rootDir = await mkdtemp(join(tmpdir(), 'agent-qa-release-verify-preflight-'))
   try {
@@ -141,7 +163,7 @@ test('preflight verification checks bump, git tag, npm registry, and POSTHOG_PRO
     }
     await runVerifyCli(['--bump', 'patch', '--stage', 'preflight'], {
       rootDir,
-      env: { POSTHOG_PROJECT_KEY: 'phc_test_key' },
+      env: { POSTHOG_PROJECT_KEY: 'phc_test_key', SENTRY_DSN: sentryDsn },
       checkGitTagAbsent: (version) => calls.push(`git ${version}`),
       checkNpmVersionsAbsent: (packages, version) => {
         calls.push(`npm ${packages.length} ${version}`)
@@ -400,14 +422,14 @@ test('a resume refuses a run whose GITHUB_SHA is not the tag commit', async () =
   })
 })
 
-async function preflightOnRef(ref) {
+async function preflightWithEnv(env) {
   const rootDir = await mkdtemp(join(tmpdir(), 'agent-qa-release-verify-ref-'))
   const checks = []
   try {
     for (const name of publicPackageNames) createPackage(join(rootDir, 'packages'), name, '0.1.0')
     const error = await runVerifyCli(['--bump', 'patch', '--stage', 'preflight'], {
       rootDir,
-      env: { POSTHOG_PROJECT_KEY: 'phc_test_key', GITHUB_REF: ref },
+      env,
       checkGitTagAbsent: version => checks.push(`git ${version}`),
       checkNpmVersionsAbsent: (packages, version) => checks.push(`npm ${version}`),
     }).then(() => undefined, failure => failure)
@@ -416,6 +438,25 @@ async function preflightOnRef(ref) {
     await rm(rootDir, { recursive: true, force: true })
   }
 }
+
+function preflightOnRef(ref) {
+  return preflightWithEnv({
+    POSTHOG_PROJECT_KEY: 'phc_test_key',
+    SENTRY_DSN: sentryDsn,
+    GITHUB_REF: ref,
+  })
+}
+
+test('a full release refuses to start without SENTRY_DSN, before it checks git or npm', async () => {
+  for (const blank of [undefined, '', '  ']) {
+    const env = { POSTHOG_PROJECT_KEY: 'phc_test_key', GITHUB_REF: 'refs/heads/main' }
+    if (blank !== undefined) env.SENTRY_DSN = blank
+    const { checks, error } = await preflightWithEnv(env)
+    const label = `SENTRY_DSN ${JSON.stringify(blank) ?? 'absent'}`
+    assert.equal(error?.message, 'SENTRY_DSN is required', label)
+    assert.deepEqual(checks, [], label)
+  }
+})
 
 test('a full release refuses to run on a tag, before it checks anything else', async () => {
   const { checks, error } = await preflightOnRef('refs/tags/v0.1.0')

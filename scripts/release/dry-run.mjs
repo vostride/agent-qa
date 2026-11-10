@@ -3,9 +3,11 @@ import { getPublicPackages } from './packages.mjs'
 import { createDockerTags, validateDockerReleasePlan } from './docker.mjs'
 import { createPublishCommands } from './publish.mjs'
 import { redactSecret, renderPosthogProjectFile } from './posthog.mjs'
+import { redactDsn, renderSentryProjectFile } from './sentry.mjs'
 import { assertSharedPublicVersion, computeTargetVersion, rewriteInternalWorkspaceRanges } from './version.mjs'
 
 const dryRunPosthogKey = 'POSTHOG_PROJECT_KEY_DRY_RUN_PLACEHOLDER'
+const dryRunSentryDsn = 'SENTRY_DSN_DRY_RUN_PLACEHOLDER'
 
 function commandLine(command) {
   return [command.command, ...command.args].join(' ')
@@ -37,6 +39,11 @@ function redactedPosthogPreview(projectKey) {
   return renderPosthogProjectFile(projectKey).replaceAll(projectKey, redactSecret(projectKey))
 }
 
+// Rendered from the marker, so no escaped spelling of the value can reach the preview.
+function redactedSentryPreview(dsn) {
+  return renderSentryProjectFile(redactDsn(dsn))
+}
+
 export function buildReleaseDryRunPlan(options = {}) {
   const rootDir = options.rootDir ?? process.cwd()
   const bump = options.bump
@@ -52,6 +59,7 @@ export function buildReleaseDryRunPlan(options = {}) {
     latest: options.latest,
   })
   const projectKey = options.projectKey ?? options.env?.POSTHOG_PROJECT_KEY ?? dryRunPosthogKey
+  const dsn = options.dsn ?? options.env?.SENTRY_DSN ?? dryRunSentryDsn
 
   return {
     dryRun: true,
@@ -69,6 +77,12 @@ export function buildReleaseDryRunPlan(options = {}) {
       requiredSecret: 'POSTHOG_PROJECT_KEY',
       generatedFile: 'packages/analytics/src/posthog-project.ts',
       preview: redactedPosthogPreview(projectKey),
+      secretValueIncluded: false,
+    },
+    sentry: {
+      requiredSecret: 'SENTRY_DSN',
+      generatedFile: 'packages/analytics/src/sentry-project.ts',
+      preview: redactedSentryPreview(dsn),
       secretValueIncluded: false,
     },
     docker: {
@@ -145,6 +159,11 @@ function renderText(plan) {
     `  - required secret: ${plan.posthog.requiredSecret}`,
     `  - generated file: ${plan.posthog.generatedFile}`,
     '',
+    'Sentry:',
+    `  - required secret: ${plan.sentry.requiredSecret}`,
+    `  - generated file: ${plan.sentry.generatedFile}`,
+    `  - preview: ${plan.sentry.preview.trimEnd()}`,
+    '',
     'Docker image tag preview:',
     ...plan.docker.images.flatMap(image => [
       `  - ${image.image} (${image.dockerfile})`,
@@ -172,6 +191,7 @@ export async function runCli(argv = process.argv.slice(2), options = {}) {
     rootDir: options.rootDir,
     env: options.env,
     projectKey: options.projectKey,
+    dsn: options.dsn,
     bump: parsed.bump,
     namespace: parsed.namespace,
     latest: parsed.latest,
