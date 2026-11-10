@@ -19,6 +19,8 @@ export interface SessionManagerDeps {
   remoteInactivityMs?: number
   // A plugin's stderr and the host's own lines, masked; the dashboard gives one only at debug.
   pluginDebugLog?: (line: string) => void
+  // The session's mask, handed to the host while the session lives; the host returns what ends it.
+  bindSessionMask?: (mask: (text: string) => string) => () => void
 }
 
 export class SessionManager {

@@ -148,6 +148,10 @@ export async function exitAfterSettling(
   }
 }
 
+export function bindLiveSessionMask(mask: (text: string) => string): () => void {
+  return errorReporter()?.bindMask(mask) ?? (() => {})
+}
+
 async function settled(wait: () => Promise<void>): Promise<void> {
   try {
     await wait()
@@ -901,6 +905,8 @@ async function startDashboardBackedServices(
       runService: runService.ports,
       // The registry every run door here uses, so a shutdown releases the live editor's remote too.
       remoteSessions: processRemoteSessions,
+      // What a plugin answers a live session is masked in this process's error reports.
+      bindSessionMask: bindLiveSessionMask,
       ...(pluginLog === undefined ? {} : { pluginDebugLog: pluginLog }),
     })
 

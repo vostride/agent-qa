@@ -104,6 +104,8 @@ interface StartServerOptions {
   remoteSessions?: RemoteSessionRegistry
   // A plugin's stderr and the host's own lines, masked; the dashboard gives one only at debug.
   pluginDebugLog?: (line: string) => void
+  // The session's mask, handed to the host while the session lives; the host returns what ends it.
+  bindSessionMask?: (mask: (text: string) => string) => () => void
   port?: number
   /** Defaults to loopback; any other value is refused before anything listens. */
   host?: string
@@ -361,6 +363,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
     ...(liveEditorSubjects === undefined ? {} : { liveEditorSubjects }),
     ...(opts.remoteSessions === undefined ? {} : { remoteSessions: opts.remoteSessions }),
     ...(opts.pluginDebugLog === undefined ? {} : { pluginDebugLog: opts.pluginDebugLog }),
+    ...(opts.bindSessionMask === undefined ? {} : { bindSessionMask: opts.bindSessionMask }),
   })
 
   // The proxy dispatches on the token's signed kind, so a missing registry only answers nothing.
