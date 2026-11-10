@@ -30,6 +30,7 @@ import {
   DeclaredSecretsUnavailableError,
 } from '../composition/declared-secrets.js'
 import { CANCELLED_LINE } from '../composition/cli-refusal.js'
+import { errorReporter, settleReporting } from '../composition/error-reporting.js'
 import {
   CLI_FUNCTION_CALLER,
   composeCliLocalAgent,
@@ -442,6 +443,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
       } catch (error) {
         endReason = 'error'
         reportError(error, mask)
+        errorReporter()?.capture(error)
       } finally {
         // One session event per opened conversation, emitted at close so no early return misses it.
         if (analytics !== undefined) {
@@ -451,7 +453,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
             function_call_count: functionCallCount,
             end_reason: endReason,
           }))
-          await analytics.shutdown()
+          await settleReporting({ analytics })
         }
         await host?.close()
       }

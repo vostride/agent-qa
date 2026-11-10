@@ -19,7 +19,9 @@ import { Command } from 'commander'
 import pc from 'picocolors'
 
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
+import type { CliAnalyticsHost } from '../composition/analytics-host.js'
 import { createDeclaredSecretMask } from '../composition/declared-secrets.js'
+import { errorReporter, settleReporting } from '../composition/error-reporting.js'
 import { createConfigReader } from '../composition/local-agent-host.js'
 import { resolveConfig, resolveConfiguredKnowledgeRoot } from '../config.js'
 import { buildCuratorAuthor } from '../curation/curator-author.js'
@@ -155,13 +157,14 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
         '\nSee https://vostride.com/docs/agent-qa/daemon.\n',
     )
     .action(async (_opts: unknown, command: Command) => {
+      let analytics: CliAnalyticsHost | undefined
       try {
         const configPath = configPathFor(command)
         const configDir = dirname(configPath)
         const config = await resolveConfig({ configPath, loadAuthPlugins: false })
         const declaredSecrets = createDeclaredSecretMask(configPath)
         // A standing daemon emits from its first dispatch, so it composes eagerly.
-        const analytics = await composeAnalyticsHost({
+        analytics = await composeAnalyticsHost({
           surface: 'daemon',
           config,
           maskingContext: { mask: declaredSecrets.mask },
@@ -178,15 +181,17 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
           analysisTokenBudget: () => resolveCliAnalysisTokenBudget(configPath),
           author: () => resolveDaemonCuratorAuthor(configPath),
         })
-        // The daemon runs until a signal closes it, so this is the one drain point: everything it
-        // captured while dispatching is flushed here, and the transport's timers are released so
-        // the process can actually exit.
-        await analytics.shutdown()
         process.exitCode = exitCode
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
         printRunText(pc.red(`Daemon error: ${message}`), (block) => console.error(block))
+        errorReporter()?.capture(error)
         process.exitCode = 1
+      } finally {
+        // The daemon runs until a signal closes it or its host throws, so this is the one drain
+        // point: everything it captured while dispatching is flushed here, and the transport's
+        // timers are released so the process can actually exit.
+        if (analytics !== undefined) await settleReporting({ analytics })
       }
     })
 
