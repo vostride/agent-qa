@@ -1,6 +1,9 @@
 // The CLI's error reporter. The decision is made before anything loads, so with reporting off the
 // SDK is never imported; with it on, one client is built by hand and held for the process.
 
+import { existsSync } from 'node:fs'
+import { resolve } from 'node:path'
+
 import type * as SentryNode from '@sentry/node'
 import {
   AGENT_QA_SENTRY_DSN,
@@ -9,6 +12,10 @@ import {
 
 import { declaresAnalyticsPrivacy, readConfigDeclaration } from '../config.js'
 import { CLI_ANALYTICS_AGENT_QA_VERSION } from './analytics-host.js'
+import { createDeclaredSecretMask, DeclaredSecretsUnavailableError } from './declared-secrets.js'
+import type { DeclaredSecretMask } from './declared-secrets.js'
+import { createMaskingTransport } from './error-reporting-mask.js'
+import type { TextMask } from './error-reporting-mask.js'
 
 export const TRACE_SAMPLE_RATE = 1
 
@@ -18,6 +25,7 @@ export type ReportTransportFactory = typeof SentryNode.makeNodeTransport
 export interface ErrorReporter {
   capture(error: unknown): void
   flush(timeoutMs: number): Promise<boolean>
+  bindMask(mask: TextMask): () => void
 }
 
 export interface StartErrorReportingInput {
@@ -73,9 +81,12 @@ async function loadSentrySdk(): Promise<SentrySdk> {
 async function buildReporter(input: StartErrorReportingInput): Promise<ErrorReporter | undefined> {
   try {
     const dsn = input.dsn ?? AGENT_QA_SENTRY_DSN
-    const decision = await decideErrorReporting({ configPath: input.configPath, dsn })
+    // Anchored now: the mask reads this project's secrets when a report is sent, maybe much later.
+    const configPath = resolve(input.configPath)
+    const decision = await decideErrorReporting({ configPath, dsn })
     if (!decision.on) return undefined
 
+    const masks = createReportMasks(configPath)
     const Sentry = await (input.loadSdk ?? loadSentrySdk)()
     // Built by hand, since the SDK's init adopts the shell's trace variables whatever it is passed.
     const client = new Sentry.NodeClient({
@@ -117,7 +128,7 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
         Sentry.nodeContextIntegration({ cloudResource: false, culture: false }),
       ],
       stackParser: Sentry.defaultStackParser,
-      transport: input.transport ?? Sentry.makeNodeTransport,
+      transport: createMaskingTransport(input.transport ?? Sentry.makeNodeTransport, masks.resolve),
     })
     Sentry.setCurrentClient(client)
     client.init()
@@ -137,11 +148,60 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
           return false
         }
       },
+      bindMask: masks.bind,
     }
     started = { reporter, client }
     return reporter
   } catch {
     return undefined
+  }
+}
+
+interface ReportMasks {
+  resolve(): TextMask
+  bind(mask: TextMask): () => void
+}
+
+// Each envelope passes the declared secrets, then every open binding's mask, then the mask of the
+// binding that ended last: a report made just after a run still passes that run's mask.
+function createReportMasks(configPath: string): ReportMasks {
+  const declared = createDeclaredSecretMask(configPath)
+  const open = new Set<{ readonly mask: TextMask }>()
+  let endedLast: TextMask | undefined
+  return {
+    resolve: () => {
+      const masks = [
+        declaredSecretMask(configPath, declared),
+        ...[...open].map((binding) => binding.mask),
+        ...(endedLast === undefined ? [] : [endedLast]),
+      ]
+      return (text) => masks.reduce((masked, mask) => mask(masked), text)
+    },
+    bind: (mask) => {
+      const binding = { mask }
+      open.add(binding)
+      return () => {
+        if (open.delete(binding)) endedLast = mask
+      }
+    },
+  }
+}
+
+// No config file, no secrets file named, or a named one that is not there: no secrets are
+// declared. Any other failure throws, and the envelope is dropped.
+function declaredSecretMask(configPath: string, declared: DeclaredSecretMask): TextMask {
+  if (!existsSync(configPath)) return (text) => text
+  try {
+    const redactor = declared.redactor()
+    return (text) => redactor.redactString(text)
+  } catch (err) {
+    if (
+      err instanceof DeclaredSecretsUnavailableError &&
+      (err.gap === 'required' || err.gap === 'missing')
+    ) {
+      return (text) => text
+    }
+    throw err
   }
 }
 

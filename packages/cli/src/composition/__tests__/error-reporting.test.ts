@@ -1,7 +1,7 @@
 // The reporter decides from the raw config, loads the SDK only when on, and builds its client by
 // hand with every option passed, through a recording transport that sends nothing.
 
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -26,8 +26,10 @@ import {
   settleReporting,
   startErrorReporting,
 } from '../error-reporting.js'
+import { createMaskingTransport } from '../error-reporting-mask.js'
 
 const INVENTED_DSN = 'http://key@127.0.0.1:9/1'
+const SECRET = 'tok-7f3a9c2e5b'
 
 afterEach(async () => {
   vi.unstubAllEnvs()
@@ -291,6 +293,180 @@ describe('the reporting decision', () => {
       on: true,
       document: { workspace: 42 },
     })
+  })
+})
+
+function exceptionValues(envelopes: readonly RecordedEnvelope[]): Array<string | undefined> {
+  return recordedEvents(envelopes)
+    .flatMap((event) => event.exception?.values ?? [])
+    .map((value) => value.value)
+}
+
+// Replaces one marker word and keeps every text it was handed, so a cell reads what it saw.
+function markerMask(word: string) {
+  const mask = {
+    inputs: [] as string[],
+    apply: (text: string) => {
+      mask.inputs.push(text)
+      return text.replaceAll(word, `[${word} masked]`)
+    },
+  }
+  return mask
+}
+
+describe('the report mask', () => {
+  it('masks a declared secret in an error message and in its linked cause and keeps the other words', async () => {
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy({ secrets: { API_TOKEN: SECRET } }).configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+    })
+
+    reporter?.capture(
+      new Error(`outer request with ${SECRET} failed`, {
+        cause: new Error(`root refusal of ${SECRET}`),
+      }),
+    )
+    await settleReporting()
+
+    const sent = serializedEnvelopes(recorder.envelopes)
+    const values = exceptionValues(recorder.envelopes).join('\n')
+    expect(recorder.envelopes.length).toBeGreaterThan(0)
+    expect(sent).not.toContain(SECRET)
+    expect(sent).not.toContain(JSON.stringify(SECRET).slice(1, -1))
+    expect(values).toContain('outer request with')
+    expect(values).toContain('failed')
+    expect(values).toContain('root refusal of')
+  })
+
+  it('drops every envelope while the secrets file cannot be read, and the same recorder sees a readable one', async () => {
+    const recorder = recordingReportTransport()
+    const readable = projectWithPrivacy({ secrets: { API_TOKEN: SECRET } })
+    const unreadable = projectWithPrivacy({ secrets: { API_TOKEN: SECRET } })
+    rmSync(unreadable.secretsPath)
+    mkdirSync(unreadable.secretsPath)
+    const sentFrom = async (configPath: string) => {
+      const before = recorder.envelopes.length
+      const reporter = await startErrorReporting({
+        configPath,
+        dsn: INVENTED_DSN,
+        transport: recorder.transport,
+      })
+      reporter?.capture(new Error(`an error quoting ${SECRET}`))
+      await settleReporting()
+      await closeErrorReporting()
+      return recorder.envelopes.length - before
+    }
+
+    const blocked = await sentFrom(unreadable.configPath)
+    const sent = await sentFrom(readable.configPath)
+
+    expect(sent).toBeGreaterThan(0)
+    expect(blocked).toBe(0)
+  })
+
+  it('sends the report of a project with no config file and of a config that names no secrets file', async () => {
+    const recorder = recordingReportTransport()
+    const { dir } = projectWithPrivacy()
+    const unnamed = join(dir, 'names-no-secrets-file.yaml')
+    writeFileSync(unnamed, 'use:\n  mobile:\n    appState: reset\n', 'utf8')
+    const projects = [
+      { configPath: join(dir, 'missing.yaml'), message: 'an error with no config file' },
+      { configPath: unnamed, message: 'an error with no secrets file named' },
+    ]
+
+    for (const { configPath, message } of projects) {
+      const reporter = await startErrorReporting({
+        configPath,
+        dsn: INVENTED_DSN,
+        transport: recorder.transport,
+      })
+      reporter?.capture(new Error(message))
+      await settleReporting()
+      await closeErrorReporting()
+    }
+
+    expect(exceptionValues(recorder.envelopes)).toEqual([
+      'an error with no config file',
+      'an error with no secrets file named',
+    ])
+  })
+
+  it('drops an envelope whose mask cannot be built or throws, and the send still resolves', async () => {
+    const recorder = recordingReportTransport()
+    const options = { url: 'http://127.0.0.1:9/api/1/envelope/', recordDroppedEvent: () => {} }
+    const envelope = [
+      { event_id: 'f'.repeat(32) },
+      [[{ type: 'event' }, { message: 'a message' }]],
+    ] as unknown as RecordedEnvelope
+    const unbuildable = createMaskingTransport(recorder.transport, () => {
+      throw new Error('the secrets file cannot be read')
+    })(options)
+    const throwing = createMaskingTransport(recorder.transport, () => () => {
+      throw new Error('the mask failed')
+    })(options)
+    const passing = createMaskingTransport(recorder.transport, () => (text) =>
+      text.replace('a message', 'a masked message'),
+    )(options)
+
+    await expect(unbuildable.send(envelope)).resolves.toEqual({})
+    await expect(throwing.send(envelope)).resolves.toEqual({})
+    expect(recorder.envelopes).toEqual([])
+    await passing.send(envelope)
+    expect(serializedEnvelopes(recorder.envelopes)).toContain('a masked message')
+  })
+
+  it('applies a bound mask after the declared one while its binding is open, and two open bindings both', async () => {
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy({ secrets: { API_TOKEN: SECRET } }).configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+    })
+    const alpha = markerMask('alpha')
+    const beta = markerMask('beta')
+    reporter?.bindMask(alpha.apply)
+    reporter?.bindMask(beta.apply)
+
+    reporter?.capture(new Error(`alpha beta gamma ${SECRET}`))
+    await settleReporting()
+
+    expect(exceptionValues(recorder.envelopes)).toEqual([
+      '[alpha masked] [beta masked] gamma [secret:API_TOKEN]',
+    ])
+    expect(alpha.inputs.some((text) => text.includes('[secret:API_TOKEN]'))).toBe(true)
+    expect(alpha.inputs.some((text) => text.includes(SECRET))).toBe(false)
+    expect(beta.inputs.some((text) => text.includes('[alpha masked]'))).toBe(true)
+  })
+
+  it('keeps the mask of the binding that ended last until another binding ends', async () => {
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+    })
+    const alpha = markerMask('alpha')
+    const beta = markerMask('beta')
+    const reported = async (message: string) => {
+      const before = recorder.envelopes.length
+      reporter?.capture(new Error(message))
+      await settleReporting()
+      return exceptionValues(recorder.envelopes.slice(before))
+    }
+
+    const endAlpha = reporter?.bindMask(alpha.apply)
+    endAlpha?.()
+    endAlpha?.()
+    expect(await reported('alpha beta one')).toEqual(['[alpha masked] beta one'])
+
+    const endBeta = reporter?.bindMask(beta.apply)
+    endBeta?.()
+    endAlpha?.()
+    const alphaCalls = alpha.inputs.length
+    expect(await reported('alpha beta two')).toEqual(['alpha [beta masked] two'])
+    expect(alpha.inputs.length).toBe(alphaCalls)
   })
 })
 
