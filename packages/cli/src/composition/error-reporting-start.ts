@@ -3,6 +3,7 @@
 
 import type { Command } from 'commander'
 
+import { collectReportFacts } from './error-report-facts.js'
 import { startErrorReporting } from './error-reporting.js'
 
 export interface CliErrorReportingDeps {
@@ -11,12 +12,16 @@ export interface CliErrorReportingDeps {
 
 export async function startCliErrorReporting(
   program: Command,
-  _action: Command,
+  action: Command,
   deps: CliErrorReportingDeps = {},
 ): Promise<void> {
   try {
     const configPath = program.opts<{ config?: string }>().config ?? 'agent-qa.config.yaml'
-    await (deps.start ?? startErrorReporting)({ configPath })
+    const reporter = await (deps.start ?? startErrorReporting)({ configPath })
+    if (reporter === undefined) return
+    reporter.setFacts(
+      collectReportFacts({ action, document: reporter.configDocument, env: process.env }),
+    )
   } catch {
     // Reporting stays off for this invocation, and the command runs.
   }

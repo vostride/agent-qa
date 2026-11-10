@@ -32,10 +32,22 @@ export const TRACE_SAMPLE_RATE = 1
 export type SentrySdk = typeof SentryNode
 export type ReportTransportFactory = typeof SentryNode.makeNodeTransport
 
+export interface ReportFacts {
+  readonly command: string
+  readonly flags: readonly string[]
+  readonly packageManager: string
+  readonly ci: boolean
+  readonly platforms: readonly string[]
+  readonly models: readonly string[]
+  readonly plugins: readonly string[]
+}
+
 export interface ErrorReporter {
+  readonly configDocument?: unknown
   capture(error: unknown): void
   flush(timeoutMs: number): Promise<boolean>
   bindMask(mask: TextMask): () => void
+  setFacts(facts: ReportFacts): void
 }
 
 export interface StartErrorReportingInput {
@@ -67,6 +79,7 @@ export async function decideErrorReporting(input: {
 interface StartedReporting {
   readonly reporter: ErrorReporter
   readonly client: SentryNode.NodeClient
+  readonly sdk: SentrySdk
 }
 
 let started: StartedReporting | undefined
@@ -152,6 +165,7 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
     client.init()
 
     const reporter: ErrorReporter = {
+      ...(decision.document === undefined ? {} : { configDocument: decision.document }),
       capture: (error) => {
         try {
           Sentry.captureException(error)
@@ -167,8 +181,26 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
         }
       },
       bindMask: masks.bind,
+      setFacts: (facts) => {
+        try {
+          const scope = Sentry.getGlobalScope()
+          scope.setTags({
+            command: facts.command,
+            package_manager: facts.packageManager,
+            ci: facts.ci ? 'ci' : 'local',
+          })
+          scope.setContext('agent_qa', {
+            flags: [...facts.flags],
+            platforms: [...facts.platforms],
+            models: [...facts.models],
+            plugins: [...facts.plugins],
+          })
+        } catch {
+          // Reports go out without the facts rather than fail the command.
+        }
+      },
     }
-    started = { reporter, client }
+    started = { reporter, client, sdk: Sentry }
     return reporter
   } catch {
     return undefined
@@ -260,6 +292,10 @@ export async function closeErrorReporting(): Promise<void> {
   await within(DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS, () =>
     current.client.close(DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS),
   )
+  // The facts sit on the SDK's process-wide scope; a reporter started later begins without them.
+  const scope = current.sdk.getGlobalScope()
+  scope.setTags({ command: undefined, package_manager: undefined, ci: undefined })
+  scope.setContext('agent_qa', null)
 }
 
 // The guard stays ref'd: an unref'd timer lets Node end the process before the exit code is set.

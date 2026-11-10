@@ -2,11 +2,12 @@
 // hand with every option passed, through a recording transport that sends nothing.
 
 import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { release, tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS } from '@vostride/agent-qa-analytics'
+import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -28,6 +29,7 @@ import {
   settleReporting,
   startErrorReporting,
 } from '../error-reporting.js'
+import { startCliErrorReporting } from '../error-reporting-start.js'
 
 const INVENTED_DSN = 'http://key@127.0.0.1:9/1'
 const SECRET = 'tok-7f3a9c2e5b'
@@ -62,6 +64,9 @@ afterEach(async () => {
 interface RecordedEvent {
   readonly release?: string
   readonly environment?: string
+  readonly tags?: Readonly<Record<string, unknown>>
+  readonly contexts?: Readonly<Record<string, Readonly<Record<string, unknown>>>>
+  readonly breadcrumbs?: ReadonlyArray<{ readonly category?: string; readonly message?: string }>
   readonly exception?: {
     readonly values?: ReadonlyArray<{
       readonly value?: string
@@ -620,6 +625,154 @@ describe('repeats', () => {
       'loading the config failed',
       'loading the tests failed',
     ])
+  })
+})
+
+const FACTS_CONFIG = [
+  'registry:',
+  '  targets:',
+  '    shop: { platform: web, url: "https://shop.example" }',
+  '    phone: { platform: android, appPackage: com.example.app }',
+  '  llms:',
+  '    - { name: main, provider: openai-compatible, model: gpt-y, baseURL: "http://127.0.0.1:9" }',
+  'plugins:',
+  "  - { name: kernel, package: '@vostride/agent-qa-plugin-kernel' }",
+  '  - { name: local, path: ./plugins/local }',
+  '',
+].join('\n')
+
+// `agent-qa --config <path> daemon status --json`, parsed by a tree shaped like the real one.
+async function daemonStatus(configPath: string): Promise<{ root: Command; action: Command }> {
+  const root = new Command('agent-qa')
+    .exitOverride()
+    .enablePositionalOptions()
+    .option('--config <path>', 'config file path', 'agent-qa.config.yaml')
+  const action = root
+    .command('daemon')
+    .command('status')
+    .option('--json')
+    .action(() => {})
+  await root.parseAsync(['node', 'agent-qa', '--config', configPath, 'daemon', 'status', '--json'])
+  return { root, action }
+}
+
+function consoleLines(event: RecordedEvent | undefined): Array<string | undefined> {
+  return (event?.breadcrumbs ?? [])
+    .filter((breadcrumb) => breadcrumb.category === 'console')
+    .map((breadcrumb) => breadcrumb.message)
+}
+
+describe('environment facts and log lines', () => {
+  it('sends the command, its flag names, the package manager, CI, the platforms, models and plugins, and the OS, architecture and Node version', async () => {
+    vi.stubEnv('npm_config_user_agent', 'pnpm/10.20.0 npm/? node/v24.0.0 darwin arm64')
+    vi.stubEnv('CI', 'true')
+    const configPath = join(projectWithPrivacy().dir, 'facts.yaml')
+    writeFileSync(configPath, FACTS_CONFIG, 'utf8')
+    const { root, action } = await daemonStatus(configPath)
+    const recorder = recordingReportTransport()
+    await startCliErrorReporting(root, action, {
+      start: (input) =>
+        startErrorReporting({ ...input, dsn: INVENTED_DSN, transport: recorder.transport }),
+    })
+
+    errorReporter()?.capture(new Error('an error with the facts set'))
+    await settleReporting()
+
+    const [event] = recordedEvents(recorder.envelopes)
+    expect(event?.tags).toEqual({ command: 'daemon status', package_manager: 'pnpm', ci: 'ci' })
+    expect(event?.contexts?.agent_qa).toEqual({
+      flags: ['--config', '--json'],
+      platforms: ['android', 'web'],
+      models: ['openai-compatible/gpt-y'],
+      plugins: ['kernel', 'third_party'],
+    })
+    const os = event?.contexts?.os
+    expect(os?.name).toEqual(expect.any(String))
+    expect([os?.kernel_version, os?.version]).toContain(release())
+    expect(event?.contexts?.device?.arch).toBe(process.arch)
+    expect(event?.contexts?.runtime).toEqual({ name: 'node', version: process.version })
+    expect(Object.keys(event?.contexts?.culture ?? {})).toEqual([])
+    expect(event).not.toHaveProperty('modules')
+    expect(JSON.stringify(event)).not.toMatch(/"(?:locale|timezone)":/)
+  })
+
+  it('sends the console lines printed before an error as its breadcrumbs, in order, with a declared secret masked', async () => {
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy({ secrets: { API_TOKEN: SECRET } }).configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+    })
+
+    console.error('the first line printed before the error')
+    console.error(`the second line quotes ${SECRET}`)
+    reporter?.capture(new Error('the error after two printed lines'))
+    await settleReporting()
+
+    const [event] = recordedEvents(recorder.envelopes)
+    expect(consoleLines(event).slice(-2)).toEqual([
+      'the first line printed before the error',
+      'the second line quotes [secret:API_TOKEN]',
+    ])
+    expect(serializedEnvelopes(recorder.envelopes)).not.toContain(SECRET)
+  })
+
+  it('sends no log line when no error follows it, and the line rides on the next error', async () => {
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+    })
+
+    console.error('a line printed with no error after it')
+    console.error('another line printed with no error after it')
+    await settleReporting()
+    const quiet = serializedEnvelopes(recorder.envelopes)
+    reporter?.capture(new Error('an error printed later'))
+    await settleReporting()
+
+    expect(quiet).not.toContain('a line printed with no error after it')
+    expect(quiet).not.toContain('another line printed with no error after it')
+    expect(consoleLines(recordedEvents(recorder.envelopes).at(-1)).slice(-2)).toEqual([
+      'a line printed with no error after it',
+      'another line printed with no error after it',
+    ])
+  })
+
+  it('leaves none of the facts of a closed reporter on the reports of the next one', async () => {
+    const recorder = recordingReportTransport()
+    const { configPath } = projectWithPrivacy()
+    const first = await startErrorReporting({
+      configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+    })
+    first?.setFacts({
+      command: 'first command',
+      flags: ['--json'],
+      packageManager: 'npm',
+      ci: false,
+      platforms: ['web'],
+      models: ['openai-compatible/gpt-y'],
+      plugins: ['kernel'],
+    })
+    first?.capture(new Error('an error while the first reporter is open'))
+    await settleReporting()
+    await closeErrorReporting()
+
+    const second = await startErrorReporting({
+      configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+    })
+    second?.capture(new Error('an error after the first reporter closed'))
+    await settleReporting()
+
+    const [before, after] = recordedEvents(recorder.envelopes)
+    expect(before?.tags).toMatchObject({ command: 'first command' })
+    expect(after?.tags ?? {}).toEqual({})
+    expect(after?.contexts).not.toHaveProperty('agent_qa')
   })
 })
 

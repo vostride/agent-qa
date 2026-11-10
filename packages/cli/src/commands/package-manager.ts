@@ -112,6 +112,10 @@ function fromUserAgent(env: NodeJS.ProcessEnv): Declared | undefined {
   return version !== undefined && EXACT_SEMVER.test(version) ? { name, version } : { name }
 }
 
+export function userAgentManagerName(env: NodeJS.ProcessEnv): PackageManagerName | undefined {
+  return fromUserAgent(env)?.name
+}
+
 export function yarnLineOf(version: string): 'classic' | 'berry' | undefined {
   const major = majorOf(version)
   if (major === undefined) return undefined
