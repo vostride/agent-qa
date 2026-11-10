@@ -10,6 +10,7 @@ import {
 } from '../release/dry-run.mjs'
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
+const sentryDsn = 'https://key@o0.ingest.example/1'
 
 function currentPublicVersion() {
   return JSON.parse(readFileSync(join(rootDir, 'packages/core/package.json'), 'utf8')).version
@@ -29,6 +30,7 @@ test('builds a non-mutating patch release dry-run plan', () => {
     rootDir,
     bump: 'patch',
     projectKey: 'POSTHOG_TEST_PROJECT_KEY_PLACEHOLDER',
+    dsn: sentryDsn,
   })
 
   assert.equal(plan.dryRun, true)
@@ -44,6 +46,12 @@ test('builds a non-mutating patch release dry-run plan', () => {
   assert.equal(plan.posthog.generatedFile, 'packages/analytics/src/posthog-project.ts')
   assert.match(plan.posthog.preview, /\[redacted POSTHOG_PROJECT_KEY\]/)
   assert.doesNotMatch(plan.posthog.preview, /POSTHOG_TEST_PROJECT_KEY_PLACEHOLDER/)
+  assert.ok(plan.sentry, 'the plan previews the Sentry DSN file')
+  assert.equal(plan.sentry.requiredSecret, 'SENTRY_DSN')
+  assert.equal(plan.sentry.generatedFile, 'packages/analytics/src/sentry-project.ts')
+  assert.equal(plan.sentry.secretValueIncluded, false)
+  assert.match(plan.sentry.preview, /\[redacted SENTRY_DSN\]/)
+  assert.ok(!plan.sentry.preview.includes(sentryDsn))
   assert.ok(plan.docker.images.every(image => image.tags.includes(`${image.image}:${targetVersion}`)))
   assert.ok(plan.docker.images.every(image => image.tags.includes(`${image.image}:v${targetVersion}`)))
   assert.equal(plan.subscriptionAuth.package, '@vostride/agent-qa-subscription-auth')
@@ -98,6 +106,7 @@ test('CLI renders human-readable and JSON dry-run output without leaking secrets
   const textPlan = await runDryRunCli(['--bump', 'patch'], {
     rootDir,
     projectKey: 'POSTHOG_SECRET_FROM_TEST',
+    env: { SENTRY_DSN: sentryDsn },
     output: { write: chunk => { textOutput += chunk } },
   })
   assert.equal(textPlan.targetVersion, targetVersion)
@@ -110,11 +119,14 @@ test('CLI renders human-readable and JSON dry-run output without leaking secrets
   assert.match(textOutput, /created_or_updated_after_package_release/)
   assert.match(textOutput, new RegExp(`v${targetVersion}`))
   assert.doesNotMatch(textOutput, /POSTHOG_SECRET_FROM_TEST/)
+  assert.match(textOutput, /\[redacted SENTRY_DSN\]/)
+  assert.ok(!textOutput.includes(sentryDsn))
 
   let jsonOutput = ''
   await runDryRunCli(['--bump', 'patch', '--json'], {
     rootDir,
     projectKey: 'POSTHOG_SECRET_FROM_TEST',
+    env: { SENTRY_DSN: sentryDsn },
     output: { write: chunk => { jsonOutput += chunk } },
   })
   const parsed = JSON.parse(jsonOutput)
@@ -122,4 +134,6 @@ test('CLI renders human-readable and JSON dry-run output without leaking secrets
   assert.equal(parsed.mutatesExternalState, false)
   assert.equal(parsed.githubRelease.tag, `v${targetVersion}`)
   assert.doesNotMatch(jsonOutput, /POSTHOG_SECRET_FROM_TEST/)
+  assert.match(jsonOutput, /\[redacted SENTRY_DSN\]/)
+  assert.ok(!jsonOutput.includes(sentryDsn))
 })

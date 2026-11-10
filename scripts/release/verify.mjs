@@ -13,6 +13,9 @@ import {
 import { discoverStagedRecords, validateStagedPackageManifests as defaultValidateStagedPackageManifests } from './stage-packages.mjs'
 import { assertAllowedBump, assertSharedPublicVersion, computeTargetVersion } from './version.mjs'
 import { validatePosthogReleaseArtifacts as defaultValidatePosthogReleaseArtifacts } from './posthog.mjs'
+import {
+  validateSentryReleaseArtifacts as defaultValidateSentryReleaseArtifacts,
+} from './sentry.mjs'
 
 export const subscriptionAuthPackageName = '@vostride/agent-qa-subscription-auth'
 
@@ -171,6 +174,7 @@ export async function runReleaseVerification(options = {}) {
       )
     }
     if (!env.POSTHOG_PROJECT_KEY?.trim()) throw new Error('POSTHOG_PROJECT_KEY is required')
+    if (!env.SENTRY_DSN?.trim()) throw new Error('SENTRY_DSN is required')
     const records = getPublicPackages({ rootDir })
     const currentVersion = assertSharedPublicVersion(records)
     const targetVersion = computeTargetVersion(currentVersion, bump)
@@ -203,6 +207,12 @@ export async function runReleaseVerification(options = {}) {
       rootDir,
       stagedDir: resolvedStagedDir,
       projectKey: env.POSTHOG_PROJECT_KEY,
+      env,
+    })
+    ;(options.validateSentryReleaseArtifacts ?? defaultValidateSentryReleaseArtifacts)({
+      rootDir,
+      stagedDir: resolvedStagedDir,
+      dsn: env.SENTRY_DSN,
       env,
     })
     ;(options.validateStagedPackDryRuns ?? validateStagedPackDryRuns)({
