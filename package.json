@@ -33,6 +33,7 @@
   },
   "devDependencies": {
     "@arethetypeswrong/core": "~0.18.5",
+    "@sentry/cli": "3.8.2",
     "knip": "6.44.1",
     "publint": "~0.3.25",
     "semver": "7.8.5",
