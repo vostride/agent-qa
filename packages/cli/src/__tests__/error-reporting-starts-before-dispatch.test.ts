@@ -1,7 +1,8 @@
 // Reporting is decided and started in the root preAction hook, before the action runs, from the
-// root --config. Help, version, a parse error and a group with no action never reach the hook.
+// root --config, or for mcp from the project it finds by walking upward. Help, version, a parse
+// error and a group with no action never reach the hook.
 
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -14,6 +15,7 @@ import { CliRefusal } from '../composition/cli-refusal.js'
 import { startCliErrorReporting } from '../composition/error-reporting-start.js'
 import {
   closeErrorReporting,
+  decideErrorReporting,
   errorReporter,
   startErrorReporting,
   type StartErrorReportingInput,
@@ -124,18 +126,59 @@ function reportingThrough(recorder: RecordingReportTransport): StartReporting {
 
 interface ReportedEvent {
   readonly exception?: { readonly values?: ReadonlyArray<{ readonly value?: string }> }
+  readonly contexts?: { readonly trace?: { readonly trace_id?: string } }
 }
 
-// Read back from the JSON text, as an envelope leaves the process. The thrown error is the last
-// exception value, after any cause.
-function reportedMessages(envelopes: readonly RecordedEnvelope[]): string[] {
+interface ReportedSpan {
+  readonly name?: string
+  readonly trace_id?: string
+  readonly attributes?: Readonly<Record<string, { readonly value?: unknown }>>
+}
+
+// Read back from the JSON text, as an envelope leaves the process.
+function reportedItems<T>(envelopes: readonly RecordedEnvelope[], type: string): T[] {
   const parsed = JSON.parse(serializedEnvelopes(envelopes)) as Array<
-    [unknown, Array<[{ readonly type?: string }, ReportedEvent]>]
+    [unknown, Array<[{ readonly type?: string }, T]>]
   >
   return parsed
     .flatMap(([, items]) => items)
-    .filter(([header]) => header.type === 'event')
-    .map(([, event]) => event.exception?.values?.at(-1)?.value ?? '')
+    .filter(([header]) => header.type === type)
+    .map(([, payload]) => payload)
+}
+
+// The thrown error is the last exception value, after any cause.
+function reportedMessages(envelopes: readonly RecordedEnvelope[]): string[] {
+  return reportedItems<ReportedEvent>(envelopes, 'event').map(
+    (event) => event.exception?.values?.at(-1)?.value ?? '',
+  )
+}
+
+function commandSpans(envelopes: readonly RecordedEnvelope[]): ReportedSpan[] {
+  return reportedItems<{ readonly items?: ReportedSpan[] }>(envelopes, 'span')
+    .flatMap((container) => container.items ?? [])
+    .filter((span) => span.attributes?.['sentry.op']?.value === 'agent_qa.command')
+}
+
+function mcpOf(program: Command): Command {
+  const mcp = program.commands.find((command) => command.name() === 'mcp')
+  if (mcp === undefined) throw new Error('the program has no mcp command')
+  return mcp
+}
+
+// The real starter started from `cwd` with no inherited variables, keeping each config path it
+// hands its start.
+function startedFrom(cwd: string, recorder: RecordingReportTransport) {
+  const handed: string[] = []
+  const startReporting: StartReporting = (program, action) =>
+    startCliErrorReporting(program, action, {
+      cwd,
+      env: {},
+      start: (input) => {
+        handed.push(input.configPath)
+        return startErrorReporting({ ...input, dsn: INVENTED_DSN, transport: recorder.transport })
+      },
+    })
+  return { handed, startReporting }
 }
 
 describe('the root preAction hook', () => {
@@ -274,6 +317,55 @@ describe('the reporting starter', () => {
   })
 })
 
+describe('the decision for mcp', () => {
+  it('starts no reporter for mcp in a subfolder of a project with analytics.privacy true, and one for another command started there', async () => {
+    const recorder = recordingReportTransport()
+    const project = projectWithPrivacy({ privacy: true })
+    mkdirSync(join(project.dir, '.git'))
+    const subfolder = join(project.dir, 'tests', 'login')
+    mkdirSync(subfolder, { recursive: true })
+    const { handed, startReporting } = startedFrom(subfolder, recorder)
+    const reporting: boolean[] = []
+    const action = async () => {
+      reporting.push(errorReporter() !== undefined)
+    }
+
+    const served = programWith({ startReporting })
+    mcpOf(served.program).action(action)
+    await served.program.parseAsync(['node', 'agent-qa', 'mcp'])
+    await closeErrorReporting()
+    await programWith({ startReporting, action }).program.parseAsync(['node', 'agent-qa', 'probe'])
+
+    expect(reporting).toEqual([false, true])
+    expect(handed).toEqual([realpathSync(project.configPath), 'agent-qa.config.yaml'])
+  })
+
+  it('decides mcp from an absolute --config, whichever project it is started in', async () => {
+    const recorder = recordingReportTransport()
+    const optedOut = projectWithPrivacy({ privacy: true })
+    const reportingProject = projectWithPrivacy()
+    const reporting: boolean[] = []
+    const handed: string[] = []
+
+    for (const [configPath, cwd] of [
+      [optedOut.configPath, reportingProject.dir],
+      [reportingProject.configPath, optedOut.dir],
+    ] as const) {
+      const started = startedFrom(cwd, recorder)
+      const { program } = programWith({ startReporting: started.startReporting })
+      mcpOf(program).action(async () => {
+        reporting.push(errorReporter() !== undefined)
+      })
+      await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'mcp'])
+      await closeErrorReporting()
+      handed.push(...started.handed)
+    }
+
+    expect(reporting).toEqual([false, true])
+    expect(handed).toEqual([optedOut.configPath, reportingProject.configPath])
+  })
+})
+
 describe('reporting through the starter and the CLI failure handler', () => {
   it('sends a refusal thrown by a command and exits 2, and sends nothing and still exits 2 for a project with analytics.privacy true', async () => {
     const recorder = recordingReportTransport()
@@ -325,5 +417,58 @@ describe('reporting through the starter and the CLI failure handler', () => {
     await throughSeam.parseAsync(argv)
 
     expect(reporting).toEqual([false, true])
+  })
+
+  it('sends the command as an agent_qa.command span with its flag names, ended when runCli settles, and the refusal in its trace', async () => {
+    const recorder = recordingReportTransport()
+    const { configPath } = projectWithPrivacy()
+    const { program } = programWith({
+      startReporting: reportingThrough(recorder),
+      action: async () => {
+        throw new CliRefusal(['refused inside the command'], 2)
+      },
+    })
+    const { print, setExitCode, flush, exit } = recorded().deps
+
+    await runCli(program, ['node', 'agent-qa', '--config', configPath, 'probe'], {
+      ...defaultCliFailureDeps(program),
+      print,
+      setExitCode,
+      flush,
+      exit,
+    })
+
+    const spans = commandSpans(recorder.envelopes)
+    expect(spans.map((span) => span.name)).toEqual(['agent-qa probe'])
+    expect(spans[0]?.attributes?.['agent_qa.flags']?.value).toEqual(['--config'])
+    const events = reportedItems<ReportedEvent>(recorder.envelopes, 'event')
+    expect(events.map((event) => event.contexts?.trace?.trace_id)).toEqual([spans[0]?.trace_id])
+  })
+
+  it('keeps reporting from a started reporter after analytics.privacy true is written to its config', async () => {
+    const recorder = recordingReportTransport()
+    const { configPath } = projectWithPrivacy()
+    const { program } = programWith({
+      startReporting: reportingThrough(recorder),
+      action: async () => {
+        const config = JSON.parse(readFileSync(configPath, 'utf8')) as Record<string, unknown>
+        writeFileSync(configPath, JSON.stringify({ ...config, analytics: { privacy: true } }))
+        throw new CliRefusal(['refused after the opt-out was written'], 2)
+      },
+    })
+    const { print, setExitCode, flush, exit } = recorded().deps
+
+    await runCli(program, ['node', 'agent-qa', '--config', configPath, 'probe'], {
+      ...defaultCliFailureDeps(program),
+      print,
+      setExitCode,
+      flush,
+      exit,
+    })
+
+    expect(reportedMessages(recorder.envelopes)).toEqual(['refused after the opt-out was written'])
+    await expect(decideErrorReporting({ configPath, dsn: INVENTED_DSN })).resolves.toEqual({
+      on: false,
+    })
   })
 })
