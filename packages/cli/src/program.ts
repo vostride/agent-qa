@@ -36,10 +36,13 @@ import type { UpdateNotice } from './update-notice-gate.js'
 
 export type { UpdateNotice }
 
+export type StartReporting = (program: Command, action: Command) => Promise<void>
+
 /** The whole `agent-qa` command tree, unparsed; `cli.ts` parses it and tests read it. */
 export function createAgentQaProgram({
   updateNotice,
-}: { updateNotice?: UpdateNotice } = {}): Command {
+  startReporting,
+}: { updateNotice?: UpdateNotice; startReporting?: StartReporting } = {}): Command {
   const program = new Command()
   program.enablePositionalOptions()
 
@@ -54,16 +57,25 @@ export function createAgentQaProgram({
     .option('--verbose', 'shorthand for --log-level debug')
     .option('--quiet', 'shorthand for --log-level silent')
 
+  // Only the CLI entry hands in a reporting starter and a notice, so a program built elsewhere
+  // starts no reporter, reads no home and starts no request.
+
   // A process runs one action, and a --json action's stdout stays reserved until the process
   // exits: a detached run tail or host teardown can still print after the action returns. The
-  // AI SDK warning logger stays for the same reason.
-  program.hook('preAction', (_program, action) => {
+  // AI SDK warning logger stays for the same reason. Reporting is started here, before the action
+  // runs; --help, --version and a parse error never reach this hook.
+  program.hook('preAction', async (root, action) => {
     if (action.opts<{ json?: unknown }>().json === true) reserveStdoutForData()
     installSdkWarningLogger()
+    if (!startReporting) return
+    try {
+      await startReporting(root, action)
+    } catch {
+      // A starter that fails leaves reporting off and never fails the command.
+    }
   })
 
-  // Only the CLI entry hands in a notice, so a program built elsewhere reads no home and starts
-  // no request. A command that ends through process.exit never reaches this hook.
+  // A command that ends through process.exit never reaches this hook.
   program.hook('postAction', async (_program, action) => {
     if (!updateNotice) return
     try {
