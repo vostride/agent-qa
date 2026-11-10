@@ -1,6 +1,6 @@
 // One run's bus events become coarse spans with explicit parents, and the run state an error
 // carries. A span name is a fixed word and an attribute is an id, an index or a closed value, so no
-// test name, step text, path or URL is ever set. Nothing here may fail a run.
+// test name, step text, path or URL is ever set. Nothing here may fail a run or a model call.
 
 import {
   ANALYTICS_REMOTE_PLUGINS,
@@ -10,6 +10,7 @@ import {
 import { ACTION_WIRE_SCHEMAS_BY_TYPE } from '@vostride/agent-qa-schema'
 import type { Platform, RunEventEnvelope } from '@vostride/agent-qa-schema'
 
+import { errorReporter } from './error-reporting.js'
 import type {
   ErrorReporter,
   ReportRunState,
@@ -28,11 +29,64 @@ export function adapterFor(platform: Platform): (typeof ADAPTERS)[Platform] {
   return ADAPTERS[platform]
 }
 
-// Every open step span in the process, so a model call finds the step it belongs to.
+// Every open run and step span in the process, so a model call finds the step it belongs to.
+const openRuns = new Map<string, ReportSpan>()
 const openSteps = new Map<string, ReportSpan>()
 
 function stepKey(runId: string, testIndex: number, stepIndex: number): string {
   return JSON.stringify([runId, testIndex, stepIndex])
+}
+
+export interface ModelCallScope {
+  readonly runId: string
+  readonly testIndex: number
+  readonly stepIndex: number
+  readonly role: 'planner' | 'verifier'
+  readonly provider: string
+  readonly modelId: string
+}
+
+interface ModelCallObserver<E extends { readonly kind: string }> {
+  onCall(event: E): void
+}
+
+// Each call is a span under its step, or under its run once the step has ended. The observer the
+// runner handed in sees every event as it came, and no span can fail the call it times.
+export function traceModelCalls<E extends { readonly kind: string }>(
+  observation: ModelCallObserver<E>,
+  scope: ModelCallScope,
+): ModelCallObserver<E> {
+  const reporter = errorReporter()
+  if (reporter === undefined) return observation
+  let open: ReportSpan | undefined
+  return {
+    onCall(event) {
+      try {
+        if (event.kind === 'start') {
+          open?.end('error')
+          const parent =
+            openSteps.get(stepKey(scope.runId, scope.testIndex, scope.stepIndex)) ??
+            openRuns.get(scope.runId)
+          open = reporter.startSpan({
+            op: 'agent_qa.model_call',
+            name: 'model call',
+            attributes: {
+              'agent_qa.model_role': scope.role,
+              'agent_qa.model_provider': scope.provider,
+              'agent_qa.model_id': scope.modelId,
+            },
+            ...(parent === undefined ? {} : { parent }),
+          })
+        } else if (open !== undefined) {
+          open.end(event.kind === 'failure' ? 'error' : 'ok')
+          open = undefined
+        }
+      } catch {
+        // The call goes on untimed.
+      }
+      observation.onCall(event)
+    },
+  }
 }
 
 export interface RunTraceSubscriberInput {
@@ -126,6 +180,7 @@ export function createRunTraceSubscriber(input: RunTraceSubscriberInput): RunTra
       },
       ...lineage(),
     })
+    openRuns.set(envelope.runId, run)
     setState({ runner, ...place })
   }
 
@@ -186,6 +241,7 @@ export function createRunTraceSubscriber(input: RunTraceSubscriberInput): RunTra
     finished = true
     for (const step of [...steps.values()]) endStep(step, cutOff)
     for (const testIndex of [...tests.keys()]) endTest(testIndex, cutOff)
+    if (runId !== undefined) openRuns.delete(runId)
     span.end(outcome)
     setState(undefined)
   }

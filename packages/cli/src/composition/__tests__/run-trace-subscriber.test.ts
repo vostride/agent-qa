@@ -6,6 +6,8 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
 import { generateRunId, generateTestId } from '@vostride/agent-qa-ids'
+import type { StepModelCallEvent } from '@vostride/agent-qa-runner'
+import { asRunId } from '@vostride/agent-qa-schema'
 import type { RunEventEnvelope, RunEventPayload, RunEventType } from '@vostride/agent-qa-schema'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -19,13 +21,16 @@ import type { RecordedEnvelope } from '../../__tests__/error-report-recorder.js'
 import { pinProcessTmpdir, removeTempRoots } from '../../__tests__/temp-roots.js'
 import type { PinnedTmpdir } from '../../__tests__/temp-roots.js'
 import { produceMembersFromPatterns, resolveRunInvocationInputs } from '../../commands/run.js'
+import type { RunStepModelPorts } from '../../commands/run.js'
 import { closeErrorReporting, settleReporting, startErrorReporting } from '../error-reporting.js'
 import type { ErrorReporter } from '../error-reporting.js'
 import { runInProcessCliRun } from '../in-process-run-execution.js'
 import type { InProcessCliRunExecutionOptions } from '../in-process-run-execution.js'
 import * as traceModule from '../run-trace-subscriber.js'
-import { adapterFor, createRunTraceSubscriber } from '../run-trace-subscriber.js'
-import type { RunTraceSubscriber } from '../run-trace-subscriber.js'
+import { adapterFor, createRunTraceSubscriber, traceModelCalls } from '../run-trace-subscriber.js'
+import type { ModelCallScope, RunTraceSubscriber } from '../run-trace-subscriber.js'
+import { createCliStepModelScopeFactory } from '../step-model-scope.js'
+import type { CliStepModelScopeOptions } from '../step-model-scope.js'
 import {
   CountingTarget,
   PLANTED_SECRET_NAME,
@@ -662,6 +667,224 @@ describe('the run state an error carries', () => {
     const after = eventWithMessage(second.recorder.envelopes, 'an error under the next reporter')
     expect(before.contexts?.run).toBeDefined()
     expect(after.contexts).not.toHaveProperty('run')
+  })
+})
+
+function callScope(runId: string, overrides: Partial<ModelCallScope> = {}): ModelCallScope {
+  return {
+    runId,
+    testIndex: 0,
+    stepIndex: 0,
+    role: 'planner',
+    provider: 'openai',
+    modelId: 'gpt-5',
+    ...overrides,
+  }
+}
+
+// An observer that keeps nothing, for cells that read only the span.
+function quietObserver(): { onCall(event: StepModelCallEvent): void } {
+  return { onCall: () => {} }
+}
+
+function modelOf(span: RecordedSpan): unknown[] {
+  return ['agent_qa.model_role', 'agent_qa.model_provider', 'agent_qa.model_id'].map((key) =>
+    attributeOf(span, key),
+  )
+}
+
+describe('the model calls of a step', () => {
+  it('sends a planner call as an agent_qa.model_call span under its step, naming the role, the provider and the model', async () => {
+    const { recorder, reporter } = await startRecording()
+    const runId = generateRunId()
+    const subscriber = createRunTraceSubscriber({ reporter, runner: 'local' })
+    const sequence = oneStepRun(runId, 0, 1)
+    const seen: StepModelCallEvent[] = []
+
+    drive(subscriber, sequence.slice(0, 3))
+    const observer = traceModelCalls(
+      { onCall: (event: StepModelCallEvent) => seen.push(event) },
+      callScope(runId, { stepIndex: 1 }),
+    )
+    observer.onCall({ kind: 'start' })
+    observer.onCall({ kind: 'success', report: { inputTokens: 12, outputTokens: 3 } })
+    drive(subscriber, sequence.slice(3))
+    await settleReporting()
+
+    const step = only(spansOf(recorder.envelopes, 'agent_qa.step'))
+    const call = only(spansOf(recorder.envelopes, 'agent_qa.model_call'))
+    expect(call.name).toBe('model call')
+    expect(call.parent_span_id).toBe(step.span_id)
+    expect(call.trace_id).toBe(step.trace_id)
+    expect(call.status).toBe('ok')
+    expect(modelOf(call)).toEqual(['planner', 'openai', 'gpt-5'])
+    expect(seen.map((event) => event.kind)).toEqual(['start', 'success'])
+  })
+
+  it('ends a failed call error, and names a verifier call by its role', async () => {
+    const { recorder, reporter } = await startRecording()
+    const runId = generateRunId()
+    const subscriber = createRunTraceSubscriber({ reporter, runner: 'local' })
+    const sequence = oneStepRun(runId)
+
+    drive(subscriber, sequence.slice(0, 3))
+    const observer = traceModelCalls(
+      quietObserver(),
+      callScope(runId, { role: 'verifier', provider: 'anthropic', modelId: 'claude-sonnet' }),
+    )
+    observer.onCall({ kind: 'start' })
+    observer.onCall({ kind: 'failure' })
+    drive(subscriber, sequence.slice(3))
+    await settleReporting()
+
+    const call = only(spansOf(recorder.envelopes, 'agent_qa.model_call'))
+    expect(call.status).toBe('error')
+    expect(modelOf(call)).toEqual(['verifier', 'anthropic', 'claude-sonnet'])
+  })
+
+  it('puts a call made once its step has ended under the run', async () => {
+    const { recorder, reporter } = await startRecording()
+    const runId = generateRunId()
+    const subscriber = createRunTraceSubscriber({ reporter, runner: 'local' })
+
+    drive(subscriber, [
+      events.runStarted(runId),
+      events.testStarted(runId, 0),
+      events.stepStarted(runId, 0, 0),
+      events.stepFinalized(runId, 0, 0),
+    ])
+    const observer = traceModelCalls(quietObserver(), callScope(runId))
+    observer.onCall({ kind: 'start' })
+    observer.onCall({ kind: 'success', report: {} })
+    drive(subscriber, [events.testFinished(runId, 0), events.runFinished(runId)])
+    await settleReporting()
+
+    const run = only(spansOf(recorder.envelopes, 'agent_qa.run'))
+    const call = only(spansOf(recorder.envelopes, 'agent_qa.model_call'))
+    expect(call.parent_span_id).toBe(run.span_id)
+  })
+
+  it('starts a call made after its run finished outside that run', async () => {
+    const { recorder, reporter } = await startRecording()
+    const runId = generateRunId()
+
+    drive(createRunTraceSubscriber({ reporter, runner: 'local' }), oneStepRun(runId))
+    const observer = traceModelCalls(quietObserver(), callScope(runId))
+    observer.onCall({ kind: 'start' })
+    observer.onCall({ kind: 'success', report: {} })
+    await settleReporting()
+
+    const run = only(spansOf(recorder.envelopes, 'agent_qa.run'))
+    const call = only(spansOf(recorder.envelopes, 'agent_qa.model_call'))
+    expect(run.span_id).toMatch(/^[0-9a-f]{16}$/)
+    expect(call.parent_span_id).toBeUndefined()
+  })
+
+  it('hands every event to the runner’s observer unchanged and in order, even when no span can be started', async () => {
+    const { reporter } = await startRecording()
+    vi.spyOn(reporter, 'startSpan').mockImplementation(() => {
+      throw new Error('no span can be started')
+    })
+    const seen: StepModelCallEvent[] = []
+    const sent: StepModelCallEvent[] = [
+      { kind: 'start' },
+      { kind: 'success', report: { inputTokens: 1 } },
+      { kind: 'start' },
+      { kind: 'failure' },
+    ]
+
+    const observer = traceModelCalls(
+      { onCall: (event: StepModelCallEvent) => seen.push(event) },
+      callScope(generateRunId()),
+    )
+    for (const event of sent) expect(() => observer.onCall(event)).not.toThrow()
+
+    expect(seen).toHaveLength(sent.length)
+    sent.forEach((event, index) => expect(seen[index]).toBe(event))
+  })
+
+  it('returns the runner’s observer itself when no reporter is on', () => {
+    const observation = { onCall: (_event: StepModelCallEvent) => {} }
+
+    expect(traceModelCalls(observation, callScope(generateRunId()))).toBe(observation)
+  })
+
+  it('holds the role, the provider and the model id, and nothing from the call’s report', async () => {
+    const { recorder, reporter } = await startRecording()
+    const runId = generateRunId()
+    const subscriber = createRunTraceSubscriber({ reporter, runner: 'local' })
+    const sequence = oneStepRun(runId)
+
+    drive(subscriber, sequence.slice(0, 3))
+    const observer = traceModelCalls(quietObserver(), callScope(runId))
+    observer.onCall({ kind: 'start' })
+    observer.onCall({
+      kind: 'success',
+      report: {
+        inputTokens: 9,
+        respondingModelId: 'https://gateway.example.com/v1?token=zz-call-7',
+      },
+    })
+    drive(subscriber, sequence.slice(3))
+    await settleReporting()
+
+    const call = only(spansOf(recorder.envelopes, 'agent_qa.model_call'))
+    const named = Object.keys(call.attributes ?? {}).filter((key) => key.startsWith('agent_qa.'))
+    expect(named.sort()).toEqual([
+      'agent_qa.model_id',
+      'agent_qa.model_provider',
+      'agent_qa.model_role',
+    ])
+    const sent = JSON.stringify(call)
+    for (const text of ['gateway.example.com', 'zz-call-7']) expect(sent).not.toContain(text)
+  })
+
+  it('wraps the observer each bound model hands its model, naming the planner and the verifier with their own provider and model', async () => {
+    const { recorder, reporter } = await startRecording()
+    const runId = generateRunId()
+    const subscriber = createRunTraceSubscriber({ reporter, runner: 'local' })
+    const sequence = oneStepRun(runId)
+    type ScopeOptions = Parameters<RunStepModelPorts['createScope']>[0]
+    const scopes: ScopeOptions[] = []
+    const handed: Array<{ onCall(event: StepModelCallEvent): void }> = []
+    const factory = createCliStepModelScopeFactory({
+      ports: {
+        createModel: (...args: Parameters<RunStepModelPorts['createModel']>) => {
+          handed.push(args[4] as { onCall(event: StepModelCallEvent): void })
+          return {}
+        },
+        createScope: (options: ScopeOptions) => {
+          scopes.push(options)
+          return {}
+        },
+      },
+      planner: { profile: { provider: 'openai', model: 'gpt-5' }, auth: {}, model: {} },
+      verifier: { profile: { provider: 'anthropic', model: 'claude-sonnet' }, auth: {}, model: {} },
+      mask: (text: string) => text,
+      createConsumers: () => ({}),
+    } as unknown as CliStepModelScopeOptions)
+    const seen: string[] = []
+
+    drive(subscriber, sequence.slice(0, 3))
+    factory({ runId: asRunId(runId), testIndex: 0, stepIndex: 0 })
+    for (const role of ['planner', 'verifier'] as const) {
+      scopes[0]!.models[role].bind({ onCall: (event) => seen.push(`${role} ${event.kind}`) })
+    }
+    for (const observer of handed) {
+      observer.onCall({ kind: 'start' })
+      observer.onCall({ kind: 'success', report: {} })
+    }
+    drive(subscriber, sequence.slice(3))
+    await settleReporting()
+
+    const step = only(spansOf(recorder.envelopes, 'agent_qa.step'))
+    const calls = spansOf(recorder.envelopes, 'agent_qa.model_call')
+    expect(calls.map(modelOf).sort()).toEqual([
+      ['planner', 'openai', 'gpt-5'],
+      ['verifier', 'anthropic', 'claude-sonnet'],
+    ])
+    expect(calls.map((call) => call.parent_span_id)).toEqual([step.span_id, step.span_id])
+    expect(seen).toEqual(['planner start', 'planner success', 'verifier start', 'verifier success'])
   })
 })
 
