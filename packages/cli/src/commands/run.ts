@@ -104,7 +104,7 @@ import {
 } from '../run-session-composition.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import type { CliAnalyticsHost } from '../composition/analytics-host.js'
-import { errorReporter } from '../composition/error-reporting.js'
+import { errorReporter, settleReporting } from '../composition/error-reporting.js'
 import {
   runVerdictFirstCurationTail,
   unexpectedCurationTailWarning,
@@ -5097,13 +5097,15 @@ export function createRunCommand(
       // Set by the direct half's first signal; read again by the catch.
       let shutdownRequested = false
 
-      // Awaited before each terminal exit, as `process.exit` skips `finally`; cancels skip it.
+      // Awaited before each terminal exit, as `process.exit` skips `finally`: the first call
+      // settles error reporting and any composed analytics together. A forced cancel skips it.
       let composedAnalytics: CliAnalyticsHost | undefined
       let analyticsDrained = false
       const drainAnalytics = async (): Promise<void> => {
-        if (analyticsDrained || composedAnalytics === undefined) return
+        if (analyticsDrained) return
         analyticsDrained = true
-        await composedAnalytics.shutdown()
+        const host = composedAnalytics
+        await settleReporting(host === undefined ? {} : { analytics: host })
       }
 
       try {
@@ -5115,6 +5117,7 @@ export function createRunCommand(
         const modeFlags = [opts.test, opts.suite, opts.all].filter(Boolean).length
         if (modeFlags > 1) {
           console.error(pc.red('Error: --test, --suite, and --all are mutually exclusive.'))
+          await drainAnalytics()
           process.exit(1)
         }
 
@@ -5175,6 +5178,7 @@ export function createRunCommand(
           if (code === 0 || code === 1) {
             await showUpdateNoticeBeforeExit(options.updateNotice, effectiveLogLevel)
           }
+          await drainAnalytics()
           process.exit(code)
         }
         let discoveredTestFiles: string[] = [...inputs.discovered.tests]
@@ -5329,6 +5333,7 @@ export function createRunCommand(
           record.close()
           printRunId(validationRunId)
           printRunAttributes(validationAttributes)
+          await drainAnalytics()
           process.exit(2)
         }
 
@@ -5557,6 +5562,7 @@ export function createRunCommand(
             printRunText(err.lines.join('\n'), (text) => console.error(text))
           }
           errorReporter()?.capture(err)
+          await drainAnalytics()
           process.exit(err.exitCode)
         }
         // Exit 2 with the core's message: an id the caller may not name is refused; nothing ran.
