@@ -104,6 +104,7 @@ import {
 } from '../run-session-composition.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import type { CliAnalyticsHost } from '../composition/analytics-host.js'
+import { errorReporter } from '../composition/error-reporting.js'
 import {
   runVerdictFirstCurationTail,
   unexpectedCurationTailWarning,
@@ -5167,6 +5168,7 @@ export function createRunCommand(
           userRunAttributes,
         } = inputs
         _crashSecretRedactor = runtimeSecrets.secretRedactor
+        errorReporter()?.bindMask((text) => runtimeSecrets.secretRedactor.redactString(text))
         // A run that reached its result shows the update notice; refusals, errors and cancels
         // (exit 2 and 130) end without it.
         const exitAtNormalEnd = async (code: number): Promise<never> => {
@@ -5554,6 +5556,7 @@ export function createRunCommand(
           if (err.lines.length > 0) {
             printRunText(err.lines.join('\n'), (text) => console.error(text))
           }
+          errorReporter()?.capture(err)
           process.exit(err.exitCode)
         }
         // Exit 2 with the core's message: an id the caller may not name is refused; nothing ran.
@@ -5562,6 +5565,7 @@ export function createRunCommand(
             pc.red(redactSecretValue(err.message, _crashSecretRedactor)),
             (text) => console.error(text),
           )
+          errorReporter()?.capture(err)
           await drainAnalytics()
           process.exit(2)
         }
@@ -5571,6 +5575,7 @@ export function createRunCommand(
             pc.red(redactSecretValue(err.message, _crashSecretRedactor)),
             (text) => console.error(text),
           )
+          errorReporter()?.capture(err)
           await drainAnalytics()
           process.exit(2)
         }
@@ -5589,6 +5594,7 @@ export function createRunCommand(
           )
           if (_startedRunId !== undefined) printRunId(_startedRunId)
           try { _crashRecord?.close() } catch {}
+          errorReporter()?.capture(err)
           await drainAnalytics()
           process.exit(2)
         }
@@ -5602,6 +5608,7 @@ export function createRunCommand(
         if (_startedRunId !== undefined) printRunId(_startedRunId)
 
         try { _crashRecord?.close() } catch {}
+        errorReporter()?.capture(err)
         await drainAnalytics() // The error path's terminal exit.
         process.exit(2)
       }
