@@ -3,6 +3,7 @@
 
 import type { Command } from 'commander'
 
+import { defaultCliFailureDeps, installGlobalFailureHandlers } from '../cli-error-handler.js'
 import { resolveMcpConfigPath } from '../commands/mcp-project.js'
 import { projectHost, type ProjectHost } from '../commands/project-host.js'
 import { collectReportFacts, commandPath } from './error-report-facts.js'
@@ -10,6 +11,7 @@ import { startErrorReporting } from './error-reporting.js'
 
 export interface CliErrorReportingDeps {
   readonly start?: typeof startErrorReporting
+  readonly installHandlers?: () => void
   readonly cwd?: string
   readonly env?: NodeJS.ProcessEnv
   readonly host?: Pick<ProjectHost, 'homedir' | 'io'>
@@ -25,6 +27,10 @@ export async function startCliErrorReporting(
     const configPath = await decidingConfigPath(program, action, env, deps)
     const reporter = await (deps.start ?? startErrorReporting)({ configPath })
     if (reporter === undefined) return
+    // Only with reporting on: with it off, Node's own handling of an escaped error is unchanged.
+    const installHandlers =
+      deps.installHandlers ?? (() => installGlobalFailureHandlers(defaultCliFailureDeps(program)))
+    installHandlers()
     const facts = collectReportFacts({ action, document: reporter.configDocument, env })
     reporter.setFacts(facts)
     reporter.beginCommandSpan(facts.command, facts.flags)

@@ -69,13 +69,56 @@ export function reportCliFailure(error: unknown, deps: CliFailureDeps): number {
     }
     return error.exitCode === 0 ? 1 : error.exitCode
   }
+  printUnexpected(error, deps)
+  return 1
+}
+
+function printUnexpected(error: unknown, deps: CliFailureDeps): void {
   const message = error instanceof Error ? error.message : String(error)
   const stack = error instanceof Error && error.stack !== undefined ? error.stack.split('\n') : []
   const frames = stack.filter((line) => FRAME.test(line))
   printRunText(deps.mask([`Unexpected error: ${message}`, ...frames].join('\n')), deps.print, {
     env: deps.env,
   })
-  return 1
+}
+
+// Every path ends in exit 1, as Node's own handling does: a listener that returned would let the
+// process go on, or end it with 0.
+export function createGlobalFailureHandler(
+  deps: CliFailureDeps,
+): (error: unknown) => Promise<void> {
+  let handling = false
+  return async (error) => {
+    if (handling) {
+      deps.exit(1)
+      return
+    }
+    handling = true
+    try {
+      printUnexpected(error, deps)
+      deps.setExitCode(1)
+      if (!isPromptCancel(error)) deps.capture(error)
+      await deps.settle()
+      await deps.flush()
+    } catch {
+      // The exit below still runs.
+    }
+    deps.exit(1)
+  }
+}
+
+export function installGlobalFailureHandlers(deps: CliFailureDeps): () => void {
+  const handle = createGlobalFailureHandler(deps)
+  // An unhandled rejection's first argument is its reason.
+  const listener = (error: unknown) => {
+    void handle(error)
+  }
+  process.on('uncaughtException', listener)
+  process.on('unhandledRejection', listener)
+  return () => {
+    process.off('uncaughtException', listener)
+    process.off('unhandledRejection', listener)
+  }
 }
 
 export async function runCli(
