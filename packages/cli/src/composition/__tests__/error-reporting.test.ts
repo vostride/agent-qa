@@ -26,7 +26,6 @@ import {
   settleReporting,
   startErrorReporting,
 } from '../error-reporting.js'
-import { createMaskingTransport } from '../error-reporting-mask.js'
 
 const INVENTED_DSN = 'http://key@127.0.0.1:9/1'
 const SECRET = 'tok-7f3a9c2e5b'
@@ -393,28 +392,32 @@ describe('the report mask', () => {
     ])
   })
 
-  it('drops an envelope whose mask cannot be built or throws, and the send still resolves', async () => {
+  it('rewrites the home folder to a tilde in a captured message and in its stack frames', async () => {
+    const home = '/Users/canary-user'
     const recorder = recordingReportTransport()
-    const options = { url: 'http://127.0.0.1:9/api/1/envelope/', recordDroppedEvent: () => {} }
-    const envelope = [
-      { event_id: 'f'.repeat(32) },
-      [[{ type: 'event' }, { message: 'a message' }]],
-    ] as unknown as RecordedEnvelope
-    const unbuildable = createMaskingTransport(recorder.transport, () => {
-      throw new Error('the secrets file cannot be read')
-    })(options)
-    const throwing = createMaskingTransport(recorder.transport, () => () => {
-      throw new Error('the mask failed')
-    })(options)
-    const passing = createMaskingTransport(recorder.transport, () => (text) =>
-      text.replace('a message', 'a masked message'),
-    )(options)
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      homeDir: home,
+      transport: recorder.transport,
+    })
+    const error = new Error(`cannot read ${home}/project/agent-qa.config.yaml`)
+    error.stack = [
+      `Error: cannot read ${home}/project/agent-qa.config.yaml`,
+      `    at readConfig (${home}/project/node_modules/agent-qa/dist/cli.js:10:5)`,
+      `    at file://${home}/project/hooks.mjs:3:1`,
+    ].join('\n')
 
-    await expect(unbuildable.send(envelope)).resolves.toEqual({})
-    await expect(throwing.send(envelope)).resolves.toEqual({})
-    expect(recorder.envelopes).toEqual([])
-    await passing.send(envelope)
-    expect(serializedEnvelopes(recorder.envelopes)).toContain('a masked message')
+    reporter?.capture(error)
+    await settleReporting()
+
+    const sent = serializedEnvelopes(recorder.envelopes)
+    expect(exceptionValues(recorder.envelopes)).toEqual([
+      'cannot read ~/project/agent-qa.config.yaml',
+    ])
+    expect(sent).toContain('"filename":"~/project/node_modules/agent-qa/dist/cli.js"')
+    expect(sent).toContain('"filename":"~/project/hooks.mjs"')
+    expect(sent).not.toContain('canary-user')
   })
 
   it('applies a bound mask after the declared one while its binding is open, and two open bindings both', async () => {

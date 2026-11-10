@@ -8,32 +8,94 @@ export interface EnvelopeTransport<TEnvelope, TResult> {
   flush(timeout?: number): PromiseLike<boolean>
 }
 
+// Ids and protocol fields: a short secret must never rewrite the value under one of these keys.
+export const STRUCTURAL_KEYS: ReadonlySet<string> = new Set([
+  'event_id',
+  'trace_id',
+  'span_id',
+  'parent_span_id',
+  'segment_id',
+  'debug_id',
+  'public_key',
+  'dsn',
+  'sent_at',
+  'type',
+  'platform',
+  'level',
+  'sdk',
+])
+
+// Longest first, so a spelling that holds a shorter one is replaced whole.
+export function homeSpellings(homeDir: string, realHomeDir: string): string[] {
+  const spellings = new Set<string>()
+  for (const given of [homeDir, realHomeDir]) {
+    const path = given.replace(/[\\/]+$/, '')
+    if (/^(?:[A-Za-z]:)?$/.test(path)) continue
+    const forward = path.replaceAll('\\', '/')
+    for (const form of [path, forward, path.replaceAll('/', '\\')]) {
+      spellings.add(form)
+      spellings.add(JSON.stringify(form).slice(1, -1))
+    }
+    const url = `file://${forward.startsWith('/') ? '' : '/'}${forward}`
+    spellings.add(url)
+    const encoded = encodedUrl(url)
+    if (encoded !== undefined) spellings.add(encoded)
+  }
+  return [...spellings].sort((a, b) => b.length - a.length)
+}
+
+function encodedUrl(url: string): string | undefined {
+  try {
+    return encodeURI(url)
+  } catch {
+    // A lone surrogate has no encoded form.
+    return undefined
+  }
+}
+
+export function rewriteHome(text: string, spellings: readonly string[]): string {
+  return spellings.reduce((rewritten, spelling) => rewritten.replaceAll(spelling, '~'), text)
+}
+
 export function maskEnvelope<T>(envelope: T, mask: TextMask): T {
   return maskValue(envelope, mask) as T
 }
 
 function maskValue(value: unknown, mask: TextMask): unknown {
   if (typeof value === 'string') return mask(value)
+  if (ArrayBuffer.isView(value)) return value
   if (Array.isArray(value)) return value.map((item) => maskValue(item, mask))
   if (typeof value === 'object' && value !== null) {
     return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [key, maskValue(item, mask)]),
+      Object.entries(value).map(([key, item]) => [
+        key,
+        STRUCTURAL_KEYS.has(key) ? item : maskValue(item, mask),
+      ]),
     )
   }
   return value
 }
 
+export interface MaskingTransportOptions {
+  readonly homeSpellings?: readonly string[]
+}
+
+// Each string passes the secret mask first and the home rewrite after, so a secret that holds the
+// home path is still found whole.
 export function createMaskingTransport<TOptions, TEnvelope, TResult extends object>(
   inner: (options: TOptions) => EnvelopeTransport<TEnvelope, TResult>,
   resolveMask: () => TextMask,
+  options: MaskingTransportOptions = {},
 ): (options: TOptions) => EnvelopeTransport<TEnvelope, Partial<TResult>> {
-  return (options) => {
-    const transport = inner(options)
+  const spellings = options.homeSpellings ?? []
+  return (transportOptions) => {
+    const transport = inner(transportOptions)
     return {
       send: (envelope) => {
         let masked: TEnvelope
         try {
-          masked = maskEnvelope(envelope, resolveMask())
+          const mask = resolveMask()
+          masked = maskEnvelope(envelope, (text) => rewriteHome(mask(text), spellings))
         } catch {
           return Promise.resolve({})
         }
