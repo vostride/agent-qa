@@ -2,6 +2,8 @@
 // SDK is never imported; with it on, one client is built by hand and held for the process.
 
 import { existsSync, realpathSync } from 'node:fs'
+import { request as httpRequest } from 'node:http'
+import { request as httpsRequest } from 'node:https'
 import { homedir } from 'node:os'
 import { resolve } from 'node:path'
 
@@ -184,6 +186,7 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
         masks.resolve,
         { homeSpellings: spellings, dropRepeats: createRepeatFilter() },
       ),
+      transportOptions: { httpModule: boundedRequestModule(URL.parse(dsn)?.protocol ?? 'https:') },
     })
     Sentry.setCurrentClient(client)
     client.init()
@@ -373,28 +376,83 @@ function declaredSecretMask(configPath: string, declared: DeclaredSecretMask): T
   }
 }
 
-export interface SettleReportingInput {
-  readonly analytics?: { shutdown(): Promise<void> }
+export type ReportRequestModule = NonNullable<Parameters<ReportTransportFactory>[0]['httpModule']>
+
+// The SDK's agent times a silent socket out but leaves the request open, which holds a process that
+// would otherwise end, so the request is destroyed when it times out.
+export function boundedRequestModule(protocol: string): ReportRequestModule {
+  return {
+    request: (options, onResponse) => {
+      const request =
+        protocol === 'https:' ? httpsRequest(options, onResponse) : httpRequest(options, onResponse)
+      request.on('timeout', () => {
+        request.destroy(new Error('the report request timed out'))
+      })
+      return request
+    },
+  }
 }
 
-// The command span ends first, so the flush sends it. The analytics drain and the report flush
-// share one budget: an exit waits two seconds, not four.
+export interface SettleReportingInput {
+  readonly analytics?: { shutdown(): Promise<void> }
+  readonly budgetMs?: number
+}
+
+// Every settle in the process draws on one budget, whole while unset. A settle's wait is taken out
+// of it, and time spent outside a settle puts it back, one millisecond for each, up to the whole.
+let budgetLeftMs: number | undefined
+let budgetUpdatedAt = 0
+let lastSettle: Promise<void> = Promise.resolve()
+
+// The command span ends first, so the flush sends it. The analytics drain and the report flush run
+// together on what is left of the budget.
 export async function settleReporting(input: SettleReportingInput = {}): Promise<void> {
   const current = started
   if (current === undefined) {
     await input.analytics?.shutdown()
     return
   }
+  // One at a time, so two settles never count the same time twice.
+  const previous = lastSettle
+  let release: () => void = () => {}
+  lastSettle = new Promise<void>((resolve) => {
+    release = () => resolve()
+  })
+  try {
+    await previous
+    await settleOnce(current, input)
+  } finally {
+    release()
+  }
+}
+
+async function settleOnce(current: StartedReporting, input: SettleReportingInput): Promise<void> {
+  const whole = input.budgetMs ?? DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS
+  const startedAt = performance.now()
+  const wait =
+    budgetLeftMs === undefined
+      ? whole
+      : Math.min(whole, budgetLeftMs + (startedAt - budgetUpdatedAt))
   current.endCommandSpan()
-  await within(DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS, () =>
-    Promise.allSettled([
-      input.analytics?.shutdown(),
-      current.reporter.flush(DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS),
-    ]),
-  )
+  if (wait < 1) {
+    // The SDK's flush waits without bound when it is given no time, so it is not called.
+    try {
+      void input.analytics?.shutdown().catch(() => {})
+    } catch {
+      // Settling never throws into the exit it runs before.
+    }
+  } else {
+    await within(wait, () =>
+      Promise.allSettled([input.analytics?.shutdown(), current.reporter.flush(wait)]),
+    )
+  }
+  const returnedAt = performance.now()
+  budgetLeftMs = Math.max(0, wait - (returnedAt - startedAt))
+  budgetUpdatedAt = returnedAt
 }
 
 export async function closeErrorReporting(): Promise<void> {
+  budgetLeftMs = undefined
   const current = started
   started = undefined
   if (current === undefined) return
