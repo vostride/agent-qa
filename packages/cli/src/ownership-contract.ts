@@ -16,6 +16,7 @@ export const AGENT_QA_CLI_EXTERNAL_DEPENDENCIES = [
   '@inquirer/password',
   // Lives here because serving stdio owns the process; the projection package stays host-free.
   '@modelcontextprotocol/server',
+  '@sentry/node',
   'ai',
   'chalk',
   'commander',
