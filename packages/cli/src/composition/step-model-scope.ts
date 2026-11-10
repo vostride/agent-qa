@@ -1,4 +1,5 @@
 import type { RunStepModelPorts } from '../commands/run.js'
+import { traceModelCalls } from './run-trace-subscriber.js'
 
 type ScopeInput = Parameters<RunStepModelPorts['createScope']>[0]
 type ModelInput = Parameters<RunStepModelPorts['createModel']>
@@ -15,6 +16,11 @@ export interface CliStepModelScopeOptions {
   }
 }
 
+// The step a call belongs to and the model it names, for that call's span.
+function callScope(key: ScopeInput['key'], role: 'planner' | 'verifier', profile: ModelInput[0]) {
+  return { ...key, role, provider: profile.provider, modelId: profile.model }
+}
+
 /**
  * The host retains its resolved metadata handles and accounting objects. Each
  * invocation binds a new raw observer through the central model constructor;
@@ -27,11 +33,25 @@ export function createCliStepModelScopeFactory(options: CliStepModelScopeOptions
     models: {
       planner: {
         model: options.planner.model,
-        bind: observation => options.ports.createModel(options.planner.profile, options.planner.auth, options.mask, {}, observation),
+        bind: (observation) =>
+          options.ports.createModel(
+            options.planner.profile,
+            options.planner.auth,
+            options.mask,
+            {},
+            traceModelCalls(observation, callScope(key, 'planner', options.planner.profile)),
+          ),
       },
       verifier: {
         model: options.verifier.model,
-        bind: observation => options.ports.createModel(options.verifier.profile, options.verifier.auth, options.mask, {}, observation),
+        bind: (observation) =>
+          options.ports.createModel(
+            options.verifier.profile,
+            options.verifier.auth,
+            options.mask,
+            {},
+            traceModelCalls(observation, callScope(key, 'verifier', options.verifier.profile)),
+          ),
       },
     },
     profiles: {
