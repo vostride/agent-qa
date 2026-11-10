@@ -22,6 +22,7 @@ function held(): Held {
 function shutdownWith(waits: {
   cleanupSessions?: () => Promise<void>
   releaseRemoteSessions?: () => Promise<void>
+  exit?: () => Promise<void>
 }) {
   const order: string[] = []
   const deps: DashboardShutdownDeps = {
@@ -44,6 +45,7 @@ function shutdownWith(waits: {
     }),
     exit: vi.fn((code: number) => {
       order.push(`exit ${String(code)}`)
+      return waits.exit?.()
     }),
   }
   return { deps, order, done: shutdownDashboard(deps) }
@@ -113,6 +115,23 @@ describe("the dashboard's shutdown", () => {
     await thrown.done
     expect(thrown.deps.exit).toHaveBeenCalledExactlyOnceWith(0)
     expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it('returns only once the exit it is handed has finished', async () => {
+    const exiting = held()
+    const { order, done } = shutdownWith({ exit: () => exiting.promise })
+    let returned = false
+    void done.then(() => {
+      returned = true
+    })
+
+    await vi.advanceTimersByTimeAsync(0)
+    expect(order.slice(2)).toEqual(['close', 'close mcp', 'dispose', 'exit 0'])
+    expect(returned).toBe(false)
+
+    exiting.resolve()
+    await done
+    expect(returned).toBe(true)
   })
 
   it('with nothing open, exits at once and leaves no timer behind', async () => {

@@ -67,6 +67,7 @@ vi.mock('@vostride/agent-qa-core', async importOriginal => {
 
 import { createDashboardCommand, createServeCommand } from '../commands/dashboard.js'
 import { processRemoteSessions, REMOTE_RELEASE_BOUND_MS } from '../commands/run.js'
+import * as errorReporting from '../composition/error-reporting.js'
 import { resolveLLMAuth } from '@vostride/agent-qa-core'
 import { getProvider } from '@vostride/agent-qa-model'
 
@@ -351,12 +352,27 @@ describe('createDashboardCommand', () => {
     expect(exitSpy).not.toHaveBeenCalled()
   })
 
-  it('on a signal, waits for session cleanup, then closes and exits 0 with no telemetry step', async () => {
+  it('on a signal, waits for session cleanup, then closes, settles and exits 0', async () => {
     // This cell measures the shutdown path and the remote registry the server is handed; source
     // pins cover analytics.
     const config = makeDashboardConfig({ analytics: { privacy: true } })
-    const close = vi.fn()
+    const steps: string[] = []
+    const close = vi.fn(() => {
+      steps.push('close')
+    })
     const cleanupSessions = vi.fn(async () => undefined)
+    const settle = errorReporting.settleReporting
+    const settleSpy = vi
+      .spyOn(errorReporting, 'settleReporting')
+      .mockImplementation(async (input) => {
+        steps.push('settle')
+        await settle(input)
+        steps.push('settled')
+      })
+    exitSpy.mockImplementation(((code: number) => {
+      steps.push(`exit ${String(code)}`)
+      throw new Error('process.exit')
+    }) as any)
     const signalHandlers = new Map<string | symbol, (...args: any[]) => unknown>()
     const processOnSpy = vi.spyOn(process, 'on').mockImplementation(((event, listener) => {
       signalHandlers.set(event, listener as (...args: any[]) => unknown)
@@ -385,11 +401,13 @@ describe('createDashboardCommand', () => {
       expect(cleanupSessions).toHaveBeenCalledExactlyOnceWith(REMOTE_RELEASE_BOUND_MS)
       expect(close).toHaveBeenCalledOnce()
       expect(exitSpy).toHaveBeenCalledWith(0)
+      expect(steps).toEqual(['close', 'settle', 'settled', 'exit 0'])
       expect(mockStartServer).toHaveBeenCalledWith(
         expect.objectContaining({ remoteSessions: processRemoteSessions }),
       )
     } finally {
       processOnSpy.mockRestore()
+      settleSpy.mockRestore()
     }
   })
 })
