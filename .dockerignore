@@ -18,3 +18,4 @@ test-fixtures
 **/dist
 **/.turbo
 packages/analytics/src/posthog-project.ts
+packages/analytics/src/sentry-project.ts

@@ -8,8 +8,9 @@ dist/
 # Local config and credentials
 .env*
 agent-qa.local.yaml
-# The generated PostHog key file; the release pipeline writes the real key.
+# The generated PostHog key and Sentry DSN files; a real value in either is never committed.
 packages/analytics/src/posthog-project.ts
+packages/analytics/src/sentry-project.ts
 
 # agent-qa runtime output
 .agent-qa/
