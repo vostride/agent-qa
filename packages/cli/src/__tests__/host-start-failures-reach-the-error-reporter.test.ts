@@ -26,6 +26,16 @@ import { MCP_HTTP_BIND_HOST, createMcpCommand } from '../commands/mcp.js'
 import * as analyticsHost from '../composition/analytics-host.js'
 import * as errorReporting from '../composition/error-reporting.js'
 import { closeErrorReporting, startErrorReporting } from '../composition/error-reporting.js'
+import * as config from '../config.js'
+import {
+  canaryError,
+  canaryLine,
+  canaryProject,
+  expectNoCanary,
+  expectUsefulReport,
+  removeCanaryProjects,
+  startCanaryReporting,
+} from './error-report-canaries.js'
 import {
   projectWithPrivacy,
   recordingReportTransport,
@@ -71,6 +81,7 @@ afterEach(async () => {
   vi.unstubAllEnvs()
   await closeErrorReporting()
   removeReportProjects()
+  removeCanaryProjects()
   for (const dir of scratch.splice(0)) rmSync(dir, { recursive: true, force: true })
   process.exitCode = exitCodeBefore
 })
@@ -573,4 +584,100 @@ describe('exitAfterSettling', () => {
 
     expect(exits).toEqual([2])
   })
+})
+
+interface CanaryHost {
+  readonly name: string
+  // The host, failing at its top level with the error it is handed.
+  readonly failingWith: (error: Error) => HostFactory
+}
+
+const CANARY_HOSTS: readonly CanaryHost[] = [
+  {
+    name: 'agent-qa mcp',
+    failingWith: (error) => (exit) => ({
+      command: createMcpCommand({
+        composeAnalytics: async () => {
+          throw error
+        },
+        exit,
+      }),
+      args: ['mcp'],
+    }),
+  },
+  {
+    name: 'agent-qa daemon',
+    failingWith: (error) =>
+      daemonHost(async () => {
+        throw error
+      }),
+  },
+  {
+    name: 'agent-qa chat',
+    failingWith: (error) =>
+      chatHost({
+        chatCapabilities: async () => {
+          throw error
+        },
+      }),
+  },
+  {
+    name: 'agent-qa dashboard',
+    failingWith: (error) => () => {
+      vi.spyOn(config, 'resolveConfig').mockRejectedValueOnce(error)
+      return { command: createDashboardCommand(), args: ['dashboard'] }
+    },
+  },
+]
+
+interface HostReport {
+  readonly command: string
+  readonly envelopes: readonly RecordedEnvelope[]
+}
+
+// The host fails with the canary error under runCli while the reporter decides from the canary
+// project, its home and its environment, and a line quoting the canaries is printed just before
+// the host starts.
+async function reportFromHost(host: CanaryHost): Promise<HostReport> {
+  const project = canaryProject()
+  const recorder = recordingReportTransport()
+  const exit = (): void => {}
+  const { command, args, meanwhile } = host.failingWith(canaryError(project))(exit)
+  await startCanaryReporting(project, recorder, command.name())
+  console.error(canaryLine(project))
+  const quiet = [
+    vi.spyOn(console, 'log').mockImplementation(() => {}),
+    vi.spyOn(console, 'warn').mockImplementation(() => {}),
+    vi.spyOn(console, 'error').mockImplementation(() => {}),
+    vi.spyOn(process, 'exit').mockImplementation((() => {}) as typeof process.exit),
+  ]
+  try {
+    const program = new Command().name('agent-qa').option('--config <path>').exitOverride()
+    program.addCommand(command)
+    const argv = ['node', 'agent-qa', '--config', project.configPath, ...args]
+    const running = runCli(program, argv, { ...defaultCliFailureDeps(program), exit })
+    await meanwhile?.()
+    await running
+  } finally {
+    for (const spy of quiet) spy.mockRestore()
+  }
+  await closeErrorReporting()
+  return { command: command.name(), envelopes: recorder.envelopes }
+}
+
+describe('what a report of a host failure leaves out and keeps', () => {
+  it.each(CANARY_HOSTS)(
+    '$name sends no secret, Basic value, env value, hostname or home folder name',
+    async (host) => {
+      expectNoCanary((await reportFromHost(host)).envelopes)
+    },
+  )
+
+  it.each(CANARY_HOSTS)(
+    '$name still sends the message, both stacks, the line printed before and the command',
+    async (host) => {
+      const report = await reportFromHost(host)
+      expectUsefulReport(report.envelopes, report.command)
+    },
+  )
 })

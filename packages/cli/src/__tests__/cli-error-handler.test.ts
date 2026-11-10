@@ -14,7 +14,21 @@ import {
   type CliFailureDeps,
 } from '../cli-error-handler.js'
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
-import { closeErrorReporting, startErrorReporting } from '../composition/error-reporting.js'
+import {
+  closeErrorReporting,
+  settleReporting,
+  startErrorReporting,
+} from '../composition/error-reporting.js'
+import {
+  canaryError,
+  canaryLine,
+  canaryProject,
+  expectNoCanary,
+  expectUsefulReport,
+  removeCanaryProjects,
+  startCanaryReporting,
+} from './error-report-canaries.js'
+import type { CanaryProject } from './error-report-canaries.js'
 import {
   projectWithPrivacy,
   recordingReportTransport,
@@ -35,6 +49,7 @@ afterEach(async () => {
   vi.restoreAllMocks()
   await closeErrorReporting()
   removeReportProjects()
+  removeCanaryProjects()
   for (const folder of folders.splice(0)) rmSync(folder, { recursive: true, force: true })
 })
 
@@ -555,5 +570,80 @@ describe('reporting from the CLI failure handler', () => {
     for (const line of frames) expect(line).toMatch(FRAME)
     expect(output.stdout).toEqual([])
     expect(output.stderr).toEqual([])
+  })
+})
+
+interface CanaryHandler {
+  readonly name: string
+  readonly reach: (project: CanaryProject, error: Error) => Promise<void>
+}
+
+// Each handler captures and settles for real; only its printer and the process effects are
+// recorded.
+const CANARY_HANDLERS: readonly CanaryHandler[] = [
+  {
+    name: 'the parseAsync handler',
+    reach: async (project, error) => {
+      const program = programThrowing(() => error)
+      const { print, setExitCode, flush, exit } = recorded().deps
+      const deps = { ...defaultCliFailureDeps(program), print, setExitCode, flush, exit }
+      await drive(program, deps, ['--config', project.configPath, 'boom'])
+    },
+  },
+  {
+    name: 'a global handler',
+    reach: async (project, error) => {
+      const program = programThrowing(() => new Error('unused'))
+      await program.parseAsync(['node', 'agent-qa', '--config', project.configPath, 'fine'])
+      const { print, setExitCode, flush, exit } = recorded().deps
+      const deps = { ...defaultCliFailureDeps(program), print, setExitCode, flush, exit }
+      await createGlobalFailureHandler(deps)(error)
+    },
+  },
+]
+
+describe('what a report from the CLI failure handlers leaves out and keeps', () => {
+  beforeEach(() => {
+    const dataHome = mkdtempSync(join(tmpdir(), 'agent-qa-cli-error-handler-'))
+    folders.push(dataHome)
+    vi.stubEnv('XDG_DATA_HOME', dataHome)
+  })
+
+  // The reporter decides from the canary project, its home and its environment, and a line
+  // quoting the canaries is printed just before the canary error reaches the handler.
+  async function reportFrom(handler: CanaryHandler): Promise<readonly RecordedEnvelope[]> {
+    const project = canaryProject()
+    const recorder = recordingReportTransport()
+    await startCanaryReporting(project, recorder, 'boom')
+    console.error(canaryLine(project))
+    await handler.reach(project, canaryError(project))
+    await closeErrorReporting()
+    return recorder.envelopes
+  }
+
+  it.each(CANARY_HANDLERS)(
+    '$name sends no secret, Basic value, env value, hostname or home folder name',
+    async (handler) => {
+      expectNoCanary(await reportFrom(handler))
+    },
+  )
+
+  it.each(CANARY_HANDLERS)(
+    '$name still sends the message, both stacks, the line printed before and the command',
+    async (handler) => {
+      expectUsefulReport(await reportFrom(handler), 'boom')
+    },
+  )
+
+  it('fails a canary check over a recorder that holds no error report', async () => {
+    const recorder = recordingReportTransport()
+    await startCanaryReporting(canaryProject(), recorder, 'boom')
+    await settleReporting()
+    await closeErrorReporting()
+
+    expect(recorder.envelopes.length, 'the command span was sent').toBeGreaterThan(0)
+    for (const envelopes of [[], recorder.envelopes]) {
+      expect(() => expectNoCanary(envelopes)).toThrow('no error report reached the recorder')
+    }
   })
 })
