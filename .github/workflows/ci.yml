@@ -49,11 +49,11 @@ jobs:
       - name: Build
         run: pnpm build
 
-      # A turbo cache hit skips prebuild, so the keyless stub is written here.
+      # A turbo cache hit skips prebuild, so the keyless PostHog and Sentry stubs are written here.
       - name: Pack the build
         run: |
           node packages/analytics/scripts/ensure-posthog-project.cjs
-          tar -czf "$RUNNER_TEMP/build.tgz" packages/*/dist plugins/*/dist packages/analytics/src/posthog-project.ts
+          tar -czf "$RUNNER_TEMP/build.tgz" packages/*/dist plugins/*/dist packages/analytics/src/posthog-project.ts packages/analytics/src/sentry-project.ts
 
       - name: Upload the build
         uses: actions/upload-artifact@v7
