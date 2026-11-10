@@ -42,12 +42,35 @@ export interface ReportFacts {
   readonly plugins: readonly string[]
 }
 
+export type ReportSpanOutcome = 'ok' | 'error'
+
+export type ReportSpanAttributes = Readonly<
+  Record<string, string | number | boolean | readonly string[]>
+>
+
+export interface ReportSpan {
+  setAttributes(attributes: ReportSpanAttributes): void
+  end(outcome?: ReportSpanOutcome): void
+}
+
+export interface ReportSpanInput {
+  readonly op: string
+  readonly name: string
+  readonly attributes?: ReportSpanAttributes
+  readonly parent?: ReportSpan
+  readonly newTrace?: boolean
+  // Milliseconds since the epoch.
+  readonly startTime?: number
+}
+
 export interface ErrorReporter {
   readonly configDocument?: unknown
   capture(error: unknown): void
   flush(timeoutMs: number): Promise<boolean>
   bindMask(mask: TextMask): () => void
   setFacts(facts: ReportFacts): void
+  startSpan(input: ReportSpanInput): ReportSpan
+  beginCommandSpan(command: string, flags: readonly string[]): void
 }
 
 export interface StartErrorReportingInput {
@@ -80,6 +103,7 @@ interface StartedReporting {
   readonly reporter: ErrorReporter
   readonly client: SentryNode.NodeClient
   readonly sdk: SentrySdk
+  endCommandSpan(): void
 }
 
 let started: StartedReporting | undefined
@@ -164,6 +188,8 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
     Sentry.setCurrentClient(client)
     client.init()
 
+    const startSpan = spanStarter(Sentry)
+    let commandSpan: ReportSpan | undefined
     const reporter: ErrorReporter = {
       ...(decision.document === undefined ? {} : { configDocument: decision.document }),
       capture: (error) => {
@@ -199,8 +225,21 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
           // Reports go out without the facts rather than fail the command.
         }
       },
+      startSpan,
+      beginCommandSpan: (command, flags) => {
+        commandSpan ??= startSpan({
+          op: 'agent_qa.command',
+          name: command === '' ? 'agent-qa' : `agent-qa ${command}`,
+          attributes: { 'agent_qa.command': command, 'agent_qa.flags': flags },
+        })
+      },
     }
-    started = { reporter, client, sdk: Sentry }
+    const endCommandSpan = () => {
+      const span = commandSpan
+      commandSpan = undefined
+      span?.end()
+    }
+    started = { reporter, client, sdk: Sentry, endCommandSpan }
     return reporter
   } catch {
     return undefined
@@ -213,6 +252,74 @@ function realPath(path: string): string {
   } catch {
     return path
   }
+}
+
+type SdkSpanAttributes = NonNullable<Parameters<SentrySdk['startInactiveSpan']>[0]['attributes']>
+
+const SPAN_STATUS_ERROR = 2
+
+const NO_SPAN: ReportSpan = { setAttributes: () => {}, end: () => {} }
+
+// Every span is started inactive with its parent named: commander runs the action outside the
+// preAction hook's async context, so no span is ever the active one.
+function spanStarter(Sentry: SentrySdk): (input: ReportSpanInput) => ReportSpan {
+  const sdkSpans = new WeakMap<ReportSpan, SentryNode.Span>()
+  const wrap = (span: SentryNode.Span): ReportSpan => {
+    const reportSpan: ReportSpan = {
+      setAttributes: (attributes) =>
+        quietly(() => {
+          span.setAttributes(sdkAttributes(attributes))
+        }),
+      end: (outcome) =>
+        quietly(() => {
+          if (outcome === 'error') {
+            span.setStatus({ code: SPAN_STATUS_ERROR, message: 'internal_error' })
+          }
+          span.end()
+        }),
+    }
+    sdkSpans.set(reportSpan, span)
+    return reportSpan
+  }
+  return (input) => {
+    try {
+      const options = {
+        op: input.op,
+        name: input.name,
+        ...(input.attributes === undefined ? {} : { attributes: sdkAttributes(input.attributes) }),
+        ...(input.startTime === undefined ? {} : { startTime: input.startTime }),
+      }
+      if (input.newTrace === true) {
+        return wrap(
+          Sentry.startNewTrace(() =>
+            Sentry.startInactiveSpan({ ...options, forceTransaction: true }),
+          ),
+        )
+      }
+      const parent = input.parent === undefined ? undefined : sdkSpans.get(input.parent)
+      return wrap(Sentry.startInactiveSpan({ ...options, parentSpan: parent ?? null }))
+    } catch {
+      return NO_SPAN
+    }
+  }
+}
+
+// A span that cannot be changed or ended never fails the work it times.
+function quietly(work: () => void): void {
+  try {
+    work()
+  } catch {
+    // The span is left as it was.
+  }
+}
+
+function sdkAttributes(attributes: ReportSpanAttributes): SdkSpanAttributes {
+  return Object.fromEntries(
+    Object.entries(attributes).map(([key, value]) => [
+      key,
+      typeof value === 'object' ? [...value] : value,
+    ]),
+  )
 }
 
 interface ReportMasks {
@@ -270,17 +377,19 @@ export interface SettleReportingInput {
   readonly analytics?: { shutdown(): Promise<void> }
 }
 
-// The analytics drain and the report flush share one budget: an exit waits two seconds, not four.
+// The command span ends first, so the flush sends it. The analytics drain and the report flush
+// share one budget: an exit waits two seconds, not four.
 export async function settleReporting(input: SettleReportingInput = {}): Promise<void> {
-  const reporter = started?.reporter
-  if (reporter === undefined) {
+  const current = started
+  if (current === undefined) {
     await input.analytics?.shutdown()
     return
   }
+  current.endCommandSpan()
   await within(DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS, () =>
     Promise.allSettled([
       input.analytics?.shutdown(),
-      reporter.flush(DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS),
+      current.reporter.flush(DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS),
     ]),
   )
 }

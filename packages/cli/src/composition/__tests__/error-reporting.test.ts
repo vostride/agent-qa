@@ -29,6 +29,7 @@ import {
   settleReporting,
   startErrorReporting,
 } from '../error-reporting.js'
+import type { SentrySdk } from '../error-reporting.js'
 import { startCliErrorReporting } from '../error-reporting-start.js'
 
 const INVENTED_DSN = 'http://key@127.0.0.1:9/1'
@@ -725,13 +726,16 @@ describe('environment facts and log lines', () => {
       transport: recorder.transport,
     })
 
+    reporter?.beginCommandSpan('probe', [])
     console.error('a line printed with no error after it')
     console.error('another line printed with no error after it')
     await settleReporting()
+    const sentWithNoError = recorder.envelopes.length
     const quiet = serializedEnvelopes(recorder.envelopes)
     reporter?.capture(new Error('an error printed later'))
     await settleReporting()
 
+    expect(sentWithNoError).toBeGreaterThan(0)
     expect(quiet).not.toContain('a line printed with no error after it')
     expect(quiet).not.toContain('another line printed with no error after it')
     expect(consoleLines(recordedEvents(recorder.envelopes).at(-1)).slice(-2)).toEqual([
@@ -773,6 +777,151 @@ describe('environment facts and log lines', () => {
     expect(before?.tags).toMatchObject({ command: 'first command' })
     expect(after?.tags ?? {}).toEqual({})
     expect(after?.contexts).not.toHaveProperty('agent_qa')
+  })
+})
+
+interface RecordedSpan {
+  readonly name?: string
+  readonly trace_id?: string
+  readonly span_id?: string
+  readonly parent_span_id?: string
+  readonly status?: string
+  readonly start_timestamp?: number
+  readonly attributes?: Readonly<Record<string, { readonly value?: unknown }>>
+}
+
+// Streamed spans, read back from the JSON text like the events.
+function recordedSpans(envelopes: readonly RecordedEnvelope[]): RecordedSpan[] {
+  const parsed = JSON.parse(serializedEnvelopes(envelopes)) as Array<
+    [unknown, Array<[{ readonly type?: string }, { readonly items?: RecordedSpan[] }]>]
+  >
+  return parsed
+    .flatMap(([, items]) => items)
+    .filter(([header]) => header.type === 'span')
+    .flatMap(([, payload]) => payload.items ?? [])
+}
+
+function attributeOf(span: RecordedSpan | undefined, key: string): unknown {
+  return span?.attributes?.[key]?.value
+}
+
+function commandSpans(envelopes: readonly RecordedEnvelope[]): RecordedSpan[] {
+  return recordedSpans(envelopes).filter(
+    (span) => attributeOf(span, 'sentry.op') === 'agent_qa.command',
+  )
+}
+
+describe('spans', () => {
+  async function startRecording(input: { readonly loadSdk?: () => Promise<SentrySdk> } = {}) {
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+      ...input,
+    })
+    if (reporter === undefined) throw new Error('the reporter did not start')
+    return { recorder, reporter }
+  }
+
+  it('sends the command as an agent_qa.command root span named after its path, with its flag names, once the settle step ends it', async () => {
+    const { recorder, reporter } = await startRecording()
+
+    reporter.beginCommandSpan('daemon status', ['--config', '--json'])
+    const beforeSettle = commandSpans(recorder.envelopes)
+    await settleReporting()
+
+    expect(beforeSettle).toEqual([])
+    const spans = commandSpans(recorder.envelopes)
+    expect(spans.map((span) => span.name)).toEqual(['agent-qa daemon status'])
+    expect(attributeOf(spans[0], 'agent_qa.command')).toBe('daemon status')
+    expect(attributeOf(spans[0], 'agent_qa.flags')).toEqual(['--config', '--json'])
+    expect(spans[0]?.parent_span_id).toBeUndefined()
+  })
+
+  it('gives an error captured during the command the trace id of the command span', async () => {
+    const { recorder, reporter } = await startRecording()
+
+    reporter.beginCommandSpan('probe', [])
+    reporter.capture(new Error('an error during the command'))
+    await settleReporting()
+
+    const spans = commandSpans(recorder.envelopes)
+    const [event] = recordedEvents(recorder.envelopes)
+    expect(spans).toHaveLength(1)
+    expect(spans[0]?.trace_id).toMatch(/^[0-9a-f]{32}$/)
+    expect(event?.contexts?.trace?.trace_id).toBe(spans[0]?.trace_id)
+  })
+
+  it('ends the command span once when it settles twice', async () => {
+    const { recorder, reporter } = await startRecording()
+
+    reporter.beginCommandSpan('probe', [])
+    await settleReporting()
+    await settleReporting()
+
+    expect(commandSpans(recorder.envelopes)).toHaveLength(1)
+  })
+
+  it('starts a child under an explicit parent, a root in a new trace, and a span at the start time it is given', async () => {
+    const { recorder, reporter } = await startRecording()
+    const startTime = Date.now() - 60_000
+
+    const run = reporter.startSpan({
+      op: 'agent_qa.run',
+      name: 'run',
+      attributes: { 'agent_qa.platforms': ['web'] },
+    })
+    const test = reporter.startSpan({ op: 'agent_qa.test', name: 'test', parent: run })
+    const tool = reporter.startSpan({
+      op: 'agent_qa.mcp_tool',
+      name: 'tool',
+      newTrace: true,
+      startTime,
+    })
+    test.setAttributes({ 'agent_qa.test_index': 0 })
+    test.end('error')
+    run.end('ok')
+    tool.end()
+    await settleReporting()
+
+    const spans = recordedSpans(recorder.envelopes)
+    expect(spans.map((span) => span.name).sort()).toEqual(['run', 'test', 'tool'])
+    const [runSpan, testSpan, toolSpan] = ['run', 'test', 'tool'].map((name) =>
+      spans.find((span) => span.name === name),
+    )
+    expect(testSpan?.parent_span_id).toBe(runSpan?.span_id)
+    expect(testSpan?.trace_id).toBe(runSpan?.trace_id)
+    expect(attributeOf(runSpan, 'agent_qa.platforms')).toEqual(['web'])
+    expect(attributeOf(testSpan, 'agent_qa.test_index')).toBe(0)
+    expect([runSpan?.status, testSpan?.status]).toEqual(['ok', 'error'])
+    expect(toolSpan?.trace_id).toMatch(/^[0-9a-f]{32}$/)
+    expect(toolSpan?.trace_id).not.toBe(runSpan?.trace_id)
+    expect(toolSpan?.parent_span_id).toBeUndefined()
+    expect(toolSpan?.start_timestamp).toBeCloseTo(startTime / 1000, 0)
+  })
+
+  it('hands back a span that does nothing when the SDK cannot start one, and no span call throws', async () => {
+    const sdk = await import('@sentry/node')
+    const refuse = () => {
+      throw new Error('the SDK refused a span')
+    }
+    const { recorder, reporter } = await startRecording({
+      loadSdk: async () => ({ ...sdk, startInactiveSpan: refuse, startNewTrace: refuse }),
+    })
+
+    const spans = [
+      reporter.startSpan({ op: 'agent_qa.run', name: 'run' }),
+      reporter.startSpan({ op: 'agent_qa.run', name: 'run in a new trace', newTrace: true }),
+    ]
+    for (const span of spans) {
+      expect(() => span.setAttributes({ 'agent_qa.test_index': 1 })).not.toThrow()
+      expect(() => span.end('error')).not.toThrow()
+    }
+    expect(() => reporter.beginCommandSpan('probe', [])).not.toThrow()
+    await settleReporting()
+
+    expect(recordedSpans(recorder.envelopes)).toEqual([])
   })
 })
 
