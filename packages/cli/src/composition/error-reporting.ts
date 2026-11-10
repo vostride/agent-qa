@@ -65,14 +65,28 @@ export interface ReportSpanInput {
   readonly startTime?: number
 }
 
+// Where a run is: closed values and indexes only, never a step's text.
+export interface ReportRunState {
+  readonly runner: string
+  readonly platform?: string
+  readonly adapter?: string
+  readonly step?: number
+  readonly action?: string
+}
+
 export interface ErrorReporter {
   readonly configDocument?: unknown
+  // The command path the starter began, and its span until the settle step ends it.
+  readonly command: string | undefined
+  readonly commandSpan: ReportSpan | undefined
   capture(error: unknown): void
   flush(timeoutMs: number): Promise<boolean>
   bindMask(mask: TextMask): () => void
   setFacts(facts: ReportFacts): void
   startSpan(input: ReportSpanInput): ReportSpan
   beginCommandSpan(command: string, flags: readonly string[]): void
+  // Sets, replaces or, with no state, removes one run's entry and never touches another's.
+  setRunState(runId: string, state: ReportRunState | undefined): void
 }
 
 export interface StartErrorReportingInput {
@@ -192,9 +206,17 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
     client.init()
 
     const startSpan = spanStarter(Sentry)
+    let commandPath: string | undefined
     let commandSpan: ReportSpan | undefined
+    const runStates = new Map<string, ReportRunState>()
     const reporter: ErrorReporter = {
       ...(decision.document === undefined ? {} : { configDocument: decision.document }),
+      get command() {
+        return commandPath
+      },
+      get commandSpan() {
+        return commandSpan
+      },
       capture: (error) => {
         try {
           Sentry.captureException(error)
@@ -230,11 +252,27 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
       },
       startSpan,
       beginCommandSpan: (command, flags) => {
-        commandSpan ??= startSpan({
+        if (commandSpan !== undefined) return
+        commandPath = command
+        commandSpan = startSpan({
           op: 'agent_qa.command',
           name: command === '' ? 'agent-qa' : `agent-qa ${command}`,
           attributes: { 'agent_qa.command': command, 'agent_qa.flags': flags },
         })
+      },
+      // With several runs open, a capture cannot tell which one an error came from, so the
+      // event names each open run under its id and none of them as the run.
+      setRunState: (runId, state) => {
+        try {
+          if (state === undefined) runStates.delete(runId)
+          else runStates.set(runId, state)
+          const entries = [...runStates].map(([id, entry]) => [id, runContext(id, entry)] as const)
+          const scope = Sentry.getGlobalScope()
+          scope.setContext('run', entries.length === 1 ? entries[0]![1] : null)
+          scope.setContext('runs', entries.length > 1 ? Object.fromEntries(entries) : null)
+        } catch {
+          // Reports go out without the run state rather than fail the run.
+        }
       },
     }
     const endCommandSpan = () => {
@@ -254,6 +292,17 @@ function realPath(path: string): string {
     return realpathSync(path)
   } catch {
     return path
+  }
+}
+
+function runContext(runId: string, state: ReportRunState): Record<string, string | number> {
+  return {
+    run_id: runId,
+    runner: state.runner,
+    ...(state.platform === undefined ? {} : { platform: state.platform }),
+    ...(state.adapter === undefined ? {} : { adapter: state.adapter }),
+    ...(state.step === undefined ? {} : { step: state.step }),
+    ...(state.action === undefined ? {} : { action: state.action }),
   }
 }
 
@@ -459,10 +508,13 @@ export async function closeErrorReporting(): Promise<void> {
   await within(DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS, () =>
     current.client.close(DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS),
   )
-  // The facts sit on the SDK's process-wide scope; a reporter started later begins without them.
+  // The facts and the run state sit on the SDK's process-wide scope; a reporter started later
+  // begins without them.
   const scope = current.sdk.getGlobalScope()
   scope.setTags({ command: undefined, package_manager: undefined, ci: undefined })
   scope.setContext('agent_qa', null)
+  scope.setContext('run', null)
+  scope.setContext('runs', null)
 }
 
 // The guard stays ref'd: an unref'd timer lets Node end the process before the exit code is set.
