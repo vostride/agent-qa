@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { execFileSync as defaultExecFileSync } from 'node:child_process'
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 
 // The DSN file lives in `packages/analytics/`; writing it anywhere else ships a CLI that reports
@@ -10,6 +11,9 @@ const cliEntryArtifacts = ['dist/cli.js', 'dist/cli.cjs']
 const shebang = '#!/usr/bin/env node'
 const debugIdComment = /^\/\/# debugId=[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/im
 const environmentRead = /\bprocess\.env(?:\?\.|\.|\[\s*['"`])SENTRY_DSN\b/
+const uploadVariables = ['SENTRY_AUTH_TOKEN', 'SENTRY_ORG', 'SENTRY_PROJECT']
+const uploadSkipped = '::warning::Source maps were not uploaded to Sentry'
+const usage = 'node scripts/release/sentry.mjs --write | --inject | --upload --release <name>'
 
 export function renderSentryProjectFile(dsn) {
   if (!dsn?.trim()) throw new Error('SENTRY_DSN is required')
@@ -80,22 +84,85 @@ export function validateSentryReleaseArtifacts(options = {}) {
   }
 }
 
-export function parseSentryArgs(argv = []) {
-  if (argv.length === 0) throw new Error('missing --write')
-  if (argv.length !== 1 || argv[0] !== '--write') {
-    throw new Error('invalid args: node scripts/release/sentry.mjs --write')
+// Every package's dist but the dashboard UI's browser bundles. Plugins report nothing.
+export function debugIdTargets(rootDir) {
+  return readdirSync(join(rootDir, 'packages'), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory() && entry.name !== 'dashboard-ui')
+    .map((entry) => `packages/${entry.name}/dist`)
+    .filter((target) => statSync(join(rootDir, target), { throwIfNoEntry: false })?.isDirectory())
+    .sort()
+}
+
+// sentry-cli reads a .env file in its folder unless told not to, and inject needs no token.
+export function injectDebugIds(options = {}) {
+  const rootDir = options.rootDir ?? process.cwd()
+  const env = options.env ?? process.env
+  const execFileSync = options.execFileSync ?? defaultExecFileSync
+  const targets = debugIdTargets(rootDir)
+  if (targets.length === 0) throw new Error('no package dist folder to inject debug IDs into')
+  execFileSync('sentry-cli', ['sourcemaps', 'inject', ...targets], {
+    cwd: rootDir,
+    encoding: 'utf8',
+    stdio: 'pipe',
+    env: { PATH: env.PATH, SENTRY_LOAD_DOTENV: '0' },
+  })
+  ;(options.log ?? console.log)(`Injected debug IDs into ${targets.join(' ')}`)
+  return targets
+}
+
+// A release never waits on Sentry. The warning is a fixed sentence, because sentry-cli's own
+// output can repeat what it was given.
+export function uploadSourceMaps(options = {}) {
+  const rootDir = options.rootDir ?? process.cwd()
+  const env = options.env ?? process.env
+  const execFileSync = options.execFileSync ?? defaultExecFileSync
+  const log = options.log ?? console.log
+  const missing = uploadVariables.filter((name) => !env[name]?.trim())
+  if (missing.length > 0) {
+    log(`${uploadSkipped}: ${missing.join(', ')} ${missing.length === 1 ? 'is' : 'are'} not set`)
+    return { uploaded: false }
   }
-  return { mode: 'write' }
+  try {
+    const targets = debugIdTargets(rootDir)
+    if (targets.length === 0) throw new Error('no package dist folder to upload')
+    execFileSync('sentry-cli', ['sourcemaps', 'upload', '--release', options.release, ...targets], {
+      cwd: rootDir,
+      encoding: 'utf8',
+      stdio: 'pipe',
+      // Nothing else reaches sentry-cli, so no SENTRY_URL moves it off its default endpoint.
+      env: {
+        PATH: env.PATH,
+        SENTRY_AUTH_TOKEN: env.SENTRY_AUTH_TOKEN,
+        SENTRY_ORG: env.SENTRY_ORG,
+        SENTRY_PROJECT: env.SENTRY_PROJECT,
+        SENTRY_LOAD_DOTENV: '0',
+      },
+    })
+  } catch (error) {
+    const status = Number.isInteger(error?.status) ? ` (exit status ${error.status})` : ''
+    log(`${uploadSkipped}: the upload failed${status}`)
+    return { uploaded: false }
+  }
+  log(`Uploaded source maps for ${options.release}`)
+  return { uploaded: true }
+}
+
+export function parseSentryArgs(argv = []) {
+  const [mode, ...rest] = argv
+  if (mode === '--write' && rest.length === 0) return { mode: 'write' }
+  if (mode === '--inject' && rest.length === 0) return { mode: 'inject' }
+  const [flag, release = ''] = rest
+  const namesRelease = rest.length === 2 && flag === '--release' && /^[^-\s]/.test(release)
+  if (mode === '--upload' && namesRelease) return { mode: 'upload', release }
+  throw new Error(`invalid args: ${usage}`)
 }
 
 export async function runCli(argv = process.argv.slice(2), options = {}) {
-  parseSentryArgs(argv)
-  return writeSentryProjectFile({
-    rootDir: options.rootDir,
-    env: options.env,
-    dsn: options.dsn,
-    log: options.log,
-  })
+  const { mode, release } = parseSentryArgs(argv)
+  const { rootDir, env, log, execFileSync } = options
+  if (mode === 'inject') return injectDebugIds({ rootDir, env, log, execFileSync })
+  if (mode === 'upload') return uploadSourceMaps({ rootDir, env, log, execFileSync, release })
+  return writeSentryProjectFile({ rootDir, env, log, dsn: options.dsn })
 }
 
 if (process.argv[1] && import.meta.url === new URL(process.argv[1], 'file:').href) {
