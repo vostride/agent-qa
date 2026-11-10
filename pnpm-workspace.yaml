@@ -3,6 +3,8 @@ packages:
   - "plugins/*"
 
 allowBuilds:
+  # The sentry-cli binary comes from its platform package, so its install script never runs
+  '@sentry/cli': false
   edgedriver: false
   geckodriver: false
   onnxruntime-node: false

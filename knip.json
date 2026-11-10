@@ -9,5 +9,5 @@
     }
   },
   "ignoreBinaries": ["adb", "mkfifo"],
-  "ignoreDependencies": ["publint", "@arethetypeswrong/core"]
+  "ignoreDependencies": ["publint", "@arethetypeswrong/core", "@sentry/cli"]
 }
