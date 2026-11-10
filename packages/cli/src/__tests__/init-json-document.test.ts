@@ -87,6 +87,8 @@ async function init(
     printFixed: (line) => handler.push(`${line}\n`),
     mask: (text) => text,
     setExitCode: () => {},
+    capture: () => {},
+    settle: async () => {},
     flush: async () => {},
     exit: (code) => {
       exit = code

@@ -17,6 +17,8 @@ function failureDeps() {
     printFixed: vi.fn<(line: string) => void>(),
     mask: (text: string) => text,
     setExitCode: vi.fn<(code: number) => void>(),
+    capture: vi.fn<(error: unknown) => void>(),
+    settle: vi.fn(async () => {}),
     flush: vi.fn(async () => {}),
     exit: vi.fn<(code: number) => void>(),
     env: {},
@@ -79,12 +81,13 @@ const QUESTIONS = [
 
 describe('a cancelled init prompt', () => {
   it.each(QUESTIONS.flatMap((question) => STOPS.map((stop) => ({ ...question, ...stop }))))(
-    '$name at $where prints Cancelled., exits 130 and writes nothing',
+    '$name at $where prints Cancelled., is not reported, exits 130 and writes nothing',
     async ({ question, flags, stop }) => {
       const { root, deps } = await cancelAtQuestion(question, flags, stop)
 
       expect(deps.printFixed.mock.calls).toEqual([['Cancelled.']])
       expect(deps.print).not.toHaveBeenCalled()
+      expect(deps.capture).not.toHaveBeenCalled()
       expect(deps.setExitCode).toHaveBeenCalledWith(130)
       expect(deps.exit).toHaveBeenCalledWith(130)
       expect(readdirSync(root)).toEqual(['.git'])

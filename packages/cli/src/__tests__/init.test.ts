@@ -922,6 +922,8 @@ describe('init command', () => {
         printFixed: (line) => printed.push(line),
         mask: (text) => text,
         setExitCode: () => {},
+        capture: () => {},
+        settle: async () => {},
         flush: async () => {},
         exit: () => {},
         env: {},
