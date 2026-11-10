@@ -892,6 +892,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           const { analyticsEvent, composeAnalyticsHost } = await import(
             '../composition/analytics-host.js'
           )
+          const { settleReporting } = await import('../composition/error-reporting.js')
           // Reads this command's own config for the opt-out; an absent config yields `undefined`.
           const { readAnalyticsPrivacyDeclaration, resolveConfig } = await import('../config.js')
           let config: Awaited<ReturnType<typeof resolveConfig>> | undefined
@@ -919,7 +920,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
               duration_ms: Date.now() - initStartedAt,
             }))
           } finally {
-            await analytics.shutdown()
+            await settleReporting({ analytics })
           }
         }
 

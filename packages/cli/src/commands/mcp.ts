@@ -27,6 +27,7 @@ import {
   DeclaredSecretsUnavailableError,
 } from '../composition/declared-secrets.js'
 import type { DeclaredSecretMask } from '../composition/declared-secrets.js'
+import { errorReporter, settleReporting } from '../composition/error-reporting.js'
 import { composeCliLocalAgent, withRunDoor } from '../composition/local-agent-host.js'
 import { releaseRemoteSessions, REMOTE_RELEASE_BOUND_MS } from '../composition/remote-sessions.js'
 import { readAnalyticsPrivacyDeclaration, resolveConfig } from '../config.js'
@@ -336,10 +337,11 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
           if (serving) emitLifecycle('stopped')
           await host.close().catch(() => {})
           // Drains the port this command composed and releases its timers, so the process can exit.
-          await analytics.shutdown()
+          await settleReporting({ analytics })
         }
         if (stop.signalled()) {
           await stop.released()
+          await settleReporting()
           ;(deps.exit ?? process.exit)(0)
         }
       } catch (err) {
@@ -347,6 +349,7 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
           pc.red('Failed to start MCP server:'),
           err instanceof Error ? err.message : String(err),
         )
+        errorReporter()?.capture(err)
         process.exitCode = 1
       } finally {
         // An in-process caller gets its working folder back once serving ends.
