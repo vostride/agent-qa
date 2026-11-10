@@ -18,7 +18,9 @@ import { waitForPostVerdictContinuation } from '../curation/post-verdict-continu
 import { ciResumeClause } from '../curation/resume-limit.js'
 import type { RunExecutionContext } from '@vostride/agent-qa-agent-local'
 
+import { errorReporter } from './error-reporting.js'
 import { assembleCliRun } from './run-assembly.js'
+import { createRunTraceSubscriber } from './run-trace-subscriber.js'
 import type { CurationWriterAuthority } from '../curation/curation-tail.js'
 import {
   createPostVerdictStep,
@@ -231,6 +233,8 @@ export async function runInProcessCliRun(
   let startedSession: RunSession | undefined
   let startedSubscribers: { flush(): Promise<void> } | undefined
   let startedRecord: { flush(): Promise<void> } | undefined
+  // Ends the run's trace and its mask binding on the way out; set only when reporting is on.
+  let endRunReporting: (() => void) | undefined
   // One variable, not a map: this drive serves exactly one run, so a keyed cache would never evict.
   let postVerdictHandoff: PostVerdictHandoff | undefined
 
@@ -293,6 +297,29 @@ export async function runInProcessCliRun(
       produced.bindSession(session)
       options.onSession?.(session)
       const runner = producedRunner(produced)
+      const reporter = errorReporter()
+      if (reporter !== undefined) {
+        // The run's redactor masks reports while it runs, and the reporter keeps it a while after.
+        const unbind = reporter.bindMask(mask)
+        const trace = createRunTraceSubscriber({
+          reporter,
+          ...(runner === undefined ? {} : { runner }),
+          ...(produced.remotePlugins === undefined
+            ? {}
+            : { remotePlugins: produced.remotePlugins }),
+          ...(produced.platforms === undefined ? {} : { platforms: produced.platforms }),
+        })
+        endRunReporting = () => {
+          void trace.flush()
+          unbind()
+        }
+        try {
+          // Subscribed directly, like the record below, so nothing reaches stdout.
+          session.subscribe(REPLAY_FROM_START, trace.handler)
+        } catch {
+          // A run is never failed by its trace.
+        }
+      }
       startedSubscribers = options.subscribers?.({
         session,
         quarantined,
@@ -454,6 +481,7 @@ export async function runInProcessCliRun(
         try {
           await produced.closePluginHosts?.()
         } catch {}
+        endRunReporting?.()
         if (!preparationDisclosureOwnedByDoor && postVerdictHandoff?.completion !== undefined) {
           const handoff = postVerdictHandoff
           if (handoff.enqueueState === undefined) {

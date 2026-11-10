@@ -32,6 +32,7 @@ import type {
   DeclaredModelProfile,
   MaskFn,
   ModelCapabilities,
+  Platform,
   QuarantineAppliedEntry,
   RemoteDisplay,
   RunArtifactStageInput,
@@ -1652,6 +1653,23 @@ export function runRemotePlugins(
     const entry = entries.find((candidate) => candidate.name === named)
     return entry === undefined ? [] : [analyticsRemotePluginId(entry)]
   })
+}
+
+// The platforms a run's places drive, each once: a browser is web, a device its profile's.
+function runPlatforms(
+  config: Pick<AgentQaConfig, 'registry'>,
+  places: readonly (WebPlace | DevicePlace)[],
+): Platform[] {
+  const devices = config.registry?.devices ?? {}
+  return [
+    ...new Set(
+      places.flatMap((place): Platform[] => {
+        if (!('device' in place)) return ['web']
+        const profile = Object.hasOwn(devices, place.device) ? devices[place.device] : undefined
+        return profile === undefined ? [] : [profile.platform]
+      }),
+    ),
+  ]
 }
 
 // A suite shares one browser, so it is placed once for all its members.
@@ -4103,6 +4121,11 @@ export async function produceSuiteRunMembers(
       }
     })(),
     remotePlugins: runRemotePlugins(config, suiteRunPlaces),
+    // A mobile suite keeps the default local browser place too; its device is where it runs.
+    platforms: runPlatforms(
+      config,
+      preparedSuites.map((prepared) => prepared.suiteDevicePlace ?? prepared.suitePlace),
+    ),
     onMemberSnapshot: suiteSnapshots.subscribe,
     applyAssembly: ({ buildOrdinal, quarantined }) => {
       suiteBuildOrdinal = buildOrdinal
@@ -4233,6 +4256,8 @@ export interface ProducedCliRunMembers {
   readonly remoteProgress?: RemoteProgressRelay
   // The analytics ids of the plugins its places use, for a door's run-completion event.
   readonly remotePlugins?: readonly AnalyticsRemotePlugin[]
+  // The platforms its places drive, each once, for the run's trace and its run state.
+  readonly platforms?: readonly Platform[]
   /** The run's plugin load, which the core awaits once the request and its run id are allowed. */
   readonly loadPlugins: () => Promise<void>
   /** The run's own config's `services.dashboard.dbPath`, resolved only when the record opens. */
@@ -5029,6 +5054,7 @@ export async function produceDirectRunMembers(
     onMemberSnapshot: memberSnapshots.subscribe,
     subscriberSeed: { attributes: directRunAttributes },
     remotePlugins: runRemotePlugins(config, directPlaces),
+    platforms: runPlatforms(config, directPlaces),
     loadPlugins: input.inputs.loadPlugins,
     ...(config.services?.dashboard?.dbPath === undefined
       ? {}
