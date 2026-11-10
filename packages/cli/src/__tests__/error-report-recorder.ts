@@ -11,22 +11,42 @@ export type RecordedEnvelope = Parameters<ReturnType<ReportTransportFactory>['se
 export interface RecordingReportTransport {
   readonly transport: ReportTransportFactory
   readonly envelopes: RecordedEnvelope[]
+  // Settles every send and flush still pending, so a client on a hanging transport closes at once.
+  release(): void
 }
 
-// With `hang`, every send and flush stays pending and holds no handle, as on a dead network.
+// With `hang`, a send stays pending and holds no handle, as on a dead network, and a flush waits
+// while a send is pending; with nothing sent, a flush returns at once.
 export function recordingReportTransport(
   options: { readonly hang?: boolean } = {},
 ): RecordingReportTransport {
   const envelopes: RecordedEnvelope[] = []
-  const pending = () => new Promise<never>(() => {})
+  const held: Array<() => void> = []
+  let sending = 0
+  let released = false
+  const hold = <T>(value: T): Promise<T> =>
+    released
+      ? Promise.resolve(value)
+      : new Promise<T>((resolve) => {
+          held.push(() => resolve(value))
+        })
   const transport: ReportTransportFactory = () => ({
     send: (envelope) => {
       envelopes.push(envelope)
-      return options.hang === true ? pending() : Promise.resolve({})
+      if (options.hang !== true) return Promise.resolve({})
+      sending += 1
+      return hold({})
     },
-    flush: () => (options.hang === true ? pending() : Promise.resolve(true)),
+    flush: () => (options.hang === true && sending > 0 ? hold(true) : Promise.resolve(true)),
   })
-  return { transport, envelopes }
+  return {
+    transport,
+    envelopes,
+    release: () => {
+      released = true
+      for (const settle of held.splice(0)) settle()
+    },
+  }
 }
 
 export function serializedEnvelopes(envelopes: readonly RecordedEnvelope[]): string {
