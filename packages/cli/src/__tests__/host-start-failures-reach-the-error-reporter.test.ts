@@ -16,6 +16,11 @@ import { createChatCommand } from '../commands/chat.js'
 import type { ChatCommandDeps } from '../commands/chat.js'
 import { createDaemonCommand } from '../commands/daemon.js'
 import type { DaemonCommandDeps } from '../commands/daemon.js'
+import {
+  createDashboardCommand,
+  createServeCommand,
+  exitAfterSettling,
+} from '../commands/dashboard.js'
 import { createInitCommand } from '../commands/init.js'
 import { MCP_HTTP_BIND_HOST, createMcpCommand } from '../commands/mcp.js'
 import * as analyticsHost from '../composition/analytics-host.js'
@@ -115,6 +120,8 @@ interface Host {
 type HostFactory = (exit: (code: number) => void) => Host
 
 interface HostRun {
+  // The project folder the arm ran in.
+  readonly dir: string
   // The console lines up to the first exit.
   readonly printed: readonly string[]
   readonly exitCode: typeof process.exitCode
@@ -187,6 +194,7 @@ async function runHost(
   sent ??= recorder.envelopes.slice(before)
   await closeErrorReporting()
   return {
+    dir: project.dir,
     printed: withoutFolder(printed, project.dir),
     exitCode,
     exits,
@@ -508,5 +516,61 @@ describe('agent-qa init', () => {
     expect(steps).toEqual(DRAINED)
     expect(handedOver).toHaveLength(1)
     expect(handedOver[0]).toBe(composed[0])
+  })
+})
+
+describe('agent-qa dashboard and agent-qa serve', () => {
+  // The project names a hooks file it never wrote, which the server refuses before it starts.
+  const missingHooks =
+    'Configured workspace file not found: workspace.hooksFile -> <project>/hooks.yaml'
+
+  it.each([
+    { label: 'Dashboard', create: () => createDashboardCommand() },
+    { label: 'Serve', create: () => createServeCommand() },
+  ])('report a $label start that fails, and exit 2 only after the settle step', async (host) => {
+    const arms = await onAndOff(() => {
+      const command = host.create()
+      return { command, args: [command.name()] }
+    })
+
+    expect(arms.on.exits).toEqual([2])
+    expect(arms.on.printed).toContain(`${host.label} error: ${missingHooks}`)
+    expect(withoutFolder(reportedErrors(arms.on.sent), arms.on.dir)).toEqual([missingHooks])
+    expect(untilTheFirstExit(arms.on.steps)).toEqual([...SETTLED, 'exit 2'])
+    expectReportingOffChangesNothingElse(arms)
+  })
+})
+
+describe('exitAfterSettling', () => {
+  it('exits once with its code, and only once the settle step has finished', async () => {
+    let finish: () => void = () => {}
+    vi.mocked(errorReporting.settleReporting).mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = resolve
+        }),
+    )
+    const exits: number[] = []
+
+    const exiting = exitAfterSettling(2, (code) => {
+      exits.push(code)
+    })
+    await new Promise((resolve) => setImmediate(resolve))
+    expect(exits).toEqual([])
+    finish()
+    await exiting
+
+    expect(exits).toEqual([2])
+  })
+
+  it('still exits once with its code when the settle step rejects', async () => {
+    vi.mocked(errorReporting.settleReporting).mockRejectedValueOnce(new Error('settle failed'))
+    const exits: number[] = []
+
+    await exitAfterSettling(2, (code) => {
+      exits.push(code)
+    }).catch(() => undefined)
+
+    expect(exits).toEqual([2])
   })
 })

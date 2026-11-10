@@ -73,6 +73,7 @@ import {
 } from '../composition/local-agent-host.js'
 import { CliRefusal } from '../composition/cli-refusal.js'
 import { createDeclaredSecretMask } from '../composition/declared-secrets.js'
+import { errorReporter, settleReporting } from '../composition/error-reporting.js'
 import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
 import { composeRunOwnership } from '../composition/run-owner-probe.js'
 import type { ComposeCliLocalAgentInput } from '../composition/local-agent-host.js'
@@ -111,7 +112,7 @@ export interface DashboardShutdownDeps {
   dispose(): void
   cleanupSessions(boundMs: number): Promise<void>
   releaseRemoteSessions(boundMs: number): Promise<void>
-  exit(code: number): void
+  exit(code: number): void | Promise<void>
 }
 
 /** Waits for live-editor cleanup and remote releases, within the bound, then closes and exits 0. */
@@ -132,7 +133,19 @@ export async function shutdownDashboard(deps: DashboardShutdownDeps): Promise<vo
   deps.close()
   deps.closeMcp()
   deps.dispose()
-  deps.exit(0)
+  await deps.exit(0)
+}
+
+// A direct exit skips the settle runCli makes, so the dashboard settles before each of its own.
+export async function exitAfterSettling(
+  code: number,
+  exit: (code: number) => void = (c) => process.exit(c),
+): Promise<void> {
+  try {
+    await settleReporting()
+  } finally {
+    exit(code)
+  }
 }
 
 async function settled(wait: () => Promise<void>): Promise<void> {
@@ -954,7 +967,7 @@ async function startDashboardBackedServices(
         cleanupSessions,
         releaseRemoteSessions,
         // Explicit, because a silent remote's socket and its close timer keep the loop alive.
-        exit: (code) => process.exit(code),
+        exit: (code) => exitAfterSettling(code),
       })
     }
 
@@ -963,7 +976,8 @@ async function startDashboardBackedServices(
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
     printRunText(pc.red(`${labels.error} error: ${message}`), (block) => console.error(block))
-    process.exit(2)
+    errorReporter()?.capture(err)
+    await exitAfterSettling(2)
   }
 }
 
