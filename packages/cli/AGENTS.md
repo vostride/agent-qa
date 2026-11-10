@@ -40,11 +40,36 @@ failure. `--json` prints `{ "format": 1, "ok", "rows" }` instead. It exits 3
 when a row fails and 0 otherwise, and 2 for its own usage errors. A row the
 re-run menu can fix names `npx agent-qa init --setup <row>` as its fix.
 
+agent-qa reports its own errors and coarse traces to Sentry from every command
+when a release baked in a DSN and the project's `analytics.privacy` is not
+`true`; a source checkout's DSN is blank, so it reports nothing. The root
+`preAction` hook decides once, before the action runs, through
+`src/composition/error-reporting-start.ts`: from the root `--config`, or for
+`mcp` from the project it resolves. No config file means on, an unreadable one
+means off, and a long-lived process never reads the flag again.
+`src/composition/error-reporting.ts` holds the only import of `@sentry/node`,
+a dynamic one, so nothing loads when reporting is off; a static import
+anywhere the CLI reaches would load it on every invocation. The spans are the
+command, each run, test, step and model call, and each MCP tool call. Every
+report is masked at the transport, once per envelope, by the saved
+credentials, the declared secrets and the masks bound with `bindMask`: those
+bound when the report was captured or one of its breadcrumbs was recorded,
+those bound at send, and the one that ended last. A run binds its redactor
+while it lasts, and so does a dashboard live-editor session, through the
+server's `bindSessionMask` option. The home folder then reads `~`, and an
+envelope that cannot be masked is dropped. `settleReporting` is the one step
+that drains analytics and flushes reports before an exit, inside one 2-second
+budget. A capture never changes an exit code: agent-qa's own
+`uncaughtException` and `unhandledRejection` handlers, installed only when
+reporting is on, exit 1 as Node does. agent-qa prints nothing about reporting.
+
 ## Read First
 
 - `package.json`
 - `src/cli.ts`
 - `src/cli-error-handler.ts`
+- `src/composition/error-reporting.ts`
+- `src/composition/error-reporting-start.ts`
 - `src/config.ts`
 - `src/commands/init.ts`
 - `src/commands/init-steps.ts`

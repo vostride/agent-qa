@@ -6,7 +6,11 @@ This package is the product-analytics home. It owns the `AnalyticsPort` and
 `AnalyticsTransport` interfaces, the closed typed event union, the PostHog
 transport, and `composeAnalytics` — the one place the opt-out decision is made;
 opted out or keyless, it composes a port with no transport. Hosts bind it at
-their composition roots; the agent's function layer never sees it.
+their composition roots; the agent's function layer never sees it. It also
+holds the two generated, gitignored key files, `src/posthog-project.ts` and
+`src/sentry-project.ts` (the DSN the CLI's error reporter reads), which
+`scripts/ensure-posthog-project.cjs` creates blank when missing and a release
+writes, so a source checkout sends nothing.
 
 ## Read First
 
