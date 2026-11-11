@@ -1,5 +1,5 @@
-// The envelope walk masks every string but the values of structural keys, the home folder reads as
-// a tilde in every spelling, and an envelope that cannot be masked is never sent.
+// The envelope walk masks every string but the ids and protocol fields where they sit, the home
+// folder reads as a tilde in every spelling, and an envelope that cannot be masked is never sent.
 
 import { describe, expect, it } from 'vitest'
 
@@ -31,6 +31,13 @@ const unmasked: TextMask = (text) => text
 
 function occurrences(text: string, part: string): number {
   return text.split(part).length - 1
+}
+
+// The path of every string a total mask left as it was, in the order the walk meets them.
+function keptStrings(value: unknown, path: readonly string[] = []): string[] {
+  if (typeof value === 'string') return value === '[masked]' ? [] : [path.join('.')]
+  if (typeof value !== 'object' || value === null) return []
+  return Object.entries(value).flatMap(([key, item]) => keptStrings(item, [...path, key]))
 }
 
 function maskingTransport(resolveMask: () => TextMask, options: MaskingTransportOptions = {}) {
@@ -155,6 +162,102 @@ describe('the envelope walk', () => {
     expect(sent).toContain('"value":"a [secret:SHORT]co[secret:SHORT]r failed"')
   })
 
+  it('keeps the ids and protocol fields where they sit, and masks text under the same key names anywhere else', () => {
+    const free = {
+      type: 'free type',
+      platform: 'free platform',
+      level: 'free level',
+      dsn: 'free dsn',
+      sdk: { name: 'free sdk name' },
+    }
+    const envelope = [
+      {
+        event_id: 'e0'.repeat(16),
+        sent_at: '2026-01-01T00:00:00.000Z',
+        dsn: 'http://key@127.0.0.1:9/1',
+        sdk: { name: 'sentry.javascript.node', version: '11.11.0' },
+        trace: { trace_id: 'a1'.repeat(16), public_key: 'key', transaction: 'agent-qa run' },
+      },
+      [
+        [
+          { type: 'event' },
+          {
+            event_id: 'e0'.repeat(16),
+            platform: 'node',
+            level: 'error',
+            sdk: { name: 'sentry.javascript.node', integrations: ['LinkedErrors'] },
+            contexts: {
+              trace: { trace_id: 'a1'.repeat(16), span_id: 'b3'.repeat(8), op: 'run' },
+              thrown: free,
+            },
+            breadcrumbs: [
+              { type: 'default', level: 'log', category: 'console', data: { arguments: [free] } },
+            ],
+            extra: free,
+            tags: { level: 'free tag' },
+            exception: {
+              values: [{ type: 'FreeNamedError', value: 'v', mechanism: { type: 'generic' } }],
+            },
+            debug_meta: {
+              images: [{ type: 'sourcemap', debug_id: 'd2'.repeat(16), code_file: 'f' }],
+            },
+          },
+        ],
+        [
+          SPAN_ITEM[0],
+          {
+            items: [
+              {
+                trace_id: 'a1'.repeat(16),
+                span_id: 'b4'.repeat(8),
+                parent_span_id: 'b3'.repeat(8),
+                name: 'step',
+                status: 'ok',
+                attributes: {
+                  'agent_qa.step': { type: 'string', value: 'free value' },
+                  type: { type: 'string', value: 'free type attribute' },
+                },
+              },
+            ],
+          },
+        ],
+      ],
+    ]
+
+    const kept = keptStrings(maskEnvelope(envelope, () => '[masked]'))
+
+    expect(kept).toEqual([
+      '0.event_id',
+      '0.sent_at',
+      '0.dsn',
+      '0.sdk.name',
+      '0.sdk.version',
+      '0.trace.trace_id',
+      '0.trace.public_key',
+      '1.0.0.type',
+      '1.0.1.event_id',
+      '1.0.1.platform',
+      '1.0.1.level',
+      '1.0.1.sdk.name',
+      '1.0.1.sdk.integrations.0',
+      '1.0.1.contexts.trace.trace_id',
+      '1.0.1.contexts.trace.span_id',
+      '1.0.1.breadcrumbs.0.type',
+      '1.0.1.breadcrumbs.0.level',
+      '1.0.1.exception.values.0.mechanism.type',
+      '1.0.1.debug_meta.images.0.type',
+      '1.0.1.debug_meta.images.0.debug_id',
+      '1.1.0.type',
+      '1.1.0.content_type',
+      '1.1.1.items.0.trace_id',
+      '1.1.1.items.0.span_id',
+      '1.1.1.items.0.parent_span_id',
+      '1.1.1.items.0.status',
+      '1.1.1.items.0.attributes.agent_qa.step.type',
+      '1.1.1.items.0.attributes.type.type',
+    ])
+  })
+
   it('passes a binary item body through as it is and masks the strings beside it', () => {
     const bytes = new Uint8Array([1, 2, 3])
     const buffer = Buffer.from('binary body')
@@ -252,6 +355,32 @@ describe('the home folder', () => {
     expect(sent).not.toContain('canary-user')
     expect(sent).toContain('"filename":"~/project/node_modules/agent-qa/dist/cli.js"')
     expect(sent).toContain('"code_file":"~/project/node_modules/agent-qa/dist/cli.js"')
+  })
+
+  it('is rewritten, and a secret masked, under a key named dsn, type or sdk in printed data', async () => {
+    const { recorder, transport } = maskingTransport(() => maskSecret, {
+      homeSpellings: homeSpellings(HOME, REAL_HOME),
+    })
+    const printed = { dsn: `${HOME}/.config/${SECRET}`, type: SECRET, sdk: { name: `${HOME}/x` } }
+
+    await transport.send(
+      [
+        { event_id: 'e0'.repeat(16) },
+        [
+          [
+            { type: 'event' },
+            { breadcrumbs: [{ category: 'console', data: { arguments: [printed] } }] },
+          ],
+        ],
+      ] as unknown as RecordedEnvelope,
+    )
+
+    const sent = serializedEnvelopes(recorder.envelopes)
+    expect(sent).not.toContain(SECRET)
+    expect(sent).not.toContain('canary-user')
+    expect(sent).toContain(
+      `{"dsn":"~/.config/${MARKER}","type":"${MARKER}","sdk":{"name":"~/x"}}`,
+    )
   })
 
   it('is rewritten after the secrets are masked, so a secret that holds the home stays whole', async () => {

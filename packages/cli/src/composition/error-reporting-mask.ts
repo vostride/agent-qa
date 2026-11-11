@@ -8,22 +8,62 @@ export interface EnvelopeTransport<TEnvelope, TResult> {
   flush(timeout?: number): PromiseLike<boolean>
 }
 
-// Ids and protocol fields: a short secret must never rewrite the value under one of these keys.
-export const STRUCTURAL_KEYS: ReadonlySet<string> = new Set([
-  'event_id',
-  'trace_id',
-  'span_id',
-  'parent_span_id',
-  'segment_id',
-  'debug_id',
-  'public_key',
-  'dsn',
-  'sent_at',
-  'type',
-  'platform',
-  'level',
-  'sdk',
-])
+// Where an envelope's ids and protocol fields sit, so a short secret never rewrites one. A field
+// marked KEEP is left whole; `*` stands for any key; a one-element array gives every element's
+// shape. Anything with no shape, such as breadcrumb data, contexts, extra and tags, is free text.
+const KEEP = Symbol('kept as it is')
+
+type Shape = typeof KEEP | readonly [Shape] | ShapeFields
+
+interface ShapeFields {
+  readonly [key: string]: Shape
+}
+
+const IDS = { trace_id: KEEP, span_id: KEEP, parent_span_id: KEEP, segment_id: KEEP } as const
+
+const ENVELOPE_HEADER: Shape = {
+  event_id: KEEP,
+  sent_at: KEEP,
+  dsn: KEEP,
+  sdk: KEEP,
+  trace: { trace_id: KEEP, public_key: KEEP },
+}
+
+const ITEM_HEADER: Shape = { type: KEEP, content_type: KEEP }
+
+const EVENT: Shape = {
+  event_id: KEEP,
+  type: KEEP,
+  platform: KEEP,
+  level: KEEP,
+  sdk: KEEP,
+  contexts: { trace: IDS },
+  breadcrumbs: [{ type: KEEP, level: KEEP }],
+  exception: { values: [{ mechanism: { type: KEEP } }] },
+  debug_meta: { images: [{ type: KEEP, debug_id: KEEP }] },
+  spans: [IDS],
+}
+
+const SPAN_CONTAINER: Shape = {
+  items: [{ ...IDS, status: KEEP, attributes: { '*': { type: KEEP } } }],
+}
+
+const PAYLOADS: Readonly<Record<string, Shape>> = {
+  event: EVENT,
+  transaction: EVENT,
+  span: SPAN_CONTAINER,
+}
+
+function field(shape: Shape | undefined, key: string): Shape | undefined {
+  if (shape === undefined || shape === KEEP || Array.isArray(shape)) return undefined
+  const fields = shape as ShapeFields
+  if (Object.hasOwn(fields, key)) return fields[key]
+  return Object.hasOwn(fields, '*') ? fields['*'] : undefined
+}
+
+function element(shape: Shape | undefined): Shape | undefined {
+  return Array.isArray(shape) ? (shape as readonly [Shape])[0] : undefined
+}
 
 // Longest first, so a spelling that holds a shorter one is replaced whole.
 export function homeSpellings(homeDir: string, realHomeDir: string): string[] {
@@ -57,20 +97,41 @@ export function rewriteHome(text: string, spellings: readonly string[]): string 
   return spellings.reduce((rewritten, spelling) => rewritten.replaceAll(spelling, '~'), text)
 }
 
+// An envelope is a header and a list of items, each an item header and a payload whose shape its
+// type names.
 export function maskEnvelope<T>(envelope: T, mask: TextMask): T {
-  return maskValue(envelope, mask) as T
+  if (!Array.isArray(envelope)) return maskValue(envelope, mask, undefined) as T
+  const [header, items, ...rest] = envelope as unknown[]
+  return [
+    maskValue(header, mask, ENVELOPE_HEADER),
+    Array.isArray(items)
+      ? items.map((item) => maskItem(item, mask))
+      : maskValue(items, mask, undefined),
+    ...rest.map((value) => maskValue(value, mask, undefined)),
+  ] as T
 }
 
-function maskValue(value: unknown, mask: TextMask): unknown {
+function maskItem(item: unknown, mask: TextMask): unknown {
+  if (!Array.isArray(item)) return maskValue(item, mask, undefined)
+  const [header, payload, ...rest] = item as unknown[]
+  const type: unknown = (header as { type?: unknown } | null)?.type
+  const shape =
+    typeof type === 'string' && Object.hasOwn(PAYLOADS, type) ? PAYLOADS[type] : undefined
+  return [
+    maskValue(header, mask, ITEM_HEADER),
+    maskValue(payload, mask, shape),
+    ...rest.map((value) => maskValue(value, mask, undefined)),
+  ]
+}
+
+function maskValue(value: unknown, mask: TextMask, shape: Shape | undefined): unknown {
+  if (shape === KEEP) return value
   if (typeof value === 'string') return mask(value)
   if (ArrayBuffer.isView(value)) return value
-  if (Array.isArray(value)) return value.map((item) => maskValue(item, mask))
+  if (Array.isArray(value)) return value.map((item) => maskValue(item, mask, element(shape)))
   if (typeof value === 'object' && value !== null) {
     return Object.fromEntries(
-      Object.entries(value).map(([key, item]) => [
-        key,
-        STRUCTURAL_KEYS.has(key) ? item : maskValue(item, mask),
-      ]),
+      Object.entries(value).map(([key, item]) => [key, maskValue(item, mask, field(shape, key))]),
     )
   }
   return value
