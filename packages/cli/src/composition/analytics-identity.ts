@@ -11,7 +11,6 @@ export type HeldAnalyticsIdentity = Promise<ResolvedAnalyticsIdentity | undefine
 
 export interface ResolveCliAnalyticsIdentityInput {
   readonly env?: Readonly<Record<string, string | undefined>>
-  readonly homeDir?: string
   readonly resolve?: typeof resolveAnalyticsIdentity
 }
 
@@ -26,14 +25,7 @@ export function resolveCliAnalyticsIdentity(
     .then(({ resolveRunExecutionContext }) => {
       const ci = resolveRunExecutionContext() === 'ci'
       const resolve = input.resolve ?? resolveAnalyticsIdentity
-      return withTimeout(
-        resolve({
-          env,
-          ci,
-          ...(input.homeDir === undefined ? {} : { homeDir: input.homeDir }),
-        }),
-        ANALYTICS_IDENTITY_TIMEOUT_MS,
-      )
+      return withTimeout(resolve({ env, ci }), ANALYTICS_IDENTITY_TIMEOUT_MS)
     })
     .catch(() => undefined)
 }
