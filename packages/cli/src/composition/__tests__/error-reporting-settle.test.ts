@@ -8,10 +8,11 @@ import {
   createServer as createHttpServer,
   request as httpRequest,
 } from 'node:http'
-import { Agent as HttpsAgent } from 'node:https'
+import { Agent as HttpsAgent, createServer as createHttpsServer } from 'node:https'
 import { connect as netConnect, createServer, type AddressInfo, type Socket } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { createSecureContext } from 'node:tls'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -21,6 +22,7 @@ import {
   removeReportProjects,
 } from '../../__tests__/error-report-recorder.js'
 import type { RecordingReportTransport } from '../../__tests__/error-report-recorder.js'
+import { inMemoryCertificate } from '../../__tests__/in-memory-certificate.js'
 import { closeErrorReporting, settleReporting, startErrorReporting } from '../error-reporting.js'
 import type { ErrorReporter, SettleReportingInput } from '../error-reporting.js'
 import { boundedRequestModule } from '../error-reporting-requests.js'
@@ -446,6 +448,54 @@ async function recordingSink(): Promise<RecordingSink> {
   return { port, bodies }
 }
 
+interface TlsIngest {
+  readonly port: number
+  readonly cert: string
+  // The name each client sent for SNI, in order; a client that sent none adds nothing.
+  readonly serverNames: string[]
+}
+
+// An https ingest on loopback with a certificate for `hostNames` alone, answering each report 200.
+async function tlsIngest(hostNames: readonly string[]): Promise<TlsIngest> {
+  const { key, cert } = inMemoryCertificate(hostNames)
+  const serverNames: string[] = []
+  const open = new Set<Socket>()
+  const server = createHttpsServer(
+    {
+      key,
+      cert,
+      SNICallback: (name, answer) => {
+        serverNames.push(name)
+        answer(null, createSecureContext({ key, cert }))
+      },
+    },
+    (request, response) => {
+      request.resume()
+      request.on('end', () => {
+        response.writeHead(200, { 'content-type': 'application/json' })
+        response.end('{}')
+      })
+    },
+  )
+  server.on('tlsClientError', () => {})
+  server.on('connection', (socket: Socket) => {
+    open.add(socket)
+    socket.on('close', () => open.delete(socket))
+  })
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()))
+  const { port } = server.address() as AddressInfo
+  servers.push({
+    port,
+    firstBytes: [],
+    open,
+    close: () => {
+      for (const socket of open) socket.destroy()
+      return new Promise<void>((resolve) => server.close(() => resolve()))
+    },
+  })
+  return { port, cert, serverNames }
+}
+
 const proxyUrl = (port: number) => `http://127.0.0.1:${port}`
 
 // The variables the SDK's proxy rule reads; any left out are unset, whatever the shell holds.
@@ -461,9 +511,18 @@ function proxyVariables(names: {
 type SendOutcome = 'sent' | 'failed' | 'still open'
 
 // Sent by the SDK's own transport, as the reporter sends; gives up waiting after five deadlines.
-async function sendWithSdk(url: string, module: ReportRequestModule): Promise<SendOutcome> {
+async function sendWithSdk(
+  url: string,
+  module: ReportRequestModule,
+  trusted?: string,
+): Promise<SendOutcome> {
   const { makeNodeTransport } = await import('@sentry/node')
-  const transport = makeNodeTransport({ url, recordDroppedEvent: () => {}, httpModule: module })
+  const transport = makeNodeTransport({
+    url,
+    recordDroppedEvent: () => {},
+    httpModule: module,
+    ...(trusted === undefined ? {} : { caCerts: trusted }),
+  })
   const report = [
     { sent_at: '2026-01-01T00:00:00.000Z' },
     [[{ type: 'event' }, { message: 'a report through the module' }]],
@@ -581,6 +640,41 @@ describe('the request module handed to the transport', () => {
     expect(ingest.firstBytes).toEqual([0x16])
     expect(proxy.tunnels).toEqual([`127.0.0.1:${sink.port}`, `127.0.0.1:${ingest.port}`])
   }, 10_000)
+
+  it("checks an https: ingest's certificate against the ingest's own host through a proxy as a direct report does, and sends SNI for a host name only", async () => {
+    const ingest = await tlsIngest(['localhost'])
+    const proxy = await forwardingProxy()
+    const sent = (host: string, path: 'direct' | 'through the proxy', trusted?: string) => {
+      proxyVariables(path === 'direct' ? {} : { https_proxy: proxyUrl(proxy.port) })
+      return sendWithSdk(
+        `https://${host}:${ingest.port}/api/1/envelope/`,
+        boundedRequestModule('https:', { timeoutMs: DEADLINE_MS }),
+        trusted,
+      )
+    }
+
+    const outcomes = {
+      byNameDirect: await sent('localhost', 'direct', ingest.cert),
+      byNameThroughTheProxy: await sent('localhost', 'through the proxy', ingest.cert),
+      byAddressDirect: await sent('127.0.0.1', 'direct', ingest.cert),
+      byAddressThroughTheProxy: await sent('127.0.0.1', 'through the proxy', ingest.cert),
+      untrustedThroughTheProxy: await sent('localhost', 'through the proxy'),
+    }
+
+    expect(outcomes).toEqual({
+      byNameDirect: 'sent',
+      byNameThroughTheProxy: 'sent',
+      byAddressDirect: 'failed',
+      byAddressThroughTheProxy: 'failed',
+      untrustedThroughTheProxy: 'failed',
+    })
+    expect(ingest.serverNames).toEqual(['localhost', 'localhost', 'localhost'])
+    expect(proxy.tunnels).toEqual([
+      `localhost:${ingest.port}`,
+      `127.0.0.1:${ingest.port}`,
+      `localhost:${ingest.port}`,
+    ])
+  }, 15_000)
 
   it("is the one the reporter's transport uses, so a report the ingest never answers is closed at its deadline", async () => {
     const server = await silentServer()
