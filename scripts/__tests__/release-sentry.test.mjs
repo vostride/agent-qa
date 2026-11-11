@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { execFileSync } from 'node:child_process'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -11,6 +12,7 @@ import {
   redactDsn,
   renderSentryProjectFile,
   runCli as runSentryCli,
+  sentryCliDeadlineMs,
   uploadSourceMaps,
   validateSentryReleaseArtifacts,
 } from '../release/sentry.mjs'
@@ -150,6 +152,52 @@ function failingRunner(status) {
       throw error
     },
   }
+}
+
+// Stands in for the sentry-cli that pnpm exec finds, @sentry/cli's node wrapper: it starts the
+// binary, passes SIGTERM on to it and exits when it does. This binary never finishes.
+const hungSentryCli = [
+  "const { spawn } = require('node:child_process')",
+  "const { writeFileSync } = require('node:fs')",
+  "const binary = spawn(process.execPath, ['-e', 'setInterval(() => {}, 60_000)'], {",
+  "  stdio: 'inherit',",
+  '})',
+  "binary.on('exit', (code) => process.exit(code))",
+  "process.on('SIGTERM', () => binary.kill('SIGTERM'))",
+  "writeFileSync('sentry-cli.pids', JSON.stringify([process.pid, binary.pid]))",
+].join('\n')
+const hungDeadlineMs = 1_500
+
+// Runs the hung stand-in with the options the script gave sentry-cli, for five seconds at most, so
+// a script that sets a longer deadline or none fails the cell instead of holding it.
+function hungRunner() {
+  const calls = []
+  return {
+    calls,
+    run: (command, args, options) => {
+      calls.push({ command, args, options })
+      return execFileSync(process.execPath, ['-e', hungSentryCli], {
+        ...options,
+        timeout: Math.min(options.timeout || 5_000, 5_000),
+      })
+    },
+  }
+}
+
+// The stand-in's processes that still run once the script has moved on. The cell ends them, so
+// none outlives it.
+function processesLeft(rootDir) {
+  const pids = JSON.parse(readFileSync(join(rootDir, 'sentry-cli.pids'), 'utf8'))
+  const running = pids.filter((pid) => {
+    try {
+      process.kill(pid, 0)
+      return true
+    } catch {
+      return false
+    }
+  })
+  for (const pid of running) process.kill(pid, 'SIGKILL')
+  return running
 }
 
 test('renders the DSN file as one exported JSON string literal and refuses a blank DSN', () => {
@@ -453,6 +501,58 @@ test('the --upload entry resolves with no failing exit code when a value is miss
       assert.deepEqual(result, { uploaded: false })
       assert.equal(process.exitCode ?? 0, 0)
     }
+  })
+})
+
+test('inject and upload give sentry-cli minutes, not seconds, before they stop it', async () => {
+  await withPackagesFixture(releaseDists, (rootDir) => {
+    const runner = recordingRunner()
+    injectDebugIds({ rootDir, env: releaseEnv, execFileSync: runner.run, log: () => {} })
+    uploadSourceMaps({ rootDir, release, env: releaseEnv, execFileSync: runner.run, log: () => {} })
+    assert.equal(runner.calls.length, 2)
+    for (const { args, options } of runner.calls) {
+      assert.equal(options.timeout, sentryCliDeadlineMs, args[1])
+    }
+    assert.ok(sentryCliDeadlineMs >= 60_000, `${sentryCliDeadlineMs} ms`)
+  })
+})
+
+test('a hung upload is stopped at its deadline, sentry-cli and all, and the release goes on with a warning', async () => {
+  await withPackagesFixture(releaseDists, async (rootDir) => {
+    const runner = hungRunner()
+    const lines = []
+    const result = await runSentryCli(['--upload', '--release', release], {
+      rootDir,
+      env: releaseEnv,
+      execFileSync: runner.run,
+      log: (line) => lines.push(line),
+      deadlineMs: hungDeadlineMs,
+    })
+    assert.deepEqual(processesLeft(rootDir), [])
+    assert.equal(runner.calls[0].options.timeout, hungDeadlineMs)
+    assert.deepEqual(result, { uploaded: false })
+    assert.equal(process.exitCode ?? 0, 0)
+    assert.deepEqual(lines, [
+      '::warning::Source maps were not uploaded to Sentry: the upload timed out',
+    ])
+  })
+})
+
+test('a hung inject is stopped at its deadline, sentry-cli and all, and fails the release', async () => {
+  await withPackagesFixture(releaseDists, async (rootDir) => {
+    const runner = hungRunner()
+    await assert.rejects(
+      runSentryCli(['--inject'], {
+        rootDir,
+        env: releaseEnv,
+        execFileSync: runner.run,
+        log: () => {},
+        deadlineMs: hungDeadlineMs,
+      }),
+      { code: 'ETIMEDOUT' },
+    )
+    assert.deepEqual(processesLeft(rootDir), [])
+    assert.equal(runner.calls[0].options.timeout, hungDeadlineMs)
   })
 })
 
