@@ -3,7 +3,12 @@ import { writeSync } from 'node:fs'
 import type { Command } from 'commander'
 import { printRunText, type RunTextEnv } from '@vostride/agent-qa-core/run-text-output'
 
-import { CANCELLED_LINE, CliRefusal, isPromptCancel } from './composition/cli-refusal.js'
+import {
+  CANCELLED_LINE,
+  CliRefusal,
+  HandedOffExit,
+  isPromptCancel,
+} from './composition/cli-refusal.js'
 import { createDeclaredSecretMask } from './composition/declared-secrets.js'
 import { errorReporter, settleReporting } from './composition/error-reporting.js'
 
@@ -147,8 +152,8 @@ export async function runCli(
     // The code is set before the settle and the flush, so a rejection that lands while the process
     // is already exiting still leaves it.
     deps.setExitCode(code)
-    // What exits 130 is a cancellation, not an error.
-    if (code !== 130) deps.capture(error)
+    // What exits 130 is a cancellation, not an error, and a handed-off agent-qa reported its own.
+    if (code !== 130 && !(error instanceof HandedOffExit)) deps.capture(error)
     await deps.settle()
     await deps.flush()
     deps.exit(code)

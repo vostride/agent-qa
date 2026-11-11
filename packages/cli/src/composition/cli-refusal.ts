@@ -12,6 +12,15 @@ export class CliRefusal extends Error {
   }
 }
 
+// A handed-off agent-qa exited with this code. It printed and reported its own failure, so this
+// process passes the code on and reports nothing.
+export class HandedOffExit extends CliRefusal {
+  constructor(exitCode: number) {
+    super([], exitCode)
+    this.name = 'HandedOffExit'
+  }
+}
+
 export const CANCELLED_LINE = 'Cancelled.'
 
 export class PromptCancelled extends Error {

@@ -14,6 +14,8 @@ import {
   type CliFailureDeps,
   type GlobalFailureDeps,
 } from '../cli-error-handler.js'
+import { runAsProjectAgentQa } from '../commands/project-agent-qa.js'
+import type { ProjectHost, RunResult } from '../commands/project-host.js'
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import {
   closeErrorReporting,
@@ -244,6 +246,38 @@ describe('the CLI failure handler', () => {
       expect(failing.captured).toHaveLength(1)
       expect(failing.captured[0]).toBe(thrown)
     }
+  })
+
+  it("a handed-off agent-qa's own exit code passes through uncaptured, while one that could not start is captured", async () => {
+    const handingOff = (result: RunResult) => {
+      const host = {
+        cwd: tmpdir(),
+        env: {},
+        argv: ['node', 'agent-qa', 'init'],
+        execPath: 'node',
+        run: async () => result,
+      } as unknown as ProjectHost
+      const copy = { dir: tmpdir(), realDir: tmpdir(), version: '9.9.9', bin: 'agent-qa.js' }
+      const program = new Command('agent-qa').exitOverride()
+      program.command('init').action(async () => {
+        await runAsProjectAgentQa(copy, host, 'Handing over.', () => {})
+      })
+      return program
+    }
+    const exited = recorded()
+    const missing = recorded()
+
+    await drive(handingOff({ code: 3, signal: null, output: '' }), exited.deps, ['init'])
+    await drive(
+      handingOff({ code: null, signal: null, output: '', missing: true }),
+      missing.deps,
+      ['init'],
+    )
+
+    expect(exited.events).toEqual(['code 3', 'settle', 'flush', 'exit 3'])
+    expect(exited.printed).toEqual([])
+    expect(missing.events).toEqual(['code 1', 'capture', 'settle', 'flush', 'exit 1'])
+    expect(missing.printed).toEqual(['node was not found to run agent-qa.js.'])
   })
 
   it('a command that resolves settles once and is neither flushed nor exited', async () => {
