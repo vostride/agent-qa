@@ -34,6 +34,8 @@ const releaseEnv = {
   SENTRY_URL: 'https://sentry.example',
   SENTRY_PROPERTIES: 'sentry.properties',
   SENTRY_RELEASE: 'agent-qa@9.9.9',
+  SENTRY_LOAD_DOTENV: '1',
+  SENTRY_DOTENV_PATH: '.env.release',
 }
 
 function writeFile(path, text) {
