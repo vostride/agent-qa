@@ -192,10 +192,10 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
         queues: false,
         stackFrameVariables: false,
       },
+      // No Dedupe: it reads two errors around one cause as one, and the transport drops repeats.
       integrations: [
         Sentry.functionToStringIntegration(),
         Sentry.linkedErrorsIntegration(),
-        Sentry.dedupeIntegration(),
         Sentry.systemErrorIntegration({ includePaths: true }),
         Sentry.consoleIntegration(),
         Sentry.contextLinesIntegration(),

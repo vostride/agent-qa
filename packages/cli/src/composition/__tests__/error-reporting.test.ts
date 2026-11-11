@@ -733,26 +733,20 @@ describe('repeats', () => {
     expect(exceptionValues(recorder.envelopes).sort()).toEqual(messages.sort())
   })
 
-  it('sends two errors that wrap one cause in different messages', async () => {
+  it('sends two errors that wrap one cause in different messages, captured one after the other', async () => {
     const { recorder, reporter } = await startRecording()
     const causeFrom = () => new Error('the shared cause')
     const wrapped = (message: string) => new Error(message, { cause: causeFrom() })
 
-    // The unrelated error sits between them, since the SDK drops an event equal to the one before.
     for (const message of ['loading the config failed', 'loading the tests failed']) {
       reporter?.capture(wrapped(message))
-      reporter?.capture(errorFrom('an unrelated error'))
     }
     await settleReporting()
 
     const reported = recordedEvents(recorder.envelopes).map(
       (event) => event.exception?.values?.at(-1)?.value,
     )
-    expect(reported.sort()).toEqual([
-      'an unrelated error',
-      'loading the config failed',
-      'loading the tests failed',
-    ])
+    expect(reported.sort()).toEqual(['loading the config failed', 'loading the tests failed'])
   })
 })
 
