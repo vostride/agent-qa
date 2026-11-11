@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-plugin-hyperbrowser",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "private": false,
   "description": "agent-qa plugin for Hyperbrowser: creates a Hyperbrowser browser session before a test connects and stops it after.",
   "keywords": [
