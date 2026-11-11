@@ -7,6 +7,7 @@ import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { PassThrough } from 'node:stream'
 
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import {
@@ -24,6 +25,7 @@ import {
   createMcpCommand,
   createMcpHttpRequestListener,
   MCP_HTTP_BIND_HOST,
+  MCP_STDIO_STARTUP_MESSAGE,
 } from '../commands/mcp.js'
 import * as analyticsHost from '../composition/analytics-host.js'
 import type { CliAnalyticsHost } from '../composition/analytics-host.js'
@@ -150,6 +152,51 @@ function boundPort(): Promise<number> {
       return true
     }) as typeof process.stderr.write)
   })
+}
+
+// Settles once the in-process server says its stdio entry is live, with its stderr swallowed.
+function stdioLive(): Promise<void> {
+  return new Promise((live) => {
+    const write = vi.spyOn(process.stderr, 'write')
+    write.mockImplementation(((chunk: unknown, ...rest: unknown[]) => {
+      for (const part of rest) if (typeof part === 'function') part()
+      if (String(chunk).includes(MCP_STDIO_STARTUP_MESSAGE)) {
+        write.mockRestore()
+        live()
+      }
+      return true
+    }) as typeof process.stderr.write)
+  })
+}
+
+type ClientTransport = Parameters<Client['connect']>[0]
+type ClientMessage = Parameters<ClientTransport['send']>[0]
+
+// A client's end of the server's stdio: it writes each message as a line to what the server reads
+// as stdin, and is handed each line the server writes to stdout.
+function stdioClientEnd(stdin: PassThrough): {
+  readonly transport: ClientTransport
+  receive(chunk: string): void
+} {
+  let buffered = ''
+  const transport: ClientTransport = {
+    start: async () => {},
+    send: async (message: ClientMessage) => {
+      stdin.write(`${JSON.stringify(message)}\n`)
+    },
+    close: async () => {},
+  }
+  return {
+    transport,
+    receive: (chunk) => {
+      buffered += chunk
+      const lines = buffered.split('\n')
+      buffered = lines.pop() ?? ''
+      for (const line of lines) {
+        if (line.trim() !== '') transport.onmessage?.(JSON.parse(line) as ClientMessage)
+      }
+    },
+  }
 }
 
 // A blank DSN is reporting off, as in a source checkout.
@@ -465,6 +512,65 @@ describe('agent-qa mcp --http', () => {
         tool_name: 'agent_qa_list_runs',
         mcp_tool_status: 'success',
         mcp_transport: 'http',
+      }),
+    ])
+  })
+})
+
+describe('agent-qa mcp over stdio', () => {
+  it('emits each tool event through the analytics it composed, naming stdio', async () => {
+    const project = projectWithPrivacy()
+    const sent: AnalyticsCapturePayload[] = []
+    const exits: number[] = []
+    const program = new Command().option('--config <path>').exitOverride()
+    program.addCommand(
+      createMcpCommand({
+        composeAnalytics: recordingCompose(sent),
+        exit: (code) => {
+          exits.push(code)
+        },
+      }),
+    )
+    const exitCodeBefore = process.exitCode
+    const realStdin = Object.getOwnPropertyDescriptor(process, 'stdin')
+    const stdin = new PassThrough()
+    Object.defineProperty(process, 'stdin', { configurable: true, get: () => stdin })
+    const clientEnd = stdioClientEnd(stdin)
+    vi.spyOn(process.stdout, 'write').mockImplementation(((chunk: unknown, ...rest: unknown[]) => {
+      for (const part of rest) if (typeof part === 'function') part()
+      clientEnd.receive(String(chunk))
+      return true
+    }) as typeof process.stdout.write)
+    const live = stdioLive()
+    const running = program.parseAsync(['node', 'agent-qa', '--config', project.configPath, 'mcp'])
+
+    let result: Awaited<ReturnType<Client['callTool']>>
+    try {
+      await live
+      const client = new Client({ name: 'agent-qa-tool-observer', version: '0.0.0' })
+      clients.push(client)
+      await client.connect(clientEnd.transport)
+      result = await client.callTool({ name: 'agent_qa_list_runs', arguments: {} })
+    } finally {
+      // As a spawning client would: closing the server's stdin stops it.
+      stdin.end()
+      await running
+      if (realStdin !== undefined) Object.defineProperty(process, 'stdin', realStdin)
+      process.exitCode = exitCodeBefore
+    }
+
+    expect(result.isError ?? false).toBe(false)
+    expect(exits).toEqual([])
+    expect(sent.map((payload) => payload.event.name)).toEqual([
+      'agent-qa.mcp.server.lifecycle',
+      'agent-qa.mcp.tool.invoked',
+      'agent-qa.mcp.server.lifecycle',
+    ])
+    expect(toolEvents(sent)).toEqual([
+      expect.objectContaining({
+        tool_name: 'agent_qa_list_runs',
+        mcp_tool_status: 'success',
+        mcp_transport: 'stdio',
       }),
     ])
   })
