@@ -11,10 +11,13 @@ import { buildAgentQaMcpServer } from '../catalog.js'
 import type { AgentQaMcpPosture, McpToolSettled } from '../catalog.js'
 import { AGENT_QA_OP_CONTRACTS } from '../mapping.js'
 import { maskedToolError } from '../masked-result.js'
+import { McpProjectionError } from '../projection.js'
 
 const CALLER: FunctionCaller = { surface: 'mcp', origin: 'agent' }
 const PLANTED = 'sk-live-planted-secret'
 const maskPlanted = (text: string) => text.replaceAll(PLANTED, '<SECRET>')
+// A mask that rewrites an outcome's kind, so the masked result no longer fits its schema.
+const maskRunNotFound = (text: string) => text.replaceAll('run-not-found', '<SECRET>')
 
 interface ToolCall {
   readonly name: string
@@ -319,8 +322,58 @@ describe('a call with arguments the input schema refuses', () => {
   })
 })
 
+describe('a result the output schema refuses', () => {
+  const WITHHELD = 'agent_qa_mark_run answered a result that does not match the output schema it '
+    + 'advertises, so the result was withheld'
+
+  it('settles a result its output schema refuses once as an error, never as success', async () => {
+    const { settled, hook } = recorder()
+    await callMark({ maskText: maskRunNotFound, onToolSettled: hook })
+
+    expect(settled.map(({ outcome }) => outcome)).toEqual(['error'])
+    const [entry] = settled
+    expect(Object.keys(entry!).sort()).toEqual(['durationMs', 'error', 'outcome', 'tool'])
+    expect(entry).toMatchObject({ tool: 'agent_qa_mark_run' })
+    expect(entry!.durationMs).toBeGreaterThanOrEqual(0)
+    expect(entry!.error).toBeInstanceOf(McpProjectionError)
+    expect((entry!.error as Error).message).toBe(WITHHELD)
+  })
+
+  it('answers a refused result with that error alone, as one text block with no structured content', async () => {
+    const result = await callMark({ maskText: maskRunNotFound })
+
+    expect(result.isError).toBe(true)
+    expect(result.content).toEqual([{ type: 'text', text: WITHHELD }])
+    expect(result).not.toHaveProperty('structuredContent')
+  })
+
+  it('settles a result its output schema admits once as success, as before', async () => {
+    const { settled, hook } = recorder()
+    const result = await callMark({ maskText: (text) => text, onToolSettled: hook })
+
+    expect(result.isError ?? false).toBe(false)
+    expect(result.structuredContent).toEqual(RUN_NOT_FOUND)
+    expect(settled).toEqual([
+      { tool: 'agent_qa_mark_run', durationMs: expect.any(Number), outcome: 'success' },
+    ])
+  })
+})
+
+describe('a call the protocol refuses', () => {
+  it('a name the server does not list is refused by the protocol and settles nothing', async () => {
+    const { settled, hook } = recorder()
+    const client = await connect({ onToolSettled: hook })
+
+    await expect(
+      client.callTool({ name: 'agent_qa_unlisted_tool', arguments: {} }),
+    ).rejects.toMatchObject({ code: -32602 })
+    expect(settled).toEqual([])
+  })
+})
+
 describe('the hook never changes a tool call', () => {
-  // One call through each arm: a result, a throw, a withheld value, a posture and refused input.
+  // One call through each arm: a result, a throw, a withheld value, a posture, refused input and a
+  // refused result.
   const ARMS: readonly {
     readonly arm: string
     readonly options: ServerOptions
@@ -340,6 +393,7 @@ describe('the hook never changes a tool call', () => {
     },
     { arm: 'posture', options: { posture: POSTURES[0]! } },
     { arm: 'refused input', options: {}, call: WRONG_TYPE },
+    { arm: 'refused result', options: { maskText: maskRunNotFound } },
   ]
 
   it('leaves every result byte-identical to a server with no hook, when the hook throws', async () => {

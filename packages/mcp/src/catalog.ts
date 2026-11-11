@@ -229,6 +229,8 @@ function listedInputSchema(schema: StandardSchemaWithJSON): StandardSchemaWithJS
 }
 
 const REFUSED_ARGUMENTS = "the arguments do not match the tool's input schema"
+const REFUSED_RESULT = 'answered a result that does not match the output schema it advertises, so '
+  + 'the result was withheld'
 
 // The sentence the SDK composes for a refused call, so a client reads what it read before.
 function refusedArgumentsText(tool: string, issues: readonly StandardSchemaV1.Issue[]): string {
@@ -252,6 +254,7 @@ function refusedArgumentsText(tool: string, issues: readonly StandardSchemaV1.Is
 function createProjectionHandler(
   projection: ToolProjection,
   inputSchema: StandardSchemaWithJSON,
+  outputSchema: StandardSchemaWithJSON | undefined,
   invoke: BoundInvoke,
   maskText: (text: string) => string,
   liveLink?: LiveLinkSupplier,
@@ -286,6 +289,13 @@ function createProjectionHandler(
         maskText,
         ...(liveLink === undefined ? {} : { liveLink }),
       })
+      // Checked before the settle, so a result the SDK's own check refuses never settles success.
+      if (outputSchema !== undefined && decorated.isError !== true) {
+        const content = decorated.structuredContent
+        const refused = content === undefined
+          || (await outputSchema['~standard'].validate(content)).issues !== undefined
+        if (refused) throw new McpProjectionError(projection.name, REFUSED_RESULT)
+      }
       settleToolCall(onToolSettled, projection.name, startedAt, { result: decorated })
       return decorated
     } catch (err) {
@@ -299,7 +309,8 @@ function createProjectionHandler(
 // The posture is read once, at startup, so a fixed config is served only after a restart.
 const RESTART = 'restart this MCP server (reconnect it in your coding agent)'
 
-// `isError` skips the SDK's output-schema check, so the same result fits every tool.
+// `isError` skips the output check, which the projection handler makes before the SDK does, so the
+// same result fits every tool.
 function createPostureHandler(
   projection: ToolProjection,
   posture: AgentQaMcpPosture,
@@ -417,6 +428,7 @@ export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
         ? createProjectionHandler(
             projection,
             config.inputSchema,
+            config.outputSchema,
             invoke,
             deps.maskText,
             deps.liveLink,
