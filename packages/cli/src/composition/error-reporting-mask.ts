@@ -1,6 +1,8 @@
 // Every string of an envelope passes the mask before the transport sees it. An envelope that cannot
 // be masked is dropped, never sent as it is.
 
+import { createHash } from 'node:crypto'
+
 export type TextMask = (text: string) => string
 
 export interface EnvelopeTransport<TEnvelope, TResult> {
@@ -137,7 +139,12 @@ function maskValue(value: unknown, mask: TextMask, shape: Shape | undefined): un
   return value
 }
 
-export type RepeatFilter = <T>(envelope: T) => T | undefined
+export interface RepeatFilter {
+  <T>(envelope: T): T | undefined
+  // Forgets the error events of an envelope whose send failed or was dropped, so the next
+  // occurrence of each is sent.
+  forget(envelope: unknown): void
+}
 
 interface ReportedFrame {
   readonly filename?: unknown
@@ -153,11 +160,12 @@ interface ReportedException {
 }
 
 // Every exception value counts, not the first alone: the SDK puts a linked cause before the error
-// that wraps it, so two errors around one cause would otherwise read as one.
+// that wraps it, so two errors around one cause would otherwise read as one. The key is a digest,
+// so each error the process remembers costs the same few bytes.
 export function reportKey(event: unknown): string | undefined {
   const values = (event as { exception?: { values?: unknown } | null } | null)?.exception?.values
   if (!Array.isArray(values) || values.length === 0) return undefined
-  return JSON.stringify(
+  const described = JSON.stringify(
     values.map((value: ReportedException | null) => {
       const frames: unknown = value?.stacktrace?.frames
       return [
@@ -172,15 +180,16 @@ export function reportKey(event: unknown): string | undefined {
       ]
     }),
   )
+  return createHash('sha256').update(described).digest('base64')
 }
 
 // The set lives as long as the process: an error event already sent leaves every later envelope,
 // with no cap. Span containers and every other item are kept.
 export function createRepeatFilter(): RepeatFilter {
   const sent = new Set<string>()
-  return <T>(envelope: T): T | undefined => {
-    if (!Array.isArray(envelope) || !Array.isArray(envelope[1])) return envelope
-    const items: unknown[] = envelope[1]
+  const filter = <T>(envelope: T): T | undefined => {
+    const items = itemsOf(envelope)
+    if (items === undefined) return envelope
     const kept = items.filter((item) => {
       const key = errorEventKey(item)
       if (key === undefined) return true
@@ -189,14 +198,32 @@ export function createRepeatFilter(): RepeatFilter {
       return true
     })
     if (kept.length === 0) return undefined
-    return kept.length === items.length ? envelope : ([envelope[0], kept] as T)
+    return kept.length === items.length ? envelope : ([(envelope as unknown[])[0], kept] as T)
   }
+  return Object.assign(filter, {
+    forget: (envelope: unknown) => {
+      for (const item of itemsOf(envelope) ?? []) {
+        const key = errorEventKey(item)
+        if (key !== undefined) sent.delete(key)
+      }
+    },
+  })
+}
+
+function itemsOf(envelope: unknown): unknown[] | undefined {
+  return Array.isArray(envelope) && Array.isArray(envelope[1]) ? envelope[1] : undefined
 }
 
 function errorEventKey(item: unknown): string | undefined {
   if (!Array.isArray(item)) return undefined
   const [header, payload]: unknown[] = item
   return (header as { type?: unknown } | null)?.type === 'event' ? reportKey(payload) : undefined
+}
+
+// Only a 2xx answer means the ingest took the envelope; a dropped one is answered with no status.
+function delivered(result: unknown): boolean {
+  const status: unknown = (result as { statusCode?: unknown } | null)?.statusCode
+  return typeof status === 'number' && status >= 200 && status < 300
 }
 
 export interface MaskingTransportOptions {
@@ -206,7 +233,7 @@ export interface MaskingTransportOptions {
 
 // Each string passes the secret mask resolved for its envelope first and the home rewrite after, so
 // a secret that holds the home path is still found whole. Repeats are dropped from the masked
-// envelope, which is sent only while an item is left.
+// envelope, which is sent only while an item is left, and a send that fails is forgotten.
 export function createMaskingTransport<TOptions, TEnvelope, TResult extends object>(
   inner: (options: TOptions) => EnvelopeTransport<TEnvelope, TResult>,
   resolveMask: (envelope: TEnvelope) => TextMask,
@@ -226,7 +253,19 @@ export function createMaskingTransport<TOptions, TEnvelope, TResult extends obje
         } catch {
           return Promise.resolve({})
         }
-        return outgoing === undefined ? Promise.resolve({}) : transport.send(outgoing)
+        if (outgoing === undefined) return Promise.resolve({})
+        if (dropRepeats === undefined) return transport.send(outgoing)
+        const sending = outgoing
+        return Promise.resolve(transport.send(sending)).then(
+          (result) => {
+            if (!delivered(result)) dropRepeats.forget(sending)
+            return result
+          },
+          (error: unknown) => {
+            dropRepeats.forget(sending)
+            throw error
+          },
+        )
       },
       flush: (timeout) => transport.flush(timeout),
     }

@@ -15,8 +15,9 @@ export interface RecordingReportTransport {
   release(): void
 }
 
-// With `hang`, a send stays pending and holds no handle, as on a dead network, and a flush waits
-// while a send is pending; with nothing sent, a flush returns at once.
+// A send is answered 200, as the ingest answers one it took. With `hang`, a send stays pending and
+// holds no handle, as on a dead network, and a flush waits while a send is pending; with nothing
+// sent, a flush returns at once.
 export function recordingReportTransport(
   options: { readonly hang?: boolean } = {},
 ): RecordingReportTransport {
@@ -33,9 +34,9 @@ export function recordingReportTransport(
   const transport: ReportTransportFactory = () => ({
     send: (envelope) => {
       envelopes.push(envelope)
-      if (options.hang !== true) return Promise.resolve({})
+      if (options.hang !== true) return Promise.resolve({ statusCode: 200 })
       sending += 1
-      return hold({})
+      return hold({ statusCode: 200 })
     },
     flush: () => (options.hang === true && sending > 0 ? hold(true) : Promise.resolve(true)),
   })
