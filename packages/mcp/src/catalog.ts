@@ -1,8 +1,16 @@
 // Handlers only validate and call `invokeFunction`; every caller sees one catalogue (SEP-2567).
 
 import { McpServer } from '@modelcontextprotocol/server'
-import type { CallToolResult } from '@modelcontextprotocol/server'
-import { invokeFunction, RUNS_ARTIFACT_FUNCTION_ID } from '@vostride/agent-qa-agent'
+import type {
+  CallToolResult,
+  StandardSchemaV1,
+  StandardSchemaWithJSON,
+} from '@modelcontextprotocol/server'
+import {
+  FunctionInputError,
+  invokeFunction,
+  RUNS_ARTIFACT_FUNCTION_ID,
+} from '@vostride/agent-qa-agent'
 import type { FunctionRegistry } from '@vostride/agent-qa-agent'
 import type { FunctionCaller } from '@vostride/agent-qa-schema'
 
@@ -145,7 +153,7 @@ async function runProjection(
  * The concrete run this carrier's result is ABOUT, read from the source the projection declares.
  *
  * DEFENSIVE ON BOTH ARMS, and neither arm is hypothetical. `runIdFrom: 'input'` reads the args the
- * SDK already validated against the advertised input schema; `runIdFrom: 'output'` reads the op's
+ * handler already checked against the advertised input schema; `runIdFrom: 'output'` reads the op's
  * own result, which is a `RunStartAcknowledgement` today and could be a fold's arm tomorrow. Either
  * can answer with something that is not a string — and the honest treatment of that is the same as
  * the honest treatment of a missing dashboard: the LINE becomes the named absence and there is no
@@ -206,15 +214,44 @@ function settleToolCall(
   }
 }
 
+// The SDK answers a call its own check refuses without calling the handler, so the handler checks
+// the arguments and the listing stays the contract's.
+function listedInputSchema(schema: StandardSchemaWithJSON): StandardSchemaWithJSON {
+  const standard = schema['~standard']
+  return {
+    '~standard': {
+      version: standard.version,
+      vendor: standard.vendor,
+      validate: (value) => ({ value }),
+      jsonSchema: standard.jsonSchema,
+    },
+  }
+}
+
+const REFUSED_ARGUMENTS = "the arguments do not match the tool's input schema"
+
+// The sentence the SDK composes for a refused call, so a client reads what it read before.
+function refusedArgumentsText(tool: string, issues: readonly StandardSchemaV1.Issue[]): string {
+  const rendered = issues.map((issue) => {
+    const path = (issue.path ?? []).map((segment) =>
+      String(typeof segment === 'object' ? segment.key : segment),
+    )
+    return path.length === 0 ? issue.message : `${path.join('.')}: ${issue.message}`
+  })
+  return `Input validation error: Invalid arguments for tool ${tool}: ${rendered.join(', ')}`
+}
+
 /**
  * The one generic tool handler.
  *
- * Input validation happened twice before the invoke — once by the SDK against the tool's input
- * contract, once inside `invokeFunction` against the op's own — and both parses are kept, because
- * they are the same check made by two independent parties.
+ * Input validation happens twice before the invoke — once here against the tool's input contract,
+ * once inside `invokeFunction` against the op's own — and both parses are kept, because they are
+ * the same check made by two independent parties. A refusal settles with the tool's name and a
+ * fixed sentence, never with what the caller typed.
  */
 function createProjectionHandler(
   projection: ToolProjection,
+  inputSchema: StandardSchemaWithJSON,
   invoke: BoundInvoke,
   maskText: (text: string) => string,
   liveLink?: LiveLinkSupplier,
@@ -223,7 +260,18 @@ function createProjectionHandler(
   return async (args: unknown): Promise<CallToolResult> => {
     const startedAt = performance.now()
     try {
-      const { opId, output } = await runProjection(projection, args, invoke)
+      const checked = await inputSchema['~standard'].validate(args)
+      if (checked.issues !== undefined) {
+        const refusal = maskedToolError(
+          refusedArgumentsText(projection.name, checked.issues),
+          maskText,
+        )
+        settleToolCall(onToolSettled, projection.name, startedAt, {
+          error: new FunctionInputError(projection.name, REFUSED_ARGUMENTS),
+        })
+        return refusal
+      }
+      const { opId, output } = await runProjection(projection, checked.value, invoke)
       // Both channels come from one masked serialization, so `structuredContent` holds no secret.
       const masked = maskedToolResult(output, maskText)
       // The image block is decided after masking, so no bytes sit beside a withheld result.
@@ -233,7 +281,7 @@ function createProjectionHandler(
       const decorated = decorateCarrierResult({
         result,
         projection,
-        args,
+        args: checked.value,
         output,
         maskText,
         ...(liveLink === undefined ? {} : { liveLink }),
@@ -295,6 +343,7 @@ function createPostureHandler(
 
 // The listing comes from `registry.list(deps.caller)`, so it describes this composition.
 export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
+  // No `maxToolInputElements` is set: the SDK answers a call over that limit itself.
   const server = new McpServer(
     { name: 'agent-qa', version: deps.version },
     {
@@ -363,10 +412,11 @@ export function buildAgentQaMcpServer(deps: AgentQaMcpServerDeps): McpServer {
 
     server.registerTool(
       projection.name,
-      config,
+      { ...config, inputSchema: listedInputSchema(config.inputSchema) },
       deps.posture === undefined
         ? createProjectionHandler(
             projection,
+            config.inputSchema,
             invoke,
             deps.maskText,
             deps.liveLink,
