@@ -166,14 +166,14 @@ function mcpOf(program: Command): Command {
   return mcp
 }
 
-// The real starter started from `cwd` with no inherited variables, keeping each config path it
-// hands its start.
+// The real starter started from `cwd` with no inherited variables but the cell's data home, which
+// the identity is resolved under, keeping each config path it hands its start.
 function startedFrom(cwd: string, recorder: RecordingReportTransport) {
   const handed: string[] = []
   const startReporting: StartReporting = (program, action) =>
     startCliErrorReporting(program, action, {
       cwd,
-      env: {},
+      env: { XDG_DATA_HOME: process.env.XDG_DATA_HOME },
       start: (input) => {
         handed.push(input.configPath)
         return startErrorReporting({ ...input, dsn: INVENTED_DSN, transport: recorder.transport })
@@ -292,7 +292,7 @@ describe('the root preAction hook', () => {
 })
 
 describe('the reporting starter', () => {
-  it('hands its start the root --config, and agent-qa.config.yaml when none was typed', async () => {
+  it('hands its start the root --config, or agent-qa.config.yaml when none was typed, and the identity resolver', async () => {
     const inputs: StartErrorReportingInput[] = []
     const start = async (input: StartErrorReportingInput) => {
       inputs.push(input)
@@ -313,9 +313,9 @@ describe('the reporting starter', () => {
     await startCliErrorReporting(bare, bare, { start })
 
     expect(inputs).toEqual([
-      { configPath: 'elsewhere/project.yaml' },
-      { configPath: 'agent-qa.config.yaml' },
-      { configPath: 'agent-qa.config.yaml' },
+      { configPath: 'elsewhere/project.yaml', identity: expect.any(Function) },
+      { configPath: 'agent-qa.config.yaml', identity: expect.any(Function) },
+      { configPath: 'agent-qa.config.yaml', identity: expect.any(Function) },
     ])
   })
 

@@ -5210,7 +5210,7 @@ export function createRunCommand(
         let discoveredTestFiles: string[] = [...inputs.discovered.tests]
         const discoveredSuiteFiles: string[] = [...inputs.discovered.suites]
 
-        // Memoised, so paths that start no run never write `~/.agent-qa/analytics.json`.
+        // Memoised, so paths that start no run compose no analytics.
         const analytics = async (): Promise<CliAnalyticsHost> => (
           composedAnalytics ??= await composeAnalyticsHost({ surface: 'cli', config })
         )
