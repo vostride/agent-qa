@@ -15,9 +15,8 @@ import { declaresAnalyticsPrivacy, readConfigDeclaration } from '../config.js'
 import { CLI_ANALYTICS_AGENT_QA_VERSION } from './analytics-host.js'
 import {
   createDeclaredSecretMask,
+  createSavedCredentialMask,
   DeclaredSecretsUnavailableError,
-  maskSavedCredentials,
-  readSavedCredentialValues,
 } from './declared-secrets.js'
 import type { DeclaredSecretMask } from './declared-secrets.js'
 import {
@@ -156,7 +155,7 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
 
     const masks = createReportMasks(
       configPath,
-      await readSavedCredentialValues(input.authPath),
+      createSavedCredentialMask(input.authPath),
       input.now ?? (() => performance.now()),
     )
     const home = input.homeDir ?? homedir()
@@ -413,14 +412,22 @@ const ENDED_MASKS_KEPT_AT_MOST = 100
 // those in force when an event in it was captured or one of its breadcrumbs was recorded, those
 // open now, and those that ended within the last minute. A report made just after a run still
 // passes that run's mask, and so do one captured during a run and sent after it ended, and a line
-// printed during a run, however many bindings ended since.
+// printed during a run, however many bindings ended since. The saved credentials are read at start,
+// at each capture and at each send, so the mask holds every value the store held at any of them.
 function createReportMasks(
   configPath: string,
-  savedCredentials: readonly string[],
+  savedMask: () => TextMask,
   now: () => number,
 ): ReportMasks {
   const declared = createDeclaredSecretMask(configPath)
-  const saved = savedCredentials.length === 0 ? [] : [maskSavedCredentials(savedCredentials)]
+  const learnSaved = () => {
+    try {
+      savedMask()
+    } catch {
+      // A store that cannot be read now is read again at send, which drops the report then.
+    }
+  }
+  learnSaved()
   const open = new Set<{ readonly mask: TextMask }>()
   // Oldest first.
   const ended: Array<{ readonly mask: TextMask; readonly at: number }> = []
@@ -437,7 +444,7 @@ function createReportMasks(
         ...recordedUnder(envelope),
         ...inForce(),
       ])
-      const masks = [...saved, declaredSecretMask(configPath, declared), ...bindings]
+      const masks = [savedMask(), declaredSecretMask(configPath, declared), ...bindings]
       return (text) => masks.reduce((masked, mask) => mask(masked), text)
     },
     bind: (mask) => {
@@ -449,7 +456,10 @@ function createReportMasks(
         if (ended.length > ENDED_MASKS_KEPT_AT_MOST) ended.shift()
       }
     },
-    captureBindings: () => ({ boundAtCapture: inForce() }),
+    captureBindings: () => {
+      learnSaved()
+      return { boundAtCapture: inForce() }
+    },
     // The SDK puts this same event object in the envelope it hands the transport.
     keepCaptureBindings: (event, hint) => {
       const bindings = (hint.data as Partial<CaptureBindings> | undefined)?.boundAtCapture
