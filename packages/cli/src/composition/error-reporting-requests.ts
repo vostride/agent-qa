@@ -171,8 +171,11 @@ function tunnel(
       settle(null, raw)
       return
     }
+    // The certificate is checked against the ingest's own host, a name or an address; with no host,
+    // Node would check it against another name. SNI goes with a name only.
     const secured = tlsConnect({
       socket: raw,
+      host: target.host,
       ...serverName(target.host),
       ...(ca === undefined ? {} : { ca }),
     })
