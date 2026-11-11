@@ -1,6 +1,7 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { stripVTControlCharacters } from 'node:util'
 
 import { reserveStdoutForData, type RunTextEnv } from '@vostride/agent-qa-core/run-text-output'
 import { Command } from 'commander'
@@ -277,7 +278,9 @@ describe('the CLI failure handler', () => {
     expect(exited.events).toEqual(['code 3', 'settle', 'flush', 'exit 3'])
     expect(exited.printed).toEqual([])
     expect(missing.events).toEqual(['code 1', 'capture', 'settle', 'flush', 'exit 1'])
-    expect(missing.printed).toEqual(['node was not found to run agent-qa.js.'])
+    expect(missing.printed.map(stripVTControlCharacters)).toEqual([
+      'node was not found to run agent-qa.js.',
+    ])
   })
 
   it('a command that resolves settles once and is neither flushed nor exited', async () => {
