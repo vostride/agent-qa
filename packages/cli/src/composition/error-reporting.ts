@@ -2,8 +2,6 @@
 // SDK is never imported; with it on, one client is built by hand and held for the process.
 
 import { existsSync, realpathSync } from 'node:fs'
-import { request as httpRequest } from 'node:http'
-import { request as httpsRequest } from 'node:https'
 import { homedir } from 'node:os'
 import { resolve } from 'node:path'
 
@@ -28,6 +26,8 @@ import {
   homeSpellings,
 } from './error-reporting-mask.js'
 import type { TextMask } from './error-reporting-mask.js'
+import { boundedRequestModule } from './error-reporting-requests.js'
+import type { ReportRequests } from './error-reporting-requests.js'
 
 export const TRACE_SAMPLE_RATE = 1
 
@@ -119,6 +119,7 @@ interface StartedReporting {
   readonly reporter: ErrorReporter
   readonly client: SentryNode.NodeClient
   readonly sdk: SentrySdk
+  readonly requests: ReportRequests
   endCommandSpan(): void
 }
 
@@ -155,6 +156,7 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
     const home = input.homeDir ?? homedir()
     const spellings = homeSpellings(home, realPath(home))
     const Sentry = await (input.loadSdk ?? loadSentrySdk)()
+    const requests = boundedRequestModule(URL.parse(dsn)?.protocol ?? 'https:')
     // Built by hand, since the SDK's init adopts the shell's trace variables whatever it is passed.
     const client = new Sentry.NodeClient({
       dsn,
@@ -200,7 +202,7 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
         masks.resolve,
         { homeSpellings: spellings, dropRepeats: createRepeatFilter() },
       ),
-      transportOptions: { httpModule: boundedRequestModule(URL.parse(dsn)?.protocol ?? 'https:') },
+      transportOptions: { httpModule: requests },
       beforeSend: (event, hint) => masks.keepCaptureBindings(event, hint),
       beforeBreadcrumb: (breadcrumb) => masks.keepRecordBindings(breadcrumb),
     })
@@ -282,7 +284,7 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
       commandSpan = undefined
       span?.end()
     }
-    started = { reporter, client, sdk: Sentry, endCommandSpan }
+    started = { reporter, client, sdk: Sentry, requests, endCommandSpan }
     return reporter
   } catch {
     return undefined
@@ -488,23 +490,6 @@ function declaredSecretMask(configPath: string, declared: DeclaredSecretMask): T
   }
 }
 
-export type ReportRequestModule = NonNullable<Parameters<ReportTransportFactory>[0]['httpModule']>
-
-// The SDK's agent times a silent socket out but leaves the request open, which holds a process that
-// would otherwise end, so the request is destroyed when it times out.
-export function boundedRequestModule(protocol: string): ReportRequestModule {
-  return {
-    request: (options, onResponse) => {
-      const request =
-        protocol === 'https:' ? httpsRequest(options, onResponse) : httpRequest(options, onResponse)
-      request.on('timeout', () => {
-        request.destroy(new Error('the report request timed out'))
-      })
-      return request
-    },
-  }
-}
-
 export interface SettleReportingInput {
   readonly analytics?: { shutdown(): Promise<void> }
   readonly budgetMs?: number
@@ -517,7 +502,8 @@ let budgetUpdatedAt = 0
 let lastSettle: Promise<void> = Promise.resolve()
 
 // The command span ends first, so the flush sends it. The analytics drain and the report flush run
-// together on what is left of the budget.
+// together on what is left of the budget, and a report request still open after it is ended, so
+// none holds the process once the settle returns.
 export async function settleReporting(input: SettleReportingInput = {}): Promise<void> {
   const current = started
   if (current === undefined) {
@@ -558,6 +544,7 @@ async function settleOnce(current: StartedReporting, input: SettleReportingInput
       Promise.allSettled([input.analytics?.shutdown(), current.reporter.flush(wait)]),
     )
   }
+  current.requests.abandon()
   const returnedAt = performance.now()
   budgetLeftMs = Math.max(0, wait - (returnedAt - startedAt))
   budgetUpdatedAt = returnedAt
