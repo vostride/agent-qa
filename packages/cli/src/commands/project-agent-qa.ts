@@ -1,7 +1,7 @@
 import { dirname, join, relative, resolve } from 'node:path'
 import pc from 'picocolors'
 import { compareSemverVersions, isPathInsideDir } from '@vostride/agent-qa-core'
-import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
+import { CliRefusal, HandedOffExit, PromptCancelled } from '../composition/cli-refusal.js'
 import { declaredSpec, withoutBom } from './package-json-plan.js'
 import { wasCancelled } from './package-manager.js'
 import type { ProjectHost, ProjectIo } from './project-host.js'
@@ -84,7 +84,7 @@ export async function runAsProjectAgentQa(
   onHandOff?.()
   if (result.signal === 'SIGINT' || result.code === 130) throw new CliRefusal([], 130)
   if (result.code === 0) return
-  throw new CliRefusal([], result.code ?? 1)
+  throw new HandedOffExit(result.code ?? 1)
 }
 
 function isNewer(version: string, than: string): boolean {
