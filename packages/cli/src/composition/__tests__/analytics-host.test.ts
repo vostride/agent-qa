@@ -143,7 +143,8 @@ describe('composeAnalyticsHost', () => {
     // because the surface firewall does not admit core and the barrel that does is too heavy to
     // pull into every command (both reasons are written out at the constant). A second reader is a
     // real cost, and this is what pays it down: the day the two disagree, this reds instead of a
-    // version field quietly disagreeing with what `agent-qa --version` prints.
+    // version field quietly disagreeing with what `agent-qa --version` prints. It compares them in
+    // source; a cell on the built CLI compares the release its reports name with --version.
     expect(CLI_ANALYTICS_AGENT_QA_VERSION).toBe(getAgentQaVersion())
   })
 

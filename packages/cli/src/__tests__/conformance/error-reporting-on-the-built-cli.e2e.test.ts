@@ -329,6 +329,32 @@ describe('reporting on, with a loopback DSN swapped into the shipped bin', () =>
   )
 
   it(
+    'every release a report names is agent-qa@ the version --version prints',
+    async () => {
+      expectFresh()
+      await withSink(async (sink) => {
+        const shown = await spawnInFolder('version', [CLI_ENTRY, '--version'])
+        const version = shown.stdout.trim()
+        expect(version, seen(shown)).toMatch(/^\d+\.\d+\.\d+/u)
+
+        const refused = await spawnInFolder('release', [
+          ...dsnSwap(sink),
+          CLI_ENTRY,
+          ...REFUSED_INIT,
+        ])
+
+        expect(refused.code, seen(refused)).toBe(2)
+        const releases = sink.bodies.flatMap((body) =>
+          [...body.matchAll(/"release":"([^"]*)"/gu)].map((match) => match[1]),
+        )
+        expect(releases.length, sink.bodies.join('\n')).toBeGreaterThan(0)
+        expect([...new Set(releases)]).toEqual([`agent-qa@${version}`])
+      })
+    },
+    CELL_BUDGET_MS,
+  )
+
+  it(
     'a refused run in a project with analytics.privacy true loads no @sentry/ module and sends nothing, while its twin sends',
     async () => {
       expectFresh()
