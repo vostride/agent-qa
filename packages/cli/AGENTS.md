@@ -54,7 +54,8 @@ command, each run, test, step and model call, and each MCP tool call. Every
 report is masked at the transport, once per envelope, by the saved
 credentials, the declared secrets and the masks bound with `bindMask`: those
 bound when the report was captured or one of its breadcrumbs was recorded,
-those bound at send, and the one that ended last. A run binds its redactor
+those bound at send, and those that ended in the last minute, up to a hundred
+and always the newest. A run binds its redactor
 while it lasts, and so does a dashboard live-editor session, through the
 server's `bindSessionMask` option. The home folder then reads `~`, and an
 envelope that cannot be masked is dropped. `settleReporting` is the one step

@@ -508,12 +508,14 @@ describe('the report mask', () => {
     expect(beta.inputs.some((text) => text.includes('[alpha masked]'))).toBe(true)
   })
 
-  it('keeps the mask of the binding that ended last until another binding ends', async () => {
+  it('keeps every mask that ended in the last minute, after other bindings ended, and the newest however old', async () => {
     const recorder = recordingReportTransport()
+    let clock = 0
     const reporter = await startErrorReporting({
       configPath: projectWithPrivacy().configPath,
       dsn: INVENTED_DSN,
       transport: recorder.transport,
+      now: () => clock,
     })
     const alpha = markerMask('alpha')
     const beta = markerMask('beta')
@@ -527,14 +529,37 @@ describe('the report mask', () => {
     const endAlpha = reporter?.bindMask(alpha.apply)
     endAlpha?.()
     endAlpha?.()
-    expect(await reported('alpha beta one')).toEqual(['[alpha masked] beta one'])
+    clock += 30_000
+    reporter?.bindMask(beta.apply)()
+    expect(await reported('alpha beta one')).toEqual(['[alpha masked] [beta masked] one'])
 
-    const endBeta = reporter?.bindMask(beta.apply)
-    endBeta?.()
-    endAlpha?.()
+    clock += 30_001
     const alphaCalls = alpha.inputs.length
     expect(await reported('alpha beta two')).toEqual(['alpha [beta masked] two'])
     expect(alpha.inputs.length).toBe(alphaCalls)
+
+    clock += 3_600_000
+    expect(await reported('alpha beta three')).toEqual(['alpha [beta masked] three'])
+  })
+
+  it('keeps a bounded number of ended masks, the newest, however many end at once', async () => {
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+      now: () => 0,
+    })
+    const marks = Array.from({ length: 1_000 }, (_, index) => markerMask(`mark${index}x`))
+
+    for (const mark of marks) reporter?.bindMask(mark.apply)()
+    reporter?.capture(new Error('mark0x mark998x mark999x'))
+    await settleReporting()
+
+    expect(exceptionValues(recorder.envelopes)).toEqual([
+      'mark0x [mark998x masked] [mark999x masked]',
+    ])
+    expect(marks[0]?.inputs).toEqual([])
   })
 })
 
@@ -900,13 +925,37 @@ describe('a line printed while a binding is open', () => {
     ])
   })
 
-  it('lets a mask go once every line printed under it has left the breadcrumb buffer', async () => {
+  it('masks a line printed after its binding and another one ended with the masks of both', async () => {
     const recorder = recordingReportTransport()
     const reporter = await startErrorReporting({
       configPath: projectWithPrivacy().configPath,
       dsn: INVENTED_DSN,
       transport: recorder.transport,
       loadSdk: sdkWithNoBreadcrumbs,
+    })
+    const kappa = markerMask('kappa')
+    const lambda = markerMask('lambda')
+
+    reporter?.bindMask(kappa.apply)()
+    reporter?.bindMask(lambda.apply)()
+    console.error('a late line from the kappa and the lambda sessions')
+    reporter?.capture(new Error('an error after both sessions ended'))
+    await settleReporting()
+
+    expect(consoleLines(recordedEvents(recorder.envelopes).at(-1))).toEqual([
+      'a late line from the [kappa masked] and the [lambda masked] sessions',
+    ])
+  })
+
+  it('lets a mask go once every line printed under it has left the breadcrumb buffer and its minute has passed', async () => {
+    const recorder = recordingReportTransport()
+    let clock = 0
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+      loadSdk: sdkWithNoBreadcrumbs,
+      now: () => clock,
     })
     const sdk = await import('@sentry/node')
     const kappa = markerMask('kappa')
@@ -925,6 +974,8 @@ describe('a line printed while a binding is open', () => {
     }
 
     const whileBuffered = await reported('kappa one')
+    // The later lines are recorded once kappa's minute has passed, so none carries its mask.
+    clock += 60_001
     for (let line = 0; line < BREADCRUMB_BUFFER; line += 1) {
       sdk.addBreadcrumb({ category: 'console', message: `a later line ${line}` })
     }
