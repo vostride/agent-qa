@@ -2,7 +2,15 @@
 // hand with every option passed, through a recording transport that sends nothing.
 
 import { randomBytes } from 'node:crypto'
-import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { release, tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -49,6 +57,13 @@ function authStore(entries: Readonly<Record<string, unknown>>): string {
   const path = join(authFolder(), 'auth.json')
   writeFileSync(path, JSON.stringify(entries), 'utf8')
   return path
+}
+
+// Written beside it and renamed over it, as the auth store saves.
+function replaceAuthStore(path: string, entries: Readonly<Record<string, unknown>>): void {
+  const temporary = `${path}.${randomBytes(4).toString('hex')}.tmp`
+  writeFileSync(temporary, JSON.stringify(entries), 'utf8')
+  renameSync(temporary, path)
 }
 
 // No cell reads the auth store in the real home folder.
@@ -564,7 +579,7 @@ describe('the report mask', () => {
 })
 
 describe('saved credentials', () => {
-  it('are the tokens and keys of the auth store, and none from a missing or malformed store', async () => {
+  it('are the tokens and keys of the auth store, none from a missing one, and a store that cannot be parsed throws', () => {
     const authPath = authStore({
       anthropic: {
         type: 'oauth',
@@ -584,14 +599,64 @@ describe('saved credentials', () => {
     const malformed = join(authFolder(), 'auth.json')
     writeFileSync(malformed, '{ "anthropic": ', 'utf8')
 
-    await expect(readSavedCredentialValues(authPath)).resolves.toEqual([
+    expect(readSavedCredentialValues(authPath)).toEqual([
       'access-Hunter-42-zz',
       'refresh-Hunter-42-zz',
       'key-Hunter-42-zz',
       'token-Hunter-42-zz',
     ])
-    await expect(readSavedCredentialValues(join(authFolder(), 'auth.json'))).resolves.toEqual([])
-    await expect(readSavedCredentialValues(malformed)).resolves.toEqual([])
+    expect(readSavedCredentialValues(join(authFolder(), 'auth.json'))).toEqual([])
+    expect(() => readSavedCredentialValues(malformed)).toThrow()
+  })
+
+  it('are masked when saved after the reporter started, and so are a refreshed token and the one it replaced', async () => {
+    const authPath = join(authFolder(), 'auth.json')
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      authPath,
+      transport: recorder.transport,
+    })
+    const oauth = (access: string, refresh: string) => ({
+      anthropic: { type: 'oauth', provider: 'anthropic', tokens: { access, refresh, expires: 0 } },
+    })
+
+    replaceAuthStore(authPath, oauth('access-saved-later', 'refresh-saved-later'))
+    reporter?.capture(new Error('Token refresh failed for refresh-saved-later'))
+    await settleReporting()
+    replaceAuthStore(authPath, oauth('access-after-refresh', 'refresh-after-refresh'))
+    reporter?.capture(new Error('Rejected access-saved-later, then refresh-after-refresh'))
+    await settleReporting()
+
+    expect(exceptionValues(recorder.envelopes)).toEqual([
+      'Token refresh failed for [secret:SAVED_CREDENTIAL]',
+      'Rejected [secret:SAVED_CREDENTIAL], then [secret:SAVED_CREDENTIAL]',
+    ])
+  })
+
+  it('drop a report while the store cannot be read, and the same recorder sees one once it can', async () => {
+    const authPath = authStore({ openai: { type: 'api', provider: 'openai', key: 'key-at-start' } })
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      authPath,
+      transport: recorder.transport,
+    })
+
+    rmSync(authPath)
+    mkdirSync(authPath)
+    reporter?.capture(new Error('an error while the store is a folder'))
+    await settleReporting()
+    const whileUnreadable = recorder.envelopes.length
+    rmSync(authPath, { recursive: true })
+    replaceAuthStore(authPath, { openai: { type: 'api', provider: 'openai', key: 'key-later' } })
+    reporter?.capture(new Error('an error once the store reads again'))
+    await settleReporting()
+
+    expect(whileUnreadable).toBe(0)
+    expect(exceptionValues(recorder.envelopes)).toEqual(['an error once the store reads again'])
   })
 
   it('are masked when an error message quotes a saved refresh token', async () => {
