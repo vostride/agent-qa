@@ -9,12 +9,12 @@ import {
 } from '../../__tests__/error-report-recorder.js'
 import type { RecordedEnvelope } from '../../__tests__/error-report-recorder.js'
 import {
+  createHomeRewrite,
   createMaskingTransport,
   createRepeatFilter,
   homeSpellings,
   maskEnvelope,
   reportKey,
-  rewriteHome,
 } from '../error-reporting-mask.js'
 import type { MaskingTransportOptions, TextMask } from '../error-reporting-mask.js'
 
@@ -283,7 +283,7 @@ describe('the envelope walk', () => {
 
 describe('the home folder', () => {
   it('reads as a tilde in every spelling the home takes', () => {
-    const spellings = homeSpellings(HOME, REAL_HOME)
+    const rewrite = createHomeRewrite({ homes: [HOME, REAL_HOME] })
     const texts = {
       given: `${HOME}/project/a.ts`,
       real: `${REAL_HOME}/project/b.ts`,
@@ -293,7 +293,7 @@ describe('the home folder', () => {
     }
 
     const rewritten = Object.fromEntries(
-      Object.entries(texts).map(([form, text]) => [form, rewriteHome(text, spellings)]),
+      Object.entries(texts).map(([form, text]) => [form, rewrite(text)]),
     )
 
     expect(rewritten).toEqual({
@@ -306,34 +306,69 @@ describe('the home folder', () => {
   })
 
   it('reads as a tilde for a Windows home and in the encoded file URL of a home with a space', () => {
-    const windows = homeSpellings('C:\\Users\\canary', 'C:\\Users\\canary')
-    const spaced = homeSpellings('/Users/canary user', '/Users/canary user')
+    const windows = createHomeRewrite({ homes: ['C:\\Users\\canary'] })
+    const spaced = createHomeRewrite({ homes: ['/Users/canary user'] })
 
-    expect(rewriteHome('C:\\Users\\canary\\project', windows)).toBe('~\\project')
-    expect(rewriteHome('C:/Users/canary/project', windows)).toBe('~/project')
-    expect(rewriteHome('{"cwd":"C:\\\\Users\\\\canary\\\\project"}', windows)).toBe(
-      '{"cwd":"~\\\\project"}',
+    expect(windows('C:\\Users\\canary\\project')).toBe('~\\project')
+    expect(windows('C:/Users/canary/project')).toBe('~/project')
+    expect(windows('{"cwd":"C:\\\\Users\\\\canary\\\\project"}')).toBe('{"cwd":"~\\\\project"}')
+    expect(windows('file:///C:/Users/canary/project')).toBe('~/project')
+    expect(spaced('file:///Users/canary%20user/project')).toBe('~/project')
+  })
+
+  it('reads as a tilde in another case where the file system ignores case, and only there', () => {
+    const windows = createHomeRewrite({
+      homes: ['C:\\Users\\Canary'],
+      userName: 'Canary',
+      ignoreCase: true,
+    })
+    const mac = createHomeRewrite({ homes: ['/Users/Canary'], ignoreCase: true })
+    const linux = createHomeRewrite({ homes: ['/home/Canary'], userName: 'Canary' })
+
+    expect(windows('c:\\users\\canary\\project')).toBe('~\\project')
+    expect(windows('D:\\users\\CANARY\\x')).toBe('D:\\users\\~\\x')
+    expect(mac('/USERS/CANARY/project')).toBe('~/project')
+    expect(linux('/home/canary/project')).toBe('/home/canary/project')
+    expect(linux('/home/Canary/project')).toBe('~/project')
+  })
+
+  it('reads the user name as a tilde where it is the folder under a users folder, under any home or none, and nowhere else', () => {
+    const rewrite = createHomeRewrite({ homes: [], userName: 'canary' })
+
+    expect(rewrite('/mnt/c/Users/canary/notes.txt')).toBe('/mnt/c/Users/~/notes.txt')
+    expect(rewrite('D:\\Users\\canary\\notes.txt')).toBe('D:\\Users\\~\\notes.txt')
+    expect(rewrite('{"cwd":"E:\\\\Users\\\\canary\\\\x"}')).toBe('{"cwd":"E:\\\\Users\\\\~\\\\x"}')
+    expect(rewrite('/home/canary/x and file:///Users/canary/y')).toBe(
+      '/home/~/x and file:///Users/~/y',
     )
-    expect(rewriteHome('file:///C:/Users/canary/project', windows)).toBe('~/project')
-    expect(rewriteHome('file:///Users/canary%20user/project', spaced)).toBe('~/project')
+    expect(rewrite('cannot open /Users/canary: refused')).toBe('cannot open /Users/~: refused')
+    for (const text of [
+      '/srv/canary/app.js',
+      'started by canary',
+      '/Users/canary-two/x',
+      '/Users/canaryx/y',
+      '/Users/CANARY/z',
+    ]) {
+      expect(rewrite(text)).toBe(text)
+    }
   })
 
   it('leaves a folder of the same name outside the home and a bare user name as they are', () => {
-    const spellings = homeSpellings(HOME, REAL_HOME)
+    const rewrite = createHomeRewrite({ homes: [HOME, REAL_HOME], userName: 'canary-user' })
 
     for (const text of ['/srv/build/canary-user/app.js', 'started by canary-user']) {
-      expect(rewriteHome(text, spellings)).toBe(text)
+      expect(rewrite(text)).toBe(text)
     }
   })
 
   it('has no spelling for a root or empty home, so other text is left alone', () => {
     expect(homeSpellings('/', '')).toEqual([])
-    expect(rewriteHome('/srv/app.js', homeSpellings('/', '/'))).toBe('/srv/app.js')
+    expect(createHomeRewrite({ homes: ['/', '/'] })('/srv/app.js')).toBe('/srv/app.js')
   })
 
   it('gives a frame and its debug image the same rewritten file name at the transport', async () => {
     const { recorder, transport } = maskingTransport(() => unmasked, {
-      homeSpellings: homeSpellings(HOME, REAL_HOME),
+      rewriteHome: createHomeRewrite({ homes: [HOME, REAL_HOME] }),
     })
     const file = `${HOME}/project/node_modules/agent-qa/dist/cli.js`
     const envelope = [
@@ -363,7 +398,7 @@ describe('the home folder', () => {
 
   it('is rewritten, and a secret masked, under a key named dsn, type or sdk in printed data', async () => {
     const { recorder, transport } = maskingTransport(() => maskSecret, {
-      homeSpellings: homeSpellings(HOME, REAL_HOME),
+      rewriteHome: createHomeRewrite({ homes: [HOME, REAL_HOME] }),
     })
     const printed = { dsn: `${HOME}/.config/${SECRET}`, type: SECRET, sdk: { name: `${HOME}/x` } }
 
@@ -391,7 +426,7 @@ describe('the home folder', () => {
     const keyPath = `${HOME}/.ssh/deploy-key`
     const { recorder, transport } = maskingTransport(
       () => (text) => text.replaceAll(keyPath, '[secret:KEY_PATH]'),
-      { homeSpellings: homeSpellings(HOME, REAL_HOME) },
+      { rewriteHome: createHomeRewrite({ homes: [HOME, REAL_HOME] }) },
     )
 
     await transport.send(
@@ -413,7 +448,7 @@ describe('the masking transport', () => {
     const envelope = envelopeQuoting('a message') as unknown as RecordedEnvelope
     const wrap = (resolveMask: () => TextMask) =>
       createMaskingTransport(recorder.transport, resolveMask, {
-        homeSpellings: homeSpellings(HOME, REAL_HOME),
+        rewriteHome: createHomeRewrite({ homes: [HOME, REAL_HOME] }),
       })(TRANSPORT_OPTIONS)
 
     const unbuildable = wrap(() => {
