@@ -13,6 +13,7 @@ import {
   createRepeatFilter,
   homeSpellings,
   maskEnvelope,
+  reportKey,
   rewriteHome,
 } from '../error-reporting-mask.js'
 import type { MaskingTransportOptions, TextMask } from '../error-reporting-mask.js'
@@ -473,9 +474,59 @@ describe('repeats', () => {
       [errorItem('error A')],
     ] as unknown as RecordedEnvelope
 
-    await expect(transport.send(envelope)).resolves.toEqual({})
+    await expect(transport.send(envelope)).resolves.toEqual({ statusCode: 200 })
     await expect(transport.send(envelope)).resolves.toEqual({})
 
     expect(recorder.envelopes).toHaveLength(1)
+  })
+
+  it('remembers an error by a digest of one size, whatever the size of the error', () => {
+    const frame = (index: number) => ({ filename: `/srv/app/${'deep/'.repeat(40)}${index}.js` })
+    const small = { exception: { values: [{ type: 'Error', value: 'a' }] } }
+    const large = {
+      exception: {
+        values: [
+          {
+            type: 'Error',
+            value: 'x'.repeat(20_000),
+            stacktrace: { frames: Array.from({ length: 200 }, (_, index) => frame(index)) },
+          },
+        ],
+      },
+    }
+
+    const keys = [reportKey(small), reportKey(large), reportKey(structuredClone(large))]
+
+    expect(new Set(keys.map((key) => key?.length))).toEqual(new Set([keys[0]?.length]))
+    expect(keys[0]?.length).toBeLessThanOrEqual(64)
+    expect(keys[1]).not.toBe(keys[0])
+    expect(keys[2]).toBe(keys[1])
+  })
+
+  it('sends an error again after a send of it failed or was answered with an error status', async () => {
+    const sent: unknown[] = []
+    const answers: Array<() => Promise<{ readonly statusCode?: number }>> = [
+      () => Promise.reject(new Error('the network is down')),
+      () => Promise.resolve({ statusCode: 503 }),
+      () => Promise.resolve({}),
+      () => Promise.resolve({ statusCode: 200 }),
+    ]
+    const transport = createMaskingTransport(
+      () => ({
+        send: (envelope: unknown) => {
+          sent.push(envelope)
+          return (answers.shift() ?? (() => Promise.resolve({ statusCode: 200 })))()
+        },
+        flush: () => Promise.resolve(true),
+      }),
+      () => unmasked,
+      { dropRepeats: createRepeatFilter() },
+    )(TRANSPORT_OPTIONS)
+    const envelope = [{ event_id: 'e0'.repeat(16) }, [errorItem('error A')]]
+
+    await expect(transport.send(envelope)).rejects.toThrow('the network is down')
+    for (let attempt = 0; attempt < 4; attempt += 1) await transport.send(envelope)
+
+    expect(sent).toHaveLength(4)
   })
 })
