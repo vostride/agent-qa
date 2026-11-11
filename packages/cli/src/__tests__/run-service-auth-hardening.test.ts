@@ -89,6 +89,7 @@ interface ServiceFixture {
 }
 
 const openFixtures: ServiceFixture[] = []
+const POST_RUN_BOUND_MS = 90_000
 
 /** The composition `agent-qa dashboard` performs, on an ephemeral port over a temp project. */
 async function openRunService(): Promise<ServiceFixture> {
@@ -129,6 +130,13 @@ async function openRunService(): Promise<ServiceFixture> {
     origin: boundOrigin,
     configDir,
     close: async () => {
+      // A started run that prints after the file ends fails the worker's teardown.
+      let timer: NodeJS.Timeout | undefined
+      const bound = new Promise<void>((done) => {
+        timer = setTimeout(done, POST_RUN_BOUND_MS)
+      })
+      await Promise.race([runDoor.postRunSettled().catch(() => undefined), bound])
+      clearTimeout(timer)
       started.close()
       runService.dispose()
       await host.close()
