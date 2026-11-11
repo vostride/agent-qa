@@ -466,6 +466,80 @@ describe('the tool span', () => {
   })
 })
 
+describe('a call with arguments the input schema refuses', () => {
+  // Built at run time, since a report quotes the source lines around each of its stack frames.
+  const typed = `typed-${Math.random().toString(36).slice(2, 10)}`
+  const SHAPES: readonly { readonly shape: string; readonly args: Record<string, unknown> }[] = [
+    { shape: 'a wrong type', args: { runId: 'run-alpha', kind: 'false-fail', note: [typed] } },
+    { shape: 'a missing required key', args: { kind: 'false-fail', note: typed } },
+    { shape: 'an unknown key', args: { runId: 'run-alpha', kind: 'false-fail', [typed]: true } },
+  ]
+  const REFUSED =
+    "Invalid input for agent_qa_mark_run: the arguments do not match the tool's input schema"
+  const VALIDATION_EVENT = expect.objectContaining({
+    tool_name: 'agent_qa_mark_run',
+    mcp_tool_status: 'error',
+    mcp_error_category: 'validation',
+    mcp_transport: 'http',
+  })
+
+  // Each cell starts its own reporter: a second refusal in one reporter is a repeat it drops.
+  it.each(SHAPES)(
+    'with $shape is reported, traced and counted as validation, and nothing typed leaves',
+    async ({ args }) => {
+      const recorder = await startReporting()
+      const analytics = await recordingAnalytics()
+      const client = await serve({
+        registry: markRegistry(async () => RUN_NOT_FOUND),
+        maskText: unmasked,
+        analytics: { host: analytics.host, mcpTransport: 'http' },
+      })
+
+      const result = await client.callTool({ name: 'agent_qa_mark_run', arguments: args })
+      await drain(analytics)
+
+      expect(result.isError).toBe(true)
+      expect(toolEvents(analytics.sent)).toEqual([VALIDATION_EVENT])
+      expect(reportedErrors(recorder.envelopes)).toEqual([REFUSED])
+      const spans = toolSpans(recorder.envelopes)
+      expect(spans).toHaveLength(1)
+      expect(attributeOf(spans[0], 'agent_qa.outcome')).toBe('error')
+      expect(spans[0]?.status).toBe('error')
+      expect(serializedEnvelopes(recorder.envelopes)).not.toContain(typed)
+      expect(JSON.stringify(analytics.sent)).not.toContain(typed)
+    },
+  )
+
+  it.each(SHAPES)(
+    'with $shape is counted while reporting is off, reports nothing and is answered as with reporting on',
+    async ({ args }) => {
+      const call = { name: 'agent_qa_mark_run', arguments: args }
+      const off = await startReporting('')
+      expect(errorReporter()).toBeUndefined()
+      const analytics = await recordingAnalytics()
+      const unreported = await (
+        await serve({
+          registry: markRegistry(async () => RUN_NOT_FOUND),
+          maskText: unmasked,
+          analytics: { host: analytics.host, mcpTransport: 'http' },
+        })
+      ).callTool(call)
+      await drain(analytics)
+
+      expect(toolEvents(analytics.sent)).toEqual([VALIDATION_EVENT])
+      expect(off.envelopes).toEqual([])
+
+      await closeErrorReporting()
+      await startReporting()
+      const reported = await (
+        await serve({ registry: markRegistry(async () => RUN_NOT_FOUND), maskText: unmasked })
+      ).callTool(call)
+      expect(errorReporter()).toBeDefined()
+      expect(JSON.stringify(unreported)).toBe(JSON.stringify(reported))
+    },
+  )
+})
+
 describe('agent-qa mcp --http', () => {
   it('emits each tool event through the analytics it composed, naming http', async () => {
     const project = projectWithPrivacy()

@@ -340,20 +340,38 @@ describe('C · the error channels', () => {
     })
   })
 
-  it('the SDK-composed input-validation error is a channel this host does NOT mask, and it '
-    + 'is measured empty', async () => {
+  it('agent-qa composes the refusal of schema-invalid input, names the field and masks it',
+    async () => {
+      await headless(async () => {
+        // The handler refuses schema-invalid input before the op runs, naming the field, masked.
+        const answer = await call('agent_qa_change_knowledge', {
+          action: 'knowledge.forget',
+          target: { grain: 'bundle', shortId: ENV_PLANT },
+        })
+
+        expect(answer.isError).toBe(true)
+        expect(rendered(answer), 'the refusal stopped naming the tool — re-read this channel')
+          .toContain('Input validation error')
+        expect(leakedWindow(wire(), ENV_PLANT), 'the refusal quoted a rejected value unmasked')
+          .toBeUndefined()
+      })
+    })
+
+  it('a declared secret typed as an unknown key name reaches the wire as its marker', async () => {
     await headless(async () => {
-      // The SDK refuses schema-invalid input before any handler, naming the field, not the value.
-      const answer = await call('agent_qa_change_knowledge', {
-        action: 'knowledge.forget',
-        target: { grain: 'bundle', shortId: ENV_PLANT },
+      // The refusal names an unknown key, so this is the one channel that quotes what was typed.
+      const answer = await call('agent_qa_mark_run', {
+        runId: 'run-alpha',
+        kind: 'false-fail',
+        [ENV_PLANT]: true,
       })
 
       expect(answer.isError).toBe(true)
-      expect(rendered(answer), 'the SDK stopped naming the tool — re-read this channel')
+      expect(rendered(answer), 'the refusal stopped naming the key — re-read this channel')
         .toContain('Input validation error')
-      expect(leakedWindow(wire(), ENV_PLANT), 'the SDK now quotes rejected arguments, and this '
-        + 'host does not mask that channel').toBeUndefined()
+      expect(rendered(answer)).toContain('[secret:PLANT_ENV]')
+      expect(leakedWindow(wire(), ENV_PLANT), 'the refusal quoted a declared secret typed as a key')
+        .toBeUndefined()
     })
   })
 })
