@@ -676,6 +676,38 @@ describe('the request module handed to the transport', () => {
     ])
   }, 15_000)
 
+  it('fails a tunnelled report at once with the error its TLS start throws, closes the tunnel, clears its deadline and lets nothing escape', async () => {
+    const proxy = await forwardingProxy()
+    const ingest = await silentServer()
+    proxyVariables({ https_proxy: proxyUrl(proxy.port) })
+    const escaped: unknown[] = []
+    const record = (error: unknown) => {
+      escaped.push(error)
+    }
+    const deadlineMs = 10 * DEADLINE_MS
+    const throwing = boundedRequestModule('https:', {
+      timeoutMs: deadlineMs,
+      connectTls: () => {
+        throw new Error('the TLS layer refused to start')
+      },
+    })
+    const timers = vi.spyOn(globalThis, 'setTimeout')
+    const cleared = vi.spyOn(globalThis, 'clearTimeout')
+
+    process.on('uncaughtException', record)
+    const end = await sendThrough(throwing, 'https:', ingest.port).finally(() => {
+      process.off('uncaughtException', record)
+    })
+
+    expect(end.error?.message).toBe('the TLS layer refused to start')
+    expect(escaped).toEqual([])
+    expect(proxy.tunnels).toEqual([`127.0.0.1:${ingest.port}`])
+    await vi.waitFor(() => expect(ingest.open.size).toBe(0), { timeout: 3 * DEADLINE_MS })
+    const deadline = timers.mock.calls.findIndex(([, ms]) => ms === deadlineMs)
+    expect(deadline, 'the request set its deadline').toBeGreaterThanOrEqual(0)
+    expect(cleared).toHaveBeenCalledWith(timers.mock.results[deadline]?.value)
+  }, 10_000)
+
   it("is the one the reporter's transport uses, so a report the ingest never answers is closed at its deadline", async () => {
     const server = await silentServer()
     proxyVariables({})
