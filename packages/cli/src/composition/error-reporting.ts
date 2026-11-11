@@ -166,8 +166,8 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
     const configPath = resolve(input.configPath)
     const decision = await decideErrorReporting({ configPath, dsn })
     if (!decision.on) return undefined
-    // Started before the SDK loads, which takes far longer, and never awaited on the way to the
-    // command.
+    // Asked for before the SDK loads and never awaited on the way to the command. Its file work
+    // starts when the SDK import ends, and its cut-off is armed then.
     const identity = input.identity === undefined ? undefined : holdIdentity(input.identity)
 
     const masks = createReportMasks(

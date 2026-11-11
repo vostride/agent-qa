@@ -20,7 +20,8 @@ export function resolveCliAnalyticsIdentity(
   input: ResolveCliAnalyticsIdentityInput = {},
 ): HeldAnalyticsIdentity {
   const env = { ...(input.env ?? process.env) }
-  // CI is the run detector's answer, reached through agent-local (the firewall).
+  // CI is the run detector's answer, reached through agent-local (the firewall). A static import
+  // would arm the cut-off before the SDK loads.
   return import('@vostride/agent-qa-agent-local')
     .then(({ resolveRunExecutionContext }) => {
       const ci = resolveRunExecutionContext() === 'ci'
