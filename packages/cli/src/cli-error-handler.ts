@@ -19,6 +19,11 @@ export interface CliFailureDeps {
   readonly env: RunTextEnv
 }
 
+export interface GlobalFailureDeps extends CliFailureDeps {
+  // Makes `code` the exit code of every later exit of the process, whatever that exit passes.
+  readonly holdExitCode: (code: number) => void
+}
+
 const FRAME = /^\s+at /
 
 function drain(stream: NodeJS.WriteStream): Promise<void> {
@@ -27,7 +32,7 @@ function drain(stream: NodeJS.WriteStream): Promise<void> {
   })
 }
 
-export function defaultCliFailureDeps(program: Command): CliFailureDeps {
+export function defaultCliFailureDeps(program: Command): GlobalFailureDeps {
   return {
     print: (text) => console.error(text),
     // Synchronous, so the line still lands when a prompt was rejected while the process exits.
@@ -45,6 +50,14 @@ export function defaultCliFailureDeps(program: Command): CliFailureDeps {
     },
     setExitCode: (code) => {
       process.exitCode = code
+    },
+    // Node reads the exit code after the exit listeners run, both for process.exit(n) and for a
+    // process that ends on its own.
+    holdExitCode: (code) => {
+      process.exitCode = code
+      process.on('exit', () => {
+        process.exitCode = code
+      })
     },
     capture: (error) => {
       errorReporter()?.capture(error)
@@ -83,9 +96,10 @@ function printUnexpected(error: unknown, deps: CliFailureDeps): void {
 }
 
 // Every path ends in exit 1, as Node's own handling does: a listener that returned would let the
-// process go on, or end it with 0.
+// process go on, or end it with 0. The 1 is held from the first error on, so a command that exits
+// while the report settles still exits 1.
 export function createGlobalFailureHandler(
-  deps: CliFailureDeps,
+  deps: GlobalFailureDeps,
 ): (error: unknown) => Promise<void> {
   let handling = false
   return async (error) => {
@@ -94,9 +108,9 @@ export function createGlobalFailureHandler(
       return
     }
     handling = true
+    deps.holdExitCode(1)
     try {
       printUnexpected(error, deps)
-      deps.setExitCode(1)
       if (!isPromptCancel(error)) deps.capture(error)
       await deps.settle()
       await deps.flush()
@@ -107,7 +121,7 @@ export function createGlobalFailureHandler(
   }
 }
 
-export function installGlobalFailureHandlers(deps: CliFailureDeps): () => void {
+export function installGlobalFailureHandlers(deps: GlobalFailureDeps): () => void {
   const handle = createGlobalFailureHandler(deps)
   // An unhandled rejection's first argument is its reason.
   const listener = (error: unknown) => {

@@ -163,8 +163,9 @@ interface Sink {
   close(): Promise<void>
 }
 
-// Modelled on the analytics package's wire sink: it keeps what arrives and answers 200.
-async function startSink(): Promise<Sink> {
+// Modelled on the analytics package's wire sink: it keeps what arrives and answers 200, at once or
+// `answerAfterMs` later.
+async function startSink(answerAfterMs = 0): Promise<Sink> {
   const bodies: string[] = []
   const server: Server = createServer((request, response) => {
     const chunks: Buffer[] = []
@@ -173,8 +174,11 @@ async function startSink(): Promise<Sink> {
       const raw = Buffer.concat(chunks)
       const gzipped = raw.length >= 2 && raw[0] === 0x1f && raw[1] === 0x8b
       bodies.push((gzipped ? gunzipSync(raw) : raw).toString('utf8'))
-      response.writeHead(200, { 'content-type': 'application/json' })
-      response.end('{}')
+      const answer = setTimeout(() => {
+        response.writeHead(200, { 'content-type': 'application/json' })
+        response.end('{}')
+      }, answerAfterMs)
+      response.on('close', () => clearTimeout(answer))
     })
   })
   await new Promise<void>((listening) => server.listen(0, '127.0.0.1', () => listening()))
@@ -186,8 +190,11 @@ async function startSink(): Promise<Sink> {
   }
 }
 
-async function withSink(use: (sink: Sink) => Promise<void>): Promise<void> {
-  const sink = await startSink()
+async function withSink(
+  use: (sink: Sink) => Promise<void>,
+  answerAfterMs?: number,
+): Promise<void> {
+  const sink = await startSink(answerAfterMs)
   try {
     await use(sink)
   } finally {
@@ -240,6 +247,18 @@ function writeProject(privacy: boolean): string {
     'utf8',
   )
   writeFileSync(join(folder, '.env.secrets.local'), '', 'utf8')
+  return folder
+}
+
+// A project `run --list-tests` lists, holding one test or none.
+function writeListedProject(tests: 0 | 1): string {
+  const folder = writeProject(false)
+  writeFileSync(join(folder, '.env'), '', 'utf8')
+  writeFileSync(join(folder, 'hooks.yaml'), '{"hooks":[]}\n', 'utf8')
+  mkdirSync(join(folder, 'tests'))
+  if (tests === 1) {
+    writeFileSync(join(folder, 'tests', 'a.test.yaml'), 'name: a\nsteps:\n  - open the page\n')
+  }
   return folder
 }
 
@@ -465,6 +484,66 @@ describe("agent-qa's own global handlers on the shipped bin, with reporting on",
         expect(sink.bodies.some((body) => body.includes(message)), sink.bodies.join('\n')).toBe(
           true,
         )
+      })
+    },
+    CELL_BUDGET_MS,
+  )
+
+  it.each([
+    { ingest: 'answers at once', answerAfterMs: 0 },
+    { ingest: 'answers after a second', answerAfterMs: 1_000 },
+    { ingest: 'never answers', answerAfterMs: undefined },
+  ])(
+    'a stray rejection ends run --list-tests with exit 1 and one Unexpected error block, though the listing exits 0, when the ingest $ingest',
+    async ({ answerAfterMs }) => {
+      expectFresh()
+      const message = 'a stray rejection during the listing'
+      const listed = async (dsn: string) => {
+        const outcome = await spawnLongLived(
+          [...dsnSwap({ dsn }), ...trigger('reject', message, true), CLI_ENTRY, 'run', '--list-tests'],
+          { cwd: writeListedProject(1) },
+        )
+        expect(outcome.killedAtBudget, seen(outcome)).toBe(false)
+        expect(outcome.code, seen(outcome)).toBe(1)
+        expect(outcome.stderr.split('\n')[0], seen(outcome)).toBe(`Unexpected error: ${message}`)
+        expect(outcome.stderr.split('Unexpected error:').length - 1, seen(outcome)).toBe(1)
+      }
+
+      if (answerAfterMs === undefined) {
+        await withSilentServer(async (port) => listed(`http://key@127.0.0.1:${String(port)}/1`))
+        return
+      }
+      await withSink(async (sink) => {
+        await listed(sink.dsn)
+        expect(sink.bodies.some((body) => body.includes(message)), sink.bodies.join('\n')).toBe(
+          true,
+        )
+      }, answerAfterMs)
+    },
+    CELL_BUDGET_MS,
+  )
+
+  it(
+    'a stray rejection ends run --list-tests in a project with no tests with exit 1, not the refusal code, when the ingest never answers',
+    async () => {
+      expectFresh()
+      const message = 'a stray rejection before the refusal'
+      await withSilentServer(async (port) => {
+        const refused = await spawnLongLived(
+          [
+            ...dsnSwap({ dsn: `http://key@127.0.0.1:${String(port)}/1` }),
+            ...trigger('reject', message, true),
+            CLI_ENTRY,
+            'run',
+            '--list-tests',
+          ],
+          { cwd: writeListedProject(0) },
+        )
+
+        expect(refused.killedAtBudget, seen(refused)).toBe(false)
+        expect(refused.code, seen(refused)).toBe(1)
+        expect(refused.stderr.split('\n')[0], seen(refused)).toBe(`Unexpected error: ${message}`)
+        expect(refused.stderr, seen(refused)).toContain('No test files found')
       })
     },
     CELL_BUDGET_MS,

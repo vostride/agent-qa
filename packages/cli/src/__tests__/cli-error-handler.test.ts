@@ -12,6 +12,7 @@ import {
   installGlobalFailureHandlers,
   runCli,
   type CliFailureDeps,
+  type GlobalFailureDeps,
 } from '../cli-error-handler.js'
 import { CliRefusal, PromptCancelled } from '../composition/cli-refusal.js'
 import {
@@ -58,7 +59,7 @@ interface Recorded {
   readonly printed: string[]
   readonly fixed: string[]
   readonly captured: unknown[]
-  readonly deps: CliFailureDeps
+  readonly deps: GlobalFailureDeps
 }
 
 function recorded(env: RunTextEnv = {}): Recorded {
@@ -66,7 +67,7 @@ function recorded(env: RunTextEnv = {}): Recorded {
   const printed: string[] = []
   const fixed: string[] = []
   const captured: unknown[] = []
-  const deps: CliFailureDeps = {
+  const deps: GlobalFailureDeps = {
     print: (text) => {
       printed.push(text)
     },
@@ -76,6 +77,9 @@ function recorded(env: RunTextEnv = {}): Recorded {
     mask: (text) => text,
     setExitCode: (code) => {
       events.push(`code ${code}`)
+    },
+    holdExitCode: (code) => {
+      events.push(`hold ${code}`)
     },
     capture: (error) => {
       events.push('capture')
@@ -345,7 +349,7 @@ function addedTo<T>(before: readonly T[], after: readonly T[]): T[] {
 // No cell emits either event on the worker's own process: each calls the handler, or a listener
 // the installer added, with recorded deps.
 describe("agent-qa's own global failure handlers", () => {
-  it('print an error as one masked Unexpected error block with its stack frames, then set 1, capture, settle, flush and exit 1', async () => {
+  it('print an error as one masked Unexpected error block with its stack frames, then hold 1, capture, settle, flush and exit 1', async () => {
     const configPath = projectWithSecret()
     const program = programThrowing(() => new Error('unused'))
     await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'fine'])
@@ -361,7 +365,7 @@ describe("agent-qa's own global failure handlers", () => {
     expect(frames.length).toBeGreaterThan(0)
     for (const line of frames) expect(line).toMatch(FRAME)
     expect(outcome.printed[0]).not.toContain(SECRET)
-    expect(outcome.events).toEqual(['code 1', 'capture', 'settle', 'flush', 'exit 1'])
+    expect(outcome.events).toEqual(['hold 1', 'capture', 'settle', 'flush', 'exit 1'])
     expect(outcome.captured).toHaveLength(1)
     expect(outcome.captured[0]).toBe(error)
   })
@@ -372,8 +376,43 @@ describe("agent-qa's own global failure handlers", () => {
     await createGlobalFailureHandler(outcome.deps)('plain words')
 
     expect(outcome.printed).toEqual(['Unexpected error: plain words'])
-    expect(outcome.events).toEqual(['code 1', 'capture', 'settle', 'flush', 'exit 1'])
+    expect(outcome.events).toEqual(['hold 1', 'capture', 'settle', 'flush', 'exit 1'])
     expect(outcome.captured).toEqual(['plain words'])
+  })
+
+  it('hold exit 1 for every later exit before anything is awaited, once the first error arrives', () => {
+    const outcome = recorded()
+    const handle = createGlobalFailureHandler({
+      ...outcome.deps,
+      settle: async () => {
+        outcome.events.push('settle')
+        await new Promise<void>(() => {})
+      },
+    })
+
+    void handle(new Error('the first error'))
+
+    expect(outcome.events).toEqual(['hold 1', 'capture', 'settle'])
+    expect(outcome.printed).toHaveLength(1)
+  })
+
+  it('by default hold the code with an exit listener, so a later exit with another code still exits 1', () => {
+    const before = process.listeners('exit')
+    const deps = defaultCliFailureDeps(programThrowing(() => new Error('unused')))
+
+    deps.holdExitCode(1)
+    const added = addedTo(before, process.listeners('exit'))
+    try {
+      expect(added).toHaveLength(1)
+      expect(process.exitCode).toBe(1)
+      // What process.exit(0) or a command's own exitCode leaves before the exit listeners run.
+      process.exitCode = 0
+      added[0]?.(0)
+      expect(process.exitCode).toBe(1)
+    } finally {
+      for (const listener of added) process.off('exit', listener)
+      process.exitCode = undefined
+    }
   })
 
   it('print a prompt cancel and exit 1 without capturing it', async () => {
@@ -389,7 +428,7 @@ describe("agent-qa's own global failure handlers", () => {
 
       expect(outcome.printed).toHaveLength(1)
       expect(outcome.printed[0]?.split('\n')[0]).toBe(`Unexpected error: ${cancel.message}`)
-      expect(outcome.events).toEqual(['code 1', 'settle', 'flush', 'exit 1'])
+      expect(outcome.events).toEqual(['hold 1', 'settle', 'flush', 'exit 1'])
       expect(outcome.captured).toEqual([])
     }
   })
@@ -414,8 +453,8 @@ describe("agent-qa's own global failure handlers", () => {
     finishSettling()
     await first
 
-    expect(atSecond).toEqual(['code 1', 'capture', 'settle', 'exit 1'])
-    expect(outcome.events).toEqual(['code 1', 'capture', 'settle', 'exit 1', 'flush', 'exit 1'])
+    expect(atSecond).toEqual(['hold 1', 'capture', 'settle', 'exit 1'])
+    expect(outcome.events).toEqual(['hold 1', 'capture', 'settle', 'exit 1', 'flush', 'exit 1'])
     expect(outcome.printed).toHaveLength(1)
     expect(outcome.captured).toHaveLength(1)
   })
@@ -432,7 +471,7 @@ describe("agent-qa's own global failure handlers", () => {
 
     await expect(handle(new Error('a bug'))).resolves.toBeUndefined()
 
-    expect(outcome.events).toEqual(['code 1', 'capture', 'settle', 'exit 1'])
+    expect(outcome.events).toEqual(['hold 1', 'capture', 'settle', 'exit 1'])
   })
 
   it('are installed as one listener for each event, both running the one handler, and removed together', async () => {
@@ -455,7 +494,7 @@ describe("agent-qa's own global failure handlers", () => {
     onException[0]?.(new Error('an error nobody caught'), 'uncaughtException')
 
     expect(outcome.printed).toEqual(['Unexpected error: a rejection nobody handled'])
-    expect(outcome.events).toEqual(['code 1', 'capture', 'settle', 'flush', 'exit 1', 'exit 1'])
+    expect(outcome.events).toEqual(['hold 1', 'capture', 'settle', 'flush', 'exit 1', 'exit 1'])
   })
 })
 
