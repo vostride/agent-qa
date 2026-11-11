@@ -138,7 +138,10 @@ describe('the envelope walk', () => {
     const traceId = 'de42'.repeat(8)
     const shortSecret: TextMask = (text) => text.replaceAll('de', '[secret:SHORT]')
     const envelope = [
-      { event_id: eventId, sdk: { name: 'sentry.javascript.node', integrations: ['Dedupe'] } },
+      {
+        event_id: eventId,
+        sdk: { name: 'sentry.javascript.node', integrations: ['LinkedErrors'] },
+      },
       [
         [
           { type: 'event' },
@@ -155,7 +158,7 @@ describe('the envelope walk', () => {
     const sent = JSON.stringify(maskEnvelope(envelope, shortSecret))
 
     expect(sent).toContain(
-      `{"event_id":"${eventId}","sdk":{"name":"sentry.javascript.node","integrations":["Dedupe"]}}`,
+      `{"event_id":"${eventId}","sdk":{"name":"sentry.javascript.node","integrations":["LinkedErrors"]}}`,
     )
     expect(sent).toContain(`"event_id":"${eventId}","platform":"node"`)
     expect(sent).toContain(`"trace_id":"${traceId}"`)
