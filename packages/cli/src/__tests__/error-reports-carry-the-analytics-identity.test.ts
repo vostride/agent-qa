@@ -164,6 +164,17 @@ function attributeOf(span: RecordedSpan | undefined, key: string): unknown {
 
 const USER_FIELDS_LEFT_OUT = ['user.email', 'user.name', 'user.username', 'user.ip_address']
 
+// Every marker the run detector reads as CI, taken from the detector, whose package index does not
+// re-export them.
+const { CI_VENDOR_VARS } = (await import(
+  new URL('../../../safety-local/src/execution-context-detector.js', import.meta.url).href
+)) as { CI_VENDOR_VARS: ReadonlySet<string> }
+
+function stubRunContext(context: { readonly ci: boolean }): void {
+  for (const name of ['CI', ...CI_VENDOR_VARS]) vi.stubEnv(name, '')
+  if (context.ci) vi.stubEnv('CI', 'true')
+}
+
 describe('a report and a span', () => {
   it('send a captured error with the anonymous id as its only user field and the analytics properties as tags, beside the facts', async () => {
     const identity = internalUser()
@@ -351,6 +362,58 @@ describe('one resolution for the report and the analytics event', () => {
       expect(sent.map((payload) => payload.distinctId), arm.label).toEqual([own.distinctId])
       await closeErrorReporting()
     }
+  })
+
+  it("resolves the host's own identity outside CI when the reporter's resolution failed or was cut off, and sends its events under it", async () => {
+    stubRunContext({ ci: false })
+    const arms: ReadonlyArray<{ readonly label: string; readonly identity: IdentityResolver }> = [
+      {
+        label: 'a resolver that rejects',
+        identity: () => Promise.reject(new Error('the identity store cannot be read')),
+      },
+      {
+        label: 'a resolver the cut-off gives up on',
+        identity: () =>
+          resolveCliAnalyticsIdentity({ env: {}, resolve: () => new Promise(() => {}) }),
+      },
+    ]
+    for (const arm of arms) {
+      await startReporting(arm.identity)
+      const own = internalUser()
+      const hostOwn = vi.fn(async () => own)
+      const sent: AnalyticsCapturePayload[] = []
+      const host = await composeAnalyticsHost({
+        surface: 'cli',
+        env: {},
+        transportOverride: recordingAnalytics(sent),
+        resolveIdentity: hostOwn,
+      })
+      host.port.capture(analyticsEvent(host, 'agent-qa.explain.answered', { cited_row_count: 1 }))
+      await host.flush()
+
+      expect(hostOwn, arm.label).toHaveBeenCalledTimes(1)
+      expect(sent.map((payload) => payload.distinctId), arm.label).toEqual([own.distinctId])
+      await closeErrorReporting()
+    }
+  })
+
+  it("resolves no identity of the host's own in CI when the reporter's resolution failed, and sends no event", async () => {
+    stubRunContext({ ci: true })
+    await startReporting(() => Promise.reject(new Error('the identity store cannot be read')))
+    const hostOwn = vi.fn(async () => internalUser())
+    const sent: AnalyticsCapturePayload[] = []
+    const host = await composeAnalyticsHost({
+      surface: 'cli',
+      env: {},
+      transportOverride: recordingAnalytics(sent),
+      resolveIdentity: hostOwn,
+    })
+    host.port.capture(analyticsEvent(host, 'agent-qa.explain.answered', { cited_row_count: 1 }))
+    await host.flush()
+
+    expect(host.transportKind).toBe('posthog')
+    expect(hostOwn).not.toHaveBeenCalled()
+    expect(sent).toEqual([])
   })
 })
 

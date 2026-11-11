@@ -1,8 +1,8 @@
 // The CLI's one binding of `composeAnalytics`. Every host calls it once per invocation at its
 // composition root. It adds the standard properties and the identity gate (a host reads the
 // identity only when the transport `composeAnalytics` chose will send) and never decides the
-// opt-out itself. The identity is the process's one resolution, shared with the error reporter:
-// a host reuses the one the reporter started, and resolves its own only when there is none. It
+// opt-out itself. The identity is shared with the error reporter: a host reuses the resolution the
+// reporter started, and resolves its own when there is none, or, outside CI, when it gave none. It
 // holds no module-level state.
 
 import { composeAnalytics } from '@vostride/agent-qa-analytics'
@@ -79,8 +79,8 @@ export interface ComposeAnalyticsHostInput {
   projectKey?: string
   posthogTransportFactory?: PosthogTransportFactory
   /**
-   * Cell seam: replaces the host's own resolution, used when the error reporter started none, so a
-   * suite never touches a real home directory.
+   * Cell seam: replaces the host's own resolution, used when the error reporter started none or,
+   * outside CI, when its gave none, so a suite never touches a real home directory.
    */
   resolveIdentity?: typeof resolveAnalyticsIdentity
 }
@@ -142,13 +142,17 @@ export async function composeAnalyticsHost(
 
   // The gate is "is there a transport", not "did they opt out": a blank-key checkout composes no
   // transport while reporting `optedOut: false`, and reads no identity either. Past the gate the
-  // identity is the process's one resolution: the one the error reporter started, or this host's
-  // own when the reporter started none.
+  // identity is the one the error reporter's resolution gave, or this host's own when the reporter
+  // started none. When the reporter's gave none, the host resolves its own outside CI, which reads
+  // the same file; in CI that would mint a second id, so it resolves nothing.
   if (composed.transportKind === 'posthog') {
-    const resolved = await (heldProcessAnalyticsIdentity() ??
-      resolveCliAnalyticsIdentity({
+    const held = heldProcessAnalyticsIdentity()
+    const resolved =
+      (held === undefined ? undefined : await held) ??
+      (await resolveCliAnalyticsIdentity({
         ...(input.env === undefined ? {} : { env: input.env }),
         ...(input.resolveIdentity === undefined ? {} : { resolve: input.resolveIdentity }),
+        skipInCi: held !== undefined,
       }))
     // With none, telemetry stays off for this invocation; nothing falls back to a shared id.
     if (resolved !== undefined) {

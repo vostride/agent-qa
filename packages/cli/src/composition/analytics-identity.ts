@@ -12,6 +12,8 @@ export type HeldAnalyticsIdentity = Promise<ResolvedAnalyticsIdentity | undefine
 export interface ResolveCliAnalyticsIdentityInput {
   readonly env?: Readonly<Record<string, string | undefined>>
   readonly resolve?: typeof resolveAnalyticsIdentity
+  // In CI the resolution settles as undefined and resolves nothing.
+  readonly skipInCi?: boolean
 }
 
 // Never rejects: a failure, or no answer within the cut-off, settles as undefined. The environment
@@ -25,6 +27,7 @@ export function resolveCliAnalyticsIdentity(
   return import('@vostride/agent-qa-agent-local')
     .then(({ resolveRunExecutionContext }) => {
       const ci = resolveRunExecutionContext() === 'ci'
+      if (ci && input.skipInCi === true) return undefined
       const resolve = input.resolve ?? resolveAnalyticsIdentity
       return withTimeout(resolve({ env, ci }), ANALYTICS_IDENTITY_TIMEOUT_MS)
     })
