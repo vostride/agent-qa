@@ -6,6 +6,8 @@ import {
   ANALYTICS_REMOTE_PLUGINS,
   ANALYTICS_RUNNERS,
   analyticsRunId,
+  analyticsSuiteId,
+  analyticsTestId,
 } from '@vostride/agent-qa-analytics'
 import { ACTION_WIRE_SCHEMAS_BY_TYPE } from '@vostride/agent-qa-schema'
 import type { Platform, RunEventEnvelope } from '@vostride/agent-qa-schema'
@@ -102,6 +104,8 @@ export interface RunTraceSubscriber {
 }
 
 interface PayloadView {
+  readonly testId?: unknown
+  readonly suiteId?: unknown
   readonly testIndex?: unknown
   readonly stepIndex?: unknown
   readonly outcome?: unknown
@@ -150,12 +154,40 @@ export function createRunTraceSubscriber(input: RunTraceSubscriberInput): RunTra
   let finished = false
   let state: ReportRunState | undefined
   let stateStep: { readonly testIndex: number; readonly stepIndex: number } | undefined
+  let stateAction: string | undefined
+  let lastTest: number | undefined
+  let suiteId: string | undefined
+  const testIds = new Map<number, string>()
   const tests = new Map<number, ReportSpan>()
   const steps = new Map<string, OpenStep>()
 
   function setState(next: ReportRunState | undefined): void {
     state = next
     if (stateId !== undefined) reporter.setRunState(stateId, next)
+  }
+
+  // The state names the suite once one is known, and the test whose step it names, or the test
+  // that started last before any step. Only canonical ids are kept.
+  function currentState(): ReportRunState {
+    const testIndex = stateStep?.testIndex ?? lastTest
+    const testId = testIndex === undefined ? undefined : testIds.get(testIndex)
+    return {
+      runner,
+      ...place,
+      ...(stateStep === undefined ? {} : { step: stateStep.stepIndex }),
+      ...(stateAction === undefined ? {} : { action: stateAction }),
+      ...(testId === undefined ? {} : { testId }),
+      ...(suiteId === undefined ? {} : { suiteId }),
+    }
+  }
+
+  function noteTest(testIndex: number, payload: PayloadView): void {
+    const testId = analyticsTestId(payload.testId)
+    if (testId === undefined) testIds.delete(testIndex)
+    else testIds.set(testIndex, testId)
+    suiteId = analyticsSuiteId(payload.suiteId) ?? suiteId
+    lastTest = testIndex
+    setState(currentState())
   }
 
   // An agent-qa run command is one trace; a long-lived host starts each run in its own.
@@ -181,7 +213,7 @@ export function createRunTraceSubscriber(input: RunTraceSubscriberInput): RunTra
       ...lineage(),
     })
     openRuns.set(envelope.runId, run)
-    setState({ runner, ...place })
+    setState(currentState())
   }
 
   function beginTest(parent: ReportSpan, testIndex: number): void {
@@ -213,7 +245,8 @@ export function createRunTraceSubscriber(input: RunTraceSubscriberInput): RunTra
     steps.set(key, { key, testIndex, stepIndex, span })
     openSteps.set(key, span)
     stateStep = { testIndex, stepIndex }
-    setState({ runner, ...place, step: stepIndex })
+    stateAction = undefined
+    setState(currentState())
   }
 
   function endStep(step: OpenStep, outcome: ReportSpanOutcome): void {
@@ -233,7 +266,8 @@ export function createRunTraceSubscriber(input: RunTraceSubscriberInput): RunTra
     if (step === undefined) return
     step.span.setAttributes({ 'agent_qa.action': action })
     if (stateStep?.testIndex === testIndex && stateStep.stepIndex === stepIndex && state) {
-      setState({ ...state, action })
+      stateAction = action
+      setState(currentState())
     }
   }
 
@@ -257,7 +291,10 @@ export function createRunTraceSubscriber(input: RunTraceSubscriberInput): RunTra
     const stepIndex = readIndex(payload.stepIndex)
     switch (envelope.type) {
       case 'testStarted':
-        if (testIndex !== undefined) beginTest(run, testIndex)
+        if (testIndex !== undefined) {
+          beginTest(run, testIndex)
+          noteTest(testIndex, payload)
+        }
         break
       case 'stepStarted':
         if (testIndex !== undefined && stepIndex !== undefined) {

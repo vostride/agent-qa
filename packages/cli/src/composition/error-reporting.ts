@@ -72,13 +72,15 @@ export interface ReportSpanInput {
   readonly startTime?: number
 }
 
-// Where a run is: closed values and indexes only, never a step's text.
+// Where a run is: closed values, indexes and canonical ids only, never a step's text.
 export interface ReportRunState {
   readonly runner: string
   readonly platform?: string
   readonly adapter?: string
   readonly step?: number
   readonly action?: string
+  readonly testId?: string
+  readonly suiteId?: string
 }
 
 export interface ErrorReporter {
@@ -242,6 +244,26 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
       scope.setAttributes({ agent_qa_version: CLI_ANALYTICS_AGENT_QA_VERSION })
     } catch {
       // Reports go out without the version tag rather than fail the command.
+    }
+    if (identity !== undefined) {
+      // An error captured while the identity is pending waits for it, until its cut-off at most,
+      // and a settle's flush waits for that only inside the time the settle hands it.
+      client.addEventProcessor(async (event) => {
+        try {
+          const resolved = await identity
+          if (resolved === undefined || event.user !== undefined) return event
+          event.user = { id: resolved.distinctId }
+          // A cleared tag stays on the scope as undefined, so it counts as missing.
+          const tags = { ...event.tags }
+          for (const [name, value] of Object.entries(identityTags(resolved))) {
+            if (tags[name] === undefined) tags[name] = value
+          }
+          event.tags = tags
+          return event
+        } catch {
+          return event
+        }
+      })
     }
     // A resolution that settles after its reporter closed writes nothing on the next one.
     void identity?.then((resolved) => {
@@ -414,6 +436,8 @@ function runContext(runId: string, state: ReportRunState): Record<string, string
     ...(state.adapter === undefined ? {} : { adapter: state.adapter }),
     ...(state.step === undefined ? {} : { step: state.step }),
     ...(state.action === undefined ? {} : { action: state.action }),
+    ...(state.testId === undefined ? {} : { test_id: state.testId }),
+    ...(state.suiteId === undefined ? {} : { suite_id: state.suiteId }),
   }
 }
 

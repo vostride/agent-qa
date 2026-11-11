@@ -5,7 +5,7 @@ import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { generateRunId, generateTestId } from '@vostride/agent-qa-ids'
+import { generateRunId, generateSuiteId, generateTestId } from '@vostride/agent-qa-ids'
 import type { StepModelCallEvent } from '@vostride/agent-qa-runner'
 import { asRunId } from '@vostride/agent-qa-schema'
 import type { RunEventEnvelope, RunEventPayload, RunEventType } from '@vostride/agent-qa-schema'
@@ -99,13 +99,18 @@ function envelope(runId: string, type: RunEventType, payload: unknown): RunEvent
 const events = {
   runStarted: (runId: string) =>
     envelope(runId, 'runStarted', { busSchemaVersion: 2, memberTestCount: 1 }),
-  testStarted: (runId: string, testIndex: number) =>
+  testStarted: (
+    runId: string,
+    testIndex: number,
+    ids: { readonly testId?: string; readonly suiteId?: string } = {},
+  ) =>
     envelope(runId, 'testStarted', {
-      testId: generateTestId(),
+      testId: ids.testId ?? generateTestId(),
       testIndex,
       name: TEST_NAME,
       filePath: FILE_PATH,
       stepTexts: [STEP_TEXT],
+      ...(ids.suiteId === undefined ? {} : { suiteId: ids.suiteId }),
     }),
   stepStarted: (runId: string, testIndex: number, stepIndex: number) =>
     envelope(runId, 'stepStarted', { testIndex, stepIndex, stepText: STEP_TEXT }),
@@ -501,9 +506,10 @@ describe('the run state an error carries', () => {
     ])
   })
 
-  it('carries the run id, the runner, the platform, the adapter, the step and the action on an error during a step, and none after the run finishes', async () => {
+  it('carries the run id, the test id, the runner, the platform, the adapter, the step and the action on an error during a step, and none after the run finishes', async () => {
     const { recorder, reporter } = await startRecording()
     const runId = generateRunId()
+    const testId = generateTestId()
     const subscriber = createRunTraceSubscriber({
       reporter,
       runner: 'remote',
@@ -512,7 +518,7 @@ describe('the run state an error carries', () => {
 
     drive(subscriber, [
       events.runStarted(runId),
-      events.testStarted(runId, 0),
+      events.testStarted(runId, 0, { testId }),
       events.stepStarted(runId, 0, 3),
       events.subActionRecorded(runId, 0, 3, 'tap'),
     ])
@@ -527,6 +533,7 @@ describe('the run state an error carries', () => {
 
     expect(eventWithMessage(recorder.envelopes, 'an error during the step').contexts?.run).toEqual({
       run_id: runId,
+      test_id: testId,
       runner: 'remote',
       platform: 'android',
       adapter: 'uiautomator2',
@@ -542,10 +549,13 @@ describe('the run state an error carries', () => {
     const { recorder, reporter } = await startRecording()
     const first = generateRunId()
     const second = generateRunId()
+    const firstTest = generateTestId()
+    const secondTest = generateTestId()
     const one = createRunTraceSubscriber({ reporter, runner: 'local', platforms: ['web'] })
     const two = createRunTraceSubscriber({ reporter, runner: 'remote', platforms: ['ios'] })
     const firstState = {
       run_id: first,
+      test_id: firstTest,
       runner: 'local',
       platform: 'web',
       adapter: 'playwright',
@@ -555,13 +565,13 @@ describe('the run state an error carries', () => {
 
     drive(one, [
       events.runStarted(first),
-      events.testStarted(first, 0),
+      events.testStarted(first, 0, { testId: firstTest }),
       events.stepStarted(first, 0, 1),
       events.subActionRecorded(first, 0, 1, 'click'),
     ])
     drive(two, [
       events.runStarted(second),
-      events.testStarted(second, 0),
+      events.testStarted(second, 0, { testId: secondTest }),
       events.stepStarted(second, 0, 4),
     ])
     reporter.capture(new Error('both runs are open'))
@@ -586,6 +596,7 @@ describe('the run state an error carries', () => {
       [first]: firstState,
       [second]: {
         run_id: second,
+        test_id: secondTest,
         runner: 'remote',
         platform: 'ios',
         adapter: 'xcuitest',
@@ -603,12 +614,13 @@ describe('the run state an error carries', () => {
   it('carries the run state from the moment the run starts, and a new step names no action until it records one', async () => {
     const { recorder, reporter } = await startRecording()
     const runId = generateRunId()
+    const testId = generateTestId()
     const subscriber = createRunTraceSubscriber({ reporter, runner: 'local', platforms: ['ios'] })
 
     drive(subscriber, [events.runStarted(runId)])
     reporter.capture(new Error('an error before the first step'))
     drive(subscriber, [
-      events.testStarted(runId, 0),
+      events.testStarted(runId, 0, { testId }),
       events.stepStarted(runId, 0, 0),
       events.subActionRecorded(runId, 0, 0, 'tap'),
       events.stepFinalized(runId, 0, 0),
@@ -621,18 +633,19 @@ describe('the run state an error carries', () => {
     const before = eventWithMessage(recorder.envelopes, 'an error before the first step')
     const next = eventWithMessage(recorder.envelopes, 'an error on the next step')
     expect(before.contexts?.run).toEqual(place)
-    expect(next.contexts?.run).toEqual({ ...place, step: 1 })
+    expect(next.contexts?.run).toEqual({ ...place, test_id: testId, step: 1 })
   })
 
-  it('names the action of the step it names, not one another member recorded', async () => {
+  it('names the action and the test of the step it names, not those of another member', async () => {
     const { recorder, reporter } = await startRecording()
     const runId = generateRunId()
+    const secondTest = generateTestId()
     const subscriber = createRunTraceSubscriber({ reporter, runner: 'local', platforms: ['web'] })
 
     drive(subscriber, [
       events.runStarted(runId),
       events.testStarted(runId, 0),
-      events.testStarted(runId, 1),
+      events.testStarted(runId, 1, { testId: secondTest }),
       events.stepStarted(runId, 0, 2),
       events.stepStarted(runId, 1, 0),
       events.subActionRecorded(runId, 0, 2, 'click'),
@@ -643,11 +656,78 @@ describe('the run state an error carries', () => {
     const during = eventWithMessage(recorder.envelopes, 'an error while two members run')
     expect(during.contexts?.run).toEqual({
       run_id: runId,
+      test_id: secondTest,
       runner: 'local',
       platform: 'web',
       adapter: 'playwright',
       step: 0,
     })
+  })
+
+  it('carries the canonical suite and test ids its testStarted named beside the run id, each open run its own, and the test of the step it names once a step started', async () => {
+    const { recorder, reporter } = await startRecording()
+    const first = { runId: generateRunId(), suiteId: generateSuiteId(), testId: generateTestId() }
+    const second = { runId: generateRunId(), suiteId: generateSuiteId(), testId: generateTestId() }
+    const one = createRunTraceSubscriber({ reporter, runner: 'local', platforms: ['web'] })
+    const two = createRunTraceSubscriber({ reporter, runner: 'local', platforms: ['web'] })
+
+    drive(one, [events.runStarted(first.runId), events.testStarted(first.runId, 0, first)])
+    reporter.capture(new Error('a test of a suite runs'))
+    drive(two, [
+      events.runStarted(second.runId),
+      events.testStarted(second.runId, 0, second),
+      events.stepStarted(second.runId, 0, 0),
+      events.testStarted(second.runId, 1, { suiteId: second.suiteId }),
+    ])
+    reporter.capture(new Error('tests of two suites run'))
+    await settleReporting()
+
+    const place = { runner: 'local', platform: 'web', adapter: 'playwright' }
+    const single = eventWithMessage(recorder.envelopes, 'a test of a suite runs')
+    expect(single.contexts?.run).toEqual({
+      ...place,
+      run_id: first.runId,
+      suite_id: first.suiteId,
+      test_id: first.testId,
+    })
+    const both = eventWithMessage(recorder.envelopes, 'tests of two suites run')
+    expect(both.contexts?.runs).toEqual({
+      [first.runId]: {
+        ...place,
+        run_id: first.runId,
+        suite_id: first.suiteId,
+        test_id: first.testId,
+      },
+      [second.runId]: {
+        ...place,
+        run_id: second.runId,
+        suite_id: second.suiteId,
+        test_id: second.testId,
+        step: 0,
+      },
+    })
+  })
+
+  it('leaves out an id that is not canonical, and names no suite for a run with no suite', async () => {
+    const { recorder, reporter } = await startRecording()
+    const runId = generateRunId()
+    const testId = generateTestId()
+    const subscriber = createRunTraceSubscriber({ reporter, runner: 'local', platforms: ['web'] })
+
+    drive(subscriber, [
+      events.runStarted(runId),
+      events.testStarted(runId, 0, { testId: TEST_NAME, suiteId: FILE_PATH }),
+    ])
+    reporter.capture(new Error('a test whose ids are not canonical runs'))
+    drive(subscriber, [events.testStarted(runId, 1, { testId })])
+    reporter.capture(new Error('a test of no suite runs'))
+    await settleReporting()
+
+    const place = { run_id: runId, runner: 'local', platform: 'web', adapter: 'playwright' }
+    const refused = eventWithMessage(recorder.envelopes, 'a test whose ids are not canonical runs')
+    const plain = eventWithMessage(recorder.envelopes, 'a test of no suite runs')
+    expect(refused.contexts?.run).toEqual(place)
+    expect(plain.contexts?.run).toEqual({ ...place, test_id: testId })
   })
 
   it('leaves no run state of a closed reporter on the reports of the next one', async () => {

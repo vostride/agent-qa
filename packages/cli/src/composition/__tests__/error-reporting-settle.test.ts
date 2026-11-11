@@ -14,6 +14,10 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { createSecureContext } from 'node:tls'
 
+import {
+  DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS,
+  generateAnalyticsUserId,
+} from '@vostride/agent-qa-analytics'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -23,7 +27,18 @@ import {
 } from '../../__tests__/error-report-recorder.js'
 import type { RecordingReportTransport } from '../../__tests__/error-report-recorder.js'
 import { inMemoryCertificate } from '../../__tests__/in-memory-certificate.js'
-import { closeErrorReporting, settleReporting, startErrorReporting } from '../error-reporting.js'
+import { createGlobalFailureHandler } from '../../cli-error-handler.js'
+import type { GlobalFailureDeps } from '../../cli-error-handler.js'
+import {
+  ANALYTICS_IDENTITY_TIMEOUT_MS,
+  resolveCliAnalyticsIdentity,
+} from '../analytics-identity.js'
+import {
+  closeErrorReporting,
+  errorReporter,
+  settleReporting,
+  startErrorReporting,
+} from '../error-reporting.js'
 import type { ErrorReporter, SettleReportingInput } from '../error-reporting.js'
 import { boundedRequestModule } from '../error-reporting-requests.js'
 import type { ReportRequestModule } from '../error-reporting-requests.js'
@@ -288,6 +303,241 @@ describe('the settle step', () => {
 
     expect(steps).toEqual(['analytics shut down', 'settled'])
     expect(timers).not.toHaveBeenCalled()
+  })
+})
+
+// The SDK's flush looks once a millisecond for a report still in processing, so a settle with none
+// returns at its first look.
+const FIRST_LOOK_MS = 1
+
+function nextTurn(): Promise<void> {
+  return new Promise((resolve) => setImmediate(resolve))
+}
+
+// Made at one place, so the second error's frames are the first's.
+function errorsFromOnePlace(label: string): readonly [Error, Error] {
+  const [first, second] = ['first', 'second'].map((which) => new Error(`${label}, the ${which}`))
+  return [first!, second!]
+}
+
+// The first error of a pair reported on real time by a reporter closed after it, so the SDK holds
+// the source lines the second error needs and reads no file for it on the fake clock.
+async function errorWithItsSourceRead(label: string): Promise<Error> {
+  const recorder = recordingReportTransport()
+  recorders.push(recorder)
+  const reporter = await startErrorReporting({
+    configPath: projectWithPrivacy().configPath,
+    dsn: INVENTED_DSN,
+    transport: recorder.transport,
+  })
+  if (reporter === undefined) throw new Error('the reporter did not start')
+  const [first, second] = errorsFromOnePlace(label)
+  reporter.capture(first)
+  await reportSent(recorder)
+  await closeErrorReporting()
+  return second
+}
+
+// A reporter whose identity resolution never settles behind the shipped cut-off, started on the
+// fake clock, so the cut-off runs on it from the reporter's start.
+async function reportingWithThePendingIdentity(): Promise<{
+  readonly reporter: ErrorReporter
+  readonly startedAt: number
+}> {
+  // Loaded before the clock is faked, so the resolution's import resolves from the cache.
+  await import('@vostride/agent-qa-agent-local')
+  useFakeClock()
+  const startedAt = performance.now()
+  const recorder = recordingReportTransport()
+  recorders.push(recorder)
+  let asked = false
+  const reporter = await startErrorReporting({
+    configPath: projectWithPrivacy().configPath,
+    dsn: INVENTED_DSN,
+    transport: recorder.transport,
+    identity: () =>
+      resolveCliAnalyticsIdentity({
+        env: {},
+        resolve: () => {
+          asked = true
+          return new Promise(() => {})
+        },
+      }),
+  })
+  if (reporter === undefined) throw new Error('the reporter did not start')
+  for (let turn = 0; !asked && turn < 1000; turn += 1) await nextTurn()
+  if (!asked) throw new Error('the identity was never asked for')
+  await systemFactsRead()
+  return { reporter, startedAt }
+}
+
+// A client reads the system facts with a child process as it starts, on real time, and a report
+// waits for them, so they are read before the fake clock moves.
+async function systemFactsRead(): Promise<void> {
+  const sdk = await import('@sentry/node')
+  const client = sdk.getClient()
+  const facts = client?.getIntegrationByName('Context')
+  if (facts?.processEvent === undefined) throw new Error('the client reads no system facts')
+  await facts.processEvent({}, {}, client!)
+}
+
+// A reporter whose identity resolved, with a first report sent on real time, so the SDK holds the
+// source lines and system facts the second error needs. The second error goes out in the tick it
+// is captured in, and the clock is faked after that first report.
+async function reportingWithTheResolvedIdentity(label: string): Promise<{ readonly next: Error }> {
+  const recorder = recordingReportTransport()
+  recorders.push(recorder)
+  const reporter = await startErrorReporting({
+    configPath: projectWithPrivacy().configPath,
+    dsn: INVENTED_DSN,
+    transport: recorder.transport,
+    identity: async () => ({ distinctId: generateAnalyticsUserId(), runtimeContext: 'user' }),
+  })
+  if (reporter === undefined) throw new Error('the reporter did not start')
+  const [first, next] = errorsFromOnePlace(label)
+  reporter.capture(first)
+  await reportSent(recorder)
+  useFakeClock()
+  return { next }
+}
+
+// A settle on the default 2-second budget, or the one given, with when it returned on the fake
+// clock.
+function settleWatchedFrom(
+  began: number,
+  budgetMs?: number,
+): { returnedAfter(): number | undefined } {
+  let returnedAfter: number | undefined
+  void settleReporting(budgetMs === undefined ? {} : { budgetMs }).then(() => {
+    returnedAfter = performance.now() - began
+  })
+  return { returnedAfter: () => returnedAfter }
+}
+
+// The reporter is closed on real time once its identity settled, so the next arm starts afresh.
+async function closeOnRealTime(): Promise<void> {
+  await vi.advanceTimersByTimeAsync(ANALYTICS_IDENTITY_TIMEOUT_MS)
+  vi.useRealTimers()
+  await closeErrorReporting()
+}
+
+describe('a settle after an error captured while the identity is pending', () => {
+  it('returns when the identity cut-off passes, one second after the reporter started, and at its first look once the identity is resolved, inside the 2-second budget', async () => {
+    const error = await errorWithItsSourceRead('an error while the identity is pending')
+    const pending = await reportingWithThePendingIdentity()
+    pending.reporter.capture(error)
+    const waiting = settleWatchedFrom(pending.startedAt)
+    await vi.advanceTimersByTimeAsync(ANALYTICS_IDENTITY_TIMEOUT_MS - 1)
+    const beforeTheCutOff = waiting.returnedAfter()
+    await vi.advanceTimersByTimeAsync(1)
+    const withThePendingIdentity = waiting.returnedAfter()
+    await closeOnRealTime()
+
+    const resolved = await reportingWithTheResolvedIdentity('an error once the identity resolved')
+    errorReporter()?.capture(resolved.next)
+    const sent = settleWatchedFrom(performance.now())
+    await vi.advanceTimersByTimeAsync(FIRST_LOOK_MS)
+    const withTheResolvedIdentity = sent.returnedAfter()
+
+    expect(beforeTheCutOff).toBeUndefined()
+    expect(withThePendingIdentity).toBe(ANALYTICS_IDENTITY_TIMEOUT_MS)
+    expect(withTheResolvedIdentity).toBe(FIRST_LOOK_MS)
+    expect(Number(withThePendingIdentity) - Number(withTheResolvedIdentity)).toBeLessThanOrEqual(
+      ANALYTICS_IDENTITY_TIMEOUT_MS,
+    )
+    expect(withThePendingIdentity).toBeLessThanOrEqual(DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS)
+  })
+
+  it('returns at a budget shorter than what is left of the cut-off, and no later', async () => {
+    const error = await errorWithItsSourceRead('an error before a short settle')
+    const pending = await reportingWithThePendingIdentity()
+    pending.reporter.capture(error)
+    const waiting = settleWatchedFrom(pending.startedAt, BUDGET_MS)
+    await vi.advanceTimersByTimeAsync(BUDGET_MS - 1)
+    const beforeTheBudget = waiting.returnedAfter()
+    await vi.advanceTimersByTimeAsync(1)
+
+    expect(BUDGET_MS).toBeLessThan(ANALYTICS_IDENTITY_TIMEOUT_MS)
+    expect(beforeTheBudget).toBeUndefined()
+    expect(waiting.returnedAfter()).toBe(BUDGET_MS)
+  })
+
+  it('returns with the identity pending and no error captured when it would with no identity', async () => {
+    const pending = await reportingWithThePendingIdentity()
+    const waiting = settleWatchedFrom(pending.startedAt)
+    await vi.advanceTimersByTimeAsync(FIRST_LOOK_MS)
+    const withThePendingIdentity = waiting.returnedAfter()
+    await closeOnRealTime()
+
+    useFakeClock()
+    const startedAt = performance.now()
+    const recorder = recordingReportTransport()
+    recorders.push(recorder)
+    await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+    })
+    const plain = settleWatchedFrom(startedAt)
+    await vi.advanceTimersByTimeAsync(FIRST_LOOK_MS)
+
+    expect(withThePendingIdentity).toBe(plain.returnedAfter())
+    expect(withThePendingIdentity).toBe(FIRST_LOOK_MS)
+  })
+})
+
+interface HandledError {
+  readonly holds: ReadonlyArray<{ readonly code: number; readonly after: number }>
+  readonly exits: ReadonlyArray<{ readonly code: number; readonly after: number }>
+}
+
+// agent-qa's handler for an uncaught error over the real capture and the real settle, with each
+// exit code it holds and each exit it calls kept with when it came on the fake clock.
+function handleUncaught(error: Error, began: number): HandledError {
+  const holds: Array<{ readonly code: number; readonly after: number }> = []
+  const exits: Array<{ readonly code: number; readonly after: number }> = []
+  const deps: GlobalFailureDeps = {
+    print: () => {},
+    printFixed: () => {},
+    mask: (text) => text,
+    setExitCode: () => {},
+    holdExitCode: (code) => {
+      holds.push({ code, after: performance.now() - began })
+    },
+    capture: (caught) => {
+      errorReporter()?.capture(caught)
+    },
+    settle: () => settleReporting(),
+    flush: async () => {},
+    exit: (code) => {
+      exits.push({ code, after: performance.now() - began })
+    },
+    env: {},
+  }
+  void createGlobalFailureHandler(deps)(error)
+  return { holds, exits }
+}
+
+describe('the uncaught-error handler after an error while the identity is pending', () => {
+  it('holds exit 1 at once and exits 1 when the cut-off passes, and at its first look once the identity is resolved', async () => {
+    const error = await errorWithItsSourceRead('an uncaught error while the identity is pending')
+    const pending = await reportingWithThePendingIdentity()
+    const uncaught = handleUncaught(error, pending.startedAt)
+    const heldAtOnce = [...uncaught.holds]
+    await vi.advanceTimersByTimeAsync(ANALYTICS_IDENTITY_TIMEOUT_MS - 1)
+    const exitsBeforeTheCutOff = [...uncaught.exits]
+    await vi.advanceTimersByTimeAsync(1)
+    const exitsWithThePendingIdentity = [...uncaught.exits]
+    await closeOnRealTime()
+
+    const resolved = await reportingWithTheResolvedIdentity('an uncaught error, identity resolved')
+    const afterResolution = handleUncaught(resolved.next, performance.now())
+    await vi.advanceTimersByTimeAsync(FIRST_LOOK_MS)
+
+    expect(heldAtOnce).toEqual([{ code: 1, after: 0 }])
+    expect(exitsBeforeTheCutOff).toEqual([])
+    expect(exitsWithThePendingIdentity).toEqual([{ code: 1, after: ANALYTICS_IDENTITY_TIMEOUT_MS }])
+    expect(afterResolution.exits).toEqual([{ code: 1, after: FIRST_LOOK_MS }])
   })
 })
 

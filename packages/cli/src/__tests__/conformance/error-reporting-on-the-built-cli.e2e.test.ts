@@ -221,11 +221,43 @@ async function withSilentServer(use: (port: number) => Promise<void>): Promise<v
 }
 
 // A folder of its own with a home of its own, so init refuses the folder and not the home.
-async function spawnInFolder(label: string, args: readonly string[]): Promise<SpawnOutcome> {
+async function spawnInFolder(
+  label: string,
+  args: readonly string[],
+  home = tempFolder(`${label}-home`),
+): Promise<SpawnOutcome> {
   const folder = tempFolder(label)
   mkdirSync(join(folder, '.agent-qa'))
-  const home = tempFolder(`${label}-home`)
   return await spawnCollecting(folder, args, { HOME: home, USERPROFILE: home })
+}
+
+// Where the analytics identity is kept for a child whose home is `home`.
+function identityFile(home: string): string {
+  return join(home, '.agent-qa', 'analytics.json')
+}
+
+interface SinkEvent {
+  readonly user?: Readonly<Record<string, unknown>>
+  readonly tags?: Readonly<Record<string, unknown>>
+}
+
+interface SinkSpan {
+  readonly attributes?: Readonly<Record<string, { readonly value?: unknown }>>
+}
+
+// Each body is an envelope: its header line, then a header line and a payload line per item.
+function sinkItems(
+  bodies: readonly string[],
+): Array<{ readonly type: unknown; readonly payload: unknown }> {
+  return bodies.flatMap((body) => {
+    const lines = body.split('\n').filter((line) => line !== '')
+    const items: Array<{ readonly type: unknown; readonly payload: unknown }> = []
+    for (let index = 1; index + 1 < lines.length; index += 2) {
+      const header = JSON.parse(lines[index] ?? '{}') as { readonly type?: unknown }
+      items.push({ type: header.type, payload: JSON.parse(lines[index + 1] ?? 'null') })
+    }
+    return items
+  })
 }
 
 function writeProject(privacy: boolean): string {
@@ -318,19 +350,25 @@ const LONG_LIVED = [CLI_ENTRY, 'mcp', '--http', '0']
 
 describe('reporting off on the shipped bin', () => {
   it(
-    'a refused init exits 2 with its line, resolves no @sentry/ module and sends nothing',
+    'a refused init exits 2 with its line, resolves no @sentry/ module, sends nothing and leaves no identity file under its home',
     async () => {
       expectFresh()
       await withSink(async (sink) => {
         const recorder = sentryResolveRecorder()
+        const home = tempFolder('off-home')
 
-        const refused = await spawnInFolder('off', [...recorder.args, CLI_ENTRY, ...REFUSED_INIT])
+        const refused = await spawnInFolder(
+          'off',
+          [...recorder.args, CLI_ENTRY, ...REFUSED_INIT],
+          home,
+        )
 
         expect(refused.code, seen(refused)).toBe(2)
         expect(refused.stderr, seen(refused)).toBe(`${INIT_REFUSAL}\n`)
         expect(refused.stdout, seen(refused)).toBe('')
         expect(recorder.resolved()).toEqual([])
         expect(sink.bodies).toEqual([])
+        expect(existsSync(identityFile(home))).toBe(false)
       })
     },
     CELL_BUDGET_MS,
@@ -380,6 +418,61 @@ describe('reporting on, with a loopback DSN swapped into the shipped bin', () =>
   )
 
   it(
+    "a refused init leaves the identity file under its home and reports that id, the next command's report and command span carry it and the analytics properties, and their output is the off twin's",
+    async () => {
+      expectFresh()
+      await withSink(async (sink) => {
+        const version = (await spawnInFolder('identity-version', [CLI_ENTRY, '--version'])).stdout
+        const offHome = tempFolder('identity-off-home')
+        const onHome = tempFolder('identity-on-home')
+        const refusedOn = () =>
+          spawnInFolder('identity-on', [...dsnSwap(sink), CLI_ENTRY, ...REFUSED_INIT], onHome)
+
+        const off = await spawnInFolder('identity-off', [CLI_ENTRY, ...REFUSED_INIT], offHome)
+        const first = await refusedOn()
+        const sentByTheFirst = sink.bodies.length
+        const next = await refusedOn()
+
+        expect(off.code, seen(off)).toBe(2)
+        expect(seen(first)).toBe(seen(off))
+        expect(seen(next)).toBe(seen(off))
+        expect(existsSync(identityFile(offHome))).toBe(false)
+        const stored = JSON.parse(readFileSync(identityFile(onHome), 'utf8')) as {
+          readonly distinctId?: unknown
+        }
+        expect(stored.distinctId).toEqual(expect.stringMatching(/^u_/u))
+        // The command that writes the record can end before the record is written, so only its
+        // report, which waits for the identity, is sure to carry the id.
+        const eventsOf = (bodies: readonly string[]) =>
+          sinkItems(bodies)
+            .filter((item) => item.type === 'event')
+            .map((item) => item.payload as SinkEvent)
+        const firstEvents = eventsOf(sink.bodies.slice(0, sentByTheFirst))
+        expect(firstEvents.map((event) => event.user)).toEqual([{ id: stored.distinctId }])
+        const nextBodies = sink.bodies.slice(sentByTheFirst)
+        const [event, ...more] = eventsOf(nextBodies)
+        const command = sinkItems(nextBodies)
+          .filter((item) => item.type === 'span')
+          .flatMap((item) => (item.payload as { readonly items?: SinkSpan[] }).items ?? [])
+          .find((span) => span.attributes?.['sentry.op']?.value === 'agent_qa.command')
+        expect(more).toEqual([])
+        expect(event?.user).toEqual({ id: stored.distinctId })
+        expect(command?.attributes?.['user.id']?.value).toBe(stored.distinctId)
+        const properties = {
+          agent_qa_version: version.trim(),
+          surface: 'cli',
+          runtime_context: 'user',
+        }
+        for (const [name, value] of Object.entries(properties)) {
+          expect(event?.tags?.[name], name).toBe(value)
+          expect(command?.attributes?.[name]?.value, name).toBe(value)
+        }
+      })
+    },
+    CELL_BUDGET_MS,
+  )
+
+  it(
     'every release a report names is agent-qa@ the version --version prints',
     async () => {
       expectFresh()
@@ -406,11 +499,15 @@ describe('reporting on, with a loopback DSN swapped into the shipped bin', () =>
   )
 
   it(
-    'a refused run in a project with analytics.privacy true loads no @sentry/ module and sends nothing, while its twin sends',
+    'a refused run in a project with analytics.privacy true loads no @sentry/ module, sends nothing and leaves no identity file, while its twin sends and leaves one',
     async () => {
       expectFresh()
       await withSink(async (sink) => {
-        const outcomes: Array<{ readonly resolved: number; readonly sent: number }> = []
+        const outcomes: Array<{
+          readonly resolved: number
+          readonly sent: number
+          readonly identity: boolean
+        }> = []
         for (const privacy of [false, true]) {
           const project = writeProject(privacy)
           const recorder = sentryResolveRecorder()
@@ -424,13 +521,19 @@ describe('reporting on, with a loopback DSN swapped into the shipped bin', () =>
           ])
           expect(refused.code, seen(refused)).toBe(1)
           expect(refused.stderr, seen(refused)).toContain('Env file not found')
-          outcomes.push({ resolved: recorder.resolved().length, sent: sink.bodies.length - sent })
+          outcomes.push({
+            resolved: recorder.resolved().length,
+            sent: sink.bodies.length - sent,
+            // The spawned child's home is its project folder.
+            identity: existsSync(identityFile(project)),
+          })
         }
 
         const [open, optedOut] = outcomes
         expect(open?.resolved, 'the twin without privacy loads the SDK').toBeGreaterThan(0)
         expect(open?.sent, 'the twin without privacy sends').toBeGreaterThan(0)
-        expect(optedOut).toEqual({ resolved: 0, sent: 0 })
+        expect(open?.identity, 'the twin without privacy keeps an identity').toBe(true)
+        expect(optedOut).toEqual({ resolved: 0, sent: 0, identity: false })
       })
     },
     CELL_BUDGET_MS,
