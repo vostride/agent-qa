@@ -113,11 +113,11 @@ describe('the mask a live-editor session hands the dashboard', () => {
     expect(await reported('alpha beta two')).toEqual(['[alpha masked] [beta masked] two'])
     expect(alpha.calls, 'the binding still open').toBeGreaterThan(alphaCalls)
 
-    // The reporter keeps the binding that ended last, so ending alpha lets beta go.
+    // The reporter keeps a binding's mask for a minute after it ends, so both still apply.
     endAlpha()
     const betaCalls = beta.calls
-    expect(await reported('alpha beta three')).toEqual(['[alpha masked] beta three'])
-    expect(beta.calls, 'a binding that ended before the last one').toBe(betaCalls)
+    expect(await reported('alpha beta three')).toEqual(['[alpha masked] [beta masked] three'])
+    expect(beta.calls, 'a binding that ended a moment ago').toBeGreaterThan(betaCalls)
   })
 
   it('keeps a connection URL a plugin answered out of a report made while the session is bound and of one made just after it ended', async () => {

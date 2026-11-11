@@ -96,6 +96,8 @@ export interface StartErrorReportingInput {
   readonly homeDir?: string
   readonly transport?: ReportTransportFactory
   readonly loadSdk?: () => Promise<SentrySdk>
+  // Milliseconds on a clock that never goes back; it times how long an ended mask is kept.
+  readonly now?: () => number
 }
 
 export type ErrorReportingDecision =
@@ -152,7 +154,11 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
     const decision = await decideErrorReporting({ configPath, dsn })
     if (!decision.on) return undefined
 
-    const masks = createReportMasks(configPath, await readSavedCredentialValues(input.authPath))
+    const masks = createReportMasks(
+      configPath,
+      await readSavedCredentialValues(input.authPath),
+      input.now ?? (() => performance.now()),
+    )
     const home = input.homeDir ?? homedir()
     const spellings = homeSpellings(home, realPath(home))
     const Sentry = await (input.loadSdk ?? loadSentrySdk)()
@@ -397,21 +403,33 @@ interface ReportMasks {
   keepRecordBindings<T extends object>(breadcrumb: T): T
 }
 
+// An ended binding's mask is kept this long, so an error or a line that comes late from a finished
+// run or session is still masked after others ended; the newest one is kept however old.
+const ENDED_MASK_KEPT_MS = 60_000
+// A long-lived host that ends many bindings keeps no more than this many, the newest.
+const ENDED_MASKS_KEPT_AT_MOST = 100
+
 // Each envelope passes the saved credentials, the declared secrets, then each binding's mask once:
 // those in force when an event in it was captured or one of its breadcrumbs was recorded, those
-// open now, and the one that ended last. A report made just after a run still passes that run's
-// mask, and so do one captured during a run and sent after it ended, and a line printed during a
-// run, however many bindings ended since.
-function createReportMasks(configPath: string, savedCredentials: readonly string[]): ReportMasks {
+// open now, and those that ended within the last minute. A report made just after a run still
+// passes that run's mask, and so do one captured during a run and sent after it ended, and a line
+// printed during a run, however many bindings ended since.
+function createReportMasks(
+  configPath: string,
+  savedCredentials: readonly string[],
+  now: () => number,
+): ReportMasks {
   const declared = createDeclaredSecretMask(configPath)
   const saved = savedCredentials.length === 0 ? [] : [maskSavedCredentials(savedCredentials)]
   const open = new Set<{ readonly mask: TextMask }>()
-  let endedLast: TextMask | undefined
+  // Oldest first.
+  const ended: Array<{ readonly mask: TextMask; readonly at: number }> = []
   const atCapture = new WeakMap<object, readonly TextMask[]>()
-  const inForce = (): TextMask[] => [
-    ...[...open].map((binding) => binding.mask),
-    ...(endedLast === undefined ? [] : [endedLast]),
-  ]
+  const inForce = (): TextMask[] => {
+    const cutoff = now() - ENDED_MASK_KEPT_MS
+    while (ended.length > 1 && ended[0]!.at < cutoff) ended.shift()
+    return [...[...open].map((binding) => binding.mask), ...ended.map((entry) => entry.mask)]
+  }
   return {
     resolve: (envelope) => {
       const bindings = new Set([
@@ -426,7 +444,9 @@ function createReportMasks(configPath: string, savedCredentials: readonly string
       const binding = { mask }
       open.add(binding)
       return () => {
-        if (open.delete(binding)) endedLast = mask
+        if (!open.delete(binding)) return
+        ended.push({ mask, at: now() })
+        if (ended.length > ENDED_MASKS_KEPT_AT_MOST) ended.shift()
       }
     },
     captureBindings: () => ({ boundAtCapture: inForce() }),
