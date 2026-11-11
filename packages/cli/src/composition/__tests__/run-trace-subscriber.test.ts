@@ -730,6 +730,83 @@ describe('the run state an error carries', () => {
     expect(plain.contexts?.run).toEqual({ ...place, test_id: testId })
   })
 
+  it('names the test that started after another finished with its own suite, and no step or action of the finished test', async () => {
+    const { recorder, reporter } = await startRecording()
+    const runId = generateRunId()
+    const first = { suiteId: generateSuiteId(), testId: generateTestId() }
+    const next = { suiteId: generateSuiteId(), testId: generateTestId() }
+    const subscriber = createRunTraceSubscriber({ reporter, runner: 'local', platforms: ['web'] })
+
+    drive(subscriber, [
+      events.runStarted(runId),
+      events.testStarted(runId, 0, first),
+      events.stepStarted(runId, 0, 2),
+      events.subActionRecorded(runId, 0, 2, 'click'),
+      events.stepFinalized(runId, 0, 2),
+      events.testFinished(runId, 0),
+      events.testStarted(runId, 1, next),
+    ])
+    reporter.capture(new Error('an error before the first step of a test of another suite'))
+    await settleReporting()
+
+    const during = eventWithMessage(
+      recorder.envelopes,
+      'an error before the first step of a test of another suite',
+    )
+    expect(during.contexts?.run).toEqual({
+      run_id: runId,
+      runner: 'local',
+      platform: 'web',
+      adapter: 'playwright',
+      suite_id: next.suiteId,
+      test_id: next.testId,
+    })
+  })
+
+  it('names no test once its test finished, then the next test of no suite alone, and never the suite of a test that ran beside it', async () => {
+    const { recorder, reporter } = await startRecording()
+    const runId = generateRunId()
+    const finished = generateTestId()
+    const loose = generateTestId()
+    const suited = { suiteId: generateSuiteId(), testId: generateTestId() }
+    const subscriber = createRunTraceSubscriber({ reporter, runner: 'local', platforms: ['web'] })
+
+    drive(subscriber, [
+      events.runStarted(runId),
+      events.testStarted(runId, 0, { testId: finished }),
+      events.stepStarted(runId, 0, 4),
+      events.subActionRecorded(runId, 0, 4, 'click'),
+      events.stepFinalized(runId, 0, 4),
+      events.testFinished(runId, 0),
+    ])
+    reporter.capture(new Error('an error between two tests'))
+    drive(subscriber, [events.testStarted(runId, 1, { testId: loose })])
+    reporter.capture(new Error('an error before the first step of the next test'))
+    drive(subscriber, [
+      events.testStarted(runId, 2, suited),
+      events.stepStarted(runId, 2, 0),
+      events.stepFinalized(runId, 2, 0),
+      events.testFinished(runId, 2),
+      events.stepStarted(runId, 1, 0),
+    ])
+    reporter.capture(new Error('an error during a step of a test of no suite'))
+    await settleReporting()
+
+    const place = { run_id: runId, runner: 'local', platform: 'web', adapter: 'playwright' }
+    const between = eventWithMessage(recorder.envelopes, 'an error between two tests')
+    const before = eventWithMessage(
+      recorder.envelopes,
+      'an error before the first step of the next test',
+    )
+    const during = eventWithMessage(
+      recorder.envelopes,
+      'an error during a step of a test of no suite',
+    )
+    expect.soft(before.contexts?.run).toEqual({ ...place, test_id: loose })
+    expect.soft(during.contexts?.run).toEqual({ ...place, test_id: loose, step: 0 })
+    expect.soft(between.contexts?.run).toEqual(place)
+  })
+
   it('leaves no run state of a closed reporter on the reports of the next one', async () => {
     const first = await startRecording()
     drive(createRunTraceSubscriber({ reporter: first.reporter, runner: 'local' }), [

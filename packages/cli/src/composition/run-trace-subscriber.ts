@@ -156,8 +156,8 @@ export function createRunTraceSubscriber(input: RunTraceSubscriberInput): RunTra
   let stateStep: { readonly testIndex: number; readonly stepIndex: number } | undefined
   let stateAction: string | undefined
   let lastTest: number | undefined
-  let suiteId: string | undefined
   const testIds = new Map<number, string>()
+  const suiteIds = new Map<number, string>()
   const tests = new Map<number, ReportSpan>()
   const steps = new Map<string, OpenStep>()
 
@@ -166,11 +166,12 @@ export function createRunTraceSubscriber(input: RunTraceSubscriberInput): RunTra
     if (stateId !== undefined) reporter.setRunState(stateId, next)
   }
 
-  // The state names the suite once one is known, and the test whose step it names, or the test
-  // that started last before any step. Only canonical ids are kept.
+  // The state names the test whose step it names, or the open test that started last, and that
+  // test's own suite. Only canonical ids are kept.
   function currentState(): ReportRunState {
     const testIndex = stateStep?.testIndex ?? lastTest
     const testId = testIndex === undefined ? undefined : testIds.get(testIndex)
+    const suiteId = testIndex === undefined ? undefined : suiteIds.get(testIndex)
     return {
       runner,
       ...place,
@@ -185,8 +186,19 @@ export function createRunTraceSubscriber(input: RunTraceSubscriberInput): RunTra
     const testId = analyticsTestId(payload.testId)
     if (testId === undefined) testIds.delete(testIndex)
     else testIds.set(testIndex, testId)
-    suiteId = analyticsSuiteId(payload.suiteId) ?? suiteId
+    const suiteId = analyticsSuiteId(payload.suiteId)
+    if (suiteId === undefined) suiteIds.delete(testIndex)
+    else suiteIds.set(testIndex, suiteId)
     lastTest = testIndex
+    setState(currentState())
+  }
+
+  function leaveTest(testIndex: number): void {
+    if (stateStep?.testIndex === testIndex) {
+      stateStep = undefined
+      stateAction = undefined
+    }
+    if (lastTest === testIndex) lastTest = undefined
     setState(currentState())
   }
 
@@ -326,6 +338,7 @@ export function createRunTraceSubscriber(input: RunTraceSubscriberInput): RunTra
         if (testIndex !== undefined) {
           endStepsOf(testIndex, cutOffOutcome(payload.outcome))
           endTest(testIndex, 'ok')
+          leaveTest(testIndex)
         }
         break
       case 'runFinished':
