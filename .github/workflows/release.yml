@@ -166,7 +166,6 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}
           SENTRY_PROJECT: ${{ vars.SENTRY_PROJECT }}
-          SENTRY_LOAD_DOTENV: '0'
           RELEASE_VERSION: ${{ steps.version.outputs.version || steps.resume.outputs.version }}
         run: pnpm exec node scripts/release/sentry.mjs --upload --release "agent-qa@$RELEASE_VERSION"
 

@@ -311,11 +311,11 @@ test('only the source-map upload step receives the Sentry upload token, organisa
   assert.deepEqual(placesNaming(release, /\bvars\.SENTRY_(?:ORG|PROJECT)\b/), [
     'npm: Upload source maps: env',
   ])
+  // sentry-cli gets only the environment the script builds, which keeps .env loading off itself.
   assert.deepEqual(upload.env, {
     SENTRY_AUTH_TOKEN: '${{ secrets.SENTRY_AUTH_TOKEN }}',
     SENTRY_ORG: '${{ vars.SENTRY_ORG }}',
     SENTRY_PROJECT: '${{ vars.SENTRY_PROJECT }}',
-    SENTRY_LOAD_DOTENV: '0',
     RELEASE_VERSION: releaseVersion,
   })
 })
