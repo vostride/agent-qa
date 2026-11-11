@@ -2,7 +2,7 @@
 // SDK is never imported; with it on, one client is built by hand and held for the process.
 
 import { existsSync, realpathSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { homedir, userInfo } from 'node:os'
 import { resolve } from 'node:path'
 
 import type * as SentryNode from '@sentry/node'
@@ -20,9 +20,9 @@ import {
 } from './declared-secrets.js'
 import type { DeclaredSecretMask } from './declared-secrets.js'
 import {
+  createHomeRewrite,
   createMaskingTransport,
   createRepeatFilter,
-  homeSpellings,
 } from './error-reporting-mask.js'
 import type { TextMask } from './error-reporting-mask.js'
 import { boundedRequestModule } from './error-reporting-requests.js'
@@ -93,6 +93,8 @@ export interface StartErrorReportingInput {
   readonly dsn?: string
   readonly authPath?: string
   readonly homeDir?: string
+  // The account's own home and user name; it can throw, as os.userInfo does.
+  readonly userInfo?: () => { readonly homedir: string; readonly username: string }
   readonly transport?: ReportTransportFactory
   readonly loadSdk?: () => Promise<SentrySdk>
   // Milliseconds on a clock that never goes back; it times how long an ended mask is kept.
@@ -159,7 +161,15 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
       input.now ?? (() => performance.now()),
     )
     const home = input.homeDir ?? homedir()
-    const spellings = homeSpellings(home, realPath(home))
+    const account = accountOf(input.userInfo ?? (() => userInfo()))
+    const homes = [home, realPath(home)]
+    // A process started with another HOME still hides the account's real home.
+    if (account !== undefined) homes.push(account.home, realPath(account.home))
+    const rewriteHome = createHomeRewrite({
+      homes,
+      ...(account === undefined ? {} : { userName: account.name }),
+      ignoreCase: process.platform === 'win32' || process.platform === 'darwin',
+    })
     const Sentry = await (input.loadSdk ?? loadSentrySdk)()
     const requests = boundedRequestModule(URL.parse(dsn)?.protocol ?? 'https:')
     // Built by hand, since the SDK's init adopts the shell's trace variables whatever it is passed.
@@ -205,7 +215,7 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
       transport: createMaskingTransport(
         input.transport ?? Sentry.makeNodeTransport,
         masks.resolve,
-        { homeSpellings: spellings, dropRepeats: createRepeatFilter() },
+        { rewriteHome, dropRepeats: createRepeatFilter() },
       ),
       transportOptions: { httpModule: requests },
       beforeSend: (event, hint) => masks.keepCaptureBindings(event, hint),
@@ -301,6 +311,18 @@ function realPath(path: string): string {
     return realpathSync(path)
   } catch {
     return path
+  }
+}
+
+function accountOf(
+  read: () => { readonly homedir: string; readonly username: string },
+): { readonly home: string; readonly name: string } | undefined {
+  try {
+    const info = read()
+    return { home: info.homedir, name: info.username }
+  } catch {
+    // An account with no entry in the user database; HOME is all there is.
+    return undefined
   }
 }
 

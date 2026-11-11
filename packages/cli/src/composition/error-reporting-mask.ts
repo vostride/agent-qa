@@ -68,9 +68,9 @@ function element(shape: Shape | undefined): Shape | undefined {
 }
 
 // Longest first, so a spelling that holds a shorter one is replaced whole.
-export function homeSpellings(homeDir: string, realHomeDir: string): string[] {
+export function homeSpellings(...homes: readonly string[]): string[] {
   const spellings = new Set<string>()
-  for (const given of [homeDir, realHomeDir]) {
+  for (const given of homes) {
     const path = given.replace(/[\\/]+$/, '')
     if (/^(?:[A-Za-z]:)?$/.test(path)) continue
     const forward = path.replaceAll('\\', '/')
@@ -80,23 +80,58 @@ export function homeSpellings(homeDir: string, realHomeDir: string): string[] {
     }
     const url = `file://${forward.startsWith('/') ? '' : '/'}${forward}`
     spellings.add(url)
-    const encoded = encodedUrl(url)
+    const encoded = encodedForm(encodeURI, url)
     if (encoded !== undefined) spellings.add(encoded)
   }
   return [...spellings].sort((a, b) => b.length - a.length)
 }
 
-function encodedUrl(url: string): string | undefined {
+function encodedForm(encode: (text: string) => string, text: string): string | undefined {
   try {
-    return encodeURI(url)
+    return encode(text)
   } catch {
     // A lone surrogate has no encoded form.
     return undefined
   }
 }
 
-export function rewriteHome(text: string, spellings: readonly string[]): string {
-  return spellings.reduce((rewritten, spelling) => rewritten.replaceAll(spelling, '~'), text)
+export interface HomeRewriteInput {
+  readonly homes: readonly string[]
+  readonly userName?: string
+  // Set where the file system ignores case, as on Windows and macOS.
+  readonly ignoreCase?: boolean
+}
+
+// A path separator as it reads in text: a slash, a backslash, or a backslash escaped in JSON.
+const SEPARATOR = String.raw`(?:\\\\|\\|/)`
+const USERS_FOLDER = String.raw`(?:^|${SEPARATOR})(?:Users|home)${SEPARATOR}`
+// What can follow a user-name folder: a separator, the end, or a mark no file name holds here.
+const NAME_END = String.raw`(?=[\\/"'\s<>|:*?,;)\]}]|$)`
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\/]/gu, '\\$&')
+}
+
+// Every spelling of each home reads `~`. So does the account's user name where it is the folder
+// directly under a users folder (/Users, /home, C:\Users, /mnt/c/Users), whatever home that path is
+// under; the bare name anywhere else is left, since it can be an ordinary word.
+export function createHomeRewrite(input: HomeRewriteInput): TextMask {
+  const flags = input.ignoreCase === true ? 'giu' : 'gu'
+  const spellings = homeSpellings(...input.homes)
+  const home =
+    spellings.length === 0 ? undefined : new RegExp(spellings.map(escapeRegExp).join('|'), flags)
+  const name = input.userName ?? ''
+  const names = [
+    ...new Set([name, encodedForm(encodeURIComponent, name), JSON.stringify(name).slice(1, -1)]),
+  ].filter((form): form is string => form !== undefined && form !== '')
+  const userFolder =
+    names.length === 0
+      ? undefined
+      : new RegExp(`(${USERS_FOLDER})(?:${names.map(escapeRegExp).join('|')})${NAME_END}`, flags)
+  return (text) => {
+    const rewritten = home === undefined ? text : text.replace(home, '~')
+    return userFolder === undefined ? rewritten : rewritten.replace(userFolder, '$1~')
+  }
 }
 
 // An envelope is a header and a list of items, each an item header and a payload whose shape its
@@ -227,7 +262,7 @@ function delivered(result: unknown): boolean {
 }
 
 export interface MaskingTransportOptions {
-  readonly homeSpellings?: readonly string[]
+  readonly rewriteHome?: TextMask
   readonly dropRepeats?: RepeatFilter
 }
 
@@ -239,7 +274,7 @@ export function createMaskingTransport<TOptions, TEnvelope, TResult extends obje
   resolveMask: (envelope: TEnvelope) => TextMask,
   options: MaskingTransportOptions = {},
 ): (options: TOptions) => EnvelopeTransport<TEnvelope, Partial<TResult>> {
-  const spellings = options.homeSpellings ?? []
+  const rewriteHome = options.rewriteHome ?? ((text: string) => text)
   const { dropRepeats } = options
   return (transportOptions) => {
     const transport = inner(transportOptions)
@@ -248,7 +283,7 @@ export function createMaskingTransport<TOptions, TEnvelope, TResult extends obje
         let outgoing: TEnvelope | undefined
         try {
           const mask = resolveMask(envelope)
-          const masked = maskEnvelope(envelope, (text) => rewriteHome(mask(text), spellings))
+          const masked = maskEnvelope(envelope, (text) => rewriteHome(mask(text)))
           outgoing = dropRepeats === undefined ? masked : dropRepeats(masked)
         } catch {
           return Promise.resolve({})

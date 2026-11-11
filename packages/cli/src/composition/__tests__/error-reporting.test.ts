@@ -500,6 +500,29 @@ describe('the report mask', () => {
     expect(sent).not.toContain('canary-user')
   })
 
+  it("rewrites the account's own home and its user name under a users folder when HOME is another folder", async () => {
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      homeDir: '/tmp/a-home-for-this-process',
+      userInfo: () => ({ homedir: '/home/canary-account', username: 'canary-account' }),
+      transport: recorder.transport,
+    })
+
+    reporter?.capture(
+      new Error(
+        'cannot read /home/canary-account/project/agent-qa.config.yaml or ' +
+          '/mnt/c/Users/canary-account/notes.txt for canary-account',
+      ),
+    )
+    await settleReporting()
+
+    expect(exceptionValues(recorder.envelopes)).toEqual([
+      'cannot read ~/project/agent-qa.config.yaml or /mnt/c/Users/~/notes.txt for canary-account',
+    ])
+  })
+
   it('applies a bound mask after the declared one while its binding is open, and two open bindings both', async () => {
     const recorder = recordingReportTransport()
     const reporter = await startErrorReporting({
