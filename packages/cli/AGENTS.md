@@ -59,7 +59,8 @@ and attributes on a span: `agent_qa_version`, `surface`, `runtime_context`,
 else on the user. With reporting on, the reporter starts the process's one
 identity resolution, held in `src/composition/analytics-identity.ts`, and
 `composeAnalyticsHost` reuses it, so a report and an analytics event carry one
-id; with reporting and analytics both off, nothing reads or writes the
+id; outside CI, a host resolves its own identity when that resolution gave
+none. With reporting and analytics both off, nothing reads or writes the
 identity file. The resolution keeps its one-second cut-off, and neither the
 reporter's start nor a span waits for it. An error captured while it is
 pending waits for it, until that cut-off at most and always inside the
