@@ -5,12 +5,13 @@
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
-import type { AddressInfo } from 'node:net'
+import { createServer as createNetServer, type AddressInfo, type Socket } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { gunzipSync } from 'node:zlib'
 
+import { DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS } from '@vostride/agent-qa-analytics'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import {
@@ -138,7 +139,7 @@ function sentryResolveRecorder(): ResolveRecord {
   }
 }
 
-function dsnSwap(sink: Sink): string[] {
+function dsnSwap(sink: { readonly dsn: string }): string[] {
   const swapped = `const AGENT_QA_SENTRY_DSN = ${JSON.stringify(sink.dsn)};`
   return preload('dsn-swap.mjs', filled(DSN_SWAP, { BLANK: BLANK_DSN, SWAPPED: swapped }))
 }
@@ -194,6 +195,24 @@ async function withSink(use: (sink: Sink) => Promise<void>): Promise<void> {
   }
 }
 
+// Accepts every connection on loopback and never answers, as a proxy or an ingest.
+async function withSilentServer(use: (port: number) => Promise<void>): Promise<void> {
+  const open = new Set<Socket>()
+  const server = createNetServer((socket) => {
+    open.add(socket)
+    socket.on('error', () => {})
+    socket.on('close', () => open.delete(socket))
+  })
+  await new Promise<void>((listening) => server.listen(0, '127.0.0.1', () => listening()))
+  const { port } = server.address() as AddressInfo
+  try {
+    await use(port)
+  } finally {
+    for (const socket of open) socket.destroy()
+    await new Promise<void>((closed) => server.close(() => closed()))
+  }
+}
+
 // A folder of its own with a home of its own, so init refuses the folder and not the home.
 async function spawnInFolder(label: string, args: readonly string[]): Promise<SpawnOutcome> {
   const folder = tempFolder(label)
@@ -226,16 +245,22 @@ function writeProject(privacy: boolean): string {
 
 interface LongRun extends SpawnOutcome {
   readonly killedAtBudget: boolean
+  readonly elapsedMs: number
 }
 
-// The environment is hermeticEnv's, as for every spawned cell; the kill at the budget is added.
-async function spawnLongLived(args: readonly string[]): Promise<LongRun> {
-  const folder = tempFolder('long-lived')
-  mkdirSync(join(folder, '.agent-qa'))
+// The environment is hermeticEnv's, as for every spawned cell, with `env` over it; the kill at the
+// budget is added. With no folder given, it runs in a new one.
+async function spawnLongLived(
+  args: readonly string[],
+  options: { readonly cwd?: string; readonly env?: Readonly<Record<string, string>> } = {},
+): Promise<LongRun> {
+  const folder = options.cwd ?? tempFolder('long-lived')
+  if (options.cwd === undefined) mkdirSync(join(folder, '.agent-qa'))
   const home = tempFolder('long-lived-home')
+  const startedAt = performance.now()
   const child = spawn(process.execPath, [...args], {
     cwd: folder,
-    env: { ...hermeticEnv(folder), HOME: home, USERPROFILE: home },
+    env: { ...hermeticEnv(folder), HOME: home, USERPROFILE: home, ...options.env },
     stdio: ['ignore', 'pipe', 'pipe'],
   })
   let stdout = ''
@@ -255,7 +280,14 @@ async function spawnLongLived(args: readonly string[]): Promise<LongRun> {
     return await new Promise<LongRun>((settle, fail) => {
       child.once('error', fail)
       child.once('close', (code, signal) =>
-        settle({ code, signal, stdout, stderr, killedAtBudget }),
+        settle({
+          code,
+          signal,
+          stdout,
+          stderr,
+          killedAtBudget,
+          elapsedMs: performance.now() - startedAt,
+        }),
       )
     })
   } finally {
@@ -454,6 +486,44 @@ describe("agent-qa's own global handlers on the shipped bin, with reporting on",
         expect(crashed.stderr.split('\n')[0], seen(crashed)).toMatch(
           /^Unexpected error: spawn agent-qa-binary-that-does-not-exist ENOENT/u,
         )
+      })
+    },
+    CELL_BUDGET_MS,
+  )
+})
+
+// The settle budget, the CLI's start and the command itself, with room for a loaded runner; a
+// command a report holds open is killed at the run budget instead.
+const EXIT_BOUND_MS = DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS + 8_000
+
+describe('report requests behind a proxy on the shipped bin, with reporting on', () => {
+  it.each([{ variable: 'http_proxy' }, { variable: 'https_proxy' }, { variable: 'HTTPS_PROXY' }])(
+    'with $variable naming a proxy that never answers, a command that ends on its own and one that calls process.exit each exit with their own code inside the bound',
+    async ({ variable }) => {
+      expectFresh()
+      await withSilentServer(async (port) => {
+        const valid = writeProject(false)
+        writeFileSync(join(valid, '.env'), '', 'utf8')
+        writeFileSync(join(valid, 'hooks.yaml'), '{"hooks":[]}\n', 'utf8')
+        const swap = dsnSwap({ dsn: `https://key@127.0.0.1:${String(port)}/1` })
+        const env = { [variable]: `http://127.0.0.1:${String(port)}` }
+
+        const validated = await spawnLongLived([...swap, CLI_ENTRY, 'validate'], {
+          cwd: valid,
+          env,
+        })
+        const refused = await spawnLongLived(
+          [...swap, CLI_ENTRY, 'run', 'tests/missing.test.yaml'],
+          { cwd: writeProject(false), env },
+        )
+
+        expect(validated.killedAtBudget, seen(validated)).toBe(false)
+        expect(validated.code, seen(validated)).toBe(0)
+        expect(validated.elapsedMs, seen(validated)).toBeLessThan(EXIT_BOUND_MS)
+        expect(refused.killedAtBudget, seen(refused)).toBe(false)
+        expect(refused.code, seen(refused)).toBe(1)
+        expect(refused.stderr, seen(refused)).toContain('Env file not found')
+        expect(refused.elapsedMs, seen(refused)).toBeLessThan(EXIT_BOUND_MS)
       })
     },
     CELL_BUDGET_MS,
