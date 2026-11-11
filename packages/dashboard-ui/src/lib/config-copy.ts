@@ -520,11 +520,12 @@ export function removeAttributeName(key: string): string {
 }
 
 export const PRIVACY_FIELD_LABELS = {
-  privacy: 'Turn off usage data',
+  privacy: 'Turn off usage data and error reports',
 } as const
 
 export const PRIVACY_FIELD_HELP = {
-  privacy: 'When on, agent-qa sends no product usage data from this project.',
+  privacy:
+    'When on, agent-qa sends no usage data and no error reports from this project. Error reports carry the same anonymous id and properties as usage data.',
 } as const
 
 /** A duration field's draft error: the forms the field accepts. */

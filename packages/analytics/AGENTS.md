@@ -10,7 +10,10 @@ their composition roots; the agent's function layer never sees it. It also
 holds the two generated, gitignored key files, `src/posthog-project.ts` and
 `src/sentry-project.ts` (the DSN the CLI's error reporter reads), which
 `scripts/ensure-posthog-project.cjs` creates blank when missing and a release
-writes, so a source checkout sends nothing.
+writes, so a source checkout sends nothing. `src/identity.ts` resolves the
+anonymous id: the one stored in `analytics.json` under the data home, created
+on first use, or in CI a new id for each process. A host resolves it once per
+process, for analytics events and for the CLI's error reports alike.
 
 ## Read First
 

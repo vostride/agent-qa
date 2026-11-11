@@ -50,7 +50,22 @@ means off, and a long-lived process never reads the flag again.
 `src/composition/error-reporting.ts` holds the only import of `@sentry/node`,
 a dynamic one, so nothing loads when reporting is off; a static import
 anywhere the CLI reaches would load it on every invocation. The spans are the
-command, each run, test, step and model call, and each MCP tool call. Every
+command, each run, test, step and model call, and each MCP tool call. A report
+carries the anonymous analytics id as its Sentry user id, and a span as its
+`user.id` attribute: the id this process's analytics events carry. Both carry
+the analytics base properties under their analytics names, as tags on a report
+and attributes on a span: `agent_qa_version`, `surface`, `runtime_context`,
+`is_internal` when true and `agent_product` when known. agent-qa sets nothing
+else on the user. With reporting on, the reporter starts the process's one
+identity resolution, held in `src/composition/analytics-identity.ts`, and
+`composeAnalyticsHost` reuses it, so a report and an analytics event carry one
+id; with reporting and analytics both off, nothing reads or writes the
+identity file. The resolution keeps its one-second cut-off, and neither the
+reporter's start nor a span waits for it. An error captured while it is
+pending waits for it, until that cut-off at most and always inside the
+2-second settle budget. A span that ends first leaves without the id,
+`runtime_context`, `is_internal` and `agent_product`, and a resolution that
+fails or is cut off sends reports without them. Every
 report is masked at the transport, once per envelope, by the saved
 credentials, the declared secrets and the masks bound with `bindMask`: those
 bound when the report was captured or one of its breadcrumbs was recorded,
