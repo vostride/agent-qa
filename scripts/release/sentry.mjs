@@ -15,6 +15,12 @@ const uploadVariables = ['SENTRY_AUTH_TOKEN', 'SENTRY_ORG', 'SENTRY_PROJECT']
 const uploadSkipped = '::warning::Source maps were not uploaded to Sentry'
 const usage = 'node scripts/release/sentry.mjs --write | --inject | --upload --release <name>'
 
+// Far beyond what a healthy inject or upload takes, so only a hang reaches it.
+export const sentryCliDeadlineMs = 10 * 60_000
+// pnpm exec finds @sentry/cli's node wrapper, which passes SIGTERM on to the binary. SIGKILL would
+// end only the wrapper and leave sentry-cli running.
+const deadlineSignal = 'SIGTERM'
+
 export function renderSentryProjectFile(dsn) {
   if (!dsn?.trim()) throw new Error('SENTRY_DSN is required')
   return `export const AGENT_QA_SENTRY_DSN = ${JSON.stringify(dsn)}\n`
@@ -104,14 +110,16 @@ export function injectDebugIds(options = {}) {
     cwd: rootDir,
     encoding: 'utf8',
     stdio: 'pipe',
+    timeout: options.deadlineMs ?? sentryCliDeadlineMs,
+    killSignal: deadlineSignal,
     env: { PATH: env.PATH, SENTRY_LOAD_DOTENV: '0' },
   })
   ;(options.log ?? console.log)(`Injected debug IDs into ${targets.join(' ')}`)
   return targets
 }
 
-// A release never waits on Sentry. The warning is a fixed sentence, because sentry-cli's own
-// output can repeat what it was given.
+// A release never fails on Sentry and waits on it no longer than the deadline. The warning is a
+// fixed sentence, because sentry-cli's own output can repeat what it was given.
 export function uploadSourceMaps(options = {}) {
   const rootDir = options.rootDir ?? process.cwd()
   const env = options.env ?? process.env
@@ -129,6 +137,8 @@ export function uploadSourceMaps(options = {}) {
       cwd: rootDir,
       encoding: 'utf8',
       stdio: 'pipe',
+      timeout: options.deadlineMs ?? sentryCliDeadlineMs,
+      killSignal: deadlineSignal,
       // Nothing else reaches sentry-cli, so no SENTRY_URL moves it off its default endpoint.
       env: {
         PATH: env.PATH,
@@ -139,8 +149,11 @@ export function uploadSourceMaps(options = {}) {
       },
     })
   } catch (error) {
+    // A stopped wrapper exits 0, so the status says nothing about a timeout.
     const status = Number.isInteger(error?.status) ? ` (exit status ${error.status})` : ''
-    log(`${uploadSkipped}: the upload failed${status}`)
+    const reason =
+      error?.code === 'ETIMEDOUT' ? 'the upload timed out' : `the upload failed${status}`
+    log(`${uploadSkipped}: ${reason}`)
     return { uploaded: false }
   }
   log(`Uploaded source maps for ${options.release}`)
@@ -159,9 +172,10 @@ export function parseSentryArgs(argv = []) {
 
 export async function runCli(argv = process.argv.slice(2), options = {}) {
   const { mode, release } = parseSentryArgs(argv)
-  const { rootDir, env, log, execFileSync } = options
-  if (mode === 'inject') return injectDebugIds({ rootDir, env, log, execFileSync })
-  if (mode === 'upload') return uploadSourceMaps({ rootDir, env, log, execFileSync, release })
+  const { rootDir, env, log, execFileSync, deadlineMs } = options
+  if (mode === 'inject') return injectDebugIds({ rootDir, env, log, execFileSync, deadlineMs })
+  if (mode === 'upload')
+    return uploadSourceMaps({ rootDir, env, log, execFileSync, deadlineMs, release })
   return writeSentryProjectFile({ rootDir, env, log, dsn: options.dsn })
 }
 

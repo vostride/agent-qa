@@ -46,6 +46,8 @@ jobs:
     needs: ci
     if: ${{ !cancelled() && inputs.subscription_auth_target_version == '' && inputs.github_release_target_version == '' && (needs.ci.result == 'success' || (inputs.npm_target_version != '' && needs.ci.result == 'skipped')) }}
     runs-on: ubuntu-latest
+    # A real release takes minutes here; the limit only ends a hang.
+    timeout-minutes: 60
     outputs:
       version: ${{ steps.version.outputs.version || steps.resume.outputs.version }}
       subscription_auth_on_npm: ${{ steps.resume.outputs.subscription_auth_on_npm }}
@@ -155,9 +157,11 @@ jobs:
       - name: Publish packages
         run: pnpm exec node scripts/release/publish.mjs --staged-dir .release/staged-packages
 
-      # Runs last, so a failed release uploads nothing. A failed upload never blocks a release.
+      # Runs last, so a failed release uploads nothing. A failed or hung upload never blocks a
+      # release: the script stops sentry-cli at its own deadline, and the step limit backs it up.
       - name: Upload source maps
         continue-on-error: true
+        timeout-minutes: 12
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.SENTRY_ORG }}

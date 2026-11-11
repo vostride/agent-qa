@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 import { loadWorkflow } from '../check-ci-matrix.mjs'
+import { sentryCliDeadlineMs } from '../release/sentry.mjs'
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -335,6 +336,19 @@ test('the source-map upload is the last npm step, names the release agent-qa@<ve
   assert.equal(upload.name, 'Upload source maps')
   assert.equal(upload['continue-on-error'], true)
   assert.equal(upload.run, sentryUpload)
+})
+
+test('a hung source-map upload stops at the script deadline, or at the step limit just after it, well inside the npm job limit', () => {
+  const npm = loadWorkflow('release.yml').jobs.npm
+  const upload = npm.steps.find((step) => step.name === 'Upload source maps')
+  const stepLimitMs = upload['timeout-minutes'] * 60_000
+
+  assert.equal(upload['continue-on-error'], true)
+  assert.ok(stepLimitMs > sentryCliDeadlineMs, 'the script stops sentry-cli before the step limit')
+  assert.ok(stepLimitMs <= sentryCliDeadlineMs + 5 * 60_000, 'the step limit is only a backstop')
+  // A job limit that fired during the upload would fail the job and hold Docker and the GitHub
+  // release, so it leaves the steps before the upload half an hour.
+  assert.ok(npm['timeout-minutes'] >= upload['timeout-minutes'] + 30, `${npm['timeout-minutes']}`)
 })
 
 // The built cli starts through its dist entry or as the agent-qa command. A release name such as
