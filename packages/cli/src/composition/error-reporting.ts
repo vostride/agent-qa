@@ -10,9 +10,17 @@ import {
   AGENT_QA_SENTRY_DSN,
   DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS,
 } from '@vostride/agent-qa-analytics'
+import type { ResolvedAnalyticsIdentity } from '@vostride/agent-qa-analytics'
 
 import { declaresAnalyticsPrivacy, readConfigDeclaration } from '../config.js'
 import { CLI_ANALYTICS_AGENT_QA_VERSION } from './analytics-host.js'
+import type { CliAnalyticsSurface } from './analytics-host.js'
+import {
+  heldProcessAnalyticsIdentity,
+  holdProcessAnalyticsIdentity,
+  releaseProcessAnalyticsIdentity,
+} from './analytics-identity.js'
+import type { HeldAnalyticsIdentity } from './analytics-identity.js'
 import {
   createDeclaredSecretMask,
   createSavedCredentialMask,
@@ -99,6 +107,8 @@ export interface StartErrorReportingInput {
   readonly loadSdk?: () => Promise<SentrySdk>
   // Milliseconds on a clock that never goes back; it times how long an ended mask is kept.
   readonly now?: () => number
+  // Called once when reporting is on; with none, the reporter resolves no identity.
+  readonly identity?: () => HeldAnalyticsIdentity
 }
 
 export type ErrorReportingDecision =
@@ -154,6 +164,9 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
     const configPath = resolve(input.configPath)
     const decision = await decideErrorReporting({ configPath, dsn })
     if (!decision.on) return undefined
+    // Started before the SDK loads, which takes far longer, and never awaited on the way to the
+    // command.
+    const identity = input.identity === undefined ? undefined : holdIdentity(input.identity)
 
     const masks = createReportMasks(
       configPath,
@@ -223,6 +236,26 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
     })
     Sentry.setCurrentClient(client)
     client.init()
+    try {
+      const scope = Sentry.getGlobalScope()
+      scope.setTag('agent_qa_version', CLI_ANALYTICS_AGENT_QA_VERSION)
+      scope.setAttributes({ agent_qa_version: CLI_ANALYTICS_AGENT_QA_VERSION })
+    } catch {
+      // Reports go out without the version tag rather than fail the command.
+    }
+    // A resolution that settles after its reporter closed writes nothing on the next one.
+    void identity?.then((resolved) => {
+      if (resolved === undefined || heldProcessAnalyticsIdentity() !== identity) return
+      try {
+        const scope = Sentry.getGlobalScope()
+        // The id alone: no IP address, user name or e-mail.
+        scope.setUser({ id: resolved.distinctId })
+        scope.setTags(identityTags(resolved))
+        scope.setAttributes(identityAttributes(resolved))
+      } catch {
+        // Reports go out without the identity rather than fail the command.
+      }
+    })
 
     const startSpan = spanStarter(Sentry)
     let commandPath: string | undefined
@@ -254,11 +287,14 @@ async function buildReporter(input: StartErrorReportingInput): Promise<ErrorRepo
       setFacts: (facts) => {
         try {
           const scope = Sentry.getGlobalScope()
+          const surface = commandSurface(facts.command)
           scope.setTags({
             command: facts.command,
             package_manager: facts.packageManager,
             ci: facts.ci ? 'ci' : 'local',
+            surface,
           })
+          scope.setAttributes({ surface })
           scope.setContext('agent_qa', {
             flags: [...facts.flags],
             platforms: [...facts.platforms],
@@ -323,6 +359,50 @@ function accountOf(
   } catch {
     // An account with no entry in the user database; HOME is all there is.
     return undefined
+  }
+}
+
+// The surface each command's own analytics host names; a command that composes none is cli.
+export function commandSurface(command: string): CliAnalyticsSurface {
+  return command === 'mcp' || command === 'chat' || command === 'daemon' ? command : 'cli'
+}
+
+// The properties every PostHog event carries, under PostHog's names: tags on a report, attributes
+// on a span.
+const ANALYTICS_PROPERTY_NAMES = [
+  'agent_qa_version',
+  'surface',
+  'runtime_context',
+  'is_internal',
+  'agent_product',
+] as const
+
+// Handled at once: with reporting on, an unhandled rejection would reach agent-qa's own handler.
+function holdIdentity(resolve: () => HeldAnalyticsIdentity): HeldAnalyticsIdentity {
+  let identity: HeldAnalyticsIdentity
+  try {
+    identity = Promise.resolve(resolve()).catch(() => undefined)
+  } catch {
+    identity = Promise.resolve(undefined)
+  }
+  holdProcessAnalyticsIdentity(identity)
+  return identity
+}
+
+// is_internal is present only when true, as on an analytics event.
+function identityTags(identity: ResolvedAnalyticsIdentity): Record<string, string> {
+  return {
+    runtime_context: identity.runtimeContext,
+    ...(identity.agentProduct === undefined ? {} : { agent_product: identity.agentProduct }),
+    ...(identity.isInternal === true ? { is_internal: 'true' } : {}),
+  }
+}
+
+function identityAttributes(identity: ResolvedAnalyticsIdentity): Record<string, string | boolean> {
+  return {
+    runtime_context: identity.runtimeContext,
+    ...(identity.agentProduct === undefined ? {} : { agent_product: identity.agentProduct }),
+    ...(identity.isInternal === true ? { is_internal: true } : {}),
   }
 }
 
@@ -604,16 +684,26 @@ async function settleOnce(current: StartedReporting, input: SettleReportingInput
 
 export async function closeErrorReporting(): Promise<void> {
   budgetLeftMs = undefined
+  // Released before anything is awaited, so a resolution that settles now writes on no reporter,
+  // and waited for, so none still reads or writes the identity file once the close returns.
+  const identity = heldProcessAnalyticsIdentity()
+  releaseProcessAnalyticsIdentity()
   const current = started
   started = undefined
+  if (identity !== undefined) await within(DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS, () => identity)
   if (current === undefined) return
   await within(DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS, () =>
     current.client.close(DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS),
   )
-  // The facts and the run state sit on the SDK's process-wide scope; a reporter started later
-  // begins without them.
+  // The facts, the identity and the run state sit on the SDK's process-wide scope; a reporter
+  // started later begins without them.
   const scope = current.sdk.getGlobalScope()
   scope.setTags({ command: undefined, package_manager: undefined, ci: undefined })
+  scope.setUser({})
+  for (const name of ANALYTICS_PROPERTY_NAMES) {
+    scope.setTag(name, undefined)
+    scope.removeAttribute(name)
+  }
   scope.setContext('agent_qa', null)
   scope.setContext('run', null)
   scope.setContext('runs', null)

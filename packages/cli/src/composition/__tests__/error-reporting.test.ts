@@ -15,7 +15,10 @@ import { release, tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS } from '@vostride/agent-qa-analytics'
+import {
+  DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS,
+  generateAnalyticsUserId,
+} from '@vostride/agent-qa-analytics'
 import { pluginMaskName, RunSecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -82,6 +85,7 @@ afterEach(async () => {
 interface RecordedEvent {
   readonly release?: string
   readonly environment?: string
+  readonly user?: Readonly<Record<string, unknown>>
   readonly tags?: Readonly<Record<string, unknown>>
   readonly contexts?: Readonly<Record<string, Readonly<Record<string, unknown>>>>
   readonly breadcrumbs?: ReadonlyArray<{ readonly category?: string; readonly message?: string }>
@@ -158,12 +162,14 @@ function expectOffBesideOn(off: ArmOutcome, on: ArmOutcome): void {
 }
 
 describe('the error reporter', () => {
-  it('sends a captured error and its cause with stack frames, the release and the production environment, and no server name or user', async () => {
+  it('sends a captured error and its cause with stack frames, the release, the production environment and the anonymous id as its only user field, and no server name', async () => {
     const recorder = recordingReportTransport()
+    const distinctId = generateAnalyticsUserId()
     const reporter = await startErrorReporting({
       configPath: projectWithPrivacy().configPath,
       dsn: INVENTED_DSN,
       transport: recorder.transport,
+      identity: async () => ({ distinctId, runtimeContext: 'user' }),
     })
     expect(reporter).toBeDefined()
 
@@ -179,7 +185,7 @@ describe('the error reporter', () => {
     expect(event?.release).toBe(`agent-qa@${CLI_ANALYTICS_AGENT_QA_VERSION}`)
     expect(event?.environment).toBe('production')
     expect(event).not.toHaveProperty('server_name')
-    expect(event).not.toHaveProperty('user')
+    expect(event?.user).toEqual({ id: distinctId })
   })
 
   it('loads no SDK and sends nothing for a project with analytics.privacy true, while the on arm sends through the same recorder', async () => {
@@ -815,9 +821,14 @@ describe('environment facts and log lines', () => {
     writeFileSync(configPath, FACTS_CONFIG, 'utf8')
     const { root, action } = await daemonStatus(configPath)
     const recorder = recordingReportTransport()
+    // Started without the starter's identity, so the tags are the facts alone.
     await startCliErrorReporting(root, action, {
       start: (input) =>
-        startErrorReporting({ ...input, dsn: INVENTED_DSN, transport: recorder.transport }),
+        startErrorReporting({
+          configPath: input.configPath,
+          dsn: INVENTED_DSN,
+          transport: recorder.transport,
+        }),
       installHandlers: () => {},
     })
 
@@ -825,7 +836,13 @@ describe('environment facts and log lines', () => {
     await settleReporting()
 
     const [event] = recordedEvents(recorder.envelopes)
-    expect(event?.tags).toEqual({ command: 'daemon status', package_manager: 'pnpm', ci: 'ci' })
+    expect(event?.tags).toEqual({
+      command: 'daemon status',
+      package_manager: 'pnpm',
+      ci: 'ci',
+      agent_qa_version: CLI_ANALYTICS_AGENT_QA_VERSION,
+      surface: 'cli',
+    })
     expect(event?.contexts?.agent_qa).toEqual({
       flags: ['--config', '--json'],
       platforms: ['android', 'web'],
@@ -889,13 +906,19 @@ describe('environment facts and log lines', () => {
     ])
   })
 
-  it('leaves none of the facts of a closed reporter on the reports of the next one', async () => {
+  it('leaves none of the facts or the identity of a closed reporter on the reports of the next one', async () => {
     const recorder = recordingReportTransport()
     const { configPath } = projectWithPrivacy()
     const first = await startErrorReporting({
       configPath,
       dsn: INVENTED_DSN,
       transport: recorder.transport,
+      identity: async () => ({
+        distinctId: generateAnalyticsUserId(),
+        runtimeContext: 'user',
+        agentProduct: 'claude_code',
+        isInternal: true,
+      }),
     })
     first?.setFacts({
       command: 'first command',
@@ -919,8 +942,10 @@ describe('environment facts and log lines', () => {
     await settleReporting()
 
     const [before, after] = recordedEvents(recorder.envelopes)
-    expect(before?.tags).toMatchObject({ command: 'first command' })
-    expect(after?.tags ?? {}).toEqual({})
+    expect(before?.tags).toMatchObject({ command: 'first command', runtime_context: 'user' })
+    expect(before).toHaveProperty('user')
+    expect(after?.tags ?? {}).toEqual({ agent_qa_version: CLI_ANALYTICS_AGENT_QA_VERSION })
+    expect(after).not.toHaveProperty('user')
     expect(after?.contexts).not.toHaveProperty('agent_qa')
   })
 })

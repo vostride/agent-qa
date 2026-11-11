@@ -6,6 +6,7 @@ import type { Command } from 'commander'
 import { defaultCliFailureDeps, installGlobalFailureHandlers } from '../cli-error-handler.js'
 import { resolveMcpConfigPath } from '../commands/mcp-project.js'
 import { projectHost, type ProjectHost } from '../commands/project-host.js'
+import { resolveCliAnalyticsIdentity } from './analytics-identity.js'
 import { collectReportFacts, commandPath } from './error-report-facts.js'
 import { startErrorReporting } from './error-reporting.js'
 
@@ -25,7 +26,11 @@ export async function startCliErrorReporting(
   try {
     const env = deps.env ?? process.env
     const configPath = await decidingConfigPath(program, action, env, deps)
-    const reporter = await (deps.start ?? startErrorReporting)({ configPath })
+    // The reporter resolves the analytics identity only once its reporting is on.
+    const reporter = await (deps.start ?? startErrorReporting)({
+      configPath,
+      identity: () => resolveCliAnalyticsIdentity({ env }),
+    })
     if (reporter === undefined) return
     // Only with reporting on: with it off, Node's own handling of an escaped error is unchanged.
     const installHandlers =
