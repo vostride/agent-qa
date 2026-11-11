@@ -821,11 +821,12 @@ describe('environment facts and log lines', () => {
     writeFileSync(configPath, FACTS_CONFIG, 'utf8')
     const { root, action } = await daemonStatus(configPath)
     const recorder = recordingReportTransport()
-    // Started without the starter's identity, so the tags are the facts alone.
+    // The starter's input with an identity that gives none, so the tags are the facts alone.
     await startCliErrorReporting(root, action, {
       start: (input) =>
         startErrorReporting({
-          configPath: input.configPath,
+          ...input,
+          identity: async () => undefined,
           dsn: INVENTED_DSN,
           transport: recorder.transport,
         }),
