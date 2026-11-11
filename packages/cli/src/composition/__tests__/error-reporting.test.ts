@@ -265,6 +265,27 @@ describe('the error reporter', () => {
     }
   })
 
+  it('sends error events and span containers only, with no session, log, profile, replay or client report item', async () => {
+    const recorder = recordingReportTransport()
+    const reporter = await startErrorReporting({
+      configPath: projectWithPrivacy().configPath,
+      dsn: INVENTED_DSN,
+      transport: recorder.transport,
+    })
+
+    reporter?.beginCommandSpan('run', ['--config'])
+    console.log('a line printed before the error')
+    reporter?.capture(new Error('an error beside a span'))
+    await settleReporting()
+    await closeErrorReporting()
+
+    const parsed = JSON.parse(serializedEnvelopes(recorder.envelopes)) as Array<
+      [unknown, Array<[{ readonly type?: string }, unknown]>]
+    >
+    const types = parsed.flatMap(([, items]) => items).map(([header]) => header.type)
+    expect([...new Set(types)].sort()).toEqual(['event', 'span'])
+  })
+
   it('returns the reporter the first start built when it is started again', async () => {
     const loader = countingLoader()
     const input = {
@@ -291,6 +312,20 @@ describe('the reporting decision', () => {
     await expect(
       decideErrorReporting({ configPath: join(dir, 'missing.yaml'), dsn: INVENTED_DSN }),
     ).resolves.toEqual({ on: true })
+  })
+
+  it('stays on, and sends, when DO_NOT_TRACK is set', async () => {
+    vi.stubEnv('DO_NOT_TRACK', '1')
+    const { configPath } = projectWithPrivacy()
+    const recorder = recordingReportTransport()
+
+    await expect(decideErrorReporting({ configPath, dsn: INVENTED_DSN })).resolves.toMatchObject({
+      on: true,
+    })
+    const on = await driveArm({ configPath, dsn: INVENTED_DSN }, recorder, countingLoader())
+
+    expect(on.reporter).toBe(true)
+    expect(on.envelopes).toBeGreaterThan(0)
   })
 
   it('is off when the config path is a folder or a file that is not YAML', async () => {
@@ -1089,6 +1124,35 @@ const CLI_SRC = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const ANALYTICS_SRC = resolve(CLI_SRC, '..', '..', 'analytics', 'src')
 const REPORTER_FILE = join('composition', 'error-reporting.ts')
 
+const REPO_ROOT = resolve(CLI_SRC, '..', '..', '..')
+const ANY_SENTRY_IMPORT = /\b(?:from|import|require)\s*\(?\s*(['"`])@sentry\//
+
+// Every workspace member's folder: each package and each plugin.
+function memberDirs(): string[] {
+  return ['packages', 'plugins'].flatMap((group) =>
+    readdirSync(join(REPO_ROOT, group), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => join(REPO_ROOT, group, entry.name)),
+  )
+}
+
+function memberSourceFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name)
+    if (entry.isDirectory()) return entry.name === '__tests__' ? [] : memberSourceFiles(path)
+    return /\.(?:[cm]?[jt]s|[jt]sx)$/.test(entry.name) && !/\.test\./.test(entry.name) ? [path] : []
+  })
+}
+
+function sentryDependencies(dir: string): Array<[string, string]> {
+  const manifest = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')) as Readonly<
+    Record<string, Readonly<Record<string, string>> | undefined>
+  >
+  return ['dependencies', 'devDependencies', 'peerDependencies', 'optionalDependencies']
+    .flatMap((field) => Object.entries(manifest[field] ?? {}))
+    .filter(([name]) => name.startsWith('@sentry/'))
+}
+
 function shippedSourceFiles(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
     const path = join(dir, entry.name)
@@ -1189,6 +1253,28 @@ describe('the shipped source', () => {
     expect(files.length).toBeGreaterThan(10)
     expect(offenders).toEqual([])
     expect(imports.get(REPORTER_FILE)?.dynamic).toBe(1)
+  })
+
+  it('loads a Sentry SDK from no package or plugin but the CLI, which depends on one exact version', () => {
+    expect(ANY_SENTRY_IMPORT.test("import { init } from '@sentry/browser'\n")).toBe(true)
+    expect(ANY_SENTRY_IMPORT.test("const sdk = await import('@sentry/node')\n")).toBe(true)
+    expect(ANY_SENTRY_IMPORT.test("export const NAMES = ['@sentry/node']\n")).toBe(false)
+
+    const cliDir = resolve(CLI_SRC, '..')
+    const others = memberDirs().filter((dir) => dir !== cliDir)
+    const files = others.flatMap((dir) => memberSourceFiles(join(dir, 'src')))
+    const importers = files.filter((file) =>
+      ANY_SENTRY_IMPORT.test(withoutComments(readFileSync(file, 'utf8'))),
+    )
+    const dependents = others.filter((dir) => sentryDependencies(dir).length > 0)
+
+    expect(others.length).toBeGreaterThan(10)
+    expect(files.length).toBeGreaterThan(100)
+    expect(importers.map((file) => relative(REPO_ROOT, file))).toEqual([])
+    expect(dependents.map((dir) => relative(REPO_ROOT, dir))).toEqual([])
+    expect(sentryDependencies(cliDir)).toEqual([
+      ['@sentry/node', expect.stringMatching(/^\d+\.\d+\.\d+$/)],
+    ])
   })
 
   it('reads no SENTRY_ environment variable in the CLI or analytics source', () => {
