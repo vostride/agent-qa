@@ -22,7 +22,7 @@ import {
 } from '../../__tests__/error-report-recorder.js'
 import type { RecordingReportTransport } from '../../__tests__/error-report-recorder.js'
 import { closeErrorReporting, settleReporting, startErrorReporting } from '../error-reporting.js'
-import type { ErrorReporter } from '../error-reporting.js'
+import type { ErrorReporter, SettleReportingInput } from '../error-reporting.js'
 import { boundedRequestModule } from '../error-reporting-requests.js'
 import type { ReportRequestModule } from '../error-reporting-requests.js'
 
@@ -51,6 +51,10 @@ beforeEach(() => {
 })
 
 afterEach(async () => {
+  // A settle still waiting on the fake clock returns now, so the next cell's settle never queues
+  // behind it.
+  if (vi.isFakeTimers()) await vi.runOnlyPendingTimersAsync()
+  vi.useRealTimers()
   for (const recorder of recorders.splice(0)) recorder.release()
   await closeErrorReporting()
   for (const server of servers.splice(0)) await server.close()
@@ -71,21 +75,6 @@ async function timed(work: () => Promise<unknown>): Promise<number> {
 
 const settle = () => settleReporting({ budgetMs: BUDGET_MS })
 
-// Timing cells assert ranges, never exact figures.
-function expectAboutOneBudget(ms: number): void {
-  expect(ms).toBeGreaterThanOrEqual(0.7 * BUDGET_MS)
-  expect(ms).toBeLessThan(1.7 * BUDGET_MS)
-}
-
-function expectAlmostAtOnce(ms: number): void {
-  expect(ms).toBeLessThan(BUDGET_MS / 3)
-}
-
-function expectAboutHalfABudget(ms: number): void {
-  expect(ms).toBeGreaterThan(BUDGET_MS / 5)
-  expect(ms).toBeLessThan(0.9 * BUDGET_MS)
-}
-
 // A reporter whose transport keeps every envelope and never settles a send, as on a dead network.
 async function reportingOnADeadNetwork(): Promise<{
   readonly reporter: ErrorReporter
@@ -102,127 +91,162 @@ async function reportingOnADeadNetwork(): Promise<{
   return { reporter, recorder }
 }
 
+// On real time, since the SDK reads source files before it hands a report to the transport.
+async function reportSent(recorder: RecordingReportTransport): Promise<void> {
+  await vi.waitFor(() => expect(recorder.envelopes.length).toBeGreaterThan(0), { timeout: 5_000 })
+}
+
+// From here on, performance.now() and every timer run on a clock only the cell moves.
+function useFakeClock(): void {
+  vi.useFakeTimers({
+    toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'performance', 'Date'],
+  })
+}
+
+interface WatchedSettle {
+  // How long after its start, on the fake clock, the settle returned; nothing while it waits.
+  returnedAfter(): number | undefined
+}
+
+function watchedSettle(input: Omit<SettleReportingInput, 'budgetMs'> = {}): WatchedSettle {
+  const began = performance.now()
+  let returnedAfter: number | undefined
+  void settleReporting({ ...input, budgetMs: BUDGET_MS }).then(() => {
+    returnedAfter = performance.now() - began
+  })
+  return { returnedAfter: () => returnedAfter }
+}
+
+// A dead-network reporter holding one report, on the fake clock, with its flush watched.
+async function spentOnADeadNetwork() {
+  const { reporter, recorder } = await reportingOnADeadNetwork()
+  reporter.capture(new Error('an error on a dead network'))
+  await reportSent(recorder)
+  useFakeClock()
+  return { reporter, recorder, flush: vi.spyOn(reporter, 'flush') }
+}
+
 describe('the settle step', () => {
-  it('returns inside its budget against a transport that never settles, and keeps the exit code set before it', async () => {
-    const { reporter, recorder } = await reportingOnADeadNetwork()
-    reporter.capture(new Error('an error on a dead network'))
+  it('returns at its budget against a transport that never settles, and keeps the exit code set before it', async () => {
+    const { flush } = await spentOnADeadNetwork()
     process.exitCode = 3
 
-    const waited = await timed(settle)
+    const settled = watchedSettle()
+    await vi.advanceTimersByTimeAsync(BUDGET_MS - 1)
+    const beforeTheBudget = settled.returnedAfter()
+    await vi.advanceTimersByTimeAsync(1)
 
-    expect(recorder.envelopes.length).toBeGreaterThan(0)
-    expect(waited).toBeLessThan(1_000)
-    expectAboutOneBudget(waited)
+    expect(beforeTheBudget).toBeUndefined()
+    expect(settled.returnedAfter()).toBe(BUDGET_MS)
+    expect(flush.mock.calls).toEqual([[BUDGET_MS]])
     expect(process.exitCode).toBe(3)
-  }, 5_000)
+  })
 
-  it('takes about one budget for two settles started back to back against that transport, the second returning almost at once', async () => {
+  it('takes one budget for two settles started back to back against that transport, the second returning at once', async () => {
+    const { flush } = await spentOnADeadNetwork()
+
+    const first = watchedSettle()
+    await vi.advanceTimersByTimeAsync(BUDGET_MS)
+    const second = watchedSettle()
+    await vi.advanceTimersByTimeAsync(0)
+
+    expect(first.returnedAfter()).toBe(BUDGET_MS)
+    expect(second.returnedAfter()).toBe(0)
+    expect(flush.mock.calls).toEqual([[BUDGET_MS]])
+  })
+
+  it('returns a settle that starts while another waits as soon as that one returns, the two taking one budget', async () => {
+    const { flush } = await spentOnADeadNetwork()
+
+    const first = watchedSettle()
+    await vi.advanceTimersByTimeAsync(BUDGET_MS / 2)
+    const second = watchedSettle()
+    await vi.advanceTimersByTimeAsync(BUDGET_MS / 2)
+
+    expect(first.returnedAfter()).toBe(BUDGET_MS)
+    expect(second.returnedAfter()).toBe(BUDGET_MS / 2)
+    expect(flush.mock.calls).toEqual([[BUDGET_MS]])
+  })
+
+  it('hands the whole budget to a settle that starts one and a half budgets after one that had nothing to send', async () => {
     const { reporter } = await reportingOnADeadNetwork()
-    reporter.capture(new Error('an error on a dead network'))
+    useFakeClock()
+    const flush = vi.spyOn(reporter, 'flush')
 
-    let second = Number.NaN
-    const both = await timed(async () => {
-      await settle()
-      second = await timed(settle)
-    })
+    const quiet = watchedSettle()
+    await vi.advanceTimersByTimeAsync(1.5 * BUDGET_MS)
+    watchedSettle()
+    await vi.advanceTimersByTimeAsync(BUDGET_MS)
 
-    expectAboutOneBudget(both)
-    expectAlmostAtOnce(second)
-  }, 5_000)
+    expect(quiet.returnedAfter()).toBeLessThan(BUDGET_MS / 10)
+    expect(flush.mock.calls).toEqual([[BUDGET_MS], [BUDGET_MS]])
+  })
 
-  it('returns a settle that starts while another waits almost at once after it, the two taking about one budget', async () => {
-    const { reporter } = await reportingOnADeadNetwork()
-    reporter.capture(new Error('an error on a dead network'))
-    const began = performance.now()
-    const returned = () => performance.now() - began
+  it('hands half a budget to a settle that starts half a budget after one that used it all', async () => {
+    const { flush } = await spentOnADeadNetwork()
 
-    const first = settle().then(returned)
-    await sleep(BUDGET_MS / 2)
-    const second = settle().then(returned)
-    const [firstReturned, secondReturned] = await Promise.all([first, second])
+    const first = watchedSettle()
+    await vi.advanceTimersByTimeAsync(1.5 * BUDGET_MS)
+    const second = watchedSettle()
+    await vi.advanceTimersByTimeAsync(BUDGET_MS)
 
-    expectAboutOneBudget(secondReturned)
-    expect(secondReturned).toBeGreaterThanOrEqual(firstReturned)
-    expectAlmostAtOnce(secondReturned - firstReturned)
-  }, 5_000)
+    expect(first.returnedAfter()).toBe(BUDGET_MS)
+    expect(second.returnedAfter()).toBe(BUDGET_MS / 2)
+    expect(flush.mock.calls).toEqual([[BUDGET_MS], [BUDGET_MS / 2]])
+  })
 
-  it('waits a whole budget in a settle that starts one and a half budgets after one that had nothing to send', async () => {
-    const { reporter } = await reportingOnADeadNetwork()
-    const began = performance.now()
+  it('hands the whole budget again to a settle that starts a whole budget after the last one returned', async () => {
+    const { flush } = await spentOnADeadNetwork()
 
-    const quiet = await timed(settle)
-    await sleep(1.5 * BUDGET_MS - (performance.now() - began))
-    reporter.capture(new Error('an error after a quiet settle'))
-    const waited = await timed(settle)
+    const first = watchedSettle()
+    await vi.advanceTimersByTimeAsync(2 * BUDGET_MS)
+    const second = watchedSettle()
+    await vi.advanceTimersByTimeAsync(BUDGET_MS)
 
-    expectAlmostAtOnce(quiet)
-    expectAboutOneBudget(waited)
-  }, 5_000)
-
-  it('waits about half a budget in a settle that starts half a budget after one that used it all', async () => {
-    const { reporter } = await reportingOnADeadNetwork()
-    reporter.capture(new Error('an error on a dead network'))
-
-    const first = await timed(settle)
-    await sleep(BUDGET_MS / 2)
-    const second = await timed(settle)
-
-    expectAboutOneBudget(first)
-    expectAboutHalfABudget(second)
-  }, 5_000)
-
-  it('waits a whole budget again in a settle that starts a whole budget after the last one returned', async () => {
-    const { reporter } = await reportingOnADeadNetwork()
-    reporter.capture(new Error('an error on a dead network'))
-
-    const first = await timed(settle)
-    await sleep(BUDGET_MS)
-    const second = await timed(settle)
-
-    expectAboutOneBudget(first)
-    expectAboutOneBudget(second)
-  }, 5_000)
+    expect(first.returnedAfter()).toBe(BUDGET_MS)
+    expect(second.returnedAfter()).toBe(BUDGET_MS)
+    expect(flush.mock.calls).toEqual([[BUDGET_MS], [BUDGET_MS]])
+  })
 
   it('never hands the flush less than a millisecond, and with nothing left starts the analytics shutdown without waiting for it', async () => {
-    const { reporter } = await reportingOnADeadNetwork()
-    reporter.capture(new Error('an error on a dead network'))
-    const flush = vi.spyOn(reporter, 'flush')
+    const { flush } = await spentOnADeadNetwork()
     const shutdown = vi.fn(
       () =>
         new Promise<void>((_, reject) => {
           setTimeout(() => reject(new Error('the analytics shutdown failed')), BUDGET_MS)
         }),
     )
-    const began = performance.now()
-    const returned = () => performance.now() - began
 
-    const first = settle().then(returned)
-    const second = settleReporting({ analytics: { shutdown }, budgetMs: BUDGET_MS }).then(returned)
-    const [firstReturned, secondReturned] = await Promise.all([first, second])
+    const first = watchedSettle()
+    const second = watchedSettle({ analytics: { shutdown } })
     // The shutdown's rejection lands inside the cell, where an unhandled one would fail it.
-    await sleep(BUDGET_MS + 100)
+    await vi.advanceTimersByTimeAsync(2 * BUDGET_MS)
 
-    expectAlmostAtOnce(secondReturned - firstReturned)
+    expect(first.returnedAfter()).toBe(BUDGET_MS)
+    expect(second.returnedAfter()).toBe(BUDGET_MS)
     expect(shutdown).toHaveBeenCalledTimes(1)
-    expect(flush).toHaveBeenCalled()
-    expect(flush.mock.calls.every(([ms]) => ms >= 1)).toBe(true)
-  }, 5_000)
+    expect(flush.mock.calls).toEqual([[BUDGET_MS]])
+  })
 
-  it('has a whole budget again once the reporter is closed', async () => {
-    const spent = await reportingOnADeadNetwork()
-    spent.reporter.capture(new Error('an error on a dead network'))
-    expectAboutOneBudget(await timed(settle))
+  it('hands the whole budget again once the reporter is closed', async () => {
+    const spent = await spentOnADeadNetwork()
+    const first = watchedSettle()
+    await vi.advanceTimersByTimeAsync(BUDGET_MS)
     spent.recorder.release()
-    await closeErrorReporting()
+    const closing = closeErrorReporting()
+    await vi.advanceTimersByTimeAsync(10)
+    await closing
 
     const { reporter } = await reportingOnADeadNetwork()
-    reporter.capture(new Error('an error on another dead network'))
-    const waited = await timed(settle)
+    const flush = vi.spyOn(reporter, 'flush')
+    watchedSettle()
+    await vi.advanceTimersByTimeAsync(BUDGET_MS)
 
-    expectAboutOneBudget(waited)
-  }, 5_000)
+    expect(first.returnedAfter()).toBe(BUDGET_MS)
+    expect(flush.mock.calls).toEqual([[BUDGET_MS]])
+  })
 
-  it('finishes an analytics shutdown that takes 50 ms and the report flush inside one budget, calling the shutdown once', async () => {
+  it('returns once an analytics shutdown that takes 50 ms and the report flush finish, calling the shutdown once', async () => {
     const recorder = recordingReportTransport()
     const reporter = await startErrorReporting({
       configPath: projectWithPrivacy().configPath,
@@ -230,21 +254,21 @@ describe('the settle step', () => {
       transport: recorder.transport,
     })
     reporter?.capture(new Error('an error before the exit'))
+    await reportSent(recorder)
+    useFakeClock()
     let shutDown = false
     const shutdown = vi.fn(async () => {
       await sleep(50)
       shutDown = true
     })
 
-    const waited = await timed(() =>
-      settleReporting({ analytics: { shutdown }, budgetMs: BUDGET_MS }),
-    )
+    const settled = watchedSettle({ analytics: { shutdown } })
+    await vi.advanceTimersByTimeAsync(BUDGET_MS)
 
     expect(shutdown).toHaveBeenCalledTimes(1)
     expect(shutDown).toBe(true)
-    expect(recorder.envelopes.length).toBeGreaterThan(0)
-    expect(waited).toBeLessThan(BUDGET_MS)
-  }, 5_000)
+    expect(settled.returnedAfter()).toBe(50)
+  })
 
   it('only awaits the analytics shutdown it is handed when no reporter exists, and starts no timer', async () => {
     const steps: string[] = []
