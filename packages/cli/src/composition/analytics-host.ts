@@ -28,14 +28,22 @@ export type CliAnalyticsSurface = NonNullable<AnalyticsRunStandardProperties['su
 // Read from this package's manifest: the firewall bars core, and the barrel drags in the host.
 const require = createRequire(import.meta.url)
 
+// The built bundle sits one folder below the manifest and this source file two, so the first
+// manifest named agent-qa on the way up is this package's.
 function readCliPackageVersion(): string {
-  try {
-    const manifest = require('../../package.json') as { version?: unknown }
-    if (typeof manifest.version === 'string' && manifest.version.trim()) {
-      return manifest.version.trim()
+  for (const candidate of ['../package.json', '../../package.json']) {
+    try {
+      const manifest = require(candidate) as { name?: unknown; version?: unknown }
+      if (
+        manifest.name === 'agent-qa' &&
+        typeof manifest.version === 'string' &&
+        manifest.version.trim()
+      ) {
+        return manifest.version.trim()
+      }
+    } catch {
+      // Same posture as core's reader: a missing manifest must never fail a command.
     }
-  } catch {
-    // Same posture as core's reader: a missing manifest must never fail a command.
   }
   return '0.0.0'
 }
