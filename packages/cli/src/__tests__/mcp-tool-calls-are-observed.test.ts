@@ -540,6 +540,57 @@ describe('a call with arguments the input schema refuses', () => {
   )
 })
 
+describe('a result the output schema refuses', () => {
+  const WITHHELD = 'agent_qa_mark_run answered a result that does not match the output schema it '
+    + 'advertises, so the result was withheld'
+  // A mask that rewrites the outcome's kind, so the masked result no longer fits its schema.
+  const maskRunNotFound = (text: string) => text.replaceAll('run-not-found', '<masked>')
+  const TOOL_ERROR_EVENT = expect.objectContaining({
+    tool_name: 'agent_qa_mark_run',
+    mcp_tool_status: 'error',
+    mcp_error_category: 'tool_error',
+    mcp_transport: 'http',
+  })
+
+  it('is reported, traced and counted as a tool error, never as a success', async () => {
+    const recorder = await startReporting()
+    const analytics = await recordingAnalytics()
+    const client = await serve({
+      registry: markRegistry(async () => RUN_NOT_FOUND),
+      maskText: maskRunNotFound,
+      analytics: { host: analytics.host, mcpTransport: 'http' },
+    })
+
+    const result = await client.callTool(MARK)
+    await drain(analytics)
+
+    expect(result.isError).toBe(true)
+    expect(toolEvents(analytics.sent)).toEqual([TOOL_ERROR_EVENT])
+    expect(reportedErrors(recorder.envelopes)).toEqual([WITHHELD])
+    const spans = toolSpans(recorder.envelopes)
+    expect(spans).toHaveLength(1)
+    expect(attributeOf(spans[0], 'agent_qa.outcome')).toBe('error')
+    expect(spans[0]?.status).toBe('error')
+  })
+
+  it('is counted as a tool error while reporting is off, and nothing is reported', async () => {
+    const recorder = await startReporting('')
+    expect(errorReporter()).toBeUndefined()
+    const analytics = await recordingAnalytics()
+    const client = await serve({
+      registry: markRegistry(async () => RUN_NOT_FOUND),
+      maskText: maskRunNotFound,
+      analytics: { host: analytics.host, mcpTransport: 'http' },
+    })
+
+    expect((await client.callTool(MARK)).isError).toBe(true)
+    await drain(analytics)
+
+    expect(toolEvents(analytics.sent)).toEqual([TOOL_ERROR_EVENT])
+    expect(recorder.envelopes).toEqual([])
+  })
+})
+
 describe('agent-qa mcp --http', () => {
   it('emits each tool event through the analytics it composed, naming http', async () => {
     const project = projectWithPrivacy()
