@@ -10,6 +10,7 @@ import { connect as netConnect, isIP, isIPv6 } from 'node:net'
 import type { Socket } from 'node:net'
 import type { Duplex } from 'node:stream'
 import { connect as tlsConnect } from 'node:tls'
+import type { ConnectionOptions, TLSSocket } from 'node:tls'
 import { urlToHttpOptions } from 'node:url'
 
 import { DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS } from '@vostride/agent-qa-analytics'
@@ -27,9 +28,13 @@ export interface ReportRequests extends ReportRequestModule {
   abandon(): void
 }
 
+export type ConnectTls = (options: ConnectionOptions) => TLSSocket
+
 export interface ReportRequestOptions {
   readonly timeoutMs?: number
   readonly env?: NodeJS.ProcessEnv
+  // The TLS connect a tunnel uses, to an https: proxy and to the ingest through it.
+  readonly connectTls?: ConnectTls
 }
 
 interface ReportTarget {
@@ -50,6 +55,8 @@ export function boundedRequestModule(
   const secure = protocol === 'https:'
   const timeoutMs = options.timeoutMs ?? DEFAULT_ANALYTICS_SHUTDOWN_TIMEOUT_MS
   const env = options.env ?? process.env
+  const connectTls =
+    options.connectTls ?? ((tlsOptions: ConnectionOptions) => tlsConnect(tlsOptions))
   const agent = secure ? new HttpsAgent({ keepAlive: true }) : new HttpAgent({ keepAlive: true })
   const open = new Set<() => void>()
   return {
@@ -68,16 +75,19 @@ export function boundedRequestModule(
               port: target.port,
               defaultPort: secure ? 443 : 80,
               createConnection: (_, oncreate) => {
-                tunnel(proxy, target, requestOptions.ca, sockets, (error, socket) => {
+                tunnel(proxy, target, requestOptions.ca, connectTls, sockets, (error, socket) => {
                   oncreate(error, socket as Duplex)
                 })
                 return undefined
               },
             }
       const request = secure ? httpsRequest(routed, onResponse) : httpRequest(routed, onResponse)
-      const end = () => {
+      const release = () => {
         open.delete(end)
         clearTimeout(deadline)
+      }
+      const end = () => {
+        release()
         request.destroy(new Error('the report request ended before it was answered'))
         for (const socket of sockets) socket.destroy()
       }
@@ -90,9 +100,11 @@ export function boundedRequestModule(
         // A tunnel is handed over paused, so no answer is read before the request listens.
         socket.resume()
       })
-      request.once('close', () => {
-        open.delete(end)
-        clearTimeout(deadline)
+      request.once('close', release)
+      // A request whose tunnel failed has no socket, and emits an error but no close.
+      request.once('error', () => {
+        release()
+        for (const socket of sockets) socket.destroy()
       })
       return request
     },
@@ -130,6 +142,7 @@ function tunnel(
   proxy: URL,
   target: ReportTarget,
   ca: HttpsRequestOptions['ca'],
+  connectTls: ConnectTls,
   sockets: Set<Duplex>,
   done: ConnectionDone,
 ): void {
@@ -137,7 +150,7 @@ function tunnel(
   const proxyPort = Number(proxy.port) || (proxy.protocol === 'https:' ? 443 : 80)
   const raw: Socket =
     proxy.protocol === 'https:'
-      ? tlsConnect({
+      ? connectTls({
           host: proxyHost,
           port: proxyPort,
           ALPNProtocols: ['http/1.1'],
@@ -154,7 +167,7 @@ function tunnel(
     if (error !== null) raw.destroy()
     done(error, socket)
   }
-  const read = (chunk: Buffer) => {
+  const readAnswer = (chunk: Buffer) => {
     head = Buffer.concat([head, chunk])
     const end = head.indexOf('\r\n\r\n')
     if (end === -1) {
@@ -173,7 +186,7 @@ function tunnel(
     }
     // The certificate is checked against the ingest's own host, a name or an address; with no host,
     // Node would check it against another name. SNI goes with a name only.
-    const secured = tlsConnect({
+    const secured = connectTls({
       socket: raw,
       host: target.host,
       ...serverName(target.host),
@@ -182,6 +195,15 @@ function tunnel(
     secured.on('error', () => {})
     sockets.add(secured)
     settle(null, secured)
+  }
+  // It runs in a socket listener, where a throw would reach the host as an uncaught exception, so a
+  // throw fails this request instead.
+  const read = (chunk: Buffer) => {
+    try {
+      readAnswer(chunk)
+    } catch (error) {
+      settle(error instanceof Error ? error : new Error('the tunnel for the report failed'))
+    }
   }
   raw.on('data', read)
   raw.on('error', (error) => {
