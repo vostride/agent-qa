@@ -192,6 +192,8 @@ const KOMAZON_SHIPPING_HOOK_TEST_ID = 't_ayin-dual-chunk-lou-tablet-ticket-brace
 const SHIPPING_ADDRESS_HOOK_ID = 'h_phi-arts-vis-band-aira-streng-twig-roi-mino-fold'
 const KOMAZON_SHIPPING_HOOK_PATH = 'tests/examples/komazon-shipping-hook.yaml'
 const SHIPPING_ADDRESS_SCRIPT_PATH = 'scripts/examples/make-shipping-address.mjs'
+const STARTER_STEPS = `  - Add Everyday Ceramic Mug to the bag, open the bag and increase its quantity to two.
+  - Verify the order total is $53.00.`
 
 // Every run starts a fresh session, so the journey asks for no reset.
 function buildKomazonCheckoutTest(): string {
@@ -208,15 +210,12 @@ steps:
 `
 }
 
-// A suite replaces a member's target, so the bug URL is a step.
 function buildKomazonCartTotalBugTest(): string {
   return `test-id: ${KOMAZON_CART_TOTAL_BUG_TEST_ID}
-name: Komazon cart total (fails on the deliberate cart-total bug)
+name: "[Bug] Komazon cart total is wrong for two mugs"
 target: komazon-cart-total-bug
 steps:
-  - Navigate to https://playground.vostride.dev/shop/?bug=cart-total
-  - Add Everyday Ceramic Mug to the bag, open the shopping bag, and increase that product's quantity to two.
-  - Verify the bag contains exactly two Everyday Ceramic Mugs and the order total is $53.00.
+${STARTER_STEPS}
 `
 }
 
@@ -227,8 +226,6 @@ target: komazon
 tests:
   - test: ${KOMAZON_CHECKOUT_PATH}
     id: ${KOMAZON_CHECKOUT_TEST_ID}
-  - test: ${KOMAZON_CART_TOTAL_BUG_PATH}
-    id: ${KOMAZON_CART_TOTAL_BUG_TEST_ID}
 `
 }
 

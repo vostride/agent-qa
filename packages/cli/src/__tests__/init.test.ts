@@ -746,7 +746,6 @@ describe('init command', () => {
     }
     expect(parsedSuite.data.tests.map((test: { test: string }) => test.test)).toEqual([
       'tests/examples/komazon-checkout.yaml',
-      'tests/examples/komazon-cart-total-bug.yaml',
     ])
 
     const hooksCall = findWriteCallEndingWith('hooks.yaml')

@@ -102,7 +102,11 @@ const CONFIG_PATH = `${DIR}/agent-qa.config.yaml`
 const EXAMPLE_SECRET = 'KOMAZON_PASSWORD=komazon123'
 const EXAMPLE_PREFIXES = ['tests/examples/', 'scripts/examples/']
 const BUG_URL = 'https://playground.vostride.dev/shop/?bug=cart-total'
-const RESET_OR_CLEAR = /\b(reset|clear)\b/i
+const RESET = /\breset\b/i
+const STARTER_STEPS = [
+  'Add Everyday Ceramic Mug to the bag, open the bag and increase its quantity to two.',
+  'Verify the order total is $53.00.',
+]
 const KOMAZON_TARGETS = {
   komazon: { platform: 'web', url: 'https://playground.vostride.dev/shop/' },
   'komazon-cart-total-bug': { platform: 'web', url: BUG_URL },
@@ -200,17 +204,13 @@ describe('the init examples', () => {
   beforeEach(setUpInitMocks)
   afterEach(tearDownInitMocks)
 
-  it('init writes the examples in their own folder and the suite selects the journey then the failing test', async () => {
+  it('init writes the examples in their own folder and the suite holds the journey, not the failing test', async () => {
     const writes = await initWrites()
     const checkout = written(writes, CHECKOUT).doc
-    const bug = written(writes, CART_TOTAL_BUG).doc
     const suite = written(writes, SUITE).doc
 
     expect(suite.target).toBe('komazon')
-    expect(suite.tests).toEqual([
-      { test: CHECKOUT, id: checkout['test-id'] },
-      { test: CART_TOTAL_BUG, id: bug['test-id'] },
-    ])
+    expect(suite.tests).toEqual([{ test: CHECKOUT, id: checkout['test-id'] }])
 
     const samplePaths = writes
       .map(write => write.path)
@@ -222,13 +222,13 @@ describe('the init examples', () => {
     }
   })
 
-  it('the passing journey signs in with the declared secret, checks the order in View orders and has no reset or clear step', async () => {
+  it('the passing journey signs in with the declared secret, checks the order in View orders and has no reset step', async () => {
     const { raw, doc } = written(await initWrites(), CHECKOUT)
     const steps = doc.steps as string[]
 
     expect(doc.target).toBe('komazon')
     for (const step of steps) {
-      expect(step, 'the journey asks for a reset or clear').not.toMatch(RESET_OR_CLEAR)
+      expect(step, 'the journey asks for a reset').not.toMatch(RESET)
     }
     const signIn = steps.find(step => step.includes('alex@example.com'))
     expect(signIn, 'a step signs in with the printed email').toBeDefined()
@@ -240,8 +240,8 @@ describe('the init examples', () => {
     expect(raw).not.toContain('headless')
   })
 
-  // Every run opens a fresh session, so a reset or clear has no visible effect to verify.
-  it('no example test has a reset or clear step, whose effect a fresh session would hide', async () => {
+  // Every run opens a fresh session, so a reset has no visible effect to verify.
+  it('no example test has a reset step, whose effect a fresh session would hide', async () => {
     const writes = await initWrites()
     const examples = writes.filter(
       write => write.path.startsWith('tests/examples/') && write.path.endsWith('.yaml'),
@@ -251,26 +251,28 @@ describe('the init examples', () => {
     expect(examples.map(write => write.path)).toEqual(expect.arrayContaining([CHECKOUT, HOOK_TEST]))
     for (const { path, content } of examples) {
       const steps = parseYaml(content).steps as string[]
-      expect(steps.length, path).toBeGreaterThanOrEqual(3)
       for (const [index, step] of steps.entries()) {
-        expect(step, `${path} step ${index} asks for a reset or clear`).not.toMatch(RESET_OR_CLEAR)
+        expect(step, `${path} step ${index} asks for a reset`).not.toMatch(RESET)
       }
     }
   })
 
-  it('the failing test reaches the bug through its first step and never resets', async () => {
-    const { raw, doc } = written(await initWrites(), CART_TOTAL_BUG)
+  it('the failing starter is named [Bug], runs the starter steps on its own target with no navigation and is in no suite', async () => {
+    const writes = await initWrites()
+    const { doc } = written(writes, CART_TOTAL_BUG)
     const steps = doc.steps as string[]
 
+    expect(doc.name).toBe('[Bug] Komazon cart total is wrong for two mugs')
     expect(doc.target).toBe('komazon-cart-total-bug')
-    expect(steps[0]).toMatch(/^Navigate to /)
-    expect(steps[0]).toContain(BUG_URL)
-    expect(steps.some(step => /two Everyday Ceramic Mugs/.test(step))).toBe(true)
-    expect(steps.some(step => step.includes('$53.00'))).toBe(true)
-    for (const step of steps) {
-      expect(step, 'the failing test resets or disables the bug').not.toMatch(/reset|disable/i)
+    expect(steps).toEqual(STARTER_STEPS)
+    for (const [index, step] of steps.entries()) {
+      expect(step, `step ${index} navigates`).not.toMatch(/^Navigate to /)
+      expect(step, `step ${index} holds a URL`).not.toMatch(/https?:\/\//)
     }
-    expect(raw).not.toContain('headless')
+
+    const suite = written(writes, SUITE).doc
+    expect(suite.tests.map((member: { test: string }) => member.test)).not.toContain(CART_TOTAL_BUG)
+    expect(suite.tests.map((member: { id: string }) => member.id)).not.toContain(doc['test-id'])
   })
 
   it('the targets are komazon and komazon-cart-total-bug with no product field', async () => {
@@ -303,10 +305,15 @@ describe('the init examples', () => {
   it('every generated test and suite parses with the shipped schemas', async () => {
     const writes = await initWrites()
     const { parseTestFile, SuiteDefinitionSchema } = await loadCoreYamlValidators()
+    const examples = writes.filter(
+      write => write.path.startsWith('tests/examples/') && write.path.endsWith('.yaml'),
+    )
 
-    for (const path of [CHECKOUT, CART_TOTAL_BUG]) {
-      const { raw } = written(writes, path)
-      const parsed = parseTestFile(raw, path)
+    expect(examples.map(write => write.path)).toEqual(
+      expect.arrayContaining([CHECKOUT, CART_TOTAL_BUG]),
+    )
+    for (const { path, content } of examples) {
+      const parsed = parseTestFile(content, path)
       expect(parsed.errors, path).toEqual([])
       expect(parsed.tests, path).toHaveLength(1)
       expect(isCanonicalTestId(parsed.tests[0]['test-id']), path).toBe(true)

@@ -13,9 +13,8 @@ const LEG_DRAFT = [
 ]
 
 const SCAFFOLD_CART_TOTAL_EXAMPLE = [
-  'Navigate to https://playground.vostride.dev/shop/?bug=cart-total',
-  "Add Everyday Ceramic Mug to the bag, open the shopping bag, and increase that product's quantity to two.",
-  'Verify the bag contains exactly two Everyday Ceramic Mugs and the order total is $53.00.',
+  'Add Everyday Ceramic Mug to the bag, open the bag and increase its quantity to two.',
+  'Verify the order total is $53.00.',
 ]
 
 describe('an unquoted stated price in an assertion', () => {
@@ -35,8 +34,8 @@ describe('an unquoted stated price in an assertion', () => {
   it('the scaffold cart total example with an unquoted order total passes the falsifiable-assertion gate', () => {
     const gate = assertionStrengthGate({ steps: SCAFFOLD_CART_TOTAL_EXAMPLE })
 
-    expect(gate.table.map((row) => row.role)).toEqual(['action', 'action', 'assertion'])
-    expect(gate.table[2]?.falsifiable, 'the order total step is falsifiable').toBe(true)
+    expect(gate.table.map((row) => row.role)).toEqual(['action', 'assertion'])
+    expect(gate.table[1]?.falsifiable, 'the order total step is falsifiable').toBe(true)
     expect(gate.pass).toBe(true)
   })
 
