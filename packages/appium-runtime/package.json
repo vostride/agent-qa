@@ -1,0 +1,67 @@
+{
+  "name": "@vostride/agent-qa-appium-runtime",
+  "version": "0.3.5",
+  "private": false,
+  "description": "Carries Appium and the UiAutomator2 and XCUITest drivers at pinned versions and starts that Appium server for agent-qa.",
+  "keywords": [
+    "agent-qa",
+    "testing",
+    "appium",
+    "mobile"
+  ],
+  "license": "FSL-1.1-ALv2",
+  "homepage": "https://github.com/vostride/agent-qa#readme",
+  "bugs": {
+    "url": "https://github.com/vostride/agent-qa/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vostride/agent-qa.git",
+    "directory": "packages/appium-runtime"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "type": "module",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "LICENSE.md",
+    "NOTICE.md"
+  ],
+  "scripts": {
+    "build": "tsdown",
+    "dev": "tsdown --watch",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .turbo"
+  },
+  "dependencies": {
+    "appium": "4.0.0-beta.7",
+    "appium-uiautomator2-driver": "9.0.2",
+    "appium-xcuitest-driver": "13.0.8",
+    "tree-kill": "1.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "~24.19.2",
+    "@vostride/agent-qa-arch": "workspace:*",
+    "tsdown": "~0.23.4",
+    "typescript": "~7.0.2",
+    "vitest": "~5.0.5"
+  }
+}
