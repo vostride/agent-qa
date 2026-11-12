@@ -10,6 +10,12 @@ import {
 } from '../commands/init-next-steps.js'
 import type { InitStepRecord } from '../commands/init-steps.js'
 
+const RUN_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total.yaml'
+const RUN_SUITE = 'npx agent-qa run suites/examples.suite.yaml'
+const RUN_BUG_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total-bug.yaml'
+const BUG_STARTER_DESCRIPTION =
+  "Run the test that fails on the playground's deliberate bug (exit 1):"
+
 const CLAUDE_PENDING: InitNextStepModel = {
   name: 'claude-code',
   provider: 'anthropic-subscription',
@@ -287,13 +293,65 @@ describe("a re-run's next steps", () => {
       steps: RERUN_DONE,
       model: GEMINI_READY,
       dashboard: { command: 'npx agent-qa dashboard' },
+      examples: { starter: true, suite: true, bug: true },
       ...overrides,
     })
 
   it('a scaffold row that is current never asks for init again', () => {
     expect(commands(rerunFacts())).toEqual([
-      'npx agent-qa run suites/examples.suite.yaml',
+      RUN_STARTER,
+      RUN_SUITE,
+      RUN_BUG_STARTER,
       'npx agent-qa dashboard',
+    ])
+  })
+
+  it('each example file the project holds gets its command, introduced, starter first and the dashboard last', () => {
+    const { steps } = initNextSteps(rerunFacts())
+
+    expect(steps).toEqual([
+      { command: RUN_STARTER, description: 'Start with the two-step test, which passes:' },
+      { command: RUN_SUITE, description: 'Run the example suite:' },
+      { command: RUN_BUG_STARTER, description: BUG_STARTER_DESCRIPTION },
+      { command: 'npx agent-qa dashboard', description: 'Open the dashboard' },
+    ])
+    expect(nextStepLines(steps)).toEqual([
+      'Start with the two-step test, which passes:',
+      RUN_STARTER,
+      'Run the example suite:',
+      RUN_SUITE,
+      BUG_STARTER_DESCRIPTION,
+      RUN_BUG_STARTER,
+      'npx agent-qa dashboard',
+    ])
+  })
+
+  it('a project without the starter file gets no starter command, and still the suite and the [Bug] test', () => {
+    expect(commands(rerunFacts({ examples: { starter: false, suite: true, bug: true } }))).toEqual([
+      RUN_SUITE,
+      RUN_BUG_STARTER,
+      'npx agent-qa dashboard',
+    ])
+  })
+
+  it('a project with none of the example files gets no example command', () => {
+    expect(
+      commands(rerunFacts({ examples: { starter: false, suite: false, bug: false } })),
+    ).toEqual(['npx agent-qa dashboard'])
+  })
+
+  it('the suite is described with no claim that it passes, since a project keeps the suite an older init wrote', () => {
+    const suite = initNextSteps(rerunFacts()).steps.find((step) => step.command === RUN_SUITE)
+
+    expect(suite?.description).toBe('Run the example suite:')
+    expect(suite?.description).not.toMatch(/pass/iu)
+  })
+
+  it('with the dashboard starting, the starter is introduced as the test to run in the dashboard', () => {
+    expect(initNextSteps(rerunFacts({ dashboard: 'starting' })).steps).toEqual([
+      { command: RUN_STARTER, description: 'Run the starter test in the dashboard, or:' },
+      { command: RUN_SUITE, description: 'Run the example suite:' },
+      { command: RUN_BUG_STARTER, description: BUG_STARTER_DESCRIPTION },
     ])
   })
 

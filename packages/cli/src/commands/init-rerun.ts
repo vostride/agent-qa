@@ -1,4 +1,4 @@
-import { dirname, relative } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 
 import {
   compareSemverVersions,
@@ -36,7 +36,7 @@ import {
   type InitModelSetup,
   type InitModelStatus,
 } from './init-model-choice.js'
-import { INIT_COMMAND, initNextSteps, nextStepLines } from './init-next-steps.js'
+import { EXAMPLE_PATHS, INIT_COMMAND, initNextSteps, nextStepLines } from './init-next-steps.js'
 import type { LatestVersionAsk } from './latest-version-ask.js'
 import {
   createInitStepRunner,
@@ -805,6 +805,12 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
   )
   const entry = after?.setup.entry
   const platform = projectPlatform(input.configPath, input.host.io)
+  const found = (path: string): boolean => input.host.io.exists(join(input.dir, path))
+  const examples = {
+    starter: found(EXAMPLE_PATHS.starter),
+    suite: found(EXAMPLE_PATHS.suite),
+    bug: found(EXAMPLE_PATHS.bug),
+  }
   const next = initNextSteps({
     steps: records,
     ...(after === undefined || entry === undefined
@@ -820,6 +826,7 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
         }),
     web: platform.capabilities.includes('web'),
     mobile: platform.mobileRuntimes.length > 0,
+    examples,
     agents: agentRowFailed ? [] : agents,
     dashboard,
     ...(knownMove === undefined ? {} : { upgrade: knownMove }),
