@@ -51,7 +51,7 @@
   <img src="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/knowledge-light.png" alt="Knowledge 标签页展示为本次演示检索到的已存储知识" width="100%">
 </picture>
 
-**从终端运行。** 演示测试套件的真实输出：结账流程通过，故意设置的总价错误被检测出来。
+**从终端运行。** 演示示例的真实输出：结账流程通过，故意设置的总价错误被检测出来。
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/cli-dark.png">

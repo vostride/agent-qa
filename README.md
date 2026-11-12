@@ -51,7 +51,7 @@ Read the full benchmark reports, with run evidence and methodology, on [our blog
   <img src="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/knowledge-light.png" alt="The Knowledge tab shows stored facts retrieved for the demo run" width="100%">
 </picture>
 
-**Run from your terminal.** Real output from the demo suite: checkout passes; the deliberate cart-total bug fails.
+**Run from your terminal.** Real output from the demo examples: the checkout passes and the test on the deliberate cart-total bug fails.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/vostride/agent-qa/main/docs/assets/readme/cli-dark.png">
