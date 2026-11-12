@@ -117,25 +117,37 @@ export interface DashboardShutdownDeps {
   exit(code: number): void | Promise<void>
 }
 
-/** Waits for live-editor cleanup and remote releases, within the bound, then closes and exits 0. */
+/**
+ * Waits for live-editor cleanup and remote releases, then for the server's close and the
+ * process's Appium to stop, each within the bound, then closes the MCP listener and exits 0.
+ */
 export async function shutdownDashboard(deps: DashboardShutdownDeps): Promise<void> {
-  const waits = Promise.all([
-    settled(() => deps.cleanupSessions(REMOTE_RELEASE_BOUND_MS)),
-    settled(() => deps.releaseRemoteSessions(REMOTE_RELEASE_BOUND_MS)),
+  await within(
+    Promise.all([
+      settled(() => deps.cleanupSessions(REMOTE_RELEASE_BOUND_MS)),
+      settled(() => deps.releaseRemoteSessions(REMOTE_RELEASE_BOUND_MS)),
+    ]),
+    REMOTE_RELEASE_BOUND_MS + SHUTDOWN_WAIT_MARGIN_MS,
+  )
+  await Promise.all([
+    within(settled(() => deps.close()), REMOTE_RELEASE_BOUND_MS),
+    deps.stopAppium(REMOTE_RELEASE_BOUND_MS),
   ])
+  deps.closeMcp()
+  deps.dispose()
+  await deps.exit(0)
+}
+
+async function within(wait: Promise<unknown>, boundMs: number): Promise<void> {
   let limit: ReturnType<typeof setTimeout> | undefined
   await Promise.race([
-    waits,
+    wait,
     new Promise<void>((passed) => {
-      limit = setTimeout(passed, REMOTE_RELEASE_BOUND_MS + SHUTDOWN_WAIT_MARGIN_MS)
+      limit = setTimeout(passed, boundMs)
       limit.unref()
     }),
   ])
   clearTimeout(limit)
-  deps.close()
-  deps.closeMcp()
-  deps.dispose()
-  await deps.exit(0)
 }
 
 // A direct exit skips the settle runCli makes, so the dashboard settles before each of its own.
@@ -154,7 +166,7 @@ export function bindLiveSessionMask(mask: (text: string) => string): () => void 
   return errorReporter()?.bindMask(mask) ?? (() => {})
 }
 
-async function settled(wait: () => Promise<void>): Promise<void> {
+async function settled(wait: () => void | Promise<void>): Promise<void> {
   try {
     await wait()
   } catch {

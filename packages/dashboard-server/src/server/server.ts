@@ -146,7 +146,8 @@ interface StartServerOptions {
 export async function startServer(opts: StartServerOptions): Promise<{
   server: Server
   port: number
-  close: () => void
+  // Settles once the Appium this server started has stopped.
+  close: () => Promise<void>
   // Settles once every live-editor session is cleaned up, or at the bound, whichever is first.
   cleanupSessions: (boundMs: number) => Promise<void>
 }> {
@@ -664,10 +665,11 @@ export async function startServer(opts: StartServerOptions): Promise<{
           jobQueue.stop()
           executionBackend?.killAll()
           releaseAllMobileAppiumLeases('server-close')
-          appiumManager.shutdown()
+          const appiumStopped = appiumManager.shutdown()
           void sessionManager.cleanupAll()
           server.close()
           db.close()
+          return appiumStopped
         },
       })
     })
