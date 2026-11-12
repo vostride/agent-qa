@@ -106,7 +106,7 @@ interface DeviceScene {
   readonly project: InProcessFixture
   readonly server: FakeAppiumServer
   readonly printed: string[]
-  readonly acquire: ReturnType<typeof vi.spyOn>
+  readonly ensureRunning: ReturnType<typeof vi.spyOn>
   readonly acquireLease: ReturnType<typeof vi.spyOn>
   readonly exit: ReturnType<typeof vi.spyOn>
 }
@@ -146,11 +146,13 @@ async function onRemoteDevice(
   })
   const noLocalAppium = (): Promise<never> =>
     Promise.reject(new Error('a remote device starts no Appium here'))
-  const acquire = vi.spyOn(AppiumManager.prototype, 'acquire').mockImplementation(noLocalAppium)
+  const ensureRunning = vi
+    .spyOn(AppiumManager.prototype, 'ensureRunning')
+    .mockImplementation(noLocalAppium)
   const acquireLease = vi
     .spyOn(AppiumManager.prototype, 'acquireLease')
     .mockImplementation(noLocalAppium)
-  await drive({ project, server, printed, acquire, acquireLease, exit })
+  await drive({ project, server, printed, ensureRunning, acquireLease, exit })
 }
 
 async function runThroughCli(
@@ -227,7 +229,7 @@ async function expectRanOnRemote(
   scene: DeviceScene,
   options: { readonly recordsRun: boolean } = { recordsRun: true },
 ): Promise<void> {
-  const { project, server, acquire, acquireLease } = scene
+  const { project, server, ensureRunning, acquireLease } = scene
   const log = scene.printed.join('\n')
   const newSessions = newSessionsOn(server)
   expect(newSessions, log).toHaveLength(1)
@@ -243,7 +245,7 @@ async function expectRanOnRemote(
   if (options.recordsRun) {
     expect(new Set(storedRunners(project)), log).toEqual(new Set(['remote']))
   }
-  expect(acquire).not.toHaveBeenCalled()
+  expect(ensureRunning).not.toHaveBeenCalled()
   expect(acquireLease).not.toHaveBeenCalled()
   expect(log).not.toContain(FARM_TOKEN)
 }
@@ -409,7 +411,7 @@ describe('a test on a remote device runs there from every door', () => {
   it(
     'agent-qa run opens the session on the remote with its resolved header, records the run remote and starts no Appium',
     async () => {
-      await onRemoteDevice(async ({ project, server, printed, acquire, acquireLease }) => {
+      await onRemoteDevice(async ({ project, server, printed, ensureRunning, acquireLease }) => {
         await runThroughCli(project, [project.testPattern])
 
         const log = printed.join('\n')
@@ -439,7 +441,7 @@ describe('a test on a remote device runs there from every door', () => {
         expect(runners.length, log).toBeGreaterThan(0)
         expect(new Set(runners), log).toEqual(new Set(['remote']))
 
-        expect(acquire).not.toHaveBeenCalled()
+        expect(ensureRunning).not.toHaveBeenCalled()
         expect(acquireLease).not.toHaveBeenCalled()
         expect(log).not.toContain(FARM_TOKEN)
       })
@@ -451,7 +453,7 @@ describe('a test on a remote device runs there from every door', () => {
     'agent-qa run opens one session for an iOS device on the remote, asking for no simulator log',
     async () => {
       await onRemoteDevice(
-        async ({ project, server, printed, acquire, acquireLease }) => {
+        async ({ project, server, printed, ensureRunning, acquireLease }) => {
           await runThroughCli(project, [project.testPattern])
 
           const log = printed.join('\n')
@@ -467,7 +469,7 @@ describe('a test on a remote device runs there from every door', () => {
           expect(newSessions[0]?.headers['x-farm-token'], log).toBe(FARM_TOKEN)
           expect(server.sessionsDeleted(), log).toEqual(server.sessionsCreated())
           expect(new Set(storedRunners(project)), log).toEqual(new Set(['remote']))
-          expect(acquire).not.toHaveBeenCalled()
+          expect(ensureRunning).not.toHaveBeenCalled()
           expect(acquireLease).not.toHaveBeenCalled()
         },
         { device: { platform: 'ios', model: IPHONE_MODEL, os: '18.2' } },
@@ -518,7 +520,7 @@ describe('a test on a remote device runs there from every door', () => {
     "agent-qa run refuses a remote device whose capabilities need an undeclared secret before the run is recorded",
     async () => {
       await onRemoteDevice(
-        async ({ project, server, printed, acquire, acquireLease, exit }) => {
+        async ({ project, server, printed, ensureRunning, acquireLease, exit }) => {
           await runThroughCli(project, [project.testPattern])
 
           const log = printed.join('\n')
@@ -534,7 +536,7 @@ describe('a test on a remote device runs there from every door', () => {
           ).toHaveLength(1)
           expect(server.requests, log).toEqual([])
           expect(storedRunners(project), log).toEqual([])
-          expect(acquire).not.toHaveBeenCalled()
+          expect(ensureRunning).not.toHaveBeenCalled()
           expect(acquireLease).not.toHaveBeenCalled()
         },
         { device: { capabilities: { 'farm:options': { accessKey: '{{secret:FARM_KEY}}' } } } },
@@ -554,7 +556,7 @@ describe('a test on a remote device runs there from every door', () => {
     "agent-qa run refuses %s on a remote device whose target's app.ref needs an undeclared secret before the run is recorded",
     async (_what, pattern, fixture) => {
       await onRemoteDevice(
-        async ({ project, server, printed, acquire, acquireLease, exit }) => {
+        async ({ project, server, printed, ensureRunning, acquireLease, exit }) => {
           await runThroughCli(project, [pattern(project)])
 
           const log = printed.join('\n')
@@ -570,7 +572,7 @@ describe('a test on a remote device runs there from every door', () => {
           ).toHaveLength(1)
           expect(server.requests, log).toEqual([])
           expect(storedRunners(project), log).toEqual([])
-          expect(acquire).not.toHaveBeenCalled()
+          expect(ensureRunning).not.toHaveBeenCalled()
           expect(acquireLease).not.toHaveBeenCalled()
         },
         { device: { appRef: 'farm://{{secret:SHOP_BUILD_REF}}' }, fixture },

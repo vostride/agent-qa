@@ -74,7 +74,7 @@ interface Scene {
   readonly server: FakeAppiumServer
   readonly log: () => string
   readonly exitCode: () => unknown
-  readonly acquire: ReturnType<typeof vi.spyOn>
+  readonly ensureRunning: ReturnType<typeof vi.spyOn>
   readonly listDevicesHere: Mock<(platform: 'android' | 'ios') => Promise<AndroidHere>>
 }
 
@@ -103,8 +103,8 @@ async function scene(
     exited = true
     throw new Error('fixture command exit')
   })
-  const acquire = vi
-    .spyOn(AppiumManager.prototype, 'acquire')
+  const ensureRunning = vi
+    .spyOn(AppiumManager.prototype, 'ensureRunning')
     .mockImplementation(() => Promise.reject(new Error('no Appium starts in this cell')))
   const listDevicesHere = vi.fn(async (_platform: 'android' | 'ios') => HERE)
   return {
@@ -112,7 +112,7 @@ async function scene(
     server,
     log: () => printed.join('\n'),
     exitCode: () => exit.mock.calls[0]?.[0],
-    acquire,
+    ensureRunning,
     listDevicesHere,
   }
 }
@@ -149,7 +149,7 @@ describe('where a mobile test runs is chosen from its files before the run is re
     'a test whose target names a remote device runs on that remote and records the run remote',
     async () => {
       const cell = await scene({ deviceOnTarget: true })
-      const { project, server, log, acquire, listDevicesHere } = cell
+      const { project, server, log, ensureRunning, listDevicesHere } = cell
 
       await runThroughCli(cell, [project.testPattern])
 
@@ -157,7 +157,7 @@ describe('where a mobile test runs is chosen from its files before the run is re
       const runners = storedRunners(project)
       expect(runners.length, log()).toBeGreaterThan(0)
       expect(new Set(runners), log()).toEqual(new Set(['remote']))
-      expect(acquire).not.toHaveBeenCalled()
+      expect(ensureRunning).not.toHaveBeenCalled()
       expect(listDevicesHere).not.toHaveBeenCalled()
     },
     RUN_BUDGET_MS,
@@ -186,12 +186,12 @@ describe('where a mobile test runs is chosen from its files before the run is re
     '--device naming a device here runs a test that picks a remote device on this machine',
     async () => {
       const cell = await scene({ localDevice: true })
-      const { project, server, log, acquire, listDevicesHere } = cell
+      const { project, server, log, ensureRunning, listDevicesHere } = cell
 
       await runThroughCli(cell, [project.testPattern, '--device', LOCAL_DEVICE_NAME])
 
       expect(listDevicesHere.mock.calls, log()).toEqual([['android']])
-      expect(acquire, log()).toHaveBeenCalledTimes(1)
+      expect(ensureRunning, log()).toHaveBeenCalledTimes(1)
       expect(server.requests, log()).toEqual([])
       const runners = storedRunners(project)
       expect(runners.length, log()).toBeGreaterThan(0)
@@ -207,7 +207,7 @@ describe('where a mobile test runs is chosen from its files before the run is re
         localDevice: true,
         localDeviceCapabilities: { 'appium:keystorePassword': '{{secret:KEYSTORE_PASSWORD}}' },
       })
-      const { project, server, log, exitCode, acquire } = cell
+      const { project, server, log, exitCode, ensureRunning } = cell
 
       await runThroughCli(cell, [project.testPattern, '--device', LOCAL_DEVICE_NAME])
 
@@ -217,7 +217,7 @@ describe('where a mobile test runs is chosen from its files before the run is re
       )
       expect(storedRunners(project), log()).toEqual([])
       expect(server.requests, log()).toEqual([])
-      expect(acquire).not.toHaveBeenCalled()
+      expect(ensureRunning).not.toHaveBeenCalled()
     },
     RUN_BUDGET_MS,
   )
@@ -252,7 +252,7 @@ describe('where a mobile test runs is chosen from its files before the run is re
         suiteMemberDevices: [undefined, undefined],
         suiteDevice: REMOTE_DEVICE_NAME,
       })
-      const { project, server, log, acquire, listDevicesHere } = cell
+      const { project, server, log, ensureRunning, listDevicesHere } = cell
 
       await runThroughCli(cell, [project.suitePattern])
 
@@ -260,7 +260,7 @@ describe('where a mobile test runs is chosen from its files before the run is re
       const runners = storedRunners(project)
       expect(runners.length, log()).toBeGreaterThan(0)
       expect(new Set(runners), log()).toEqual(new Set(['remote']))
-      expect(acquire).not.toHaveBeenCalled()
+      expect(ensureRunning).not.toHaveBeenCalled()
       expect(listDevicesHere).not.toHaveBeenCalled()
     },
     RUN_BUDGET_MS,

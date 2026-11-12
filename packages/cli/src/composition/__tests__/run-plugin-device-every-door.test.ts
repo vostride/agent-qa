@@ -115,7 +115,7 @@ interface DeviceScene {
   readonly server: FakeAppiumServer
   readonly ledgerFile: string
   readonly printed: string[]
-  readonly acquire: MockInstance
+  readonly ensureRunning: MockInstance
   readonly acquireLease: MockInstance
 }
 
@@ -185,12 +185,14 @@ async function onPluginDevice(
   })
   const noLocalAppium = (): Promise<never> =>
     Promise.reject(new Error('a device on a plugin remote starts no Appium here'))
-  const acquire = vi.spyOn(AppiumManager.prototype, 'acquire').mockImplementation(noLocalAppium)
+  const ensureRunning = vi
+    .spyOn(AppiumManager.prototype, 'ensureRunning')
+    .mockImplementation(noLocalAppium)
   const acquireLease = vi
     .spyOn(AppiumManager.prototype, 'acquireLease')
     .mockImplementation(noLocalAppium)
   try {
-    await drive({ project, server, ledgerFile, printed, acquire, acquireLease })
+    await drive({ project, server, ledgerFile, printed, ensureRunning, acquireLease })
   } finally {
     for (const close of opened.splice(0).reverse()) await close()
   }
@@ -287,7 +289,7 @@ async function expectRanOnPlugin(
     recordsRun: true,
   },
 ): Promise<void> {
-  const { project, server, acquire, acquireLease } = scene
+  const { project, server, ensureRunning, acquireLease } = scene
   await expectPluginWentAway(scene)
   const log = `${JSON.stringify(ledgerOf(scene))}\n${scene.printed.join('\n')}`
   const newSessions = server.requests.filter(
@@ -310,7 +312,7 @@ async function expectRanOnPlugin(
     ).toEqual(['remote'])
   }
   expect(server.requests.some((request) => request.path.endsWith('/status')), log).toBe(false)
-  expect(acquire).not.toHaveBeenCalled()
+  expect(ensureRunning).not.toHaveBeenCalled()
   expect(acquireLease).not.toHaveBeenCalled()
 }
 

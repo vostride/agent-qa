@@ -187,11 +187,16 @@ function startCli(project: InProcessFixture, args: readonly string[]): Running {
   return { done }
 }
 
-function spyAppium(): { acquire: ReturnType<typeof vi.spyOn>; lease: ReturnType<typeof vi.spyOn> } {
+function spyAppium(): {
+  ensureRunning: ReturnType<typeof vi.spyOn>
+  lease: ReturnType<typeof vi.spyOn>
+} {
   const noLocalAppium = (): Promise<never> =>
     Promise.reject(new Error('a remote device starts no Appium here'))
   return {
-    acquire: vi.spyOn(AppiumManager.prototype, 'acquire').mockImplementation(noLocalAppium),
+    ensureRunning: vi
+      .spyOn(AppiumManager.prototype, 'ensureRunning')
+      .mockImplementation(noLocalAppium),
     lease: vi.spyOn(AppiumManager.prototype, 'acquireLease').mockImplementation(noLocalAppium),
   }
 }
@@ -247,7 +252,7 @@ describe('a remote device refused before its test starts', () => {
         ],
       })
       const project = onFarm(server.url)
-      const { acquire, lease } = spyAppium()
+      const { ensureRunning, lease } = spyAppium()
 
       const ran = await startCli(project, [project.testPattern]).done
 
@@ -257,7 +262,7 @@ describe('a remote device refused before its test starts', () => {
         `Remote ${labelOf(server.url)} refused the credentials for device ${REMOTE_DEVICE_NAME}. Check FARM_TOKEN and FARM_KEY in .env.secrets.local.`,
       )
       expect(newSessions(server), ran.log).toHaveLength(1)
-      expect(acquire).not.toHaveBeenCalled()
+      expect(ensureRunning).not.toHaveBeenCalled()
       expect(lease).not.toHaveBeenCalled()
     },
     RUN_BUDGET_MS,
