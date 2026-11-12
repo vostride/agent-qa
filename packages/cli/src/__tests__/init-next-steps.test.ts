@@ -13,6 +13,10 @@ import type { InitStepRecord } from '../commands/init-steps.js'
 const RUN_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total.yaml'
 const RUN_SUITE = 'npx agent-qa run suites/examples.suite.yaml'
 const RUN_BUG_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total-bug.yaml'
+const DASHBOARD_STARTER_DESCRIPTION = 'Run the starter test in the dashboard, or:'
+const STARTER_DESCRIPTION = 'Start with the two-step test, which passes:'
+const FRESH_SUITE_DESCRIPTION = 'Then run the suite of three Komazon tests, which passes:'
+const RERUN_SUITE_DESCRIPTION = 'Run the example suite:'
 const BUG_STARTER_DESCRIPTION =
   "Run the test that fails on the playground's deliberate bug (exit 1):"
 
@@ -62,7 +66,7 @@ function commands(input: InitNextStepFacts): string[] {
 }
 
 describe('the next steps are derived from what happened', () => {
-  it('a failed pnpm install, a pending Claude subscription and no dashboard list the install, the auth login line, the run and the dashboard', () => {
+  it('a failed pnpm install, a pending Claude subscription and no dashboard list the install, the auth login line, the three example runs and the dashboard', () => {
     const steps = withRecord(DONE, {
       name: 'install',
       outcome: 'failed',
@@ -81,23 +85,77 @@ describe('the next steps are derived from what happened', () => {
     ).toEqual([
       'pnpm install',
       'npx agent-qa auth login --config claude-code',
-      'npx agent-qa run suites/examples.suite.yaml',
+      RUN_STARTER,
+      RUN_SUITE,
+      RUN_BUG_STARTER,
       'npx agent-qa dashboard',
     ])
   })
 
-  it('a run that went through with a ready model and the dashboard starting lists only the run, introduced', () => {
+  it('a run that went through with a ready model and the dashboard starting lists the starter, the suite and the [Bug] test, each introduced', () => {
     const { steps } = initNextSteps(facts())
 
     expect(steps).toEqual([
-      {
-        command: 'npx agent-qa run suites/examples.suite.yaml',
-        description: 'Run the examples in the dashboard, or:',
-      },
+      { command: RUN_STARTER, description: DASHBOARD_STARTER_DESCRIPTION },
+      { command: RUN_SUITE, description: FRESH_SUITE_DESCRIPTION },
+      { command: RUN_BUG_STARTER, description: BUG_STARTER_DESCRIPTION },
     ])
     expect(nextStepLines(steps)).toEqual([
-      'Run the examples in the dashboard, or:',
-      'npx agent-qa run suites/examples.suite.yaml',
+      DASHBOARD_STARTER_DESCRIPTION,
+      RUN_STARTER,
+      FRESH_SUITE_DESCRIPTION,
+      RUN_SUITE,
+      BUG_STARTER_DESCRIPTION,
+      RUN_BUG_STARTER,
+    ])
+  })
+
+  it('with the dashboard not starting, the starter is the two-step test that passes and the dashboard command follows the examples', () => {
+    const { steps } = initNextSteps(facts({ dashboard: { command: 'npx agent-qa dashboard' } }))
+
+    expect(steps).toEqual([
+      { command: RUN_STARTER, description: STARTER_DESCRIPTION },
+      { command: RUN_SUITE, description: FRESH_SUITE_DESCRIPTION },
+      { command: RUN_BUG_STARTER, description: BUG_STARTER_DESCRIPTION },
+      { command: 'npx agent-qa dashboard', description: 'Open the dashboard' },
+    ])
+    expect(nextStepLines(steps)).toEqual([
+      STARTER_DESCRIPTION,
+      RUN_STARTER,
+      FRESH_SUITE_DESCRIPTION,
+      RUN_SUITE,
+      BUG_STARTER_DESCRIPTION,
+      RUN_BUG_STARTER,
+      'npx agent-qa dashboard',
+    ])
+  })
+
+  it('the examples come after a failed step, a skipped step, the plugin line and the sign-in line', () => {
+    const steps = withRecord(
+      withRecord(DONE, {
+        name: 'validate',
+        outcome: 'failed',
+        reason: 'the config is not valid',
+        command: 'npx agent-qa validate',
+      }),
+      {
+        name: 'chromium',
+        outcome: 'skipped',
+        reason: '--no-browsers',
+        command: 'npx agent-qa install-browsers --chromium',
+      },
+    )
+
+    expect(
+      commands(facts({ steps, model: { ...CLAUDE_PENDING, pluginInstalled: false } })),
+    ).toEqual([
+      'npx agent-qa validate',
+      'npx agent-qa install-browsers --chromium',
+      'npx agent-qa plugins add @vostride/agent-qa-subscription-auth',
+      'npx agent-qa auth login --config claude-code',
+      RUN_STARTER,
+      RUN_SUITE,
+      RUN_BUG_STARTER,
     ])
   })
 
@@ -111,7 +169,9 @@ describe('the next steps are derived from what happened', () => {
 
     expect(commands(facts({ steps }))).toEqual([
       'npx agent-qa install-browsers --chromium',
-      'npx agent-qa run suites/examples.suite.yaml',
+      RUN_STARTER,
+      RUN_SUITE,
+      RUN_BUG_STARTER,
     ])
   })
 
@@ -157,7 +217,9 @@ describe('the next steps are derived from what happened', () => {
       'npm install',
       'npx agent-qa validate',
       'npx agent-qa auth login --config claude-code',
-      'npx agent-qa run suites/examples.suite.yaml',
+      RUN_STARTER,
+      RUN_SUITE,
+      RUN_BUG_STARTER,
     ])
   })
 
@@ -169,10 +231,9 @@ describe('the next steps are derived from what happened', () => {
         command: 'npx agent-qa auth login --config claude-code',
         description: 'Sign in with your subscription',
       },
-      {
-        command: 'npx agent-qa run suites/examples.suite.yaml',
-        description: 'Run the examples in the dashboard, or:',
-      },
+      { command: RUN_STARTER, description: DASHBOARD_STARTER_DESCRIPTION },
+      { command: RUN_SUITE, description: FRESH_SUITE_DESCRIPTION },
+      { command: RUN_BUG_STARTER, description: BUG_STARTER_DESCRIPTION },
     ])
   })
 
@@ -278,6 +339,15 @@ describe('the lines under the box', () => {
   it('no coding agent gives no hint', () => {
     expect(initNextSteps(facts({ agents: [] })).hints).toEqual([])
   })
+
+  it('the coding agent hint asks for the starter test when it is listed, and names no starter for a Mobile project', () => {
+    expect(initNextSteps(facts({ agents: ['claude-code'] })).hints).toEqual([
+      'Your coding agent can use agent-qa now: ask it to run the starter test.',
+    ])
+    expect(
+      initNextSteps(facts({ web: false, mobile: true, agents: ['claude-code'] })).hints,
+    ).toEqual(['Your coding agent can use agent-qa now: ask it to run the examples.'])
+  })
 })
 
 describe("a re-run's next steps", () => {
@@ -310,15 +380,15 @@ describe("a re-run's next steps", () => {
     const { steps } = initNextSteps(rerunFacts())
 
     expect(steps).toEqual([
-      { command: RUN_STARTER, description: 'Start with the two-step test, which passes:' },
-      { command: RUN_SUITE, description: 'Run the example suite:' },
+      { command: RUN_STARTER, description: STARTER_DESCRIPTION },
+      { command: RUN_SUITE, description: RERUN_SUITE_DESCRIPTION },
       { command: RUN_BUG_STARTER, description: BUG_STARTER_DESCRIPTION },
       { command: 'npx agent-qa dashboard', description: 'Open the dashboard' },
     ])
     expect(nextStepLines(steps)).toEqual([
-      'Start with the two-step test, which passes:',
+      STARTER_DESCRIPTION,
       RUN_STARTER,
-      'Run the example suite:',
+      RERUN_SUITE_DESCRIPTION,
       RUN_SUITE,
       BUG_STARTER_DESCRIPTION,
       RUN_BUG_STARTER,
@@ -343,15 +413,23 @@ describe("a re-run's next steps", () => {
   it('the suite is described with no claim that it passes, since a project keeps the suite an older init wrote', () => {
     const suite = initNextSteps(rerunFacts()).steps.find((step) => step.command === RUN_SUITE)
 
-    expect(suite?.description).toBe('Run the example suite:')
+    expect(suite?.description).toBe(RERUN_SUITE_DESCRIPTION)
     expect(suite?.description).not.toMatch(/pass/iu)
   })
 
   it('with the dashboard starting, the starter is introduced as the test to run in the dashboard', () => {
     expect(initNextSteps(rerunFacts({ dashboard: 'starting' })).steps).toEqual([
-      { command: RUN_STARTER, description: 'Run the starter test in the dashboard, or:' },
-      { command: RUN_SUITE, description: 'Run the example suite:' },
+      { command: RUN_STARTER, description: DASHBOARD_STARTER_DESCRIPTION },
+      { command: RUN_SUITE, description: RERUN_SUITE_DESCRIPTION },
       { command: RUN_BUG_STARTER, description: BUG_STARTER_DESCRIPTION },
+    ])
+  })
+
+  it('a project without the starter file gets the coding agent hint that names no starter', () => {
+    const examples = { starter: false, suite: true, bug: true }
+
+    expect(initNextSteps(rerunFacts({ examples, agents: ['claude-code'] })).hints).toEqual([
+      'Your coding agent can use agent-qa now: ask it to run the examples.',
     ])
   })
 

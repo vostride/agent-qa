@@ -50,6 +50,8 @@ export const BUG_STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.bug}`
 export const DASHBOARD_COMMAND = 'npx agent-qa dashboard'
 export const INIT_COMMAND = 'npx agent-qa init'
 export const CODING_AGENT_HINT =
+  'Your coding agent can use agent-qa now: ask it to run the starter test.'
+export const CODING_AGENT_EXAMPLES_HINT =
   'Your coding agent can use agent-qa now: ask it to run the examples.'
 export const CODEX_TRUST_HINT =
   'Codex reads .codex/config.toml only in a trusted folder: trust this folder when Codex asks.'
@@ -123,8 +125,9 @@ export function initNextSteps(facts: InitNextStepFacts): {
   if (facts.mobile) {
     add('npx agent-qa install-mobile-drivers --all', 'Install mobile driver support')
   }
-  const { examples } = facts
-  if (facts.web && examples !== undefined) {
+  if (facts.web) {
+    // A fresh init wrote every example.
+    const examples = facts.examples ?? { starter: true, suite: true, bug: true }
     if (examples.starter) {
       add(
         STARTER_RUN_COMMAND,
@@ -134,25 +137,28 @@ export function initNextSteps(facts: InitNextStepFacts): {
       )
     }
     // An older init's suite, which a re-run keeps, does not pass.
-    if (examples.suite) add(EXAMPLES_RUN_COMMAND, 'Run the example suite:')
+    if (examples.suite) {
+      add(
+        EXAMPLES_RUN_COMMAND,
+        facts.examples === undefined
+          ? 'Then run the suite of three Komazon tests, which passes:'
+          : 'Run the example suite:',
+      )
+    }
     if (examples.bug) {
       add(
         BUG_STARTER_RUN_COMMAND,
         "Run the test that fails on the playground's deliberate bug (exit 1):",
       )
     }
-  } else if (facts.web) {
-    add(
-      EXAMPLES_RUN_COMMAND,
-      facts.dashboard === 'starting'
-        ? 'Run the examples in the dashboard, or:'
-        : "Run the examples: one passes, one fails on the playground's deliberate bug (exit 1)",
-    )
   }
   if (facts.dashboard !== 'starting') add(facts.dashboard.command, STEP_DESCRIPTIONS.dashboard)
 
   const hints: string[] = facts.upgrade === undefined ? [] : guideLines(facts.upgrade)
-  if (facts.agents.length > 0) hints.push(CODING_AGENT_HINT)
+  if (facts.agents.length > 0) {
+    const starter = steps.some((step) => step.command === STARTER_RUN_COMMAND)
+    hints.push(starter ? CODING_AGENT_HINT : CODING_AGENT_EXAMPLES_HINT)
+  }
   if (facts.agents.includes('codex')) hints.push(CODEX_TRUST_HINT)
   return { steps, hints }
 }
