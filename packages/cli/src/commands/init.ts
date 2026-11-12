@@ -182,10 +182,16 @@ export function buildDefaultConfig(
   })
 }
 const KOMAZON_CHECKOUT_TEST_ID = 't_packer-staff-asha-lak-spill-usher-pele-allen-bid-done'
+const KOMAZON_CART_TOTAL_TEST_ID = 't_coop-cling-upo-prest-nid-ghan-was-went-ife-imine'
 const KOMAZON_CART_TOTAL_BUG_TEST_ID = 't_reduce-eva-elding-reset-lai-iban-rum-hin-parent-chang'
+const KOMAZON_SEARCH_TEST_ID = 't_jump-tier-lop-urger-car-ido-fell-abele-basket-stress'
+const KOMAZON_BAG_TEST_ID = 't_and-pond-adder-only-client-mico-vier-placer-buds-disk'
 const EXAMPLES_SUITE_ID = 's_dice-ego-veer-warp-ionic-trying-tur-cal-stride-battle'
 const KOMAZON_CHECKOUT_PATH = 'tests/examples/komazon-checkout.yaml'
+const KOMAZON_CART_TOTAL_PATH = 'tests/examples/komazon-cart-total.yaml'
 const KOMAZON_CART_TOTAL_BUG_PATH = 'tests/examples/komazon-cart-total-bug.yaml'
+const KOMAZON_SEARCH_PATH = 'tests/examples/komazon-search.yaml'
+const KOMAZON_BAG_PATH = 'tests/examples/komazon-bag.yaml'
 const EXAMPLES_SUITE_PATH = 'suites/examples.suite.yaml'
 const GETTING_STARTED_URL = 'https://vostride.com/docs/agent-qa/quickstart'
 const KOMAZON_SHIPPING_HOOK_TEST_ID = 't_ayin-dual-chunk-lou-tablet-ticket-brace-lak-kite-abu'
@@ -210,12 +216,46 @@ steps:
 `
 }
 
+function buildKomazonCartTotalTest(): string {
+  return `test-id: ${KOMAZON_CART_TOTAL_TEST_ID}
+name: Komazon cart total
+target: komazon
+steps:
+${STARTER_STEPS}
+`
+}
+
 function buildKomazonCartTotalBugTest(): string {
   return `test-id: ${KOMAZON_CART_TOTAL_BUG_TEST_ID}
 name: "[Bug] Komazon cart total is wrong for two mugs"
 target: komazon-cart-total-bug
 steps:
 ${STARTER_STEPS}
+`
+}
+
+// A suite's members share one browser session, so a later member opens the Shop page itself.
+function buildKomazonSearchTest(): string {
+  return `test-id: ${KOMAZON_SEARCH_TEST_ID}
+name: Komazon search and clear filters
+target: komazon
+steps:
+  - On the Shop page, search products for impossiblexyz.
+  - Verify the heading "No products found" is shown.
+  - Click Clear filters in the No products found message.
+  - Verify "Everyday Ceramic Mug" is listed.
+`
+}
+
+function buildKomazonBagTest(): string {
+  return `test-id: ${KOMAZON_BAG_TEST_ID}
+name: Komazon bag and free shipping
+target: komazon
+steps:
+  - On the Shop page, add Arc Table Lamp and Linen Hardcover Notebook to the bag, then open the bag.
+  - Verify shipping is Free and the order total is $107.00.
+  - Remove Linen Hardcover Notebook from the bag.
+  - Verify shipping is $5.00 and the order total is $94.00.
 `
 }
 
@@ -226,6 +266,10 @@ target: komazon
 tests:
   - test: ${KOMAZON_CHECKOUT_PATH}
     id: ${KOMAZON_CHECKOUT_TEST_ID}
+  - test: ${KOMAZON_SEARCH_PATH}
+    id: ${KOMAZON_SEARCH_TEST_ID}
+  - test: ${KOMAZON_BAG_PATH}
+    id: ${KOMAZON_BAG_TEST_ID}
 `
 }
 
@@ -254,7 +298,7 @@ await writeFile('/tmp/agent-qa.env', \`SHIPPING_ADDRESS="\${address}"\\n\`, 'utf
 // Every run starts a fresh session, so the sample asks for no reset.
 function buildKomazonShippingHookTest(): string {
   return `test-id: ${KOMAZON_SHIPPING_HOOK_TEST_ID}
-name: Komazon checkout with a shipping address from a hook
+name: "[Hook] Komazon checkout with a shipping address from a hook"
 target: komazon
 setup:
   - ${SHIPPING_ADDRESS_HOOK_ID}
@@ -620,8 +664,11 @@ function buildScaffoldFilePlans(
   if (!hasWeb(platform)) return plans
 
   plans.push(
-    scaffoldFilePlan(dir, KOMAZON_CHECKOUT_PATH, buildKomazonCheckoutTest(), force),
+    scaffoldFilePlan(dir, KOMAZON_CART_TOTAL_PATH, buildKomazonCartTotalTest(), force),
     scaffoldFilePlan(dir, KOMAZON_CART_TOTAL_BUG_PATH, buildKomazonCartTotalBugTest(), force),
+    scaffoldFilePlan(dir, KOMAZON_CHECKOUT_PATH, buildKomazonCheckoutTest(), force),
+    scaffoldFilePlan(dir, KOMAZON_SEARCH_PATH, buildKomazonSearchTest(), force),
+    scaffoldFilePlan(dir, KOMAZON_BAG_PATH, buildKomazonBagTest(), force),
     scaffoldFilePlan(dir, EXAMPLES_SUITE_PATH, buildExamplesSuite(), force),
     scaffoldFilePlan(dir, SHIPPING_ADDRESS_SCRIPT_PATH, buildShippingAddressScript(), force),
     scaffoldFilePlan(dir, KOMAZON_SHIPPING_HOOK_PATH, buildKomazonShippingHookTest(), force),

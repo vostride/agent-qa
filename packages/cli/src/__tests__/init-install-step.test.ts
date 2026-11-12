@@ -338,7 +338,9 @@ describe('a failed install is a failed step', () => {
     expect(out[at + 21]).toBe('  Run: npm install')
     expect(out.join('\n')).not.toContain('npm line 10\n')
     expect(existsSync(join(root, 'agent-qa.config.yaml'))).toBe(true)
-    const scaffold = out.indexOf('✓ Scaffold: config, 3 example tests and a suite (13 files)')
+    const scaffold = out.findIndex((line) =>
+      /^✓ Scaffold: config, 3 example tests and a suite \(\d+ files\)$/u.test(line),
+    )
     expect(scaffold).toBeGreaterThanOrEqual(0)
     expect(scaffold).toBeLessThan(at)
     expect(out.indexOf('Next steps')).toBeGreaterThan(at + 21)

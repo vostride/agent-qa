@@ -92,7 +92,10 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
 
 const DIR = '/tmp/examples'
 const CHECKOUT = 'tests/examples/komazon-checkout.yaml'
+const CART_TOTAL = 'tests/examples/komazon-cart-total.yaml'
 const CART_TOTAL_BUG = 'tests/examples/komazon-cart-total-bug.yaml'
+const SEARCH = 'tests/examples/komazon-search.yaml'
+const BAG = 'tests/examples/komazon-bag.yaml'
 const SUITE = 'suites/examples.suite.yaml'
 const HOOK_TEST = 'tests/examples/komazon-shipping-hook.yaml'
 const HOOK_SCRIPT = 'scripts/examples/make-shipping-address.mjs'
@@ -204,13 +207,22 @@ describe('the init examples', () => {
   beforeEach(setUpInitMocks)
   afterEach(tearDownInitMocks)
 
-  it('init writes the examples in their own folder and the suite holds the journey, not the failing test', async () => {
+  it('init writes the examples in their own folder and the suite holds the journey, search and bag tests, with no starter and no hook test', async () => {
     const writes = await initWrites()
-    const checkout = written(writes, CHECKOUT).doc
     const suite = written(writes, SUITE).doc
+    const idOf = (path: string) => written(writes, path).doc['test-id']
 
     expect(suite.target).toBe('komazon')
-    expect(suite.tests).toEqual([{ test: CHECKOUT, id: checkout['test-id'] }])
+    expect(suite.tests).toEqual([
+      { test: CHECKOUT, id: idOf(CHECKOUT) },
+      { test: SEARCH, id: idOf(SEARCH) },
+      { test: BAG, id: idOf(BAG) },
+    ])
+    const members = suite.tests as { test: string; id: string }[]
+    for (const path of [CART_TOTAL, CART_TOTAL_BUG, HOOK_TEST]) {
+      expect(members.map(member => member.test), `${path} is a member`).not.toContain(path)
+      expect(members.map(member => member.id), `${path}'s id is a member`).not.toContain(idOf(path))
+    }
 
     const samplePaths = writes
       .map(write => write.path)
@@ -275,6 +287,50 @@ describe('the init examples', () => {
     expect(suite.tests.map((member: { id: string }) => member.id)).not.toContain(doc['test-id'])
   })
 
+  it('the passing starter runs the starter steps on komazon and differs from the [Bug] starter only in id, name and target', async () => {
+    const writes = await initWrites()
+    const passing = written(writes, CART_TOTAL).doc
+    const failing = written(writes, CART_TOTAL_BUG).doc
+
+    expect(passing.name).toBe('Komazon cart total')
+    expect(passing.target).toBe('komazon')
+    expect(passing.steps).toEqual(STARTER_STEPS)
+    expect(failing.steps).toEqual(STARTER_STEPS)
+    expect(Object.keys(passing)).toEqual(Object.keys(failing))
+    for (const key of Object.keys(passing)) {
+      if (['test-id', 'name', 'target'].includes(key)) {
+        expect(passing[key], `the starters share their ${key}`).not.toEqual(failing[key])
+      } else {
+        expect(passing[key], `the starters differ in ${key}`).toEqual(failing[key])
+      }
+    }
+  })
+
+  it('every suite member runs on the suite target, has no setup hook and repeats no starter step', async () => {
+    const writes = await initWrites()
+    const suite = written(writes, SUITE).doc
+
+    for (const member of suite.tests as { test: string }[]) {
+      const doc = written(writes, member.test).doc
+      const repeated = (doc.steps as string[]).filter(step => STARTER_STEPS.includes(step))
+      expect(doc.target, member.test).toBe(suite.target)
+      expect(doc, `${member.test} has a setup hook`).not.toHaveProperty('setup')
+      expect(repeated, `${member.test} repeats a starter step`).toEqual([])
+    }
+  })
+
+  it('every example test has a canonical id that no other example test shares', async () => {
+    const examples = (await initWrites())
+      .filter(write => write.path.startsWith('tests/examples/') && write.path.endsWith('.yaml'))
+      .map(write => ({ path: write.path, id: parseYaml(write.content)['test-id'] }))
+
+    expect(examples.length, 'init writes the example tests').toBeGreaterThan(1)
+    for (const [index, { path, id }] of examples.entries()) {
+      expect(isCanonicalTestId(id), path).toBe(true)
+      expect(examples.findIndex(other => other.id === id), `${path} shares its id`).toBe(index)
+    }
+  })
+
   it('the targets are komazon and komazon-cart-total-bug with no product field', async () => {
     const expected: Record<string, Record<string, unknown>> = {
       web: KOMAZON_TARGETS,
@@ -330,12 +386,14 @@ describe('the init examples', () => {
   it('the example files are written before the config, which is written last', async () => {
     const paths = (await initWrites()).map(write => write.path)
     const configIndex = paths.indexOf('agent-qa.config.yaml')
+    const examples = paths.filter(path =>
+      ['tests/examples/', 'suites/', 'scripts/examples/'].some(prefix => path.startsWith(prefix)),
+    )
 
     expect(configIndex).toBe(paths.length - 1)
-    for (const path of [CHECKOUT, CART_TOTAL_BUG, SUITE]) {
-      const index = paths.indexOf(path)
-      expect(index, `init wrote ${path}`).toBeGreaterThanOrEqual(0)
-      expect(index, `${path} is written after the config`).toBeLessThan(configIndex)
+    expect(examples.length, 'init writes the examples').toBeGreaterThan(0)
+    for (const path of examples) {
+      expect(paths.indexOf(path), `${path} is written after the config`).toBeLessThan(configIndex)
     }
   })
 
@@ -411,6 +469,7 @@ describe('the init examples', () => {
     expect(parsed.errors).toEqual([])
     expect(parsed.tests).toHaveLength(1)
     expect(isCanonicalTestId(doc['test-id'])).toBe(true)
+    expect(doc.name).toMatch(/^\[Hook\] /)
     expect(doc.target).toBe('komazon')
     expect(doc.setup).toEqual([hook.id])
     expect(doc.use).toEqual({ cache: false })
