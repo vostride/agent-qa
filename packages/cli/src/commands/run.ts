@@ -68,6 +68,7 @@ import {
   REMOTE_RELEASE_BOUND_MS,
   startedRemoteReleases,
 } from '../composition/remote-sessions.js'
+import { ensureProcessAppium, stopProcessAppium } from '../composition/process-appium.js'
 import {
   DeclaredSecretsUnavailableError,
   readDeclaredSecrets,
@@ -278,19 +279,6 @@ async function buildStorageStateStore(configDir: string): Promise<import('@vostr
   return new FsStorageStateStore({ root: resolve(configDir, '.agent-qa') })
 }
 
-let _appiumManager: InstanceType<typeof import('@vostride/agent-qa-dashboard').AppiumManager> | null = null
-
-async function acquireAppium(logLevel: string): Promise<string | undefined> {
-  const { AppiumManager } = await import('@vostride/agent-qa-dashboard')
-  if (!_appiumManager) {
-    _appiumManager = new AppiumManager({
-      logLevel: logLevel === 'debug' ? 'debug' : 'normal',
-    })
-  }
-  await _appiumManager.ensureRunning()
-  return _appiumManager.getUrl()
-}
-
 export type DevicesHereLister = (platform: 'android' | 'ios') => Promise<AndroidHere | IOSHere>
 
 export const listDevicesHereByDefault: DevicesHereLister = async (platform) => {
@@ -488,7 +476,7 @@ async function startAppiumOrThrow(
   setup: { platform: 'android' | 'ios'; targetName: string; deviceName: string | undefined },
 ): Promise<string | undefined> {
   try {
-    return await acquireAppium(logLevel)
+    return await ensureProcessAppium(logLevel)
   } catch (err) {
     throw new MobileSetupError({
       category: 'appium-startup',
@@ -500,10 +488,6 @@ async function startAppiumOrThrow(
 }
 
 export type { AppiumProvider }
-
-function releaseAppium(): void {
-  void _appiumManager?.shutdown()
-}
 
 export { processRemoteSessions, releaseRemoteSessions, REMOTE_RELEASE_BOUND_MS }
 
@@ -2757,7 +2741,7 @@ async function executeSuites(
   }
 
   await startedRemoteReleases()
-  releaseAppium()
+  await stopProcessAppium()
   if (remoteRefusal === undefined) return { exitCode, remoteRefused: false }
   printRunText(
     pc.red(redactSecretValue(remoteRefusal.message, variableContext?.secretRedactor)),
@@ -5572,7 +5556,7 @@ export function createRunCommand(
         }
 
         await startedRemoteReleases()
-        releaseAppium()
+        await stopProcessAppium()
 
         record.close()
 
@@ -5582,6 +5566,7 @@ export function createRunCommand(
         await exitAtNormalEnd(exitCode)
       } catch (err) {
         await startedRemoteReleases()
+        await stopProcessAppium()
         // Input refusals become output and an exit code only here, at the door with a terminal.
         if (err instanceof CliRunInputError) {
           if (err.lines.length > 0) {

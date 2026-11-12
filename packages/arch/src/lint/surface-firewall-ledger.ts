@@ -348,6 +348,12 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: "the run's plugin host types its declared secrets and session registry with the runner's ports; joins the typed config action class",
   },
   {
+    file: 'packages/cli/src/composition/process-appium.ts',
+    specifier: '@vostride/agent-qa-dashboard',
+    clearedBy: 'M5',
+    reason: "the module holds the process's Appium manager, the dashboard package's class, shared by the run, daemon, MCP and dashboard hosts; rewired when the dashboards enter the firewall in M5",
+  },
+  {
     // Moved out of run.ts so the daemon and MCP hosts release sessions without loading the run.
     file: 'packages/cli/src/composition/remote-sessions.ts',
     specifier: '@vostride/agent-qa-runner',
