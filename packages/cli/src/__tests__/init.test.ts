@@ -748,9 +748,9 @@ describe('init command', () => {
       throw new Error(JSON.stringify(parsedSuite.error.issues, null, 2))
     }
     expect(parsedSuite.data.tests.map((test: { test: string }) => test.test)).toEqual([
-      'tests/examples/komazon-checkout.yaml',
-      'tests/examples/komazon-search.yaml',
       'tests/examples/komazon-bag.yaml',
+      'tests/examples/komazon-search.yaml',
+      'tests/examples/komazon-checkout.yaml',
     ])
 
     const hooksCall = findWriteCallEndingWith('hooks.yaml')
