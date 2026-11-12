@@ -42,11 +42,33 @@ function fakeSpawn() {
   return { child, spawn, home }
 }
 
+// A probe that answers only when the test says so.
+function heldProbe() {
+  let give: (ready: boolean) => void = () => {}
+  const probe = vi.fn(
+    (_url: string) =>
+      new Promise<boolean>((settle) => {
+        give = settle
+      }),
+  )
+  return { probe, answer: (ready: boolean) => give(ready) }
+}
+
 // A test that fails before it awaits its start leaves no unhandled rejection behind.
 function start(options: StartAppiumServerOptions): Promise<AppiumServer> {
   const starting = startAppiumServer(options)
   starting.catch(() => {})
   return starting
+}
+
+async function settledWithin(promise: Promise<unknown>, ms: number): Promise<boolean> {
+  let settled = false
+  const mark = () => {
+    settled = true
+  }
+  promise.then(mark, mark)
+  await new Promise((wait) => setTimeout(wait, ms))
+  return settled
 }
 
 beforeEach(() => {
@@ -114,13 +136,7 @@ describe('startAppiumServer', () => {
 
   it('does not take an answer that arrives after the child exited', async () => {
     const { child, spawn } = fakeSpawn()
-    let answer!: (ready: boolean) => void
-    const probe = vi.fn(
-      (_url: string) =>
-        new Promise<boolean>((settle) => {
-          answer = settle
-        }),
-    )
+    const { probe, answer } = heldProbe()
     const starting = start({ spawn, probe })
     await vi.waitFor(() => expect(probe).toHaveBeenCalledTimes(1))
 
@@ -156,5 +172,81 @@ describe('startAppiumServer', () => {
     await expect(starting).rejects.toThrow(/^Appium server did not become ready within \d+ms/u)
     expect(mockTreeKill).toHaveBeenCalledWith(child.pid, 'SIGKILL', expect.any(Function))
     expect(existsSync(prepared)).toBe(false)
+  })
+
+  it('passes stdout and stderr to onOutput with their names, before and after readiness', async () => {
+    const { child, spawn } = fakeSpawn()
+    const { probe, answer } = heldProbe()
+    const onOutput = vi.fn()
+    const starting = start({ spawn, probe, onOutput })
+    await vi.waitFor(() => expect(probe).toHaveBeenCalledTimes(1))
+
+    child.stdout.emit('data', Buffer.from('starting\n'))
+    answer(true)
+    await starting
+    child.stderr.emit('data', Buffer.from('serving\n'))
+
+    expect(onOutput.mock.calls).toEqual([
+      ['starting\n', 'stdout'],
+      ['serving\n', 'stderr'],
+    ])
+  })
+})
+
+describe('stop and exited', () => {
+  it('stop kills the tree and settles only once the child has closed and its home is gone', async () => {
+    const { child, spawn, home } = fakeSpawn()
+    const server = await start({ spawn, probe: async () => true })
+    const prepared = await home
+
+    const stopping = server.stop()
+
+    expect(await settledWithin(stopping, 50)).toBe(false)
+    expect(mockTreeKill).toHaveBeenCalledWith(child.pid, 'SIGKILL', expect.any(Function))
+    expect(existsSync(prepared)).toBe(true)
+    child.emit('close', null, 'SIGKILL')
+    await stopping
+    expect(existsSync(prepared)).toBe(false)
+  })
+
+  it('a second stop settles without killing again', async () => {
+    const { child, spawn } = fakeSpawn()
+    const server = await start({ spawn, probe: async () => true })
+
+    const first = server.stop()
+    const second = server.stop()
+    child.emit('close', null, 'SIGKILL')
+    await Promise.all([first, second])
+    await server.stop()
+
+    expect(mockTreeKill).toHaveBeenCalledTimes(1)
+  })
+
+  it('stop settles once the child closes even when the kill reports an error', async () => {
+    const { child, spawn, home } = fakeSpawn()
+    const server = await start({ spawn, probe: async () => true })
+    const prepared = await home
+    mockTreeKill.mockImplementationOnce((_pid, _signal, callback) =>
+      callback?.(new Error('kill failed')),
+    )
+
+    const stopping = server.stop()
+    child.emit('close', null, 'SIGKILL')
+
+    await expect(stopping).resolves.toBeUndefined()
+    expect(existsSync(prepared)).toBe(false)
+  })
+
+  it('a server that ends on its own removes its home, and a later stop kills nothing', async () => {
+    const { child, spawn, home } = fakeSpawn()
+    const server = await start({ spawn, probe: async () => true })
+    const prepared = await home
+
+    child.emit('close', 1, null)
+    await server.exited
+
+    expect(existsSync(prepared)).toBe(false)
+    await server.stop()
+    expect(mockTreeKill).not.toHaveBeenCalled()
   })
 })
