@@ -22,6 +22,7 @@ export const publicPackageNames = [
   '@vostride/agent-qa-core',
   '@vostride/agent-qa-web',
   '@vostride/agent-qa-agent-local',
+  '@vostride/agent-qa-appium-runtime',
   '@vostride/agent-qa-android',
   '@vostride/agent-qa-ios',
   '@vostride/agent-qa-mcp',

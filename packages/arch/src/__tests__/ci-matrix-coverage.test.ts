@@ -57,7 +57,7 @@ describe('the CI matrix tests every package once on each Node line and its aggre
       [
         'the rest leg is dropped',
         (ci) => drop(ci, 'workspace', 'rest'),
-        'workspace: no leg tests @vostride/agent-qa-analytics, @vostride/agent-qa-android, @vostride/agent-qa-arch',
+        'workspace: no leg tests @vostride/agent-qa-analytics, @vostride/agent-qa-android, @vostride/agent-qa-appium-runtime, @vostride/agent-qa-arch',
       ],
       [
         'the third agent-qa shard is dropped',
