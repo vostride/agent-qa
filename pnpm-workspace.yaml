@@ -3,11 +3,8 @@ packages:
   - "plugins/*"
 
 allowBuilds:
-  # @appium/coresim and appium-ios-tuntap load a prebuilt binary at run time; neither script needs to run
-  '@appium/coresim': false
   # The sentry-cli binary comes from its platform package, so its install script never runs
   '@sentry/cli': false
-  appium-ios-tuntap: false
   edgedriver: false
   geckodriver: false
   onnxruntime-node: false
