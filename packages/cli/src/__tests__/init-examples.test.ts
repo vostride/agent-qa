@@ -252,8 +252,8 @@ describe('the init examples', () => {
     expect(raw).not.toContain('headless')
   })
 
-  // Every run opens a fresh session, so a reset has no visible effect to verify.
-  it('no example test has a reset step, whose effect a fresh session would hide', async () => {
+  // Run alone, a test opens a fresh session; in the suite the bag test leaves the bag empty.
+  it('no example test has a step that asks for a reset', async () => {
     const writes = await initWrites()
     const examples = writes.filter(
       write => write.path.startsWith('tests/examples/') && write.path.endsWith('.yaml'),
@@ -356,6 +356,20 @@ describe('the init examples', () => {
     for (const path of named) {
       expect(paths, `the next steps name ${path}, which init does not write`).toContain(path)
     }
+  })
+
+  it('a fresh init over an existing suite file keeps it and makes no claim that it passes', async () => {
+    vi.mocked(existsSync).mockImplementation(path => String(path) === `${DIR}/${SUITE}`)
+    const writes = await initWrites()
+    const output = consoleOutput()
+    const nextSteps = output.slice(output.indexOf('Next steps\n'))
+
+    expect(writes.map(write => write.path)).not.toContain(SUITE)
+    expect(writes.map(write => write.path)).toContain(CART_TOTAL)
+    expect(nextSteps).toContain('Run the example suite:')
+    expect(nextSteps).toContain(`npx agent-qa run ${SUITE}`)
+    expect(nextSteps).not.toContain('suite of three')
+    expect(nextSteps).toContain('Start with the two-step test, which passes:')
   })
 
   it('every generated test and suite parses with the shipped schemas', async () => {
