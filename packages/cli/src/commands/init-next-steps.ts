@@ -26,7 +26,8 @@ export interface InitNextStepFacts {
   model?: InitNextStepModel
   web: boolean
   mobile: boolean
-  // The example files a re-run found on disk; a fresh init gives none.
+  // The example files on disk after a run that kept some of them: a re-run, or a fresh init
+  // over a suite file. A run that wrote every example gives none.
   examples?: InitExampleFiles
   // The coding agents whose setup went through.
   agents: readonly CodingAgent[]
@@ -35,7 +36,7 @@ export interface InitNextStepFacts {
   upgrade?: VersionMove
 }
 
-// Where init.ts writes the examples. It imports this file, so the paths are repeated here.
+// The example files the next steps name. init.ts writes them at these paths.
 export const EXAMPLE_PATHS = {
   starter: 'tests/examples/komazon-cart-total.yaml',
   suite: 'suites/examples.suite.yaml',
@@ -44,15 +45,14 @@ export const EXAMPLE_PATHS = {
 
 export const SUBSCRIPTION_PLUGIN_COMMAND =
   'npx agent-qa plugins add @vostride/agent-qa-subscription-auth'
-export const STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.starter}`
+const STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.starter}`
 export const EXAMPLES_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.suite}`
-export const BUG_STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.bug}`
+const BUG_STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.bug}`
 export const DASHBOARD_COMMAND = 'npx agent-qa dashboard'
 export const INIT_COMMAND = 'npx agent-qa init'
-export const CODING_AGENT_HINT =
-  'Your coding agent can use agent-qa now: ask it to run the starter test.'
-export const CODING_AGENT_EXAMPLES_HINT =
-  'Your coding agent can use agent-qa now: ask it to run the examples.'
+const CODING_AGENT_READY = 'Your coding agent can use agent-qa now'
+export const CODING_AGENT_HINT = `${CODING_AGENT_READY}: ask it to run the starter test.`
+const CODING_AGENT_EXAMPLES_HINT = `${CODING_AGENT_READY}: ask it to run the examples.`
 export const CODEX_TRUST_HINT =
   'Codex reads .codex/config.toml only in a trusted folder: trust this folder when Codex asks.'
 
@@ -126,7 +126,7 @@ export function initNextSteps(facts: InitNextStepFacts): {
     add('npx agent-qa install-mobile-drivers --all', 'Install mobile driver support')
   }
   if (facts.web) {
-    // A fresh init wrote every example.
+    // With no examples fact, this run wrote every example.
     const examples = facts.examples ?? { starter: true, suite: true, bug: true }
     if (examples.starter) {
       add(
@@ -136,7 +136,7 @@ export function initNextSteps(facts: InitNextStepFacts): {
           : 'Start with the two-step test, which passes:',
       )
     }
-    // An older init's suite, which a re-run keeps, does not pass.
+    // A suite file that was kept may be an older init's, which does not pass.
     if (examples.suite) {
       add(
         EXAMPLES_RUN_COMMAND,
@@ -156,8 +156,11 @@ export function initNextSteps(facts: InitNextStepFacts): {
 
   const hints: string[] = facts.upgrade === undefined ? [] : guideLines(facts.upgrade)
   if (facts.agents.length > 0) {
-    const starter = steps.some((step) => step.command === STARTER_RUN_COMMAND)
-    hints.push(starter ? CODING_AGENT_HINT : CODING_AGENT_EXAMPLES_HINT)
+    const listed = (command: string): boolean => steps.some((step) => step.command === command)
+    if (listed(STARTER_RUN_COMMAND)) hints.push(CODING_AGENT_HINT)
+    else if (listed(EXAMPLES_RUN_COMMAND) || listed(BUG_STARTER_RUN_COMMAND)) {
+      hints.push(CODING_AGENT_EXAMPLES_HINT)
+    } else hints.push(`${CODING_AGENT_READY}.`)
   }
   if (facts.agents.includes('codex')) hints.push(CODEX_TRUST_HINT)
   return { steps, hints }

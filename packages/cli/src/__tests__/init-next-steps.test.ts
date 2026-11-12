@@ -340,13 +340,13 @@ describe('the lines under the box', () => {
     expect(initNextSteps(facts({ agents: [] })).hints).toEqual([])
   })
 
-  it('the coding agent hint asks for the starter test when it is listed, and names no starter for a Mobile project', () => {
+  it('the coding agent hint asks for the starter test when it is listed, and names no example for a Mobile project, which has none', () => {
     expect(initNextSteps(facts({ agents: ['claude-code'] })).hints).toEqual([
       'Your coding agent can use agent-qa now: ask it to run the starter test.',
     ])
     expect(
       initNextSteps(facts({ web: false, mobile: true, agents: ['claude-code'] })).hints,
-    ).toEqual(['Your coding agent can use agent-qa now: ask it to run the examples.'])
+    ).toEqual(['Your coding agent can use agent-qa now.'])
   })
 })
 
@@ -430,6 +430,14 @@ describe("a re-run's next steps", () => {
 
     expect(initNextSteps(rerunFacts({ examples, agents: ['claude-code'] })).hints).toEqual([
       'Your coding agent can use agent-qa now: ask it to run the examples.',
+    ])
+  })
+
+  it('a project with none of the example files gets the coding agent hint that names no example', () => {
+    const examples = { starter: false, suite: false, bug: false }
+
+    expect(initNextSteps(rerunFacts({ examples, agents: ['claude-code'] })).hints).toEqual([
+      'Your coding agent can use agent-qa now.',
     ])
   })
 

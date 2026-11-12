@@ -103,7 +103,7 @@ describe('a fresh init draws one line per step', () => {
     expect(log).not.toHaveBeenCalled()
   })
 
-  it('the scaffold line counts the files the scaffold wrote', async () => {
+  it('the scaffold line counts the scaffold files, and each of them is in the folder', async () => {
     const { root, home } = tempProject('steps-count')
 
     await init(root, home, {
@@ -111,10 +111,20 @@ describe('a fresh init draws one line per step', () => {
     })
 
     const line = WEB_SCAFFOLD_LINE.exec(written(stderr))
-    const document = JSON.parse(written(stdout)) as { files: { step: string }[] }
+    const document = JSON.parse(written(stdout)) as { files: { step: string; path: string }[] }
     const scaffolded = document.files.filter((file) => file.step === 'scaffold')
     expect(line, 'init prints the scaffold line').not.toBeNull()
     expect(Number(line?.[1])).toBe(scaffolded.length)
+    expect(scaffolded.map((file) => file.path)).toEqual(
+      expect.arrayContaining([
+        'tests/examples/komazon-cart-total.yaml',
+        'suites/examples.suite.yaml',
+        'agent-qa.config.yaml',
+      ]),
+    )
+    for (const file of scaffolded) {
+      expect(existsSync(join(root, file.path)), `${file.path} is in the folder`).toBe(true)
+    }
   })
 
   it('a mobile scaffold names only the config', async () => {

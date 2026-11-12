@@ -85,7 +85,7 @@ import {
   resolveLlmFlag,
   type InitModelPick,
 } from './init-model-choice.js'
-import { initNextSteps, nextStepLines } from './init-next-steps.js'
+import { EXAMPLE_PATHS, initNextSteps, nextStepLines } from './init-next-steps.js'
 import {
   dashboardPage,
   dashboardPortOf,
@@ -188,11 +188,11 @@ const KOMAZON_SEARCH_TEST_ID = 't_jump-tier-lop-urger-car-ido-fell-abele-basket-
 const KOMAZON_BAG_TEST_ID = 't_and-pond-adder-only-client-mico-vier-placer-buds-disk'
 const EXAMPLES_SUITE_ID = 's_dice-ego-veer-warp-ionic-trying-tur-cal-stride-battle'
 const KOMAZON_CHECKOUT_PATH = 'tests/examples/komazon-checkout.yaml'
-const KOMAZON_CART_TOTAL_PATH = 'tests/examples/komazon-cart-total.yaml'
-const KOMAZON_CART_TOTAL_BUG_PATH = 'tests/examples/komazon-cart-total-bug.yaml'
+const KOMAZON_CART_TOTAL_PATH = EXAMPLE_PATHS.starter
+const KOMAZON_CART_TOTAL_BUG_PATH = EXAMPLE_PATHS.bug
 const KOMAZON_SEARCH_PATH = 'tests/examples/komazon-search.yaml'
 const KOMAZON_BAG_PATH = 'tests/examples/komazon-bag.yaml'
-const EXAMPLES_SUITE_PATH = 'suites/examples.suite.yaml'
+const EXAMPLES_SUITE_PATH = EXAMPLE_PATHS.suite
 const GETTING_STARTED_URL = 'https://vostride.com/docs/agent-qa/quickstart'
 const KOMAZON_SHIPPING_HOOK_TEST_ID = 't_ayin-dual-chunk-lou-tablet-ticket-brace-lak-kite-abu'
 const SHIPPING_ADDRESS_HOOK_ID = 'h_phi-arts-vis-band-aira-streng-twig-roi-mino-fold'
@@ -201,7 +201,8 @@ const SHIPPING_ADDRESS_SCRIPT_PATH = 'scripts/examples/make-shipping-address.mjs
 const STARTER_STEPS = `  - Add Everyday Ceramic Mug to the bag, open the bag and increase its quantity to two.
   - Verify the order total is $53.00.`
 
-// Every run starts a fresh session, so the journey asks for no reset.
+// The journey asks for no reset: run alone it starts a fresh session, and in the suite the bag
+// test leaves the bag empty before it.
 function buildKomazonCheckoutTest(): string {
   return `test-id: ${KOMAZON_CHECKOUT_TEST_ID}
 name: Komazon checkout journey
@@ -1438,6 +1439,10 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         ) {
           showExampleSecretLine(ui)
         }
+        const suitePath = join(dir, EXAMPLES_SUITE_PATH)
+        const suiteKept = outcomes.some(
+          result => result.path === suitePath && result.outcome === 'preserved',
+        )
         const records = runner.records()
         const skillsDone = records.some(
           (record) => record.name === 'skills' && record.outcome === 'done',
@@ -1457,6 +1462,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
               }),
           web: hasWeb(platform),
           mobile: normalizePlatformSelection(platform).mobileRuntimes.length > 0,
+          ...(suiteKept ? { examples: { starter: true, suite: true, bug: true } } : {}),
           agents: skillsDone ? agents : [],
           dashboard,
         })
