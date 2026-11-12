@@ -48,7 +48,7 @@ function clickTool() {
     inputSchema: {
       $schema: 'https://json-schema.org/draft/2020-12/schema',
       properties: {
-        ref: { type: 'string' },
+        ref: { type: 'string' as const },
       },
     },
   }
