@@ -235,6 +235,12 @@ export function listenForStopSignal(
   }
 }
 
+export async function closeMcpHost(deps: {
+  closeHost(): Promise<void>
+  stopAppium(boundMs: number): Promise<void> | undefined
+  settleReporting(): Promise<void>
+}): Promise<void> {}
+
 export function createMcpCommand(deps: McpCommandDeps = {}): Command {
   const cmd = new Command('mcp')
     .description('Start MCP (Model Context Protocol) server over stdio, or over loopback HTTP')
