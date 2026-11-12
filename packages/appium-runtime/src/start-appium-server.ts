@@ -15,7 +15,8 @@ const KEPT_LINES = 10
 export interface AppiumServer {
   // http://127.0.0.1 and the port the server listens on
   readonly url: string
-  // Settles when the server process has ended, by stop() or on its own. Never rejects.
+  // Settles once the server process has ended, by stop() or on its own, and the prepared home
+  // is removed. Never rejects.
   readonly exited: Promise<void>
   // Settles once the process tree is killed, the child has closed and the prepared home is
   // removed. Never rejects. Safe to call twice.
@@ -138,6 +139,9 @@ export async function startAppiumServer(
   child.stderr?.on('data', forward('stderr'))
   const withLastLines = (message: string): string => [message, ...lastLines].join('\n')
 
+  let removed: Promise<void> | undefined
+  const removeHome = (): Promise<void> => (removed ??= removeAppiumHome(home).catch(() => {}))
+
   let wake = (): void => {}
   let spawnError: Error | undefined
   child.once('error', (error) => {
@@ -151,7 +155,7 @@ export async function startAppiumServer(
       wake()
       settle()
     })
-  })
+  }).then(removeHome)
   const ended = (): boolean => spawnError !== undefined || closedBy !== undefined
   const pause = (): Promise<void> =>
     new Promise((settle) => {
@@ -168,7 +172,6 @@ export async function startAppiumServer(
     stopping ??= (async () => {
       if (closedBy === undefined && child.pid !== undefined) await killTree(child.pid)
       await exited
-      await removeAppiumHome(home).catch(() => {})
     })()
     return stopping
   }
@@ -182,11 +185,11 @@ export async function startAppiumServer(
   }
 
   if (spawnError !== undefined) {
-    await removeAppiumHome(home)
+    await removeHome()
     throw spawnError
   }
   if (closedBy !== undefined) {
-    await removeAppiumHome(home)
+    await exited
     throw new Error(withLastLines(`Appium exited before it was ready (${closedBy})`))
   }
   await stop()
