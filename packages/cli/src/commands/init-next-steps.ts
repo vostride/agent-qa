@@ -15,11 +15,19 @@ export interface InitNextStepModel {
   pluginInstalled: boolean
 }
 
+export interface InitExampleFiles {
+  starter: boolean
+  suite: boolean
+  bug: boolean
+}
+
 export interface InitNextStepFacts {
   steps: readonly InitStepRecord[]
   model?: InitNextStepModel
   web: boolean
   mobile: boolean
+  // The example files a re-run found on disk; a fresh init gives none.
+  examples?: InitExampleFiles
   // The coding agents whose setup went through.
   agents: readonly CodingAgent[]
   dashboard: 'starting' | { command: string }
@@ -27,9 +35,18 @@ export interface InitNextStepFacts {
   upgrade?: VersionMove
 }
 
+// Where init.ts writes the examples. It imports this file, so the paths are repeated here.
+export const EXAMPLE_PATHS = {
+  starter: 'tests/examples/komazon-cart-total.yaml',
+  suite: 'suites/examples.suite.yaml',
+  bug: 'tests/examples/komazon-cart-total-bug.yaml',
+} as const
+
 export const SUBSCRIPTION_PLUGIN_COMMAND =
   'npx agent-qa plugins add @vostride/agent-qa-subscription-auth'
-export const EXAMPLES_RUN_COMMAND = 'npx agent-qa run suites/examples.suite.yaml'
+export const STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.starter}`
+export const EXAMPLES_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.suite}`
+export const BUG_STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.bug}`
 export const DASHBOARD_COMMAND = 'npx agent-qa dashboard'
 export const INIT_COMMAND = 'npx agent-qa init'
 export const CODING_AGENT_HINT =
@@ -106,17 +123,33 @@ export function initNextSteps(facts: InitNextStepFacts): {
   if (facts.mobile) {
     add('npx agent-qa install-mobile-drivers --all', 'Install mobile driver support')
   }
-  if (facts.dashboard === 'starting') {
-    if (facts.web) add(EXAMPLES_RUN_COMMAND, 'Run the examples in the dashboard, or:')
-  } else {
-    if (facts.web) {
+  const { examples } = facts
+  if (facts.web && examples !== undefined) {
+    if (examples.starter) {
       add(
-        EXAMPLES_RUN_COMMAND,
-        "Run the examples: one passes, one fails on the playground's deliberate bug (exit 1)",
+        STARTER_RUN_COMMAND,
+        facts.dashboard === 'starting'
+          ? 'Run the starter test in the dashboard, or:'
+          : 'Start with the two-step test, which passes:',
       )
     }
-    add(facts.dashboard.command, STEP_DESCRIPTIONS.dashboard)
+    // An older init's suite, which a re-run keeps, does not pass.
+    if (examples.suite) add(EXAMPLES_RUN_COMMAND, 'Run the example suite:')
+    if (examples.bug) {
+      add(
+        BUG_STARTER_RUN_COMMAND,
+        "Run the test that fails on the playground's deliberate bug (exit 1):",
+      )
+    }
+  } else if (facts.web) {
+    add(
+      EXAMPLES_RUN_COMMAND,
+      facts.dashboard === 'starting'
+        ? 'Run the examples in the dashboard, or:'
+        : "Run the examples: one passes, one fails on the playground's deliberate bug (exit 1)",
+    )
   }
+  if (facts.dashboard !== 'starting') add(facts.dashboard.command, STEP_DESCRIPTIONS.dashboard)
 
   const hints: string[] = facts.upgrade === undefined ? [] : guideLines(facts.upgrade)
   if (facts.agents.length > 0) hints.push(CODING_AGENT_HINT)

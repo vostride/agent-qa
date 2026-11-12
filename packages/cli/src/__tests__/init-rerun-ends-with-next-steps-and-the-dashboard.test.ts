@@ -1,4 +1,4 @@
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
 import { getAuthPath } from '@vostride/agent-qa-core'
@@ -87,9 +87,33 @@ describe('a re-run ends with validate and the next steps', () => {
     expect(validated).toBeGreaterThanOrEqual(0)
     expect(note).toBeGreaterThan(validated)
     expect(nextSteps(result.entries)).toEqual([
+      'Start with the two-step test, which passes:',
+      'npx agent-qa run tests/examples/komazon-cart-total.yaml',
+      'Run the example suite:',
       'npx agent-qa run suites/examples.suite.yaml',
+      "Run the test that fails on the playground's deliberate bug (exit 1):",
+      'npx agent-qa run tests/examples/komazon-cart-total-bug.yaml',
       'npx agent-qa dashboard',
     ])
+  })
+
+  it('lists no command for an example file the project no longer holds, leaves it absent and names the scaffold row', async () => {
+    const project = await initializedProject('ending-starter-deleted')
+    const starter = join(project.root, 'tests', 'examples', 'komazon-cart-total.yaml')
+    rmSync(starter)
+
+    const result = await rerun(project, ['--yes'])
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(nextSteps(result.entries)).toEqual([
+      'npx agent-qa init --setup scaffold',
+      'Run the example suite:',
+      'npx agent-qa run suites/examples.suite.yaml',
+      "Run the test that fails on the playground's deliberate bug (exit 1):",
+      'npx agent-qa run tests/examples/komazon-cart-total-bug.yaml',
+      'npx agent-qa dashboard',
+    ])
+    expect(existsSync(starter)).toBe(false)
   })
 
   it('puts the --json document steps in order: the rows, validate, then the dashboard', async () => {
@@ -101,7 +125,9 @@ describe('a re-run ends with validate and the next steps', () => {
     const doc = JSON.parse(result.stdout) as InitDocument
     expect(doc.steps.slice(-2).map((step) => step.name)).toEqual(['validate', 'dashboard'])
     expect(doc.nextSteps.map((step) => step.command)).toEqual([
+      'npx agent-qa run tests/examples/komazon-cart-total.yaml',
       'npx agent-qa run suites/examples.suite.yaml',
+      'npx agent-qa run tests/examples/komazon-cart-total-bug.yaml',
       'npx agent-qa dashboard',
     ])
   })
