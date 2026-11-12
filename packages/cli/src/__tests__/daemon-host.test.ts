@@ -2616,6 +2616,7 @@ describe('daemon shutdown and reclaim post-mortem', () => {
     'jobDispatcher.stop',
     'localAgent.close',
     'remoteSessions.release',
+    'appium.stop',
     'releaseLease',
   ] as const
 
@@ -2667,6 +2668,54 @@ describe('daemon shutdown and reclaim post-mortem', () => {
     expect(stopped).toBe(false)
 
     release()
+    await expect(running).resolves.toBe(0)
+  })
+
+  it('waits for the Appium its runs started to stop, after its local agent has closed, before it ends', async () => {
+    const paths = makePaths('shutdown-appium-stop')
+    const harness = hostHarness()
+    const order: string[] = []
+    let settleStop: () => void = () => undefined
+    const appiumStopped = new Promise<void>((settle) => {
+      settleStop = settle
+    })
+    const stopAppium = vi.fn((_boundMs: number) => appiumStopped)
+    let stopped = false
+    const running = runDaemonHost({
+      agentQaRoot: paths.agentQaRoot,
+      knowledgeRoot: paths.knowledgeRoot,
+      config: TEST_CONFIG,
+      model: () => TEST_MODEL,
+      operations: {
+        ...harness.operations,
+        stopAppium,
+        runShutdownStage: async (stage, action) => {
+          order.push(stage)
+          await action()
+        },
+        startInvokeServer: ({ socketPath }) => Promise.resolve({
+          socketPath,
+          close: () => Promise.resolve(),
+        }),
+      },
+      logger: { info: vi.fn(), error: vi.fn() },
+    }).then((code) => {
+      stopped = true
+      return code
+    })
+    await waitUntil(() => harness.signals.has('SIGTERM'), 'daemon did not become signalable')
+
+    harness.signal('SIGTERM')
+    await waitUntil(
+      () => order.includes('appium.stop'),
+      'the shutdown never waited for Appium to stop',
+    )
+    expect(order.slice(-3)).toEqual(['localAgent.close', 'remoteSessions.release', 'appium.stop'])
+    expect(stopAppium).toHaveBeenCalledTimes(1)
+    expect(stopAppium).toHaveBeenCalledWith(REMOTE_RELEASE_BOUND_MS)
+    expect(stopped).toBe(false)
+
+    settleStop()
     await expect(running).resolves.toBe(0)
   })
 
