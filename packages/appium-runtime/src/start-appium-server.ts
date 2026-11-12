@@ -136,23 +136,37 @@ export async function startAppiumServer(
   }
   child.stdout?.on('data', forward('stdout'))
   child.stderr?.on('data', forward('stderr'))
+  const withLastLines = (message: string): string => [message, ...lastLines].join('\n')
 
+  let wake = (): void => {}
   let spawnError: Error | undefined
   child.once('error', (error) => {
     spawnError = error
+    wake()
   })
-  let closed = false
+  let closedBy: string | undefined
   const exited = new Promise<void>((settle) => {
-    child.once('close', () => {
-      closed = true
+    child.once('close', (code, signal) => {
+      closedBy = signal === null ? `exit code ${code}` : `signal ${signal}`
+      wake()
       settle()
     })
   })
+  const ended = (): boolean => spawnError !== undefined || closedBy !== undefined
+  const pause = (): Promise<void> =>
+    new Promise((settle) => {
+      if (ended()) return settle()
+      const timer = setTimeout(settle, POLL_INTERVAL_MS)
+      wake = () => {
+        clearTimeout(timer)
+        settle()
+      }
+    })
 
   let stopping: Promise<void> | undefined
   const stop = (): Promise<void> => {
     stopping ??= (async () => {
-      if (!closed && child.pid !== undefined) await killTree(child.pid)
+      if (closedBy === undefined && child.pid !== undefined) await killTree(child.pid)
       await exited
       await removeAppiumHome(home).catch(() => {})
     })()
@@ -161,16 +175,22 @@ export async function startAppiumServer(
 
   const url = `http://${LOOPBACK}:${port}`
   const deadline = Date.now() + STARTUP_TIMEOUT_MS
-  while (Date.now() < deadline) {
-    if (spawnError !== undefined) {
-      await removeAppiumHome(home)
-      throw spawnError
-    }
-    if (await probe(url)) return { url, exited, stop }
-    await new Promise((settle) => setTimeout(settle, POLL_INTERVAL_MS))
+  while (!ended() && Date.now() < deadline) {
+    // Once the child has ended, whatever answers on its port is another process.
+    if ((await probe(url)) && !ended()) return { url, exited, stop }
+    await pause()
   }
 
+  if (spawnError !== undefined) {
+    await removeAppiumHome(home)
+    throw spawnError
+  }
+  if (closedBy !== undefined) {
+    await removeAppiumHome(home)
+    throw new Error(withLastLines(`Appium exited before it was ready (${closedBy})`))
+  }
   await stop()
-  const message = `Appium server did not become ready within ${STARTUP_TIMEOUT_MS}ms`
-  throw new Error(lastLines.length > 0 ? `${message}\n${lastLines.join('\n')}` : message)
+  throw new Error(
+    withLastLines(`Appium server did not become ready within ${STARTUP_TIMEOUT_MS}ms`),
+  )
 }
