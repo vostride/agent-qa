@@ -254,22 +254,24 @@ target: komazon
 steps:
   - On the Shop page, add Arc Table Lamp and Linen Hardcover Notebook to the bag, then open the bag.
   - Verify shipping is Free and the order total is $107.00.
-  - Remove Linen Hardcover Notebook from the bag.
-  - Verify shipping is $5.00 and the order total is $94.00.
+  - Remove Arc Table Lamp and Linen Hardcover Notebook from the bag.
+  - Verify the heading "Your bag is empty" is shown.
 `
 }
 
+// The shop keeps the journey's Express delivery for later members, so the journey runs last,
+// after the bag test has emptied the bag.
 function buildExamplesSuite(): string {
   return `suite-id: ${EXAMPLES_SUITE_ID}
 name: Komazon examples
 target: komazon
 tests:
-  - test: ${KOMAZON_CHECKOUT_PATH}
-    id: ${KOMAZON_CHECKOUT_TEST_ID}
-  - test: ${KOMAZON_SEARCH_PATH}
-    id: ${KOMAZON_SEARCH_TEST_ID}
   - test: ${KOMAZON_BAG_PATH}
     id: ${KOMAZON_BAG_TEST_ID}
+  - test: ${KOMAZON_SEARCH_PATH}
+    id: ${KOMAZON_SEARCH_TEST_ID}
+  - test: ${KOMAZON_CHECKOUT_PATH}
+    id: ${KOMAZON_CHECKOUT_TEST_ID}
 `
 }
 

@@ -207,16 +207,16 @@ describe('the init examples', () => {
   beforeEach(setUpInitMocks)
   afterEach(tearDownInitMocks)
 
-  it('init writes the examples in their own folder and the suite holds the journey, search and bag tests, with no starter and no hook test', async () => {
+  it('init writes the examples in their own folder and the suite holds the bag, search and journey tests, with no starter and no hook test', async () => {
     const writes = await initWrites()
     const suite = written(writes, SUITE).doc
     const idOf = (path: string) => written(writes, path).doc['test-id']
 
     expect(suite.target).toBe('komazon')
     expect(suite.tests).toEqual([
-      { test: CHECKOUT, id: idOf(CHECKOUT) },
-      { test: SEARCH, id: idOf(SEARCH) },
       { test: BAG, id: idOf(BAG) },
+      { test: SEARCH, id: idOf(SEARCH) },
+      { test: CHECKOUT, id: idOf(CHECKOUT) },
     ])
     const members = suite.tests as { test: string; id: string }[]
     for (const path of [CART_TOTAL, CART_TOTAL_BUG, HOOK_TEST]) {
