@@ -1,7 +1,8 @@
-import { spawn as nodeSpawn } from 'node:child_process'
+import { spawn as nodeSpawn, type ChildProcessByStdio } from 'node:child_process'
 import { existsSync, statSync } from 'node:fs'
 import { realpath } from 'node:fs/promises'
 import { createRequire } from 'node:module'
+import type { Socket } from 'node:net'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
 
@@ -36,7 +37,7 @@ describe('startAppiumServer', () => {
     let childEnv: NodeJS.ProcessEnv | undefined
     const spawn: AppiumSpawn = (command, args, options) => {
       childEnv = options.env
-      return nodeSpawn(command, [...args], options)
+      return nodeSpawn(command, [...args], options) as ChildProcessByStdio<null, Socket, Socket>
     }
     let output = ''
 

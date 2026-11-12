@@ -32,6 +32,7 @@ class FakeChild extends EventEmitter {
 
 const children: FakeChild[] = []
 const homes: string[] = []
+const servers: AppiumServer[] = []
 
 const exitListeners = () => process.listeners('exit')
 
@@ -64,10 +65,14 @@ function heldProbe() {
   return { probe, answer: (ready: boolean) => give(ready) }
 }
 
-// A test that fails before it awaits its start leaves no unhandled rejection behind.
+// Each server is ended after its test, and a test that fails before it awaits its start leaves
+// no unhandled rejection behind.
 function start(options: StartAppiumServerOptions): Promise<AppiumServer> {
   const starting = startAppiumServer(options)
-  starting.catch(() => {})
+  starting.then(
+    (server) => servers.push(server),
+    () => {},
+  )
   return starting
 }
 
@@ -86,9 +91,10 @@ beforeEach(() => {
   mockTreeKill.mockImplementation((_pid, _signal, callback) => callback?.())
 })
 
-afterEach(() => {
+afterEach(async () => {
   vi.useRealTimers()
   for (const child of children.splice(0)) child.emit('close', null, 'SIGKILL')
+  await Promise.all(servers.splice(0).map((server) => server.exited))
   for (const home of homes.splice(0)) rmSync(home, { recursive: true, force: true })
 })
 

@@ -1,6 +1,7 @@
-import { spawn as nodeSpawn, type SpawnOptions } from 'node:child_process'
+import { spawn as nodeSpawn, type ChildProcessByStdio, type SpawnOptions } from 'node:child_process'
+import { rmSync } from 'node:fs'
 import { request } from 'node:http'
-import { createServer } from 'node:net'
+import { createServer, type Socket } from 'node:net'
 
 import treeKill from 'tree-kill'
 
@@ -25,6 +26,8 @@ export interface AppiumServer {
 
 interface ChildOutput {
   on(event: 'data', listener: (chunk: Buffer) => void): unknown
+  ref(): unknown
+  unref(): unknown
 }
 
 export interface AppiumChild {
@@ -36,6 +39,9 @@ export interface AppiumChild {
     event: 'close',
     listener: (code: number | null, signal: NodeJS.Signals | null) => void,
   ): unknown
+  kill(signal: NodeJS.Signals): unknown
+  ref(): unknown
+  unref(): unknown
 }
 
 export type AppiumSpawn = (
@@ -52,7 +58,9 @@ export interface StartAppiumServerOptions {
   readonly probe?: (url: string) => Promise<boolean>
 }
 
-const spawnNode: AppiumSpawn = (command, args, options) => nodeSpawn(command, [...args], options)
+// A child's piped output streams are sockets, which Node types only as Readable.
+const spawnNode: AppiumSpawn = (command, args, options) =>
+  nodeSpawn(command, [...args], options) as ChildProcessByStdio<null, Socket, Socket>
 
 function isAppiumReady(url: string): Promise<boolean> {
   return new Promise<boolean>((settle) => {
@@ -125,6 +133,23 @@ export async function startAppiumServer(
     { env: { ...process.env, APPIUM_HOME: home }, stdio: ['ignore', 'pipe', 'pipe'] },
   )
 
+  // An exiting process cannot wait for tree-kill to list the tree, so only the server itself is
+  // signalled here.
+  const killOnExit = (): void => {
+    try {
+      child.kill('SIGKILL')
+    } catch {}
+    try {
+      rmSync(home, { recursive: true, force: true })
+    } catch {}
+  }
+  process.once('exit', killOnExit)
+  // A command that succeeded ends only once nothing holds the event loop, and a child with piped
+  // output would hold it for ever, so the exit listener would never run.
+  child.unref()
+  child.stdout?.unref()
+  child.stderr?.unref()
+
   const lastLines: string[] = []
   const forward = (stream: 'stdout' | 'stderr') => (chunk: Buffer) => {
     const text = chunk.toString('utf8')
@@ -139,8 +164,13 @@ export async function startAppiumServer(
   child.stderr?.on('data', forward('stderr'))
   const withLastLines = (message: string): string => [message, ...lastLines].join('\n')
 
-  let removed: Promise<void> | undefined
-  const removeHome = (): Promise<void> => (removed ??= removeAppiumHome(home).catch(() => {}))
+  let cleaned: Promise<void> | undefined
+  const cleanUp = (): Promise<void> =>
+    (cleaned ??= removeAppiumHome(home)
+      .catch(() => {})
+      .then(() => {
+        process.off('exit', killOnExit)
+      }))
 
   let wake = (): void => {}
   let spawnError: Error | undefined
@@ -155,7 +185,7 @@ export async function startAppiumServer(
       wake()
       settle()
     })
-  }).then(removeHome)
+  }).then(cleanUp)
   const ended = (): boolean => spawnError !== undefined || closedBy !== undefined
   const pause = (): Promise<void> =>
     new Promise((settle) => {
@@ -170,7 +200,13 @@ export async function startAppiumServer(
   let stopping: Promise<void> | undefined
   const stop = (): Promise<void> => {
     stopping ??= (async () => {
-      if (closedBy === undefined && child.pid !== undefined) await killTree(child.pid)
+      if (closedBy === undefined) {
+        // A process that is only waiting for this stop stays alive until the child has closed.
+        child.ref()
+        child.stdout?.ref()
+        child.stderr?.ref()
+        if (child.pid !== undefined) await killTree(child.pid)
+      }
       await exited
     })()
     return stopping
@@ -185,7 +221,7 @@ export async function startAppiumServer(
   }
 
   if (spawnError !== undefined) {
-    await removeHome()
+    await cleanUp()
     throw spawnError
   }
   if (closedBy !== undefined) {
