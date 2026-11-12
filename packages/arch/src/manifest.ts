@@ -2,6 +2,7 @@ import { AGENT_QA_AGENT_OWNERSHIP_CONTRACT } from '../../agent/src/ownership-con
 import { AGENT_QA_AGENT_LOCAL_OWNERSHIP_CONTRACT } from '../../agent-local/src/ownership-contract.js'
 import { AGENT_QA_ANALYTICS_OWNERSHIP_CONTRACT } from '../../analytics/src/ownership-contract.js'
 import { AGENT_QA_ANDROID_OWNERSHIP_CONTRACT } from '../../android/src/ownership-contract.js'
+import { AGENT_QA_APPIUM_RUNTIME_OWNERSHIP_CONTRACT } from '../../appium-runtime/src/ownership-contract.js'
 import { AGENT_QA_CLI_OWNERSHIP_CONTRACT } from '../../cli/src/ownership-contract.js'
 import { AGENT_QA_CORE_OWNERSHIP_CONTRACT } from '../../core/src/ownership-contract.js'
 import { AGENT_QA_DASHBOARD_OWNERSHIP_CONTRACT } from '../../dashboard-server/src/ownership-contract.js'
@@ -43,6 +44,7 @@ export const ARCH_MANIFEST = {
     AGENT_QA_CORE_OWNERSHIP_CONTRACT,
     AGENT_QA_IDS_OWNERSHIP_CONTRACT,
     AGENT_QA_WEB_OWNERSHIP_CONTRACT,
+    AGENT_QA_APPIUM_RUNTIME_OWNERSHIP_CONTRACT,
     AGENT_QA_ANDROID_OWNERSHIP_CONTRACT,
     AGENT_QA_IOS_OWNERSHIP_CONTRACT,
     AGENT_QA_MCP_OWNERSHIP_CONTRACT,
