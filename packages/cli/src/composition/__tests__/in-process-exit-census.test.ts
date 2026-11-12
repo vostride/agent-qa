@@ -133,7 +133,7 @@ const PINNED_RUN_TS_IMPORTS = [
 const REQUIRED_REACHABLE_MEMBERS = [
   'loadRuntimeSecrets',
   'discoverFilesForCliPatterns',
-  'acquireAppium',
+  'startAppiumOrThrow',
   'produceDirectRunMembers',
   'produceSuiteRunMembers',
 ] as const
