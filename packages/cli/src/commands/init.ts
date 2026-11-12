@@ -700,7 +700,7 @@ function packageJsonText(result: InitFileResult, dir: string, realDir: string): 
 }
 
 function scaffoldText(platform: InitPlatformInput, files: number): string {
-  const what = hasWeb(platform) ? 'config, 3 example tests and a suite' : 'config'
+  const what = hasWeb(platform) ? 'config, 2 starter tests, a suite of 3 and a hook test' : 'config'
   return `Scaffold: ${what} (${files} files)`
 }
 

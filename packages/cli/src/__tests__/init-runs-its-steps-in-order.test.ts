@@ -23,6 +23,8 @@ import {
 
 const PLAN: readonly InitStepName[] = ['package-json', 'scaffold', 'install']
 const CHROMIUM_COMMAND = 'npx agent-qa install-browsers --chromium'
+const WEB_SCAFFOLD_LINE =
+  /^✓ Scaffold: config, 2 starter tests, a suite of 3 and a hook test \((\d+) files\)$/mu
 
 const silentAnalytics: typeof composeAnalyticsHost = async () =>
   composeAnalyticsHost({
@@ -89,9 +91,7 @@ describe('a fresh init draws one line per step', () => {
     const lines = written(stderr).split('\n')
     const name = sanitizedPackageName(basename(root))
     const packageJson = lines.indexOf(`✓ package.json created (${name})`)
-    const scaffold = lines.findIndex((line) =>
-      /^✓ Scaffold: config, 3 example tests and a suite \(\d+ files\)$/u.test(line),
-    )
+    const scaffold = lines.findIndex((line) => WEB_SCAFFOLD_LINE.test(line))
     const install = lines.findIndex((line) => line.startsWith('– Declared agent-qa '))
     const chromium = lines.indexOf('✓ Chromium installed')
     expect(packageJson).toBe(0)
@@ -110,9 +110,7 @@ describe('a fresh init draws one line per step', () => {
       args: ['--json', '--platform', 'web', '--llm', 'gemini', '--pm', 'none'],
     })
 
-    const line = /^✓ Scaffold: config, 3 example tests and a suite \((\d+) files\)$/mu.exec(
-      written(stderr),
-    )
+    const line = WEB_SCAFFOLD_LINE.exec(written(stderr))
     const document = JSON.parse(written(stdout)) as { files: { step: string }[] }
     const scaffolded = document.files.filter((file) => file.step === 'scaffold')
     expect(line, 'init prints the scaffold line').not.toBeNull()
@@ -184,7 +182,9 @@ describe('a fresh init draws one line per step', () => {
     expect(error).toMatchObject({ exitCode: 3 })
     expect(ui.entries.filter((entry) => entry.kind === 'done').map((entry) => entry.text)).toEqual([
       `package.json created (${sanitizedPackageName(basename(root))})`,
-      expect.stringMatching(/^Scaffold: config, 3 example tests and a suite \(\d+ files\)$/u),
+      expect.stringMatching(
+        /^Scaffold: config, 2 starter tests, a suite of 3 and a hook test \(\d+ files\)$/u,
+      ),
       expect.stringMatching(/^Claude Code and Codex: \d+ skills, MCP entries, AGENTS\.md block/u),
     ])
     expect(ui.entries).toContainEqual({
