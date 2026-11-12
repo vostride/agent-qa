@@ -31,6 +31,7 @@ import { errorReporter, settleReporting } from '../composition/error-reporting.j
 import { composeCliLocalAgent, withRunDoor } from '../composition/local-agent-host.js'
 import { createToolSettledObserver } from '../composition/mcp-tool-observer.js'
 import type { ToolSettledAnalytics } from '../composition/mcp-tool-observer.js'
+import { stopProcessAppiumWithin } from '../composition/process-appium.js'
 import { releaseRemoteSessions, REMOTE_RELEASE_BOUND_MS } from '../composition/remote-sessions.js'
 import { readAnalyticsPrivacyDeclaration, resolveConfig } from '../config.js'
 import { resolveMcpConfigPath } from './mcp-project.js'
@@ -235,11 +236,16 @@ export function listenForStopSignal(
   }
 }
 
+// Appium stops here, after the host, on both ends of serving: a signal and the client leaving.
 export async function closeMcpHost(deps: {
   closeHost(): Promise<void>
   stopAppium(boundMs: number): Promise<void> | undefined
   settleReporting(): Promise<void>
-}): Promise<void> {}
+}): Promise<void> {
+  await deps.closeHost().catch(() => {})
+  await deps.stopAppium(REMOTE_RELEASE_BOUND_MS)
+  await deps.settleReporting()
+}
 
 export function createMcpCommand(deps: McpCommandDeps = {}): Command {
   const cmd = new Command('mcp')
@@ -351,9 +357,12 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
         } finally {
           stop.detach()
           if (serving) emitLifecycle('stopped')
-          await host.close().catch(() => {})
-          // Drains the port this command composed and releases its timers, so the process can exit.
-          await settleReporting({ analytics })
+          await closeMcpHost({
+            closeHost: () => host.close(),
+            stopAppium: stopProcessAppiumWithin,
+            // Drains the port this command composed and releases its timers, so the process can exit.
+            settleReporting: () => settleReporting({ analytics }),
+          })
         }
         if (stop.signalled()) {
           await stop.released()
