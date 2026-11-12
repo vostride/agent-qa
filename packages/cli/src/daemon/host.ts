@@ -1706,6 +1706,10 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
         recovery = undefined
         runSyncCleanup('recovery.close', () => activeRecovery?.close())
         await runStage('remoteSessions.release', () => releasingRemotes)
+        // Only once the local agent has closed, so no run of this daemon still uses the server.
+        await runStage('appium.stop', async () => {
+          await operations.stopAppium(REMOTE_RELEASE_BOUND_MS)
+        })
 
         if (releaseAuthority) {
           await runStage('releaseLease', () => {
