@@ -287,7 +287,7 @@ async function acquireAppium(logLevel: string): Promise<string | undefined> {
       logLevel: logLevel === 'debug' ? 'debug' : 'normal',
     })
   }
-  await _appiumManager.acquire()
+  await _appiumManager.ensureRunning()
   return _appiumManager.getUrl()
 }
 
@@ -502,7 +502,7 @@ async function startAppiumOrThrow(
 export type { AppiumProvider }
 
 function releaseAppium(): void {
-  _appiumManager?.release()
+  void _appiumManager?.shutdown()
 }
 
 export { processRemoteSessions, releaseRemoteSessions, REMOTE_RELEASE_BOUND_MS }
