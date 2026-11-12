@@ -16,14 +16,24 @@ vi.mock('tree-kill')
 
 const mockTreeKill = vi.mocked(treeKill)
 
+class FakeOutput extends EventEmitter {
+  readonly ref = vi.fn()
+  readonly unref = vi.fn()
+}
+
 class FakeChild extends EventEmitter {
   readonly pid = 4321
-  readonly stdout = new EventEmitter()
-  readonly stderr = new EventEmitter()
+  readonly stdout = new FakeOutput()
+  readonly stderr = new FakeOutput()
+  readonly kill = vi.fn()
+  readonly ref = vi.fn()
+  readonly unref = vi.fn()
 }
 
 const children: FakeChild[] = []
 const homes: string[] = []
+
+const exitListeners = () => process.listeners('exit')
 
 // The child the fake spawn hands out, and the home the start prepared, known once it has spawned.
 function fakeSpawn() {
@@ -119,10 +129,12 @@ describe('startAppiumServer', () => {
     expect(probe).toHaveBeenCalledWith(server.url)
   })
 
-  it("rejects with the child's last lines when the child exits before it is ready, and removes its home", async () => {
+  it("rejects with the child's last lines when the child exits before it is ready, and leaves no home or exit listener", async () => {
+    const before = exitListeners()
     const { child, spawn, home } = fakeSpawn()
     const starting = start({ spawn, probe: async () => false })
     const prepared = await home
+    expect(exitListeners()).toHaveLength(before.length + 1)
 
     child.stdout.emit('data', Buffer.from('[Appium] Welcome\n'))
     child.stderr.emit('data', Buffer.from('the server cannot start here\n'))
@@ -132,6 +144,7 @@ describe('startAppiumServer', () => {
       /^Appium exited before it was ready \(exit code 1\)\n\[Appium\] Welcome\nthe server cannot start here$/u,
     )
     expect(existsSync(prepared)).toBe(false)
+    expect(exitListeners()).toEqual(before)
   })
 
   it('does not take an answer that arrives after the child exited', async () => {
@@ -146,19 +159,23 @@ describe('startAppiumServer', () => {
     await expect(starting).rejects.toThrow(/^Appium exited before it was ready/u)
   })
 
-  it('rejects with the spawn error and removes its home', async () => {
+  it('rejects with the spawn error and leaves no home or exit listener', async () => {
+    const before = exitListeners()
     const { child, spawn, home } = fakeSpawn()
     const starting = start({ spawn, probe: async () => false })
     const prepared = await home
+    expect(exitListeners()).toHaveLength(before.length + 1)
 
     child.emit('error', new Error('spawn failed'))
 
     await expect(starting).rejects.toThrow('spawn failed')
     expect(existsSync(prepared)).toBe(false)
+    expect(exitListeners()).toEqual(before)
   })
 
-  it('kills the tree, removes its home and rejects when the server is not ready in time', async () => {
+  it('kills the tree and rejects when the server is not ready in time, and leaves no home or exit listener', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+    const before = exitListeners()
     const { child, spawn, home } = fakeSpawn()
     mockTreeKill.mockImplementationOnce((_pid, _signal, callback) => {
       child.emit('close', null, 'SIGKILL')
@@ -166,12 +183,14 @@ describe('startAppiumServer', () => {
     })
     const starting = start({ spawn, probe: async () => false })
     const prepared = await home
+    expect(exitListeners()).toHaveLength(before.length + 1)
 
     await vi.runAllTimersAsync()
 
     await expect(starting).rejects.toThrow(/^Appium server did not become ready within \d+ms/u)
     expect(mockTreeKill).toHaveBeenCalledWith(child.pid, 'SIGKILL', expect.any(Function))
     expect(existsSync(prepared)).toBe(false)
+    expect(exitListeners()).toEqual(before)
   })
 
   it('passes stdout and stderr to onOutput with their names, before and after readiness', async () => {
@@ -237,16 +256,65 @@ describe('stop and exited', () => {
     expect(existsSync(prepared)).toBe(false)
   })
 
-  it('a server that ends on its own removes its home, and a later stop kills nothing', async () => {
+  it('a server that ends on its own leaves no home or exit listener, and a later stop kills nothing', async () => {
+    const before = exitListeners()
     const { child, spawn, home } = fakeSpawn()
     const server = await start({ spawn, probe: async () => true })
     const prepared = await home
+    expect(exitListeners()).toHaveLength(before.length + 1)
 
     child.emit('close', 1, null)
     await server.exited
 
     expect(existsSync(prepared)).toBe(false)
+    expect(exitListeners()).toEqual(before)
     await server.stop()
     expect(mockTreeKill).not.toHaveBeenCalled()
+  })
+})
+
+describe('a process that ends without stopping the server', () => {
+  it('unrefs the child and its output streams as soon as it is spawned', async () => {
+    const { child, spawn, home } = fakeSpawn()
+    const starting = start({ spawn, probe: async () => true })
+    await home
+
+    for (const target of [child, child.stdout, child.stderr]) {
+      expect(target.unref).toHaveBeenCalledTimes(1)
+    }
+    await starting
+  })
+
+  it("registers one exit listener, which kills the server with the child's own kill and removes its home before it returns", async () => {
+    const before = exitListeners()
+    const { child, spawn, home } = fakeSpawn()
+    await start({ spawn, probe: async () => true })
+    const prepared = await home
+    const added = exitListeners().filter((listener) => !before.includes(listener))
+    expect(added).toHaveLength(1)
+
+    added[0](0)
+
+    expect(child.kill).toHaveBeenCalledWith('SIGKILL')
+    expect(mockTreeKill).not.toHaveBeenCalled()
+    expect(existsSync(prepared)).toBe(false)
+  })
+
+  it('stop refs the child and its streams before it kills, and removes the exit listener', async () => {
+    const before = exitListeners()
+    const { child, spawn } = fakeSpawn()
+    const server = await start({ spawn, probe: async () => true })
+    expect(exitListeners()).toHaveLength(before.length + 1)
+
+    const stopping = server.stop()
+    child.emit('close', null, 'SIGKILL')
+    await stopping
+
+    const killedAt = mockTreeKill.mock.invocationCallOrder[0]
+    for (const target of [child, child.stdout, child.stderr]) {
+      expect(target.ref).toHaveBeenCalledTimes(1)
+      expect(target.ref.mock.invocationCallOrder[0]).toBeLessThan(killedAt)
+    }
+    expect(exitListeners()).toEqual(before)
   })
 })
