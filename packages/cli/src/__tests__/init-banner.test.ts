@@ -241,7 +241,7 @@ describe('init on the Clack rail', () => {
     expect(text).toContain('agent-qa init')
     expect(text).toContain(PLATFORM_QUESTION)
     expect(text.indexOf(bannerLines[1]!)).toBeLessThan(text.indexOf(PLATFORM_QUESTION))
-    expect(text).toMatch(/Scaffold: config, 3 example tests and a suite/u)
+    expect(text).toMatch(/Scaffold: config, 2 starter tests, a suite of 3 and a hook test/u)
     expect(existsSync(join(run.root, 'tests/examples/komazon-checkout.yaml'))).toBe(true)
     expect(run.terminal.asked()).toBe(1)
   })
