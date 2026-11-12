@@ -75,6 +75,7 @@ import { CliRefusal } from '../composition/cli-refusal.js'
 import { createDeclaredSecretMask } from '../composition/declared-secrets.js'
 import { errorReporter, settleReporting } from '../composition/error-reporting.js'
 import { doorLogLevel, pluginDebugLog } from '../composition/plugin-host.js'
+import { stopProcessAppiumWithin } from '../composition/process-appium.js'
 import { composeRunOwnership } from '../composition/run-owner-probe.js'
 import type { ComposeCliLocalAgentInput } from '../composition/local-agent-host.js'
 import {
@@ -107,11 +108,12 @@ export const DASHBOARD_FUNCTION_CALLER: FunctionCaller = Object.freeze({
 export const SHUTDOWN_WAIT_MARGIN_MS = 500
 
 export interface DashboardShutdownDeps {
-  close(): void
+  close(): void | Promise<void>
   closeMcp(): void
   dispose(): void
   cleanupSessions(boundMs: number): Promise<void>
   releaseRemoteSessions(boundMs: number): Promise<void>
+  stopAppium(boundMs: number): Promise<void> | undefined
   exit(code: number): void | Promise<void>
 }
 
@@ -972,6 +974,8 @@ async function startDashboardBackedServices(
         },
         cleanupSessions,
         releaseRemoteSessions,
+        // The process's Appium, used by runs from the API door or the co-hosted MCP, not the queue.
+        stopAppium: stopProcessAppiumWithin,
         // Explicit, because a silent remote's socket and its close timer keep the loop alive.
         exit: (code) => exitAfterSettling(code),
       })

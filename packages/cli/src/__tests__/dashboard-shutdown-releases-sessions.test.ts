@@ -22,12 +22,15 @@ function held(): Held {
 function shutdownWith(waits: {
   cleanupSessions?: () => Promise<void>
   releaseRemoteSessions?: () => Promise<void>
+  close?: () => Promise<void>
+  stopAppium?: () => Promise<void>
   exit?: () => Promise<void>
 }) {
   const order: string[] = []
   const deps: DashboardShutdownDeps = {
     close: vi.fn(() => {
       order.push('close')
+      return waits.close?.()
     }),
     closeMcp: vi.fn(() => {
       order.push('close mcp')
@@ -43,6 +46,7 @@ function shutdownWith(waits: {
       order.push(`release remotes within ${String(boundMs)}`)
       return (waits.releaseRemoteSessions ?? (() => Promise.resolve()))()
     }),
+    stopAppium: vi.fn((_boundMs: number) => waits.stopAppium?.()),
     exit: vi.fn((code: number) => {
       order.push(`exit ${String(code)}`)
       return waits.exit?.()
@@ -140,5 +144,56 @@ describe("the dashboard's shutdown", () => {
     expect(deps.exit).toHaveBeenCalledExactlyOnceWith(0)
     expect(order.slice(2)).toEqual(['close', 'close mcp', 'dispose', 'exit 0'])
     expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it("waits for the server's close to settle before it closes the MCP listener and exits", async () => {
+    const closing = held()
+    const { deps, order, done } = shutdownWith({ close: () => closing.promise })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(order.slice(2)).toEqual(['close'])
+    expect(deps.closeMcp).not.toHaveBeenCalled()
+    expect(deps.exit).not.toHaveBeenCalled()
+
+    closing.resolve()
+    await done
+    expect(order.slice(2)).toEqual(['close', 'close mcp', 'dispose', 'exit 0'])
+  })
+
+  it("goes on and exits 0 once the bound has passed when the server's close never settles", async () => {
+    const { deps, order, done } = shutdownWith({ close: () => new Promise<void>(() => undefined) })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(deps.close).toHaveBeenCalledOnce()
+
+    await vi.advanceTimersByTimeAsync(REMOTE_RELEASE_BOUND_MS - 1)
+    expect(deps.exit).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync(1)
+    await done
+    expect(deps.exit).toHaveBeenCalledExactlyOnceWith(0)
+    expect(order.slice(2)).toEqual(['close', 'close mcp', 'dispose', 'exit 0'])
+    expect(vi.getTimerCount()).toBe(0)
+  })
+
+  it("stops the process's Appium once, within the bound, after the first waits, and exits once it stops", async () => {
+    const cleanup = held()
+    const release = held()
+    const stopping = held()
+    const { deps, done } = shutdownWith({
+      cleanupSessions: () => cleanup.promise,
+      releaseRemoteSessions: () => release.promise,
+      stopAppium: () => stopping.promise,
+    })
+    cleanup.resolve()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(deps.stopAppium).not.toHaveBeenCalled()
+
+    release.resolve()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(deps.stopAppium).toHaveBeenCalledExactlyOnceWith(REMOTE_RELEASE_BOUND_MS)
+    expect(deps.exit).not.toHaveBeenCalled()
+
+    stopping.resolve()
+    await done
+    expect(deps.exit).toHaveBeenCalledExactlyOnceWith(0)
   })
 })
