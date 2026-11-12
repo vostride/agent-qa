@@ -726,8 +726,11 @@ describe('init command', () => {
     const { parseTestFile, SuiteDefinitionSchema, HooksFileSchema } = await loadCoreYamlValidators()
 
     for (const [suffix, target] of [
-      ['tests/examples/komazon-checkout.yaml', 'komazon'],
+      ['tests/examples/komazon-cart-total.yaml', 'komazon'],
       ['tests/examples/komazon-cart-total-bug.yaml', 'komazon-cart-total-bug'],
+      ['tests/examples/komazon-checkout.yaml', 'komazon'],
+      ['tests/examples/komazon-search.yaml', 'komazon'],
+      ['tests/examples/komazon-bag.yaml', 'komazon'],
       ['tests/examples/komazon-shipping-hook.yaml', 'komazon'],
     ]) {
       const call = findWriteCallEndingWith(suffix)
@@ -746,6 +749,8 @@ describe('init command', () => {
     }
     expect(parsedSuite.data.tests.map((test: { test: string }) => test.test)).toEqual([
       'tests/examples/komazon-checkout.yaml',
+      'tests/examples/komazon-search.yaml',
+      'tests/examples/komazon-bag.yaml',
     ])
 
     const hooksCall = findWriteCallEndingWith('hooks.yaml')
@@ -1427,8 +1432,11 @@ skills/.staging/
       '/tmp/test-project/package.json',
       '/tmp/test-project/scripts/examples/make-shipping-address.mjs',
       '/tmp/test-project/suites/examples.suite.yaml',
+      '/tmp/test-project/tests/examples/komazon-bag.yaml',
       '/tmp/test-project/tests/examples/komazon-cart-total-bug.yaml',
+      '/tmp/test-project/tests/examples/komazon-cart-total.yaml',
       '/tmp/test-project/tests/examples/komazon-checkout.yaml',
+      '/tmp/test-project/tests/examples/komazon-search.yaml',
       '/tmp/test-project/tests/examples/komazon-shipping-hook.yaml',
     ]))
 
