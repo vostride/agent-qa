@@ -16,8 +16,6 @@ const SCRAPE_PREFIX = 'AGENT_QA_EVENT:'
 /** Exact paths permitted to hold the spawn vocabulary, each with its reason recorded above. */
 const SPAWN_ALLOWED = new Set([
   'db/run-owner-host.ts',
-  'execution/appium-manager.ts',
-  'ownership-contract.ts',
   'server/server.ts',
 ])
 
@@ -78,13 +76,10 @@ describe('the dashboard run path', () => {
     expect([...holders].sort()).toEqual([...SPAWN_ALLOWED].sort())
   })
 
-  it('nobody sends a signal at a child — the two named survivors are a manifest and a receiver', () => {
-    // The allow-list above is exact, but "allowed" must not become "unexamined": these two are
-    // allowed because of WHAT they do with the vocabulary, and that is the part a later edit could
+  it('nobody sends a signal at a child — the server only receives one', () => {
+    // The allow-list above is exact, but "allowed" must not become "unexamined": the server is
+    // allowed because of WHAT it does with the vocabulary, and that is the part a later edit could
     // silently change.
-    const contract = MODULES.find((module) => module.path === 'ownership-contract.ts')!
-    expect(contract.code).toContain("'tree-kill'")
-    expect(contract.code).not.toContain('treeKill(')
     const server = MODULES.find((module) => module.path === 'server/server.ts')!
     expect(server.code).toContain("process.on('SIGTERM'")
     // No process is signalled and no signal is passed to anything. `executionBackend.kill(runId)`

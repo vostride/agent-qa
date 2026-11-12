@@ -28,7 +28,6 @@
         "@vostride/agent-qa-agent#build",
         "@vostride/agent-qa-core#build",
         "@vostride/agent-qa-plugin-kit#build",
-        "@vostride/agent-qa-appium-runtime#build",
         "agent-qa#build"
       ],
       "cache": false
@@ -40,7 +39,6 @@
         "@vostride/agent-qa-agent#build",
         "@vostride/agent-qa-core#build",
         "@vostride/agent-qa-plugin-kit#build",
-        "@vostride/agent-qa-appium-runtime#build",
         "agent-qa#build"
       ]
     },

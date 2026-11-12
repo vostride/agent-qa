@@ -1,12 +1,9 @@
-import { request } from 'node:http'
-import { spawn, type ChildProcess } from 'node:child_process'
 import {
-  formatAppiumInstallGuidance,
-  printRunText,
-  resolveAppiumExecutable,
-  type ResolvedAppiumExecutable,
-} from '@vostride/agent-qa-core'
-import treeKill from 'tree-kill'
+  startAppiumServer,
+  type AppiumServer,
+  type StartAppiumServerOptions,
+} from '@vostride/agent-qa-appium-runtime'
+import { printRunText } from '@vostride/agent-qa-core'
 import pc from 'picocolors'
 
 const APPIUM_PREFIX = pc.magenta('[appium]')
@@ -16,98 +13,52 @@ export interface AppiumLeaseOwner {
   platform: 'android' | 'ios'
 }
 
-export interface AppiumLease extends AppiumLeaseOwner {
-  acquiredAt: string
-}
-
 export class AppiumManager {
-  private process: ChildProcess | null = null
-  private port: number
-  private ready = false
+  private server: AppiumServer | null = null
   private startPromise: Promise<void> | null = null
-  private managed = false
-  private startupTimeoutMs: number
-  private pollIntervalMs: number
-  private anonymousRefCount = 0
-  private leases = new Map<string, AppiumLease>()
+  private leases = new Map<string, 'android' | 'ios'>()
+  // Settles once every stop begun so far has settled.
+  private stopping: Promise<void> = Promise.resolve()
   private logLevel: 'normal' | 'debug'
-  private appiumResolver: () => ResolvedAppiumExecutable
+  private startAppium: (options: StartAppiumServerOptions) => Promise<AppiumServer>
 
   constructor(opts?: {
-    port?: number
-    startupTimeoutMs?: number
-    pollIntervalMs?: number
     logLevel?: 'normal' | 'debug'
-    appiumResolver?: () => ResolvedAppiumExecutable
+    startAppium?: (options: StartAppiumServerOptions) => Promise<AppiumServer>
   }) {
-    this.port = opts?.port ?? 4723
-    this.startupTimeoutMs = opts?.startupTimeoutMs ?? 30_000
-    this.pollIntervalMs = opts?.pollIntervalMs ?? 500
     this.logLevel = opts?.logLevel ?? 'normal'
-    this.appiumResolver = opts?.appiumResolver ?? resolveAppiumExecutable
-  }
-
-  async acquire(): Promise<void> {
-    await this.ensureRunning()
-    this.anonymousRefCount++
-  }
-
-  release(): void {
-    if (this.anonymousRefCount > 0) this.anonymousRefCount--
-    this.maybeShutdownAfterRelease()
+    this.startAppium = opts?.startAppium ?? startAppiumServer
   }
 
   async acquireLease(owner: AppiumLeaseOwner): Promise<void> {
     await this.ensureRunning()
-    if (!this.leases.has(owner.runId)) {
-      this.leases.set(owner.runId, {
-        runId: owner.runId,
-        platform: owner.platform,
-        acquiredAt: new Date().toISOString(),
-      })
-    }
-    console.log(`${APPIUM_PREFIX} lease acquired run=${owner.runId} platform=${owner.platform} leases=${this.getLeaseCount()} managed=${this.managed}`)
+    if (!this.leases.has(owner.runId)) this.leases.set(owner.runId, owner.platform)
+    console.log(`${APPIUM_PREFIX} lease acquired run=${owner.runId} platform=${owner.platform} leases=${this.leases.size}`)
   }
 
   releaseLease(runId: string, reason = 'completed'): boolean {
-    const lease = this.leases.get(runId)
-    if (!lease) return false
+    const platform = this.leases.get(runId)
+    if (!platform) return false
 
     this.leases.delete(runId)
-    console.log(`${APPIUM_PREFIX} lease released run=${runId} platform=${lease.platform} reason=${reason} leases=${this.getLeaseCount()} managed=${this.managed}`)
-    this.maybeShutdownAfterRelease()
+    console.log(`${APPIUM_PREFIX} lease released run=${runId} platform=${platform} reason=${reason} leases=${this.leases.size}`)
+    if (this.leases.size > 0) {
+      console.log(`${APPIUM_PREFIX} server kept alive leases=${this.leases.size}`)
+    } else {
+      void this.performShutdown()
+    }
     return true
   }
 
-  releaseAllLeases(reason = 'shutdown'): string[] {
-    const runIds = [...this.leases.keys()]
-    for (const runId of runIds) {
-      this.releaseLease(runId, reason)
-    }
-    return runIds
-  }
-
   async ensureRunning(): Promise<void> {
-    if (this.ready) {
-      const still = await this.checkStatus()
-      if (still) return
-      this.ready = false
-    }
+    if (this.server) return
 
     if (this.startPromise) {
       await this.startPromise
       return
     }
 
-    this.startPromise = (async () => {
-      const alive = await this.checkStatus()
-      if (alive) {
-        this.ready = true
-        this.managed = false
-        return
-      }
-      await this.startAndWait()
-    })()
+    this.startPromise = this.startAndWait()
 
     try {
       await this.startPromise
@@ -116,148 +67,43 @@ export class AppiumManager {
     }
   }
 
-  async checkStatus(): Promise<boolean> {
-    return new Promise<boolean>((resolve) => {
-      const req = request(
-        {
-          hostname: 'localhost',
-          port: this.port,
-          path: '/status',
-          method: 'GET',
-          timeout: 3000,
-        },
-        (res) => {
-          let data = ''
-          res.on('data', (chunk: Buffer) => {
-            data += chunk.toString()
-          })
-          res.on('end', () => {
-            try {
-              const parsed = JSON.parse(data)
-              resolve(parsed?.value?.ready === true)
-            } catch {
-              resolve(false)
-            }
-          })
-        },
-      )
-      req.on('error', () => resolve(false))
-      req.on('timeout', () => {
-        req.destroy()
-        resolve(false)
-      })
-      req.end()
-    })
-  }
-
   private async startAndWait(): Promise<void> {
-    const appium = this.appiumResolver()
-    const child = spawn(appium.command, ['-p', String(this.port), '--relaxed-security', '--log-no-colors'], {
-      stdio: ['ignore', 'pipe', 'pipe'],
+    const server = await this.startAppium({
+      onOutput: (text, stream) => {
+        if (this.logLevel !== 'debug') return
+        for (const line of text.split('\n').filter(Boolean)) {
+          printRunText(`${APPIUM_PREFIX} ${pc.dim(line)}`, (out) =>
+            stream === 'stdout' ? console.log(out) : console.error(out),
+          )
+        }
+      },
     })
-
-    this.process = child
-    this.managed = true
-
-    child.on('error', (err: NodeJS.ErrnoException) => {
-      if (err.code === 'ENOENT') {
-        console.error(`${APPIUM_PREFIX} Appium not found. ${formatAppiumInstallGuidance()}`)
-      } else {
-        printRunText(`${APPIUM_PREFIX} Error: ${err.message}`, (text) => console.error(text))
-      }
+    this.server = server
+    console.log(`${APPIUM_PREFIX} ${pc.green(`started on :${new URL(server.url).port}`)}`)
+    // A server that ended on its own is no longer held, so the next call starts another.
+    void server.exited.then(() => {
+      if (this.server === server) this.server = null
     })
-
-    child.stdout?.on('data', (chunk: Buffer) => {
-      if (this.logLevel !== 'debug') return
-      const lines = chunk.toString().split('\n').filter(Boolean)
-      for (const line of lines) {
-        printRunText(`${APPIUM_PREFIX} ${pc.dim(line)}`, (text) => console.log(text))
-      }
-    })
-
-    child.stderr?.on('data', (chunk: Buffer) => {
-      if (this.logLevel !== 'debug') return
-      const lines = chunk.toString().split('\n').filter(Boolean)
-      for (const line of lines) {
-        printRunText(`${APPIUM_PREFIX} ${pc.dim(line)}`, (text) => console.error(text))
-      }
-    })
-
-    const start = Date.now()
-    while (Date.now() - start < this.startupTimeoutMs) {
-      const ok = await this.checkStatus()
-      if (ok) {
-        this.ready = true
-        console.log(`${APPIUM_PREFIX} ${pc.green(`started on :${this.port}`)}`)
-        return
-      }
-      await new Promise((r) => setTimeout(r, this.pollIntervalMs))
-    }
-
-    // Timeout — kill and throw
-    if (child.pid) {
-      treeKill(child.pid, 'SIGKILL', () => {})
-    }
-    this.process = null
-    this.managed = false
-    throw new Error(`Appium server did not become ready within ${this.startupTimeoutMs}ms`)
   }
 
-  private performShutdown(): void {
-    if (this.process?.pid && this.managed) {
-      treeKill(this.process.pid, 'SIGKILL', () => {})
+  private performShutdown(): Promise<void> {
+    const server = this.server
+    if (server) {
+      // Released before the stop settles, so a call made during the stop starts a new server.
+      this.server = null
       console.log(`${APPIUM_PREFIX} ${pc.yellow('stopped')}`)
+      this.stopping = Promise.all([this.stopping, server.stop()]).then(() => {})
     }
-    this.process = null
-    this.ready = false
-    this.managed = false
+    return this.stopping
   }
 
-  private maybeShutdownAfterRelease(): void {
-    if (this.getRefCount() > 0) {
-      console.log(`${APPIUM_PREFIX} server kept alive leases=${this.getLeaseCount()} managed=${this.managed}`)
-      return
-    }
-    if (this.managed) {
-      this.performShutdown()
-      return
-    }
-    if (this.ready) {
-      console.log(`${APPIUM_PREFIX} external server left running leases=0 managed=false`)
-    }
-  }
-
-  shutdown(): void {
-    this.anonymousRefCount = 0
+  shutdown(): Promise<void> {
     this.leases.clear()
-    this.performShutdown()
+    return this.performShutdown()
   }
 
   getUrl(): string {
-    return `http://localhost:${this.port}`
-  }
-
-  getPort(): number {
-    return this.port
-  }
-
-  isManaged(): boolean {
-    return this.managed
-  }
-
-  getRefCount(): number {
-    return this.anonymousRefCount + this.leases.size
-  }
-
-  getLeaseCount(): number {
-    return this.leases.size
-  }
-
-  getLeases(): AppiumLease[] {
-    return [...this.leases.values()]
-  }
-
-  hasLease(runId: string): boolean {
-    return this.leases.has(runId)
+    if (!this.server) throw new Error('Appium is not running')
+    return this.server.url
   }
 }

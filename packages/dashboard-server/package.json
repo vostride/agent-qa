@@ -54,6 +54,7 @@
   },
   "dependencies": {
     "@vostride/agent-qa-android": "workspace:*",
+    "@vostride/agent-qa-appium-runtime": "workspace:*",
     "@vostride/agent-qa-core": "workspace:*",
     "@vostride/agent-qa-ids": "workspace:*",
     "@vostride/agent-qa-ios": "workspace:*",
@@ -64,7 +65,6 @@
     "@vostride/agent-qa-web": "workspace:*",
     "ai": "7.0.159",
     "picocolors": "1.1.1",
-    "tree-kill": "1.2.2",
     "ws": "8.22.1",
     "yaml": "2.9.1",
     "zod": "4.6.7"

@@ -12,13 +12,13 @@ export const AGENT_QA_DASHBOARD_FORBIDDEN_RESPONSIBILITIES = [
 export const AGENT_QA_DASHBOARD_EXTERNAL_DEPENDENCIES = [
   'ai',
   'picocolors',
-  'tree-kill',
   'ws',
   'yaml',
   'zod',
 ] as const
 export const AGENT_QA_DASHBOARD_INTERNAL_DEPENDENCIES = [
   '@vostride/agent-qa-android',
+  '@vostride/agent-qa-appium-runtime',
   '@vostride/agent-qa-core',
   '@vostride/agent-qa-ids',
   '@vostride/agent-qa-ios',
