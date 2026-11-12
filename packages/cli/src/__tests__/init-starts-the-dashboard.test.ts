@@ -72,7 +72,14 @@ const RUNNING_BIN = resolve(
     bin: Record<string, string>
   }).bin['agent-qa']!,
 )
-const RUN_COMMAND = 'npx agent-qa run suites/examples.suite.yaml'
+const EXAMPLE_LINES = [
+  'Run the starter test in the dashboard, or:',
+  'npx agent-qa run tests/examples/komazon-cart-total.yaml',
+  'Then run the suite of three Komazon tests, which passes:',
+  'npx agent-qa run suites/examples.suite.yaml',
+  "Run the test that fails on the playground's deliberate bug (exit 1):",
+  'npx agent-qa run tests/examples/komazon-cart-total-bug.yaml',
+]
 const BASE = ['--platform', 'web', '--no-browsers', '--agents', 'none', '--pm', 'npm']
 const OK: RunResult = { code: 0, signal: null, output: '' }
 
@@ -279,7 +286,7 @@ describe('an interactive init starts the dashboard', () => {
       kind: 'done',
       text: 'Dashboard stopped',
     })
-    expect(nextSteps(ui).slice(-2)).toEqual(['Run the examples in the dashboard, or:', RUN_COMMAND])
+    expect(nextSteps(ui).slice(-EXAMPLE_LINES.length)).toEqual(EXAMPLE_LINES)
     expect(nextSteps(ui)).not.toContain('npx agent-qa dashboard')
   })
 
