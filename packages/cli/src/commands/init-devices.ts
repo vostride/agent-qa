@@ -1,9 +1,14 @@
+import { stripVTControlCharacters } from 'node:util'
+
 import {
   findDeviceHere,
   type AndroidHere,
   type DeviceFound,
   type IOSHere,
 } from '@vostride/agent-qa-core'
+
+import type { DevicesHereLister } from './run.js'
+import { PLAYGROUND_TARGETS } from './scaffold-content.js'
 
 export interface PickedDevice {
   // The key under registry.devices.
@@ -162,4 +167,91 @@ export function pickDeviceHere(platform: Platform, listing: Listing): PickedDevi
     }
   }
   return undefined
+}
+
+interface InitDevices {
+  devices: Partial<Record<Platform, PickedDevice>>
+  // One line per runtime, in the order given.
+  lines: string[]
+}
+
+const RUNTIME_NAMES = { android: 'Android', ios: 'iOS' } as const
+
+const CREATE_ONE = {
+  android: "Create an emulator in Android Studio's Device Manager",
+  ios: 'Create a simulator in Xcode',
+} as const
+
+function machineText(text: string): string {
+  return stripVTControlCharacters(text).replace(/[\u0000-\u001f\u007f]/gu, '')
+}
+
+function bindingAdvice(platform: Platform): string {
+  const target = PLAYGROUND_TARGETS[platform]
+  return `under registry.devices and set device on registry.targets.${target}`
+}
+
+function pickedLine(platform: Platform, picked: PickedDevice): string {
+  const runtime = RUNTIME_NAMES[platform]
+  const { model, os } = picked.profile
+  const shownOs = os === undefined ? '' : ` (${runtime} ${machineText(os)})`
+  return `${runtime} device: ${machineText(model)}${shownOs} as ${picked.name}`
+}
+
+function noneFoundLine(platform: Platform, reason: string | undefined): string {
+  const runtime = RUNTIME_NAMES[platform]
+  if (reason === undefined) {
+    return (
+      `${runtime} device: none found. ` +
+      `${CREATE_ONE[platform]}, then describe it ${bindingAdvice(platform)}.`
+    )
+  }
+  return (
+    `${runtime} device: none found (${machineText(reason)}). ` +
+    `Describe one ${bindingAdvice(platform)} once this machine has one.`
+  )
+}
+
+// The machine lists emulators or simulators, so a line saying none was found would be untrue.
+function nonePickedLine(platform: Platform): string {
+  const kind = platform === 'android' ? 'emulators' : 'simulators'
+  return (
+    `${RUNTIME_NAMES[platform]} device: none of this machine's ${kind} could be picked. ` +
+    `Describe one ${bindingAdvice(platform)}.`
+  )
+}
+
+function listsAny(platform: Platform, listing: Listing): boolean {
+  return platform === 'android'
+    ? (listing as AndroidHere).avds.length > 0
+    : (listing as IOSHere).simulators.length > 0
+}
+
+// A lister that throws leaves its runtime without a device, and init carries on.
+export async function findInitDevices(
+  runtimes: readonly Platform[],
+  list: DevicesHereLister,
+): Promise<InitDevices> {
+  const devices: InitDevices['devices'] = {}
+  const lines: string[] = []
+  for (const platform of runtimes) {
+    let listing: Listing
+    try {
+      listing = await list(platform)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      lines.push(noneFoundLine(platform, `could not list this machine's devices: ${message}`))
+      continue
+    }
+    const picked = pickDeviceHere(platform, listing)
+    if (picked !== undefined) {
+      devices[platform] = picked
+      lines.push(pickedLine(platform, picked))
+    } else if (listsAny(platform, listing)) {
+      lines.push(nonePickedLine(platform))
+    } else {
+      lines.push(noneFoundLine(platform, listing.problem))
+    }
+  }
+  return { devices, lines }
 }
