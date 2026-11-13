@@ -1,5 +1,6 @@
 // A re-run's browsers and scaffold rows: what pre-checks them, what running them does, and when
-// they are hidden.
+// they are hidden. A re-run writes no Playground example, requests no Playground app and lists no
+// device.
 import {
   existsSync,
   readFileSync,
@@ -13,16 +14,17 @@ import {
 import { join } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 
-import { getAgentQaVersion } from '@vostride/agent-qa-core'
-import { parseDocument } from 'yaml'
+import { getAgentQaVersion, type AndroidHere } from '@vostride/agent-qa-core'
+import { isNode, parseDocument } from 'yaml'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import type { ChromiumResolver } from '../commands/browser-resolver.js'
 import type { InitDocument } from '../commands/init-document.js'
 import { EXAMPLE_PATHS } from '../commands/init-next-steps.js'
 import { SETUP_MENU_QUESTION } from '../commands/init-rerun.js'
+import { PLAYGROUND_APP_PATHS } from '../commands/playground-app-pin.js'
 import type { FakeInitUiEntry } from './fake-init-ui.js'
-import { cleanupTempProjects, fakeRunner } from './project-fixtures.js'
+import { cleanupTempProjects, fakeRunner, mobileInitFakes } from './project-fixtures.js'
 import {
   installAgentQaFixture,
   initializedProject,
@@ -544,4 +546,74 @@ describe('a re-run and the Playground examples', () => {
       expect(doc.files.filter((file) => file.step === 'scaffold')).toEqual([])
     },
   )
+})
+
+const PIXEL: AndroidHere = {
+  attached: [],
+  avds: [{ name: 'Pixel_10_Pro', profile: 'pixel_10_pro', displayName: 'Pixel 10 Pro', os: '17' }],
+}
+
+// The registry block's bytes as the config file holds them.
+function registryText(root: string): string {
+  const text = readFileSync(join(root, 'agent-qa.config.yaml'), 'utf8')
+  const registry = parseDocument(text).get('registry', true)
+  if (!isNode(registry) || !registry.range) return 'no registry block'
+  return text.slice(registry.range[0], registry.range[2])
+}
+
+describe('the Playground app and the devices on a project that already has a config', () => {
+  it('a re-run with --setup all requests no app, has no playground-app step and leaves the app as it was', async () => {
+    const project = await initializedProject('rerun-playground-app', { platform: 'android' })
+    const app = join(project.root, 'app-bundles')
+    const before = snapshot(app)
+    const fakes = mobileInitFakes()
+
+    const result = await rerun(project, ['--setup', 'all', '--json'], {
+      plain: true,
+      hooks: fakes.hooks,
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(fakes.requests).toEqual([])
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(stepOf(doc, 'playground-app')).toBe('no playground-app step')
+    expect(Object.keys(before)).toContain(join(project.root, PLAYGROUND_APP_PATHS.android))
+    expect(snapshot(app)).toEqual(before)
+  })
+
+  it('a re-run with --setup all requests no app and leaves a deleted app-bundles deleted', async () => {
+    const project = await initializedProject('rerun-playground-app-deleted', { platform: 'android' })
+    rmSync(join(project.root, 'app-bundles'), { recursive: true })
+    const fakes = mobileInitFakes()
+
+    const result = await rerun(project, ['--setup', 'all', '--json'], {
+      plain: true,
+      hooks: fakes.hooks,
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(fakes.requests).toEqual([])
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(stepOf(doc, 'playground-app')).toBe('no playground-app step')
+    expect(existsSync(join(project.root, 'app-bundles'))).toBe(false)
+  })
+
+  it('a re-run with --setup all lists no device and leaves the registry block byte for byte as it was', async () => {
+    const project = await initializedProject('rerun-playground-device', {
+      platform: 'android',
+      hooks: mobileInitFakes({ android: PIXEL }).hooks,
+    })
+    const before = registryText(project.root)
+    const fakes = mobileInitFakes()
+
+    const result = await rerun(project, ['--setup', 'all', '--json'], {
+      plain: true,
+      hooks: fakes.hooks,
+    })
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(fakes.listed).toEqual([])
+    expect(before).toContain('model: Pixel 10 Pro')
+    expect(registryText(project.root)).toBe(before)
+  })
 })

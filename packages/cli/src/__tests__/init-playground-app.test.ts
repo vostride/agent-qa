@@ -1,7 +1,15 @@
 // A fresh init that chose Android or iOS downloads the pinned Playground app in a step of its own,
-// here from a fake source. A download that fails is a failed step, and init carries on to exit 3;
-// a Ctrl-C aborts the download and ends init interrupted.
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+// here from a fake source. A download that fails is a failed step with its reason masked, and init
+// carries on to exit 3; a Ctrl-C aborts the download and ends init interrupted; and an app-bundles
+// that is not a plain folder is refused before init writes anything.
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { dirname, join } from 'node:path'
 
 import { afterEach, describe, expect, it } from 'vitest'
@@ -304,5 +312,63 @@ describe('a fresh mobile init downloads the Playground app', () => {
       reason: 'interrupted',
     })
     expect(sigintListeners()).toEqual(before)
+  })
+
+  it('refuses an app-bundles that links out of the project before writing anything', async () => {
+    const outside = join(tempProject('playground-app-outside').root, 'elsewhere')
+    mkdirSync(outside)
+
+    const { root, result, fakes, doc } = await freshInit('android', {
+      prepare: (folder) => {
+        symlinkSync(outside, join(folder, 'app-bundles'), 'dir')
+      },
+    })
+
+    expect(result.exit).toBe(2)
+    expect(doc).toMatchObject({ outcome: 'refused', exitCode: 2 })
+    expect(doc.message).toMatch(
+      /^Refusing init destination .+: symbolic link parent .+app-bundles$/u,
+    )
+    expect(existsSync(join(root, 'agent-qa.config.yaml'))).toBe(false)
+    expect(existsSync(join(root, 'package.json'))).toBe(false)
+    expect(readdirSync(outside)).toEqual([])
+    expect(fakes.requests).toEqual([])
+  })
+
+  it('refuses a Playground.app that is a file before writing anything', async () => {
+    const { root, result, fakes, doc } = await freshInit('ios', {
+      prepare: (folder) => {
+        mkdirSync(join(folder, 'app-bundles'))
+        writeFileSync(join(folder, PLAYGROUND_APP_PATHS.ios), 'not a folder\n')
+      },
+    })
+
+    expect(result.exit).toBe(2)
+    expect(doc).toMatchObject({ outcome: 'refused', exitCode: 2 })
+    expect(doc.message).toMatch(/^Refusing init destination .+ parent .+Playground\.app$/u)
+    expect(existsSync(join(root, 'agent-qa.config.yaml'))).toBe(false)
+    expect(existsSync(join(root, 'package.json'))).toBe(false)
+    expect(readFileSync(join(root, PLAYGROUND_APP_PATHS.ios), 'utf8')).toBe('not a folder\n')
+    expect(fakes.requests).toEqual([])
+  })
+
+  it("shows a declared secret in a failed download's reason by its name, not its value", async () => {
+    const secret = 'pr0xy-t0ken-in-an-error'
+    const fakes = mobileInitFakes({}, { android: new Error(`the proxy refused ${secret}`) })
+
+    const { result, doc } = await freshInit('android', {
+      fakes,
+      prepare: (folder) => {
+        writeFileSync(join(folder, '.env.secrets.local'), `PROXY_TOKEN=${secret}\n`)
+      },
+    })
+
+    expect(result.exit).toBe(3)
+    const step = stepOf(doc, 'playground-app')
+    expect(step).toEqual({ name: 'playground-app', outcome: 'failed', reason: expect.any(String) })
+    expect(step?.reason).toContain('the proxy refused [secret:PROXY_TOKEN]')
+    expect(step?.reason).not.toContain(secret)
+    expect(result.entries).toContainEqual({ kind: 'failed', text: step?.reason })
+    expect(result.stdout).not.toContain(secret)
   })
 })
