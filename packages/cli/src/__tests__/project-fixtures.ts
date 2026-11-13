@@ -4,6 +4,8 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { crc32, deflateRawSync } from 'node:zlib'
 
+import type { AndroidHere, IOSHere } from '@vostride/agent-qa-core'
+
 import type {
   PlaygroundAppFetch,
   PlaygroundAppRequest,
@@ -21,6 +23,7 @@ import type {
   RunOptions,
   RunResult,
 } from '../commands/project-host.js'
+import type { DevicesHereLister } from '../commands/run.js'
 
 const roots: string[] = []
 
@@ -211,6 +214,33 @@ export function fakePlaygroundApp(
     return answer
   }
   return { source: { fetch, pin }, requests, bytes }
+}
+
+export interface MobileInitFakes {
+  hooks: { listDevicesHere: DevicesHereLister; playgroundApp: FakePlaygroundApp['source'] }
+  // The platforms the lister was asked for, in order.
+  listed: string[]
+  requests: PlaygroundAppRequest[]
+}
+
+// The lister finds nothing unless it is handed a listing: with no candidate, pickDeviceHere never
+// calls core's findDeviceHere, which the suites that mock core down to a few exports leave out.
+export function mobileInitFakes(
+  devices: { android?: AndroidHere; ios?: IOSHere } = {},
+  answers: { android?: Uint8Array | Error; ios?: Uint8Array | Error } = {},
+): MobileInitFakes {
+  const listed: string[] = []
+  const listDevicesHere: DevicesHereLister = async (platform) => {
+    listed.push(platform)
+    if (platform === 'android') return devices.android ?? { attached: [], avds: [] }
+    return devices.ios ?? { simulators: [] }
+  }
+  const playground = fakePlaygroundApp(answers)
+  return {
+    hooks: { listDevicesHere, playgroundApp: playground.source },
+    listed,
+    requests: playground.requests,
+  }
 }
 
 // A running agent-qa whose package.json names its bin, readable where node:fs is mocked.
