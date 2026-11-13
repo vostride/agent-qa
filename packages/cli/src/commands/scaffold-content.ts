@@ -88,7 +88,7 @@ export function hasWeb(platform: InitPlatformInput): boolean {
   return normalizePlatformSelection(platform).capabilities.includes('web')
 }
 
-export function hasMobile(platform: InitPlatformInput): boolean {
+function hasMobile(platform: InitPlatformInput): boolean {
   return normalizePlatformSelection(platform).capabilities.includes('mobile')
 }
 
