@@ -223,7 +223,9 @@ describe('a fresh mobile init downloads the Playground app', () => {
   })
 
   it('a fetch that rejects with a TypeError fails the step without stopping init as a bug', async () => {
-    const offline = new TypeError('fetch failed')
+    const offline = new TypeError('fetch failed', {
+      cause: new Error('getaddrinfo ENOTFOUND github.com'),
+    })
     const fakes = mobileInitFakes({}, { android: offline, ios: offline })
     const { root, result, doc } = await freshInit('android,ios', {
       fakes,
@@ -241,9 +243,10 @@ describe('a fresh mobile init downloads the Playground app', () => {
     })
     const step = stepOf(doc, 'playground-app')
     expect(step).toEqual({ name: 'playground-app', outcome: 'failed', reason: expect.any(String) })
+    const said = 'was not downloaded: fetch failed (getaddrinfo ENOTFOUND github.com). It is '
     expect(step?.reason?.split('\n')).toEqual([
-      expect.stringMatching(/^The Playground app for Android was not downloaded: fetch failed\. /u),
-      expect.stringMatching(/^The Playground app for iOS was not downloaded: fetch failed\. /u),
+      expect.stringContaining(`The Playground app for Android ${said}`),
+      expect.stringContaining(`The Playground app for iOS ${said}`),
     ])
     expect(stepOf(doc, 'skills')).toEqual({
       name: 'skills',
@@ -431,7 +434,10 @@ describe('a fresh mobile init downloads the Playground app', () => {
 
   it("shows a declared secret in a failed download's reason by its name, not its value", async () => {
     const secret = 'pr0xy-t0ken-in-an-error'
-    const fakes = mobileInitFakes({}, { android: new Error(`the proxy refused ${secret}`) })
+    const refused = new TypeError('fetch failed', {
+      cause: new Error(`the proxy refused ${secret}`),
+    })
+    const fakes = mobileInitFakes({}, { android: refused })
 
     const { result, doc } = await freshInit('android', {
       fakes,
@@ -443,7 +449,7 @@ describe('a fresh mobile init downloads the Playground app', () => {
     expect(result.exit).toBe(3)
     const step = stepOf(doc, 'playground-app')
     expect(step).toEqual({ name: 'playground-app', outcome: 'failed', reason: expect.any(String) })
-    expect(step?.reason).toContain('the proxy refused [secret:PROXY_TOKEN]')
+    expect(step?.reason).toContain('fetch failed (the proxy refused [secret:PROXY_TOKEN])')
     expect(step?.reason).not.toContain(secret)
     expect(result.entries).toContainEqual({ kind: 'failed', text: step?.reason })
     expect(result.stdout).not.toContain(secret)
