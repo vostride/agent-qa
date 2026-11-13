@@ -1429,25 +1429,35 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         )
         let arrivedApps: MobileRuntime[] = []
         const downloadPlaygroundApp = async (): Promise<InitStepResult> => {
-          const { arrived, failures } = await downloadPlaygroundApps({
-            dir,
-            runtimes: playgroundRuntimes,
-            pin: playgroundPin,
-            fetch: hooks.playgroundApp?.fetch ?? fetchPlaygroundAppByDefault,
-            exists: (path) => host.io.exists(path),
-            force,
-            signal: new AbortController().signal,
-            record: (result) => recordOutcome('playground-app', result),
-          })
-          arrivedApps = arrived
-          if (failures.length > 0) {
-            return {
-              outcome: 'failed',
-              reason: failures.map((failure) => failure.reason).join('\n'),
-            }
+          // The runner only notes a Ctrl-C and waits for the step, so the step aborts its request.
+          const controller = new AbortController()
+          const interrupt = (): void => {
+            controller.abort()
           }
-          const paths = arrived.map((runtime) => PLAYGROUND_APP_PATHS[runtime])
-          return { outcome: 'done', text: `Playground app: ${paths.join(' and ')}` }
+          process.on('SIGINT', interrupt)
+          try {
+            const { arrived, failures } = await downloadPlaygroundApps({
+              dir,
+              runtimes: playgroundRuntimes,
+              pin: playgroundPin,
+              fetch: hooks.playgroundApp?.fetch ?? fetchPlaygroundAppByDefault,
+              exists: (path) => host.io.exists(path),
+              force,
+              signal: controller.signal,
+              record: (result) => recordOutcome('playground-app', result),
+            })
+            arrivedApps = arrived
+            if (failures.length > 0) {
+              return {
+                outcome: 'failed',
+                reason: failures.map((failure) => failure.reason).join('\n'),
+              }
+            }
+            const paths = arrived.map((runtime) => PLAYGROUND_APP_PATHS[runtime])
+            return { outcome: 'done', text: `Playground app: ${paths.join(' and ')}` }
+          } finally {
+            process.off('SIGINT', interrupt)
+          }
         }
 
         const setUpAgents = async (): Promise<InitStepResult> => {
