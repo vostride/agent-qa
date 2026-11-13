@@ -189,13 +189,17 @@ describe('the config init writes', () => {
       const parsed = strictParse(parseYaml(uncommented))
 
       expect(parsed.workspace?.testPathIgnore).toEqual(['tests/archive/**/*.yaml'])
-      expect(parsed.registry?.devices?.pixel).toEqual({ platform: 'android', model: 'Pixel 8' })
+      expect(parsed.registry?.devices?.['android-emulator-pixel-8-15']).toEqual({
+        platform: 'android',
+        model: 'Pixel 8',
+        os: '15',
+      })
       expect(parsed.registry?.targets?.['my-mobile']).toEqual({
         platform: 'android',
         appPackage: 'com.example.app',
         appActivity: '.MainActivity',
-        app: { path: 'apps/example.apk' },
-        device: 'pixel',
+        app: { path: 'app-bundles/example.apk' },
+        device: 'android-emulator-pixel-8-15',
       })
       expect(parsed.use).not.toHaveProperty('device')
     },
@@ -310,5 +314,14 @@ describe('the config init writes with the devices it found', () => {
 
     expect(parsed.registry?.devices).toEqual({ [tied.name]: tied.profile })
     expect(Object.keys(doc.registry.devices[tied.name])).toEqual(['platform', 'model', 'id'])
+  })
+
+  it('leaves out the commented devices example when it writes devices, and keeps it when it writes none', () => {
+    const withDevices = writtenConfig('android,ios', [CLAUDE_SUBSCRIPTION], BOTH_DEVICES).text
+    const withNone = writtenConfig('android,ios').text
+
+    expect(withDevices).not.toContain('# devices:')
+    expect(withDevices).not.toContain('# Optional: devices')
+    expect(withNone).toContain('\n  # devices:\n')
   })
 })
