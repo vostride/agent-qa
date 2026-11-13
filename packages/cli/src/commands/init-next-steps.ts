@@ -71,6 +71,7 @@ const STEP_DESCRIPTIONS: Record<InitStepName, string> = {
   scaffold: 'Write the scaffold',
   install: 'Install the dependencies',
   chromium: 'Install the browser the examples run in',
+  'playground-app': 'Download the Playground app',
   skills: 'Set up the coding agents',
   mcp: "Restore the coding agents' MCP entries",
   'agents-md': "Restore agent-qa's block in AGENTS.md and the knowledge guide",

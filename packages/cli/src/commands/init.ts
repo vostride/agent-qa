@@ -111,7 +111,9 @@ import { findInitDevices } from './init-devices.js'
 import { configuredPackages } from './setup-rows.js'
 import { askLatestVersionByDefault, type LatestVersionAsk } from './latest-version-ask.js'
 import { findChromiumByDefault, type ChromiumResolver } from './browser-resolver.js'
-import type { PlaygroundAppSource } from './playground-app.js'
+import { downloadPlaygroundApps, type PlaygroundAppSource } from './playground-app.js'
+import { fetchPlaygroundAppByDefault } from './playground-app-fetch.js'
+import { PLAYGROUND_APP_PATHS, PLAYGROUND_APP_PIN } from './playground-app-pin.js'
 import type { DevicesHereLister } from './run.js'
 import {
   createInitDocumentRecorder,
@@ -1418,6 +1420,36 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
 
         const install = (): Promise<InitStepResult> => installPlan(packageJsonPlan)
 
+        const playgroundRuntimes = mobileRuntimesOf(platform)
+        const mobile = playgroundRuntimes.length > 0
+        const playgroundPin = hooks.playgroundApp?.pin ?? PLAYGROUND_APP_PIN
+        const playgroundMegabytes = Math.round(
+          playgroundRuntimes.reduce((sum, runtime) => sum + playgroundPin[runtime].bytes, 0) /
+            1_000_000,
+        )
+        let arrivedApps: MobileRuntime[] = []
+        const downloadPlaygroundApp = async (): Promise<InitStepResult> => {
+          const { arrived, failures } = await downloadPlaygroundApps({
+            dir,
+            runtimes: playgroundRuntimes,
+            pin: playgroundPin,
+            fetch: hooks.playgroundApp?.fetch ?? fetchPlaygroundAppByDefault,
+            exists: (path) => host.io.exists(path),
+            force,
+            signal: new AbortController().signal,
+            record: (result) => recordOutcome('playground-app', result),
+          })
+          arrivedApps = arrived
+          if (failures.length > 0) {
+            return {
+              outcome: 'failed',
+              reason: failures.map((failure) => failure.reason).join('\n'),
+            }
+          }
+          const paths = arrived.map((runtime) => PLAYGROUND_APP_PATHS[runtime])
+          return { outcome: 'done', text: `Playground app: ${paths.join(' and ')}` }
+        }
+
         const setUpAgents = async (): Promise<InitStepResult> => {
           let setup: Awaited<ReturnType<typeof installAgentSetup>>
           try {
@@ -1468,7 +1500,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
 
         const runner = createInitStepRunner({
           ui,
-          plan: freshInitPlan(),
+          plan: freshInitPlan({ mobile }),
           mask: maskStepText,
         })
         stepRunner = runner
@@ -1485,6 +1517,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           runner.skip('scaffold', `Scaffold: skipped (${reason})`, reason)
           runner.skip('install', `Install: skipped (${reason})`, reason)
           runner.skip('chromium', `Chromium: skipped (${reason})`, reason)
+          if (mobile) runner.skip('playground-app', `Playground app: skipped (${reason})`, reason)
           runner.skip('skills', `Coding agents: skipped (${reason})`, reason)
           runner.skip('validate', `validate: skipped (${reason})`, reason)
         } else {
@@ -1515,6 +1548,13 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
               'chromium',
               { title: 'Installing Chromium', command: CHROMIUM_COMMAND },
               installChromium,
+            )
+          }
+          if (mobile) {
+            await runner.run(
+              'playground-app',
+              { title: `Downloading the Playground app (${playgroundMegabytes} MB)` },
+              downloadPlaygroundApp,
             )
           }
           if (agents.length === 0) {
