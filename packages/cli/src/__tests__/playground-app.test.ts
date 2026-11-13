@@ -8,11 +8,12 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { basename, dirname, join, sep } from 'node:path'
+import { basename, dirname, join, matchesGlob, sep } from 'node:path'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  DURABLE_TEMPORARY_GITIGNORE_RULE,
   moveFolderInsideRoot,
   removeFolderInsideRoot,
   type InitFileResult,
@@ -347,6 +348,27 @@ describe('fetching a release file', () => {
     ).rejects.toThrow('the file is larger than its pinned 10 bytes')
     expect(reads.count).toBe(3)
   })
+
+  it('rejects with a timeout once its deadline passes with no answer, without aborting the caller', async () => {
+    const pending = vi.fn(
+      (_input: string | URL | Request, init?: RequestInit) =>
+        new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(init.signal?.reason))
+        }),
+    )
+    const caller = new AbortController()
+
+    await expect(
+      fetchReleaseAsset({
+        url,
+        maxBytes: 100,
+        signal: caller.signal,
+        fetchImpl: pending,
+        timeoutMs: 5,
+      }),
+    ).rejects.toMatchObject({ name: 'TimeoutError' })
+    expect(caller.signal.aborted).toBe(false)
+  })
 })
 
 describe('the pinned release', () => {
@@ -430,6 +452,13 @@ describe('downloading the Playground app for iOS', () => {
     mode: 0o100644,
   }
 
+  // A one-entry archive changed in place; the change is handed where its central directory starts.
+  function damaged(change: (zip: Buffer, directory: number) => void): Uint8Array {
+    const zip = Buffer.from(buildZip([valid]))
+    change(zip, zip.readUInt32LE(zip.byteLength - 6))
+    return zip
+  }
+
   const refusals = [
     {
       label: 'an entry that climbs out of Playground.app',
@@ -492,6 +521,45 @@ describe('downloading the Playground app for iOS', () => {
       archive: () => buildZip([valid]).subarray(0, -22),
       says: 'it has no end record',
     },
+    {
+      label: 'a central directory whose record does not start with the directory signature',
+      archive: () => damaged((zip, directory) => zip.writeUInt32LE(0, directory)),
+      says: 'its central directory is damaged',
+    },
+    {
+      label: 'an end record whose directory offset leaves no room for a record',
+      archive: () => damaged((zip) => zip.writeUInt32LE(zip.byteLength - 22, zip.byteLength - 6)),
+      says: 'its central directory is damaged',
+    },
+    {
+      label: 'an end record that counts more entries than the directory holds',
+      archive: () => buildZip([valid], { count: 2 }),
+      says: 'its central directory is damaged',
+    },
+    {
+      label: 'an entry whose local header offset points at bytes that are not a local header',
+      archive: () => damaged((zip, directory) => zip.writeUInt32LE(1, directory + 42)),
+      says: 'Playground.app/Info.plist has no local header',
+    },
+    {
+      label: 'an entry whose local header offset is past the end of the archive',
+      archive: () => damaged((zip, directory) => zip.writeUInt32LE(zip.byteLength, directory + 42)),
+      says: 'Playground.app/Info.plist has no local header',
+    },
+    {
+      label: 'an entry whose compressed size ends one byte past the end of the archive',
+      archive: () =>
+        damaged((zip, directory) => {
+          const start = 30 + zip.readUInt16LE(26) + zip.readUInt16LE(28)
+          zip.writeUInt32LE(zip.byteLength - start + 1, directory + 20)
+        }),
+      says: 'Playground.app/Info.plist runs past the end of the archive',
+    },
+    {
+      label: 'an entry whose local header declares an extra field longer than the archive',
+      archive: () => damaged((zip) => zip.writeUInt16LE(0xffff, 28)),
+      says: 'Playground.app/Info.plist runs past the end of the archive',
+    },
   ]
 
   for (const { label, archive, says } of refusals) {
@@ -521,6 +589,23 @@ describe('downloading the Playground app for iOS', () => {
       expect(recorded).toEqual([])
     })
   }
+
+  it('writes a file whose entry carries the setuid and setgid bits with its permission bits alone', async () => {
+    const { root } = tempProject('playground-app')
+    const crafted = buildZip([
+      valid,
+      { name: 'Playground.app/tool', bytes: text('a tool\n'), mode: 0o106755 },
+    ])
+
+    const { result } = await download(root, fakePlaygroundApp({ ios: crafted }), {
+      runtimes: ['ios'],
+      pin: pinnedTo(crafted),
+    })
+
+    expect(result).toEqual({ arrived: ['ios'], failures: [] })
+    const tool = join(root, 'app-bundles', 'Playground.app', 'tool')
+    expect((statSync(tool).mode & 0o7777).toString(8)).toBe('755')
+  })
 
   it('keeps a Playground.app that is already there, asks for nothing and removes nothing', async () => {
     const { root } = tempProject('playground-app')
@@ -784,6 +869,25 @@ describe('downloading the Playground app for iOS', () => {
           '(the folder is held open by another process). Delete it.',
       ],
     ])
+  })
+
+  it("with force leaves an older build it cannot remove under a name init's .gitignore rule for its temporaries covers", async () => {
+    const { root } = tempProject('playground-app')
+    olderPlaygroundApp(root)
+    vi.spyOn(process, 'emitWarning').mockImplementation(() => undefined)
+
+    await download(root, fakePlaygroundApp(), {
+      runtimes: ['ios'],
+      force: true,
+      removeFolder: () => {
+        throw new Error('the folder is held open by another process')
+      },
+    })
+
+    const left = readdirSync(join(root, 'app-bundles')).filter((name) => name !== 'Playground.app')
+    expect(left).toHaveLength(1)
+    expect(matchesGlob(left[0] ?? '', DURABLE_TEMPORARY_GITIGNORE_RULE)).toBe(true)
+    expect(matchesGlob('Playground.app', DURABLE_TEMPORARY_GITIGNORE_RULE)).toBe(false)
   })
 
   it('with force removes and writes nothing through an app-bundles that links out of the project', async () => {
