@@ -1360,7 +1360,24 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           content: renderScaffoldConfigYaml(config),
           force,
         }
-        const completePlan = [...filePlans, packageJsonFilePlan, targetGitignorePlan, configPlan]
+        // Playground.app is a folder, so a file inside it stands for it in the preflight.
+        const playgroundAppPreflight: Record<MobileRuntime, string> = {
+          android: join(dir, PLAYGROUND_APP_PATHS.android),
+          ios: join(dir, PLAYGROUND_APP_PATHS.ios, 'Info.plist'),
+        }
+        const playgroundRuntimes = mobileRuntimesOf(platform)
+        const playgroundAppPlans: InitPathPlan[] = playgroundRuntimes.map((runtime) => ({
+          root: dir,
+          path: playgroundAppPreflight[runtime],
+          content: '',
+        }))
+        const completePlan = [
+          ...filePlans,
+          packageJsonFilePlan,
+          targetGitignorePlan,
+          configPlan,
+          ...playgroundAppPlans,
+        ]
         preflightInitPlan(completePlan)
 
         const outcomes: InitFileResult[] = []
@@ -1420,7 +1437,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
 
         const install = (): Promise<InitStepResult> => installPlan(packageJsonPlan)
 
-        const playgroundRuntimes = mobileRuntimesOf(platform)
         const mobile = playgroundRuntimes.length > 0
         const playgroundPin = hooks.playgroundApp?.pin ?? PLAYGROUND_APP_PIN
         const playgroundMegabytes = Math.round(
@@ -1448,10 +1464,9 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             })
             arrivedApps = arrived
             if (failures.length > 0) {
-              return {
-                outcome: 'failed',
-                reason: failures.map((failure) => failure.reason).join('\n'),
-              }
+              const reason = failures.map((failure) => failure.reason).join('\n')
+              // The runner masks only a thrown step's message, and this step returns its failure.
+              return { outcome: 'failed', reason: await maskStepText(reason) }
             }
             const paths = arrived.map((runtime) => PLAYGROUND_APP_PATHS[runtime])
             return { outcome: 'done', text: `Playground app: ${paths.join(' and ')}` }

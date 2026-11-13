@@ -153,7 +153,11 @@ export function installDeclaredPackages(root: string): void {
 // A fresh init whose install went through.
 export async function initializedProject(
   label: string,
-  { platform = 'web', llm = 'gemini' }: { platform?: string; llm?: string } = {},
+  {
+    platform = 'web',
+    llm = 'gemini',
+    hooks = {},
+  }: { platform?: string; llm?: string; hooks?: InitCommandHooks } = {},
 ): Promise<InitializedProject> {
   const project = tempProject(label)
   const fresh = await runInit(
@@ -170,7 +174,7 @@ export async function initializedProject(
       '--platform',
       platform,
     ],
-    {},
+    { hooks },
   )
   if (fresh.exit !== 0) {
     throw new Error(`the fresh init exited ${fresh.exit}:\n${fresh.stderr}`)
