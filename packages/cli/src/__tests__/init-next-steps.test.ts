@@ -54,7 +54,6 @@ function facts(overrides: Partial<InitNextStepFacts> = {}): InitNextStepFacts {
     steps: DONE,
     model: CLAUDE_READY,
     web: true,
-    mobile: false,
     agents: [],
     dashboard: 'starting',
     ...overrides,
@@ -184,12 +183,6 @@ describe('the next steps are derived from what happened', () => {
     ])
   })
 
-  it('a Mobile project adds the mobile drivers command', () => {
-    expect(commands(facts({ mobile: true, web: false }))).toEqual([
-      'npx agent-qa install-mobile-drivers --all',
-    ])
-  })
-
   it('--pm none puts the plain install first among the lines that did not fail, before validate', () => {
     let steps = withRecord(DONE, {
       name: 'install',
@@ -276,13 +269,9 @@ describe('the next steps are derived from what happened', () => {
       for (const chromium of chromiums) {
         for (const model of models) {
           for (const dashboard of dashboards) {
-            for (const [web, mobile] of [
-              [true, false],
-              [false, true],
-              [true, true],
-            ] as const) {
+            for (const web of [true, false]) {
               const steps = withRecord(withRecord(DONE, install), chromium)
-              const input = facts({ steps, dashboard, web, mobile })
+              const input = facts({ steps, dashboard, web })
               const all = commands(model === undefined ? { ...input, model: undefined } : {
                 ...input,
                 model,
@@ -312,9 +301,7 @@ describe('the lines under the box', () => {
       withRecord(DONE, { name: 'package-json', outcome: 'failed', reason: 'EACCES' }),
       { name: 'scaffold', outcome: 'skipped', reason: 'package.json was not written' },
     )
-    const next = initNextSteps(
-      facts({ steps, model: CLAUDE_PENDING, mobile: true, agents: ['codex'] }),
-    )
+    const next = initNextSteps(facts({ steps, model: CLAUDE_PENDING, agents: ['codex'] }))
 
     expect(next.steps).toEqual([
       {
@@ -344,9 +331,9 @@ describe('the lines under the box', () => {
     expect(initNextSteps(facts({ agents: ['claude-code'] })).hints).toEqual([
       'Your coding agent can use agent-qa now: ask it to run the starter test.',
     ])
-    expect(
-      initNextSteps(facts({ web: false, mobile: true, agents: ['claude-code'] })).hints,
-    ).toEqual(['Your coding agent can use agent-qa now.'])
+    expect(initNextSteps(facts({ web: false, agents: ['claude-code'] })).hints).toEqual([
+      'Your coding agent can use agent-qa now.',
+    ])
   })
 })
 

@@ -36,7 +36,7 @@ export function parseInitPlatform(value: string): Platform {
   throw new Error(`Unsupported init platform "${value}"`)
 }
 
-export function normalizePlatformSelection(platform: InitPlatformInput): InitPlatformSelection {
+function normalizePlatformSelection(platform: InitPlatformInput): InitPlatformSelection {
   if (typeof platform !== 'string') {
     return {
       capabilities: [...new Set(platform.capabilities)],

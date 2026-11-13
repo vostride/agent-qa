@@ -197,7 +197,6 @@ describe('init --json prints one document on stdout', () => {
           pluginInstalled: false,
         },
         web: true,
-        mobile: false,
         agents: doc.agents,
         dashboard: { command: 'npx agent-qa dashboard' },
       }).steps,

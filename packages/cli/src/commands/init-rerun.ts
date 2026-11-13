@@ -825,7 +825,6 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
           },
         }),
     web: platform.capabilities.includes('web'),
-    mobile: platform.mobileRuntimes.length > 0,
     examples,
     agents: agentRowFailed ? [] : agents,
     dashboard,
