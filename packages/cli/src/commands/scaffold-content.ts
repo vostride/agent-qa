@@ -118,6 +118,7 @@ export type ScaffoldDevices = Partial<Record<MobileRuntime, ScaffoldDevice>>
 export function buildTargets(
   platform: InitPlatformInput,
   override?: Record<string, unknown>,
+  devices?: ScaffoldDevices,
 ): Record<string, unknown> {
   if (override !== undefined) return override
   const selection = normalizePlatformSelection(platform)
@@ -135,6 +136,7 @@ export function buildTargets(
       platform: 'android',
       appPackage: PLAYGROUND_APP_ID,
       appActivity: PLAYGROUND_ANDROID_ACTIVITY,
+      ...(devices?.android === undefined ? {} : { device: devices.android.name }),
       app: { path: PLAYGROUND_APP_PATHS.android },
     }
   }
@@ -142,11 +144,33 @@ export function buildTargets(
     targets[PLAYGROUND_TARGETS.ios] = {
       platform: 'ios',
       bundleId: PLAYGROUND_APP_ID,
+      ...(devices?.ios === undefined ? {} : { device: devices.ios.name }),
       app: { path: PLAYGROUND_APP_PATHS.ios },
     }
   }
 
   return targets
+}
+
+function buildDevices(
+  platform: InitPlatformInput,
+  devices: ScaffoldDevices | undefined,
+): Record<string, unknown> {
+  const { mobileRuntimes } = normalizePlatformSelection(platform)
+  const written: Record<string, unknown> = {}
+  for (const runtime of ['android', 'ios'] as const) {
+    const device = devices?.[runtime]
+    if (device === undefined || !mobileRuntimes.includes(runtime)) continue
+    // Copied key by key, so a profile reads platform, model, os, id and carries nothing else.
+    const { profile } = device
+    written[device.name] = {
+      platform: profile.platform,
+      model: profile.model,
+      ...(profile.os === undefined ? {} : { os: profile.os }),
+      ...(profile.id === undefined ? {} : { id: profile.id }),
+    }
+  }
+  return written
 }
 
 // `llmEntries` arrives resolved, because provider needs are facts about this machine.
@@ -168,12 +192,16 @@ export interface ScaffoldConfigFacts {
    * to have them in.
    */
   readonly targets?: Record<string, unknown>
+  // The device init found for each mobile runtime. A runtime with none gets its target with no
+  // `device`.
+  readonly devices?: ScaffoldDevices
 }
 
 export function buildScaffoldConfig(
   platform: InitPlatformInput,
   facts: ScaffoldConfigFacts,
 ): Record<string, unknown> {
+  const devices = buildDevices(platform, facts.devices)
   const config: Record<string, unknown> = {
     workspace: {
       testMatch: ['tests/**/*.yaml'],
@@ -201,9 +229,10 @@ export function buildScaffoldConfig(
       logging: { level: 'warn' },
     },
     registry: {
+      ...(Object.keys(devices).length === 0 ? {} : { devices }),
       // The model half is written only when there is a model; with none, neither key is written.
       ...(facts.llmEntries.length === 0 ? {} : { llms: [...facts.llmEntries] }),
-      targets: buildTargets(platform, facts.targets),
+      targets: buildTargets(platform, facts.targets, facts.devices),
     },
     ...(facts.usesSubscriptionAuth
       ? {
