@@ -74,6 +74,16 @@ describe('killTree', () => {
     expect(killedPids(kill)).toEqual([600, 601, 602])
   })
 
+  it('on Linux kills the process itself and settles when /proc cannot be listed', async () => {
+    const kill = vi.spyOn(process, 'kill').mockImplementation(() => true)
+    const proc = join(fakeProc([]), 'missing')
+
+    await expect(killTree(650, { platform: 'linux', proc })).resolves.toBeUndefined()
+
+    expect(kill.mock.calls).toEqual([[650, 'SIGKILL']])
+    expect(mockTreeKill).not.toHaveBeenCalled()
+  })
+
   it('elsewhere kills the tree through tree-kill and settles once its callback runs', async () => {
     let signalled: () => void = () => {}
     mockTreeKill.mockImplementationOnce((_pid, _signal, callback) => {
