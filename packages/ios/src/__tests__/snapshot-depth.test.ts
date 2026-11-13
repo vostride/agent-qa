@@ -52,6 +52,7 @@ vi.mock('webdriverio', () => ({
 
 import { IOSPlatformAdapter } from '../adapter.js'
 import { resolveIOSSnapshotDepth } from '../session.js'
+import { fakeAppiumStart } from './fixtures/fake-appium-start.js'
 
 describe('iOS snapshot depth', () => {
   let adapter: IOSPlatformAdapter
@@ -67,7 +68,7 @@ describe('iOS snapshot depth', () => {
     const { remote } = await import('webdriverio')
     vi.mocked(remote).mockResolvedValue(driver as any)
     warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    adapter = new IOSPlatformAdapter()
+    adapter = new IOSPlatformAdapter({ startAppium: fakeAppiumStart().start })
   })
 
   afterEach(() => {
