@@ -29,6 +29,7 @@ describe('removed CLI surface guard', () => {
   it('detects removed top-level commands before Commander handles help', () => {
     expect(findRemovedTopLevelCommandArg(['connect'])).toBe('connect')
     expect(findRemovedTopLevelCommandArg(['--config', 'custom.yaml', 'connect', '--help'])).toBe('connect')
+    expect(findRemovedTopLevelCommandArg(['install-mobile-drivers'])).toBe('install-mobile-drivers')
   })
 
   it('leaves active and unknown-option surfaces to Commander', () => {
@@ -45,6 +46,22 @@ describe('removed CLI surface guard', () => {
     expect(() => rejectRemovedCliSurface({ execArgv: [], argv: ['connect', '--help'] })).toThrow('process.exit')
 
     expect(errorSpy).toHaveBeenCalledWith("error: unknown command 'connect'")
+    expect(exitSpy).toHaveBeenCalledWith(1)
+  })
+
+  it('refuses install-mobile-drivers, help included, saying Appium and both drivers come with agent-qa', () => {
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const exitSpy = vi.spyOn(process, 'exit').mockImplementation((() => {
+      throw new Error('process.exit')
+    }) as never)
+
+    expect(() =>
+      rejectRemovedCliSurface({ execArgv: [], argv: ['install-mobile-drivers', '--help'] }),
+    ).toThrow('process.exit')
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      "error: 'install-mobile-drivers' was removed. Appium and both drivers come with agent-qa, so there is nothing to install.",
+    )
     expect(exitSpy).toHaveBeenCalledWith(1)
   })
 

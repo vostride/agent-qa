@@ -1,5 +1,11 @@
 const REMOVED_NODE_ENV_FILE_FLAG = '--env-file'
-const REMOVED_TOP_LEVEL_COMMANDS = new Set(['connect'])
+const REMOVED_TOP_LEVEL_COMMANDS = new Map([
+  ['connect', "error: unknown command 'connect'"],
+  [
+    'install-mobile-drivers',
+    "error: 'install-mobile-drivers' was removed. Appium and both drivers come with agent-qa, so there is nothing to install.",
+  ],
+])
 const GLOBAL_OPTIONS_WITH_VALUE = new Set(['--config', '--log-level'])
 const GLOBAL_BOOLEAN_OPTIONS = new Set(['--verbose', '--quiet', '--help', '-h', '--version', '-V'])
 
@@ -49,7 +55,7 @@ export function rejectRemovedCliSurface(input: {
 
   const removedCommand = findRemovedTopLevelCommandArg(input.argv ?? process.argv.slice(2))
   if (removedCommand) {
-    console.error(`error: unknown command '${removedCommand}'`)
+    console.error(REMOVED_TOP_LEVEL_COMMANDS.get(removedCommand))
     process.exit(1)
   }
 }
