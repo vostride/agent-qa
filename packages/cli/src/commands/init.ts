@@ -182,6 +182,7 @@ export function buildDefaultConfig(
     usesSubscriptionAuth: llmConfigs.some(config => isSubscriptionProvider(config.provider)),
     cacheDir: INIT_CACHE_DIR,
     authStatesDir: INIT_AUTH_STATES_DIR,
+    ...(devices === undefined ? {} : { devices }),
   })
 }
 const KOMAZON_CHECKOUT_TEST_ID = 't_packer-staff-asha-lak-spill-usher-pele-allen-bid-done'
