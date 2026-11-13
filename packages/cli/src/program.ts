@@ -20,7 +20,6 @@ import {
   createFnCommand,
   createInitCommand,
   createInstallBrowsersCommand,
-  createInstallMobileDriversCommand,
   createKnowledgeCommand,
   createMcpCommand,
   createPluginCommand,
@@ -98,7 +97,6 @@ export function createAgentQaProgram({
   program.addCommand(createRunsCommand())
   program.addCommand(createInitCommand())
   program.addCommand(createInstallBrowsersCommand())
-  program.addCommand(createInstallMobileDriversCommand())
 
   program.addCommand(createDoctorCommand())
   program.addCommand(createDashboardCommand())

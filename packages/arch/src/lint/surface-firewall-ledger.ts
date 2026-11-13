@@ -166,12 +166,6 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: "init's re-run reads the auth store's path from core to report the model's status; joins the config mutation class with init",
   },
   {
-    file: 'packages/cli/src/commands/install-mobile-drivers.ts',
-    specifier: '@vostride/agent-qa-core',
-    clearedBy: '395',
-    reason: 'mobile driver installation is host mutation; joins the environment action class',
-  },
-  {
     file: 'packages/cli/src/commands/latest-version-ask.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',
