@@ -52,6 +52,7 @@ function createMockDriver() {
 vi.mock('webdriverio', () => ({ remote: vi.fn() }))
 
 import { AndroidPlatformAdapter } from '../adapter.js'
+import { fakeAppiumStart } from './fixtures/fake-appium-start.js'
 
 type ExecAction = Parameters<AndroidPlatformAdapter['execute']>[0]
 
@@ -64,7 +65,7 @@ beforeEach(async () => {
   driver = createMockDriver()
   const { remote } = await import('webdriverio')
   vi.mocked(remote).mockResolvedValue(driver as any)
-  adapter = new AndroidPlatformAdapter()
+  adapter = new AndroidPlatformAdapter({ startAppium: fakeAppiumStart().start })
   await adapter.setup({ platform: 'android' })
   driver.execute.mockClear()
 })
