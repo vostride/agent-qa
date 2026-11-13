@@ -1,5 +1,6 @@
 // A fresh init that chose Android or iOS downloads the pinned Playground app in a step of its own,
-// here from a fake source. A download that fails is a failed step, and init carries on to exit 3.
+// here from a fake source. A download that fails is a failed step, and init carries on to exit 3;
+// a Ctrl-C aborts the download and ends init interrupted.
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
@@ -9,6 +10,7 @@ import { parse } from 'yaml'
 import type { InitCommandHooks } from '../commands/init.js'
 import type { InitDocument } from '../commands/init-document.js'
 import { installedAgentQaVersion } from '../commands/package-json-plan.js'
+import type { PlaygroundAppFetch } from '../commands/playground-app.js'
 import { PLAYGROUND_APP_PATHS, PLAYGROUND_APP_PIN } from '../commands/playground-app-pin.js'
 import {
   cleanupTempProjects,
@@ -97,6 +99,10 @@ function appFilesOf(doc: InitDocument) {
 
 function configOf(root: string): WrittenConfig {
   return parse(readFileSync(join(root, 'agent-qa.config.yaml'), 'utf8')) as WrittenConfig
+}
+
+function sigintListeners(): ((...args: unknown[]) => void)[] {
+  return process.listeners('SIGINT') as ((...args: unknown[]) => void)[]
 }
 
 describe('a fresh mobile init downloads the Playground app', () => {
@@ -268,5 +274,35 @@ describe('a fresh mobile init downloads the Playground app', () => {
       reason: NOT_WRITTEN,
     })
     expect(fakes.requests).toEqual([])
+  })
+
+  it('a Ctrl-C during the download aborts the request, and init ends interrupted with exit 130', async () => {
+    const before = sigintListeners()
+    const fakes = mobileInitFakes()
+    const handed: AbortSignal[] = []
+    // A person's Ctrl-C arrives while the request is in flight.
+    const interrupted: PlaygroundAppFetch = async (request) => {
+      handed.push(request.signal)
+      for (const listener of sigintListeners()) {
+        if (!before.includes(listener)) listener('SIGINT')
+      }
+      if (request.signal.aborted) throw request.signal.reason
+      return await fakes.hooks.playgroundApp.fetch(request)
+    }
+
+    const { result, doc } = await freshInit('android', {
+      fakes,
+      hooks: { playgroundApp: { ...fakes.hooks.playgroundApp, fetch: interrupted } },
+    })
+
+    expect(handed.map((signal) => signal.aborted)).toEqual([true])
+    expect(result.exit).toBe(130)
+    expect(doc).toMatchObject({ outcome: 'interrupted', exitCode: 130 })
+    expect(stepOf(doc, 'playground-app')).toEqual({
+      name: 'playground-app',
+      outcome: 'failed',
+      reason: 'interrupted',
+    })
+    expect(sigintListeners()).toEqual(before)
   })
 })
