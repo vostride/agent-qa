@@ -4,7 +4,6 @@ import { resolve } from 'node:path'
 
 vi.mock('node:child_process', () => ({
   execSync: vi.fn(),
-  execFileSync: vi.fn(),
 }))
 
 // Spreads the real module: knowledge-local's durable-fs layer needs functions not mocked here.
@@ -80,8 +79,6 @@ vi.mock('@vostride/agent-qa-core', async () => {
     })),
     loadLLMAuthPlugins: vi.fn(() => Promise.resolve()),
     readAuth: vi.fn(() => ({})),
-    resolveAppiumExecutable: vi.fn(() => ({ command: 'appium', source: 'path' })),
-    formatAppiumInstallGuidance: vi.fn(() => 'Install Appium locally with `npm install -D appium` or globally with `npm install -g appium`.'),
     validateProject: vi.fn(() => Promise.resolve({ errorCount: 0, warningCount: 0, fileCount: 5, results: [] })),
     resolveWorkspacePaths: vi.fn(({ config, configPath }: any) => {
       const configDir = String(configPath).includes('/')
@@ -172,7 +169,7 @@ import {
   type CheckRow,
 } from '../commands/doctor-row.js'
 import { EMBEDDER_FLOOR_FIX, EMBEDDER_NONE_FIX } from '../commands/doctor-knowledge-checks.js'
-import { execFileSync, execSync } from 'node:child_process'
+import { execSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { DEFAULT_EMBEDDING_PROFILE } from '@vostride/agent-qa-schema'
@@ -184,7 +181,6 @@ import type { ChromiumAnswer, ChromiumResolver } from '../commands/browser-resol
 import { resolveLLMModels } from '../llm-utils.js'
 
 const mockExecSync = vi.mocked(execSync)
-const mockExecFileSync = vi.mocked(execFileSync)
 const mockExistsSync = vi.mocked(existsSync)
 const mockReadFileSync = vi.mocked(readFileSync)
 const mockReadFile = vi.mocked(readFile)
@@ -193,7 +189,6 @@ const mockGetCredential = vi.mocked(core.getCredential)
 const mockLoadLLMAuthPlugins = vi.mocked(core.loadLLMAuthPlugins)
 const mockLoadProviderPluginsForRawConfig = vi.mocked(loadProviderPluginsForRawConfig)
 const mockResolveLLMAuth = vi.mocked((core as any).resolveLLMAuth) as any
-const mockResolveAppiumExecutable = vi.mocked(core.resolveAppiumExecutable)
 const mockGenerateText = vi.mocked(generateText)
 
 const GEMINI_QUOTA_429 = new APICallError({
@@ -355,7 +350,6 @@ describe('doctor command', () => {
     mockReadFile.mockRejectedValue({ code: 'ENOENT' })
     mockLoadLLMAuthPlugins.mockResolvedValue([])
     mockLoadProviderPluginsForRawConfig.mockResolvedValue()
-    mockResolveAppiumExecutable.mockReturnValue({ command: 'appium', source: 'path' })
     mockReadFileSync.mockReturnValue('')
     // A healthy knowledge substrate is the default; each knowledge cell moves only its own axis.
     knowledgeProbeStubs.classifyIndexFace.mockReturnValue({ source: 'index' })
@@ -836,144 +830,6 @@ registry:
     )
   })
 
-  it('Appium checks skipped when platform is web-only', async () => {
-    // No mobile config → appium should be skipped
-    await runDoctor()
-    const output = getOutput()
-    // Appium line should show SKIP
-    expect(output).toContain('not configured')
-    expect(output).toContain('SKIP')
-  })
-
-  it('Appium checks run when platform includes mobile', async () => {
-    // Load config with mobile app
-    const mobileConfig = `
-registry:
-  llms:
-    - name: default
-      provider: openai-compatible
-      model: model-name
-      baseURL: https://remote.example/api/v1
-use:
-  llm: default
-targets:
-  my-app:
-    platform: android
-    environments:
-      dev:
-        url: http://localhost
-`
-    mockReadFile.mockResolvedValue(mobileConfig as never)
-    mockExecFileSync.mockImplementation((cmd, args) => {
-      if (cmd === 'appium' && Array.isArray(args) && args.join(' ') === '--version') return Buffer.from('2.0.0')
-      if (cmd === 'appium' && Array.isArray(args) && args.join(' ') === 'driver list --installed') return Buffer.from('uiautomator2')
-      return Buffer.from('')
-    })
-
-    await runDoctor()
-    const output = getOutput()
-    expect(output).toContain('Appium')
-    // Should not show SKIP for appium
-    expect(output).toContain('v2.0.0')
-  })
-
-  it('Appium checks use the resolved local executable when available', async () => {
-    const mobileConfig = `
-registry:
-  llms:
-    - name: default
-      provider: openai-compatible
-      model: model-name
-      baseURL: https://remote.example/api/v1
-use:
-  llm: default
-targets:
-  my-app:
-    platform: ios
-    environments:
-      dev:
-        url: http://localhost
-`
-    mockReadFile.mockResolvedValue(mobileConfig as never)
-    mockResolveAppiumExecutable.mockReturnValue({ command: '/tmp/project/node_modules/.bin/appium', source: 'local' })
-    mockExecFileSync.mockImplementation((cmd, args) => {
-      if (cmd === '/tmp/project/node_modules/.bin/appium' && Array.isArray(args) && args.join(' ') === '--version') return Buffer.from('2.1.0')
-      if (cmd === '/tmp/project/node_modules/.bin/appium' && Array.isArray(args) && args.join(' ') === 'driver list --installed') return Buffer.from('xcuitest')
-      return Buffer.from('')
-    })
-
-    await runDoctor()
-
-    expect(mockResolveAppiumExecutable).toHaveBeenCalledWith({ cwd: process.cwd() })
-    expect(mockExecFileSync).toHaveBeenCalledWith('/tmp/project/node_modules/.bin/appium', ['--version'], { stdio: 'pipe' })
-    expect(mockExecFileSync).toHaveBeenCalledWith('/tmp/project/node_modules/.bin/appium', ['driver', 'list', '--installed'], { stdio: 'pipe' })
-  })
-
-  it('Appium driver failure points to the AgentQA mobile driver install command', async () => {
-    const mobileConfig = `
-workspace:
-  testMatch:
-    - tests/**/*.yaml
-  suiteMatch:
-    - suites/**/*.suite.yaml
-  hooksFile: hooks.yaml
-  envFile: .env
-  secretsFile: .env.secrets.local
-registry:
-  llms:
-    - name: default
-      provider: openai-compatible
-      model: model-name
-      baseURL: https://remote.example/api/v1
-  targets:
-    my-app:
-      platform: android
-use:
-  llm: default
-`
-    mockReadFile.mockResolvedValue(mobileConfig as never)
-    mockExistsSync.mockReturnValue(true)
-    mockExecFileSync.mockImplementation((cmd, args) => {
-      if (cmd === 'appium' && Array.isArray(args) && args.join(' ') === '--version') return Buffer.from('2.0.0')
-      if (cmd === 'appium' && Array.isArray(args) && args.join(' ') === 'driver list --installed') return Buffer.from('')
-      return Buffer.from('')
-    })
-
-    await runDoctor()
-
-    const output = getOutput()
-    expect(output).toContain('no drivers installed')
-    expect(output).toContain('`npx agent-qa install-mobile-drivers --all`')
-    expect(output).not.toContain('appium driver install uiautomator2')
-  })
-
-  it('missing Appium guidance keeps local install first and names the mobile driver command', async () => {
-    const mobileConfig = `
-registry:
-  llms:
-    - name: default
-      provider: openai-compatible
-      model: model-name
-      baseURL: https://remote.example/api/v1
-use:
-  llm: default
-targets:
-  my-app:
-    platform: ios
-`
-    mockReadFile.mockResolvedValue(mobileConfig as never)
-    mockExecFileSync.mockImplementation((cmd, args) => {
-      if (cmd === 'appium' && Array.isArray(args) && args.join(' ') === '--version') throw new Error('appium not found')
-      return Buffer.from('')
-    })
-
-    await runDoctor()
-
-    const output = getOutput()
-    expect(output).toContain('Install Appium locally with `npm install -D appium`')
-    expect(output).toContain('`npx agent-qa install-mobile-drivers --all`')
-  })
-
   it('Android SDK check validates ANDROID_HOME', async () => {
     const mobileConfig = `
 registry:
@@ -1087,12 +943,9 @@ use:
 `
     }
 
-    // A Linux host with no Appium, no Android SDK and no Xcode; the farm never answers.
+    // A Linux host with no Android SDK and no Xcode; the farm never answers.
     function bareLinuxHost(): void {
       Object.defineProperty(process, 'platform', { value: 'linux', configurable: true })
-      mockExecFileSync.mockImplementation(() => {
-        throw new Error('appium not found')
-      })
       mockExecSync.mockImplementation(() => {
         throw new Error('not found')
       })
@@ -1107,7 +960,7 @@ use:
       return /(PASS|WARN|FAIL|SKIP)$/.exec(stripAnsi(rowFor(name)))?.[1]
     }
 
-    it('skips Appium, the Appium drivers, the Android SDK and Xcode when every device is remote', async () => {
+    it('skips the Android SDK and Xcode when every device is remote', async () => {
       mockReadFile.mockResolvedValue(
         deviceConfig(
           ['android', 'ios'],
@@ -1124,18 +977,15 @@ use:
 
       await runDoctor()
 
-      expect(rowFor('Appium')).toMatch(/every device is remote {2}SKIP$/)
-      expect(rowFor('Appium drivers')).toMatch(/every device is remote {2}SKIP$/)
       expect(rowFor('Android SDK')).toMatch(/every android device is remote {2}SKIP$/)
       expect(rowFor('Xcode')).toMatch(/every iOS device is remote {2}SKIP$/)
       expect(statusOf('Remote farm')).toBe('WARN')
-      for (const name of ['Appium', 'Appium drivers', 'Android SDK', 'Xcode', 'Remote farm']) {
+      for (const name of ['Android SDK', 'Xcode', 'Remote farm']) {
         expect(statusOf(name)).not.toBe('FAIL')
       }
-      expect(mockExecFileSync).not.toHaveBeenCalled()
     })
 
-    it('keeps the Appium and Android SDK rows when one android device runs here', async () => {
+    it('keeps the Android SDK row when one android device runs here', async () => {
       mockReadFile.mockResolvedValue(
         deviceConfig(
           ['android', 'ios'],
@@ -1151,8 +1001,6 @@ use:
 
       await runDoctor()
 
-      expect(rowFor('Appium')).toMatch(/not installed {2}FAIL$/)
-      expect(rowFor('Appium drivers')).toMatch(/could not check drivers {2}FAIL$/)
       expect(rowFor('Android SDK')).toMatch(/ANDROID_HOME not set {2}FAIL$/)
       expect(rowFor('Xcode')).toMatch(/every iOS device is remote {2}SKIP$/)
     })
@@ -1163,7 +1011,6 @@ use:
 
       await runDoctor()
 
-      expect(rowFor('Appium')).toMatch(/not installed {2}FAIL$/)
       expect(rowFor('Android SDK')).toMatch(/ANDROID_HOME not set {2}FAIL$/)
       expect(rowFor('Xcode')).toMatch(/iOS testing requires macOS {2}FAIL$/)
     })
@@ -1177,7 +1024,6 @@ use:
 
       mockReadFile.mockResolvedValue(deviceConfig(['android', 'ios'], androidDevice) as never)
       await runDoctor()
-      expect(rowFor('Appium')).toMatch(/every device is remote {2}SKIP$/)
       expect(rowFor('Android SDK')).toMatch(/every android device is remote {2}SKIP$/)
       expect(rowFor('Xcode')).toMatch(/iOS testing requires macOS {2}FAIL$/)
 
@@ -1811,7 +1657,6 @@ describe('the Node version row', () => {
     mockReadFile.mockRejectedValue({ code: 'ENOENT' })
     mockLoadLLMAuthPlugins.mockResolvedValue([])
     mockLoadProviderPluginsForRawConfig.mockResolvedValue()
-    mockResolveAppiumExecutable.mockReturnValue({ command: 'appium', source: 'path' })
     mockReadFileSync.mockReturnValue('')
     knowledgeProbeStubs.classifyIndexFace.mockReturnValue({ source: 'index' })
     knowledgeProbeStubs.resolveEmbedderCapability.mockResolvedValue(NATIVE_READY)
@@ -1872,7 +1717,6 @@ describe('the Config validation row', () => {
     mockExistsSync.mockReturnValue(false)
     mockLoadLLMAuthPlugins.mockResolvedValue([])
     mockLoadProviderPluginsForRawConfig.mockResolvedValue()
-    mockResolveAppiumExecutable.mockReturnValue({ command: 'appium', source: 'path' })
     mockReadFileSync.mockReturnValue('')
     knowledgeProbeStubs.classifyIndexFace.mockReturnValue({ source: 'index' })
     knowledgeProbeStubs.resolveEmbedderCapability.mockResolvedValue(NATIVE_READY)
@@ -1951,7 +1795,6 @@ describe('the LLM auth rows', () => {
     mockExistsSync.mockReturnValue(false)
     mockLoadLLMAuthPlugins.mockResolvedValue([])
     mockLoadProviderPluginsForRawConfig.mockResolvedValue()
-    mockResolveAppiumExecutable.mockReturnValue({ command: 'appium', source: 'path' })
     mockReadFileSync.mockReturnValue('')
     knowledgeProbeStubs.classifyIndexFace.mockReturnValue({ source: 'index' })
     knowledgeProbeStubs.resolveEmbedderCapability.mockResolvedValue(NATIVE_READY)
@@ -2157,7 +2000,6 @@ describe('the Model row', () => {
     mockExistsSync.mockReturnValue(false)
     mockLoadLLMAuthPlugins.mockResolvedValue([])
     mockLoadProviderPluginsForRawConfig.mockResolvedValue()
-    mockResolveAppiumExecutable.mockReturnValue({ command: 'appium', source: 'path' })
     mockReadFileSync.mockReturnValue('')
     knowledgeProbeStubs.classifyIndexFace.mockReturnValue({ source: 'index' })
     knowledgeProbeStubs.resolveEmbedderCapability.mockResolvedValue(NATIVE_READY)

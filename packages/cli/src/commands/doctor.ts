@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { execFileSync, execSync } from 'node:child_process'
+import { execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import pc from 'picocolors'
@@ -17,12 +17,10 @@ import { NODE_FLOOR_INSTALL_LINE, NODE_FLOOR_MAJOR, nodeFloorRefusal } from '../
 import { loadProviderPluginsForRawConfig } from '../provider-plugins.js'
 import {
   discoverWorkspaceFiles,
-  formatAppiumInstallGuidance,
   getAgentQaVersion,
   getAuthPath,
   isPathInsideDir,
   pluginsAddLine,
-  resolveAppiumExecutable,
   resolveWorkspacePaths,
   SUBSCRIPTION_AUTH_PACKAGE,
   type AgentQaConfig,
@@ -557,72 +555,6 @@ function checkPlaywright(
   }
 }
 
-function appiumResolverCwd(configPath: string): string {
-  return dirname(resolve(configPath))
-}
-
-function mobileDriverInstallCommand(): string {
-  return 'npx agent-qa install-mobile-drivers --all'
-}
-
-function checkAppium(
-  config: Record<string, unknown> | null,
-  configPath: string,
-  skips: DeviceToolSkips,
-): DoctorCheck {
-  return {
-    name: 'Appium',
-    fixInstructions: `${formatAppiumInstallGuidance()} Then run \`${mobileDriverInstallCommand()}\`.`,
-    check: async () => {
-      if (skips.appium !== undefined) {
-        return { status: 'skip', message: skips.appium }
-      }
-      if (!isMobilePlatform(config)) {
-        return { status: 'skip', message: 'not configured' }
-      }
-
-      try {
-        const appium = resolveAppiumExecutable({ cwd: appiumResolverCwd(configPath) })
-        const version = execFileSync(appium.command, ['--version'], { stdio: 'pipe' }).toString().trim()
-        return { status: 'pass', message: `v${version}` }
-      } catch {
-        return { status: 'fail', message: 'not installed' }
-      }
-    },
-  }
-}
-
-function checkAppiumDrivers(
-  config: Record<string, unknown> | null,
-  configPath: string,
-  skips: DeviceToolSkips,
-): DoctorCheck {
-  return {
-    name: 'Appium drivers',
-    fixInstructions: `Run \`${mobileDriverInstallCommand()}\``,
-    check: async () => {
-      if (skips.appium !== undefined) {
-        return { status: 'skip', message: skips.appium }
-      }
-      if (!isMobilePlatform(config)) {
-        return { status: 'skip', message: 'not configured' }
-      }
-
-      try {
-        const appium = resolveAppiumExecutable({ cwd: appiumResolverCwd(configPath) })
-        const output = execFileSync(appium.command, ['driver', 'list', '--installed'], { stdio: 'pipe' }).toString()
-        const hasDrivers = output.includes('uiautomator2') || output.includes('xcuitest')
-        if (hasDrivers) {
-          return { status: 'pass', message: 'drivers installed' }
-        }
-        return { status: 'fail', message: 'no drivers installed' }
-      } catch {
-        return { status: 'fail', message: 'could not check drivers' }
-      }
-    },
-  }
-}
-
 function checkAndroidSDK(
   config: Record<string, unknown> | null,
   skips: DeviceToolSkips,
@@ -769,11 +701,6 @@ function unknownRemoteSentence(name: string, config: Record<string, unknown> | n
   return `Unknown remote "${name}". ${listed}`
 }
 
-function isMobilePlatform(config: Record<string, unknown> | null): boolean {
-  const platforms = getTargetPlatforms(config)
-  return platforms.some((p) => p === 'android' || p === 'ios')
-}
-
 function hasAndroidPlatform(config: Record<string, unknown> | null): boolean {
   return getTargetPlatforms(config).some((p) => p === 'android')
 }
@@ -783,7 +710,6 @@ function hasIOSPlatform(config: Record<string, unknown> | null): boolean {
 }
 
 interface DeviceToolSkips {
-  appium?: string
   androidSdk?: string
   xcode?: string
 }
@@ -800,7 +726,6 @@ function deviceToolSkips(config: Record<string, unknown> | null): DeviceToolSkip
     some.length > 0 && some.every(isRemote)
   const onPlatform = (platform: string) => devices.filter((device) => device.platform === platform)
   return {
-    ...(everyRemote(devices) ? { appium: 'every device is remote' } : {}),
     ...(everyRemote(onPlatform('android')) ? { androidSdk: 'every android device is remote' } : {}),
     ...(everyRemote(onPlatform('ios')) ? { xcode: 'every iOS device is remote' } : {}),
   }
@@ -906,8 +831,6 @@ export function createDoctorCommand(hooks: DoctorCommandHooks = {}): Command {
           agentQaVersion,
           ...(debugLog === undefined ? {} : { debugLog }),
         }),
-        checkAppium(config, configPath, skips),
-        checkAppiumDrivers(config, configPath, skips),
         checkAndroidSDK(config, skips),
         checkXcode(config, skips),
         ...createDeviceChecks({
