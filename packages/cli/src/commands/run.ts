@@ -406,7 +406,7 @@ export interface PrepareMobileDeviceInput {
   readonly envUrl: string | undefined
   // The host's Appium, such as the dashboard's lease, bound to this run.
   readonly hostAppium?: AppiumProvider
-  readonly startAppium: () => Promise<string | undefined>
+  readonly startAppium: () => Promise<string>
   readonly listDevicesHere: DevicesHereLister
 }
 
@@ -448,8 +448,7 @@ export async function prepareMobileDevice(
   if (input.hostAppium !== undefined) {
     return { here, appiumUrl: await acquireHostAppium(input.hostAppium, resolved), managed: false }
   }
-  const started = await input.startAppium()
-  return { here, ...(started === undefined ? {} : { appiumUrl: started }), managed: true }
+  return { here, appiumUrl: await input.startAppium(), managed: true }
 }
 
 // The host's Appium failing to start fails this member, never the queue.
@@ -474,7 +473,7 @@ async function acquireHostAppium(
 async function startAppiumOrThrow(
   logLevel: string,
   setup: { platform: 'android' | 'ios'; targetName: string; deviceName: string | undefined },
-): Promise<string | undefined> {
+): Promise<string> {
   try {
     return await ensureProcessAppium(logLevel)
   } catch (err) {
