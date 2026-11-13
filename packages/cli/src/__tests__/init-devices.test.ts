@@ -602,6 +602,68 @@ describe('findInitDevices', () => {
     ])
   })
 
+  // A terminal can read a C1 control as the start of a command, and the others reorder the text
+  // after them.
+  const UNPRINTED = [
+    ['a C1 control', '\u0080\u0090\u009d\u009f'],
+    ['a direction mark', '\u200e\u200f'],
+    ['a direction embedding or override', '\u202a\u202b\u202c\u202d\u202e'],
+    ['a direction isolate', '\u2066\u2067\u2068\u2069'],
+  ] as const
+
+  it.each(UNPRINTED)(
+    'prints a model without %s, and keeps the entry as listed',
+    async (_kind, characters) => {
+      const displayName = `Pixel${characters} 10 Pro`
+      const listing: AndroidHere = {
+        attached: [],
+        avds: [avd('Pixel_10_Pro', '17', { displayName })],
+      }
+
+      const found = await findInitDevices(['android'], lister({ android: listing }).list)
+
+      expect(found.lines).toEqual([
+        'Android device: Pixel 10 Pro (Android 17) as android-emulator-pixel-10-pro-17',
+      ])
+      expect(found.devices.android?.profile.model).toBe(displayName)
+    },
+  )
+
+  it.each(UNPRINTED)(
+    'prints a listing problem and a lister error without %s',
+    async (_kind, characters) => {
+      const { list } = lister({
+        android: new Error(`adb${characters} exited 1`),
+        ios: { simulators: [], problem: `xcrun simctl failed: ${characters}busy` },
+      })
+
+      const found = await findInitDevices(['android', 'ios'], list)
+
+      expect(found.lines).toEqual([
+        "Android device: none found (could not list this machine's devices: adb exited 1). " +
+          'Describe one under registry.devices and set device on ' +
+          'registry.targets.playground-android once this machine has one.',
+        'iOS device: none found (xcrun simctl failed: busy). Describe one under ' +
+          'registry.devices and set device on registry.targets.playground-ios once this ' +
+          'machine has one.',
+      ])
+    },
+  )
+
+  it('prints an accented letter and a curly apostrophe in a model as they are', async () => {
+    const displayName = 'Zo\u00eb\u2019s Pixel'
+    const listing: AndroidHere = {
+      attached: [],
+      avds: [avd('Pixel_10_Pro', '17', { displayName })],
+    }
+
+    const found = await findInitDevices(['android'], lister({ android: listing }).list)
+
+    expect(found.lines).toEqual([
+      'Android device: Zo\u00eb\u2019s Pixel (Android 17) as android-emulator-zo-s-pixel-17',
+    ])
+  })
+
   it('lists the runtimes in the order given, once each', async () => {
     const { list, listed } = lister({
       android: { attached: [], avds: [pixel] },
