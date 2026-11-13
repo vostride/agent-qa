@@ -13,6 +13,8 @@ import {
   DeclaredSecretsUnavailableError,
 } from '../composition/declared-secrets.js'
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../composition/local-agent-host.js'
+import { stopProcessAppiumWithin } from '../composition/process-appium.js'
+import { REMOTE_RELEASE_BOUND_MS } from '../composition/remote-sessions.js'
 import { receiptLine } from './receipt-line.js'
 import { renderClauseResults } from './result-render.js'
 
@@ -162,6 +164,9 @@ export function createAskCommand(): Command {
           }
         } catch (error) {
           reportError(error, mask)
+        } finally {
+          // A turn that ran a test in process may have started Appium.
+          await stopProcessAppiumWithin(REMOTE_RELEASE_BOUND_MS)
         }
       },
     )

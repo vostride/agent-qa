@@ -35,6 +35,8 @@ import {
   CLI_FUNCTION_CALLER,
   composeCliLocalAgent,
 } from '../composition/local-agent-host.js'
+import { stopProcessAppiumWithin } from '../composition/process-appium.js'
+import { REMOTE_RELEASE_BOUND_MS } from '../composition/remote-sessions.js'
 import { resolveCliChatCapabilities } from '../llm-utils.js'
 import type { CliChatCapabilities } from '../llm-utils.js'
 import { receiptLine } from './receipt-line.js'
@@ -456,6 +458,8 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
           await settleReporting({ analytics })
         }
         await host?.close()
+        // A turn that ran a test in process may have started Appium.
+        await stopProcessAppiumWithin(REMOTE_RELEASE_BOUND_MS)
       }
     })
 }
