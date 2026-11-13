@@ -18,6 +18,31 @@ it prints one JSON document on stdout on every exit.
 `agent-qa init --capabilities` prints the JSON capability manifest and writes
 nothing.
 
+When Android or iOS is chosen, a fresh init also sets up the Playground app as
+the project's mobile example. Each chosen runtime gets its target,
+`playground-android` or `playground-ios`, pointing at its app under
+`app-bundles/`, and three example tests under `tests/examples/`: a starter, a
+cart-total test and a `[Bug]` test. Init lists this machine's emulators and
+simulators, picks one per runtime without asking (a running one first,
+otherwise the newest OS), writes it under `registry.devices` and binds the
+runtime's target to it. A phone attached over USB is never picked. A runtime
+with no emulator or simulator to pick still gets its target and tests, and one
+line saying how to add one. A `playground-app` step, after the Chromium step,
+downloads the pinned Playground build for each chosen runtime, checks its
+sha256 and puts it under `app-bundles/`: the APK as it is, and the iOS build
+unzipped as `Playground.app`. Init adds no `.gitignore` line for the folder.
+Without `--force`, an app that is already there is kept and nothing is
+requested. A download that fails is a failed step whose line names the file
+and the release; init carries on and exits 3, and there is no retry command
+and no download at run time. The next steps name a runtime's starter only when
+it has a device and its app arrived. The pin is
+`src/commands/playground-app-pin.ts`: it names one Playground release and
+moves only with an agent-qa release, after the example tests pass on the new
+build. A re-run does none of this and fetches nothing. `agent-qa init --force`
+is a fresh init, not a re-run: it fetches the app again and replaces the one
+in `app-bundles/`, `Playground.app` as a whole, only once the new bytes match
+the pinned sha256.
+
 On a folder that already has `agent-qa.config.yaml`, `agent-qa init` re-runs
 setup instead. It prints a short summary of the project's agent-qa version, a
 newer published version when npm answers in time, the model and the coding
@@ -90,6 +115,9 @@ reporting is on, exit 1 as Node does. agent-qa prints nothing about reporting.
 - `src/config.ts`
 - `src/commands/init.ts`
 - `src/commands/init-steps.ts`
+- `src/commands/init-devices.ts`
+- `src/commands/playground-app.ts`
+- `src/commands/playground-app-pin.ts`
 - `src/commands/init-rerun.ts`
 - `src/commands/setup-rows.ts`
 - `src/commands/doctor.ts`
