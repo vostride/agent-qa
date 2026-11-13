@@ -96,10 +96,6 @@ RUN echo "no" | avdmanager create avd \
     -k "${AGENT_QA_ANDROID_SYSTEM_IMAGE}" \
     --device "pixel_6"
 
-# the newest UiAutomator2 driver needs Appium 4, which has no stable release yet
-RUN npm install -g appium@3.9.0 \
-    && appium driver install --source npm appium-uiautomator2-driver@8.7.3
-
 WORKDIR /agent-qa
 
 # Copy built monorepo from builder
