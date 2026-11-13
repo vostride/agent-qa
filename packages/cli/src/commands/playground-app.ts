@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
-import { join } from 'node:path'
+import { basename, dirname, join, resolve, sep } from 'node:path'
+import { inflateRawSync } from 'node:zlib'
 
 import { writeScaffoldFileAtomic, type InitFileResult } from './init-filesystem.js'
 import {
@@ -68,6 +69,81 @@ export async function fetchReleaseAsset(
   return bytes
 }
 
+interface ZipEntry {
+  name: string
+  directory: boolean
+  mode: number
+  bytes: Uint8Array
+}
+
+const END_RECORD = Buffer.from([0x50, 0x4b, 0x05, 0x06])
+const DIRECTORY_HEADER = 0x02014b50
+const LOCAL_HEADER = 0x04034b50
+
+// Only an archive whose sha256 matched the pin reaches this reader, so it handles what the
+// pinned build uses and refuses the rest rather than half-reading it.
+function zipEntries(archive: Uint8Array): ZipEntry[] {
+  const zip = Buffer.from(archive.buffer, archive.byteOffset, archive.byteLength)
+  const end = zip.lastIndexOf(END_RECORD)
+  if (end === -1 || end + 22 > zip.byteLength) throw new Error('it has no end record')
+  const count = zip.readUInt16LE(end + 10)
+  let at = zip.readUInt32LE(end + 16)
+  if (count === 0xffff || at === 0xffffffff) throw new Error('it is a zip64 archive')
+
+  const entries: ZipEntry[] = []
+  for (let index = 0; index < count; index += 1) {
+    if (at + 46 > zip.byteLength || zip.readUInt32LE(at) !== DIRECTORY_HEADER) {
+      throw new Error('its central directory is damaged')
+    }
+    const flags = zip.readUInt16LE(at + 8)
+    const method = zip.readUInt16LE(at + 10)
+    const compressedSize = zip.readUInt32LE(at + 20)
+    const size = zip.readUInt32LE(at + 24)
+    const nameLength = zip.readUInt16LE(at + 28)
+    const extraLength = zip.readUInt16LE(at + 30)
+    const commentLength = zip.readUInt16LE(at + 32)
+    const mode = zip.readUInt32LE(at + 38) >>> 16
+    const local = zip.readUInt32LE(at + 42)
+    const name = zip.toString('utf8', at + 46, at + 46 + nameLength)
+    if ((flags & 0x1) !== 0) throw new Error(`${name} is encrypted`)
+    if (method !== 0 && method !== 8) throw new Error(`${name} is compressed with method ${method}`)
+    if ((mode & 0o170000) === 0o120000) throw new Error(`${name} is a symbolic link`)
+    if (local + 30 > zip.byteLength || zip.readUInt32LE(local) !== LOCAL_HEADER) {
+      throw new Error(`${name} has no local header`)
+    }
+    const start = local + 30 + zip.readUInt16LE(local + 26) + zip.readUInt16LE(local + 28)
+    if (start + compressedSize > zip.byteLength) {
+      throw new Error(`${name} runs past the end of the archive`)
+    }
+    const raw = zip.subarray(start, start + compressedSize)
+    const bytes = method === 0 ? raw : inflateRawSync(raw)
+    if (bytes.byteLength !== size) {
+      throw new Error(`${name} inflates to ${bytes.byteLength} bytes, not ${size}`)
+    }
+    entries.push({ name, directory: name.endsWith('/'), mode, bytes })
+    at += 46 + nameLength + extraLength + commentLength
+  }
+  return entries
+}
+
+interface AppFile {
+  path: string
+  bytes: Uint8Array
+  mode: number
+}
+
+// Every entry is checked before the first file is written, so a refused archive writes nothing.
+function appFiles(archive: Uint8Array, folder: string): AppFile[] {
+  const files: AppFile[] = []
+  for (const entry of zipEntries(archive)) {
+    const path = resolve(dirname(folder), entry.name)
+    const inside = path.startsWith(`${folder}${sep}`) || (entry.directory && path === folder)
+    if (!inside) throw new Error(`${entry.name} is outside ${basename(folder)}`)
+    if (!entry.directory) files.push({ path, bytes: entry.bytes, mode: entry.mode & 0o777 })
+  }
+  return files
+}
+
 export interface PlaygroundAppsInput {
   dir: string
   runtimes: readonly PlaygroundRuntime[]
@@ -86,10 +162,14 @@ export interface PlaygroundAppsResult {
 
 const RUNTIME_NAMES: Record<PlaygroundRuntime, string> = { android: 'Android', ios: 'iOS' }
 
+function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : String(error)
+}
+
 function failureReason(pin: PlaygroundAppPin, runtime: PlaygroundRuntime, error: unknown): string {
-  const message = (error instanceof Error ? error.message : String(error)).replace(/\.$/u, '')
   return (
-    `The Playground app for ${RUNTIME_NAMES[runtime]} was not downloaded: ${message}. ` +
+    `The Playground app for ${RUNTIME_NAMES[runtime]} was not downloaded: ` +
+    `${messageOf(error).replace(/\.$/u, '')}. ` +
     `It is ${pin[runtime].file} in release ${pin.tag} of github.com/${pin.repository}.`
   )
 }
@@ -126,13 +206,47 @@ async function downloadAndroid(input: PlaygroundAppsInput): Promise<void> {
   )
 }
 
+async function downloadIOS(input: PlaygroundAppsInput): Promise<void> {
+  const folder = join(input.dir, PLAYGROUND_APP_PATHS.ios)
+  const present = input.exists(folder)
+  if (present && !input.force) {
+    input.record({ path: folder, outcome: 'preserved' })
+    return
+  }
+  const archive = await fetchPinned(input, 'ios')
+  let files: AppFile[]
+  try {
+    files = appFiles(archive, folder)
+  } catch (error) {
+    throw new Error(`its archive cannot be used (${messageOf(error)})`)
+  }
+  for (const file of files) {
+    writeScaffoldFileAtomic(
+      {
+        root: input.dir,
+        path: file.path,
+        content: file.bytes,
+        force: input.force,
+        ...(file.mode === 0 ? {} : { mode: file.mode }),
+      },
+      {},
+    )
+  }
+  input.record({ path: folder, outcome: present ? 'updated' : 'created' })
+}
+
+const DOWNLOADS: Record<PlaygroundRuntime, (input: PlaygroundAppsInput) => Promise<void>> = {
+  android: downloadAndroid,
+  ios: downloadIOS,
+}
+
 export async function downloadPlaygroundApps(
   input: PlaygroundAppsInput,
 ): Promise<PlaygroundAppsResult> {
   const result: PlaygroundAppsResult = { arrived: [], failures: [] }
   for (const runtime of input.runtimes) {
     try {
-      await downloadAndroid(input)
+      await DOWNLOADS[runtime](input)
       result.arrived.push(runtime)
     } catch (error) {
       // Offline, Node's fetch rejects with a TypeError, and init stops on a thrown TypeError.
