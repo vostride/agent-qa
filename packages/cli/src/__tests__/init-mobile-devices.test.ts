@@ -262,4 +262,35 @@ describe('a fresh mobile init with no device for a runtime', () => {
         'registry.devices and set device on registry.targets.playground-android.',
     ])
   })
+
+  it('writes no device when the running AVD and the booted simulator are older than the Playground build installs on', async () => {
+    const nexus: AvdHere = {
+      name: 'Nexus_5',
+      profile: 'nexus_5',
+      displayName: 'Nexus 5',
+      os: '6.0',
+    }
+    const { result, config } = await freshInit('android,ios', {
+      android: {
+        attached: [{ serial: 'emulator-5554', state: 'device', avd: nexus.name, os: '6.0' }],
+        avds: [nexus],
+      },
+      ios: {
+        simulators: [
+          { name: 'iPhone 12', udid: IPHONE_UDID, os: '14.5', state: 'Booted', available: true },
+        ],
+      },
+    })
+
+    expect(result.exit).toBe(0)
+    expect(config.registry).not.toHaveProperty('devices')
+    expect(config.registry.targets['playground-android']).not.toHaveProperty('device')
+    expect(config.registry.targets['playground-ios']).not.toHaveProperty('device')
+    expect(deviceLinesOf(result.entries)).toEqual([
+      "Android device: none of this machine's emulators could be picked. Describe one under " +
+        'registry.devices and set device on registry.targets.playground-android.',
+      "iOS device: none of this machine's simulators could be picked. Describe one under " +
+        'registry.devices and set device on registry.targets.playground-ios.',
+    ])
+  })
 })

@@ -6,6 +6,7 @@ import {
 } from '@vostride/agent-qa-core'
 
 import { machineText } from './machine-text.js'
+import { PLAYGROUND_APP_PIN, type PlaygroundAppPin } from './playground-app-pin.js'
 import type { DevicesHereLister } from './run.js'
 import { PLAYGROUND_TARGETS } from './scaffold-content.js'
 
@@ -69,7 +70,7 @@ function iosCandidates(listing: IOSHere): Candidate[] {
       return {
         running: simulator.state === 'Booted',
         os: simulator.os,
-        // The pinned Playground build runs on iPhones only.
+        // The pinned Playground build is for iPhones; an iPad simulator runs it scaled.
         iphone: simulator.name.startsWith('iPhone'),
         listedName: simulator.name,
         udid: simulator.udid,
@@ -97,6 +98,12 @@ function newerOsFirst(a: string | undefined, b: string | undefined): number {
     if (diff !== 0) return diff
   }
   return 0
+}
+
+// An OS that is not a version is kept: nothing shows it is too old.
+function olderThan(os: string | undefined, minOs: string): boolean {
+  if (os === undefined || !/^\d+(\.|$)/.test(os.trim())) return false
+  return newerOsFirst(os, minOs) > 0
 }
 
 function byText(a: string, b: string): number {
@@ -147,11 +154,17 @@ function finds(
   return 'found' in result && result.found.avd === want.avd && result.found.udid === want.udid
 }
 
-export function pickDeviceHere(platform: Platform, listing: Listing): PickedDevice | undefined {
-  const candidates =
+export function pickDeviceHere(
+  platform: Platform,
+  listing: Listing,
+  minOs: string = PLAYGROUND_APP_PIN[platform].minOs,
+): PickedDevice | undefined {
+  const listed =
     platform === 'ios'
       ? iosCandidates(listing as IOSHere)
       : androidCandidates(listing as AndroidHere)
+  // The pinned Playground build does not install below its floor, running or not.
+  const candidates = listed.filter((candidate) => !olderThan(candidate.os, minOs))
   // A later run may find the device shut down, so the entry must resolve that way too.
   const idleListing = nothingRunning(platform, listing)
   for (const candidate of candidates.sort(preferred)) {
@@ -226,6 +239,7 @@ function listsAny(platform: Platform, listing: Listing): boolean {
 export async function findInitDevices(
   runtimes: readonly Platform[],
   list: DevicesHereLister,
+  pin: PlaygroundAppPin = PLAYGROUND_APP_PIN,
 ): Promise<InitDevices> {
   const devices: InitDevices['devices'] = {}
   const lines: string[] = []
@@ -238,7 +252,7 @@ export async function findInitDevices(
       lines.push(noneFoundLine(platform, `could not list this machine's devices: ${message}`))
       continue
     }
-    const picked = pickDeviceHere(platform, listing)
+    const picked = pickDeviceHere(platform, listing, pin[platform].minOs)
     if (picked !== undefined) {
       devices[platform] = picked
       lines.push(pickedLine(platform, picked))

@@ -82,7 +82,7 @@ export interface FakePlaygroundApp {
 
 function pinnedTo(file: PlaygroundAppFile, bytes: Uint8Array): PlaygroundAppFile {
   return {
-    file: file.file,
+    ...file,
     sha256: createHash('sha256').update(bytes).digest('hex'),
     bytes: bytes.byteLength,
   }

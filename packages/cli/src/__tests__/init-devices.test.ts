@@ -10,6 +10,7 @@ import {
 } from '@vostride/agent-qa-core'
 
 import { findInitDevices, pickDeviceHere, type PickedDevice } from '../commands/init-devices.js'
+import { PLAYGROUND_APP_PIN } from '../commands/playground-app-pin.js'
 import type { DevicesHereLister } from '../commands/run.js'
 
 function avd(name: string, os?: string, extra: Partial<AvdHere> = {}): AvdHere {
@@ -423,6 +424,99 @@ describe('pickDeviceHere among several simulators', () => {
   })
 })
 
+describe('pickDeviceHere and the oldest OS the pinned Playground build installs on', () => {
+  const pixel9 = avd('Pixel_9', '15')
+  const nexus = avd('Nexus_5', '6.0')
+  const iphone16 = simulator('iPhone 16', '18.4')
+  const pixel9Picked: PickedDevice = {
+    name: 'android-emulator-pixel-9-15',
+    profile: { platform: 'android', model: 'Pixel 9', os: '15' },
+  }
+  const iphone16Picked: PickedDevice = {
+    name: 'ios-simulator-iphone-16-18.4',
+    profile: { platform: 'ios', model: 'iPhone 16', os: '18.4' },
+  }
+
+  it('picks an idle AVD the build installs on over a running one on Android 6', () => {
+    const listing: AndroidHere = {
+      attached: [emulatorOf(nexus, 'emulator-5554')],
+      avds: [nexus, pixel9],
+    }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual(pixel9Picked)
+    expectRunFinds(pick, listing, { avd: 'Pixel_9' })
+  })
+
+  it('picks an AVD on Android 7.0, written as 7 or as 7.0', () => {
+    for (const os of ['7', '7.0']) {
+      const listing: AndroidHere = { attached: [], avds: [nexus, avd('Nexus_6P', os)] }
+      expect(pickDeviceHere('android', listing), os).toEqual({
+        name: `android-emulator-nexus-6p-${os}`,
+        profile: { platform: 'android', model: 'Nexus 6P', os },
+      })
+    }
+  })
+
+  it('picks nothing when every AVD is older than Android 7.0', () => {
+    const listing: AndroidHere = {
+      attached: [emulatorOf(nexus, 'emulator-5554')],
+      avds: [nexus, avd('Nexus_4', '5.1')],
+    }
+    expect(pickDeviceHere('android', listing)).toBeUndefined()
+  })
+
+  it('keeps an AVD with no OS, which nothing shows to be too old', () => {
+    const listing: AndroidHere = {
+      attached: [emulatorOf(nexus, 'emulator-5554')],
+      avds: [nexus, avd('Pixel_6')],
+    }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-6',
+      profile: { platform: 'android', model: 'Pixel 6' },
+    })
+    expectRunFinds(pick, listing, { avd: 'Pixel_6' })
+  })
+
+  it('keeps an AVD whose OS is a name and not a version', () => {
+    const listing: AndroidHere = { attached: [], avds: [nexus, avd('Pixel_Preview', 'Baklava')] }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-preview-baklava',
+      profile: { platform: 'android', model: 'Pixel Preview', os: 'Baklava' },
+    })
+    expectRunFinds(pick, listing, { avd: 'Pixel_Preview' })
+  })
+
+  it('picks an idle simulator the build installs on over a booted one on iOS 14', () => {
+    const old = simulator('iPhone 12', '14.5', { state: 'Booted' })
+    const listing: IOSHere = { simulators: [old, iphone16] }
+    const pick = pickDeviceHere('ios', listing)
+    expect(pick).toEqual(iphone16Picked)
+    expectRunFinds(pick, listing, { udid: iphone16.udid })
+  })
+
+  it('picks a simulator on iOS 15.1 and none on iOS 15.0', () => {
+    const below = simulator('iPhone 13', '15.0')
+    const floor = simulator('iPhone 13', '15.1')
+    expect(pickDeviceHere('ios', { simulators: [below] })).toBeUndefined()
+    const listing: IOSHere = { simulators: [below, floor] }
+    const pick = pickDeviceHere('ios', listing)
+    expect(pick).toEqual({
+      name: 'ios-simulator-iphone-13-15.1',
+      profile: { platform: 'ios', model: 'iPhone 13', os: '15.1' },
+    })
+    expectRunFinds(pick, listing, { udid: floor.udid })
+  })
+
+  it('takes the oldest OS it is handed in place of the pinned one', () => {
+    const listing: IOSHere = { simulators: [iphone16, simulator('iPhone 17', '26.0')] }
+    expect(pickDeviceHere('ios', listing, '26.1')).toBeUndefined()
+    expect(pickDeviceHere('ios', { simulators: [iphone16] }, '18.4')).toEqual(iphone16Picked)
+    expect(pickDeviceHere('android', { attached: [], avds: [pixel9] }, '16')).toBeUndefined()
+  })
+})
+
 describe('findInitDevices', () => {
   const pixel = avd('Pixel_10_Pro', '17')
   const iphone = simulator('iPhone 18 Pro', '27.0', { state: 'Booted' })
@@ -538,6 +632,45 @@ describe('findInitDevices', () => {
     expect(found.lines).toEqual([
       "Android device: none of this machine's emulators could be picked. Describe one under " +
         'registry.devices and set device on registry.targets.playground-android.',
+      "iOS device: none of this machine's simulators could be picked. Describe one under " +
+        'registry.devices and set device on registry.targets.playground-ios.',
+    ])
+  })
+
+  it('says none could be picked when every emulator and simulator is older than the pinned build installs on', async () => {
+    const old = avd('Nexus_5', '6.0')
+    const { list } = lister({
+      android: { attached: [emulatorOf(old, 'emulator-5554')], avds: [old] },
+      ios: { simulators: [simulator('iPhone 12', '14.5', { state: 'Booted' })] },
+    })
+
+    const found = await findInitDevices(['android', 'ios'], list)
+
+    expect(found.devices).toEqual({})
+    expect(found.lines).toEqual([
+      "Android device: none of this machine's emulators could be picked. Describe one under " +
+        'registry.devices and set device on registry.targets.playground-android.',
+      "iOS device: none of this machine's simulators could be picked. Describe one under " +
+        'registry.devices and set device on registry.targets.playground-ios.',
+    ])
+  })
+
+  it('takes the oldest OS of each runtime from the pin it is handed', async () => {
+    const { list } = lister({
+      android: { attached: [], avds: [pixel] },
+      ios: { simulators: [iphone] },
+    })
+    const pin = {
+      ...PLAYGROUND_APP_PIN,
+      android: { ...PLAYGROUND_APP_PIN.android, minOs: '17' },
+      ios: { ...PLAYGROUND_APP_PIN.ios, minOs: '27.1' },
+    }
+
+    const found = await findInitDevices(['android', 'ios'], list, pin)
+
+    expect(Object.keys(found.devices)).toEqual(['android'])
+    expect(found.lines).toEqual([
+      'Android device: Pixel 10 Pro (Android 17) as android-emulator-pixel-10-pro-17',
       "iOS device: none of this machine's simulators could be picked. Describe one under " +
         'registry.devices and set device on registry.targets.playground-ios.',
     ])
