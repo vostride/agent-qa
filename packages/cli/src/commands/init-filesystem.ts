@@ -12,6 +12,7 @@ import {
   openSync,
   readFileSync,
   renameSync,
+  rmSync,
   rmdirSync,
   unlinkSync,
   writeFileSync,
@@ -953,8 +954,17 @@ export function removeFolderInsideRoot(plan: {
   path: string
   root: string
 }): 'removed' | 'missing' {
-  void plan
-  return 'missing'
+  const absolutePath = resolve(plan.path)
+  assertSafeParentComponents(absolutePath, plan.root)
+  const stat = lstatIfPresent(absolutePath)
+  if (stat === undefined) return 'missing'
+  if (!stat.isDirectory()) {
+    // pathKind names a regular file a non-regular file.
+    const kind = stat.isFile() ? 'file' : pathKind(stat)
+    throw new InitRefusal(`Refusing to remove ${absolutePath}: it is a ${kind}, not a folder`)
+  }
+  rmSync(absolutePath, { recursive: true })
+  return 'removed'
 }
 
 function isStrictlyInside(path: string, folder: string): boolean {
