@@ -68,12 +68,16 @@ vi.mock('webdriverio', () => ({
 }))
 
 import { AndroidPlatformAdapter } from '../adapter.js'
+import { createAndroidSession } from '../session.js'
+import { fakeAppiumStart } from './fixtures/fake-appium-start.js'
+import { MobileSetupError } from '@vostride/agent-qa-core'
 import type { PlatformAdapter, PlatformConfig } from '@vostride/agent-qa-runner'
 import type { LiveFrame } from '@vostride/agent-qa-schema'
 
 describe('AndroidPlatformAdapter', () => {
   let adapter: AndroidPlatformAdapter
   let mockDriver: ReturnType<typeof createMockDriver>
+  let appium: ReturnType<typeof fakeAppiumStart>
 
   beforeEach(async () => {
     vi.clearAllMocks()
@@ -81,7 +85,8 @@ describe('AndroidPlatformAdapter', () => {
     const { remote } = await import('webdriverio')
     vi.mocked(remote).mockResolvedValue(mockDriver as any)
 
-    adapter = new AndroidPlatformAdapter()
+    appium = fakeAppiumStart()
+    adapter = new AndroidPlatformAdapter({ startAppium: appium.start })
   })
 
   afterEach(async () => {
@@ -105,8 +110,8 @@ describe('AndroidPlatformAdapter', () => {
 
       const { remote } = await import('webdriverio')
       expect(remote).toHaveBeenCalledWith(expect.objectContaining({
-        hostname: 'localhost',
-        port: 4723,
+        hostname: '127.0.0.1',
+        port: 50123,
         capabilities: expect.objectContaining({
           platformName: 'Android',
           'appium:automationName': 'UiAutomator2',
@@ -287,9 +292,59 @@ describe('AndroidPlatformAdapter', () => {
       expect(call).toMatchObject({ protocol: 'https', port: 443, path: '/wd/hub' })
     })
 
-    it('no endpoint dials the Appium on localhost port 4723', async () => {
+    it('no endpoint starts Appium once, dials the URL it returned and stops it at cleanup', async () => {
       const call = await opened({})
-      expect(call).toMatchObject({ protocol: 'http', hostname: 'localhost', port: 4723, path: '/' })
+      expect(appium.start).toHaveBeenCalledTimes(1)
+      expect(call).toMatchObject({
+        protocol: 'http',
+        hostname: '127.0.0.1',
+        port: 50123,
+        path: '/',
+      })
+      await adapter.cleanup()
+      expect(appium.stop).toHaveBeenCalledTimes(1)
+    })
+
+    it('a given endpoint starts no Appium', async () => {
+      await opened({ appiumUrl: 'http://127.0.0.1:4724' })
+      expect(appium.start).not.toHaveBeenCalled()
+    })
+
+    it('a session that cannot open stops the Appium it started once, before setup rejects', async () => {
+      const { remote } = await import('webdriverio')
+      vi.mocked(remote).mockRejectedValueOnce(new Error('session not created'))
+      await expect(adapter.setup({ platform: 'android' })).rejects.toThrow('session not created')
+      expect(appium.stop).toHaveBeenCalledTimes(1)
+      await adapter.cleanup()
+      expect(appium.stop).toHaveBeenCalledTimes(1)
+    })
+
+    it("a start that fails is a setup error of category appium-startup with the start's message", async () => {
+      const refused = new Error('Appium exited before it was ready (exit code 1)')
+      appium.start.mockRejectedValueOnce(refused)
+      const failed = await adapter.setup({ platform: 'android', device: device() }).then(
+        () => undefined,
+        (error: unknown) => error,
+      )
+      expect(failed).toBeInstanceOf(MobileSetupError)
+      expect(failed).toMatchObject({
+        category: 'appium-startup',
+        platform: 'android',
+        deviceName: 'pixel',
+        message: 'Could not start Appium: Appium exited before it was ready (exit code 1)',
+        cause: refused,
+      })
+      const { remote } = await import('webdriverio')
+      expect(remote).not.toHaveBeenCalled()
+    })
+
+    it('a device here with no endpoint is refused a session outside the adapter', async () => {
+      const session = createAndroidSession({ platform: 'android', device: device() })
+      await expect(session).rejects.toMatchObject({
+        category: 'appium-startup',
+        message:
+          'Device pixel is on this machine and was given no Appium URL; its session opens through the Android adapter, which starts Appium.',
+      })
     })
 
     it('AGENT_QA_APPIUM_URL does not change the endpoint', async () => {
