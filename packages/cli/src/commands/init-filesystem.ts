@@ -949,6 +949,14 @@ export function removeFileInsideRoot(plan: { path: string; root: string }): 'rem
   return 'removed'
 }
 
+export function removeFolderInsideRoot(plan: {
+  path: string
+  root: string
+}): 'removed' | 'missing' {
+  void plan
+  return 'missing'
+}
+
 function isStrictlyInside(path: string, folder: string): boolean {
   const fromFolder = relative(folder, path)
   return (

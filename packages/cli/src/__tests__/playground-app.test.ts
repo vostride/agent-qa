@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join, sep } from 'node:path'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { InitFileResult } from '../commands/init-filesystem.js'
+import { removeFolderInsideRoot, type InitFileResult } from '../commands/init-filesystem.js'
 import {
   downloadPlaygroundApps,
   fetchReleaseAsset,
@@ -44,12 +44,18 @@ async function download(
   overrides: Partial<PlaygroundAppsInput> = {},
 ) {
   const recorded: InitFileResult[] = []
+  // Each folder removed, with the URLs the fetcher had been asked for by then.
+  const removals: { path: string; requested: string[] }[] = []
   const input: PlaygroundAppsInput = {
     dir: root,
     runtimes: ['android'],
     pin: app.source.pin,
     fetch: app.source.fetch,
     exists: existsSync,
+    removeFolder: (path) => {
+      removals.push({ path, requested: app.requests.map((request) => request.url) })
+      removeFolderInsideRoot({ path, root })
+    },
     force: false,
     signal: new AbortController().signal,
     record: (result) => {
@@ -57,7 +63,14 @@ async function download(
     },
     ...overrides,
   }
-  return { result: await downloadPlaygroundApps(input), recorded, signal: input.signal }
+  return { result: await downloadPlaygroundApps(input), recorded, removals, signal: input.signal }
+}
+
+// Every file and folder under a folder, by its path inside it.
+function entriesUnder(folder: string): string[] {
+  return readdirSync(folder, { recursive: true, encoding: 'utf8' })
+    .map((path) => path.split(sep).join('/'))
+    .sort()
 }
 
 describe('downloading the Playground app for Android', () => {
@@ -142,14 +155,14 @@ describe('downloading the Playground app for Android', () => {
     expect(readFileSync(apk, 'utf8')).toBe('an older build')
   })
 
-  it('with force fetches the APK again and writes it over the one that is there', async () => {
+  it('with force fetches the APK again and writes it over the one that is there, removing no folder', async () => {
     const { root } = tempProject('playground-app')
     const apk = join(root, 'app-bundles', APK)
     mkdirSync(join(root, 'app-bundles'))
     writeFileSync(apk, 'an older build')
     const app = fakePlaygroundApp()
 
-    const { result, recorded } = await download(root, app, { force: true })
+    const { result, recorded, removals } = await download(root, app, { force: true })
 
     expect(app.requests.map((request) => request.url)).toEqual([
       playgroundAppUrl(app.source.pin, 'android'),
@@ -157,6 +170,7 @@ describe('downloading the Playground app for Android', () => {
     expect(readFileSync(apk)).toEqual(Buffer.from(app.bytes.android))
     expect(recorded).toEqual([{ path: apk, outcome: 'updated' }])
     expect(result).toEqual({ arrived: ['android'], failures: [] })
+    expect(removals).toEqual([])
   })
 })
 
@@ -414,33 +428,46 @@ describe('downloading the Playground app for iOS', () => {
     })
   }
 
-  it('keeps a Playground.app that is already there and asks for nothing', async () => {
+  it('keeps a Playground.app that is already there, asks for nothing and removes nothing', async () => {
     const { root } = tempProject('playground-app')
     const folder = join(root, 'app-bundles', 'Playground.app')
     mkdirSync(folder, { recursive: true })
     writeFileSync(join(folder, 'Info.plist'), 'an older build')
     const app = fakePlaygroundApp()
 
-    const { result, recorded } = await download(root, app, { runtimes: ['ios'] })
+    const { result, recorded, removals } = await download(root, app, { runtimes: ['ios'] })
 
     expect(app.requests).toEqual([])
+    expect(removals).toEqual([])
     expect(recorded).toEqual([{ path: folder, outcome: 'preserved' }])
     expect(result).toEqual({ arrived: ['ios'], failures: [] })
     expect(readFileSync(join(folder, 'Info.plist'), 'utf8')).toBe('an older build')
   })
 
-  it('with force fetches the build again and writes each file over the one that is there', async () => {
+  it('with force fetches the build again and replaces the Playground.app that is there as a whole, so no file of the older build stays', async () => {
     const { root } = tempProject('playground-app')
     const folder = join(root, 'app-bundles', 'Playground.app')
-    mkdirSync(folder, { recursive: true })
+    const old = join(folder, 'Frameworks', 'old.framework', 'old')
+    mkdirSync(dirname(old), { recursive: true })
     writeFileSync(join(folder, 'Info.plist'), 'an older build')
+    writeFileSync(old, 'a framework the new build does not have')
     const app = fakePlaygroundApp()
 
-    const { result, recorded } = await download(root, app, { runtimes: ['ios'], force: true })
+    const { result, recorded, removals } = await download(root, app, {
+      runtimes: ['ios'],
+      force: true,
+    })
 
-    expect(app.requests.map((request) => request.url)).toEqual([
-      playgroundAppUrl(app.source.pin, 'ios'),
-    ])
+    const url = playgroundAppUrl(app.source.pin, 'ios')
+    expect(app.requests.map((request) => request.url)).toEqual([url])
+    expect(removals).toEqual([{ path: folder, requested: [url] }])
+    expect(existsSync(old)).toBe(false)
+    expect(existsSync(dirname(old))).toBe(false)
+    expect(entriesUnder(join(root, 'app-bundles'))).toEqual(
+      fakePlaygroundIosEntries()
+        .map((entry) => entry.name.replace(/\/$/u, ''))
+        .sort(),
+    )
     for (const entry of fakePlaygroundIosEntries()) {
       if (entry.name.endsWith('/')) continue
       const path = join(root, 'app-bundles', entry.name)
