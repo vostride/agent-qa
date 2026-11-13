@@ -25,7 +25,6 @@ export interface InitNextStepFacts {
   steps: readonly InitStepRecord[]
   model?: InitNextStepModel
   web: boolean
-  mobile: boolean
   // The example files on disk after a run that kept some of them: a re-run, or a fresh init
   // over a suite file. A run that wrote every example gives none.
   examples?: InitExampleFiles
@@ -121,9 +120,6 @@ export function initNextSteps(facts: InitNextStepFacts): {
   }
   if (model?.subscription === true && model.status === 'pending') {
     add(authLoginCommand(model.name), AUTH_LOGIN_DESCRIPTION)
-  }
-  if (facts.mobile) {
-    add('npx agent-qa install-mobile-drivers --all', 'Install mobile driver support')
   }
   if (facts.web) {
     // With no examples fact, this run wrote every example.
