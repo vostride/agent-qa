@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process'
 import { mkdtempSync } from 'node:fs'
 import { mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -16,7 +15,6 @@ import { assertNoGuardedCalls, takeGuardedCalls } from './test-side-effect-guard
 vi.mock('node:child_process', async (importOriginal) => ({
   ...(await importOriginal<typeof import('node:child_process')>()),
   execSync: vi.fn(() => Buffer.from('ok')),
-  execFileSync: vi.fn(() => Buffer.from('')),
 }))
 
 vi.mock('@vostride/agent-qa-runner-local', async (importOriginal) => ({
@@ -165,7 +163,7 @@ describe("doctor's device rows", () => {
   afterEach(() => {
     vi.restoreAllMocks()
     vi.unstubAllGlobals()
-    vi.mocked(execFileSync).mockImplementation(() => Buffer.from(''))
+    vi.unstubAllEnvs()
     process.exitCode = 0
   })
 
@@ -240,17 +238,19 @@ describe("doctor's device rows", () => {
     expect(names.filter((name) => name.startsWith('Device '))).toHaveLength(3)
   })
 
-  it('keeps the tool rows failing for a local profile on a machine without the tools', async () => {
-    vi.mocked(execFileSync).mockImplementation(() => {
-      throw new Error('appium not found')
-    })
+  it('keeps the Android SDK row failing for a local profile on a machine without the SDK', async () => {
+    vi.stubEnv('ANDROID_HOME', undefined)
+    vi.stubEnv('ANDROID_SDK_ROOT', undefined)
     const { list } = lister()
     const rows = await doctorRows(
       projectConfig({ pixel: { platform: 'android', model: 'Pixel 8' } }),
       { listDevicesHere: list },
     )
 
-    expect(row(rows, 'Appium')).toMatchObject({ status: 'fail', message: 'not installed' })
+    expect(row(rows, 'Android SDK')).toMatchObject({
+      status: 'fail',
+      message: 'ANDROID_HOME not set',
+    })
     expect(row(rows, 'Device pixel')).toMatchObject({ status: 'pass' })
   })
 })

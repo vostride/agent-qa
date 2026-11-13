@@ -9,7 +9,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 vi.mock('node:child_process', async (importOriginal) => ({
   ...(await importOriginal<typeof import('node:child_process')>()),
   execSync: vi.fn(() => Buffer.from('ok')),
-  execFileSync: vi.fn(() => Buffer.from('')),
 }))
 
 vi.mock('../commands/doctor-knowledge-checks.js', () => ({
@@ -672,8 +671,6 @@ describe("doctor's row order", () => {
       'LLM connection',
       'Playwright',
       'Plugin subscription',
-      'Appium',
-      'Appium drivers',
       'Android SDK',
       'Xcode',
       'Device pixel',
