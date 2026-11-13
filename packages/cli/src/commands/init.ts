@@ -1314,9 +1314,11 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         }
         recorder.agents(agents)
 
+        const playgroundPin = hooks.playgroundApp?.pin ?? PLAYGROUND_APP_PIN
         const { devices, lines: deviceLines } = await findInitDevices(
           mobileRuntimesOf(platform),
           hooks.listDevicesHere ?? listDevicesHereByDefault,
+          playgroundPin,
         )
         const config = buildDefaultConfig(
           platform,
@@ -1440,7 +1442,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         const install = (): Promise<InitStepResult> => installPlan(packageJsonPlan)
 
         const mobile = playgroundRuntimes.length > 0
-        const playgroundPin = hooks.playgroundApp?.pin ?? PLAYGROUND_APP_PIN
         const playgroundMegabytes = Math.round(
           playgroundRuntimes.reduce((sum, runtime) => sum + playgroundPin[runtime].bytes, 0) /
             1_000_000,

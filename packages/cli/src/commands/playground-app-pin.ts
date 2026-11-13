@@ -2,6 +2,8 @@ export interface PlaygroundAppFile {
   readonly file: string
   readonly sha256: string
   readonly bytes: number
+  // The oldest OS the build installs on, as the build states it.
+  readonly minOs: string
 }
 
 export interface PlaygroundAppPin {
@@ -20,11 +22,15 @@ export const PLAYGROUND_APP_PIN: PlaygroundAppPin = {
     file: 'playground-android-26.11.02-1ba82a3.apk',
     sha256: 'd2d0863603342fd9e4052e916582b7af7dceda017f87af908d4898397b35e124',
     bytes: 55357571,
+    // The APK's minSdkVersion is 24.
+    minOs: '7.0',
   },
   ios: {
     file: 'playground-ios-simulator-26.11.02-1ba82a3.zip',
     sha256: '268430d2a9a5c07a6b4f840d0b6a658df6fb3adbd3811d8f059f344a2a5baa90',
     bytes: 10151499,
+    // The app's MinimumOSVersion.
+    minOs: '15.1',
   },
 }
 

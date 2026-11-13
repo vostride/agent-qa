@@ -345,7 +345,7 @@ describe('downloading the Playground app for iOS', () => {
     return {
       ...PLAYGROUND_APP_PIN,
       ios: {
-        file: PLAYGROUND_APP_PIN.ios.file,
+        ...PLAYGROUND_APP_PIN.ios,
         sha256: createHash('sha256').update(archive).digest('hex'),
         bytes: archive.byteLength,
       },
