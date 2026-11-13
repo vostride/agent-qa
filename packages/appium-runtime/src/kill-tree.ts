@@ -10,7 +10,12 @@ export function killTree(
   options: { readonly platform?: NodeJS.Platform; readonly proc?: string } = {},
 ): Promise<void> {
   if ((options.platform ?? process.platform) === 'linux') {
-    for (const member of linuxTree(pid, options.proc ?? '/proc')) {
+    // When /proc cannot be listed, the process itself is still signalled.
+    let members = [pid]
+    try {
+      members = linuxTree(pid, options.proc ?? '/proc')
+    } catch {}
+    for (const member of members) {
       try {
         process.kill(member, 'SIGKILL')
       } catch {}
