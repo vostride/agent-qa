@@ -1,4 +1,5 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { createHash } from 'node:crypto'
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -9,17 +10,29 @@ import {
   fetchReleaseAsset,
   type PlaygroundAppsInput,
 } from '../commands/playground-app.js'
-import { PLAYGROUND_APP_PIN, playgroundAppUrl } from '../commands/playground-app-pin.js'
 import {
+  PLAYGROUND_APP_PIN,
+  playgroundAppUrl,
+  type PlaygroundAppPin,
+} from '../commands/playground-app-pin.js'
+import {
+  buildZip,
   cleanupTempProjects,
   fakePlaygroundApp,
+  fakePlaygroundIosEntries,
   tempProject,
   type FakePlaygroundApp,
+  type ZipFixtureEntry,
 } from './project-fixtures.js'
 
 const APK = 'playground-android-26.11.02-1ba82a3.apk'
+const ZIP = 'playground-ios-simulator-26.11.02-1ba82a3.zip'
 const RELEASE = 'mobile-26.11.02-1ba82a3'
 const REPOSITORY = 'github.com/vostride/playground'
+
+function text(value: string): Uint8Array {
+  return new TextEncoder().encode(value)
+}
 
 afterEach(() => {
   cleanupTempProjects()
@@ -245,8 +258,225 @@ describe('fetching a release file', () => {
 describe('the pinned release', () => {
   it("names the iOS build in the same release by the zip's file name", () => {
     expect(playgroundAppUrl(PLAYGROUND_APP_PIN, 'ios')).toBe(
-      `https://github.com/vostride/playground/releases/download/${RELEASE}/` +
-        'playground-ios-simulator-26.11.02-1ba82a3.zip',
+      `https://github.com/vostride/playground/releases/download/${RELEASE}/${ZIP}`,
     )
+  })
+})
+
+describe('downloading the Playground app for iOS', () => {
+  function pinnedTo(archive: Uint8Array): PlaygroundAppPin {
+    return {
+      ...PLAYGROUND_APP_PIN,
+      ios: {
+        file: PLAYGROUND_APP_PIN.ios.file,
+        sha256: createHash('sha256').update(archive).digest('hex'),
+        bytes: archive.byteLength,
+      },
+    }
+  }
+
+  it('unzips the pinned build into app-bundles/Playground.app with each file and its mode, and keeps no zip', async () => {
+    const { root } = tempProject('playground-app')
+    const app = fakePlaygroundApp()
+
+    const { result, recorded } = await download(root, app, { runtimes: ['ios'] })
+
+    expect(result).toEqual({ arrived: ['ios'], failures: [] })
+    expect(recorded).toEqual([
+      { path: join(root, 'app-bundles', 'Playground.app'), outcome: 'created' },
+    ])
+    for (const entry of fakePlaygroundIosEntries()) {
+      const path = join(root, 'app-bundles', entry.name)
+      if (entry.name.endsWith('/')) {
+        expect(statSync(path).isDirectory(), entry.name).toBe(true)
+      } else {
+        expect(readFileSync(path), entry.name).toEqual(Buffer.from(entry.bytes))
+        expect(statSync(path).mode & 0o777, entry.name).toBe((entry.mode ?? 0) & 0o777)
+      }
+    }
+    const executable = 'app-bundles/Playground.app/Frameworks/hermesvm.framework/hermesvm'
+    expect(statSync(join(root, executable)).mode & 0o777).toBe(0o755)
+    const files = readdirSync(root, { recursive: true, encoding: 'utf8' })
+    expect(files.filter((path) => path.endsWith('.zip'))).toEqual([])
+  })
+
+  it('refuses bytes whose sha256 is not the pinned one before it reads them as a zip', async () => {
+    const { root } = tempProject('playground-app')
+    const app = fakePlaygroundApp({ ios: text('these bytes are not a zip') })
+
+    const { result, recorded } = await download(root, app, { runtimes: ['ios'] })
+
+    expect(result).toEqual({
+      arrived: [],
+      failures: [
+        {
+          runtime: 'ios',
+          reason:
+            'The Playground app for iOS was not downloaded: its sha256 is not the pinned one. ' +
+            `It is ${ZIP} in release ${RELEASE} of ${REPOSITORY}.`,
+        },
+      ],
+    })
+    expect(existsSync(join(root, 'app-bundles'))).toBe(false)
+    expect(recorded).toEqual([])
+  })
+
+  const valid: ZipFixtureEntry = {
+    name: 'Playground.app/Info.plist',
+    bytes: text('a valid entry\n'),
+    mode: 0o100644,
+  }
+
+  const refusals = [
+    {
+      label: 'an entry that climbs out of Playground.app',
+      archive: () =>
+        buildZip([valid, { name: 'Playground.app/../../outside.txt', bytes: text('outside\n') }]),
+      says: 'Playground.app/../../outside.txt is outside Playground.app',
+    },
+    {
+      label: 'an entry outside the Playground.app folder',
+      archive: () => buildZip([valid, { name: 'elsewhere/file.txt', bytes: text('elsewhere\n') }]),
+      says: 'elsewhere/file.txt is outside Playground.app',
+    },
+    {
+      label: 'a symbolic link entry',
+      archive: () =>
+        buildZip([
+          valid,
+          { name: 'Playground.app/link', bytes: text('Info.plist'), mode: 0o120777 },
+        ]),
+      says: 'Playground.app/link is a symbolic link',
+    },
+    {
+      label: 'an encrypted entry',
+      archive: () =>
+        buildZip([valid, { name: 'Playground.app/sealed', bytes: text('sealed\n'), flags: 0x1 }]),
+      says: 'Playground.app/sealed is encrypted',
+    },
+    {
+      label: 'an entry compressed with a method other than stored or deflate',
+      archive: () =>
+        buildZip([valid, { name: 'Playground.app/packed', bytes: text('packed\n'), method: 12 }]),
+      says: 'Playground.app/packed is compressed with method 12',
+    },
+    {
+      label: 'an entry whose inflated size is not its declared size',
+      archive: () =>
+        buildZip([
+          valid,
+          { name: 'Playground.app/short', bytes: text('short\n'), deflate: true, size: 99 },
+        ]),
+      says: 'Playground.app/short inflates to 6 bytes, not 99',
+    },
+    {
+      label: 'an end record that counts 0xffff entries',
+      archive: () => buildZip([valid], { count: 0xffff }),
+      says: 'it is a zip64 archive',
+    },
+    {
+      label: 'an end record whose directory offset is 0xffffffff',
+      archive: () => buildZip([valid], { offset: 0xffffffff }),
+      says: 'it is a zip64 archive',
+    },
+    {
+      label: 'bytes with no end record',
+      archive: () => buildZip([valid]).subarray(0, -22),
+      says: 'it has no end record',
+    },
+  ]
+
+  for (const { label, archive, says } of refusals) {
+    it(`refuses ${label} and writes nothing`, async () => {
+      const { root } = tempProject('playground-app')
+      const crafted = archive()
+      const app = fakePlaygroundApp({ ios: crafted })
+
+      const { result, recorded } = await download(root, app, {
+        runtimes: ['ios'],
+        pin: pinnedTo(crafted),
+      })
+
+      expect(result).toEqual({
+        arrived: [],
+        failures: [
+          {
+            runtime: 'ios',
+            reason:
+              'The Playground app for iOS was not downloaded: its archive cannot be used ' +
+              `(${says}). It is ${ZIP} in release ${RELEASE} of ${REPOSITORY}.`,
+          },
+        ],
+      })
+      expect(existsSync(join(root, 'app-bundles'))).toBe(false)
+      expect(readdirSync(root)).toEqual(['.git'])
+      expect(recorded).toEqual([])
+    })
+  }
+
+  it('keeps a Playground.app that is already there and asks for nothing', async () => {
+    const { root } = tempProject('playground-app')
+    const folder = join(root, 'app-bundles', 'Playground.app')
+    mkdirSync(folder, { recursive: true })
+    writeFileSync(join(folder, 'Info.plist'), 'an older build')
+    const app = fakePlaygroundApp()
+
+    const { result, recorded } = await download(root, app, { runtimes: ['ios'] })
+
+    expect(app.requests).toEqual([])
+    expect(recorded).toEqual([{ path: folder, outcome: 'preserved' }])
+    expect(result).toEqual({ arrived: ['ios'], failures: [] })
+    expect(readFileSync(join(folder, 'Info.plist'), 'utf8')).toBe('an older build')
+  })
+
+  it('with force fetches the build again and writes each file over the one that is there', async () => {
+    const { root } = tempProject('playground-app')
+    const folder = join(root, 'app-bundles', 'Playground.app')
+    mkdirSync(folder, { recursive: true })
+    writeFileSync(join(folder, 'Info.plist'), 'an older build')
+    const app = fakePlaygroundApp()
+
+    const { result, recorded } = await download(root, app, { runtimes: ['ios'], force: true })
+
+    expect(app.requests.map((request) => request.url)).toEqual([
+      playgroundAppUrl(app.source.pin, 'ios'),
+    ])
+    for (const entry of fakePlaygroundIosEntries()) {
+      if (entry.name.endsWith('/')) continue
+      const path = join(root, 'app-bundles', entry.name)
+      expect(readFileSync(path), entry.name).toEqual(Buffer.from(entry.bytes))
+    }
+    expect(recorded).toEqual([{ path: folder, outcome: 'updated' }])
+    expect(result).toEqual({ arrived: ['ios'], failures: [] })
+  })
+})
+
+describe('downloading the Playground app for both runtimes', () => {
+  it('publishes the iOS build when the Android bytes are wrong, and fails Android alone', async () => {
+    const { root } = tempProject('playground-app')
+    const app = fakePlaygroundApp({ android: text('another build') })
+
+    const { result } = await download(root, app, { runtimes: ['android', 'ios'] })
+
+    expect(result).toEqual({
+      arrived: ['ios'],
+      failures: [{ runtime: 'android', reason: expect.stringContaining(APK) }],
+    })
+    expect(existsSync(join(root, 'app-bundles', APK))).toBe(false)
+    expect(existsSync(join(root, 'app-bundles', 'Playground.app', 'Info.plist'))).toBe(true)
+  })
+
+  it('publishes the APK when the iOS bytes are wrong, and fails iOS alone', async () => {
+    const { root } = tempProject('playground-app')
+    const app = fakePlaygroundApp({ ios: text('another build') })
+
+    const { result } = await download(root, app, { runtimes: ['android', 'ios'] })
+
+    expect(result).toEqual({
+      arrived: ['android'],
+      failures: [{ runtime: 'ios', reason: expect.stringContaining(ZIP) }],
+    })
+    expect(existsSync(join(root, 'app-bundles', APK))).toBe(true)
+    expect(existsSync(join(root, 'app-bundles', 'Playground.app'))).toBe(false)
   })
 })

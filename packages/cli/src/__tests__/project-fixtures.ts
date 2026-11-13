@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
+import { crc32, deflateRawSync } from 'node:zlib'
 
 import type {
   PlaygroundAppFetch,
@@ -84,13 +85,114 @@ function pinnedTo(file: PlaygroundAppFile, bytes: Uint8Array): PlaygroundAppFile
   }
 }
 
-// A few bytes stand in for each build, and the pin is the real one with their sha256 and size.
+export interface ZipFixtureEntry {
+  name: string
+  bytes: Uint8Array
+  // Written into the upper 16 bits of the external attributes, as a Unix zip does.
+  mode?: number
+  deflate?: boolean
+  flags?: number
+  method?: number
+  size?: number
+}
+
+export interface ZipFixtureArchive {
+  count?: number
+  offset?: number
+}
+
+export function buildZip(
+  entries: readonly ZipFixtureEntry[],
+  archive: ZipFixtureArchive = {},
+): Uint8Array {
+  const records: Buffer[] = []
+  const directory: Buffer[] = []
+  let offset = 0
+  for (const entry of entries) {
+    const name = Buffer.from(entry.name, 'utf8')
+    const data = entry.deflate ? deflateRawSync(entry.bytes) : Buffer.from(entry.bytes)
+    const flags = entry.flags ?? 0
+    const method = entry.method ?? (entry.deflate ? 8 : 0)
+    const size = entry.size ?? entry.bytes.byteLength
+    const crc = crc32(entry.bytes)
+    const mode = entry.mode ?? (entry.name.endsWith('/') ? 0o40755 : 0o100644)
+
+    const local = Buffer.alloc(30)
+    local.writeUInt32LE(0x04034b50, 0)
+    local.writeUInt16LE(20, 4)
+    local.writeUInt16LE(flags, 6)
+    local.writeUInt16LE(method, 8)
+    local.writeUInt32LE(crc, 14)
+    local.writeUInt32LE(data.byteLength, 18)
+    local.writeUInt32LE(size, 22)
+    local.writeUInt16LE(name.byteLength, 26)
+    records.push(local, name, data)
+
+    const central = Buffer.alloc(46)
+    central.writeUInt32LE(0x02014b50, 0)
+    central.writeUInt16LE(0x0314, 4)
+    central.writeUInt16LE(20, 6)
+    central.writeUInt16LE(flags, 8)
+    central.writeUInt16LE(method, 10)
+    central.writeUInt32LE(crc, 16)
+    central.writeUInt32LE(data.byteLength, 20)
+    central.writeUInt32LE(size, 24)
+    central.writeUInt16LE(name.byteLength, 28)
+    central.writeUInt32LE((mode << 16) >>> 0, 38)
+    central.writeUInt32LE(offset, 42)
+    directory.push(central, name)
+
+    offset += local.byteLength + name.byteLength + data.byteLength
+  }
+  const listing = Buffer.concat(directory)
+  const end = Buffer.alloc(22)
+  end.writeUInt32LE(0x06054b50, 0)
+  end.writeUInt16LE(archive.count ?? entries.length, 8)
+  end.writeUInt16LE(archive.count ?? entries.length, 10)
+  end.writeUInt32LE(listing.byteLength, 12)
+  end.writeUInt32LE(archive.offset ?? offset, 16)
+  return new Uint8Array(Buffer.concat([...records, listing, end]))
+}
+
+// The small simulator build the fake answers with: folders, a stored file, a deflated file and
+// an executable, all under Playground.app/ as in the real archive.
+export function fakePlaygroundIosEntries(): ZipFixtureEntry[] {
+  const text = (value: string) => new TextEncoder().encode(value)
+  return [
+    { name: 'Playground.app/', bytes: new Uint8Array(), mode: 0o40755 },
+    {
+      name: 'Playground.app/Info.plist',
+      bytes: text('a stand-in for the Info.plist\n'),
+      mode: 0o100644,
+    },
+    {
+      name: 'Playground.app/main.jsbundle',
+      bytes: text('a stand-in for the JavaScript bundle\n'.repeat(8)),
+      mode: 0o100644,
+      deflate: true,
+    },
+    { name: 'Playground.app/Frameworks/', bytes: new Uint8Array(), mode: 0o40755 },
+    {
+      name: 'Playground.app/Frameworks/hermesvm.framework/',
+      bytes: new Uint8Array(),
+      mode: 0o40755,
+    },
+    {
+      name: 'Playground.app/Frameworks/hermesvm.framework/hermesvm',
+      bytes: text('a stand-in for an executable\n'),
+      mode: 0o100755,
+    },
+  ]
+}
+
+// A few bytes stand in for the APK and a small zip for the simulator build, and the pin is the
+// real one with their sha256 and size.
 export function fakePlaygroundApp(
   answers: { android?: Uint8Array | Error; ios?: Uint8Array | Error } = {},
 ): FakePlaygroundApp {
   const bytes = {
     android: new TextEncoder().encode('a stand-in for the Playground APK\n'),
-    ios: new TextEncoder().encode('a stand-in for the Playground simulator build\n'),
+    ios: buildZip(fakePlaygroundIosEntries()),
   }
   const pin: PlaygroundAppPin = {
     ...PLAYGROUND_APP_PIN,

@@ -8,7 +8,7 @@ import {
   type PlaygroundAppPin,
 } from './playground-app-pin.js'
 
-export type PlaygroundRuntime = 'android'
+export type PlaygroundRuntime = 'android' | 'ios'
 
 export interface PlaygroundAppRequest {
   url: string
@@ -84,7 +84,7 @@ export interface PlaygroundAppsResult {
   failures: { runtime: PlaygroundRuntime; reason: string }[]
 }
 
-const RUNTIME_NAMES: Record<PlaygroundRuntime, string> = { android: 'Android' }
+const RUNTIME_NAMES: Record<PlaygroundRuntime, string> = { android: 'Android', ios: 'iOS' }
 
 function failureReason(pin: PlaygroundAppPin, runtime: PlaygroundRuntime, error: unknown): string {
   const message = (error instanceof Error ? error.message : String(error)).replace(/\.$/u, '')
