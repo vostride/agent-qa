@@ -150,6 +150,7 @@ export interface PlaygroundAppsInput {
   pin: PlaygroundAppPin
   fetch: PlaygroundAppFetch
   exists: (path: string) => boolean
+  removeFolder: (path: string) => void
   force: boolean
   signal: AbortSignal
   record: (result: InitFileResult) => void

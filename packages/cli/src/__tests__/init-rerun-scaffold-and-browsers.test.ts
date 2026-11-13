@@ -1,8 +1,9 @@
 // A re-run's browsers and scaffold rows: what pre-checks them, what running them does, and when
 // they are hidden. A re-run writes no Playground example, requests no Playground app and lists no
-// device.
+// device; init --force is a fresh init, so it requests the app again and replaces the one there.
 import {
   existsSync,
+  mkdirSync,
   readFileSync,
   readdirSync,
   realpathSync,
@@ -11,7 +12,7 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 
 import { getAgentQaVersion, type AndroidHere } from '@vostride/agent-qa-core'
@@ -22,9 +23,14 @@ import type { ChromiumResolver } from '../commands/browser-resolver.js'
 import type { InitDocument } from '../commands/init-document.js'
 import { EXAMPLE_PATHS } from '../commands/init-next-steps.js'
 import { SETUP_MENU_QUESTION } from '../commands/init-rerun.js'
-import { PLAYGROUND_APP_PATHS } from '../commands/playground-app-pin.js'
+import { PLAYGROUND_APP_PATHS, playgroundAppUrl } from '../commands/playground-app-pin.js'
 import type { FakeInitUiEntry } from './fake-init-ui.js'
-import { cleanupTempProjects, fakeRunner, mobileInitFakes } from './project-fixtures.js'
+import {
+  cleanupTempProjects,
+  fakePlaygroundApp,
+  fakeRunner,
+  mobileInitFakes,
+} from './project-fixtures.js'
 import {
   installAgentQaFixture,
   initializedProject,
@@ -561,6 +567,42 @@ function registryText(root: string): string {
   return text.slice(registry.range[0], registry.range[2])
 }
 
+// Every file under a folder, by its path inside it, with its bytes.
+function filesUnder(folder: string): Record<string, string> {
+  return Object.fromEntries(
+    Object.entries(snapshot(folder)).map(([path, bytes]) => [relative(folder, path), bytes]),
+  )
+}
+
+// A forced init of an Android and iOS project, with nothing installed and no coding agent.
+const FORCED_MOBILE_INIT = [
+  '--force',
+  '--yes',
+  '--pm',
+  'none',
+  '--no-browsers',
+  '--agents',
+  'none',
+  '--llm',
+  'gemini',
+  '--platform',
+  'android,ios',
+  '--json',
+]
+
+// A fresh Android and iOS project, then a framework of an older build put inside Playground.app
+// and the APK's bytes changed by hand.
+async function projectWithAnOlderApp(
+  label: string,
+): Promise<{ project: InitializedProject; old: string }> {
+  const project = await initializedProject(label, { platform: 'android,ios' })
+  const old = join(project.root, PLAYGROUND_APP_PATHS.ios, 'Frameworks', 'old.framework', 'old')
+  mkdirSync(dirname(old), { recursive: true })
+  writeFileSync(old, 'a framework the new build does not have\n')
+  writeFileSync(join(project.root, PLAYGROUND_APP_PATHS.android), 'an older APK\n')
+  return { project, old }
+}
+
 describe('the Playground app and the devices on a project that already has a config', () => {
   it('a re-run with --setup all requests no app, has no playground-app step and leaves the app as it was', async () => {
     const project = await initializedProject('rerun-playground-app', { platform: 'android' })
@@ -615,5 +657,35 @@ describe('the Playground app and the devices on a project that already has a con
     expect(fakes.listed).toEqual([])
     expect(before).toContain('model: Pixel 10 Pro')
     expect(registryText(project.root)).toBe(before)
+  })
+
+  it('init --force requests both apps again, replaces the APK and leaves Playground.app holding what a fresh init writes and nothing else', async () => {
+    const { project, old } = await projectWithAnOlderApp('force-playground-app')
+    const fresh = await initializedProject('force-playground-app-fresh', {
+      platform: 'android,ios',
+    })
+    const fakes = mobileInitFakes()
+
+    const result = await rerun(project, FORCED_MOBILE_INIT, { plain: true, hooks: fakes.hooks })
+
+    expect(result.exit, result.stderr).toBe(0)
+    const pin = fakes.hooks.playgroundApp.pin
+    expect(fakes.requests.map((request) => request.url)).toEqual([
+      playgroundAppUrl(pin, 'android'),
+      playgroundAppUrl(pin, 'ios'),
+    ])
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(stepOf(doc, 'playground-app')).toEqual({ name: 'playground-app', outcome: 'done' })
+    expect(existsSync(old)).toBe(false)
+    expect(readFileSync(join(project.root, PLAYGROUND_APP_PATHS.android))).toEqual(
+      Buffer.from(fakePlaygroundApp().bytes.android),
+    )
+    const freshApp = filesUnder(join(fresh.root, PLAYGROUND_APP_PATHS.ios))
+    expect(freshApp).not.toEqual({})
+    expect(filesUnder(join(project.root, PLAYGROUND_APP_PATHS.ios))).toEqual(freshApp)
+    expect(doc.files.filter((file) => file.step === 'playground-app')).toEqual([
+      { path: PLAYGROUND_APP_PATHS.android, outcome: 'updated', step: 'playground-app' },
+      { path: PLAYGROUND_APP_PATHS.ios, outcome: 'updated', step: 'playground-app' },
+    ])
   })
 })
