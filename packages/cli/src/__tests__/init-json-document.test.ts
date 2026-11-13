@@ -2,7 +2,12 @@ import { execFileSync } from 'node:child_process'
 import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 
-import { getAgentQaVersion, getAuthPath } from '@vostride/agent-qa-core'
+import {
+  getAgentQaVersion,
+  getAuthPath,
+  type AndroidHere,
+  type IOSHere,
+} from '@vostride/agent-qa-core'
 import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
@@ -12,11 +17,15 @@ import { createInitCommand } from '../commands/init.js'
 import type { InitDocument } from '../commands/init-document.js'
 import { initNextSteps } from '../commands/init-next-steps.js'
 import type { LatestVersionAsk } from '../commands/latest-version-ask.js'
+import type { PlaygroundAppSource } from '../commands/playground-app.js'
+import { PLAYGROUND_APP_PATHS } from '../commands/playground-app-pin.js'
 import { defaultProjectIo, type ProjectIo, type RunResult } from '../commands/project-host.js'
+import type { DevicesHereLister } from '../commands/run.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import {
   cleanupTempProjects,
   fakeRunner,
+  mobileInitFakes,
   skillFolderFiles,
   tempProject,
   writeInstalledPackage,
@@ -26,6 +35,32 @@ import {
 const VERSION = getAgentQaVersion().trim()
 const NODE = '/fake/node'
 const OK: RunResult = { code: 0, signal: null, output: '' }
+const PIXEL: AndroidHere = {
+  attached: [],
+  avds: [{ name: 'Pixel_10_Pro', profile: 'pixel_10_pro', displayName: 'Pixel 10 Pro', os: '17' }],
+}
+const IPHONE: IOSHere = {
+  simulators: [
+    {
+      name: 'iPhone 18 Pro',
+      udid: '0A6B5E2C-4D1F-4A9E-9C3B-2F8E7D6A5B4C',
+      os: '27.0',
+      state: 'Booted',
+      available: true,
+    },
+  ],
+}
+const PLAYGROUND_EXAMPLES = [
+  'tests/examples/playground-android-open-komazon.yaml',
+  'tests/examples/playground-android-cart-total.yaml',
+  'tests/examples/playground-android-cart-total-bug.yaml',
+  'tests/examples/playground-ios-open-komazon.yaml',
+  'tests/examples/playground-ios-cart-total.yaml',
+  'tests/examples/playground-ios-cart-total-bug.yaml',
+]
+const RUN_WEB_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total.yaml'
+const RUN_ANDROID_STARTER = 'npx agent-qa run tests/examples/playground-android-open-komazon.yaml'
+const RUN_IOS_STARTER = 'npx agent-qa run tests/examples/playground-ios-open-komazon.yaml'
 
 const silentAnalytics: typeof composeAnalyticsHost = async () =>
   composeAnalyticsHost({
@@ -57,6 +92,8 @@ async function init(
     composeAnalytics?: typeof composeAnalyticsHost
     io?: ProjectIo
     latestVersion?: LatestVersionAsk
+    listDevicesHere?: DevicesHereLister
+    playgroundApp?: PlaygroundAppSource
   } = {},
 ): Promise<InitExit> {
   stdout.mockClear()
@@ -78,6 +115,9 @@ async function init(
         composeAnalytics: hooks.composeAnalytics ?? silentAnalytics,
         chromium: () => ({ found: true, path: '/fake/chromium' }),
         latestVersion: hooks.latestVersion ?? (async () => ({ source: 'none' })),
+        ...mobileInitFakes().hooks,
+        ...(hooks.listDevicesHere === undefined ? {} : { listDevicesHere: hooks.listDevicesHere }),
+        ...(hooks.playgroundApp === undefined ? {} : { playgroundApp: hooks.playgroundApp }),
       }),
     )
   const handler: string[] = []
@@ -675,6 +715,98 @@ describe('init --json prints one document on stdout', () => {
 
     expect(result.exit).toBe(130)
     expect(result.stdout).toBe('')
+  })
+})
+
+// A fresh init on web, Android and iOS, on a machine with one emulator and one simulator.
+async function mobileInit(
+  label: string,
+  fakes = mobileInitFakes({ android: PIXEL, ios: IPHONE }),
+) {
+  const { root, home } = tempProject(label)
+  const result = await init(
+    root,
+    home,
+    ['--json', '--platform', 'web,android,ios', '--pm', 'none'],
+    fakeRunner(),
+    fakes.hooks,
+  )
+  return { result, doc: documentOf(result) }
+}
+
+describe("a mobile init's --json document", () => {
+  it("has the top-level keys a web init's document has", async () => {
+    const web = tempProject('json-web-keys')
+    const webDoc = documentOf(
+      await init(web.root, web.home, ['--json', '--platform', 'web', '--pm', 'none']),
+    )
+
+    const { doc } = await mobileInit('json-mobile-keys')
+
+    expect(Object.keys(doc).sort()).toEqual(Object.keys(webDoc).sort())
+  })
+
+  it('records the playground-app step as done', async () => {
+    const { result, doc } = await mobileInit('json-mobile-step')
+
+    expect(result.exit).toBeUndefined()
+    expect(doc.steps.find((step) => step.name === 'playground-app')).toEqual({
+      name: 'playground-app',
+      outcome: 'done',
+    })
+  })
+
+  it('lists the config, the mobile examples and each app once under the playground-app step, and nothing inside Playground.app', async () => {
+    const { doc } = await mobileInit('json-mobile-files')
+
+    expect(doc.files).toContainEqual({
+      path: 'agent-qa.config.yaml',
+      outcome: 'created',
+      step: 'scaffold',
+    })
+    for (const path of PLAYGROUND_EXAMPLES) {
+      expect(doc.files).toContainEqual({ path, outcome: 'created', step: 'scaffold' })
+    }
+    for (const path of [PLAYGROUND_APP_PATHS.android, PLAYGROUND_APP_PATHS.ios]) {
+      expect(doc.files.filter((file) => file.path === path)).toEqual([
+        { path, outcome: 'created', step: 'playground-app' },
+      ])
+    }
+    expect(
+      doc.files.filter((file) => file.path.startsWith(`${PLAYGROUND_APP_PATHS.ios}/`)),
+    ).toEqual([])
+  })
+
+  it('lists the web, Android and iOS starters in that order, each with its description', async () => {
+    const { doc } = await mobileInit('json-mobile-next-steps')
+    const starters = [RUN_WEB_STARTER, RUN_ANDROID_STARTER, RUN_IOS_STARTER]
+
+    expect(doc.nextSteps.filter((step) => starters.includes(step.command))).toEqual([
+      { command: RUN_WEB_STARTER, description: 'Start with the two-step test, which passes:' },
+      {
+        command: RUN_ANDROID_STARTER,
+        description: 'Run the Android starter on the Playground app:',
+      },
+      { command: RUN_IOS_STARTER, description: 'Run the iOS starter on the Playground app:' },
+    ])
+  })
+
+  it("a failed Android download is a failed document with exit code 3, a record with no command and only iOS's starter", async () => {
+    const fakes = mobileInitFakes(
+      { android: PIXEL, ios: IPHONE },
+      { android: new TextEncoder().encode('another build\n') },
+    )
+
+    const { result, doc } = await mobileInit('json-mobile-failed', fakes)
+
+    expect(result.exit).toBe(3)
+    expect(doc).toMatchObject({ outcome: 'failed', exitCode: 3 })
+    const step = doc.steps.find((record) => record.name === 'playground-app')
+    expect(step).toEqual({ name: 'playground-app', outcome: 'failed', reason: expect.any(String) })
+    expect(step).not.toHaveProperty('command')
+    const commands = doc.nextSteps.map((next) => next.command)
+    expect(commands).toContain(RUN_IOS_STARTER)
+    expect(commands).not.toContain(RUN_ANDROID_STARTER)
   })
 })
 
