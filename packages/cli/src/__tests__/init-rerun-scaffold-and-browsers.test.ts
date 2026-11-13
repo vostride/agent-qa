@@ -5,6 +5,7 @@ import {
   readFileSync,
   readdirSync,
   realpathSync,
+  rmSync,
   statSync,
   unlinkSync,
   writeFileSync,
@@ -18,6 +19,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 
 import type { ChromiumResolver } from '../commands/browser-resolver.js'
 import type { InitDocument } from '../commands/init-document.js'
+import { EXAMPLE_PATHS } from '../commands/init-next-steps.js'
 import { SETUP_MENU_QUESTION } from '../commands/init-rerun.js'
 import type { FakeInitUiEntry } from './fake-init-ui.js'
 import { cleanupTempProjects, fakeRunner } from './project-fixtures.js'
@@ -485,4 +487,61 @@ describe("a re-run's scaffold row", () => {
     expect(labelOf(result.entries, 'scaffold')).toBe('scaffold   nothing missing')
     expect(menuOf(result.entries)?.initialValues ?? 'no menu').not.toContain('scaffold')
   })
+})
+
+// The shape of a mobile project an older init made: a bare target, no examples and no app.
+function asAnOlderInitMadeIt(project: InitializedProject): void {
+  editConfig(project.root, (doc) => {
+    doc.deleteIn(['registry', 'targets', 'playground-android'])
+    doc.setIn(['registry', 'targets', 'example-android'], { platform: 'android' })
+  })
+  rmSync(join(project.root, 'tests', 'examples'), { recursive: true })
+  rmSync(join(project.root, 'app-bundles'), { recursive: true, force: true })
+}
+
+describe('a re-run and the Playground examples', () => {
+  it.each(['scaffold', 'all'])(
+    '--setup %s leaves a deleted Playground example deleted and the other examples as they were',
+    async (rows) => {
+      const project = await initializedProject(`rerun-playground-deleted-${rows}`, {
+        platform: 'android',
+      })
+      const examples = join(project.root, 'tests', 'examples')
+      unlinkSync(join(project.root, EXAMPLE_PATHS.androidStarter))
+      const before = snapshot(examples)
+
+      const result = await rerun(project, ['--setup', rows, '--json'], { plain: true })
+
+      expect(result.exit, result.stderr).toBe(0)
+      expect(existsSync(join(project.root, EXAMPLE_PATHS.androidStarter))).toBe(false)
+      expect(snapshot(examples)).toEqual(before)
+      const doc = JSON.parse(result.stdout) as InitDocument
+      expect(setupRow(doc, 'scaffold')).toMatchObject({
+        state: 'nothing missing',
+        prechecked: false,
+      })
+      expect(doc.files.filter((file) => file.step === 'scaffold')).toEqual([])
+    },
+  )
+
+  it.each(['scaffold', 'all'])(
+    '--setup %s writes no examples folder into a mobile project an older init made',
+    async (rows) => {
+      const project = await initializedProject(`rerun-playground-older-${rows}`, {
+        platform: 'android',
+      })
+      asAnOlderInitMadeIt(project)
+
+      const result = await rerun(project, ['--setup', rows, '--json'], { plain: true })
+
+      expect(result.exit, result.stderr).toBe(0)
+      expect(existsSync(join(project.root, 'tests', 'examples'))).toBe(false)
+      const doc = JSON.parse(result.stdout) as InitDocument
+      expect(setupRow(doc, 'scaffold')).toMatchObject({
+        state: 'nothing missing',
+        prechecked: false,
+      })
+      expect(doc.files.filter((file) => file.step === 'scaffold')).toEqual([])
+    },
+  )
 })
