@@ -289,10 +289,36 @@ function writtenConfig(root: string): {
   return parseYaml(readFileSync(join(root, 'agent-qa.config.yaml'), 'utf8'))
 }
 
+function writtenTest(root: string, path: string): { target?: unknown; steps?: unknown } {
+  return parseYaml(readFileSync(join(root, path), 'utf8'))
+}
+
+function playgroundFiles(root: string): string[] {
+  return readdirSync(join(root, 'tests/examples')).filter((name) => name.startsWith('playground-'))
+}
+
 const CSV_LINE = '--platform takes web, android and ios, separated by commas.'
+const ANDROID_STARTER = 'tests/examples/playground-android-open-komazon.yaml'
+const IOS_STARTER = 'tests/examples/playground-ios-open-komazon.yaml'
+const PLAYGROUND_EXAMPLES = {
+  'playground-android': [
+    ANDROID_STARTER,
+    'tests/examples/playground-android-cart-total.yaml',
+    'tests/examples/playground-android-cart-total-bug.yaml',
+  ],
+  'playground-ios': [
+    IOS_STARTER,
+    'tests/examples/playground-ios-cart-total.yaml',
+    'tests/examples/playground-ios-cart-total-bug.yaml',
+  ],
+}
+const PLAYGROUND_STARTER_STEPS = [
+  'Open Komazon from the home screen.',
+  'Verify the "Search products" field is shown.',
+]
 
 describe('--platform takes a CSV of web, android and ios', () => {
-  it('web writes a web scaffold and no use.mobile', async () => {
+  it('web writes a web scaffold, no use.mobile and no Playground app test', async () => {
     const { root, error } = await initWithFlags(['--platform', 'web'])
 
     expect(error).toBeUndefined()
@@ -302,9 +328,10 @@ describe('--platform takes a CSV of web, android and ios', () => {
     ])
     expect(writtenConfig(root).use?.mobile).toBeUndefined()
     expect(existsSync(join(root, 'tests/examples/komazon-checkout.yaml'))).toBe(true)
+    expect(playgroundFiles(root)).toEqual([])
   })
 
-  it('web,android writes the web examples and an android target', async () => {
+  it('web,android writes the web examples, an android target and the Android Playground app tests', async () => {
     const { root, error } = await initWithFlags(['--platform', 'web,android'])
 
     expect(error).toBeUndefined()
@@ -315,9 +342,13 @@ describe('--platform takes a CSV of web, android and ios', () => {
     ])
     expect(writtenConfig(root).use?.mobile).toBeDefined()
     expect(existsSync(join(root, 'tests/examples/komazon-checkout.yaml'))).toBe(true)
+    for (const path of PLAYGROUND_EXAMPLES['playground-android']) {
+      expect(existsSync(join(root, path)), `${path} is written`).toBe(true)
+    }
+    expect(playgroundFiles(root).filter((name) => name.startsWith('playground-ios-'))).toEqual([])
   })
 
-  it('android,ios writes no web examples and a use.mobile block', async () => {
+  it('android,ios writes three Playground app tests on each runtime target, a use.mobile block and no web example or suite', async () => {
     const { root, error } = await initWithFlags(['--platform', 'android,ios'])
 
     expect(error).toBeUndefined()
@@ -326,7 +357,17 @@ describe('--platform takes a CSV of web, android and ios', () => {
       'playground-ios',
     ])
     expect(writtenConfig(root).use?.mobile).toBeDefined()
-    expect(existsSync(join(root, 'tests/examples'))).toBe(false)
+    for (const [target, paths] of Object.entries(PLAYGROUND_EXAMPLES)) {
+      for (const path of paths) {
+        expect(existsSync(join(root, path)), `${path} is written`).toBe(true)
+        expect(writtenTest(root, path).target, path).toBe(target)
+      }
+    }
+    for (const starter of [ANDROID_STARTER, IOS_STARTER]) {
+      expect(writtenTest(root, starter).steps, starter).toEqual(PLAYGROUND_STARTER_STEPS)
+    }
+    expect(existsSync(join(root, 'tests/examples/komazon-checkout.yaml'))).toBe(false)
+    expect(existsSync(join(root, 'suites'))).toBe(false)
   })
 
   it('ios,web writes the same config as web,ios', async () => {

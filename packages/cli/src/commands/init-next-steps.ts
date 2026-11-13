@@ -40,6 +40,8 @@ export const EXAMPLE_PATHS = {
   starter: 'tests/examples/komazon-cart-total.yaml',
   suite: 'suites/examples.suite.yaml',
   bug: 'tests/examples/komazon-cart-total-bug.yaml',
+  androidStarter: 'tests/examples/playground-android-open-komazon.yaml',
+  iosStarter: 'tests/examples/playground-ios-open-komazon.yaml',
 } as const
 
 export const SUBSCRIPTION_PLUGIN_COMMAND =

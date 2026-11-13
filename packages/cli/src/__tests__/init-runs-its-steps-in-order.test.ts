@@ -26,6 +26,7 @@ const PLAN: readonly InitStepName[] = ['package-json', 'scaffold', 'install']
 const CHROMIUM_COMMAND = 'npx agent-qa install-browsers --chromium'
 const WEB_SCAFFOLD_LINE =
   /^✓ Scaffold: config, 2 starter tests, a suite of 3 and a hook test \((\d+) files\)$/mu
+const MOBILE_SCAFFOLD_LINE = /^Scaffold: config and 3 Playground app tests \((\d+) files\)$/u
 
 const silentAnalytics: typeof composeAnalyticsHost = async () =>
   composeAnalyticsHost({
@@ -129,14 +130,17 @@ describe('a fresh init draws one line per step', () => {
     }
   })
 
-  it('a mobile scaffold names only the config', async () => {
+  it('a mobile scaffold line names the config and the Playground app tests', async () => {
     const { root, home } = tempProject('steps-mobile')
     const ui = fakeInitUi()
 
     const args = ['--platform', 'android', '--llm', 'gemini', '--pm', 'none']
     await init(root, home, { ui, args })
 
-    expect(ui.entries).toContainEqual({ kind: 'done', text: 'Scaffold: config (8 files)' })
+    expect(ui.entries).toContainEqual({
+      kind: 'done',
+      text: expect.stringMatching(MOBILE_SCAFFOLD_LINE),
+    })
   })
 
   it('draws its titled steps through the seam and lists no files', async () => {
