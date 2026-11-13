@@ -208,6 +208,7 @@ vi.mock('webdriverio', () => ({ remote: vi.fn() }))
 
 import { ExplicitExtractor } from '@vostride/agent-qa-runner'
 import { AndroidPlatformAdapter } from '../adapter.js'
+import { fakeAppiumStart } from './fixtures/fake-appium-start.js'
 
 let adapter: AndroidPlatformAdapter
 
@@ -216,7 +217,7 @@ beforeEach(async () => {
   observerScripts = []
   const { remote } = await import('webdriverio')
   vi.mocked(remote).mockResolvedValue(createMockDriver() as any)
-  adapter = new AndroidPlatformAdapter()
+  adapter = new AndroidPlatformAdapter({ startAppium: fakeAppiumStart().start })
   await adapter.setup({ platform: 'android', appPackage: 'app.shop' } as never)
 })
 

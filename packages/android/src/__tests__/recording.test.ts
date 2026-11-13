@@ -7,6 +7,7 @@ import type { PlatformAdapter, RecordingCapability } from '@vostride/agent-qa-ru
 import { createRunEventBus, createMemberEventSink, runMemberTest } from '@vostride/agent-qa-runner'
 import { remote } from 'webdriverio'
 import { AndroidPlatformAdapter } from '../adapter.js'
+import { fakeAppiumStart } from './fixtures/fake-appium-start.js'
 
 vi.mock('webdriverio', () => ({ remote: vi.fn() }))
 
@@ -22,7 +23,7 @@ beforeEach(async () => {
   vi.resetAllMocks()
   vi.mocked(remote).mockResolvedValue(driver as unknown as WebdriverIO.Browser)
   videoDir = await mkdtemp(join(tmpdir(), 'agent-qa-android-recording-'))
-  adapter = new AndroidPlatformAdapter()
+  adapter = new AndroidPlatformAdapter({ startAppium: fakeAppiumStart().start })
   await adapter.setup({
     platform: 'android',
     recording: { enabled: true, videoDir, videoSize: { width: 1080, height: 1920 } },
