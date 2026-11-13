@@ -2,12 +2,16 @@ import { describe, expect, it } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 import { AgentQaConfigSchema } from '@vostride/agent-qa-core'
 import { buildDefaultConfig } from '../commands/init.js'
+import { PLAYGROUND_APP_PATHS } from '../commands/playground-app-pin.js'
 import {
   parseInitPlatformList,
+  PLAYGROUND_TARGETS,
   renderScaffoldConfigYaml,
   SCAFFOLD_CONFIG_FILE,
   type InitLLMConfig,
   type InitPlatformInput,
+  type ScaffoldDevice,
+  type ScaffoldDevices,
 } from '../commands/scaffold-content.js'
 import { createScaffoldContentPort } from '../composition/local-agent-host.js'
 
@@ -32,6 +36,15 @@ const CLAUDE_SUBSCRIPTION: InitLLMConfig = {
 const GEMINI: InitLLMConfig = { name: 'gemini', provider: 'gemini', model: 'gemini-2.5-pro' }
 const SUBSCRIPTION_PLUGIN = { name: 'subscription', package: '@vostride/agent-qa-subscription-auth' }
 const PLATFORMS = ['web', 'android', 'ios', 'web,android', 'web,ios'] as const
+const PIXEL: ScaffoldDevice = {
+  name: 'android-emulator-pixel-10-pro-17',
+  profile: { platform: 'android', model: 'Pixel 10 Pro', os: '17' },
+}
+const IPHONE: ScaffoldDevice = {
+  name: 'ios-simulator-iphone-18-pro-27.0',
+  profile: { platform: 'ios', model: 'iPhone 18 Pro', os: '27.0' },
+}
+const BOTH_DEVICES: ScaffoldDevices = { android: PIXEL, ios: IPHONE }
 
 function platformFlag(value: string): InitPlatformInput {
   const parsed = parseInitPlatformList(value)
@@ -48,8 +61,14 @@ function strictParse(doc: unknown) {
 }
 
 // What init writes to agent-qa.config.yaml, read back the way agent-qa reads it.
-function writtenConfig(platform: string, llms: InitLLMConfig[] = [CLAUDE_SUBSCRIPTION]) {
-  const text = renderScaffoldConfigYaml(buildDefaultConfig(platformFlag(platform), llms))
+function writtenConfig(
+  platform: string,
+  llms: InitLLMConfig[] = [CLAUDE_SUBSCRIPTION],
+  devices?: ScaffoldDevices,
+) {
+  const text = renderScaffoldConfigYaml(
+    buildDefaultConfig(platformFlag(platform), llms, undefined, undefined, devices),
+  )
   const doc = parseYaml(text) as Record<string, any>
   return { text, doc, parsed: strictParse(doc) }
 }
@@ -197,5 +216,99 @@ describe('the config init writes', () => {
     const scaffold = files.find((file) => file.path === SCAFFOLD_CONFIG_FILE)
     expect(scaffold, 'the scaffold writes a config').toBeDefined()
     expect(Buffer.from(scaffold!.bytes).toString('utf8')).toBe(initText)
+  })
+})
+
+describe('the config init writes with the devices it found', () => {
+  it('with a device for each runtime, lists both first in the registry and binds each Playground target to its own', () => {
+    const { doc, parsed } = writtenConfig('android,ios', [CLAUDE_SUBSCRIPTION], BOTH_DEVICES)
+
+    expect(parsed.registry?.devices).toEqual({
+      [PIXEL.name]: PIXEL.profile,
+      [IPHONE.name]: IPHONE.profile,
+    })
+    expect(Object.keys(doc.registry)).toEqual(['devices', 'llms', 'targets'])
+    expect(parsed.registry?.targets?.[PLAYGROUND_TARGETS.android]?.device).toBe(PIXEL.name)
+    expect(parsed.registry?.targets?.[PLAYGROUND_TARGETS.ios]?.device).toBe(IPHONE.name)
+    expect(Object.keys(doc.registry.targets[PLAYGROUND_TARGETS.android])).toEqual([
+      'platform',
+      'appPackage',
+      'appActivity',
+      'device',
+      'app',
+    ])
+    expect(Object.keys(doc.registry.targets[PLAYGROUND_TARGETS.ios])).toEqual([
+      'platform',
+      'bundleId',
+      'device',
+      'app',
+    ])
+  })
+
+  it('writes each os as quoted text and a device name with a dot as a plain key', () => {
+    const { text, doc } = writtenConfig('android,ios', [CLAUDE_SUBSCRIPTION], BOTH_DEVICES)
+
+    expect(text).toContain('\n      os: "17"\n')
+    expect(text).toContain('\n      os: "27.0"\n')
+    expect(text).toContain(`\n    ${IPHONE.name}:\n`)
+    expect(doc.registry.devices[PIXEL.name].os).toBe('17')
+    expect(doc.registry.devices[IPHONE.name].os).toBe('27.0')
+  })
+
+  it('with a device for Android only, binds the Android target and leaves the iOS target its app and no device', () => {
+    const { doc, parsed } = writtenConfig('android,ios', [CLAUDE_SUBSCRIPTION], { android: PIXEL })
+
+    expect(parsed.registry?.devices).toEqual({ [PIXEL.name]: PIXEL.profile })
+    expect(doc.registry.targets[PLAYGROUND_TARGETS.android].device).toBe(PIXEL.name)
+    expect(doc.registry.targets[PLAYGROUND_TARGETS.ios]).not.toHaveProperty('device')
+    expect(doc.registry.targets[PLAYGROUND_TARGETS.ios].app).toEqual({
+      path: PLAYGROUND_APP_PATHS.ios,
+    })
+  })
+
+  it('with no device, writes no devices key and binds no target to a device', () => {
+    for (const devices of [undefined, {}]) {
+      const { doc } = writtenConfig('android,ios', [CLAUDE_SUBSCRIPTION], devices)
+
+      expect(doc.registry).not.toHaveProperty('devices')
+      expect(doc.registry.targets[PLAYGROUND_TARGETS.android]).not.toHaveProperty('device')
+      expect(doc.registry.targets[PLAYGROUND_TARGETS.ios]).not.toHaveProperty('device')
+    }
+  })
+
+  it('writes no device for a runtime that was not chosen', () => {
+    const android = writtenConfig('android', [CLAUDE_SUBSCRIPTION], BOTH_DEVICES)
+    expect(android.parsed.registry?.devices).toEqual({ [PIXEL.name]: PIXEL.profile })
+    expect(android.text).not.toContain(IPHONE.name)
+
+    const web = writtenConfig('web', [CLAUDE_SUBSCRIPTION], BOTH_DEVICES)
+    expect(web.doc.registry).not.toHaveProperty('devices')
+  })
+
+  it('writes a model that holds YAML syntax so that it reads back unchanged', () => {
+    const model = 'Pixel 9: "Fold" #2'
+    const fold: ScaffoldDevice = {
+      name: 'android-emulator-pixel-9-fold-2-15',
+      profile: { platform: 'android', model, os: '15' },
+    }
+    const { doc, parsed } = writtenConfig('android', [CLAUDE_SUBSCRIPTION], { android: fold })
+
+    expect(doc.registry.devices?.[fold.name]).toEqual(fold.profile)
+    expect(parsed.registry?.devices?.[fold.name]?.model).toBe(model)
+  })
+
+  it('writes a device with an id and no os as its platform, model and id, in that order', () => {
+    const tied: ScaffoldDevice = {
+      name: 'ios-simulator-iphone-18-pro',
+      profile: {
+        platform: 'ios',
+        id: '6F1C2B3A-9D8E-4F70-A1B2-C3D4E5F60718',
+        model: 'iPhone 18 Pro',
+      },
+    }
+    const { doc, parsed } = writtenConfig('ios', [CLAUDE_SUBSCRIPTION], { ios: tied })
+
+    expect(parsed.registry?.devices).toEqual({ [tied.name]: tied.profile })
+    expect(Object.keys(doc.registry.devices[tied.name])).toEqual(['platform', 'model', 'id'])
   })
 })

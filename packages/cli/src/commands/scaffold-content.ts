@@ -102,6 +102,18 @@ export const PLAYGROUND_TARGETS = {
   ios: 'playground-ios',
 } as const
 
+export interface ScaffoldDevice {
+  // The key under registry.devices.
+  readonly name: string
+  readonly profile: {
+    readonly platform: MobileRuntime
+    readonly model: string
+    readonly os?: string
+    readonly id?: string
+  }
+}
+export type ScaffoldDevices = Partial<Record<MobileRuntime, ScaffoldDevice>>
+
 // `targets` is an override: init passes example targets, the scaffold one derived target.
 export function buildTargets(
   platform: InitPlatformInput,
