@@ -159,6 +159,7 @@ function createMockDriver(xml: string) {
 vi.mock('webdriverio', () => ({ remote: vi.fn() }))
 
 import { IOSPlatformAdapter } from '../adapter.js'
+import { fakeAppiumStart } from './fixtures/fake-appium-start.js'
 
 type ExecAction = Parameters<IOSPlatformAdapter['execute']>[0]
 
@@ -176,7 +177,7 @@ describe('IOSPlatformAdapter text input', () => {
     mockDriver = createMockDriver(xml)
     const { remote } = await import('webdriverio')
     vi.mocked(remote).mockResolvedValue(mockDriver as any)
-    adapter = new IOSPlatformAdapter()
+    adapter = new IOSPlatformAdapter({ startAppium: fakeAppiumStart().start })
     await adapter.setup({ platform: 'ios' })
   }
 
