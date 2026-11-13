@@ -11,6 +11,7 @@ export type InitStepName =
   | 'scaffold'
   | 'install'
   | 'chromium'
+  | 'playground-app'
   | 'skills'
   | 'mcp'
   | 'agents-md'
@@ -56,9 +57,19 @@ export const INTERRUPTED = 'interrupted'
 // The reason a step after a refusal or a bug carries: init stopped before it.
 export const NOT_RUN = 'not run'
 
-// The steps a fresh init plans, in the order it runs them.
-export function freshInitPlan(): InitStepName[] {
-  return ['package-json', 'scaffold', 'install', 'chromium', 'skills', 'validate', 'dashboard']
+// The steps a fresh init plans, in the order it runs them. Only a mobile init downloads the
+// Playground app.
+export function freshInitPlan({ mobile = false }: { mobile?: boolean } = {}): InitStepName[] {
+  return [
+    'package-json',
+    'scaffold',
+    'install',
+    'chromium',
+    ...(mobile ? (['playground-app'] as const) : []),
+    'skills',
+    'validate',
+    'dashboard',
+  ]
 }
 
 // A re-run plans the model its flags set, then the menu's shown rows in menu order, then validate
