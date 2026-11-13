@@ -775,7 +775,7 @@ describe('init command', () => {
 
     const hooksCall = findWriteCallEndingWith('hooks.yaml')
     expect(hooksCall?.[1]).toBe('hooks: []\n')
-    expect(consoleOutput()).not.toContain('tests/examples/')
+    expect(consoleOutput()).not.toContain('tests/examples/komazon-')
     expect(consoleOutput()).not.toContain('suites/examples.suite.yaml')
   })
 

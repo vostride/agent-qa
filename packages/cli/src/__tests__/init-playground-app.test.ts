@@ -1,7 +1,8 @@
 // A fresh init that chose Android or iOS downloads the pinned Playground app in a step of its own,
 // here from a fake source. A download that fails is a failed step with its reason masked, and init
 // carries on to exit 3; a Ctrl-C aborts the download and ends init interrupted; and an app-bundles
-// that is not a plain folder is refused before init writes anything.
+// that is not a plain folder is refused before init writes anything. The next steps name the
+// starter of each runtime that has a device and whose app arrived.
 import {
   existsSync,
   mkdirSync,
@@ -12,6 +13,7 @@ import {
 } from 'node:fs'
 import { dirname, join } from 'node:path'
 
+import type { AndroidHere, IOSHere } from '@vostride/agent-qa-core'
 import { afterEach, describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
@@ -42,6 +44,24 @@ const PLAYGROUND_EXAMPLES = [
   'tests/examples/playground-ios-cart-total-bug.yaml',
 ]
 const NOT_WRITTEN = 'package.json was not written'
+const PIXEL: AndroidHere = {
+  attached: [],
+  avds: [{ name: 'Pixel_10_Pro', profile: 'pixel_10_pro', displayName: 'Pixel 10 Pro', os: '17' }],
+}
+const IPHONE: IOSHere = {
+  simulators: [
+    {
+      name: 'iPhone 18 Pro',
+      udid: '0A6B5E2C-4D1F-4A9E-9C3B-2F8E7D6A5B4C',
+      os: '27.0',
+      state: 'Booted',
+      available: true,
+    },
+  ],
+}
+const RUN_WEB_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total.yaml'
+const RUN_ANDROID_STARTER = 'npx agent-qa run tests/examples/playground-android-open-komazon.yaml'
+const RUN_IOS_STARTER = 'npx agent-qa run tests/examples/playground-ios-open-komazon.yaml'
 
 interface WrittenConfig {
   registry: { targets: Record<string, { app?: { path?: string } }> }
@@ -111,6 +131,10 @@ function configOf(root: string): WrittenConfig {
 
 function sigintListeners(): ((...args: unknown[]) => void)[] {
   return process.listeners('SIGINT') as ((...args: unknown[]) => void)[]
+}
+
+function nextCommandsOf(doc: InitDocument): string[] {
+  return doc.nextSteps.map((step) => step.command)
 }
 
 describe('a fresh mobile init downloads the Playground app', () => {
@@ -370,5 +394,51 @@ describe('a fresh mobile init downloads the Playground app', () => {
     expect(step?.reason).not.toContain(secret)
     expect(result.entries).toContainEqual({ kind: 'failed', text: step?.reason })
     expect(result.stdout).not.toContain(secret)
+  })
+})
+
+describe('the next steps after a fresh mobile init', () => {
+  it('name the web starter, then the Android starter, then the iOS starter, and only files in the project', async () => {
+    const fakes = mobileInitFakes({ android: PIXEL, ios: IPHONE })
+    const { root, result, doc } = await freshInit('web,android,ios', { fakes })
+
+    expect(result.exit).toBe(0)
+    const commands = nextCommandsOf(doc)
+    const starters = [RUN_WEB_STARTER, RUN_ANDROID_STARTER, RUN_IOS_STARTER]
+    expect(commands.filter((command) => starters.includes(command))).toEqual(starters)
+    const named = commands.flatMap(
+      (command) => command.match(/\b(?:tests|suites|scripts)\/[\w./-]+/gu) ?? [],
+    )
+    for (const path of named) {
+      expect(existsSync(join(root, path)), `the next steps name ${path}`).toBe(true)
+    }
+  })
+
+  it('name no starter for a runtime with no device', async () => {
+    const fakes = mobileInitFakes({ android: PIXEL })
+    const { result, doc } = await freshInit('android,ios', { fakes })
+
+    expect(result.exit).toBe(0)
+    expect(stepOf(doc, 'playground-app')).toEqual({ name: 'playground-app', outcome: 'done' })
+    expect(doc.nextSteps).toContainEqual({
+      command: RUN_ANDROID_STARTER,
+      description: 'Start with the two-step test, which passes:',
+    })
+    expect(nextCommandsOf(doc)).not.toContain(RUN_IOS_STARTER)
+  })
+
+  it('name no starter for a runtime whose app did not arrive, and no command for the app', async () => {
+    const fakes = mobileInitFakes(
+      { android: PIXEL, ios: IPHONE },
+      { android: new TextEncoder().encode('another build\n') },
+    )
+    const { result, doc } = await freshInit('android,ios', { fakes })
+
+    expect(result.exit).toBe(3)
+    expect(stepOf(doc, 'playground-app')?.outcome).toBe('failed')
+    const commands = nextCommandsOf(doc)
+    expect(commands).toContain(RUN_IOS_STARTER)
+    expect(commands).not.toContain(RUN_ANDROID_STARTER)
+    expect(commands.filter((command) => command.includes('app-bundles'))).toEqual([])
   })
 })
