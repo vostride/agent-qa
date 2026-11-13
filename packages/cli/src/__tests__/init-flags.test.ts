@@ -311,7 +311,7 @@ describe('--platform takes a CSV of web, android and ios', () => {
     expect(Object.keys(writtenConfig(root).registry.targets)).toEqual([
       'komazon',
       'komazon-cart-total-bug',
-      'example-android',
+      'playground-android',
     ])
     expect(writtenConfig(root).use?.mobile).toBeDefined()
     expect(existsSync(join(root, 'tests/examples/komazon-checkout.yaml'))).toBe(true)
@@ -322,8 +322,8 @@ describe('--platform takes a CSV of web, android and ios', () => {
 
     expect(error).toBeUndefined()
     expect(Object.keys(writtenConfig(root).registry.targets)).toEqual([
-      'example-android',
-      'example-ios',
+      'playground-android',
+      'playground-ios',
     ])
     expect(writtenConfig(root).use?.mobile).toBeDefined()
     expect(existsSync(join(root, 'tests/examples'))).toBe(false)
@@ -338,7 +338,7 @@ describe('--platform takes a CSV of web, android and ios', () => {
     expect(readFileSync(join(first.root, 'agent-qa.config.yaml'), 'utf8')).toBe(
       readFileSync(join(second.root, 'agent-qa.config.yaml'), 'utf8'),
     )
-    expect(Object.keys(writtenConfig(first.root).registry.targets)).toContain('example-ios')
+    expect(Object.keys(writtenConfig(first.root).registry.targets)).toContain('playground-ios')
   })
 
   it.each([

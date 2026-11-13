@@ -70,6 +70,7 @@ vi.mock('@vostride/agent-qa-core', () => ({
 
 import { createInitCommand } from '../commands/init.js'
 import { writeScaffoldFileAtomic } from '../commands/init-filesystem.js'
+import { PLAYGROUND_APP_PATHS } from '../commands/playground-app-pin.js'
 import { buildScaffoldFileSet } from '../commands/scaffold-content.js'
 import { writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { clearProviderRegistry } from '@vostride/agent-qa-model'
@@ -330,13 +331,28 @@ describe('the init examples', () => {
     }
   })
 
-  it('the targets are komazon and komazon-cart-total-bug with no product field', async () => {
+  it('the web gets the two Komazon targets and each mobile runtime a Playground target with its app, none with a product or a device', async () => {
+    const android = {
+      'playground-android': {
+        platform: 'android',
+        appPackage: 'dev.vostride.playground',
+        appActivity: '.MainActivity',
+        app: { path: PLAYGROUND_APP_PATHS.android },
+      },
+    }
+    const ios = {
+      'playground-ios': {
+        platform: 'ios',
+        bundleId: 'dev.vostride.playground',
+        app: { path: PLAYGROUND_APP_PATHS.ios },
+      },
+    }
     const expected: Record<string, Record<string, unknown>> = {
       web: KOMAZON_TARGETS,
-      android: { 'example-android': { platform: 'android' } },
-      ios: { 'example-ios': { platform: 'ios' } },
-      'web,android': { ...KOMAZON_TARGETS, 'example-android': { platform: 'android' } },
-      'web,ios': { ...KOMAZON_TARGETS, 'example-ios': { platform: 'ios' } },
+      android,
+      ios,
+      'web,android': { ...KOMAZON_TARGETS, ...android },
+      'web,ios': { ...KOMAZON_TARGETS, ...ios },
     }
     for (const [platform, targets] of Object.entries(expected)) {
       const config = written(await initWrites(platform), 'agent-qa.config.yaml').doc
