@@ -221,6 +221,9 @@ async function downloadIOS(input: PlaygroundAppsInput): Promise<void> {
   } catch (error) {
     throw new Error(`its archive cannot be used (${messageOf(error)})`)
   }
+  // Only a forced download gets here with the folder present; it replaces the folder as a whole,
+  // so no file of the older build stays.
+  if (present) input.removeFolder(folder)
   for (const file of files) {
     writeScaffoldFileAtomic(
       {
