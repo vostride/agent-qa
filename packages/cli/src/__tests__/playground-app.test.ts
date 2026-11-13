@@ -193,6 +193,23 @@ describe('downloading the Playground app for Android', () => {
     )
   })
 
+  // A terminal can read a C1 control as the start of a command, and the others reorder the text
+  // after them.
+  it.each([
+    ['a C1 control', '\u0080\u0090\u009d\u009f'],
+    ['a direction mark', '\u200e\u200f'],
+    ['a direction embedding or override', '\u202a\u202b\u202c\u202d\u202e'],
+    ['a direction isolate', '\u2066\u2067\u2068\u2069'],
+  ])("leaves %s out of a cause's message", async (_kind, characters) => {
+    const certificate = new TypeError('fetch failed', {
+      cause: new Error(`Hostname does not match the certificate's ${characters}name`),
+    })
+
+    expect(await failureMessageFor(certificate)).toBe(
+      "fetch failed (Hostname does not match the certificate's name)",
+    )
+  })
+
   it('carries the message alone when the error has no cause, or a cause that says the same', async () => {
     const same = new Error('the proxy refused', { cause: new Error('the proxy refused') })
 
