@@ -134,3 +134,290 @@ describe('pickDeviceHere on iOS', () => {
     expect(pickDeviceHere('ios', listing)).toBeUndefined()
   })
 })
+
+describe('pickDeviceHere among several AVDs', () => {
+  const pixel6 = avd('Pixel_6')
+  const pixel7 = avd('Pixel_7', '14')
+  const pixel8 = avd('Pixel_8', '15')
+  const pixel9 = avd('Pixel_9', '15')
+  const usbPhone: AttachedAndroid = {
+    serial: 'R5CT32QWERT',
+    state: 'device',
+    model: 'SM_S918B',
+    os: '16',
+  }
+
+  it('picks a running AVD over an idle one on a newer OS', () => {
+    const listing: AndroidHere = {
+      attached: [emulatorOf(pixel7, 'emulator-5554')],
+      avds: [pixel9, pixel7],
+    }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-7-14',
+      profile: { platform: 'android', model: 'Pixel 7', os: '14' },
+    })
+    expectRunFinds(pick, listing, { avd: 'Pixel_7', serial: 'emulator-5554' })
+  })
+
+  it('picks the idle AVD with the newest OS', () => {
+    const listing: AndroidHere = { attached: [], avds: [pixel7, pixel9] }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-9-15',
+      profile: { platform: 'android', model: 'Pixel 9', os: '15' },
+    })
+    expectRunFinds(pick, listing, { avd: 'Pixel_9' })
+  })
+
+  it('compares OS versions as numbers, so 10 is newer than 9', () => {
+    const listing: AndroidHere = { attached: [], avds: [avd('Pixel_3', '9'), avd('Pixel_4', '10')] }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-4-10',
+      profile: { platform: 'android', model: 'Pixel 4', os: '10' },
+    })
+    expectRunFinds(pick, listing, { avd: 'Pixel_4' })
+  })
+
+  it('compares OS versions part by part, so 8.1 is newer than 8.0.5', () => {
+    const listing: AndroidHere = {
+      attached: [],
+      avds: [avd('Nexus_5X', '8.0.5'), avd('Nexus_6P', '8.1')],
+    }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-nexus-6p-8.1',
+      profile: { platform: 'android', model: 'Nexus 6P', os: '8.1' },
+    })
+    expectRunFinds(pick, listing, { avd: 'Nexus_6P' })
+  })
+
+  it('picks the running AVD with the newer OS', () => {
+    const listing: AndroidHere = {
+      attached: [emulatorOf(pixel7, 'emulator-5554'), emulatorOf(pixel9, 'emulator-5556')],
+      avds: [pixel7, pixel9],
+    }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-9-15',
+      profile: { platform: 'android', model: 'Pixel 9', os: '15' },
+    })
+    expectRunFinds(pick, listing, { avd: 'Pixel_9', serial: 'emulator-5556' })
+  })
+
+  it('picks the running AVD whose name sorts first when their OS is the same', () => {
+    const listing: AndroidHere = {
+      attached: [emulatorOf(pixel9, 'emulator-5556'), emulatorOf(pixel8, 'emulator-5554')],
+      avds: [pixel9, pixel8],
+    }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-8-15',
+      profile: { platform: 'android', model: 'Pixel 8', os: '15' },
+    })
+    expectRunFinds(pick, listing, { avd: 'Pixel_8', serial: 'emulator-5554' })
+  })
+
+  it('leaves os out of the entry and the name for an AVD with no OS', () => {
+    const listing: AndroidHere = { attached: [], avds: [pixel6] }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-6',
+      profile: { platform: 'android', model: 'Pixel 6' },
+    })
+    expectRunFinds(pick, listing, { avd: 'Pixel_6' })
+  })
+
+  it('leaves os out for an AVD that has only an API level', () => {
+    const listing: AndroidHere = {
+      attached: [],
+      avds: [avd('Pixel_6', undefined, { apiLevel: '34' })],
+    }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-6',
+      profile: { platform: 'android', model: 'Pixel 6' },
+    })
+    expectRunFinds(pick, listing, { avd: 'Pixel_6' })
+  })
+
+  it('puts an AVD with no OS after an idle AVD whose OS is known', () => {
+    const listing: AndroidHere = {
+      attached: [],
+      avds: [avd('Pixel_6', undefined, { apiLevel: '35' }), pixel7],
+    }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-7-14',
+      profile: { platform: 'android', model: 'Pixel 7', os: '14' },
+    })
+    expectRunFinds(pick, listing, { avd: 'Pixel_7' })
+  })
+
+  it('never picks a phone attached over USB', () => {
+    expect(pickDeviceHere('android', { attached: [usbPhone], avds: [] })).toBeUndefined()
+  })
+
+  it('picks an idle AVD over a phone attached over USB', () => {
+    const listing: AndroidHere = { attached: [usbPhone], avds: [pixel7] }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-7-14',
+      profile: { platform: 'android', model: 'Pixel 7', os: '14' },
+    })
+    expectRunFinds(pick, listing, { avd: 'Pixel_7' })
+  })
+
+  it('does not count an AVD as running while its emulator is offline', () => {
+    const listing: AndroidHere = {
+      attached: [emulatorOf(pixel7, 'emulator-5554', { state: 'offline' })],
+      avds: [pixel7, pixel9],
+    }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-9-15',
+      profile: { platform: 'android', model: 'Pixel 9', os: '15' },
+    })
+    expectRunFinds(pick, listing, { avd: 'Pixel_9' })
+  })
+
+  it('names an AVD by its own name when another AVD shares its display name and OS', () => {
+    const twin = avd('Pixel_8_2', '15', { profile: 'pixel_8', displayName: 'Pixel 8' })
+    const listing: AndroidHere = { attached: [], avds: [pixel8, twin] }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-8-2-15',
+      profile: { platform: 'android', model: 'Pixel_8_2', os: '15' },
+    })
+    expectRunFinds(pick, listing, { avd: 'Pixel_8_2' })
+  })
+
+  it('keeps only a-z, 0-9, - and . in the name, and the display name as the model', () => {
+    const displayName = '  Pixel [Work]: \u001b[31mphone\u001b[0m  '
+    const listing: AndroidHere = { attached: [], avds: [avd('Pixel_Work', '15', { displayName })] }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-work-31mphone-0m-15',
+      profile: { platform: 'android', model: displayName, os: '15' },
+    })
+    expect(pick?.name).toMatch(/^[a-z0-9.-]+$/)
+    expect(pick?.name).not.toMatch(/--|^-|-$/)
+    expectRunFinds(pick, listing, { avd: 'Pixel_Work' })
+  })
+
+  it('picks the same AVD whatever order the machine lists its devices in', () => {
+    const listing: AndroidHere = {
+      attached: [
+        emulatorOf(pixel9, 'emulator-5556'),
+        usbPhone,
+        emulatorOf(pixel8, 'emulator-5554'),
+      ],
+      avds: [pixel9, pixel8, pixel7, pixel6],
+    }
+    const pick = pickDeviceHere('android', listing)
+    expect(pick).toEqual({
+      name: 'android-emulator-pixel-8-15',
+      profile: { platform: 'android', model: 'Pixel 8', os: '15' },
+    })
+    const avdsReversed: AndroidHere = { ...listing, avds: [...listing.avds].reverse() }
+    const attachedReversed: AndroidHere = { ...listing, attached: [...listing.attached].reverse() }
+    expect(pickDeviceHere('android', avdsReversed)).toEqual(pick)
+    expect(pickDeviceHere('android', attachedReversed)).toEqual(pick)
+    expectRunFinds(pick, listing, { avd: 'Pixel_8', serial: 'emulator-5554' })
+  })
+})
+
+describe('pickDeviceHere among several simulators', () => {
+  const firstUdid = '0A6B5E2C-4D1F-4A9E-9C3B-2F8E7D6A5B4C'
+  const secondUdid = 'F3E21C8D-7B6A-4F5E-8D9C-1A2B3C4D5E6F'
+  const ipad = simulator('iPad Air 13-inch (M3)', '18.4')
+  const iphone = simulator('iPhone 16', '18.4')
+  const iphonePicked: PickedDevice = {
+    name: 'ios-simulator-iphone-16-18.4',
+    profile: { platform: 'ios', model: 'iPhone 16', os: '18.4' },
+  }
+
+  it('adds the udid as id when two simulators share a name and an OS', () => {
+    const listing: IOSHere = {
+      simulators: [
+        simulator('iPhone 16', '18.2', { udid: secondUdid }),
+        simulator('iPhone 16', '18.2', { udid: firstUdid }),
+      ],
+    }
+    const pick = pickDeviceHere('ios', listing)
+    expect(pick).toEqual({
+      name: 'ios-simulator-iphone-16-18.2',
+      profile: { platform: 'ios', model: 'iPhone 16', os: '18.2', id: firstUdid },
+    })
+    expectRunFinds(pick, listing, { udid: firstUdid })
+  })
+
+  it('adds the udid as id for a booted simulator whose twin is shut down', () => {
+    const listing: IOSHere = {
+      simulators: [
+        simulator('iPhone 16', '18.2', { udid: firstUdid }),
+        simulator('iPhone 16', '18.2', { udid: secondUdid, state: 'Booted' }),
+      ],
+    }
+    const pick = pickDeviceHere('ios', listing)
+    expect(pick).toEqual({
+      name: 'ios-simulator-iphone-16-18.2',
+      profile: { platform: 'ios', model: 'iPhone 16', os: '18.2', id: secondUdid },
+    })
+    expectRunFinds(pick, listing, { udid: secondUdid })
+  })
+
+  it('picks an iPhone over an iPad when both are idle on one OS', () => {
+    const listing: IOSHere = { simulators: [ipad, iphone] }
+    const pick = pickDeviceHere('ios', listing)
+    expect(pick).toEqual(iphonePicked)
+    expectRunFinds(pick, listing, { udid: iphone.udid })
+  })
+
+  it('picks a booted iPad over an idle iPhone', () => {
+    const booted = simulator('iPad Air 13-inch (M3)', '18.4', { state: 'Booted' })
+    const listing: IOSHere = { simulators: [iphone, booted] }
+    const pick = pickDeviceHere('ios', listing)
+    expect(pick).toEqual({
+      name: 'ios-simulator-ipad-air-13-inch-m3-18.4',
+      profile: { platform: 'ios', model: 'iPad Air 13-inch (M3)', os: '18.4' },
+    })
+    expectRunFinds(pick, listing, { udid: booted.udid })
+  })
+
+  it('picks an iPad on a newer OS over an iPhone on an older one', () => {
+    const newer = simulator('iPad Air 13-inch (M3)', '18.5')
+    const listing: IOSHere = { simulators: [simulator('iPhone 16', '18.2'), newer] }
+    const pick = pickDeviceHere('ios', listing)
+    expect(pick).toEqual({
+      name: 'ios-simulator-ipad-air-13-inch-m3-18.5',
+      profile: { platform: 'ios', model: 'iPad Air 13-inch (M3)', os: '18.5' },
+    })
+    expectRunFinds(pick, listing, { udid: newer.udid })
+  })
+
+  it('never picks a simulator that is not available', () => {
+    const unavailable = simulator('iPhone 17 Pro', '26.0', { available: false })
+    const listing: IOSHere = { simulators: [unavailable, iphone] }
+    const pick = pickDeviceHere('ios', listing)
+    expect(pick).toEqual(iphonePicked)
+    expectRunFinds(pick, listing, { udid: iphone.udid })
+    expect(pickDeviceHere('ios', { simulators: [unavailable] })).toBeUndefined()
+  })
+
+  it('picks the same simulator whatever order the Mac lists them in', () => {
+    const listing: IOSHere = {
+      simulators: [
+        simulator('iPhone 16', '18.4', { udid: secondUdid }),
+        ipad,
+        simulator('iPhone 16', '18.4', { udid: firstUdid }),
+        simulator('iPhone 15', '17.5'),
+      ],
+    }
+    const pick = pickDeviceHere('ios', listing)
+    expect(pick).toEqual({ ...iphonePicked, profile: { ...iphonePicked.profile, id: firstUdid } })
+    expect(pickDeviceHere('ios', { simulators: [...listing.simulators].reverse() })).toEqual(pick)
+    expectRunFinds(pick, listing, { udid: firstUdid })
+  })
+})
