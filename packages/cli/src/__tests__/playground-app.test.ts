@@ -1,5 +1,13 @@
 import { createHash } from 'node:crypto'
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  statSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs'
 import { dirname, join, sep } from 'node:path'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -71,6 +79,16 @@ function entriesUnder(folder: string): string[] {
   return readdirSync(folder, { recursive: true, encoding: 'utf8' })
     .map((path) => path.split(sep).join('/'))
     .sort()
+}
+
+// Every file under a folder, by its path inside it, with its bytes.
+function filesUnder(folder: string): Record<string, string> {
+  const files: Record<string, string> = {}
+  for (const path of entriesUnder(folder)) {
+    const file = join(folder, path)
+    if (statSync(file).isFile()) files[path] = readFileSync(file, 'base64')
+  }
+  return files
 }
 
 describe('downloading the Playground app for Android', () => {
@@ -289,6 +307,15 @@ describe('downloading the Playground app for iOS', () => {
     }
   }
 
+  // The Playground.app an older build left, with a framework the new build does not have.
+  function olderPlaygroundApp(root: string): string {
+    const folder = join(root, 'app-bundles', 'Playground.app')
+    mkdirSync(join(folder, 'Frameworks', 'old.framework'), { recursive: true })
+    writeFileSync(join(folder, 'Info.plist'), 'an older build')
+    writeFileSync(join(folder, 'Frameworks', 'old.framework', 'old'), 'an older framework')
+    return folder
+  }
+
   it('unzips the pinned build into app-bundles/Playground.app with each file and its mode, and keeps no zip', async () => {
     const { root } = tempProject('playground-app')
     const app = fakePlaygroundApp()
@@ -475,6 +502,104 @@ describe('downloading the Playground app for iOS', () => {
     }
     expect(recorded).toEqual([{ path: folder, outcome: 'updated' }])
     expect(result).toEqual({ arrived: ['ios'], failures: [] })
+  })
+
+  it('with force leaves the Playground.app that is there byte for byte when the sha256 is not the pinned one', async () => {
+    const { root } = tempProject('playground-app')
+    const folder = olderPlaygroundApp(root)
+    const before = filesUnder(folder)
+    const app = fakePlaygroundApp({ ios: text('another build') })
+
+    const { result, recorded, removals } = await download(root, app, {
+      runtimes: ['ios'],
+      force: true,
+    })
+
+    expect(result).toEqual({
+      arrived: [],
+      failures: [
+        { runtime: 'ios', reason: expect.stringContaining('its sha256 is not the pinned one') },
+      ],
+    })
+    expect(removals).toEqual([])
+    expect(filesUnder(folder)).toEqual(before)
+    expect(recorded).toEqual([])
+  })
+
+  it('with force leaves the Playground.app that is there byte for byte when the archive is refused', async () => {
+    const { root } = tempProject('playground-app')
+    const folder = olderPlaygroundApp(root)
+    const before = filesUnder(folder)
+    const crafted = buildZip([
+      valid,
+      { name: 'Playground.app/../../outside.txt', bytes: text('outside\n') },
+    ])
+    const app = fakePlaygroundApp({ ios: crafted })
+
+    const { result, recorded, removals } = await download(root, app, {
+      runtimes: ['ios'],
+      force: true,
+      pin: pinnedTo(crafted),
+    })
+
+    expect(result).toEqual({
+      arrived: [],
+      failures: [{ runtime: 'ios', reason: expect.stringContaining('its archive cannot be used') }],
+    })
+    expect(removals).toEqual([])
+    expect(filesUnder(folder)).toEqual(before)
+    expect(recorded).toEqual([])
+  })
+
+  it('with force returns a removal that throws as a failure and writes no file of the new build', async () => {
+    const { root } = tempProject('playground-app')
+    const folder = olderPlaygroundApp(root)
+    const before = filesUnder(folder)
+    const app = fakePlaygroundApp()
+
+    const { result, recorded } = await download(root, app, {
+      runtimes: ['ios'],
+      force: true,
+      removeFolder: () => {
+        throw new Error('the folder is held open by another process')
+      },
+    })
+
+    expect(result).toEqual({
+      arrived: [],
+      failures: [
+        {
+          runtime: 'ios',
+          reason: expect.stringContaining('the folder is held open by another process'),
+        },
+      ],
+    })
+    expect(filesUnder(folder)).toEqual(before)
+    expect(recorded).toEqual([])
+  })
+
+  it('with force removes and writes nothing through an app-bundles that links out of the project', async () => {
+    const { root, home } = tempProject('playground-app')
+    const outside = join(home, 'elsewhere')
+    mkdirSync(join(outside, 'Playground.app'), { recursive: true })
+    writeFileSync(join(outside, 'Playground.app', 'Info.plist'), 'a file outside the project')
+    symlinkSync(outside, join(root, 'app-bundles'), 'dir')
+    const before = filesUnder(outside)
+    const app = fakePlaygroundApp()
+
+    const { result, recorded } = await download(root, app, { runtimes: ['ios'], force: true })
+
+    expect(result).toEqual({
+      arrived: [],
+      failures: [
+        {
+          runtime: 'ios',
+          reason: expect.stringContaining(`symbolic link parent ${join(root, 'app-bundles')}`),
+        },
+      ],
+    })
+    expect(filesUnder(outside)).toEqual(before)
+    expect(recorded).toEqual([])
   })
 })
 

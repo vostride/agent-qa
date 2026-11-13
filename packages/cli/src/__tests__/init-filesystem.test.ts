@@ -35,6 +35,7 @@ import {
   TARGET_GITIGNORE_PROBES,
   managedBlockLockPath,
   preflightInitPlan,
+  removeFolderInsideRoot,
   upsertManagedGitignoreBlock,
   verifyEffectiveGitignore,
   writeScaffoldFileAtomic,
@@ -2584,5 +2585,91 @@ describe('the writer keeps an error a refusal or a bug when it adds a dispositio
     expect(isInitRefusal(error)).toBe(true)
     expect(errorMessage(error)).toContain('existing path is a symbolic link')
     expect(errorMessage(error)).toContain('Disposition:')
+  })
+})
+
+describe('removing a folder inside the project', () => {
+  it('removes a folder with the files and folders inside it and says removed', () => {
+    const root = tempRoot()
+    const folder = join(root, 'app-bundles', 'Playground.app')
+    mkdirSync(join(folder, 'Frameworks', 'old.framework'), { recursive: true })
+    writeFileSync(join(folder, 'Info.plist'), 'plist\n')
+    writeFileSync(join(folder, 'Frameworks', 'old.framework', 'old'), 'old\n')
+
+    expect(removeFolderInsideRoot({ path: folder, root })).toBe('removed')
+    expect(existsSync(folder)).toBe(false)
+    expect(readdirSync(join(root, 'app-bundles'))).toEqual([])
+  })
+
+  it('says missing when nothing is at the path', () => {
+    const root = tempRoot()
+    const folder = join(root, 'app-bundles', 'Playground.app')
+
+    expect(removeFolderInsideRoot({ path: folder, root })).toBe('missing')
+  })
+
+  it('refuses a regular file with an init refusal and leaves it', () => {
+    const root = tempRoot()
+    const file = join(root, 'Playground.app')
+    writeFileSync(file, 'not a folder\n')
+
+    const error = capturedRefusal(() => removeFolderInsideRoot({ path: file, root }))
+
+    expect(isInitRefusal(error)).toBe(true)
+    expect(readFileSync(file, 'utf8')).toBe('not a folder\n')
+  })
+
+  it.skipIf(isWindows)(
+    'refuses a symbolic link to a folder and leaves the link, its target and the file in it',
+    () => {
+      const root = tempRoot()
+      const target = tempRoot()
+      writeFileSync(join(target, 'Info.plist'), 'outside\n')
+      const link = join(root, 'Playground.app')
+      symlinkSync(target, link)
+
+      const error = capturedRefusal(() => removeFolderInsideRoot({ path: link, root }))
+
+      expect(isInitRefusal(error)).toBe(true)
+      expect(lstatSync(link).isSymbolicLink()).toBe(true)
+      expect(readFileSync(join(target, 'Info.plist'), 'utf8')).toBe('outside\n')
+    },
+  )
+
+  it.skipIf(isWindows)(
+    'refuses a folder whose parent is a symbolic link and leaves the folder behind it',
+    () => {
+      const root = tempRoot()
+      const elsewhere = tempRoot()
+      const behind = join(elsewhere, 'Playground.app', 'Info.plist')
+      mkdirSync(dirname(behind))
+      writeFileSync(behind, 'outside\n')
+      symlinkSync(elsewhere, join(root, 'app-bundles'))
+
+      const error = capturedRefusal(() =>
+        removeFolderInsideRoot({ path: join(root, 'app-bundles', 'Playground.app'), root }),
+      )
+
+      expect(isInitRefusal(error)).toBe(true)
+      expect(readFileSync(behind, 'utf8')).toBe('outside\n')
+    },
+  )
+
+  it('throws for the project folder itself and removes nothing', () => {
+    const root = tempRoot()
+    writeFileSync(join(root, 'kept.txt'), 'kept\n')
+
+    expect(() => removeFolderInsideRoot({ path: root, root })).toThrow()
+    expect(readFileSync(join(root, 'kept.txt'), 'utf8')).toBe('kept\n')
+  })
+
+  it('throws for a folder outside the project and removes nothing', () => {
+    const root = tempRoot()
+    const outside = tempRoot()
+    mkdirSync(join(outside, 'Playground.app'))
+    writeFileSync(join(outside, 'Playground.app', 'Info.plist'), 'outside\n')
+
+    expect(() => removeFolderInsideRoot({ path: join(outside, 'Playground.app'), root })).toThrow()
+    expect(readFileSync(join(outside, 'Playground.app', 'Info.plist'), 'utf8')).toBe('outside\n')
   })
 })
