@@ -71,7 +71,7 @@ vi.mock('@vostride/agent-qa-core', () => ({
 import { createInitCommand } from '../commands/init.js'
 import { writeScaffoldFileAtomic } from '../commands/init-filesystem.js'
 import { PLAYGROUND_APP_PATHS } from '../commands/playground-app-pin.js'
-import { buildScaffoldFileSet } from '../commands/scaffold-content.js'
+import { buildScaffoldFileSet, type MobileRuntime } from '../commands/scaffold-content.js'
 import { writeFileSync, existsSync, readFileSync } from 'node:fs'
 import { clearProviderRegistry } from '@vostride/agent-qa-model'
 import { isCanonicalHookId, isCanonicalSuiteId, isCanonicalTestId } from '@vostride/agent-qa-ids'
@@ -112,6 +112,42 @@ const STARTER_STEPS = [
 const KOMAZON_TARGETS = {
   komazon: { platform: 'web', url: 'https://playground.vostride.dev/shop/' },
   'komazon-cart-total-bug': { platform: 'web', url: BUG_URL },
+}
+const MOBILE_RUNTIMES: MobileRuntime[] = ['android', 'ios']
+const RUNTIME_LABELS: Record<MobileRuntime, string> = { android: 'Android', ios: 'iOS' }
+const PLAYGROUND_PREFIX = 'tests/examples/playground-'
+const PLAYGROUND_KINDS = ['starter', 'cartTotal', 'bug'] as const
+type PlaygroundKind = (typeof PLAYGROUND_KINDS)[number]
+const PLAYGROUND_PATHS: Record<MobileRuntime, Record<PlaygroundKind, string>> = {
+  android: {
+    starter: 'tests/examples/playground-android-open-komazon.yaml',
+    cartTotal: 'tests/examples/playground-android-cart-total.yaml',
+    bug: 'tests/examples/playground-android-cart-total-bug.yaml',
+  },
+  ios: {
+    starter: 'tests/examples/playground-ios-open-komazon.yaml',
+    cartTotal: 'tests/examples/playground-ios-cart-total.yaml',
+    bug: 'tests/examples/playground-ios-cart-total-bug.yaml',
+  },
+}
+const ALL_PLAYGROUND_PATHS = MOBILE_RUNTIMES.flatMap(runtime =>
+  Object.values(PLAYGROUND_PATHS[runtime]),
+)
+const PLAYGROUND_STEPS: Record<PlaygroundKind, string[]> = {
+  starter: ['Open Komazon from the home screen.', 'Verify the "Search products" field is shown.'],
+  cartTotal: [
+    'Open Komazon from the home screen.',
+    'Open the details of Everyday Ceramic Mug and verify its price is $24.00.',
+    'Add it to the bag and open the Cart tab.',
+    'Increase the mug quantity to two.',
+    'Verify the order summary shows subtotal $48.00, shipping $5.00 and total $53.00.',
+  ],
+  bug: [
+    'Open Komazon from the home screen.',
+    'Open Test controls in the app header, turn on "Quantity ignored in totals" and close the controls. Verify the deliberate bug banner names "Quantity ignored in totals".',
+    'Add Everyday Ceramic Mug to the bag, open the Cart tab and increase its quantity to two.',
+    'Verify the order total is $53.00.',
+  ],
 }
 type Write = { path: string; content: string }
 
@@ -331,6 +367,20 @@ describe('the init examples', () => {
     }
   })
 
+  it('every example test of a web, Android and iOS init has a canonical id that no other shares', async () => {
+    const examples = (await initWrites('web,android,ios'))
+      .filter(write => write.path.startsWith('tests/examples/') && write.path.endsWith('.yaml'))
+      .map(write => ({ path: write.path, id: parseYaml(write.content)['test-id'] }))
+
+    expect(examples.map(example => example.path)).toEqual(
+      expect.arrayContaining([CHECKOUT, HOOK_TEST, ...ALL_PLAYGROUND_PATHS]),
+    )
+    for (const [index, { path, id }] of examples.entries()) {
+      expect(isCanonicalTestId(id), path).toBe(true)
+      expect(examples.findIndex(other => other.id === id), `${path} shares its id`).toBe(index)
+    }
+  })
+
   it('the web gets the two Komazon targets and each mobile runtime a Playground target with its app, none with a product or a device', async () => {
     const android = {
       'playground-android': {
@@ -409,6 +459,24 @@ describe('the init examples', () => {
     expect(isCanonicalSuiteId(suite.data['suite-id'])).toBe(true)
     for (const member of suite.data.tests) {
       expect(isCanonicalTestId(member.id), member.test).toBe(true)
+    }
+  })
+
+  // YAML reads an unquoted step that holds a colon followed by a space as a mapping.
+  it('every step of every example test, web and mobile, is a string', async () => {
+    const examples = (await initWrites('web,android,ios')).filter(
+      write => write.path.startsWith('tests/examples/') && write.path.endsWith('.yaml'),
+    )
+
+    expect(examples.map(write => write.path)).toEqual(
+      expect.arrayContaining([CHECKOUT, HOOK_TEST, ...ALL_PLAYGROUND_PATHS]),
+    )
+    for (const { path, content } of examples) {
+      const steps = parseYaml(content).steps
+      expect(Array.isArray(steps), `${path} has a list of steps`).toBe(true)
+      for (const [index, step] of (steps as unknown[]).entries()) {
+        expect(typeof step, `${path} step ${index}`).toBe('string')
+      }
     }
   })
 
@@ -541,6 +609,118 @@ describe('the init examples', () => {
       const number = Number(match![1])
       expect(number).toBeGreaterThanOrEqual(100)
       expect(number).toBeLessThanOrEqual(999)
+    }
+  })
+})
+
+describe('the Playground examples', () => {
+  beforeEach(setUpInitMocks)
+  afterEach(tearDownInitMocks)
+
+  function playgroundExamples(writes: Write[]): Write[] {
+    return writes.filter(write => write.path.startsWith(PLAYGROUND_PREFIX))
+  }
+
+  it('an Android init writes the three Android examples and no iOS one, and an iOS init the reverse', async () => {
+    for (const [runtime, other] of [['android', 'ios'], ['ios', 'android']] as const) {
+      const paths = (await initWrites(runtime)).map(write => write.path)
+      const others = paths.filter(path => path.startsWith(`${PLAYGROUND_PREFIX}${other}-`))
+
+      expect(paths, runtime).toEqual(
+        expect.arrayContaining(Object.values(PLAYGROUND_PATHS[runtime])),
+      )
+      expect(others, `${runtime} writes the other runtime's examples`).toEqual([])
+    }
+  })
+
+  it('each starter opens Komazon and checks for its search field, in two steps', async () => {
+    for (const runtime of MOBILE_RUNTIMES) {
+      const path = PLAYGROUND_PATHS[runtime].starter
+      const { doc } = written(await initWrites(runtime), path)
+
+      expect(doc.steps, path).toEqual(PLAYGROUND_STEPS.starter)
+    }
+  })
+
+  it('each cart total test checks the order summary for two mugs, and each [Bug] test turns the bug on and expects the right total', async () => {
+    for (const runtime of MOBILE_RUNTIMES) {
+      const writes = await initWrites(runtime)
+      for (const kind of ['cartTotal', 'bug'] as const) {
+        const path = PLAYGROUND_PATHS[runtime][kind]
+        expect(written(writes, path).doc.steps, path).toEqual(PLAYGROUND_STEPS[kind])
+      }
+    }
+  })
+
+  it('every Playground example starts from a reset app', async () => {
+    const examples = playgroundExamples(await initWrites('web,android,ios'))
+
+    expect(examples.map(write => write.path)).toEqual(expect.arrayContaining(ALL_PLAYGROUND_PATHS))
+    for (const { path, content } of examples) {
+      expect(parseYaml(content).use?.mobile?.appState, path).toBe('reset')
+    }
+  })
+
+  it('the Android and iOS example of each kind differ only in id, name and target', async () => {
+    const writes = await initWrites('web,android,ios')
+    for (const kind of PLAYGROUND_KINDS) {
+      const path = PLAYGROUND_PATHS.android[kind]
+      const android = written(writes, path).doc
+      const ios = written(writes, PLAYGROUND_PATHS.ios[kind]).doc
+
+      expect(Object.keys(android), path).toEqual(Object.keys(ios))
+      for (const key of Object.keys(android)) {
+        if (['test-id', 'name', 'target'].includes(key)) {
+          expect(android[key], `${path} shares its ${key} with iOS`).not.toEqual(ios[key])
+        } else {
+          expect(android[key], `${path} differs from iOS in ${key}`).toEqual(ios[key])
+        }
+      }
+    }
+  })
+
+  it('each name ends with its runtime, only the failing test is named [Bug], and each runs on a target of its runtime', async () => {
+    for (const runtime of MOBILE_RUNTIMES) {
+      const writes = await initWrites(runtime)
+      const targets = written(writes, 'agent-qa.config.yaml').doc.registry.targets
+      const label = RUNTIME_LABELS[runtime]
+      for (const kind of PLAYGROUND_KINDS) {
+        const path = PLAYGROUND_PATHS[runtime][kind]
+        const { name, target } = written(writes, path).doc
+
+        expect(name.endsWith(` on ${label}`), `${path} is named ${name}`).toBe(true)
+        expect(name.startsWith('[Bug] '), `${path} is named ${name}`).toBe(kind === 'bug')
+        expect(Object.keys(targets), path).toContain(target)
+        expect(targets[target].platform, path).toBe(runtime)
+      }
+    }
+  })
+
+  it('the suite holds no Playground example', async () => {
+    const writes = await initWrites('web,android,ios')
+    const ids = playgroundExamples(writes).map(write => parseYaml(write.content)['test-id'])
+    const members = written(writes, SUITE).doc.tests as { test: string; id: string }[]
+
+    expect(ids.length, 'init writes the Playground examples').toBeGreaterThan(0)
+    expect(members.length, 'the suite has members').toBeGreaterThan(0)
+    for (const member of members) {
+      expect(member.test.startsWith(PLAYGROUND_PREFIX), member.test).toBe(false)
+      expect(ids, `${member.test} has a Playground example's id`).not.toContain(member.id)
+    }
+  })
+
+  it('a mobile-only init declares no secret and no Playground example refers to one', async () => {
+    for (const runtime of MOBILE_RUNTIMES) {
+      const writes = await initWrites(runtime)
+      const examples = playgroundExamples(writes)
+
+      expect(parseEnvFile(writtenText(writes, '.env.secrets.local')), runtime).toEqual({})
+      expect(examples.map(write => write.path), runtime).toEqual(
+        expect.arrayContaining(Object.values(PLAYGROUND_PATHS[runtime])),
+      )
+      for (const { path, content } of examples) {
+        expect(content, path).not.toContain('{{secret:')
+      }
     }
   })
 })
