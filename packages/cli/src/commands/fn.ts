@@ -22,6 +22,8 @@ import {
   CLI_FUNCTION_CALLER,
   composeCliLocalAgent,
 } from '../composition/local-agent-host.js'
+import { stopProcessAppiumWithin } from '../composition/process-appium.js'
+import { REMOTE_RELEASE_BOUND_MS } from '../composition/remote-sessions.js'
 import { resolveConfig, resolveConfiguredKnowledgeRoot } from '../config.js'
 import { invokeViaDaemon } from '../daemon/client.js'
 
@@ -323,6 +325,8 @@ export function createFnCommand(deps: FnCommandDeps = {}): Command {
       } catch (error) {
         reportError(error, mask)
       } finally {
+        // A run this command started in process may have started Appium.
+        await stopProcessAppiumWithin(REMOTE_RELEASE_BOUND_MS)
         releaseStdout?.()
       }
     })
