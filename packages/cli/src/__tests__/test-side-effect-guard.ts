@@ -2,8 +2,9 @@
 // dashboard, the dashboard command's default opener refuses to open a real browser, the
 // dashboard's port probe refuses a fixed port, the update notice's default spawn refuses to
 // start a real registry refresh, the default latest-version ask refuses to reach the registry, the
-// default Chromium resolver refuses to read this machine's browser cache, and the default Android
-// and iOS listers refuse to list this machine's phones, emulators and simulators.
+// default Chromium resolver refuses to read this machine's browser cache, the default Playground
+// download refuses to reach its GitHub release, and the default Android and iOS listers refuse to
+// list this machine's phones, emulators and simulators.
 import type * as AndroidModule from '@vostride/agent-qa-android'
 import type * as IOSModule from '@vostride/agent-qa-ios'
 import { afterEach, vi } from 'vitest'
@@ -12,6 +13,7 @@ import type * as BrowserResolverModule from '../commands/browser-resolver.js'
 import type * as InitDashboardModule from '../commands/init-dashboard.js'
 import type * as LatestVersionAskModule from '../commands/latest-version-ask.js'
 import type * as OpenUrlModule from '../commands/open-url.js'
+import type * as PlaygroundAppFetchModule from '../commands/playground-app-fetch.js'
 import type * as ProjectHostModule from '../commands/project-host.js'
 import type * as VersionRefreshSpawnModule from '../version-refresh-spawn.js'
 
@@ -23,6 +25,7 @@ const PROBE_ADVICE = 'Inject hooks.dashboardPort or pass --no-dashboard.'
 const REFRESH_ADVICE = 'Inject spawnRefresh.'
 const REGISTRY_ADVICE = 'Inject hooks.latestVersion.'
 const CHROMIUM_ADVICE = 'Inject hooks.chromium.'
+const PLAYGROUND_ADVICE = 'Inject hooks.playgroundApp.'
 const DEVICES_ADVICE = 'Inject listDevicesHere.'
 const REFUSAL = `A test reached the real browser install. ${INSTALL_ADVICE}`
 const DASHBOARD_REFUSAL = `A test reached a real dashboard. ${DASHBOARD_ADVICE}`
@@ -132,6 +135,17 @@ vi.mock('../commands/browser-resolver.js', async (importOriginal) => {
   return { ...real, findChromiumByDefault }
 })
 
+vi.mock('../commands/playground-app-fetch.js', async (importOriginal) => {
+  const real = await importOriginal<typeof PlaygroundAppFetchModule>()
+  const store = Symbol.for('agent-qa.test-side-effect-guard')
+  const fetchPlaygroundAppByDefault: typeof real.fetchPlaygroundAppByDefault = async () => {
+    const calls = ((globalThis as unknown as GuardedGlobal)[store] ??= [])
+    calls.push('playground release')
+    throw new Error(`A test reached the Playground release. ${PLAYGROUND_ADVICE}`)
+  }
+  return { ...real, fetchPlaygroundAppByDefault }
+})
+
 vi.mock('@vostride/agent-qa-android', async (importOriginal) => {
   const real = await importOriginal<typeof AndroidModule>()
   const store = Symbol.for('agent-qa.test-side-effect-guard')
@@ -160,6 +174,7 @@ function adviceFor(call: string): string {
   if (call.startsWith('open ')) return OPENER_ADVICE
   if (call.startsWith('refresh ')) return REFRESH_ADVICE
   if (call.startsWith('registry ')) return REGISTRY_ADVICE
+  if (call.startsWith('playground ')) return PLAYGROUND_ADVICE
   if (call.startsWith('probe ')) return PROBE_ADVICE
   return call.split(' ').includes('install-browsers') ? INSTALL_ADVICE : DASHBOARD_ADVICE
 }
