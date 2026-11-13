@@ -967,6 +967,25 @@ export function removeFolderInsideRoot(plan: {
   return 'removed'
 }
 
+// One rename, so the folder is whole at one path or the other.
+export function moveFolderInsideRoot(plan: { from: string; to: string; root: string }): void {
+  const from = resolve(plan.from)
+  const to = resolve(plan.to)
+  assertSafeParentComponents(from, plan.root)
+  assertSafeParentComponents(to, plan.root)
+  const stat = lstatSync(from)
+  if (!stat.isDirectory()) {
+    // pathKind names a regular file a non-regular file.
+    const kind = stat.isFile() ? 'file' : pathKind(stat)
+    throw new InitRefusal(`Refusing to move ${from}: it is a ${kind}, not a folder`)
+  }
+  // A rename replaces an empty folder at its destination.
+  if (lstatIfPresent(to) !== undefined) {
+    throw new InitRefusal(`Refusing to move ${from} to ${to}: that path is taken`)
+  }
+  renameSync(from, to)
+}
+
 function isStrictlyInside(path: string, folder: string): boolean {
   const fromFolder = relative(folder, path)
   return (
