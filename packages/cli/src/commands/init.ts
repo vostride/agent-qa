@@ -25,6 +25,7 @@ import {
   type InitPlatformInput,
   type MobileRuntime,
   type PlatformCapability,
+  type ScaffoldDevices,
 } from './scaffold-content.js'
 // Type-only here and the value loaded lazily: the analytics graph breaks `init.test.ts`'s fs mock.
 import type { composeAnalyticsHost as ComposeAnalyticsHost } from '../composition/analytics-host.js'
@@ -170,6 +171,7 @@ export function buildDefaultConfig(
   providerOrLLMs: string | InitLLMConfig[],
   model?: string,
   baseURL?: string,
+  devices?: ScaffoldDevices,
 ): Record<string, unknown> {
   const llmConfigs = Array.isArray(providerOrLLMs)
     ? providerOrLLMs
