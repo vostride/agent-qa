@@ -1,7 +1,19 @@
+import { createHash } from 'node:crypto'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
+import type {
+  PlaygroundAppFetch,
+  PlaygroundAppRequest,
+  PlaygroundAppSource,
+} from '../commands/playground-app.js'
+import {
+  PLAYGROUND_APP_PIN,
+  playgroundAppUrl,
+  type PlaygroundAppFile,
+  type PlaygroundAppPin,
+} from '../commands/playground-app-pin.js'
 import type {
   CommandRunner,
   ProjectIo,
@@ -56,6 +68,47 @@ export function fakeRunner(
     return await script({ command, args, options })
   }
   return Object.assign(run, { calls })
+}
+
+export interface FakePlaygroundApp {
+  source: PlaygroundAppSource & { pin: PlaygroundAppPin }
+  requests: PlaygroundAppRequest[]
+  bytes: { android: Uint8Array; ios: Uint8Array }
+}
+
+function pinnedTo(file: PlaygroundAppFile, bytes: Uint8Array): PlaygroundAppFile {
+  return {
+    file: file.file,
+    sha256: createHash('sha256').update(bytes).digest('hex'),
+    bytes: bytes.byteLength,
+  }
+}
+
+// A few bytes stand in for each build, and the pin is the real one with their sha256 and size.
+export function fakePlaygroundApp(
+  answers: { android?: Uint8Array | Error; ios?: Uint8Array | Error } = {},
+): FakePlaygroundApp {
+  const bytes = {
+    android: new TextEncoder().encode('a stand-in for the Playground APK\n'),
+    ios: new TextEncoder().encode('a stand-in for the Playground simulator build\n'),
+  }
+  const pin: PlaygroundAppPin = {
+    ...PLAYGROUND_APP_PIN,
+    android: pinnedTo(PLAYGROUND_APP_PIN.android, bytes.android),
+    ios: pinnedTo(PLAYGROUND_APP_PIN.ios, bytes.ios),
+  }
+  const requests: PlaygroundAppRequest[] = []
+  const fetch: PlaygroundAppFetch = async (request) => {
+    requests.push(request)
+    const runtime = (['android', 'ios'] as const).find(
+      (name) => request.url === playgroundAppUrl(pin, name),
+    )
+    if (runtime === undefined) throw new Error(`no Playground file is at ${request.url}`)
+    const answer = answers[runtime] ?? bytes[runtime]
+    if (answer instanceof Error) throw answer
+    return answer
+  }
+  return { source: { fetch, pin }, requests, bytes }
 }
 
 // A running agent-qa whose package.json names its bin, readable where node:fs is mocked.
