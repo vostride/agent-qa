@@ -59,6 +59,23 @@ function stopLate(server: FakeServer): () => void {
   return () => finish()
 }
 
+// The next start settles only once one of the returned functions is called.
+function startLate(start: ReturnType<typeof managerWith>['start']): {
+  finish(server: AppiumServer): void
+  fail(error: Error): void
+} {
+  let finish = (_server: AppiumServer): void => {}
+  let fail = (_error: Error): void => {}
+  start.mockImplementationOnce(
+    () =>
+      new Promise<AppiumServer>((settle, reject) => {
+        finish = settle
+        fail = reject
+      }),
+  )
+  return { finish: (server) => finish(server), fail: (error) => fail(error) }
+}
+
 function flushQueue(): Promise<void> {
   return new Promise((settle) => setImmediate(settle))
 }
@@ -205,6 +222,65 @@ describe('AppiumManager', () => {
       await done
       expect(settled).toBe(true)
     })
+
+    it('a shutdown asked for while a start is in flight settles only after that server has been stopped, and stops it once', async () => {
+      const { mgr, start } = managerWith()
+      const server = fakeServer(47231)
+      const finishStop = stopLate(server)
+      const starting = startLate(start)
+      const running = mgr.ensureRunning()
+      let settled = false
+
+      const done = mgr.shutdown().then(() => {
+        settled = true
+      })
+      await flushQueue()
+      expect(settled).toBe(false)
+      expect(server.stop).not.toHaveBeenCalled()
+
+      starting.finish(server)
+      await running
+      await flushQueue()
+      expect(server.stop).toHaveBeenCalledTimes(1)
+      expect(settled).toBe(false)
+
+      finishStop()
+      await done
+      expect(server.stop).toHaveBeenCalledTimes(1)
+      expect(start).toHaveBeenCalledTimes(1)
+      expect(() => mgr.getUrl()).toThrow('Appium is not running')
+    })
+
+    it('a shutdown asked for while a start is in flight settles once that start has failed', async () => {
+      const { mgr, start } = managerWith()
+      const failure = new Error('Appium exited before it was ready (exit code 1)')
+      const starting = startLate(start)
+      const running = mgr.ensureRunning()
+      let settled = false
+
+      const done = mgr.shutdown().then(() => {
+        settled = true
+      })
+      await flushQueue()
+      expect(settled).toBe(false)
+
+      starting.fail(failure)
+      await expect(running).rejects.toBe(failure)
+      await done
+      expect(start).toHaveBeenCalledTimes(1)
+    })
+
+    it('an ensureRunning after shutdown rejects and starts nothing', async () => {
+      const { mgr, start } = managerWith()
+      await mgr.ensureRunning()
+      await mgr.shutdown()
+
+      await expect(mgr.ensureRunning()).rejects.toThrow('Appium is shut down')
+      await expect(
+        mgr.acquireLease({ runId: 'run_android_1', platform: 'android' }),
+      ).rejects.toThrow('Appium is shut down')
+      expect(start).toHaveBeenCalledTimes(1)
+    })
   })
 
   describe('leases', () => {
@@ -228,6 +304,17 @@ describe('AppiumManager', () => {
 
       expect(released).toBe(true)
       expect(servers[0].stop).toHaveBeenCalledTimes(1)
+    })
+
+    it('a lease taken after the last lease release starts a new server', async () => {
+      const { mgr, start, servers } = managerWith()
+      await mgr.acquireLease({ runId: 'run_android_1', platform: 'android' })
+      mgr.releaseLease('run_android_1', 'completed')
+
+      await mgr.acquireLease({ runId: 'run_ios_1', platform: 'ios' })
+
+      expect(start).toHaveBeenCalledTimes(2)
+      expect(mgr.getUrl()).toBe(servers[1].url)
     })
 
     it('a lease release for a run that holds none returns false and stops nothing', async () => {

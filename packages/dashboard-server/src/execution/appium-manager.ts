@@ -19,6 +19,7 @@ export class AppiumManager {
   private leases = new Map<string, 'android' | 'ios'>()
   // Settles once every stop begun so far has settled.
   private stopping: Promise<void> = Promise.resolve()
+  private closed = false
   private logLevel: 'normal' | 'debug'
   private startAppium: (options: StartAppiumServerOptions) => Promise<AppiumServer>
 
@@ -51,6 +52,7 @@ export class AppiumManager {
   }
 
   async ensureRunning(): Promise<void> {
+    if (this.closed) throw new Error('Appium is shut down')
     if (this.server) return
 
     if (this.startPromise) {
@@ -89,7 +91,7 @@ export class AppiumManager {
   private performShutdown(): Promise<void> {
     const server = this.server
     if (server) {
-      // Released before the stop settles, so a call made during the stop starts a new server.
+      // Released before the stop settles, so a lease taken during the stop starts a new server.
       this.server = null
       console.log(`${APPIUM_PREFIX} ${pc.yellow('stopped')}`)
       this.stopping = Promise.all([this.stopping, server.stop()]).then(() => {})
@@ -98,8 +100,15 @@ export class AppiumManager {
   }
 
   shutdown(): Promise<void> {
+    this.closed = true
     this.leases.clear()
-    return this.performShutdown()
+    const starting = this.startPromise
+    if (starting === null) return this.performShutdown()
+    // A start in flight is waited for, so the server it produces is stopped too.
+    return starting.then(
+      () => this.performShutdown(),
+      () => this.performShutdown(),
+    )
   }
 
   getUrl(): string {

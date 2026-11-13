@@ -99,6 +99,36 @@ describe("the process's Appium", () => {
     expect(state.settled).toBe(true)
   })
 
+  it('after a stop, the next ensure builds a new manager and a second stop without one has nothing to stop', async () => {
+    const { ensureProcessAppium, stopProcessAppium } = await freshModule()
+    await ensureProcessAppium('normal')
+
+    await stopProcessAppium()
+    expect(stopProcessAppium()).toBeUndefined()
+    expect(appium.shutdown).toHaveBeenCalledTimes(1)
+
+    await expect(ensureProcessAppium('debug')).resolves.toBe(APPIUM_URL)
+    expect(appium.built).toEqual([{ logLevel: 'normal' }, { logLevel: 'debug' }])
+    expect(appium.ensureRunning).toHaveBeenCalledTimes(2)
+  })
+
+  it("an ensure in flight when the process's Appium is stopped fails with the error of the manager it started on", async () => {
+    const { ensureProcessAppium, stopProcessAppium } = await freshModule()
+    const start = held()
+    appium.ensureRunning.mockReturnValueOnce(start.promise)
+    appium.getUrl.mockImplementationOnce(() => {
+      throw new Error('Appium is not running')
+    })
+
+    const ensuring = ensureProcessAppium('normal')
+    await new Promise((resolve) => setImmediate(resolve))
+    await stopProcessAppium()
+    start.resolve()
+
+    await expect(ensuring).rejects.toThrow('Appium is not running')
+    expect(appium.built).toEqual([{ logLevel: 'normal' }])
+  })
+
   it('stopping within a bound settles with the shutdown, or once the bound has passed when the shutdown never settles', async () => {
     const { ensureProcessAppium, stopProcessAppiumWithin } = await freshModule()
     await ensureProcessAppium('normal')
@@ -114,6 +144,7 @@ describe("the process's Appium", () => {
     expect(withShutdown.settled).toBe(true)
     expect(vi.getTimerCount()).toBe(0)
 
+    await ensureProcessAppium('normal')
     appium.shutdown.mockReturnValueOnce(new Promise<void>(() => {}))
     const atBound = watch(stopProcessAppiumWithin(BOUND_MS))
     await vi.advanceTimersByTimeAsync(BOUND_MS - 1)
