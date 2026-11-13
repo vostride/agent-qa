@@ -108,21 +108,28 @@ export async function startAppiumServer(
   const { serverEntry, driverFolders } = resolveBundledAppium()
   const port = await findFreePort()
   const home = await prepareAppiumHome(driverFolders)
-  const child = spawn(
-    process.execPath,
-    [
-      serverEntry,
-      '--address',
-      LOOPBACK,
-      '--port',
-      String(port),
-      '--relaxed-security',
-      '--deny-insecure',
-      '*:cors',
-      '--log-no-colors',
-    ],
-    { env: { ...process.env, APPIUM_HOME: home }, stdio: ['ignore', 'pipe', 'pipe'] },
-  )
+  let child: AppiumChild
+  try {
+    child = spawn(
+      process.execPath,
+      [
+        serverEntry,
+        '--address',
+        LOOPBACK,
+        '--port',
+        String(port),
+        '--relaxed-security',
+        '--deny-insecure',
+        '*:cors',
+        '--log-no-colors',
+      ],
+      { env: { ...process.env, APPIUM_HOME: home }, stdio: ['ignore', 'pipe', 'pipe'] },
+    )
+  } catch (error) {
+    // No child exists yet, so nothing else would remove the home.
+    await removeAppiumHome(home).catch(() => {})
+    throw error
+  }
 
   // An exiting process cannot wait for tree-kill to list the tree, so only the server itself is
   // signalled here.
