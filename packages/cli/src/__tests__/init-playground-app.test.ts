@@ -3,6 +3,7 @@
 // carries on to exit 3; a Ctrl-C aborts the download and ends init interrupted; and an app-bundles
 // that is not a plain folder is refused before init writes anything. The next steps name the
 // starter of each runtime that has a device and whose app arrived.
+import { createHash } from 'node:crypto'
 import {
   existsSync,
   mkdirSync,
@@ -23,6 +24,7 @@ import { installedAgentQaVersion } from '../commands/package-json-plan.js'
 import type { PlaygroundAppFetch } from '../commands/playground-app.js'
 import { PLAYGROUND_APP_PATHS, PLAYGROUND_APP_PIN } from '../commands/playground-app-pin.js'
 import {
+  buildZip,
   cleanupTempProjects,
   fakePlaygroundApp,
   fakePlaygroundIosEntries,
@@ -273,6 +275,57 @@ describe('a fresh mobile init downloads the Playground app', () => {
       { path: PLAYGROUND_APP_PATHS.android, outcome: 'kept', step: 'playground-app' },
     ])
     expect(readFileSync(join(root, PLAYGROUND_APP_PATHS.android), 'utf8')).toBe(kept)
+  })
+
+  it('an iOS build whose file cannot be written fails the step and leaves no Playground.app, and a forced init then downloads the build', async () => {
+    const text = (value: string) => new TextEncoder().encode(value)
+    // A file at Info.plist and a file under it: the second cannot be written once the first is.
+    const crafted = buildZip([
+      { name: 'Playground.app/Info.plist', bytes: text('a stand-in for the Info.plist\n') },
+      { name: 'Playground.app/Info.plist/inner', bytes: text('a file under a file\n') },
+    ])
+    const fakes = mobileInitFakes({ ios: IPHONE }, { ios: crafted })
+    const { pin } = fakes.hooks.playgroundApp
+    const craftedPin = {
+      ...pin,
+      ios: {
+        ...pin.ios,
+        sha256: createHash('sha256').update(crafted).digest('hex'),
+        bytes: crafted.byteLength,
+      },
+    }
+    const project = tempProject('playground-app')
+    const args = ['--json', '--platform', 'ios', '--llm', 'gemini', '--agents', 'none']
+    const quick = ['--pm', 'none', '--no-browsers']
+
+    const failed = await rerun(project, [...args, ...quick], {
+      hooks: { ...fakes.hooks, playgroundApp: { ...fakes.hooks.playgroundApp, pin: craftedPin } },
+    })
+
+    const failedDoc = JSON.parse(failed.stdout) as InitDocument
+    expect(failed.exit).toBe(3)
+    expect(stepOf(failedDoc, 'playground-app')).toEqual({
+      name: 'playground-app',
+      outcome: 'failed',
+      reason: expect.stringMatching(/^The Playground app for iOS was not downloaded: /u),
+    })
+    expect(appFilesOf(failedDoc)).toEqual([])
+    expect(readdirSync(join(project.root, 'app-bundles'))).toEqual([])
+    expect(nextCommandsOf(failedDoc)).not.toContain(RUN_IOS_STARTER)
+
+    const again = mobileInitFakes({ ios: IPHONE })
+    const forced = await rerun(project, [...args, ...quick, '--force'], { hooks: again.hooks })
+
+    const forcedDoc = JSON.parse(forced.stdout) as InitDocument
+    expect(forced.exit).toBe(0)
+    expect(again.requests.map((request) => request.url.split('/').at(-1))).toEqual([
+      PLAYGROUND_APP_PIN.ios.file,
+    ])
+    expect(appFilesOf(forcedDoc)).toEqual([
+      { path: PLAYGROUND_APP_PATHS.ios, outcome: 'created', step: 'playground-app' },
+    ])
+    expect(readdirSync(join(project.root, 'app-bundles'))).toEqual(['Playground.app'])
+    expect(nextCommandsOf(forcedDoc)).toContain(RUN_IOS_STARTER)
   })
 
   it("adds no app-bundles line to the project's .gitignore", async () => {

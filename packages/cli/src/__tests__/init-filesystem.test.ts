@@ -34,6 +34,7 @@ import {
   KNOWLEDGE_GITIGNORE_PROBES,
   TARGET_GITIGNORE_PROBES,
   managedBlockLockPath,
+  moveFolderInsideRoot,
   preflightInitPlan,
   removeFolderInsideRoot,
   upsertManagedGitignoreBlock,
@@ -2671,5 +2672,132 @@ describe('removing a folder inside the project', () => {
 
     expect(() => removeFolderInsideRoot({ path: join(outside, 'Playground.app'), root })).toThrow()
     expect(readFileSync(join(outside, 'Playground.app', 'Info.plist'), 'utf8')).toBe('outside\n')
+  })
+})
+
+describe('moving a folder inside the project', () => {
+  function appFolder(root: string, name: string): string {
+    const folder = join(root, 'app-bundles', name)
+    mkdirSync(join(folder, 'Frameworks'), { recursive: true })
+    writeFileSync(join(folder, 'Info.plist'), 'plist\n')
+    writeFileSync(join(folder, 'Frameworks', 'hermesvm'), 'executable\n')
+    return folder
+  }
+
+  it('moves a folder with the files and folders inside it to a path that is free', () => {
+    const root = tempRoot()
+    const from = appFolder(root, '.Playground.app.tmp')
+    const to = join(root, 'app-bundles', 'Playground.app')
+
+    moveFolderInsideRoot({ from, to, root })
+
+    expect(readdirSync(join(root, 'app-bundles'))).toEqual(['Playground.app'])
+    expect(readFileSync(join(to, 'Info.plist'), 'utf8')).toBe('plist\n')
+    expect(readFileSync(join(to, 'Frameworks', 'hermesvm'), 'utf8')).toBe('executable\n')
+  })
+
+  it('refuses a destination that is an empty folder and leaves both folders', () => {
+    const root = tempRoot()
+    const from = appFolder(root, '.Playground.app.tmp')
+    const to = join(root, 'app-bundles', 'Playground.app')
+    mkdirSync(to)
+
+    const error = capturedRefusal(() => moveFolderInsideRoot({ from, to, root }))
+
+    expect(isInitRefusal(error)).toBe(true)
+    expect(readdirSync(to)).toEqual([])
+    expect(readFileSync(join(from, 'Info.plist'), 'utf8')).toBe('plist\n')
+  })
+
+  it('refuses a regular file with an init refusal and leaves it', () => {
+    const root = tempRoot()
+    const file = join(root, 'Playground.app')
+    writeFileSync(file, 'not a folder\n')
+
+    const error = capturedRefusal(() =>
+      moveFolderInsideRoot({ from: file, to: join(root, 'Moved.app'), root }),
+    )
+
+    expect(isInitRefusal(error)).toBe(true)
+    expect(readFileSync(file, 'utf8')).toBe('not a folder\n')
+    expect(existsSync(join(root, 'Moved.app'))).toBe(false)
+  })
+
+  it('throws when nothing is at the path and makes nothing', () => {
+    const root = tempRoot()
+
+    expect(() =>
+      moveFolderInsideRoot({
+        from: join(root, 'Playground.app'),
+        to: join(root, 'Moved.app'),
+        root,
+      }),
+    ).toThrow()
+    expect(readdirSync(root)).toEqual([])
+  })
+
+  it.skipIf(isWindows)('refuses a symbolic link to a folder and leaves the link', () => {
+    const root = tempRoot()
+    const target = tempRoot()
+    writeFileSync(join(target, 'Info.plist'), 'outside\n')
+    const link = join(root, 'Playground.app')
+    symlinkSync(target, link)
+
+    const error = capturedRefusal(() =>
+      moveFolderInsideRoot({ from: link, to: join(root, 'Moved.app'), root }),
+    )
+
+    expect(isInitRefusal(error)).toBe(true)
+    expect(lstatSync(link).isSymbolicLink()).toBe(true)
+    expect(existsSync(join(root, 'Moved.app'))).toBe(false)
+  })
+
+  it.skipIf(isWindows)(
+    'refuses a parent that is a symbolic link, on either side, and moves nothing through it',
+    () => {
+      const root = tempRoot()
+      const elsewhere = tempRoot()
+      mkdirSync(join(elsewhere, 'Playground.app'))
+      writeFileSync(join(elsewhere, 'Playground.app', 'Info.plist'), 'outside\n')
+      symlinkSync(elsewhere, join(root, 'linked'))
+      const inside = appFolder(root, 'Playground.app')
+
+      const out = capturedRefusal(() =>
+        moveFolderInsideRoot({ from: inside, to: join(root, 'linked', 'Moved.app'), root }),
+      )
+      const back = capturedRefusal(() =>
+        moveFolderInsideRoot({
+          from: join(root, 'linked', 'Playground.app'),
+          to: join(root, 'Moved.app'),
+          root,
+        }),
+      )
+
+      expect(isInitRefusal(out)).toBe(true)
+      expect(isInitRefusal(back)).toBe(true)
+      expect(readdirSync(elsewhere)).toEqual(['Playground.app'])
+      expect(readFileSync(join(inside, 'Info.plist'), 'utf8')).toBe('plist\n')
+      expect(existsSync(join(root, 'Moved.app'))).toBe(false)
+    },
+  )
+
+  it('throws for a folder outside the project and for a destination outside it', () => {
+    const root = tempRoot()
+    const outside = tempRoot()
+    mkdirSync(join(outside, 'Playground.app'))
+    const inside = appFolder(root, 'Playground.app')
+
+    expect(() =>
+      moveFolderInsideRoot({
+        from: join(outside, 'Playground.app'),
+        to: join(root, 'In.app'),
+        root,
+      }),
+    ).toThrow()
+    expect(() =>
+      moveFolderInsideRoot({ from: inside, to: join(outside, 'Out.app'), root }),
+    ).toThrow()
+    expect(readdirSync(outside)).toEqual(['Playground.app'])
+    expect(readdirSync(root)).toEqual(['app-bundles'])
   })
 })

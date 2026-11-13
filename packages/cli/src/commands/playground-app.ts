@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto'
-import { basename, dirname, join, resolve, sep } from 'node:path'
+import { createHash, randomUUID } from 'node:crypto'
+import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { inflateRawSync } from 'node:zlib'
 
 import { writeScaffoldFileAtomic, type InitFileResult } from './init-filesystem.js'
@@ -127,6 +127,7 @@ function zipEntries(archive: Uint8Array): ZipEntry[] {
 }
 
 interface AppFile {
+  // Inside the app's folder.
   path: string
   bytes: Uint8Array
   mode: number
@@ -139,8 +140,10 @@ function appFiles(archive: Uint8Array, folder: string): AppFile[] {
     const path = resolve(dirname(folder), entry.name)
     const inside = path.startsWith(`${folder}${sep}`) || (entry.directory && path === folder)
     if (!inside) throw new Error(`${entry.name} is outside ${basename(folder)}`)
-    if (!entry.directory) files.push({ path, bytes: entry.bytes, mode: entry.mode & 0o777 })
+    if (entry.directory) continue
+    files.push({ path: relative(folder, path), bytes: entry.bytes, mode: entry.mode & 0o777 })
   }
+  if (files.length === 0) throw new Error('it holds no file')
   return files
 }
 
@@ -151,6 +154,7 @@ export interface PlaygroundAppsInput {
   fetch: PlaygroundAppFetch
   exists: (path: string) => boolean
   removeFolder: (path: string) => void
+  moveFolder: (from: string, to: string) => void
   force: boolean
   signal: AbortSignal
   record: (result: InitFileResult) => void
@@ -207,6 +211,47 @@ async function downloadAndroid(input: PlaygroundAppsInput): Promise<void> {
   )
 }
 
+// A name the .gitignore rule init writes for its temporaries covers.
+function temporaryBeside(folder: string): string {
+  return join(
+    dirname(folder),
+    `.${basename(folder)}.agent-qa-init-${process.pid}-${randomUUID()}.tmp`,
+  )
+}
+
+function removeTemporary(input: PlaygroundAppsInput, folder: string): void {
+  try {
+    input.removeFolder(folder)
+  } catch (error) {
+    // A removal refused before the folder was made leaves nothing to report.
+    if (!input.exists(folder)) return
+    process.emitWarning(
+      `agent-qa init could not remove its temporary folder ${folder} (${messageOf(error)}). ` +
+        'Delete it.',
+    )
+  }
+}
+
+// The older build is moved aside whole, and moved back when the new one cannot take its place.
+function replaceFolder(input: PlaygroundAppsInput, staging: string, folder: string): void {
+  const retired = temporaryBeside(folder)
+  input.moveFolder(folder, retired)
+  try {
+    input.moveFolder(staging, folder)
+  } catch (error) {
+    try {
+      input.moveFolder(retired, folder)
+    } catch (restoreError) {
+      throw new Error(
+        `${messageOf(error)}, and the build that was there is now ${retired} ` +
+          `(${messageOf(restoreError)})`,
+      )
+    }
+    throw error
+  }
+  removeTemporary(input, retired)
+}
+
 async function downloadIOS(input: PlaygroundAppsInput): Promise<void> {
   const folder = join(input.dir, PLAYGROUND_APP_PATHS.ios)
   const present = input.exists(folder)
@@ -221,20 +266,27 @@ async function downloadIOS(input: PlaygroundAppsInput): Promise<void> {
   } catch (error) {
     throw new Error(`its archive cannot be used (${messageOf(error)})`)
   }
-  // Only a forced download gets here with the folder present; it replaces the folder as a whole,
-  // so no file of the older build stays.
-  if (present) input.removeFolder(folder)
-  for (const file of files) {
-    writeScaffoldFileAtomic(
-      {
-        root: input.dir,
-        path: file.path,
-        content: file.bytes,
-        force: input.force,
-        ...(file.mode === 0 ? {} : { mode: file.mode }),
-      },
-      {},
-    )
+  // The build is unpacked beside its folder and moved in whole, so Playground.app is a complete
+  // build or the one that was there, and never part of one.
+  const staging = temporaryBeside(folder)
+  try {
+    for (const file of files) {
+      writeScaffoldFileAtomic(
+        {
+          root: input.dir,
+          path: join(staging, file.path),
+          content: file.bytes,
+          ...(file.mode === 0 ? {} : { mode: file.mode }),
+        },
+        {},
+      )
+    }
+    // Only a forced download gets here with the folder present.
+    if (present) replaceFolder(input, staging, folder)
+    else input.moveFolder(staging, folder)
+  } catch (error) {
+    removeTemporary(input, staging)
+    throw error
   }
   input.record({ path: folder, outcome: present ? 'updated' : 'created' })
 }

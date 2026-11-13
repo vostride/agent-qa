@@ -53,6 +53,7 @@ vi.mock('../commands/init-filesystem.js', async () => {
       path: plan.path,
       classification: fs.existsSync(plan.path) ? 'regular' : 'missing',
     }))),
+    moveFolderInsideRoot: vi.fn(),
     writeScaffoldFileAtomic: vi.fn(writePlan),
     writeConfigMarkerLast: vi.fn(writePlan),
     upsertManagedGitignoreBlock: vi.fn((path: string) => {

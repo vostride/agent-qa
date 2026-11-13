@@ -8,11 +8,15 @@ import {
   symlinkSync,
   writeFileSync,
 } from 'node:fs'
-import { dirname, join, sep } from 'node:path'
+import { basename, dirname, join, sep } from 'node:path'
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { removeFolderInsideRoot, type InitFileResult } from '../commands/init-filesystem.js'
+import {
+  moveFolderInsideRoot,
+  removeFolderInsideRoot,
+  type InitFileResult,
+} from '../commands/init-filesystem.js'
 import {
   downloadPlaygroundApps,
   fetchReleaseAsset,
@@ -37,6 +41,8 @@ const APK = 'playground-android-26.11.02-1ba82a3.apk'
 const ZIP = 'playground-ios-simulator-26.11.02-1ba82a3.zip'
 const RELEASE = 'mobile-26.11.02-1ba82a3'
 const REPOSITORY = 'github.com/vostride/playground'
+// A folder init unpacks into or moves the older build to, beside Playground.app.
+const TEMPORARY = /^\.Playground\.app\.agent-qa-init-\d+-[0-9a-f-]{36}\.tmp$/u
 
 function text(value: string): Uint8Array {
   return new TextEncoder().encode(value)
@@ -44,6 +50,7 @@ function text(value: string): Uint8Array {
 
 afterEach(() => {
   cleanupTempProjects()
+  vi.restoreAllMocks()
 })
 
 async function download(
@@ -63,6 +70,9 @@ async function download(
     removeFolder: (path) => {
       removals.push({ path, requested: app.requests.map((request) => request.url) })
       removeFolderInsideRoot({ path, root })
+    },
+    moveFolder: (from, to) => {
+      moveFolderInsideRoot({ from, to, root })
     },
     force: false,
     signal: new AbortController().signal,
@@ -421,6 +431,11 @@ describe('downloading the Playground app for iOS', () => {
       says: 'it is a zip64 archive',
     },
     {
+      label: 'an archive that holds folders and no file',
+      archive: () => buildZip([{ name: 'Playground.app/', bytes: new Uint8Array() }]),
+      says: 'it holds no file',
+    },
+    {
       label: 'bytes with no end record',
       archive: () => buildZip([valid]).subarray(0, -22),
       says: 'it has no end record',
@@ -487,7 +502,10 @@ describe('downloading the Playground app for iOS', () => {
 
     const url = playgroundAppUrl(app.source.pin, 'ios')
     expect(app.requests.map((request) => request.url)).toEqual([url])
-    expect(removals).toEqual([{ path: folder, requested: [url] }])
+    // The older build is removed from the folder it was moved to, after the request.
+    expect(removals).toEqual([{ path: expect.any(String), requested: [url] }])
+    expect(dirname(removals[0]?.path ?? '')).toBe(join(root, 'app-bundles'))
+    expect(basename(removals[0]?.path ?? '')).toMatch(TEMPORARY)
     expect(existsSync(old)).toBe(false)
     expect(existsSync(dirname(old))).toBe(false)
     expect(entriesUnder(join(root, 'app-bundles'))).toEqual(
@@ -551,17 +569,85 @@ describe('downloading the Playground app for iOS', () => {
     expect(recorded).toEqual([])
   })
 
-  it('with force returns a removal that throws as a failure and writes no file of the new build', async () => {
+  // A file at Info.plist and a file under it: the second cannot be written once the first is.
+  function archiveWhoseSecondFileCannotBeWritten(): Uint8Array {
+    return buildZip([valid, { name: 'Playground.app/Info.plist/inner', bytes: text('inner\n') }])
+  }
+
+  it('leaves no Playground.app and no temporary folder when a file of the build cannot be written, and the next download asks for the build again', async () => {
+    const { root } = tempProject('playground-app')
+    const crafted = archiveWhoseSecondFileCannotBeWritten()
+
+    const failed = await download(root, fakePlaygroundApp({ ios: crafted }), {
+      runtimes: ['ios'],
+      pin: pinnedTo(crafted),
+    })
+
+    expect(failed.result).toEqual({
+      arrived: [],
+      failures: [{ runtime: 'ios', reason: expect.stringMatching(/ parent .+Info\.plist/u) }],
+    })
+    expect(failed.recorded).toEqual([])
+    expect(readdirSync(join(root, 'app-bundles'))).toEqual([])
+
+    const app = fakePlaygroundApp()
+    const next = await download(root, app, { runtimes: ['ios'] })
+
+    expect(app.requests.map((request) => request.url)).toEqual([
+      playgroundAppUrl(app.source.pin, 'ios'),
+    ])
+    expect(next.result).toEqual({ arrived: ['ios'], failures: [] })
+    expect(next.recorded).toEqual([
+      { path: join(root, 'app-bundles', 'Playground.app'), outcome: 'created' },
+    ])
+    expect(entriesUnder(join(root, 'app-bundles'))).toEqual(
+      fakePlaygroundIosEntries()
+        .map((entry) => entry.name.replace(/\/$/u, ''))
+        .sort(),
+    )
+  })
+
+  it('with force leaves the Playground.app that is there byte for byte and no temporary folder when a file of the new build cannot be written, and the next download keeps it', async () => {
     const { root } = tempProject('playground-app')
     const folder = olderPlaygroundApp(root)
     const before = filesUnder(folder)
-    const app = fakePlaygroundApp()
+    const crafted = archiveWhoseSecondFileCannotBeWritten()
 
-    const { result, recorded } = await download(root, app, {
+    const failed = await download(root, fakePlaygroundApp({ ios: crafted }), {
       runtimes: ['ios'],
       force: true,
-      removeFolder: () => {
-        throw new Error('the folder is held open by another process')
+      pin: pinnedTo(crafted),
+    })
+
+    expect(failed.result).toEqual({
+      arrived: [],
+      failures: [{ runtime: 'ios', reason: expect.stringMatching(/ parent .+Info\.plist/u) }],
+    })
+    expect(failed.recorded).toEqual([])
+    expect(readdirSync(join(root, 'app-bundles'))).toEqual(['Playground.app'])
+    expect(filesUnder(folder)).toEqual(before)
+
+    const app = fakePlaygroundApp()
+    const next = await download(root, app, { runtimes: ['ios'] })
+
+    expect(app.requests).toEqual([])
+    expect(next.recorded).toEqual([{ path: folder, outcome: 'preserved' }])
+    expect(filesUnder(folder)).toEqual(before)
+  })
+
+  it('with force puts the Playground.app that was there back byte for byte when the new build cannot be moved into its place', async () => {
+    const { root } = tempProject('playground-app')
+    const folder = olderPlaygroundApp(root)
+    const before = filesUnder(folder)
+    let moves = 0
+
+    const { result, recorded } = await download(root, fakePlaygroundApp(), {
+      runtimes: ['ios'],
+      force: true,
+      moveFolder: (from, to) => {
+        moves += 1
+        if (moves === 2) throw new Error('the folder is held open by another process')
+        moveFolderInsideRoot({ from, to, root })
       },
     })
 
@@ -574,8 +660,78 @@ describe('downloading the Playground app for iOS', () => {
         },
       ],
     })
+    expect(moves).toBe(3)
+    expect(readdirSync(join(root, 'app-bundles'))).toEqual(['Playground.app'])
     expect(filesUnder(folder)).toEqual(before)
     expect(recorded).toEqual([])
+  })
+
+  it('with force names the folder that holds the older build when it cannot be put back', async () => {
+    const { root } = tempProject('playground-app')
+    const before = filesUnder(olderPlaygroundApp(root))
+    let moves = 0
+
+    const { result, recorded } = await download(root, fakePlaygroundApp(), {
+      runtimes: ['ios'],
+      force: true,
+      moveFolder: (from, to) => {
+        moves += 1
+        if (moves === 2) throw new Error('the new build could not be moved')
+        if (moves === 3) throw new Error('the older build could not be moved back')
+        moveFolderInsideRoot({ from, to, root })
+      },
+    })
+
+    const left = readdirSync(join(root, 'app-bundles'))
+    expect(left).toEqual([expect.stringMatching(TEMPORARY)])
+    const kept = join(root, 'app-bundles', left[0] ?? '')
+    expect(filesUnder(kept)).toEqual(before)
+    expect(result).toEqual({
+      arrived: [],
+      failures: [
+        {
+          runtime: 'ios',
+          reason: expect.stringContaining(
+            'the new build could not be moved, and the build that was there is now ' +
+              `${kept} (the older build could not be moved back). It is ${ZIP}`,
+          ),
+        },
+      ],
+    })
+    expect(recorded).toEqual([])
+  })
+
+  it('with force keeps the new build and warns where the older one is when the older one cannot be removed', async () => {
+    const { root } = tempProject('playground-app')
+    const folder = olderPlaygroundApp(root)
+    const before = filesUnder(folder)
+    const warned = vi.spyOn(process, 'emitWarning').mockImplementation(() => undefined)
+
+    const { result, recorded } = await download(root, fakePlaygroundApp(), {
+      runtimes: ['ios'],
+      force: true,
+      removeFolder: () => {
+        throw new Error('the folder is held open by another process')
+      },
+    })
+
+    expect(result).toEqual({ arrived: ['ios'], failures: [] })
+    expect(recorded).toEqual([{ path: folder, outcome: 'updated' }])
+    for (const entry of fakePlaygroundIosEntries()) {
+      if (entry.name.endsWith('/')) continue
+      const path = join(root, 'app-bundles', entry.name)
+      expect(readFileSync(path), entry.name).toEqual(Buffer.from(entry.bytes))
+    }
+    const left = readdirSync(join(root, 'app-bundles')).filter((name) => name !== 'Playground.app')
+    expect(left).toEqual([expect.stringMatching(TEMPORARY)])
+    const kept = join(root, 'app-bundles', left[0] ?? '')
+    expect(filesUnder(kept)).toEqual(before)
+    expect(warned.mock.calls).toEqual([
+      [
+        `agent-qa init could not remove its temporary folder ${kept} ` +
+          '(the folder is held open by another process). Delete it.',
+      ],
+    ])
   })
 
   it('with force removes and writes nothing through an app-bundles that links out of the project', async () => {
