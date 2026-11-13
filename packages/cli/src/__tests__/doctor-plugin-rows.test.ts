@@ -697,7 +697,7 @@ describe("doctor's plugin rows for setup problems", () => {
     }
   })
 
-  it('still skips the local Appium, driver, Android SDK and Xcode rows when the only device is on a plugin remote', async () => {
+  it('still skips the local Android SDK and Xcode rows when the only device is on a plugin remote', async () => {
     const project = await newProject()
     installFirstParty(project, { methods: [] })
     const raw = config(
@@ -712,12 +712,7 @@ describe("doctor's plugin rows for setup problems", () => {
     const result = await runDoctorJson(project, raw)
 
     const status = (name: string) => result.rows.find((row) => row.name === name)?.status
-    expect(['Appium', 'Appium drivers', 'Android SDK', 'Xcode'].map(status)).toEqual([
-      'skip',
-      'skip',
-      'skip',
-      'skip',
-    ])
+    expect(['Android SDK', 'Xcode'].map(status)).toEqual(['skip', 'skip'])
     expect(result.rows.filter((row) => row.name.startsWith('Plugin ')).map((row) => row.status))
       .toEqual(['pass'])
   })

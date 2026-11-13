@@ -15,7 +15,6 @@ import { pinProcessTmpdir, removeTempRoots, type PinnedTmpdir } from './temp-roo
 vi.mock('node:child_process', async (importOriginal) => ({
   ...(await importOriginal<typeof import('node:child_process')>()),
   execSync: vi.fn(() => Buffer.from('Version 1.64.1')),
-  execFileSync: vi.fn(() => Buffer.from('')),
 }))
 
 vi.mock('@vostride/agent-qa-runner-local', () => ({
