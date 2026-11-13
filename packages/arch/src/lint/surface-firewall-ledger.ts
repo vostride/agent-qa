@@ -148,6 +148,12 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'project scaffolding writes config and model defaults; joins the config mutation class',
   },
   {
+    file: 'packages/cli/src/commands/init-devices.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: "init picks one device per mobile runtime and checks the entry it writes with core's finder, the one a run uses; joins the config mutation class with init",
+  },
+  {
     file: 'packages/cli/src/commands/init-model-choice.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',
