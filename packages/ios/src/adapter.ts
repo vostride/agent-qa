@@ -1,3 +1,5 @@
+import type { AppiumServer } from '@vostride/agent-qa-appium-runtime'
+import { startAppiumServer } from '@vostride/agent-qa-appium-runtime'
 import type {
   ActionsFor,
   ActionResult,
@@ -392,6 +394,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   private readsAtLoweredDepth = 0
   private snapshotDepthWarned = false
   private remote: RemoteDeviceConfig | undefined
+  private startedAppium: AppiumServer | undefined
   private deviceName = 'ios'
   private place: RemotePlaceEvidence | undefined
   private heartbeat: RemoteHeartbeat | undefined
@@ -408,6 +411,15 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
   private link: string | undefined
 
   async setup(config: PlatformConfig): Promise<void> {
+    try {
+      await this.openSession(config)
+    } catch (error) {
+      await this.stopStartedAppium()
+      throw error
+    }
+  }
+
+  private async openSession(config: PlatformConfig): Promise<void> {
     this.config = config as IOSAdapterConfig
     this.captureConsole = config.logCapture?.console !== false
     this.bundleId = this.config.bundleId ?? null
@@ -441,6 +453,12 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
       this.remote = leased.remote
       this.lease = leased.lease
       this.releaseLease = leased.release
+    } else if (configured === undefined && this.config.appiumUrl === undefined) {
+      this.startedAppium = await this.startAppium(config.device?.name)
+      this.driver = await createIOSSession(
+        { ...this.config, appiumUrl: this.startedAppium.url },
+        sessionOptions,
+      )
     } else {
       this.remote = configured
       this.driver = await createIOSSession(this.config, sessionOptions)
@@ -509,6 +527,26 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     }
   }
 
+  private async startAppium(deviceName: string | undefined): Promise<AppiumServer> {
+    try {
+      return await (this.options.startAppium ?? startAppiumServer)()
+    } catch (error) {
+      throw new MobileSetupError({
+        category: 'appium-startup',
+        message: `Could not start Appium: ${error instanceof Error ? error.message : String(error)}`,
+        platform: 'ios',
+        deviceName,
+        cause: error,
+      })
+    }
+  }
+
+  private async stopStartedAppium(): Promise<void> {
+    const appium = this.startedAppium
+    this.startedAppium = undefined
+    await appium?.stop()
+  }
+
   async cleanup(): Promise<void> {
     try { await this.liveStreamCapability?.stop() } catch { /* best-effort */ }
     this.liveStreamCapability = undefined
@@ -536,6 +574,7 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
         // session may already be closed
       }
     }
+    await this.stopStartedAppium()
     // A leased device goes back to its plugin after its session is deleted.
     const releaseLease = this.releaseLease
     this.lease = undefined

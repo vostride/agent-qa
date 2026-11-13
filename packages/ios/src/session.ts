@@ -5,6 +5,7 @@ import {
   createPluginDeviceSession,
   createRemoteDeviceRequestBounds,
   mergeCapabilities,
+  MobileSetupError,
   REMOTE_COMMAND_BOUND_MS,
   referencedSecretNames,
   refuseLeakingDeviceLogs,
@@ -46,10 +47,9 @@ export function resolveIOSSnapshotDepth(): number {
 }
 
 const REMOTE_NEW_COMMAND_TIMEOUT_S = 90
-const LOCAL_APPIUM_URL = 'http://localhost:4723'
 
-function localEndpoint(appiumUrl: string | undefined) {
-  const url = new URL(appiumUrl ?? LOCAL_APPIUM_URL)
+function localEndpoint(appiumUrl: string) {
+  const url = new URL(appiumUrl)
   const protocol = url.protocol === 'https:' ? 'https' : 'http'
   return {
     protocol,
@@ -234,6 +234,14 @@ export async function createIOSSession(
   if (remoteDevice !== undefined) return createRemoteIOSSession(config, remoteDevice, options)
 
   const profile = config.device
+  if (config.appiumUrl === undefined) {
+    throw new MobileSetupError({
+      category: 'appium-startup',
+      message: `Device ${profile?.name ?? 'ios'} is on this machine and was given no Appium URL; its session opens through the iOS adapter, which starts Appium.`,
+      platform: 'ios',
+      deviceName: profile?.name,
+    })
+  }
   const here = profile?.here
   const stated = profile?.capabilities
   const browserName = browserModeName(config)
