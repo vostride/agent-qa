@@ -107,6 +107,7 @@ import {
   type InitStepRunner,
 } from './init-steps.js'
 import { runInitRerun } from './init-rerun.js'
+import { findInitDevices } from './init-devices.js'
 import { configuredPackages } from './setup-rows.js'
 import { askLatestVersionByDefault, type LatestVersionAsk } from './latest-version-ask.js'
 import { findChromiumByDefault, type ChromiumResolver } from './browser-resolver.js'
@@ -629,6 +630,10 @@ export interface InitCommandHooks {
   // The default downloads the pinned Playground release from GitHub.
   playgroundApp?: PlaygroundAppSource
 }
+
+// The run module is large, so init loads it only to list a chosen mobile runtime's devices.
+const listDevicesHereByDefault: DevicesHereLister = async (platform) =>
+  await (await import('./run.js')).listDevicesHereByDefault(platform)
 
 // The streams the Clack rail reads and draws on: stdin and stderr in production.
 export interface InitRail {
@@ -1305,9 +1310,16 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         }
         recorder.agents(agents)
 
+        const { devices, lines: deviceLines } = await findInitDevices(
+          mobileRuntimesOf(platform),
+          hooks.listDevicesHere ?? listDevicesHereByDefault,
+        )
         const config = buildDefaultConfig(
           platform,
           modelSetup.entry === undefined ? [] : [modelSetup.entry],
+          undefined,
+          undefined,
+          devices,
         )
         const agentQaVersion = agentQaAfterInstall(packageJson.text, runningVersion)
         const dependencies = projectDependencies({
@@ -1481,9 +1493,11 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             { title: 'Writing the scaffold' },
             writeScaffold,
           )
-          // AFTER the config marker — the scaffold's last write — so the event describes a
-          // project that exists rather than one being attempted.
           if (scaffold.outcome === 'done') {
+            // Drawn only once the config that holds the devices is written.
+            for (const line of deviceLines) ui.line(line)
+            // AFTER the config marker — the scaffold's last write — so the event describes a
+            // project that exists rather than one being attempted.
             await emitInitCompleted(asked ? 'interactive' : 'scaffold', outcomes)
           }
           await runner.run('install', { title: 'Installing dependencies' }, install)

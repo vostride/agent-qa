@@ -9,7 +9,8 @@ import {
   type SimulatorHere,
 } from '@vostride/agent-qa-core'
 
-import { pickDeviceHere, type PickedDevice } from '../commands/init-devices.js'
+import { findInitDevices, pickDeviceHere, type PickedDevice } from '../commands/init-devices.js'
+import type { DevicesHereLister } from '../commands/run.js'
 
 function avd(name: string, os?: string, extra: Partial<AvdHere> = {}): AvdHere {
   return {
@@ -419,5 +420,126 @@ describe('pickDeviceHere among several simulators', () => {
     expect(pick).toEqual({ ...iphonePicked, profile: { ...iphonePicked.profile, id: firstUdid } })
     expect(pickDeviceHere('ios', { simulators: [...listing.simulators].reverse() })).toEqual(pick)
     expectRunFinds(pick, listing, { udid: firstUdid })
+  })
+})
+
+describe('findInitDevices', () => {
+  const pixel = avd('Pixel_10_Pro', '17')
+  const iphone = simulator('iPhone 18 Pro', '27.0', { state: 'Booted' })
+
+  // Answers each runtime with its listing, or throws the error given for it.
+  function lister(answers: { android?: AndroidHere | Error; ios?: IOSHere | Error }): {
+    list: DevicesHereLister
+    listed: string[]
+  } {
+    const listed: string[] = []
+    const list: DevicesHereLister = async (platform) => {
+      listed.push(platform)
+      const answer = answers[platform]
+      if (answer === undefined) throw new Error(`no ${platform} listing was handed in`)
+      if (answer instanceof Error) throw answer
+      return answer
+    }
+    return { list, listed }
+  }
+
+  it('picks one device per runtime and names its model, OS and entry in one line each', async () => {
+    const { list } = lister({
+      android: { attached: [], avds: [pixel] },
+      ios: { simulators: [iphone] },
+    })
+
+    const found = await findInitDevices(['android', 'ios'], list)
+
+    expect(found.lines).toEqual([
+      'Android device: Pixel 10 Pro (Android 17) as android-emulator-pixel-10-pro-17',
+      'iOS device: iPhone 18 Pro (iOS 27.0) as ios-simulator-iphone-18-pro-27.0',
+    ])
+    expect(found.devices).toEqual({
+      android: {
+        name: 'android-emulator-pixel-10-pro-17',
+        profile: { platform: 'android', model: 'Pixel 10 Pro', os: '17' },
+      },
+      ios: {
+        name: 'ios-simulator-iphone-18-pro-27.0',
+        profile: { platform: 'ios', model: 'iPhone 18 Pro', os: '27.0' },
+      },
+    })
+  })
+
+  it('leaves the brackets out of the line of a pick with no OS', async () => {
+    const { list } = lister({ android: { attached: [], avds: [avd('Pixel_6')] } })
+
+    const found = await findInitDevices(['android'], list)
+
+    expect(found.lines).toEqual(['Android device: Pixel 6 as android-emulator-pixel-6'])
+  })
+
+  it('prints a model without its escape sequence and newline, and keeps the entry as listed', async () => {
+    const displayName = 'Pixel \u001b[31m10\u001b[0m Pro\n'
+    const listing: AndroidHere = {
+      attached: [],
+      avds: [avd('Pixel_10_Pro', '17', { displayName })],
+    }
+
+    const found = await findInitDevices(['android'], lister({ android: listing }).list)
+
+    expect(found.lines).toEqual([
+      'Android device: Pixel 10 Pro (Android 17) as android-emulator-pixel-31m10-0m-pro-17',
+    ])
+    expect(found.devices.android?.profile.model).toBe(displayName)
+  })
+
+  it('prints a listing problem and a lister error without their control characters', async () => {
+    const { list } = lister({
+      android: new Error('adb \u001b[31mexited 1\u001b[0m\n'),
+      ios: { simulators: [], problem: 'xcrun simctl failed: \u0007busy' },
+    })
+
+    const found = await findInitDevices(['android', 'ios'], list)
+
+    expect(found.devices).toEqual({})
+    expect(found.lines).toEqual([
+      "Android device: none found (could not list this machine's devices: adb exited 1). " +
+        'Describe one under registry.devices and set device on ' +
+        'registry.targets.playground-android once this machine has one.',
+      'iOS device: none found (xcrun simctl failed: busy). Describe one under registry.devices ' +
+        'and set device on registry.targets.playground-ios once this machine has one.',
+    ])
+  })
+
+  it('lists the runtimes in the order given, once each', async () => {
+    const { list, listed } = lister({
+      android: { attached: [], avds: [pixel] },
+      ios: { simulators: [iphone] },
+    })
+
+    const found = await findInitDevices(['ios', 'android'], list)
+
+    expect(listed).toEqual(['ios', 'android'])
+    expect(found.lines.map((line) => line.slice(0, line.indexOf(':')))).toEqual([
+      'iOS device',
+      'Android device',
+    ])
+  })
+
+  it('does not say none was found when the machine lists emulators or simulators it cannot pick', async () => {
+    const { list } = lister({
+      android: {
+        attached: [emulatorOf(pixel, 'emulator-5554', { state: 'offline' })],
+        avds: [pixel],
+      },
+      ios: { simulators: [simulator('iPhone 17 Pro', '26.0', { available: false })] },
+    })
+
+    const found = await findInitDevices(['android', 'ios'], list)
+
+    expect(found.devices).toEqual({})
+    expect(found.lines).toEqual([
+      "Android device: none of this machine's emulators could be picked. Describe one under " +
+        'registry.devices and set device on registry.targets.playground-android.',
+      "iOS device: none of this machine's simulators could be picked. Describe one under " +
+        'registry.devices and set device on registry.targets.playground-ios.',
+    ])
   })
 })
