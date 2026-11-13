@@ -15,6 +15,7 @@ import { fakeInitUi, type FakeInitUi } from './fake-init-ui.js'
 import {
   cleanupTempProjects,
   fakeRunner,
+  mobileInitFakes,
   skillFolderFiles,
   tempProject,
   writeInstalledPackage,
@@ -53,6 +54,7 @@ async function init(
     host: { homedir: home, env: {}, run: options.run ?? fakeRunner() },
     isTTY: options.isTTY ?? false,
     composeAnalytics: silentAnalytics,
+    ...mobileInitFakes().hooks,
     ...(options.ui === undefined ? {} : { ui: options.ui }),
   })
   parent.exitOverride()
@@ -218,6 +220,7 @@ describe('a fresh init draws one line per step', () => {
       host: { homedir: home, env: {}, run },
       isTTY: false,
       composeAnalytics: silentAnalytics,
+      ...mobileInitFakes().hooks,
       ui,
       afterWrite: (result) => {
         if (result.path.endsWith('package.json')) throw new Error('EACCES: permission denied')
@@ -254,6 +257,7 @@ describe('a fresh init draws one line per step', () => {
       host: { homedir: home, env: {}, run },
       isTTY: true,
       composeAnalytics: silentAnalytics,
+      ...mobileInitFakes().hooks,
       ui,
       dashboardPort: {
         probe: async () => {

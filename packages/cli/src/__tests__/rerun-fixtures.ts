@@ -15,6 +15,7 @@ import { createPlainUi } from '../init-ui/plain-ui.js'
 import { fakeInitUi, type FakeInitUiEntry } from './fake-init-ui.js'
 import {
   fakeRunner,
+  mobileInitFakes,
   skillFolderFiles,
   tempProject,
   writeInstalledPackage,
@@ -100,6 +101,7 @@ async function runInit(
           chromium: foundChromium,
           latestVersion: noLatestVersion,
           dashboardPort: freeDashboardPort,
+          ...mobileInitFakes().hooks,
           ...options.hooks,
           host: {
             homedir: project.home,

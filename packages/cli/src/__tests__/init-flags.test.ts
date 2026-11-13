@@ -22,6 +22,7 @@ import { fakeInitUi, type FakeInitUi } from './fake-init-ui.js'
 import {
   cleanupTempProjects,
   fakeRunner,
+  mobileInitFakes,
   tempProject,
   type FakeRunner,
 } from './project-fixtures.js'
@@ -42,6 +43,7 @@ async function initInATerminal(args: readonly string[], ui: FakeInitUi): Promise
     host: { homedir: home, env: {}, run: fakeRunner() },
     isTTY: true,
     composeAnalytics: silentAnalytics,
+    ...mobileInitFakes().hooks,
     ui,
   })
   parent.exitOverride()
@@ -255,6 +257,7 @@ async function initWithFlags(
     host: { homedir: home, env: {}, run },
     isTTY: false,
     composeAnalytics: silentAnalytics,
+    ...mobileInitFakes().hooks,
     ui,
   })
   parent.exitOverride()
