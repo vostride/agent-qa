@@ -590,17 +590,19 @@ const FORCED_MOBILE_INIT = [
   '--json',
 ]
 
-// A fresh Android and iOS project, then a framework of an older build put inside Playground.app
-// and the APK's bytes changed by hand.
+// A fresh Android and iOS project, then a framework of an older build put inside Playground.app,
+// the APK's bytes changed by hand, and the APK an older pin left under its own file name.
 async function projectWithAnOlderApp(
   label: string,
-): Promise<{ project: InitializedProject; old: string }> {
+): Promise<{ project: InitializedProject; old: string; olderPin: string }> {
   const project = await initializedProject(label, { platform: 'android,ios' })
   const old = join(project.root, PLAYGROUND_APP_PATHS.ios, 'Frameworks', 'old.framework', 'old')
   mkdirSync(dirname(old), { recursive: true })
   writeFileSync(old, 'a framework the new build does not have\n')
   writeFileSync(join(project.root, PLAYGROUND_APP_PATHS.android), 'an older APK\n')
-  return { project, old }
+  const olderPin = join(project.root, 'app-bundles', 'playground-android-26.10.01-0a1b2c3.apk')
+  writeFileSync(olderPin, 'the APK of an older pin\n')
+  return { project, old, olderPin }
 }
 
 describe('the Playground app and the devices on a project that already has a config', () => {
@@ -659,8 +661,8 @@ describe('the Playground app and the devices on a project that already has a con
     expect(registryText(project.root)).toBe(before)
   })
 
-  it('init --force requests both apps again, replaces the APK and leaves Playground.app holding what a fresh init writes and nothing else', async () => {
-    const { project, old } = await projectWithAnOlderApp('force-playground-app')
+  it("init --force requests both apps again, replaces the APK and Playground.app as a whole, and leaves an older pin's APK alone", async () => {
+    const { project, old, olderPin } = await projectWithAnOlderApp('force-playground-app')
     const fresh = await initializedProject('force-playground-app-fresh', {
       platform: 'android,ios',
     })
@@ -683,9 +685,34 @@ describe('the Playground app and the devices on a project that already has a con
     const freshApp = filesUnder(join(fresh.root, PLAYGROUND_APP_PATHS.ios))
     expect(freshApp).not.toEqual({})
     expect(filesUnder(join(project.root, PLAYGROUND_APP_PATHS.ios))).toEqual(freshApp)
+    expect(readFileSync(olderPin, 'utf8')).toBe('the APK of an older pin\n')
     expect(doc.files.filter((file) => file.step === 'playground-app')).toEqual([
       { path: PLAYGROUND_APP_PATHS.android, outcome: 'updated', step: 'playground-app' },
       { path: PLAYGROUND_APP_PATHS.ios, outcome: 'updated', step: 'playground-app' },
     ])
+  })
+
+  it('init --force whose download fails exits 3 and leaves every file in app-bundles as it was', async () => {
+    const { project, old, olderPin } = await projectWithAnOlderApp('force-playground-app-failed')
+    const app = join(project.root, 'app-bundles')
+    const before = snapshot(app)
+    const unreachable = new Error('the network is unreachable')
+    const fakes = mobileInitFakes({}, { android: unreachable, ios: unreachable })
+
+    const result = await rerun(project, FORCED_MOBILE_INIT, { plain: true, hooks: fakes.hooks })
+
+    expect(result.exit, result.stderr).toBe(3)
+    const pin = fakes.hooks.playgroundApp.pin
+    expect(fakes.requests.map((request) => request.url)).toEqual([
+      playgroundAppUrl(pin, 'android'),
+      playgroundAppUrl(pin, 'ios'),
+    ])
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(stepOf(doc, 'playground-app')).toMatchObject({
+      name: 'playground-app',
+      outcome: 'failed',
+    })
+    expect(Object.keys(before)).toEqual(expect.arrayContaining([old, olderPin]))
+    expect(snapshot(app)).toEqual(before)
   })
 })
