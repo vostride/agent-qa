@@ -335,14 +335,13 @@ describe('init command', () => {
     expect(content).not.toContain('  # memory:')
     expect(content).toContain('# Named resource definitions')
     expect(content).toContain(
-      '  # Optional: devices, described by what people call them. agent-qa finds them on this machine.\n  # devices:\n  #   pixel:\n  #     platform: android\n  #     model: Pixel 8\n',
+      '  # Optional: devices, described by what people call them. agent-qa finds them on this machine.\n  # devices:\n  #   android-emulator-pixel-8-15:\n  #     platform: android\n  #     model: Pixel 8\n  #     os: "15"\n',
     )
-    expect(content).not.toContain('android-emu')
     expect(content).toContain('    # my-mobile:')
     expect(content).toContain('    #   appPackage: com.example.app')
     expect(content).toContain('    #   appActivity: .MainActivity')
-    expect(content).toContain('    #     path: apps/example.apk')
-    expect(content).toContain('    #   device: pixel')
+    expect(content).toContain('    #     path: app-bundles/example.apk')
+    expect(content).toContain('    #   device: android-emulator-pixel-8-15')
     expect(content).not.toContain('  # logCapture:')
     expect(content).not.toContain('  #   console: true')
     expect(content).not.toContain('  #   network: true')

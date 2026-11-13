@@ -299,12 +299,13 @@ export function addYamlComments(yamlStr: string): string {
     } else if (line === '    artifactsDir: .agent-qa/artifacts') {
       result += '    # Optional: persist dashboard state to a custom SQLite path.\n'
       result += '    # dbPath: .agent-qa/dashboard.sqlite\n'
-    } else if (line === 'registry:') {
+    } else if (line === 'registry:' && !yamlStr.includes('\n  devices:\n')) {
       result += '  # Optional: devices, described by what people call them. agent-qa finds them on this machine.\n'
       result += '  # devices:\n'
-      result += '  #   pixel:\n'
+      result += '  #   android-emulator-pixel-8-15:\n'
       result += '  #     platform: android\n'
       result += '  #     model: Pixel 8\n'
+      result += '  #     os: "15"\n'
     } else if (line === '  targets:') {
       result += '    # Optional: add more web or mobile targets here.\n'
       result += '    # my-mobile:\n'
@@ -312,8 +313,9 @@ export function addYamlComments(yamlStr: string): string {
       result += '    #   appPackage: com.example.app\n'
       result += '    #   appActivity: .MainActivity\n'
       result += '    #   app:\n'
-      result += '    #     path: apps/example.apk\n'
-      result += '    #   device: pixel # its tests run here unless a suite or test sets use.device\n'
+      result += '    #     path: app-bundles/example.apk\n'
+      result +=
+        '    #   device: android-emulator-pixel-8-15 # its tests run here unless a suite or test sets use.device\n'
     }
   }
 

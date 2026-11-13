@@ -17,7 +17,7 @@
 +# agent-qa init:end
 --- /dev/null
 +++ b/agent-qa.config.yaml
-@@ -0,0 +1,88 @@
+@@ -0,0 +1,89 @@
 +# The project settings agent-qa reads for every command run in this folder.
 +# Docs: https://vostride.com/docs/agent-qa/
 +
@@ -68,9 +68,10 @@
 +registry:
 +  # Optional: devices, described by what people call them. agent-qa finds them on this machine.
 +  # devices:
-+  #   pixel:
++  #   android-emulator-pixel-8-15:
 +  #     platform: android
 +  #     model: Pixel 8
++  #     os: "15"
 +  targets:
 +    # Optional: add more web or mobile targets here.
 +    # my-mobile:
@@ -78,8 +79,8 @@
 +    #   appPackage: com.example.app
 +    #   appActivity: .MainActivity
 +    #   app:
-+    #     path: apps/example.apk
-+    #   device: pixel # its tests run here unless a suite or test sets use.device
++    #     path: app-bundles/example.apk
++    #   device: android-emulator-pixel-8-15 # its tests run here unless a suite or test sets use.device
 +    booking-com:
 +      platform: web
 +      url: https://booking.com
