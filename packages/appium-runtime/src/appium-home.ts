@@ -7,14 +7,20 @@ import { basename, join } from 'node:path'
 // it is an ordinary symlink.
 export async function prepareAppiumHome(driverFolders: readonly string[]): Promise<string> {
   const home = await realpath(await mkdtemp(join(tmpdir(), 'agent-qa-appium-')))
-  await mkdir(join(home, 'node_modules'))
-  for (const folder of driverFolders) {
-    await symlink(folder, join(home, 'node_modules', basename(folder)), 'junction')
+  try {
+    await mkdir(join(home, 'node_modules'))
+    for (const folder of driverFolders) {
+      await symlink(folder, join(home, 'node_modules', basename(folder)), 'junction')
+    }
+  } catch (error) {
+    await removeAppiumHome(home).catch(() => {})
+    throw error
   }
   return home
 }
 
-// Removing a link never descends into the folder it points at.
+// Removing a link never descends into the folder it points at. The retries cover a file that is
+// still held open for a moment.
 export async function removeAppiumHome(home: string): Promise<void> {
-  await rm(home, { recursive: true, force: true })
+  await rm(home, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 })
 }

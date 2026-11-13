@@ -31,6 +31,21 @@ function driverFolder(name: string): string {
   return folder
 }
 
+// The homes in the temporary directory that link the given folder, whichever test made the rest.
+function homesLinking(folder: string): string[] {
+  const temp = realpathSync(tmpdir())
+  return readdirSync(temp)
+    .filter((entry) => entry.startsWith('agent-qa-appium-'))
+    .map((entry) => join(temp, entry))
+    .filter((home) => {
+      try {
+        return realpathSync(join(home, 'node_modules', basename(folder))) === realpathSync(folder)
+      } catch {
+        return false
+      }
+    })
+}
+
 describe('the prepared Appium home', () => {
   it('is a fresh folder in the temporary directory whose node_modules links each given folder by its name', async () => {
     const given = [driverFolder('first-driver'), driverFolder('second-driver')]
@@ -61,5 +76,18 @@ describe('the prepared Appium home', () => {
 
     expect(existsSync(home)).toBe(false)
     for (const folder of given) expect(existsSync(join(folder, 'package.json'))).toBe(true)
+  })
+
+  it('is removed again when one of its links cannot be made, and the prepare rejects with that error', async () => {
+    const first = driverFolder('same-driver')
+    const second = driverFolder('same-driver')
+    const home = await prepareAppiumHome([first])
+    folders.push(home)
+    expect(homesLinking(first)).toEqual([home])
+
+    await expect(prepareAppiumHome([first, second])).rejects.toMatchObject({ code: 'EEXIST' })
+
+    expect(homesLinking(first)).toEqual([home])
+    expect(existsSync(join(first, 'package.json'))).toBe(true)
   })
 })

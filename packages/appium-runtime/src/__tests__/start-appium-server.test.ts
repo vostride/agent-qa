@@ -179,6 +179,24 @@ describe('startAppiumServer', () => {
     expect(exitListeners()).toEqual(before)
   })
 
+  it('rejects with the error the spawn throws and leaves no home or exit listener', async () => {
+    const before = exitListeners()
+    let prepared = ''
+    let preparedWhenSpawning = false
+    const spawn = vi.fn<AppiumSpawn>((_command, _args, options) => {
+      prepared = options.env?.APPIUM_HOME ?? ''
+      homes.push(prepared)
+      preparedWhenSpawning = existsSync(prepared)
+      throw new Error('spawn threw')
+    })
+
+    await expect(start({ spawn, probe: async () => true })).rejects.toThrow('spawn threw')
+
+    expect(preparedWhenSpawning).toBe(true)
+    expect(existsSync(prepared)).toBe(false)
+    expect(exitListeners()).toEqual(before)
+  })
+
   it('kills the tree and rejects when the server is not ready in time, and leaves no home or exit listener', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
     const before = exitListeners()
