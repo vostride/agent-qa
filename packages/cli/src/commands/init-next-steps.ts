@@ -28,6 +28,9 @@ export interface InitNextStepFacts {
   // The example files on disk after a run that kept some of them: a re-run, or a fresh init
   // over a suite file. A run that wrote every example gives none.
   examples?: InitExampleFiles
+  // The mobile runtimes whose starter can run: a device was written and the app is in place.
+  // A re-run gives none.
+  mobileStarters?: readonly ('android' | 'ios')[]
   // The coding agents whose setup went through.
   agents: readonly CodingAgent[]
   dashboard: 'starting' | { command: string }
@@ -47,6 +50,21 @@ export const EXAMPLE_PATHS = {
 export const SUBSCRIPTION_PLUGIN_COMMAND =
   'npx agent-qa plugins add @vostride/agent-qa-subscription-auth'
 const STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.starter}`
+const ANDROID_STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.androidStarter}`
+const IOS_STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.iosStarter}`
+// In the order they are listed, each with the description it has when another starter leads.
+const MOBILE_STARTERS = [
+  {
+    runtime: 'android',
+    command: ANDROID_STARTER_RUN_COMMAND,
+    description: 'Run the Android starter on the Playground app:',
+  },
+  {
+    runtime: 'ios',
+    command: IOS_STARTER_RUN_COMMAND,
+    description: 'Run the iOS starter on the Playground app:',
+  },
+] as const
 export const EXAMPLES_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.suite}`
 const BUG_STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.bug}`
 export const DASHBOARD_COMMAND = 'npx agent-qa dashboard'
@@ -124,17 +142,22 @@ export function initNextSteps(facts: InitNextStepFacts): {
   if (model?.subscription === true && model.status === 'pending') {
     add(authLoginCommand(model.name), AUTH_LOGIN_DESCRIPTION)
   }
+  // With no examples fact, this run wrote every example.
+  const examples = facts.examples ?? { starter: true, suite: true, bug: true }
+  const lead =
+    facts.dashboard === 'starting'
+      ? 'Run the starter test in the dashboard, or:'
+      : 'Start with the two-step test, which passes:'
+  // The web starter leads, and without it the first mobile starter does.
+  const webStarter = facts.web && examples.starter
+  if (webStarter) add(STARTER_RUN_COMMAND, lead)
+  const mobile = MOBILE_STARTERS.filter((starter) =>
+    (facts.mobileStarters ?? []).includes(starter.runtime),
+  )
+  for (const [index, starter] of mobile.entries()) {
+    add(starter.command, index === 0 && !webStarter ? lead : starter.description)
+  }
   if (facts.web) {
-    // With no examples fact, this run wrote every example.
-    const examples = facts.examples ?? { starter: true, suite: true, bug: true }
-    if (examples.starter) {
-      add(
-        STARTER_RUN_COMMAND,
-        facts.dashboard === 'starting'
-          ? 'Run the starter test in the dashboard, or:'
-          : 'Start with the two-step test, which passes:',
-      )
-    }
     // A suite file that was kept may be an older init's, which does not pass.
     if (examples.suite) {
       add(
@@ -156,7 +179,8 @@ export function initNextSteps(facts: InitNextStepFacts): {
   const hints: string[] = facts.upgrade === undefined ? [] : guideLines(facts.upgrade)
   if (facts.agents.length > 0) {
     const listed = (command: string): boolean => steps.some((step) => step.command === command)
-    if (listed(STARTER_RUN_COMMAND)) hints.push(CODING_AGENT_HINT)
+    const starters = [STARTER_RUN_COMMAND, ANDROID_STARTER_RUN_COMMAND, IOS_STARTER_RUN_COMMAND]
+    if (starters.some(listed)) hints.push(CODING_AGENT_HINT)
     else if (listed(EXAMPLES_RUN_COMMAND) || listed(BUG_STARTER_RUN_COMMAND)) {
       hints.push(CODING_AGENT_EXAMPLES_HINT)
     } else hints.push(`${CODING_AGENT_READY}.`)

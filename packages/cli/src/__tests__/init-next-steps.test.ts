@@ -13,12 +13,16 @@ import type { InitStepRecord } from '../commands/init-steps.js'
 const RUN_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total.yaml'
 const RUN_SUITE = 'npx agent-qa run suites/examples.suite.yaml'
 const RUN_BUG_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total-bug.yaml'
+const RUN_ANDROID_STARTER = 'npx agent-qa run tests/examples/playground-android-open-komazon.yaml'
+const RUN_IOS_STARTER = 'npx agent-qa run tests/examples/playground-ios-open-komazon.yaml'
 const DASHBOARD_STARTER_DESCRIPTION = 'Run the starter test in the dashboard, or:'
 const STARTER_DESCRIPTION = 'Start with the two-step test, which passes:'
 const FRESH_SUITE_DESCRIPTION = 'Then run the suite of three Komazon tests, which passes:'
 const RERUN_SUITE_DESCRIPTION = 'Run the example suite:'
 const BUG_STARTER_DESCRIPTION =
   "Run the test that fails on the playground's deliberate bug (exit 1):"
+const ANDROID_STARTER_DESCRIPTION = 'Run the Android starter on the Playground app:'
+const IOS_STARTER_DESCRIPTION = 'Run the iOS starter on the Playground app:'
 
 const CLAUDE_PENDING: InitNextStepModel = {
   name: 'claude-code',
@@ -295,6 +299,73 @@ describe('the next steps are derived from what happened', () => {
   })
 })
 
+describe('the mobile starters', () => {
+  const mobileOnly = facts({
+    web: false,
+    mobileStarters: ['android', 'ios'],
+    dashboard: { command: 'npx agent-qa dashboard' },
+  })
+
+  it('with a web target, the web starter leads and the Android and iOS starters follow it, before the suite and the [Bug] test', () => {
+    expect(initNextSteps(facts({ mobileStarters: ['android', 'ios'] })).steps).toEqual([
+      { command: RUN_STARTER, description: DASHBOARD_STARTER_DESCRIPTION },
+      { command: RUN_ANDROID_STARTER, description: ANDROID_STARTER_DESCRIPTION },
+      { command: RUN_IOS_STARTER, description: IOS_STARTER_DESCRIPTION },
+      { command: RUN_SUITE, description: FRESH_SUITE_DESCRIPTION },
+      { command: RUN_BUG_STARTER, description: BUG_STARTER_DESCRIPTION },
+    ])
+  })
+
+  it('with no web target, the Android starter leads, the iOS starter follows with its own description and the dashboard comes last', () => {
+    expect(initNextSteps(mobileOnly).steps).toEqual([
+      { command: RUN_ANDROID_STARTER, description: STARTER_DESCRIPTION },
+      { command: RUN_IOS_STARTER, description: IOS_STARTER_DESCRIPTION },
+      { command: 'npx agent-qa dashboard', description: 'Open the dashboard' },
+    ])
+  })
+
+  it("draws each mobile starter's description on the line above its command", () => {
+    expect(nextStepLines(initNextSteps(mobileOnly).steps)).toEqual([
+      STARTER_DESCRIPTION,
+      RUN_ANDROID_STARTER,
+      IOS_STARTER_DESCRIPTION,
+      RUN_IOS_STARTER,
+      'npx agent-qa dashboard',
+    ])
+  })
+
+  it('with no web target and iOS alone, the iOS starter leads', () => {
+    expect(initNextSteps(facts({ web: false, mobileStarters: ['ios'] })).steps).toEqual([
+      { command: RUN_IOS_STARTER, description: DASHBOARD_STARTER_DESCRIPTION },
+    ])
+  })
+
+  it('lists Android before iOS whatever order the runtimes are given in', () => {
+    expect(commands(facts({ mobileStarters: ['ios', 'android'] }))).toEqual([
+      RUN_STARTER,
+      RUN_ANDROID_STARTER,
+      RUN_IOS_STARTER,
+      RUN_SUITE,
+      RUN_BUG_STARTER,
+    ])
+  })
+
+  it('a failed Playground app download adds no step, and no command names the app', () => {
+    const failed: InitStepRecord = {
+      name: 'playground-app',
+      outcome: 'failed',
+      reason: 'The Playground app for Android was not downloaded: fetch failed.',
+    }
+    const steps = [...DONE.slice(0, 4), failed, ...DONE.slice(4)]
+    const next = initNextSteps(facts({ steps }))
+
+    expect(next.steps).toEqual(initNextSteps(facts()).steps)
+    expect(
+      next.steps.filter((step) => /app-bundles|playground-app/u.test(step.command)),
+    ).toEqual([])
+  })
+})
+
 describe('the lines under the box', () => {
   it('a scaffold that was not written lists only what failed and init again, with no hint', () => {
     const steps = withRecord(
@@ -327,13 +398,22 @@ describe('the lines under the box', () => {
     expect(initNextSteps(facts({ agents: [] })).hints).toEqual([])
   })
 
-  it('the coding agent hint asks for the starter test when it is listed, and names no example for a Mobile project, which has none', () => {
+  it('the coding agent hint asks for the starter test when one is listed, and names no example when none is', () => {
     expect(initNextSteps(facts({ agents: ['claude-code'] })).hints).toEqual([
       'Your coding agent can use agent-qa now: ask it to run the starter test.',
     ])
     expect(initNextSteps(facts({ web: false, agents: ['claude-code'] })).hints).toEqual([
       'Your coding agent can use agent-qa now.',
     ])
+  })
+
+  it('a mobile starter listed alone gives the coding agent hint that asks for the starter test', () => {
+    const next = initNextSteps(
+      facts({ web: false, mobileStarters: ['android'], agents: ['claude-code'] }),
+    )
+
+    expect(next.steps.map((step) => step.command)).toEqual([RUN_ANDROID_STARTER])
+    expect(next.hints).toEqual([CODING_AGENT_HINT])
   })
 })
 

@@ -1654,6 +1654,9 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         const skillsDone = records.some(
           (record) => record.name === 'skills' && record.outcome === 'done',
         )
+        const mobileStarters = playgroundRuntimes.filter(
+          (runtime) => devices[runtime] !== undefined && arrivedApps.includes(runtime),
+        )
         const next = initNextSteps({
           steps: records,
           ...(modelSetup.entry === undefined
@@ -1669,6 +1672,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
               }),
           web: hasWeb(platform),
           ...(suiteKept ? { examples: { starter: true, suite: true, bug: true } } : {}),
+          ...(mobileStarters.length > 0 ? { mobileStarters } : {}),
           agents: skillsDone ? agents : [],
           dashboard,
         })
