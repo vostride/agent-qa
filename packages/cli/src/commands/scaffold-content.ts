@@ -8,6 +8,11 @@ import {
   composeManagedBlock,
   type ManagedBlockContent,
 } from './managed-block.js'
+import {
+  PLAYGROUND_ANDROID_ACTIVITY,
+  PLAYGROUND_APP_ID,
+  PLAYGROUND_APP_PATHS,
+} from './playground-app-pin.js'
 
 export const SUPPORTED_INIT_PLATFORMS = ['web', 'android', 'ios'] as const
 export type Platform = (typeof SUPPORTED_INIT_PLATFORMS)[number]
@@ -92,6 +97,11 @@ function hasMobile(platform: InitPlatformInput): boolean {
   return normalizePlatformSelection(platform).capabilities.includes('mobile')
 }
 
+export const PLAYGROUND_TARGETS = {
+  android: 'playground-android',
+  ios: 'playground-ios',
+} as const
+
 // `targets` is an override: init passes example targets, the scaffold one derived target.
 export function buildTargets(
   platform: InitPlatformInput,
@@ -109,10 +119,19 @@ export function buildTargets(
     }
   }
   if (selection.mobileRuntimes.includes('android')) {
-    targets['example-android'] = { platform: 'android' }
+    targets[PLAYGROUND_TARGETS.android] = {
+      platform: 'android',
+      appPackage: PLAYGROUND_APP_ID,
+      appActivity: PLAYGROUND_ANDROID_ACTIVITY,
+      app: { path: PLAYGROUND_APP_PATHS.android },
+    }
   }
   if (selection.mobileRuntimes.includes('ios')) {
-    targets['example-ios'] = { platform: 'ios' }
+    targets[PLAYGROUND_TARGETS.ios] = {
+      platform: 'ios',
+      bundleId: PLAYGROUND_APP_ID,
+      app: { path: PLAYGROUND_APP_PATHS.ios },
+    }
   }
 
   return targets
@@ -131,9 +150,10 @@ export interface ScaffoldConfigFacts {
   /**
    * `registry.targets`, when the caller has its own.
    *
-   * `init` scaffolds the two Komazon example targets so a fresh project has something to run;
-   * `config.project.scaffold` derives exactly ONE from the utterance's domain and must not carry
-   * init's example targets into a repository nobody asked to have them in.
+   * `init` scaffolds its example targets, Komazon on the web and the Playground app on mobile, so
+   * a fresh project has something to run; `config.project.scaffold` derives exactly ONE from the
+   * utterance's domain and must not carry init's example targets into a repository nobody asked
+   * to have them in.
    */
   readonly targets?: Record<string, unknown>
 }

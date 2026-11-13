@@ -514,11 +514,11 @@ describe('init command', () => {
       }
       if (platform === 'web,android') {
         expect(config.registry.targets).toHaveProperty('komazon')
-        expect(config.registry.targets).toHaveProperty('example-android')
+        expect(config.registry.targets).toHaveProperty('playground-android')
       }
       if (platform === 'web,ios') {
         expect(config.registry.targets).toHaveProperty('komazon')
-        expect(config.registry.targets).toHaveProperty('example-ios')
+        expect(config.registry.targets).toHaveProperty('playground-ios')
       }
       expect(config).not.toHaveProperty('analytics')
     },
@@ -676,8 +676,8 @@ describe('init command', () => {
       (call) => (call[0] as string).endsWith('agent-qa.config.yaml'),
     )
     expect(configCall?.[1]).toContain('komazon:')
-    expect(configCall?.[1]).toContain('example-android:')
-    expect(configCall?.[1]).toContain('example-ios:')
+    expect(configCall?.[1]).toContain('playground-android:')
+    expect(configCall?.[1]).toContain('playground-ios:')
   })
 
   it('writes OpenAI subscription config during interactive init', async () => {
