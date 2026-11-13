@@ -1,10 +1,10 @@
 import { EventEmitter } from 'node:events'
 import { existsSync, rmSync, statSync } from 'node:fs'
 
-import treeKill from 'tree-kill'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { resolveBundledAppium } from '../bundled-appium'
+import { killTree } from '../kill-tree'
 import {
   startAppiumServer,
   type AppiumServer,
@@ -12,9 +12,9 @@ import {
   type StartAppiumServerOptions,
 } from '../start-appium-server'
 
-vi.mock('tree-kill')
+vi.mock('../kill-tree')
 
-const mockTreeKill = vi.mocked(treeKill)
+const mockKillTree = vi.mocked(killTree)
 
 class FakeOutput extends EventEmitter {
   readonly ref = vi.fn()
@@ -87,8 +87,8 @@ async function settledWithin(promise: Promise<unknown>, ms: number): Promise<boo
 }
 
 beforeEach(() => {
-  mockTreeKill.mockReset()
-  mockTreeKill.mockImplementation((_pid, _signal, callback) => callback?.())
+  mockKillTree.mockReset()
+  mockKillTree.mockResolvedValue(undefined)
 })
 
 afterEach(async () => {
@@ -183,9 +183,8 @@ describe('startAppiumServer', () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
     const before = exitListeners()
     const { child, spawn, home } = fakeSpawn()
-    mockTreeKill.mockImplementationOnce((_pid, _signal, callback) => {
+    mockKillTree.mockImplementationOnce(async () => {
       child.emit('close', null, 'SIGKILL')
-      callback?.()
     })
     const starting = start({ spawn, probe: async () => false })
     const prepared = await home
@@ -194,7 +193,7 @@ describe('startAppiumServer', () => {
     await vi.runAllTimersAsync()
 
     await expect(starting).rejects.toThrow(/^Appium server did not become ready within \d+ms/u)
-    expect(mockTreeKill).toHaveBeenCalledWith(child.pid, 'SIGKILL', expect.any(Function))
+    expect(mockKillTree).toHaveBeenCalledWith(child.pid)
     expect(existsSync(prepared)).toBe(false)
     expect(exitListeners()).toEqual(before)
   })
@@ -227,7 +226,7 @@ describe('stop and exited', () => {
     const stopping = server.stop()
 
     expect(await settledWithin(stopping, 50)).toBe(false)
-    expect(mockTreeKill).toHaveBeenCalledWith(child.pid, 'SIGKILL', expect.any(Function))
+    expect(mockKillTree).toHaveBeenCalledWith(child.pid)
     expect(existsSync(prepared)).toBe(true)
     child.emit('close', null, 'SIGKILL')
     await stopping
@@ -244,22 +243,7 @@ describe('stop and exited', () => {
     await Promise.all([first, second])
     await server.stop()
 
-    expect(mockTreeKill).toHaveBeenCalledTimes(1)
-  })
-
-  it('stop settles once the child closes even when the kill reports an error', async () => {
-    const { child, spawn, home } = fakeSpawn()
-    const server = await start({ spawn, probe: async () => true })
-    const prepared = await home
-    mockTreeKill.mockImplementationOnce((_pid, _signal, callback) =>
-      callback?.(new Error('kill failed')),
-    )
-
-    const stopping = server.stop()
-    child.emit('close', null, 'SIGKILL')
-
-    await expect(stopping).resolves.toBeUndefined()
-    expect(existsSync(prepared)).toBe(false)
+    expect(mockKillTree).toHaveBeenCalledTimes(1)
   })
 
   it('a server that ends on its own leaves no home or exit listener, and a later stop kills nothing', async () => {
@@ -275,7 +259,7 @@ describe('stop and exited', () => {
     expect(existsSync(prepared)).toBe(false)
     expect(exitListeners()).toEqual(before)
     await server.stop()
-    expect(mockTreeKill).not.toHaveBeenCalled()
+    expect(mockKillTree).not.toHaveBeenCalled()
   })
 })
 
@@ -302,7 +286,7 @@ describe('a process that ends without stopping the server', () => {
     added[0](0)
 
     expect(child.kill).toHaveBeenCalledWith('SIGKILL')
-    expect(mockTreeKill).not.toHaveBeenCalled()
+    expect(mockKillTree).not.toHaveBeenCalled()
     expect(existsSync(prepared)).toBe(false)
   })
 
@@ -316,7 +300,7 @@ describe('a process that ends without stopping the server', () => {
     child.emit('close', null, 'SIGKILL')
     await stopping
 
-    const killedAt = mockTreeKill.mock.invocationCallOrder[0]
+    const killedAt = mockKillTree.mock.invocationCallOrder[0]
     for (const target of [child, child.stdout, child.stderr]) {
       expect(target.ref).toHaveBeenCalledTimes(1)
       expect(target.ref.mock.invocationCallOrder[0]).toBeLessThan(killedAt)

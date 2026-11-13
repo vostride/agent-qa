@@ -3,10 +3,9 @@ import { rmSync } from 'node:fs'
 import { request } from 'node:http'
 import { createServer, type Socket } from 'node:net'
 
-import treeKill from 'tree-kill'
-
 import { prepareAppiumHome, removeAppiumHome } from './appium-home'
 import { resolveBundledAppium } from './bundled-appium'
+import { killTree } from './kill-tree'
 
 const LOOPBACK = '127.0.0.1'
 const STARTUP_TIMEOUT_MS = 30_000
@@ -98,14 +97,6 @@ function findFreePort(): Promise<number> {
       const port = typeof address === 'object' && address !== null ? address.port : 0
       server.close(() => settle(port))
     })
-  })
-}
-
-// tree-kill lists the tree's processes before it signals any of them, so the tree is killed only
-// once its callback runs. What the callback reports is not passed on.
-function killTree(pid: number): Promise<void> {
-  return new Promise((settle) => {
-    treeKill(pid, 'SIGKILL', () => settle())
   })
 }
 
