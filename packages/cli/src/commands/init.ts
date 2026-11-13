@@ -107,6 +107,8 @@ import { runInitRerun } from './init-rerun.js'
 import { configuredPackages } from './setup-rows.js'
 import { askLatestVersionByDefault, type LatestVersionAsk } from './latest-version-ask.js'
 import { findChromiumByDefault, type ChromiumResolver } from './browser-resolver.js'
+import type { PlaygroundAppSource } from './playground-app.js'
+import type { DevicesHereLister } from './run.js'
 import {
   createInitDocumentRecorder,
   refusedInitDocument,
@@ -524,6 +526,10 @@ export interface InitCommandHooks {
   chromium?: ChromiumResolver
   // The re-run's latest agent-qa; the default asks the npm registry under a short deadline.
   latestVersion?: LatestVersionAsk
+  // The default lists this machine's phones, emulators and simulators.
+  listDevicesHere?: DevicesHereLister
+  // The default downloads the pinned Playground release from GitHub.
+  playgroundApp?: PlaygroundAppSource
 }
 
 // The streams the Clack rail reads and draws on: stdin and stderr in production.
