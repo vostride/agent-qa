@@ -150,22 +150,57 @@ describe('downloading the Playground app for Android', () => {
     expect(recorded).toEqual([])
   })
 
-  it('resolves with a failure that carries the message when the fetcher rejects with a TypeError', async () => {
+  // What the failure says between "was not downloaded: " and ". It is".
+  async function failureMessageFor(error: Error): Promise<string | undefined> {
     const { root } = tempProject('playground-app')
-    const app = fakePlaygroundApp({ android: new TypeError('fetch failed') })
-
-    const { result } = await download(root, app)
-
-    expect(result).toEqual({
-      arrived: [],
-      failures: [
-        {
-          runtime: 'android',
-          reason: expect.stringContaining('was not downloaded: fetch failed. It is'),
-        },
-      ],
-    })
+    const { result } = await download(root, fakePlaygroundApp({ android: error }))
+    expect(result.arrived).toEqual([])
     expect(existsSync(join(root, 'app-bundles'))).toBe(false)
+    const said = /^The Playground app for Android was not downloaded: (.*)\. It is /su.exec(
+      result.failures[0]?.reason ?? '',
+    )
+    return said?.[1]
+  }
+
+  it('resolves with a failure that names the cause when the fetcher rejects with a TypeError, as Node does offline', async () => {
+    const offline = new TypeError('fetch failed', {
+      cause: new Error('getaddrinfo ENOTFOUND github.com'),
+    })
+
+    expect(await failureMessageFor(offline)).toBe('fetch failed (getaddrinfo ENOTFOUND github.com)')
+  })
+
+  it('names each address that refused when the cause is several errors with no message of its own', async () => {
+    const refused = new TypeError('fetch failed', {
+      cause: new AggregateError([
+        new Error('connect ECONNREFUSED ::1:443'),
+        new Error('connect ECONNREFUSED 127.0.0.1:443'),
+      ]),
+    })
+
+    expect(await failureMessageFor(refused)).toBe(
+      'fetch failed (connect ECONNREFUSED ::1:443, connect ECONNREFUSED 127.0.0.1:443)',
+    )
+  })
+
+  it("leaves the control characters out of a cause's message", async () => {
+    const certificate = new TypeError('fetch failed', {
+      cause: new Error("Hostname does not match the certificate's \u001b[2Jname\r\n\u0007."),
+    })
+
+    expect(await failureMessageFor(certificate)).toBe(
+      "fetch failed (Hostname does not match the certificate's name)",
+    )
+  })
+
+  it('carries the message alone when the error has no cause, or a cause that says the same', async () => {
+    const same = new Error('the proxy refused', { cause: new Error('the proxy refused') })
+
+    expect(await failureMessageFor(new TypeError('fetch failed'))).toBe('fetch failed')
+    expect(await failureMessageFor(same)).toBe('the proxy refused')
+    expect(await failureMessageFor(new Error('GitHub answered 404', { cause: 'a string' }))).toBe(
+      'GitHub answered 404',
+    )
   })
 
   it('keeps an APK that is already there and asks for nothing', async () => {

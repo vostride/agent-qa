@@ -3,6 +3,7 @@ import { basename, dirname, join, relative, resolve, sep } from 'node:path'
 import { inflateRawSync } from 'node:zlib'
 
 import { writeScaffoldFileAtomic, type InitFileResult } from './init-filesystem.js'
+import { machineText } from './machine-text.js'
 import {
   PLAYGROUND_APP_PATHS,
   playgroundAppUrl,
@@ -167,8 +168,23 @@ export interface PlaygroundAppsResult {
 
 const RUNTIME_NAMES: Record<PlaygroundRuntime, string> = { android: 'Android', ios: 'iOS' }
 
+// Node's fetch says only "fetch failed" and keeps the reason, such as the DNS, proxy or
+// certificate error, in the cause. A certificate error can quote text a server chose.
+function causeOf(error: Error): string {
+  const { cause } = error
+  if (!(cause instanceof Error)) return ''
+  // Several refused addresses arrive as one error with no message of its own.
+  const messages =
+    cause instanceof AggregateError && cause.message === ''
+      ? cause.errors.map((each: unknown) => (each instanceof Error ? each.message : String(each)))
+      : [cause.message]
+  return machineText(messages.join(', ')).replace(/\.$/u, '')
+}
+
 function messageOf(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
+  if (!(error instanceof Error)) return String(error)
+  const cause = causeOf(error)
+  return cause === '' || cause === error.message ? error.message : `${error.message} (${cause})`
 }
 
 function failureReason(pin: PlaygroundAppPin, runtime: PlaygroundRuntime, error: unknown): string {

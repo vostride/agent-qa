@@ -1,5 +1,3 @@
-import { stripVTControlCharacters } from 'node:util'
-
 import {
   findDeviceHere,
   type AndroidHere,
@@ -7,6 +5,7 @@ import {
   type IOSHere,
 } from '@vostride/agent-qa-core'
 
+import { machineText } from './machine-text.js'
 import type { DevicesHereLister } from './run.js'
 import { PLAYGROUND_TARGETS } from './scaffold-content.js'
 
@@ -181,10 +180,6 @@ const CREATE_ONE = {
   android: "Create an emulator in Android Studio's Device Manager",
   ios: 'Create a simulator in Xcode',
 } as const
-
-function machineText(text: string): string {
-  return stripVTControlCharacters(text).replace(/[\u0000-\u001f\u007f]/gu, '')
-}
 
 function bindingAdvice(platform: Platform): string {
   const target = PLAYGROUND_TARGETS[platform]
