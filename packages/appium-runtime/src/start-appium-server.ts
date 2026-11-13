@@ -29,7 +29,7 @@ interface ChildOutput {
   unref(): unknown
 }
 
-export interface AppiumChild {
+interface AppiumChild {
   readonly pid?: number | undefined
   readonly stdout: ChildOutput | null
   readonly stderr: ChildOutput | null
