@@ -14,11 +14,13 @@ import { guardJsonText, reserveStdoutForData } from '@vostride/agent-qa-core/run
 import { getProvider } from '@vostride/agent-qa-model'
 // The scaffold's content comes from the shared producer, so the two scaffolds cannot drift.
 import {
+  PLAYGROUND_TARGETS,
   SUBSCRIPTION_AUTH_PACKAGE,
   buildHooksFile,
   buildGitignoreEntries,
   buildScaffoldConfig,
   hasWeb,
+  mobileRuntimesOf,
   parseInitPlatformList,
   renderScaffoldConfigYaml,
   type InitLLMConfig,
@@ -204,6 +206,29 @@ const KOMAZON_SHIPPING_HOOK_PATH = 'tests/examples/komazon-shipping-hook.yaml'
 const SHIPPING_ADDRESS_SCRIPT_PATH = 'scripts/examples/make-shipping-address.mjs'
 const STARTER_STEPS = `  - Add Everyday Ceramic Mug to the bag, open the bag and increase its quantity to two.
   - Verify the order total is $53.00.`
+const ANDROID_OPEN_KOMAZON_TEST_ID = 't_mano-ric-arum-public-onto-ching-odel-pathy-rap-often'
+const ANDROID_CART_TOTAL_TEST_ID = 't_fine-chlor-avid-gaz-rare-pink-axed-sey-happy-gid'
+const ANDROID_CART_TOTAL_BUG_TEST_ID = 't_sam-hain-router-expand-och-elope-slider-ming-rear-story'
+const IOS_OPEN_KOMAZON_TEST_ID = 't_avid-bred-ast-plass-jet-share-wei-foil-around-coin'
+const IOS_CART_TOTAL_TEST_ID = 't_trim-cone-cara-gear-own-keen-verst-olson-volume-rose'
+const IOS_CART_TOTAL_BUG_TEST_ID = 't_agra-rah-exit-ward-jan-nous-math-cat-grab-gross'
+const ANDROID_OPEN_KOMAZON_PATH = EXAMPLE_PATHS.androidStarter
+const ANDROID_CART_TOTAL_PATH = 'tests/examples/playground-android-cart-total.yaml'
+const ANDROID_CART_TOTAL_BUG_PATH = 'tests/examples/playground-android-cart-total-bug.yaml'
+const IOS_OPEN_KOMAZON_PATH = EXAMPLE_PATHS.iosStarter
+const IOS_CART_TOTAL_PATH = 'tests/examples/playground-ios-cart-total.yaml'
+const IOS_CART_TOTAL_BUG_PATH = 'tests/examples/playground-ios-cart-total-bug.yaml'
+const PLAYGROUND_OPEN_KOMAZON_STEPS = `  - Open Komazon from the home screen.
+  - Verify the "Search products" field is shown.`
+const PLAYGROUND_CART_TOTAL_STEPS = `  - Open Komazon from the home screen.
+  - Open the details of Everyday Ceramic Mug and verify its price is $24.00.
+  - Add it to the bag and open the Cart tab.
+  - Increase the mug quantity to two.
+  - Verify the order summary shows subtotal $48.00, shipping $5.00 and total $53.00.`
+const PLAYGROUND_CART_TOTAL_BUG_STEPS = `  - Open Komazon from the home screen.
+  - Open Test controls in the app header, turn on "Quantity ignored in totals" and close the controls. Verify the deliberate bug banner names "Quantity ignored in totals".
+  - Add Everyday Ceramic Mug to the bag, open the Cart tab and increase its quantity to two.
+  - Verify the order total is $53.00.`
 
 // The journey asks for no reset: run alone it starts a fresh session, and in the suite the bag
 // test leaves the bag empty before it.
@@ -317,6 +342,76 @@ steps:
   - Type {{env:SHIPPING_ADDRESS}} into the Street address field, enter city Portland and postal code 97205, then continue to delivery.
   - Select Express delivery and continue with Review order. Verify the review shows {{env:SHIPPING_ADDRESS}} as the street address.
 `
+}
+
+// The app keeps its cart and its bug switches until it restarts, so each example resets it.
+function buildPlaygroundExampleTest(
+  id: string,
+  name: string,
+  target: string,
+  steps: string,
+): string {
+  // YAML reads a leading bracket as the start of a list.
+  const shownName = name.startsWith('[') ? `"${name}"` : name
+  return `test-id: ${id}
+name: ${shownName}
+target: ${target}
+use:
+  mobile:
+    appState: reset
+steps:
+${steps}
+`
+}
+
+interface PlaygroundExample {
+  path: string
+  id: string
+  name: string
+  steps: string
+}
+
+const PLAYGROUND_EXAMPLES: Record<MobileRuntime, readonly PlaygroundExample[]> = {
+  android: [
+    {
+      path: ANDROID_OPEN_KOMAZON_PATH,
+      id: ANDROID_OPEN_KOMAZON_TEST_ID,
+      name: 'Playground opens Komazon on Android',
+      steps: PLAYGROUND_OPEN_KOMAZON_STEPS,
+    },
+    {
+      path: ANDROID_CART_TOTAL_PATH,
+      id: ANDROID_CART_TOTAL_TEST_ID,
+      name: 'Playground Komazon cart total on Android',
+      steps: PLAYGROUND_CART_TOTAL_STEPS,
+    },
+    {
+      path: ANDROID_CART_TOTAL_BUG_PATH,
+      id: ANDROID_CART_TOTAL_BUG_TEST_ID,
+      name: '[Bug] Komazon cart total is wrong for two mugs on Android',
+      steps: PLAYGROUND_CART_TOTAL_BUG_STEPS,
+    },
+  ],
+  ios: [
+    {
+      path: IOS_OPEN_KOMAZON_PATH,
+      id: IOS_OPEN_KOMAZON_TEST_ID,
+      name: 'Playground opens Komazon on iOS',
+      steps: PLAYGROUND_OPEN_KOMAZON_STEPS,
+    },
+    {
+      path: IOS_CART_TOTAL_PATH,
+      id: IOS_CART_TOTAL_TEST_ID,
+      name: 'Playground Komazon cart total on iOS',
+      steps: PLAYGROUND_CART_TOTAL_STEPS,
+    },
+    {
+      path: IOS_CART_TOTAL_BUG_PATH,
+      id: IOS_CART_TOTAL_BUG_TEST_ID,
+      name: '[Bug] Komazon cart total is wrong for two mugs on iOS',
+      steps: PLAYGROUND_CART_TOTAL_BUG_STEPS,
+    },
+  ],
 }
 
 const DEFAULT_HOOKS_FILE = 'hooks.yaml'
@@ -688,6 +783,21 @@ function buildScaffoldFilePlans(
   return plans
 }
 
+// Kept out of buildScaffoldFilePlans: the re-run's scaffold row writes every missing file that
+// function lists, and a project an older init made has no Playground target.
+function buildMobileExampleFilePlans(
+  dir: string,
+  platform: InitPlatformInput,
+  force: boolean,
+): InitPathPlan[] {
+  return mobileRuntimesOf(platform).flatMap((runtime) =>
+    PLAYGROUND_EXAMPLES[runtime].map(({ path, id, name, steps }) => {
+      const content = buildPlaygroundExampleTest(id, name, PLAYGROUND_TARGETS[runtime], steps)
+      return scaffoldFilePlan(dir, path, content, force)
+    }),
+  )
+}
+
 // Drawn without the rail's gutter, so the line pastes as it is.
 function showExampleSecretLine(ui: InitUi): void {
   ui.line(`Add this line to ${DEFAULT_SECRETS_FILE} so the examples can sign in:`)
@@ -710,8 +820,12 @@ function packageJsonText(result: InitFileResult, dir: string, realDir: string): 
   return result.outcome === 'updated' ? `${name} updated` : `${name} kept`
 }
 
-function scaffoldText(platform: InitPlatformInput, files: number): string {
-  const what = hasWeb(platform) ? 'config, 2 starter tests, a suite of 3 and a hook test' : 'config'
+function scaffoldText(platform: InitPlatformInput, files: number, playgroundTests: number): string {
+  const parts = ['config']
+  if (hasWeb(platform)) parts.push('2 starter tests', 'a suite of 3', 'a hook test')
+  if (playgroundTests > 0) parts.push(`${playgroundTests} Playground app tests`)
+  const what =
+    parts.length === 1 ? 'config' : `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}`
   return `Scaffold: ${what} (${files} files)`
 }
 
@@ -1218,7 +1332,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           content: packageJsonPlan.content,
           force: packageJsonPlan.existed && packageJsonPlan.changed,
         }
-        const filePlans = buildScaffoldFilePlans(dir, platform, force)
+        const mobileExamplePlans = buildMobileExampleFilePlans(dir, platform, force)
+        const filePlans = [...buildScaffoldFilePlans(dir, platform, force), ...mobileExamplePlans]
         const targetGitignorePath = join(dir, '.gitignore')
         const targetGitignorePlan: InitPathPlan = {
           root: dir,
@@ -1283,7 +1398,10 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
 
           recordOutcome('scaffold', writeConfigMarkerLast(configPlan, {}))
           hooks.onComplete?.([...outcomes])
-          return { outcome: 'done', text: scaffoldText(platform, outcomes.length - before) }
+          return {
+            outcome: 'done',
+            text: scaffoldText(platform, outcomes.length - before, mobileExamplePlans.length),
+          }
         }
 
         const install = (): Promise<InitStepResult> => installPlan(packageJsonPlan)

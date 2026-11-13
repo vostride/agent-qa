@@ -97,6 +97,12 @@ function hasMobile(platform: InitPlatformInput): boolean {
   return normalizePlatformSelection(platform).capabilities.includes('mobile')
 }
 
+// Android before iOS, whatever order the selection holds.
+export function mobileRuntimesOf(platform: InitPlatformInput): MobileRuntime[] {
+  const { mobileRuntimes } = normalizePlatformSelection(platform)
+  return (['android', 'ios'] as const).filter((runtime) => mobileRuntimes.includes(runtime))
+}
+
 export const PLAYGROUND_TARGETS = {
   android: 'playground-android',
   ios: 'playground-ios',
