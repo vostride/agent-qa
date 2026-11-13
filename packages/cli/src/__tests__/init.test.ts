@@ -114,7 +114,7 @@ import { CliRefusal } from '../composition/cli-refusal.js'
 import type { InitUi } from '../init-ui/init-ui.js'
 import { createPlainUi } from '../init-ui/plain-ui.js'
 import { defaultProjectIo } from '../commands/project-host.js'
-import { fakeRunner, runningAgentQa } from './project-fixtures.js'
+import { fakeRunner, mobileInitFakes, runningAgentQa } from './project-fixtures.js'
 
 const mockWriteFileSync = vi.mocked(writeFileSync)
 const mockExistsSync = vi.mocked(existsSync)
@@ -169,6 +169,7 @@ async function runInit(
   const init = createInitCommand({
     cwd: '/tmp/test-project',
     ui: terminalUi(),
+    ...mobileInitFakes().hooks,
     ...rest,
     host: { env: {}, run: fakeRunner(), ...runningAgentQa(defaultProjectIo), ...host },
   })
@@ -185,6 +186,7 @@ async function runInitUnderRootConfig(args: string[]): Promise<void> {
     cwd: '/tmp/test-project',
     isTTY: true,
     ui: terminalUi(),
+    ...mobileInitFakes().hooks,
     host: { env: {}, run: fakeRunner(), ...runningAgentQa(defaultProjectIo) },
   })
   parent.exitOverride()

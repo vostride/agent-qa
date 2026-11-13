@@ -77,7 +77,7 @@ import { isCanonicalHookId, isCanonicalSuiteId, isCanonicalTestId } from '@vostr
 import { SecretStore, parseEnvFile } from '@vostride/agent-qa-runner'
 import { hermeticEnv } from './conformance/spawned-chat.js'
 import { defaultProjectIo } from '../commands/project-host.js'
-import { fakeRunner, runningAgentQa } from './project-fixtures.js'
+import { fakeRunner, mobileInitFakes, runningAgentQa } from './project-fixtures.js'
 
 const realFs = await vi.importActual<typeof import('node:fs')>('node:fs')
 const realChildProcess = await vi.importActual<typeof import('node:child_process')>(
@@ -127,6 +127,7 @@ async function runInit(args: string[]): Promise<void> {
   const parent = new Command()
   const init = createInitCommand({
     cwd: DIR,
+    ...mobileInitFakes().hooks,
     host: { env: {}, run: fakeRunner(), ...runningAgentQa(defaultProjectIo) },
   })
   parent.exitOverride()
