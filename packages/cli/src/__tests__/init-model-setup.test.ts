@@ -16,7 +16,12 @@ import { INIT_MODEL_CHOICES } from '../commands/init-model-choice.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { KEY, answeringTerminal, clackStreams, type ClackStreams } from './clack-keys.js'
 import { fakeInitUi, type FakeInitUi } from './fake-init-ui.js'
-import { cleanupTempProjects, fakeRunner, tempProject } from './project-fixtures.js'
+import {
+  cleanupTempProjects,
+  fakeRunner,
+  mobileInitFakes,
+  tempProject,
+} from './project-fixtures.js'
 
 const SUBSCRIPTION_AUTH_PACKAGE = '@vostride/agent-qa-subscription-auth'
 const MODEL_QUESTION = 'Which model should agent-qa use?'
@@ -63,6 +68,7 @@ function initCommand(root: string, home: string, extra: Parameters<typeof create
     cwd: root,
     host: { homedir: home, env: {}, run: fakeRunner() },
     composeAnalytics: silentAnalytics,
+    ...mobileInitFakes().hooks,
     ...extra,
   })
   parent.exitOverride()
