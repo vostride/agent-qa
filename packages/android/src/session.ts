@@ -30,10 +30,9 @@ import { connectionSecretNames, remoteLabel } from '@vostride/agent-qa-schema'
 import type { AndroidAdapterConfig, AndroidSessionOptions } from './types.js'
 
 const REMOTE_NEW_COMMAND_TIMEOUT_S = 90
-const LOCAL_APPIUM_URL = 'http://localhost:4723'
 
-function localEndpoint(appiumUrl: string | undefined) {
-  const url = new URL(appiumUrl ?? LOCAL_APPIUM_URL)
+function localEndpoint(appiumUrl: string) {
+  const url = new URL(appiumUrl)
   const protocol = url.protocol === 'https:' ? 'https' : 'http'
   return {
     protocol,
@@ -219,6 +218,14 @@ export async function createAndroidSession(
   if (remoteDevice !== undefined) return createRemoteAndroidSession(config, remoteDevice, options)
 
   const profile = config.device
+  if (config.appiumUrl === undefined) {
+    throw new MobileSetupError({
+      category: 'appium-startup',
+      message: `Device ${profile?.name ?? 'android'} is on this machine and was given no Appium URL; its session opens through the Android adapter, which starts Appium.`,
+      platform: 'android',
+      deviceName: profile?.name,
+    })
+  }
   const here = profile?.here
   const stated = profile?.capabilities
 

@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { mkdir, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import type { AppiumServer } from '@vostride/agent-qa-appium-runtime'
+import { startAppiumServer } from '@vostride/agent-qa-appium-runtime'
 import type {
   ActionsFor,
   ActionResult,
@@ -674,6 +676,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
   // Enumerated once per session; `null` is not yet enumerated or retryable; reset in `cleanup()`.
   private appRegistry: AppRegistryEntry[] | null = null
   private remote: RemoteDeviceConfig | undefined
+  private startedAppium: AppiumServer | undefined
   private deviceName = 'android'
   private place: RemotePlaceEvidence | undefined
   private heartbeat: RemoteHeartbeat | undefined
@@ -690,6 +693,15 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
   private link: string | undefined
 
   async setup(config: PlatformConfig): Promise<void> {
+    try {
+      await this.openSession(config)
+    } catch (error) {
+      await this.stopStartedAppium()
+      throw error
+    }
+  }
+
+  private async openSession(config: PlatformConfig): Promise<void> {
     this.config = config as AndroidAdapterConfig
     this.captureConsole = config.logCapture?.console !== false
     this.appPackage = this.config.appPackage ?? null
@@ -718,6 +730,12 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
       this.remote = leased.remote
       this.lease = leased.lease
       this.releaseLease = leased.release
+    } else if (configured === undefined && this.config.appiumUrl === undefined) {
+      this.startedAppium = await this.startAppium(config.device?.name)
+      this.driver = await createAndroidSession(
+        { ...this.config, appiumUrl: this.startedAppium.url },
+        sessionOptions,
+      )
     } else {
       this.remote = configured
       this.driver = await createAndroidSession(this.config, sessionOptions)
@@ -783,6 +801,26 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
 
   }
 
+  private async startAppium(deviceName: string | undefined): Promise<AppiumServer> {
+    try {
+      return await (this.options.startAppium ?? startAppiumServer)()
+    } catch (error) {
+      throw new MobileSetupError({
+        category: 'appium-startup',
+        message: `Could not start Appium: ${error instanceof Error ? error.message : String(error)}`,
+        platform: 'android',
+        deviceName,
+        cause: error,
+      })
+    }
+  }
+
+  private async stopStartedAppium(): Promise<void> {
+    const appium = this.startedAppium
+    this.startedAppium = undefined
+    await appium?.stop()
+  }
+
   async cleanup(): Promise<void> {
     try { await this.recordingCapability?.stop() } catch { /* best-effort */ }
     this.recordingCapability = undefined
@@ -812,6 +850,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
         // session may already be closed
       }
     }
+    await this.stopStartedAppium()
     // A leased device goes back to its plugin after its session is deleted.
     const releaseLease = this.releaseLease
     this.lease = undefined

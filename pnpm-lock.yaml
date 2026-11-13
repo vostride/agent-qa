@@ -330,6 +330,9 @@ importers:
 
   packages/android:
     dependencies:
+      '@vostride/agent-qa-appium-runtime':
+        specifier: workspace:*
+        version: link:../appium-runtime
       '@vostride/agent-qa-core':
         specifier: workspace:*
         version: link:../core

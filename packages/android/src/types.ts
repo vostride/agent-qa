@@ -1,3 +1,4 @@
+import type { AppiumServer } from '@vostride/agent-qa-appium-runtime'
 import type {
   PlatformConfig,
   RemoteLeaseSource,
@@ -27,6 +28,8 @@ export interface AndroidAdapterOptions {
   readonly mask?: (text: string) => string
   // The run's plugin hosts, which lease a device for a remote that names a plugins entry.
   readonly pluginSessions?: RemoteLeaseSource
+  // Starts Appium for a device here that was handed no Appium URL; the bundled server by default.
+  readonly startAppium?: () => Promise<AppiumServer>
   // Shorter bounds for tests; the CLI never sets them.
   readonly timing?: {
     readonly heartbeatIntervalMs?: number

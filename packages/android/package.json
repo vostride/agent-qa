@@ -53,6 +53,7 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
+    "@vostride/agent-qa-appium-runtime": "workspace:*",
     "@vostride/agent-qa-core": "workspace:*",
     "@vostride/agent-qa-runner": "workspace:*",
     "@vostride/agent-qa-runner-local": "workspace:*",
