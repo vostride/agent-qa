@@ -60,8 +60,6 @@ vi.mock('../commands/install-browsers.js', () => ({
 
 vi.mock('@vostride/agent-qa-core', () => ({
   writeAuth: vi.fn(() => Promise.resolve()),
-  resolveAppiumExecutable: vi.fn(() => ({ command: 'appium', source: 'path' })),
-  formatAppiumInstallGuidance: vi.fn(() => 'Install Appium locally.'),
   DEFAULT_AGENT_QA_AUTH_STATES_DIR: '.agent-qa/auth-states',
   DEFAULT_AGENT_QA_CACHE_DIR: '.agent-qa/cache',
   DEFAULT_AGENT_QA_RUNTIME_DIR: '.agent-qa',
