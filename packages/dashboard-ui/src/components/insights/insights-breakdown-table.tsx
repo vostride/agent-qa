@@ -13,6 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { t } from "@/lib/i18n"
 
 const BREAKDOWN_COPY: Record<InsightsBreakdownDimension, { title: string; label: string }> = {
   test: { title: "Test Breakdown", label: "Test" },
@@ -78,7 +79,7 @@ export function InsightsBreakdownTable({
         <InsightsLineNotice
           className="px-4 py-6"
           title={`No ${dimension} data in this window`}
-          description="Try another breakdown or widen the time window."
+          description={t("Try another breakdown or widen the time window.")}
         />
       </InsightsLineGrid>
     )
@@ -94,18 +95,18 @@ export function InsightsBreakdownTable({
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="px-4">{copy.label}</TableHead>
-              <TableHead className="px-4 text-right">Runs</TableHead>
+              <TableHead className="px-4 text-right">{t("Runs")}</TableHead>
               {dimension === "platform" ? (
                 <>
-                  <TableHead className="px-4 text-right">Passed</TableHead>
-                  <TableHead className="px-4 text-right">Failed</TableHead>
-                  <TableHead className="px-4 text-right">Pass Rate</TableHead>
+                  <TableHead className="px-4 text-right">{t("Passed")}</TableHead>
+                  <TableHead className="px-4 text-right">{t("Failed")}</TableHead>
+                  <TableHead className="px-4 text-right">{t("Pass Rate")}</TableHead>
                 </>
               ) : (
                 <>
-                  <TableHead className="px-4 text-right">Pass Rate</TableHead>
-                  <TableHead className="px-4 text-right">Flake Rate</TableHead>
-                  <TableHead className="px-4 text-right">Avg Duration</TableHead>
+                  <TableHead className="px-4 text-right">{t("Pass Rate")}</TableHead>
+                  <TableHead className="px-4 text-right">{t("Flake Rate")}</TableHead>
+                  <TableHead className="px-4 text-right">{t("Avg Duration")}</TableHead>
                 </>
               )}
             </TableRow>

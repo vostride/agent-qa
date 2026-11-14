@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { FormSkeleton } from "@/components/page-skeleton"
 import { fetchAppMetadata } from "@/lib/api"
+import { t } from "@/lib/i18n"
 import { usePageTitle } from "@/hooks/use-page-title"
 import {
   ConfigAutosaveProvider,
@@ -124,7 +125,7 @@ export default function ConfigPage() {
   const resolvedTab = resolveConfigTab(tabParam)
   const tab: ConfigTab = resolvedTab ?? "models"
   const sectionParam = searchParams.get("section")
-  const versionText = appVersion ? `agent-qa v${appVersion}` : "agent-qa version unavailable"
+  const versionText = appVersion ? `agent-qa v${appVersion}` : t("agent-qa version unavailable")
 
   useEffect(() => {
     const legacy = resolveLegacyConfigLink(searchParams)

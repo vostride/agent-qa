@@ -49,6 +49,7 @@ import {
 import { HOOK_RUNTIME_OPTIONS, getHookRuntimeMeta } from "@/lib/hook-runtime"
 import { routes } from "@/lib/routes"
 import { cn, formatDuration } from "@/lib/utils"
+import { t } from "@/lib/i18n"
 
 type HookHealth = "ready" | "file-missing"
 
@@ -71,7 +72,7 @@ function getHealthLabel(health: HookHealth): string {
 function HealthBadge({ hook }: { hook: HookCatalogEntry }) {
   const health = getHookHealth(hook)
   if (health === "file-missing") {
-    return <Badge variant="outline" className="border-amber-500/30 text-amber-600">File missing</Badge>
+    return <Badge variant="outline" className="border-amber-500/30 text-amber-600">{t("File missing")}</Badge>
   }
   return <Badge variant="outline" className="border-emerald-500/30 text-emerald-600">Ready</Badge>
 }
@@ -110,7 +111,7 @@ function getRowClassName({ isActive }: { isActive: boolean }) {
 }
 
 export default function HooksPage() {
-  usePageTitle("Hooks")
+  usePageTitle(t("Hooks"))
 
   const navigate = useNavigate()
   const [catalog, setCatalog] = useState<HookCatalogResponse>(EMPTY_CATALOG)
@@ -322,7 +323,7 @@ export default function HooksPage() {
       <div className="space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Hooks</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("Hooks")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Manage reusable setup, teardown, and inline hook scripts for this workspace.
             </p>
@@ -330,7 +331,7 @@ export default function HooksPage() {
           <div className="flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" type="button" aria-label="Keyboard shortcuts">
+                <Button variant="ghost" size="icon-sm" type="button" aria-label={t("Keyboard shortcuts")}>
                   <Keyboard className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -361,17 +362,17 @@ export default function HooksPage() {
             <Input
               value={search}
               onChange={(event) => handleSearchChange(event.currentTarget.value)}
-              placeholder="Search hooks"
+              placeholder={t("Search hooks")}
               className="lg:max-w-sm"
-              aria-label="Search hooks"
+              aria-label={t("Search hooks")}
             />
             <div className="flex flex-col gap-3 sm:flex-row">
               <Select value={runtime || "all"} onValueChange={handleRuntimeChange}>
-                <SelectTrigger className="w-full sm:w-44" aria-label="Runtime filter">
-                  <SelectValue placeholder="Runtime" />
+                <SelectTrigger className="w-full sm:w-44" aria-label={t("Runtime filter")}>
+              <SelectValue placeholder={t("Runtime")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All runtimes</SelectItem>
+                  <SelectItem value="all">{t("All runtimes")}</SelectItem>
                   {HOOK_RUNTIME_OPTIONS.map((runtimeOption) => (
                     <SelectItem key={runtimeOption} value={runtimeOption}>
                       {getHookRuntimeMeta(runtimeOption).label}
@@ -380,13 +381,13 @@ export default function HooksPage() {
                 </SelectContent>
               </Select>
               <Select value={health || "all"} onValueChange={handleHealthChange}>
-                <SelectTrigger className="w-full sm:w-44" aria-label="Health filter">
-                  <SelectValue placeholder="Health" />
+                <SelectTrigger className="w-full sm:w-44" aria-label={t("Health filter")}>
+              <SelectValue placeholder={t("Health")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All health</SelectItem>
+                  <SelectItem value="all">{t("All health")}</SelectItem>
                   <SelectItem value="ready">Ready</SelectItem>
-                  <SelectItem value="file-missing">File missing</SelectItem>
+                  <SelectItem value="file-missing">{t("File missing")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -421,7 +422,7 @@ export default function HooksPage() {
                     </TableHead>
                     <TableHead>
                       <Button type="button" variant="ghost" className="-ml-3" onClick={() => toggleSort("runtime")}>
-                        Runtime
+                        {t("Runtime")}
                         <ArrowUpDown className="h-4 w-4" />
                       </Button>
                     </TableHead>
@@ -433,7 +434,7 @@ export default function HooksPage() {
                     </TableHead>
                     <TableHead>
                       <Button type="button" variant="ghost" className="-ml-3" onClick={() => toggleSort("health")}>
-                        Health
+                        {t("Health")}
                         <ArrowUpDown className="h-4 w-4" />
                       </Button>
                     </TableHead>
@@ -493,7 +494,7 @@ export default function HooksPage() {
             </ScrollArea>
             <div className="flex items-center justify-between px-2">
               <p className="text-sm text-muted-foreground">
-                Showing {pageStart}-{pageEnd} of {filteredCount}
+                {t("Showing {start}-{end} of {count}", { start: pageStart, end: pageEnd, count: filteredCount })}
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -506,7 +507,7 @@ export default function HooksPage() {
                   }}
                   disabled={safePageIndex === 0}
                 >
-                  Previous
+                  {t("Previous")}
                 </Button>
                 <Button
                   type="button"
@@ -518,7 +519,7 @@ export default function HooksPage() {
                   }}
                   disabled={safePageIndex >= totalPages - 1}
                 >
-                  Next
+                  {t("Next")}
                 </Button>
               </div>
             </div>

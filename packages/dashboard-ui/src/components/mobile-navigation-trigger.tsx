@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react"
 import { useLocation } from "react-router"
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { t } from "@/lib/i18n"
 
 // The mobile sidebar's toggle lives inside its own sheet, so this bar is the only way in.
 export function MobileNavigationTrigger() {
@@ -32,7 +33,7 @@ export function MobileNavigationTrigger() {
     <div data-mobile-navigation className="flex shrink-0 items-center border-b px-2 md:hidden">
       <SidebarTrigger
         ref={triggerRef}
-        aria-label="Open navigation"
+        aria-label={t("Open navigation")}
         aria-haspopup="dialog"
         aria-expanded={openMobile}
         className="size-10 [&>span]:hidden"

@@ -20,6 +20,7 @@ import type { EvidenceKind } from '@vostride/agent-qa-schema'
 import { absentTriggerName, countedTriggerName, PROBLEM_COUNT_TONES, tabCounts } from '@/lib/evidence-counts'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { EvidenceScopeLine, type EvidenceScope } from './evidence-scope-line'
+import { t } from "@/lib/i18n"
 
 interface TabPanelsProps extends OverviewPlayerProps {
   activeTab: string
@@ -126,7 +127,7 @@ export function TabPanels({
       className="flex h-full min-h-0 flex-col overflow-hidden gap-0"
     >
       <TabsList variant="line" className="w-full justify-start overflow-x-auto border-b px-3 h-9 shrink-0 rounded-none [&_[role=tab]]:shrink-0">
-        <TabsTrigger value="overview" className="text-xs rounded-none flex-initial">Overview</TabsTrigger>
+        <TabsTrigger value="overview" className="text-xs rounded-none flex-initial">{t("Overview")}</TabsTrigger>
         {evidenceTrigger('variables', 'env', 'Variables')}
         {evidenceTrigger('network', 'network', 'Network')}
         {evidenceTrigger('console', 'console', hasExecutionLogs ? 'stdout' : 'Console')}

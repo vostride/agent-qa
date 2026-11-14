@@ -28,6 +28,7 @@ import {
 import { getRunStatusDescriptor, getStatusBadgeClassName } from '@/lib/status'
 
 import type { RunEventEnvelope } from '@vostride/agent-qa-schema'
+import { t } from "@/lib/i18n"
 
 // Moves to run detail on the first `verdict` with `replace`; the band covers ends with no verdict.
 
@@ -86,7 +87,7 @@ const NOT_YET_ATTACH_RETRY_MS = 2_500
 const NOT_YET_ATTACH_LIMIT = 8
 
 export default function LiveRunPage() {
-  usePageTitle('Live Run')
+  usePageTitle(t("Live Run"))
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
 
@@ -251,7 +252,7 @@ export default function LiveRunPage() {
   }, [id, isCancelling])
 
   if (id === undefined) {
-    return <EmptyState icon={MonitorPlay} title="No run selected" description="Select a test run to watch live execution" />
+    return <EmptyState icon={MonitorPlay} title={t("No run selected")} description={t("Select a test run to watch live execution")} />
   }
 
   const title = fallbackRun?.name ?? 'Live Run'

@@ -9,6 +9,7 @@ import { cn, formatDuration } from '@/lib/utils'
 import type { DisplayStep } from '@/lib/display-step'
 import type { EditorStep } from '@/hooks/use-live-editor'
 import type { Selection } from '@/lib/selection'
+import { t } from "@/lib/i18n"
 
 interface EditableStepWrapperProps {
   step: DisplayStep
@@ -175,7 +176,7 @@ export function EditableStepWrapper({
                   type="button"
                   onClick={() => onCancel()}
                   className="shrink-0 flex items-center justify-center size-7 rounded-sm text-destructive hover:bg-destructive/10 transition-colors"
-                  aria-label="Cancel running step"
+                  aria-label={t("Cancel running step")}
                 >
                   <Square className="size-3.5 fill-current" />
                 </button>
@@ -183,7 +184,7 @@ export function EditableStepWrapper({
               {isCancelling && (
                 <div className="flex items-center gap-1.5 shrink-0 mr-1">
                   <Loader2 className="size-3.5 text-muted-foreground animate-spin" />
-                  <span className="text-xs text-muted-foreground">Cancelling...</span>
+                  <span className="text-xs text-muted-foreground">{t("Cancelling...")}</span>
                 </div>
               )}
             </div>
@@ -222,7 +223,7 @@ export function EditableStepWrapper({
                   ref={textareaRef}
                   value={editorStep.instruction}
                   onChange={(e) => { onInstructionChange(index, e.target.value); autoResize() }}
-                  placeholder="Describe what this step should do..."
+                  placeholder={t("Describe what this step should do...")}
                   rows={1}
                   className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 outline-none border-none p-0 min-w-0 resize-none overflow-hidden mt-0.5"
                 />

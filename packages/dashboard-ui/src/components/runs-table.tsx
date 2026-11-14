@@ -62,6 +62,7 @@ import {
 } from "@/lib/api"
 import { getRunStatusDescriptor, getStatusBadgeClassName, runStatusClass } from "@/lib/status"
 import { cn, formatDate, formatDateShort, formatDuration } from "@/lib/utils"
+import { t as tI18n } from "@/lib/i18n"
 
 export type SuiteRunRow = RunRow & { tests?: RunRow[] }
 
@@ -139,7 +140,7 @@ function AttributeSummary({
     ([key]) => key !== GATE_RUN_ATTRIBUTE,
   )
   if (entries.length === 0) {
-    return <span className="text-[12px] text-muted-foreground">No attributes</span>
+    return <span className="text-[12px] text-muted-foreground">{tI18n("No attributes")}</span>
   }
 
   const visibleLimit = entries.length > 2 ? 1 : 2
@@ -279,7 +280,7 @@ function AttributeFilterControl({
           type="button"
           variant={predicates.length > 0 ? "secondary" : "outline"}
           size="sm"
-          aria-label="Filter by attributes"
+          aria-label={tI18n("Filter by attributes")}
           className="h-9 gap-2"
         >
           <SlidersHorizontal className="size-4" />
@@ -288,7 +289,7 @@ function AttributeFilterControl({
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[380px] p-0">
         <div className="border-b px-3 py-2">
-          <h3 className="text-sm font-medium">Filter by attributes</h3>
+          <h3 className="text-sm font-medium">{tI18n("Filter by attributes")}</h3>
         </div>
 
         <div className="space-y-3 p-3">
@@ -318,7 +319,7 @@ function AttributeFilterControl({
                     <span className="text-muted-foreground tabular-nums">{suggestion.count}</span>
                   </button>
                 )) : (
-                  <div className="px-2 py-2 text-xs text-muted-foreground">No attributes found</div>
+                  <div className="px-2 py-2 text-xs text-muted-foreground">{tI18n("No attributes found")}</div>
                 )}
               </div>
             </div>
@@ -349,7 +350,7 @@ function AttributeFilterControl({
                     <span className="text-muted-foreground tabular-nums">{suggestion.count}</span>
                   </button>
                 )) : (
-                  <div className="px-2 py-2 text-xs text-muted-foreground">No values found for this key</div>
+                  <div className="px-2 py-2 text-xs text-muted-foreground">{tI18n("No values found for this key")}</div>
                 )}
               </div>
             </div>
@@ -499,7 +500,7 @@ const columns: ColumnDef<typeof runsTableFeatures, RunRow>[] = [
   },
   {
     accessorKey: "duration",
-    header: ({ column }) => <CompactSortableHeader column={column} label="Duration" />,
+    header: ({ column }) => <CompactSortableHeader column={column} label={tI18n("Duration")} />,
   },
   {
     accessorKey: "createdAt",
@@ -690,7 +691,7 @@ export function RunsTable({
             value === true,
           )}
           onClick={(event) => event.stopPropagation()}
-          aria-label="Select all"
+          aria-label={tI18n("Select all")}
         />
       </div>
     ),
@@ -797,7 +798,7 @@ export function RunsTable({
           {topSlot}
           <div className="flex flex-wrap items-center gap-2">
             <Input
-              placeholder="Search runs..."
+              placeholder={tI18n("Search runs...")}
               value={searchValue}
               onChange={(event) => onSearchChange(event.target.value)}
               className="max-w-[220px]"
@@ -808,10 +809,10 @@ export function RunsTable({
                 onValueChange={(value) => onPlatformChange(value === "all" ? "" : value)}
               >
                 <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All platforms" />
+                  <SelectValue placeholder={tI18n("All platforms")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All platforms</SelectItem>
+                  <SelectItem value="all">{tI18n("All platforms")}</SelectItem>
                   <SelectItem value="web">Web</SelectItem>
                   <SelectItem value="android">Android</SelectItem>
                   <SelectItem value="ios">iOS</SelectItem>
@@ -824,10 +825,10 @@ export function RunsTable({
                 onValueChange={(value) => onTargetChange(value === "all" ? "" : value)}
               >
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="All targets" />
+                  <SelectValue placeholder={tI18n("All targets")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All targets</SelectItem>
+                  <SelectItem value="all">{tI18n("All targets")}</SelectItem>
                   {availableTargets.map((option) => (
                     <SelectItem key={option} value={option}>
                       {option}
@@ -918,7 +919,7 @@ export function RunsTable({
                               <Checkbox
                                 checked={selectedRunIds.has(run.id)}
                                 onCheckedChange={(value) => onToggleRunSelection?.(run, value === true)}
-                                aria-label="Select row"
+                                aria-label={tI18n("Select row")}
                               />
                             </div>
                           </TableCell>
@@ -1069,7 +1070,7 @@ export function RunsTable({
               ) : (
                 <TableRow>
                   <TableCell colSpan={visibleColumnIds.length} className="h-24 text-center">
-                    No results.
+                    {tI18n("No results.")}
                   </TableCell>
                 </TableRow>
               )}
@@ -1080,7 +1081,7 @@ export function RunsTable({
 
         <div className="flex items-center justify-between px-1">
           <p className="text-sm text-muted-foreground">
-            {total > 0 ? `Showing ${start}-${end} of ${total}` : "No runs found"}
+            {total > 0 ? tI18n("Showing {start}-{end} of {count}", { start, end, count: total }) : tI18n("No runs found")}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -1089,7 +1090,7 @@ export function RunsTable({
               onClick={() => onPageChange(page - 1)}
               disabled={page === 0}
             >
-              Previous
+              {tI18n("Previous")}
             </Button>
             <Button
               variant="outline"
@@ -1097,7 +1098,7 @@ export function RunsTable({
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages - 1 || totalPages === 0}
             >
-              Next
+              {tI18n("Next")}
             </Button>
           </div>
         </div>

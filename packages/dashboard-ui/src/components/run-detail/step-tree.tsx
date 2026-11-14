@@ -13,6 +13,7 @@ import type { MemberVerdictView } from "@/lib/analysis-view"
 import { hasStepId, type Selection } from "@/lib/selection"
 import { feedbackAddress } from "@/lib/feedback-view"
 import type { Playhead } from '@/lib/playhead'
+import { t } from "@/lib/i18n"
 
 /** The step door's wiring: the page's composer, which address it is open on, and how to open it. */
 export interface StepTreeFeedback {
@@ -181,7 +182,7 @@ export function StepTree({
         <HookSection title="Setup" hooks={setupHooks} selection={selection} onSelect={onSelect} />
 
         <SectionHeading title="Steps" />
-        <ul role="tree" aria-label="Test steps" className="py-1">
+        <ul role="tree" aria-label={t("Test steps")} className="py-1">
           {displayGroups.map(({ group, steps }) => (
             <MemberGroup
               key={group.member.testIndex}

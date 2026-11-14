@@ -21,6 +21,7 @@ import { TOKEN_USAGE_TRIGGER_LABEL, tokenPairLine } from "@/lib/run-detail-view"
 import { statusBadgeLook } from "@/lib/status"
 import { cn, formatDuration } from "@/lib/utils"
 import type { RecordedRetrievalRung, RunModelSummary, RunTokenTotals } from "@vostride/agent-qa-schema"
+import { t } from "@/lib/i18n"
 
 // The badge root carries the raw status for DOM cells, as its visible text is a title-cased label.
 function StatusBadge({ status }: { status: string }) {
@@ -164,8 +165,8 @@ export function RunNavbar({
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label="Open run artifacts"
-          title="Run details (I/C/M)"
+          aria-label={t("Open run artifacts")}
+          title={t("Run details (I/C/M)")}
           onClick={() => onOpenArtifacts?.("test")}
         >
           <PanelRightOpen className="h-3.5 w-3.5" />
@@ -175,9 +176,9 @@ export function RunNavbar({
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Keyboard shortcuts"
+            aria-label={t("Keyboard shortcuts")}
             aria-expanded={shortcutsOpen}
-            title="Shortcuts (Shift+?)"
+            title={t("Shortcuts (Shift+?)")}
             onClick={onToggleShortcuts}
           >
             <Keyboard className="h-3.5 w-3.5" />
@@ -185,12 +186,12 @@ export function RunNavbar({
           {shortcutsOpen ? (
             <div
               role="dialog"
-              aria-label="Keyboard shortcuts"
+              aria-label={t("Keyboard shortcuts")}
               className="absolute right-0 top-full z-50 mt-2 w-72 rounded-md border border-border bg-popover p-4 text-popover-foreground shadow-md"
             >
               <div className="space-y-3">
                 <div>
-                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Navigation</h4>
+                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">{t("Navigation")}</h4>
                   <ShortcutLegend hints={[
                     { key: '← →', label: 'Previous / next action' },
                     { key: 'Space', label: 'Play / pause' },
@@ -241,8 +242,8 @@ export function RunNavbar({
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label="Re-run"
-          title="Re-run (R)"
+          aria-label={t("Re-run")}
+          title={t("Re-run (R)")}
           onClick={handleRerun}
         >
           <RotateCcw className="h-3.5 w-3.5" />

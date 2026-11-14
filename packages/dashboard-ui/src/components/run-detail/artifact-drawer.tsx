@@ -15,6 +15,7 @@ import { captureStateOf, DRAWER_COPY, DRAWER_TITLE_FALLBACK, ranAgainstParts } f
 import { ArtifactTestTab } from "./artifact-test-tab"
 import { ArtifactConfigTab } from "./artifact-config-tab"
 import { ArtifactTechnicalDetails } from "./artifact-technical-details"
+import { t } from "@/lib/i18n"
 
 export type ArtifactDrawerTab = "test" | "config"
 
@@ -32,8 +33,8 @@ interface ArtifactDrawerProps {
 
 function LoadingState() {
   return (
-    <div className="space-y-4" aria-label="Loading artifact data">
-      <p className="text-sm text-muted-foreground">Loading artifact data...</p>
+    <div className="space-y-4" aria-label={t("Loading artifact data")}>
+      <p className="text-sm text-muted-foreground">{t("Loading artifact data...")}</p>
       {[0, 1, 2].map((index) => (
         <div key={index} className="rounded-[2px] border border-border p-4">
           <Skeleton className="h-4 w-40" />
@@ -54,7 +55,7 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
       <div className="flex items-start gap-3">
         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-medium text-foreground">Could not load artifact data</h3>
+          <h3 className="text-sm font-medium text-foreground">{t("Could not load artifact data")}</h3>
           <p className="mt-1 text-sm text-muted-foreground">
             Retry the request. If it continues, verify the dashboard server can read run artifacts.
           </p>

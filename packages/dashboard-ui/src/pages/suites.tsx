@@ -62,6 +62,7 @@ import { useSuitesSearchParams } from "@/hooks/use-suites-search-params"
 import { deleteSuiteFile, fetchSuiteFiles, fetchSuiteSummaries, triggerRun, type SuiteFileInfo, type SuiteSummary } from "@/lib/api"
 import { runStatusClass } from "@/lib/status"
 import { formatDate } from "@/lib/utils"
+import { t as tI18n } from "@/lib/i18n"
 
 interface SuiteListRow {
   path: string
@@ -140,7 +141,7 @@ function getRowClassName({
 }
 
 export default function SuitesPage() {
-  usePageTitle("Suites")
+  usePageTitle(tI18n("Suites"))
   const [suiteFiles, setSuiteFiles] = useState<SuiteFileInfo[]>([])
   const [summaries, setSummaries] = useState<Map<string, SuiteSummary> | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -320,7 +321,7 @@ export default function SuitesPage() {
           return (
             <div className="space-y-0.5 text-right">
               <div className="text-sm font-medium text-foreground">{"\u2014"}</div>
-              <div className="text-xs tabular-nums text-muted-foreground">0 completed</div>
+              <div className="text-xs tabular-nums text-muted-foreground">{tI18n("0 completed")}</div>
             </div>
           )
         }
@@ -355,7 +356,7 @@ export default function SuitesPage() {
       cell: ({ row }) => {
         if (!row.original.historyKnown) return null
         if (!row.original.lastRun) {
-          return <span className="block text-sm text-muted-foreground">No runs</span>
+          return <span className="block text-sm text-muted-foreground">{tI18n("No runs")}</span>
         }
 
         return (
@@ -526,9 +527,9 @@ export default function SuitesPage() {
       <div data-tour-id="tour-suites-table">
         <EmptyState
           icon={FolderOpen}
-          title="No suites found"
-          description="Create your first suite file"
-          actionLabel="New Suite"
+          title={tI18n("No suites found")}
+          description={tI18n("Create your first suite file")}
+          actionLabel={tI18n("New Suite")}
           onAction={() => navigate(routes.suiteNew)}
         />
       </div>
@@ -545,11 +546,11 @@ export default function SuitesPage() {
     <TooltipProvider>
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Suites</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{tI18n("Suites")}</h1>
           <div className="flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="Keyboard shortcuts">
+                <Button variant="ghost" size="icon-sm" aria-label={tI18n("Keyboard shortcuts")}>
                   <Keyboard className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -572,29 +573,29 @@ export default function SuitesPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Input
-            placeholder="Search suites..."
+            placeholder={tI18n("Search suites...")}
             value={searchValue}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="max-w-[220px]"
           />
           <Select value={status || "all"} onValueChange={(v) => { setStatus(v === "all" ? "" : v); setSelectedIndex(-1); setRowSelection({}) }}>
             <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="All statuses" />
+              <SelectValue placeholder={tI18n("All statuses")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="passed">Passed</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-              <SelectItem value="running">Running</SelectItem>
-              <SelectItem value="no-runs">No runs</SelectItem>
+              <SelectItem value="all">{tI18n("All statuses")}</SelectItem>
+              <SelectItem value="passed">{tI18n("Passed")}</SelectItem>
+              <SelectItem value="failed">{tI18n("Failed")}</SelectItem>
+              <SelectItem value="running">{tI18n("Running")}</SelectItem>
+              <SelectItem value="no-runs">{tI18n("No runs")}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={platform || "all"} onValueChange={(v) => { setPlatform(v === "all" ? "" : v); setSelectedIndex(-1); setRowSelection({}) }}>
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All platforms" />
+              <SelectValue placeholder={tI18n("All platforms")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All platforms</SelectItem>
+              <SelectItem value="all">{tI18n("All platforms")}</SelectItem>
               <SelectItem value="web">Web</SelectItem>
               <SelectItem value="android">Android</SelectItem>
               <SelectItem value="ios">iOS</SelectItem>
@@ -685,7 +686,7 @@ export default function SuitesPage() {
                     colSpan={columns.length + 1}
                     className="h-24 text-center"
                   >
-                    No results.
+                    {tI18n("No results.")}
                   </TableCell>
                 </TableRow>
               )}
@@ -697,7 +698,8 @@ export default function SuitesPage() {
         <div className="flex items-center justify-between px-2">
           <p className="text-sm text-muted-foreground">
             {filteredCount > 0
-              ? `Showing ${start}-${end} of ${filteredCount}${searchValue || status || platform ? ` (${data.length} total)` : ""}`
+              ? tI18n("Showing {start}-{end} of {count}", { start, end, count: filteredCount }) +
+                (searchValue || status || platform ? tI18n(" ({total} total)", { total: data.length }) : "")
               : "No suites found"}
           </p>
           <div className="flex items-center gap-2">
@@ -707,7 +709,7 @@ export default function SuitesPage() {
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
-              Previous
+              {tI18n("Previous")}
             </Button>
             <Button
               variant="outline"
@@ -715,7 +717,7 @@ export default function SuitesPage() {
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >
-              Next
+              {tI18n("Next")}
             </Button>
           </div>
         </div>

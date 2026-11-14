@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
+import { t } from "@/lib/i18n"
 
 interface TestRunOptionsPopoverProps {
   selectedCount: number
@@ -54,7 +55,7 @@ export function TestRunOptionsPopover({
         <Separator />
         <div className="space-y-3">
           <label className="flex items-center justify-between gap-3 text-sm">
-            <span>Use cache</span>
+            <span>{t("Use cache")}</span>
             <Checkbox
               checked={useCache}
               onCheckedChange={(checked) => onUseCacheChange(checked === true)}

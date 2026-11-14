@@ -23,6 +23,7 @@ import { useTargetDetails } from '@/hooks/use-target-details'
 import { StepPillPreview, hasTemplateVars } from '@/components/step-pill-preview'
 import { useStepAutocomplete } from '@/components/step-autocomplete'
 import type { VariableSuggestion } from '@/hooks/use-variable-suggestions'
+import { t as tI18n } from "@/lib/i18n"
 
 function InfoTip({ text }: { text: string }) {
   return (
@@ -91,7 +92,7 @@ export function SuiteMetadataForm({
           id="suite-name"
           value={name}
           onChange={(e) => onChange('name', e.target.value)}
-          placeholder="My Suite"
+          placeholder={tI18n("My Suite")}
           required
           disabled={disabled}
           className="h-8 text-sm"
@@ -117,7 +118,7 @@ export function SuiteMetadataForm({
               variant="ghost"
               size="icon-sm"
               onClick={() => onChange('suite-id', generateSuiteId())}
-              aria-label="Generate new ID"
+              aria-label={tI18n("Generate new ID")}
               disabled={disabled}
               className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
             >
@@ -134,7 +135,7 @@ export function SuiteMetadataForm({
       {/* Target */}
       <div className="space-y-1.5">
         <Label htmlFor="suite-target" className="text-xs flex items-center gap-1">
-          Target <span className="text-destructive">*</span> <InfoTip text="A registered app target from your workspace config. Defines where the suite runs (web URL or mobile app)." />
+          {tI18n("Target")} <span className="text-destructive">*</span> <InfoTip text="A registered app target from your workspace config. Defines where the suite runs (web URL or mobile app)." />
         </Label>
         {hasTargets ? (
           <Select
@@ -143,7 +144,7 @@ export function SuiteMetadataForm({
             disabled={disabled}
           >
             <SelectTrigger id="suite-target" className="w-full h-8 text-sm">
-              <SelectValue placeholder="Select a target" />
+              <SelectValue placeholder={tI18n("Select a target")} />
             </SelectTrigger>
             <SelectContent>
               {targets.map((t) => (
@@ -191,7 +192,7 @@ export function SuiteMetadataForm({
             }}
             onKeyDown={(e) => { if (autocomplete.handleKeyDown(e)) return }}
             onBlur={() => setTimeout(() => autocomplete.setVisible(false), 150)}
-            placeholder="Additional instructions applied to every test in this suite..."
+            placeholder={tI18n("Additional instructions applied to every test in this suite...")}
             disabled={disabled}
             className="min-h-[60px] resize-none text-sm"
             rows={2}

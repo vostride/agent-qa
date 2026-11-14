@@ -10,6 +10,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { t } from "@/lib/i18n"
 
 interface HookNavbarProps {
   hookName: string
@@ -62,7 +63,7 @@ export function HookNavbar({
         </Link>
         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         {isCreateMode ? (
-          <span className="truncate text-sm font-medium">New Hook</span>
+          <span className="truncate text-sm font-medium">{t("New Hook")}</span>
         ) : hookHref && !isViewMode ? (
           <Link to={hookHref} className="truncate text-sm font-medium transition-colors hover:text-primary">
             {hookName}
@@ -73,7 +74,7 @@ export function HookNavbar({
         {showEditCrumb && (
           <>
             <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="truncate text-sm font-medium">Edit</span>
+            <span className="truncate text-sm font-medium">{t("Edit")}</span>
           </>
         )}
         {unsaved && (

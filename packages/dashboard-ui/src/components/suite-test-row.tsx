@@ -18,6 +18,7 @@ import type { LiveHookExecution, TestStepDetail } from '@/hooks/use-live-editor'
 import { fromEditorStep } from '@/lib/display-step'
 import type { LiveSubAction } from '@/hooks/use-live-editor'
 import type { Selection } from '@/lib/selection'
+import { t } from "@/lib/i18n"
 
 interface SuiteTestRowProps {
   id: string
@@ -241,8 +242,8 @@ export function SuiteTestRow({
 
                     {(isRunningStep || isStepSelected) && (
                       <div className="flex flex-wrap gap-x-2 gap-y-0.5 px-2 pb-1 text-[11px] text-muted-foreground">
-                        {isRunningStep && <span>Current step</span>}
-                        {isStepSelected && <span>Inspecting below</span>}
+                        {isRunningStep && <span>{t("Current step")}</span>}
+                        {isStepSelected && <span>{t("Inspecting below")}</span>}
                       </div>
                     )}
 

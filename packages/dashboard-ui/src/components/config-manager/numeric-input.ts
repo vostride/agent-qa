@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n"
+
 interface ConfigNumberInputOptions {
   label: string
   min?: number
@@ -42,15 +44,28 @@ export function parseConfigNumberInput(
 }
 
 function describeNumberInput(options: ConfigNumberInputOptions): string {
-  const kind = options.integer ? "an integer" : "a number"
+  const kind = options.integer ? t("an integer") : t("a number")
   if (options.min !== undefined && options.max !== undefined) {
-    return `${options.label} must be ${kind} between ${options.min} and ${options.max}`
+    return t("{label} must be {kind} between {min} and {max}", {
+      label: options.label,
+      kind,
+      min: options.min,
+      max: options.max,
+    })
   }
   if (options.min !== undefined) {
-    return `${options.label} must be ${kind} greater than or equal to ${options.min}`
+    return t("{label} must be {kind} greater than or equal to {min}", {
+      label: options.label,
+      kind,
+      min: options.min,
+    })
   }
   if (options.max !== undefined) {
-    return `${options.label} must be ${kind} less than or equal to ${options.max}`
+    return t("{label} must be {kind} less than or equal to {max}", {
+      label: options.label,
+      kind,
+      max: options.max,
+    })
   }
-  return `${options.label} must be ${kind}`
+  return t("{label} must be {kind}", { label: options.label, kind })
 }

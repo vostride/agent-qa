@@ -32,6 +32,7 @@ import {
 } from "@/components/insights/insights-line-grid"
 import { Button } from "@/components/ui/button"
 import { cn, formatDuration } from "@/lib/utils"
+import { t } from "@/lib/i18n"
 
 const WINDOW_OPTIONS: Array<{ value: InsightsTimeWindow; label: string }> = [
   { value: "1d", label: "1D" },
@@ -67,7 +68,7 @@ function getWindowFrom(timeWindow: InsightsTimeWindow) {
 }
 
 export default function InsightsPage() {
-  usePageTitle("Insights")
+  usePageTitle(t("Insights"))
 
   const navigate = useNavigate()
   const { window: timeWindow, breakdown, setWindow, setBreakdown } = useInsightsSearchParams()
@@ -202,7 +203,7 @@ export default function InsightsPage() {
     <div data-insights-page-root className="h-full min-h-0 overflow-y-auto p-4 md:p-6 space-y-6">
       <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1.5">
-          <h1 className="text-3xl font-semibold tracking-tight">Insights</h1>
+          <h1 className="text-3xl font-semibold tracking-tight">{t("Insights")}</h1>
           <p className="max-w-2xl text-sm text-muted-foreground">
             Window-wide reliability, cost, and curator signals with a separate comparison section for tests,
             suites, and platforms.
@@ -212,7 +213,7 @@ export default function InsightsPage() {
         <div className="flex flex-col gap-2 md:items-end">
           <div className="flex flex-wrap items-center gap-2 md:justify-end">
             {scopeConfigured ? (
-              <div className="inline-flex rounded border border-border p-0.5" aria-label="Run scope">
+              <div className="inline-flex rounded border border-border p-0.5" aria-label={t("Run scope")}>
                 {(["scoped", "all"] as const).map((value) => (
                   <Button
                     key={value}
@@ -229,7 +230,7 @@ export default function InsightsPage() {
               </div>
             ) : null}
 
-            <div className="inline-flex rounded border border-border p-0.5" aria-label="Time window">
+            <div className="inline-flex rounded border border-border p-0.5" aria-label={t("Time window")}>
               {WINDOW_OPTIONS.map((option) => (
                 <Button
                   key={option.value}
@@ -248,7 +249,7 @@ export default function InsightsPage() {
           {isWindowRefreshing ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground md:justify-end">
               <LoaderCircle className="size-3 animate-spin" />
-              <span>Refreshing selected range</span>
+              <span>{t("Refreshing selected range")}</span>
             </div>
           ) : null}
         </div>
@@ -257,15 +258,15 @@ export default function InsightsPage() {
       {showFatalError ? (
         <InsightsLineGrid className="mt-6">
           <InsightsLineNotice
-            title="Insights unavailable"
-            description="Refresh the page. If the problem continues, change the time window and verify analytics data is available."
+            title={t("Insights unavailable")}
+            description={t("Refresh the page. If the problem continues, change the time window and verify analytics data is available.")}
           />
         </InsightsLineGrid>
       ) : !hasRuns || !stats ? (
         <InsightsLineGrid className="mt-6 min-h-[50vh]">
           <InsightsLineCell className="flex min-h-[50vh] flex-col items-center justify-center text-center">
             <BarChart3 className="mb-4 h-8 w-8 text-muted-foreground" />
-            <h3 className="text-lg font-semibold">No runs in this window</h3>
+            <h3 className="text-lg font-semibold">{t("No runs in this window")}</h3>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
               Run or rerun tests to populate insights. If you expect older data, switch to 30D or All Time.
             </p>
@@ -288,24 +289,24 @@ export default function InsightsPage() {
                 <div className="grid h-full auto-rows-fr gap-0 sm:grid-cols-2">
                   <InsightsMetricCell
                     className="border-b border-border sm:border-r"
-                    label="Total Runs"
+                    label={t("Total Runs")}
                     value={stats.totalRuns.toLocaleString()}
                     description={`${avgRunsPerDay} ${scopeActive ? "scoped " : ""}runs per active day in this ${timeWindow === "all" ? "range" : "window"}.`}
                   />
                   <InsightsMetricCell
                     className="border-b border-border"
-                    label="Pass Rate"
+                    label={t("Pass Rate")}
                     value={passRate === null ? "\u2014" : `${passRate}%`}
                     description={`${stats.passed} successful ${scopeActive ? "scoped " : ""}runs out of ${decidedRuns} that passed or failed.`}
                   />
                   <InsightsMetricCell
                     className="border-b border-border sm:border-b-0 sm:border-r"
-                    label="Avg Duration"
+                    label={t("Avg Duration")}
                     value={formatDuration(stats.avgDuration)}
-                    description="Average runtime for completed runs in the selected range."
+                    description={t("Average runtime for completed runs in the selected range.")}
                   />
                   <InsightsMetricCell
-                    label="Flake Rate"
+                    label={t("Flake Rate")}
                     value={formatPercent(stats.flakeRate)}
                     description={`${stats.failed} failed runs with healed/flaky behavior tracked separately.`}
                   />
@@ -314,8 +315,8 @@ export default function InsightsPage() {
 
               <InsightsLineCell className="h-full">
                 <div className="space-y-1">
-                  <h2 className="text-base font-semibold">Pass Rate</h2>
-                  <p className="text-sm text-muted-foreground">Trend for successful outcomes across the selected window.</p>
+                  <h2 className="text-base font-semibold">{t("Pass Rate")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("Trend for successful outcomes across the selected window.")}</p>
                 </div>
                 <PassRateChart
                   data={stats.runs
@@ -330,8 +331,8 @@ export default function InsightsPage() {
 
               <InsightsLineCell className="h-full">
                 <div className="space-y-1">
-                  <h2 className="text-base font-semibold">Duration</h2>
-                  <p className="text-sm text-muted-foreground">Average run duration by day for the selected window.</p>
+                  <h2 className="text-base font-semibold">{t("Duration")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("Average run duration by day for the selected window.")}</p>
                 </div>
                 <DurationChart
                   data={stats.runs.map((run) => ({ date: run.date, duration: run.duration }))}
@@ -369,7 +370,7 @@ export default function InsightsPage() {
               </InsightsLineCell>
 
               <InsightsLineCell className="space-y-2 lg:text-right">
-                <p className="text-xs text-muted-foreground">Break down by</p>
+                <p className="text-xs text-muted-foreground">{t("Break down by")}</p>
                 <div className="flex flex-wrap gap-2 lg:justify-end">
                   {BREAKDOWN_OPTIONS.map((option) => (
                     <Button
@@ -387,7 +388,7 @@ export default function InsightsPage() {
 
             {hasBreakdownError && breakdownRows.length === 0 ? (
               <InsightsLineGrid>
-                <InsightsLineNotice title="Breakdown unavailable">
+                <InsightsLineNotice title={t("Breakdown unavailable")}>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Refresh the page or pick another window to reload the selected comparison.
                   </p>

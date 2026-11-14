@@ -1,5 +1,6 @@
 import { Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { t } from "@/lib/i18n"
 
 function sortedAttributeEntries(attributes: Record<string, string>) {
   return Object.entries(attributes).sort(([left], [right]) => {
@@ -20,8 +21,8 @@ export function ArtifactAttributeRows({ attributes }: { attributes: Record<strin
   if (entries.length === 0) {
     return (
       <div className="rounded-[2px] border border-border p-4">
-        <h3 className="text-sm font-medium text-foreground">No run attributes</h3>
-        <p className="mt-1 text-sm text-muted-foreground">This run did not record any attributes.</p>
+        <h3 className="text-sm font-medium text-foreground">{t("No run attributes")}</h3>
+        <p className="mt-1 text-sm text-muted-foreground">{t("This run did not record any attributes.")}</p>
       </div>
     )
   }
@@ -55,7 +56,7 @@ export function ArtifactAttributeRows({ attributes }: { attributes: Record<strin
                       variant="ghost"
                       size="icon-sm"
                       aria-label={`Copy ${key} value`}
-                      title="Copy value"
+                      title={t("Copy value")}
                       onClick={() => copyText(value)}
                     >
                       <Copy className="size-3.5" />

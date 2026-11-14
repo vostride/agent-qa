@@ -58,6 +58,7 @@ import { ShortcutLegend } from "@/components/shortcut-hints"
 import { deleteTestFile, fetchTestFiles, fetchTestSummaries, purgeCache, triggerRun, type TestFileInfo, type TestSummary } from "@/lib/api"
 import { memberStatus, runStatusClass } from "@/lib/status"
 import { cn, formatDate } from "@/lib/utils"
+import { t as tI18n } from "@/lib/i18n"
 
 interface TestRow {
   path: string
@@ -213,7 +214,7 @@ const columns: ColumnDef<typeof testsTableFeatures, TestRow>[] = [
         return (
           <div className="space-y-0.5 text-right">
             <div className="text-sm font-medium text-foreground">{"\u2014"}</div>
-            <div className="text-xs tabular-nums text-muted-foreground">0 completed</div>
+            <div className="text-xs tabular-nums text-muted-foreground">{tI18n("0 completed")}</div>
           </div>
         )
       }
@@ -247,7 +248,7 @@ const columns: ColumnDef<typeof testsTableFeatures, TestRow>[] = [
     cell: ({ row }) => {
       if (!row.original.historyKnown) return null
       if (!row.original.lastRun) {
-        return <span className="block text-sm text-muted-foreground">No runs</span>
+        return <span className="block text-sm text-muted-foreground">{tI18n("No runs")}</span>
       }
 
       return (
@@ -270,7 +271,7 @@ const columns: ColumnDef<typeof testsTableFeatures, TestRow>[] = [
 ]
 
 export default function TestsPage() {
-  usePageTitle("Tests")
+  usePageTitle(tI18n("Tests"))
   const [files, setFiles] = useState<TestFileInfo[]>([])
   const [summaries, setSummaries] = useState<Map<string, TestSummary> | null>(null)
   const [targetOptions, setTargetOptions] = useState<string[]>([])
@@ -563,9 +564,9 @@ export default function TestsPage() {
       <div data-tour-id="tour-tests-table">
         <EmptyState
           icon={FileText}
-          title="No tests found"
-          description="Create your first test file to get started"
-          actionLabel="Create Test"
+          title={tI18n("No tests found")}
+          description={tI18n("Create your first test file to get started")}
+          actionLabel={tI18n("Create Test")}
           onAction={() => navigate(routes.testNew)}
         />
       </div>
@@ -582,11 +583,11 @@ export default function TestsPage() {
     <TooltipProvider>
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Tests</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{tI18n("Tests")}</h1>
           <div className="flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="Keyboard shortcuts">
+                <Button variant="ghost" size="icon-sm" aria-label={tI18n("Keyboard shortcuts")}>
                   <Keyboard className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -609,29 +610,29 @@ export default function TestsPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Input
-            placeholder="Search tests..."
+            placeholder={tI18n("Search tests...")}
             value={searchValue}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="max-w-[220px]"
           />
           <Select value={status || "all"} onValueChange={(v) => { setStatus(v === "all" ? "" : v); setSelectedIndex(-1) }}>
             <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="All statuses" />
+              <SelectValue placeholder={tI18n("All statuses")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="passed">Passed</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-              <SelectItem value="running">Running</SelectItem>
-              <SelectItem value="no-runs">No runs</SelectItem>
+              <SelectItem value="all">{tI18n("All statuses")}</SelectItem>
+              <SelectItem value="passed">{tI18n("Passed")}</SelectItem>
+              <SelectItem value="failed">{tI18n("Failed")}</SelectItem>
+              <SelectItem value="running">{tI18n("Running")}</SelectItem>
+              <SelectItem value="no-runs">{tI18n("No runs")}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={platform || "all"} onValueChange={(v) => { setPlatform(v === "all" ? "" : v); setSelectedIndex(-1) }}>
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All platforms" />
+              <SelectValue placeholder={tI18n("All platforms")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All platforms</SelectItem>
+              <SelectItem value="all">{tI18n("All platforms")}</SelectItem>
               <SelectItem value="web">Web</SelectItem>
               <SelectItem value="android">Android</SelectItem>
               <SelectItem value="ios">iOS</SelectItem>
@@ -639,10 +640,10 @@ export default function TestsPage() {
           </Select>
           <Select value={target || "all"} onValueChange={(v) => { setTarget(v === "all" ? "" : v); setSelectedIndex(-1) }}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All targets" />
+              <SelectValue placeholder={tI18n("All targets")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All targets</SelectItem>
+              <SelectItem value="all">{tI18n("All targets")}</SelectItem>
               {availableTargets.map((option) => (
                 <SelectItem key={option} value={option}>
                   {option}
@@ -732,7 +733,7 @@ export default function TestsPage() {
                     colSpan={columns.length + 1}
                     className="h-24 text-center"
                   >
-                    No tests match the current search or filters.
+                    {tI18n("No tests match the current search or filters.")}
                   </TableCell>
                 </TableRow>
               )}
@@ -744,7 +745,8 @@ export default function TestsPage() {
         <div className="flex items-center justify-between px-2">
           <p className="text-sm text-muted-foreground">
             {filteredCount > 0
-              ? `Showing ${start}-${end} of ${filteredCount}${searchValue || status || platform || target ? ` (${data.length} total)` : ""}`
+              ? tI18n("Showing {start}-{end} of {count}", { start, end, count: filteredCount }) +
+                (searchValue || status || platform || target ? tI18n(" ({total} total)", { total: data.length }) : "")
               : "No tests found"}
           </p>
           <div className="flex items-center gap-2">
@@ -754,7 +756,7 @@ export default function TestsPage() {
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
-              Previous
+              {tI18n("Previous")}
             </Button>
             <Button
               variant="outline"
@@ -762,16 +764,16 @@ export default function TestsPage() {
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >
-              Next
+              {tI18n("Next")}
             </Button>
           </div>
         </div>
 
         <BatchActionBar
           selectedCount={selectionQueue.selectedCount}
-          summaryMeta={hiddenCount > 0 ? `${hiddenCount} hidden by filters` : undefined}
+          summaryMeta={hiddenCount > 0 ? tI18n("{count} hidden by filters", { count: hiddenCount }) : undefined}
           secondaryIcon={<X className="size-4" />}
-          secondaryAriaLabel="Clear queue"
+          secondaryAriaLabel={tI18n("Clear queue")}
           onDelete={handleBatchDelete}
           actionSlot={(
             <div className="flex items-center gap-2">
@@ -791,7 +793,7 @@ export default function TestsPage() {
                 onClick={handlePurgeAllCachedPlans}
                 disabled={batchLoading}
               >
-                Purge all cached plans
+                {tI18n("Purge all cached plans")}
               </Button>
             </div>
           )}

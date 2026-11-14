@@ -56,6 +56,7 @@ import {
 import { getSuiteFilenameError } from "@/lib/suite-filename-validation"
 import { generateSuiteId } from "@/lib/generate-suite-id"
 import { suiteYamlToFormState, updateSuiteField } from "@/lib/suite-yaml-serializer"
+import { t } from "@/lib/i18n"
 
 const DEFAULT_TEMPLATE = `name: My Suite
 target: ""
@@ -662,9 +663,9 @@ export default function SuiteEditorPage() {
     return (
       <EmptyState
         icon={FolderOpen}
-        title="Suite not found"
-        description="This suite doesn't exist"
-        actionLabel="View All Suites"
+        title={t("Suite not found")}
+        description={t("This suite doesn't exist")}
+        actionLabel={t("View All Suites")}
         onAction={() => navigate(routes.suites)}
       />
     )
@@ -727,7 +728,7 @@ export default function SuiteEditorPage() {
               <Label className="flex items-center gap-1 text-xs font-medium">
                 File Path <InfoTip text="Path is relative to your workspace root. Must match your workspace's suiteMatch pattern. Directories are created automatically on save." />
               </Label>
-              <span className="text-[11px] text-muted-foreground">Created only when you save</span>
+              <span className="text-[11px] text-muted-foreground">{t("Created only when you save")}</span>
             </div>
             <Input
               placeholder="my-suite.suite.yaml"
@@ -856,8 +857,8 @@ export default function SuiteEditorPage() {
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
         <SheetContent side="right" className="sm:max-w-[400px] overflow-y-auto p-0">
           <SheetHeader className="px-4 pt-4 pb-2">
-            <SheetTitle>Suite Settings</SheetTitle>
-            <SheetDescription>Advanced configuration for this suite</SheetDescription>
+            <SheetTitle>{t("Suite Settings")}</SheetTitle>
+            <SheetDescription>{t("Advanced configuration for this suite")}</SheetDescription>
           </SheetHeader>
           <div className="px-4 pb-4">
             <TestSettingsPanel
@@ -878,8 +879,8 @@ export default function SuiteEditorPage() {
             className="h-[100dvh] max-h-[100dvh] rounded-none p-0"
           >
             <SheetHeader className="sr-only">
-              <SheetTitle>Live Session</SheetTitle>
-              <SheetDescription>Live execution workspace for the current suite draft.</SheetDescription>
+              <SheetTitle>{t("Live Session")}</SheetTitle>
+              <SheetDescription>{t("Live execution workspace for the current suite draft.")}</SheetDescription>
             </SheetHeader>
             {livePane}
           </SheetContent>

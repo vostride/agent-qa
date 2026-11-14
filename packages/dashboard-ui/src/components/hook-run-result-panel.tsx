@@ -6,6 +6,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getHookRuntimeMeta } from '@/lib/hook-runtime'
 import { formatDuration } from '@/lib/utils'
+import { t } from "@/lib/i18n"
 
 function formatRelativeCompact(iso: string): string {
   if (!iso) return 'just now'
@@ -28,14 +29,14 @@ function StatusBadge({ status }: { status: 'passed' | 'failed' }) {
       </Badge>
     )
   }
-  return <Badge variant="destructive">Failed</Badge>
+  return <Badge variant="destructive">{t("Failed")}</Badge>
 }
 
 function EmptyResult() {
   return (
     <div className="flex h-full items-center justify-center px-6">
       <div className="max-w-sm text-center">
-        <div className="text-base font-semibold text-foreground">No run selected</div>
+        <div className="text-base font-semibold text-foreground">{t("No run selected")}</div>
         <div className="mt-2 text-sm text-muted-foreground">
           Run this hook or pick a recent local result to inspect.
         </div>
@@ -96,7 +97,7 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
         <div className="border-b px-4 py-3">
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={result.status} />
-            <div className="text-sm font-medium text-foreground">Latest hook result</div>
+            <div className="text-sm font-medium text-foreground">{t("Latest hook result")}</div>
             <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
               <span>{formatDuration(result.duration)}</span>
               <span>{formatRelativeCompact(result.executedAt)}</span>
@@ -106,7 +107,7 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
       ) : null}
 
       <TabsList variant="line" className="h-10 w-full justify-start rounded-none border-b px-4">
-        <TabsTrigger value="overview" className="flex-initial rounded-none text-xs">Overview</TabsTrigger>
+        <TabsTrigger value="overview" className="flex-initial rounded-none text-xs">{t("Overview")}</TabsTrigger>
         <TabsTrigger value="output" className="flex-initial rounded-none text-xs">Output</TabsTrigger>
         <TabsTrigger value="env" className="flex-initial rounded-none text-xs">Env</TabsTrigger>
         <TabsTrigger value="sandbox" className="flex-initial rounded-none text-xs">Sandbox</TabsTrigger>
@@ -124,7 +125,7 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
                 <div className="mt-2"><StatusBadge status={result.status} /></div>
               </div>
               <div className="rounded-sm border px-3 py-2.5">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Duration</div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("Duration")}</div>
                 <div className="mt-2 text-sm text-foreground">{formatDuration(result.duration)}</div>
               </div>
               <div className="rounded-sm border px-3 py-2.5">
@@ -139,7 +140,7 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
 
             {result.status === 'failed' ? (
               <div className="space-y-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Failure summary</div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("Failure summary")}</div>
                 <div className="rounded-sm border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-foreground">
                   {result.error ?? result.stderr ?? 'Hook run failed.'}
                 </div>
@@ -173,12 +174,12 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
         <ScrollArea className="h-full">
           <div className="space-y-4 p-4">
             <section className="space-y-2">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Emitted variables</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("Emitted variables")}</div>
               <KeyValueTable rows={emittedVariables} />
             </section>
 
             <section className="space-y-2">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Applied override snapshot</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("Applied override snapshot")}</div>
               <KeyValueTable rows={appliedOverrides} />
             </section>
           </div>
@@ -200,7 +201,7 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
                     <td className="px-3 py-2 font-mono text-xs text-foreground break-all">{result.sandbox.image}</td>
                   </tr>
                   <tr className="border-b">
-                    <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Docker version</td>
+                    <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("Docker version")}</td>
                     <td className="px-3 py-2 font-mono text-xs text-foreground break-all">
                       {result.sandbox.dockerVersion ?? 'Not available'}
                     </td>
@@ -232,7 +233,7 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
                       <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Method</th>
                       <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">URL</th>
                       <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</th>
-                      <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Duration</th>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("Duration")}</th>
                     </tr>
                   </thead>
                   <tbody>

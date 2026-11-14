@@ -19,6 +19,7 @@ import {
 import { generateTestId } from '@/lib/generate-test-id'
 import { useTargets } from '@/hooks/use-targets'
 import { useTargetDetails } from '@/hooks/use-target-details'
+import { t as tI18n } from "@/lib/i18n"
 
 function InfoTip({ text }: { text: string }) {
   return (
@@ -66,14 +67,14 @@ export function TestMetadataForm({
           id="test-name"
           value={name}
           onChange={(e) => onChange('name', e.target.value)}
-          placeholder="My Test"
+          placeholder={tI18n("My Test")}
           disabled={disabled}
           className="h-8 text-sm"
         />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="test-id" className="text-xs flex items-center gap-1">Test ID <InfoTip text="Unique identifier used for memory and analytics. Changing this breaks the association with past runs and observations." /></Label>
+        <Label htmlFor="test-id" className="text-xs flex items-center gap-1">{tI18n("Test ID")} <InfoTip text="Unique identifier used for memory and analytics. Changing this breaks the association with past runs and observations." /></Label>
         {isCreateMode ? (
           <div className="flex items-center gap-2">
             <Input
@@ -88,7 +89,7 @@ export function TestMetadataForm({
               variant="ghost"
               size="icon-sm"
               onClick={() => onChange('test-id', generateTestId())}
-              aria-label="Generate new ID"
+              aria-label={tI18n("Generate new ID")}
               disabled={disabled}
             >
               <RefreshCw className="size-3.5" />
@@ -101,7 +102,7 @@ export function TestMetadataForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="test-target" className="text-xs flex items-center gap-1">
-          Target <span className="text-destructive">*</span> <InfoTip text="A registered app target from your workspace config. Defines where the test runs (web URL or mobile app)." />
+          {tI18n("Target")} <span className="text-destructive">*</span> <InfoTip text="A registered app target from your workspace config. Defines where the test runs (web URL or mobile app)." />
         </Label>
         {!isLoadingTargets && targets.length === 0 ? (
           <p className="text-[13px] text-muted-foreground">
@@ -118,7 +119,7 @@ export function TestMetadataForm({
             disabled={disabled || isLoadingTargets}
           >
             <SelectTrigger className="w-full h-8 text-sm">
-              <SelectValue placeholder="Select a target" />
+              <SelectValue placeholder={tI18n("Select a target")} />
             </SelectTrigger>
             <SelectContent>
               {targets.map((t) => (
@@ -151,7 +152,7 @@ export function TestMetadataForm({
           id="test-context"
           value={context}
           onChange={(e) => onChange('context', e.target.value)}
-          placeholder="Additional instructions for the AI agent..."
+          placeholder={tI18n("Additional instructions for the AI agent...")}
           disabled={disabled}
           className="min-h-[60px] resize-none text-sm"
           rows={2}

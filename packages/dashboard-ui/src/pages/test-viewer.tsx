@@ -52,6 +52,7 @@ import {
   type ViewerTopTab,
 } from "@/lib/viewer-url-state"
 import { formatDuration, formatDate, formatDateShort, normalizeTimestamp } from "@/lib/utils"
+import { t } from "@/lib/i18n"
 
 function formatPassRate(rate: number | null): string {
   return rate === null ? "\u2014" : `${Math.round(rate * 100)}%`
@@ -88,7 +89,7 @@ function MetricScopeControl({
   onModeChange: (mode: MetricScopeMode) => void
 }) {
   if (!configured) {
-    return <p className="text-xs text-muted-foreground">No analytics scope configured</p>
+    return <p className="text-xs text-muted-foreground">{t("No analytics scope configured")}</p>
   }
 
   return (
@@ -142,7 +143,7 @@ function RunHistoryTable({
       <TableHeader>
         <TableRow>
           <TableHead>Status</TableHead>
-          <TableHead>Duration</TableHead>
+          <TableHead>{t("Duration")}</TableHead>
           <TableHead>Date</TableHead>
         </TableRow>
       </TableHeader>
@@ -162,7 +163,7 @@ function RunHistoryTable({
             </TableCell>
             <TableCell>
               {run.status === "running" ? (
-                <span className="text-blue-500 text-sm">In progress...</span>
+                <span className="text-blue-500 text-sm">{t("In progress...")}</span>
               ) : (
                 <span className="text-muted-foreground">
                   {formatDuration(run.duration)}
@@ -368,9 +369,9 @@ export default function TestViewerPage() {
     return (
       <EmptyState
         icon={FileCode}
-        title="Test not found"
-        description="This test file doesn't exist"
-        actionLabel="View All Tests"
+        title={t("Test not found")}
+        description={t("This test file doesn't exist")}
+        actionLabel={t("View All Tests")}
         onAction={() => navigate(routes.tests)}
       />
     )
@@ -406,25 +407,25 @@ export default function TestViewerPage() {
 
       <InsightsLineGrid className="grid-cols-2 divide-x divide-y-0 border-x-0 border-t-0">
         <InsightsLineCell className="flex flex-col gap-0.5 px-3 py-2">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Pass Rate</span>
+          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{t("Pass Rate")}</span>
           <span className="text-xl font-semibold text-foreground">
             {formatPassRate((selectedTrends ?? analyticsData.trends).passRate)}
           </span>
         </InsightsLineCell>
         <InsightsLineCell className="flex flex-col gap-0.5 px-3 py-2">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Avg Duration</span>
+          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{t("Avg Duration")}</span>
           <span className="text-xl font-semibold text-foreground">
             {formatDuration(analyticsData.trends.avgDuration)}
           </span>
         </InsightsLineCell>
         <InsightsLineCell className="flex flex-col gap-0.5 border-t border-border px-3 py-2">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Total Runs</span>
+          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{t("Total Runs")}</span>
           <span className="text-xl font-semibold text-foreground">
             {analyticsData.total.toLocaleString()}
           </span>
         </InsightsLineCell>
         <InsightsLineCell className="flex flex-col gap-0.5 border-t border-border px-3 py-2">
-          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Flaky Score</span>
+          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">{t("Flaky Score")}</span>
           <span className="text-xl font-semibold text-foreground">
             {(selectedFlakyScore * 100).toFixed(0)}%
           </span>
@@ -445,7 +446,7 @@ export default function TestViewerPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Status</TableHead>
-                  <TableHead>Duration</TableHead>
+                  <TableHead>{t("Duration")}</TableHead>
                   <TableHead>Date</TableHead>
                 </TableRow>
               </TableHeader>
@@ -465,7 +466,7 @@ export default function TestViewerPage() {
                     </TableCell>
                     <TableCell>
                       {run.status === "running" ? (
-                        <span className="text-blue-500 text-sm">In progress...</span>
+                        <span className="text-blue-500 text-sm">{t("In progress...")}</span>
                       ) : (
                         <span className="text-muted-foreground">
                           {formatDuration(run.duration)}
@@ -520,8 +521,8 @@ export default function TestViewerPage() {
         >
           <div className="px-4 border-b border-border">
             <TabsList variant="line">
-              <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="insights">Insights</TabsTrigger>
+              <TabsTrigger value="overview">{t("Overview")}</TabsTrigger>
+              <TabsTrigger value="insights">{t("Insights")}</TabsTrigger>
             </TabsList>
           </div>
 
@@ -578,25 +579,25 @@ export default function TestViewerPage() {
                 <InsightsLineGrid className="grid-cols-2 divide-x divide-y-0 md:grid-cols-4">
                   <InsightsLineCell className="border-b border-border md:border-b-0">
                     <div>
-                        <p className="text-sm text-muted-foreground">Total Runs</p>
+                        <p className="text-sm text-muted-foreground">{t("Total Runs")}</p>
                         <p className="text-2xl font-semibold mt-0.5">{analyticsData.total.toLocaleString()}</p>
                     </div>
                   </InsightsLineCell>
                   <InsightsLineCell className="border-b border-border md:border-b-0 md:border-r">
                     <div>
-                        <p className="text-sm text-muted-foreground">Pass Rate</p>
+                        <p className="text-sm text-muted-foreground">{t("Pass Rate")}</p>
                         <p className="text-2xl font-semibold mt-0.5">{formatPassRate((selectedTrends ?? analyticsData.trends).passRate)}</p>
                     </div>
                   </InsightsLineCell>
                   <InsightsLineCell>
                     <div>
-                        <p className="text-sm text-muted-foreground">Avg Duration</p>
+                        <p className="text-sm text-muted-foreground">{t("Avg Duration")}</p>
                         <p className="text-2xl font-semibold mt-0.5">{formatDuration(analyticsData.trends.avgDuration)}</p>
                     </div>
                   </InsightsLineCell>
                   <InsightsLineCell>
                     <div>
-                        <p className="text-sm text-muted-foreground">Flaky Score</p>
+                        <p className="text-sm text-muted-foreground">{t("Flaky Score")}</p>
                         <p className="text-2xl font-semibold mt-0.5">{(selectedFlakyScore * 100).toFixed(0)}%</p>
                     </div>
                   </InsightsLineCell>
@@ -617,13 +618,13 @@ export default function TestViewerPage() {
                 {(selectedTrends?.daily.length ?? 0) > 0 && (
                   <InsightsLineGrid className="md:grid-cols-2 md:divide-x md:divide-y-0">
                     <InsightsLineCell className="px-4 py-3">
-                        <p className="text-sm font-medium mb-2">Pass Rate</p>
+                        <p className="text-sm font-medium mb-2">{t("Pass Rate")}</p>
                         <div className="h-[160px] overflow-hidden">
                           <PassRateChart data={passRateData} />
                         </div>
                     </InsightsLineCell>
                     <InsightsLineCell className="px-4 py-3">
-                        <p className="text-sm font-medium mb-2">Duration</p>
+                        <p className="text-sm font-medium mb-2">{t("Duration")}</p>
                         <div className="h-[160px] overflow-hidden">
                           <DurationChart data={durationData} />
                         </div>

@@ -1,3 +1,5 @@
+import { t } from "@/lib/i18n"
+
 export type NormalizedRunStatus =
   | 'passed'
   | 'failed'
@@ -80,23 +82,23 @@ export function getRunStatusDescriptor(status: string | null | undefined): RunSt
 
   switch (normalized) {
     case 'passed':
-      return { raw, normalized, label: 'Passed', tone: 'success', terminal: true }
+      return { raw, normalized, label: t("Passed"), tone: 'success', terminal: true }
     case 'failed':
-      return { raw, normalized, label: 'Failed', tone: 'danger', terminal: true }
+      return { raw, normalized, label: t("Failed"), tone: 'danger', terminal: true }
     case 'timeout':
-      return { raw, normalized, label: 'Timed out', tone: 'danger', terminal: true }
+      return { raw, normalized, label: t("Timed out"), tone: 'danger', terminal: true }
     case 'cancelled':
-      return { raw, normalized, label: 'Cancelled', tone: 'muted', terminal: true }
+      return { raw, normalized, label: t("Cancelled"), tone: 'muted', terminal: true }
     case 'healed':
-      return { raw, normalized, label: 'Healed', tone: 'warning', terminal: true }
+      return { raw, normalized, label: t("Healed"), tone: 'warning', terminal: true }
     case 'skipped':
-      return { raw, normalized, label: 'Skipped', tone: 'muted', terminal: true }
+      return { raw, normalized, label: t("Skipped"), tone: 'muted', terminal: true }
     case 'running':
-      return { raw, normalized, label: 'Running', tone: 'info', terminal: false }
+      return { raw, normalized, label: t("Running"), tone: 'info', terminal: false }
     case 'pending':
-      return { raw, normalized, label: 'Pending', tone: 'outline', terminal: false }
+      return { raw, normalized, label: t("Pending"), tone: 'outline', terminal: false }
     case 'queued':
-      return { raw, normalized, label: 'Queued', tone: 'outline', terminal: false }
+      return { raw, normalized, label: t("Queued"), tone: 'outline', terminal: false }
     case 'unknown':
       return {
         raw,
@@ -235,23 +237,23 @@ export interface StatusBadgeLook {
 export function statusBadgeLook(status: string): StatusBadgeLook {
   switch (status) {
     case 'passed':
-      return { label: 'Passed', className: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/20' }
+      return { label: t("Passed"), className: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/20' }
     case 'failed':
-      return { label: 'Failed', variant: 'destructive' }
+      return { label: t("Failed"), variant: 'destructive' }
     case 'healed':
-      return { label: 'Healed', className: 'bg-amber-500/15 text-amber-500 border-amber-500/20' }
+      return { label: t("Healed"), className: 'bg-amber-500/15 text-amber-500 border-amber-500/20' }
     case 'flaky':
-      return { label: 'Flaky', className: 'bg-amber-500/15 text-amber-500 border-amber-500/20' }
+      return { label: t("Flaky"), className: 'bg-amber-500/15 text-amber-500 border-amber-500/20' }
     case 'skipped':
-      return { label: 'Skipped', variant: 'secondary' }
+      return { label: t("Skipped"), variant: 'secondary' }
     case 'cancelled':
-      return { label: 'Cancelled', className: 'bg-muted text-muted-foreground border-border' }
+      return { label: t("Cancelled"), className: 'bg-muted text-muted-foreground border-border' }
     case 'timeout':
-      return { label: 'Timed out', variant: 'destructive' }
+      return { label: t("Timed out"), variant: 'destructive' }
     case 'running':
-      return { label: 'Running', className: 'bg-blue-500/15 text-blue-500 border-blue-500/20 animate-pulse' }
+      return { label: t("Running"), className: 'bg-blue-500/15 text-blue-500 border-blue-500/20 animate-pulse' }
     case 'pending':
-      return { label: 'Pending', variant: 'outline' }
+      return { label: t("Pending"), variant: 'outline' }
     default:
       return { label: status, variant: 'outline' }
   }

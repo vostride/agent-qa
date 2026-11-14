@@ -7,6 +7,7 @@ import { registerYamlCompletions } from '@/lib/yaml-completions'
 import { setupYamlLinter } from '@/lib/yaml-linter'
 import { useTheme } from '@/components/theme-provider'
 import { cn } from '@/lib/utils'
+import { t } from "@/lib/i18n"
 
 interface MonacoEditorProps {
   value: string
@@ -220,7 +221,7 @@ function MonacoEditorInner({
               </span>
             )}
             {errors.length === 0 && (
-              <span className="text-[10px] text-muted-foreground/60">No problems</span>
+              <span className="text-[10px] text-muted-foreground/60">{t("No problems")}</span>
             )}
           </button>
           {errorsExpanded && errors.length > 0 && (

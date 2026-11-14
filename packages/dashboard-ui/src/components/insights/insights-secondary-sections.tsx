@@ -9,6 +9,7 @@ import {
   InsightsLineGrid,
   InsightsLineNotice,
 } from "@/components/insights/insights-line-grid"
+import { t } from "@/lib/i18n"
 
 function QuietSectionEmpty({
   title,
@@ -46,16 +47,16 @@ function plural(count: number, noun: string) {
 
 function unavailableSentence(reason: string) {
   if (reason === "agent_host_unavailable") {
-    return "Curation changes could not be read: this dashboard was started without an agent host."
+    return t("Curation changes could not be read: this dashboard was started without an agent host.")
   }
-  return "Curation changes could not be read for this window. Refresh the page to try again."
+  return t("Curation changes could not be read for this window. Refresh the page to try again.")
 }
 
 function MemoryCell({ children }: { children: ReactNode }) {
   return (
     <InsightsLineCell data-insights-memory className="flex h-full flex-col p-0">
       <div className="border-b border-border px-5 py-5">
-        <h2 className="text-base font-semibold">Memory Curator</h2>
+        <h2 className="text-base font-semibold">{t("Memory Curator")}</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Knowledge changes curation recorded for the runs in the selected window.
         </p>
@@ -69,7 +70,7 @@ function MemorySection({ knowledgeChanges }: { knowledgeChanges: InsightsKnowled
   if (knowledgeChanges === null) {
     return (
       <MemoryCell>
-        <p className="px-5 py-4 text-sm text-muted-foreground">Reading curation changes for this window.</p>
+        <p className="px-5 py-4 text-sm text-muted-foreground">{t("Reading curation changes for this window.")}</p>
       </MemoryCell>
     )
   }
@@ -110,8 +111,8 @@ function MemorySection({ knowledgeChanges }: { knowledgeChanges: InsightsKnowled
   ) {
     return (
       <QuietSectionEmpty
-        title="No memory-curator activity in this window"
-        description="Memory metrics appear after runs create or confirm observations."
+        title={t("No memory-curator activity in this window")}
+        description={t("Memory metrics appear after runs create or confirm observations.")}
       />
     )
   }
@@ -146,12 +147,12 @@ function MemorySection({ knowledgeChanges }: { knowledgeChanges: InsightsKnowled
               <p className="mt-1 text-xl font-semibold">{totalChanges}</p>
             </div>
             <div className="px-4 py-3">
-              <p className="text-xs text-muted-foreground">Runs Read</p>
+              <p className="text-xs text-muted-foreground">{t("Runs Read")}</p>
               <p className="mt-1 text-xl font-semibold">{runsRead} of {runsAttempted}</p>
             </div>
           </div>
           <div className="px-4 py-4">
-            <p className="text-sm font-medium">Change Mix</p>
+            <p className="text-sm font-medium">{t("Change Mix")}</p>
             <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-muted">
               {rows.map((row) => (
                 <div key={row.kind} className={row.color} style={{ width: `${(row.value / totalChanges) * 100}%` }} />
@@ -236,7 +237,7 @@ export function InsightsSecondarySections({
       {showTokenUsage && tokenStats ? (
         <InsightsLineCell data-insights-token-usage className="flex h-full flex-col p-0">
           <div className="border-b border-border px-5 py-5">
-            <h2 className="text-base font-semibold">Token Usage</h2>
+            <h2 className="text-base font-semibold">{t("Token Usage")}</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Window-wide model activity, independent of the breakdown selector.
             </p>
@@ -244,7 +245,7 @@ export function InsightsSecondarySections({
           <div className="flex h-full flex-col">
             <div className="grid gap-0 divide-y divide-border border-b border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
               <div className="px-4 py-3">
-                <p className="text-xs text-muted-foreground">Total Tokens</p>
+                <p className="text-xs text-muted-foreground">{t("Total Tokens")}</p>
                 <p className="mt-1 text-xl font-semibold">{formatTokens(totalTokens)}</p>
               </div>
               <div className="px-4 py-3">
@@ -259,7 +260,7 @@ export function InsightsSecondarySections({
 
             <div className="space-y-2 border-b border-border px-5 py-5">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium">By model</p>
+                <p className="text-sm font-medium">{t("By model")}</p>
                 <p className="text-xs text-muted-foreground">
                   Input vs output across {modelTotals.length} active {modelTotals.length === 1 ? "model" : "models"}
                 </p>
@@ -269,11 +270,11 @@ export function InsightsSecondarySections({
 
             <div className="grid gap-0 divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
               <div className="px-4 py-3">
-                <p className="text-xs text-muted-foreground">Test Runs</p>
+                <p className="text-xs text-muted-foreground">{t("Test Runs")}</p>
                 <p className="mt-1 text-xl font-semibold">{testRunTokens}</p>
               </div>
               <div className="px-4 py-3">
-                <p className="text-xs text-muted-foreground">Live Editor</p>
+                <p className="text-xs text-muted-foreground">{t("Live Editor")}</p>
                 <p className="mt-1 text-xl font-semibold">
                   {formatTokens((liveSource?.promptTokens ?? 0) + (liveSource?.completionTokens ?? 0))}
                 </p>
@@ -288,8 +289,8 @@ export function InsightsSecondarySections({
         </InsightsLineCell>
       ) : (
         <QuietSectionEmpty
-          title="No token usage in this window"
-          description="Token metrics appear after runs or live sessions use model calls."
+          title={t("No token usage in this window")}
+          description={t("Token metrics appear after runs or live sessions use model calls.")}
         />
       )}
 
