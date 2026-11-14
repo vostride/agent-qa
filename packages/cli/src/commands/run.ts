@@ -2460,37 +2460,16 @@ function formatAuthStateCaptureFailure(paths: ResolvedAuthStatePaths): string {
   return `Could not save auth state "${paths.stateName}" for target "${paths.targetName}".`
 }
 
-function getStorageStateContext(adapter: PlatformAdapter): { storageState: (options?: { indexedDB?: boolean }) => Promise<unknown> } | null {
-  const maybeGetPage = (adapter as { getPage?: () => unknown }).getPage
-  if (typeof maybeGetPage !== 'function') return null
-
-  const page = maybeGetPage.call(adapter)
-  if (!page || typeof page !== 'object') return null
-
-  const maybeContext = (page as { context?: () => unknown }).context
-  if (typeof maybeContext !== 'function') return null
-
-  const context = maybeContext.call(page)
-  if (!context || typeof context !== 'object') return null
-
-  const storageState = (context as { storageState?: (options?: { indexedDB?: boolean }) => Promise<unknown> }).storageState
-  if (typeof storageState !== 'function') return null
-
-  return {
-    storageState: storageState.bind(context),
-  }
-}
-
 async function captureAuthStateForRun(input: {
   adapter: PlatformAdapter
   paths: ResolvedAuthStatePaths
 }): Promise<ResolvedAuthStateForRun> {
-  const context = getStorageStateContext(input.adapter)
-  if (!context) {
+  const capturing = input.adapter as { captureAuthState?: () => Promise<unknown> }
+  if (typeof capturing.captureAuthState !== 'function') {
     throw new Error('Web auth-state capture requires a Playwright browser context.')
   }
 
-  const payload = await context.storageState({ indexedDB: true })
+  const payload = await capturing.captureAuthState()
   const capturedAt = new Date().toISOString()
   const metadata: AuthStateMetadata = {
     version: AUTH_STATE_SCHEMA_VERSION,

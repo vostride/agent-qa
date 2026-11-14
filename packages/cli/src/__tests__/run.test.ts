@@ -32,7 +32,7 @@ const {
   mockAndroidAdapterCleanup,
   mockWebAdapterSetup,
   mockWebAdapterCleanup,
-  mockWebStorageState,
+  mockWebCaptureAuthState,
   mockRunAccessibilityCheck,
   mockConsoleReporterInstance,
   mockJUnitReporterInstance,
@@ -125,7 +125,7 @@ const {
     mockAndroidAdapterCleanup: vi.fn(),
     mockWebAdapterSetup: vi.fn(),
     mockWebAdapterCleanup: vi.fn(),
-    mockWebStorageState: vi.fn(),
+    mockWebCaptureAuthState: vi.fn(),
     mockRunAccessibilityCheck: vi.fn(),
     mockConsoleReporterInstance: { verbose: false },
     mockJUnitReporterInstance: { outputPath: '' },
@@ -557,11 +557,8 @@ vi.mock('@vostride/agent-qa-web', () => ({
       cleanup: mockWebAdapterCleanup,
       observe: vi.fn(),
       execute: vi.fn(),
-      getPage: vi.fn(() => ({
-        context: vi.fn(() => ({
-          storageState: mockWebStorageState,
-        })),
-      })),
+      getPage: vi.fn(() => ({})),
+      captureAuthState: mockWebCaptureAuthState,
     }
   }),
 }))
@@ -748,8 +745,8 @@ beforeEach(() => {
   }))
   mockWriteAuthStateFiles.mockReset()
   mockWriteAuthStateFiles.mockResolvedValue(undefined)
-  mockWebStorageState.mockReset()
-  mockWebStorageState.mockResolvedValue({
+  mockWebCaptureAuthState.mockReset()
+  mockWebCaptureAuthState.mockResolvedValue({
     cookies: [],
     origins: [],
   })
@@ -1415,6 +1412,17 @@ describe('run command — auth state consumption', () => {
   })
 
   it('captures direct auth state from scratch and gives teardown hooks the captured state', async () => {
+    const captured = {
+      cookies: [],
+      origins: [
+        {
+          origin: 'https://example.com',
+          localStorage: [],
+          sessionStorage: [{ name: 'made-up:user', value: 'made-up-session-value' }],
+        },
+      ],
+    }
+    mockWebCaptureAuthState.mockResolvedValue(captured)
     mockGlob.mockResolvedValue(['tests/auth.yaml'])
     mockParseAllTests.mockResolvedValue({
       tests: [makeTest({
@@ -1450,7 +1458,7 @@ describe('run command — auth state consumption', () => {
 
     expect(mockResolveAuthStateForRun).not.toHaveBeenCalled()
     expect(mockWebAdapterSetup.mock.calls[0][0].authState).toBeUndefined()
-    expect(mockWebStorageState).toHaveBeenCalledWith({ indexedDB: true })
+    expect(mockWebCaptureAuthState).toHaveBeenCalledTimes(1)
     expect(mockWriteAuthStateFiles).toHaveBeenCalledWith(
       expect.objectContaining({
         targetName: 'test-app',
@@ -1458,7 +1466,7 @@ describe('run command — auth state consumption', () => {
         payloadPath: '/internal/auth/test-app/admin.json',
       }),
       {
-        payload: { cookies: [], origins: [] },
+        payload: captured,
         metadata: expect.objectContaining({
           version: 2,
           kind: 'web',
@@ -1499,8 +1507,38 @@ describe('run command — auth state consumption', () => {
     await runCommand('tests/**/*.yaml')
 
     expect(mockWriteAuthStateFiles).not.toHaveBeenCalled()
-    expect(mockWebStorageState).not.toHaveBeenCalled()
+    expect(mockWebCaptureAuthState).not.toHaveBeenCalled()
     expect(mockRunMemberTest).toHaveBeenCalledTimes(1)
+    expect(exitSpy).toHaveBeenCalledWith(1)
+  })
+
+  it('fails the direct capture when the web adapter cannot capture an auth state', async () => {
+    const { WebPlatformAdapter } = await import('@vostride/agent-qa-web')
+    vi.mocked(WebPlatformAdapter).mockImplementationOnce(function () {
+      return {
+        setup: mockWebAdapterSetup,
+        cleanup: mockWebAdapterCleanup,
+        observe: vi.fn(),
+        execute: vi.fn(),
+        getPage: vi.fn(() => ({})),
+      }
+    } as never)
+    mockGlob.mockResolvedValue(['tests/auth.yaml'])
+    mockParseAllTests.mockResolvedValue({
+      tests: [makeTest({ use: { authState: { name: 'admin', load: false, capture: true } } })],
+      errors: [],
+    })
+    mockRunMemberTest.mockResolvedValue({
+      name: 'Test One',
+      filePath: 'tests/auth.yaml',
+      status: 'passed',
+      steps: [{ name: 'Click login', status: 'passed', duration: 1 }],
+      duration: 100,
+    })
+
+    await runCommand('tests/**/*.yaml')
+
+    expect(mockWriteAuthStateFiles).not.toHaveBeenCalled()
     expect(exitSpy).toHaveBeenCalledWith(1)
   })
 

@@ -116,7 +116,7 @@ export function LiveModeAuthStateControl({
         <div className="space-y-1">
           <h3 className="text-sm font-semibold">Save auth state</h3>
           <p className="text-sm text-muted-foreground">
-            Capture the current browser session for this target.
+            Capture the current browser session for this target: cookies, localStorage, IndexedDB and the sessionStorage of its open tabs.
           </p>
         </div>
 

@@ -186,7 +186,7 @@ describe('LiveSessionPane auth-state capture control', () => {
     renderPane()
 
     click(buttonByLabel('Save auth state'))
-    expect(document.body.textContent).toContain('Capture the current browser session for this target.')
+    expect(document.body.textContent).toContain('Capture the current browser session for this target: cookies, localStorage, IndexedDB and the sessionStorage of its open tabs.')
     expect(document.body.textContent).toContain('Target')
     expect(document.body.textContent).toContain('staging-web')
 
@@ -196,7 +196,7 @@ describe('LiveSessionPane auth-state capture control', () => {
     })
     renderPane()
     click(buttonByLabel('Open auth state save form'))
-    expect(document.body.textContent).toContain('Capture the current browser session for this target.')
+    expect(document.body.textContent).toContain('Capture the current browser session for this target: cookies, localStorage, IndexedDB and the sessionStorage of its open tabs.')
     expect(document.body.textContent).toContain('Auth state name')
   })
 

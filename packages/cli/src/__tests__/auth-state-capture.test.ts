@@ -62,6 +62,7 @@ const metadata = {
 
 const secretCookie = ['secret', 'cookie'].join('-')
 const secretLocalStorage = ['secret', 'local', 'storage'].join('-')
+const secretSessionStorage = ['secret', 'session', 'storage'].join('-')
 const authStateDir = ['.agent-qa', 'auth-states'].join('/')
 const storageStatePayload = {
   cookies: [{
@@ -83,11 +84,13 @@ const storageStatePayload = {
 
 const mockPage = {
   goto: vi.fn().mockResolvedValue(undefined),
+  evaluate: vi.fn(),
 }
 
 const mockContext = {
   newPage: vi.fn().mockResolvedValue(mockPage),
   storageState: vi.fn().mockResolvedValue(storageStatePayload),
+  pages: vi.fn(() => [mockPage]),
 }
 
 const mockBrowser = {
@@ -161,6 +164,10 @@ describe('auth-state capture command', () => {
     mockContext.newPage.mockResolvedValue(mockPage)
     mockContext.storageState.mockResolvedValue(storageStatePayload)
     mockPage.goto.mockResolvedValue(undefined)
+    mockPage.evaluate.mockResolvedValue({
+      origin: 'https://example.com',
+      items: [{ name: 'made-up:user', value: secretSessionStorage }],
+    })
   })
 
   afterEach(() => {
@@ -188,11 +195,17 @@ describe('auth-state capture command', () => {
     expect(mockPage.goto).toHaveBeenCalledWith('https://example.com', { waitUntil: 'domcontentloaded' })
     expect(waitForConfirmation).toHaveBeenCalledWith(expect.objectContaining({
       browser: mockBrowser,
-      message: expect.stringContaining('press Enter to save'),
+      message: expect.stringContaining('Keep the signed-in tab open until then: sessionStorage is saved from open tabs only.'),
     }))
     expect(mockContext.storageState).toHaveBeenCalledWith({ indexedDB: true })
     expect(mocks.writeAuthStateFiles).toHaveBeenCalledWith(paths, {
-      payload: storageStatePayload,
+      payload: {
+        ...storageStatePayload,
+        origins: [{
+          ...storageStatePayload.origins[0],
+          sessionStorage: [{ name: 'made-up:user', value: secretSessionStorage }],
+        }],
+      },
       metadata,
     })
     expect(mockBrowser.close).toHaveBeenCalled()
@@ -202,6 +215,7 @@ describe('auth-state capture command', () => {
     expect(getOutput()).not.toContain('.agent-qa/auth-states')
     expect(getOutput()).not.toContain('secret-cookie')
     expect(getOutput()).not.toContain('secret-local-storage')
+    expect(getOutput()).not.toContain('secret-session-storage')
   })
 
   it('warns in the prompt when an existing auth state will be replaced', async () => {
@@ -252,6 +266,7 @@ describe('auth-state capture command', () => {
     expect(getOutput()).not.toContain(paths.metadataPath)
     expect(getOutput()).not.toContain('secret-cookie')
     expect(getOutput()).not.toContain('secret-local-storage')
+    expect(getOutput()).not.toContain('secret-session-storage')
   })
 
   it('rejects mobile targets before launching a browser', async () => {
@@ -301,6 +316,7 @@ describe('auth-state capture command', () => {
     expect(getOutput()).not.toContain('metadataPath')
     expect(getOutput()).not.toContain('secret-cookie')
     expect(getOutput()).not.toContain('secret-local-storage')
+    expect(getOutput()).not.toContain('secret-session-storage')
     expect(getOutput()).not.toContain('firebaseLocalStorageDb')
   })
 

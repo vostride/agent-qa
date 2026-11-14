@@ -21,7 +21,7 @@ const {
   mockRunHookInSandbox,
   mockScreenshot,
   mockSetup,
-  mockStorageState,
+  mockCaptureAuthState,
   mockVariableStoreInstance,
   real,
 } = vi.hoisted(() => ({
@@ -38,7 +38,7 @@ const {
   mockRunHookInSandbox: vi.fn(),
   mockScreenshot: vi.fn().mockResolvedValue(Buffer.from('fake')),
   mockSetup: vi.fn().mockResolvedValue(undefined),
-  mockStorageState: vi.fn(),
+  mockCaptureAuthState: vi.fn(),
   real: { adapter: false },
   mockVariableStoreInstance: {
     set: vi.fn(),
@@ -69,6 +69,7 @@ vi.mock('@vostride/agent-qa-web', async (importOriginal) => {
         drainConsoleLogs: mockDrainConsole,
         drainNetworkLogs: mockDrainNetwork,
         getPage: mockGetPage,
+        captureAuthState: mockCaptureAuthState,
       }
     }),
   }
@@ -127,6 +128,7 @@ import type { LiveSessionConfig, ServerMessage } from '../types.js'
 const SECRET_COOKIE_VALUE = 'secret-cookie-fixture'
 const SECRET_LOCAL_STORAGE_VALUE = 'secret-local-storage-fixture'
 const SECRET_INDEXED_DB_VALUE = 'secret-indexed-db-fixture'
+const SECRET_SESSION_STORAGE_VALUE = 'secret-session-storage-fixture'
 
 const STORAGE_STATE = {
   cookies: [
@@ -146,6 +148,7 @@ const STORAGE_STATE = {
       origin: 'https://staging.example.com',
       localStorage: [{ name: 'token', value: SECRET_LOCAL_STORAGE_VALUE }],
       indexedDB: [{ name: 'auth-db', value: SECRET_INDEXED_DB_VALUE }],
+      sessionStorage: [{ name: 'made-up:user', value: SECRET_SESSION_STORAGE_VALUE }],
     },
   ],
 }
@@ -191,6 +194,7 @@ async function expectPathFreeRejection(promise: Promise<unknown>): Promise<strin
   expect(message).not.toContain(SECRET_COOKIE_VALUE)
   expect(message).not.toContain(SECRET_LOCAL_STORAGE_VALUE)
   expect(message).not.toContain(SECRET_INDEXED_DB_VALUE)
+  expect(message).not.toContain(SECRET_SESSION_STORAGE_VALUE)
   return message
 }
 
@@ -202,9 +206,8 @@ describe('LiveSession.captureWebAuthState', () => {
   beforeEach(async () => {
     vi.clearAllMocks()
     mockRunHooks.mockResolvedValue({ results: new Map(), variables: {}, allPassed: true, duration: 0 })
-    mockStorageState.mockResolvedValue(STORAGE_STATE)
+    mockCaptureAuthState.mockResolvedValue(STORAGE_STATE)
     mockGetPage.mockReturnValue({
-      context: () => ({ storageState: mockStorageState }),
       evaluate: vi.fn(),
       url: () => 'https://staging.example.com/dashboard',
     })
@@ -243,20 +246,17 @@ describe('LiveSession.captureWebAuthState', () => {
     })
     mockExecute.mockClear()
     mockCleanup.mockClear()
-    mockStorageState.mockClear()
+    mockCaptureAuthState.mockClear()
     return session
   }
 
-  it('captures the active web context with IndexedDB and returns metadata only', async () => {
+  it("writes what the web adapter's capture returns and returns metadata only", async () => {
     const session = await initializeWebSession()
     const capture = getCaptureWebAuthState(session)
 
     const metadata = await capture('admin')
 
-    expect(mockStorageState).toHaveBeenCalledTimes(1)
-    expect(mockStorageState).toHaveBeenCalledWith({ indexedDB: true })
-    const storageStateCall = mockStorageState.mock.calls[0]
-    expect(storageStateCall).toEqual([{ indexedDB: true }])
+    expect(mockCaptureAuthState).toHaveBeenCalledTimes(1)
     expect(mockExecute).not.toHaveBeenCalled()
     expect(mockCleanup).not.toHaveBeenCalled()
     expect(metadata).toMatchObject({
@@ -275,6 +275,8 @@ describe('LiveSession.captureWebAuthState', () => {
     expect(serializedMetadata).not.toContain(SECRET_COOKIE_VALUE)
     expect(serializedMetadata).not.toContain(SECRET_LOCAL_STORAGE_VALUE)
     expect(serializedMetadata).not.toContain(SECRET_INDEXED_DB_VALUE)
+    expect(serializedMetadata).not.toContain(SECRET_SESSION_STORAGE_VALUE)
+    expect(JSON.stringify(session.getState())).not.toContain(SECRET_SESSION_STORAGE_VALUE)
 
     const paths = resolveAuthStatePaths({
       configDir: tempDir,
@@ -292,11 +294,11 @@ describe('LiveSession.captureWebAuthState', () => {
     const capture = getCaptureWebAuthState(session)
 
     await capture('admin')
-    mockStorageState.mockClear()
+    mockCaptureAuthState.mockClear()
 
     const message = await expectPathFreeRejection(capture('admin'))
     expect(message).toMatch(/replace=true|already exists/i)
-    expect(mockStorageState).not.toHaveBeenCalled()
+    expect(mockCaptureAuthState).not.toHaveBeenCalled()
 
     await expect(capture('admin', { replace: true })).resolves.toMatchObject({
       version: AUTH_STATE_SCHEMA_VERSION,
@@ -304,7 +306,7 @@ describe('LiveSession.captureWebAuthState', () => {
       target: 'staging-web',
       name: 'admin',
     })
-    expect(mockStorageState).toHaveBeenCalledWith({ indexedDB: true })
+    expect(mockCaptureAuthState).toHaveBeenCalledTimes(1)
   })
 
   it('fails safely before reading storage state while a session command is executing', async () => {
@@ -315,7 +317,7 @@ describe('LiveSession.captureWebAuthState', () => {
     const message = await expectPathFreeRejection(capture('admin'))
 
     expect(message).toMatch(/executing|busy/i)
-    expect(mockStorageState).not.toHaveBeenCalled()
+    expect(mockCaptureAuthState).not.toHaveBeenCalled()
     expect(mockCleanup).not.toHaveBeenCalled()
   })
 
@@ -336,7 +338,7 @@ describe('LiveSession.captureWebAuthState', () => {
     const message = await expectPathFreeRejection(capture('admin'))
 
     expect(message).toMatch(/web/i)
-    expect(mockStorageState).not.toHaveBeenCalled()
+    expect(mockCaptureAuthState).not.toHaveBeenCalled()
     expect(mockCleanup).not.toHaveBeenCalled()
   })
 
@@ -347,7 +349,7 @@ describe('LiveSession.captureWebAuthState', () => {
     const message = await expectPathFreeRejection(capture('admin'))
 
     expect(message).toMatch(/target/i)
-    expect(mockStorageState).not.toHaveBeenCalled()
+    expect(mockCaptureAuthState).not.toHaveBeenCalled()
     expect(mockCleanup).not.toHaveBeenCalled()
   })
 })
@@ -518,9 +520,8 @@ describe('a live session gives its hooks the auth state a run gives them', () =>
     })
     mockVariableStoreInstance.getAll.mockReturnValue(new Map())
     mockVariableStoreInstance.snapshot.mockReturnValue({})
-    mockStorageState.mockResolvedValue(STORAGE_STATE)
+    mockCaptureAuthState.mockResolvedValue(STORAGE_STATE)
     mockGetPage.mockReturnValue({
-      context: () => ({ storageState: mockStorageState }),
       evaluate: vi.fn(),
       url: () => 'https://staging.example.com/dashboard',
     })
@@ -613,7 +614,7 @@ describe('a live session gives its hooks the auth state a run gives them', () =>
     const stateMessages = messages.filter((message) => message.type === 'session-state')
     expect(stateMessages).toHaveLength(1)
     expect(stateMessages[0]).toMatchObject({ state: { authState: { name: 'buyer', capturedAt: metadata.capturedAt } } })
-    for (const leaked of [SECRET_COOKIE_VALUE, SECRET_LOCAL_STORAGE_VALUE, '.json']) {
+    for (const leaked of [SECRET_COOKIE_VALUE, SECRET_LOCAL_STORAGE_VALUE, SECRET_SESSION_STORAGE_VALUE, '.json']) {
       expect(JSON.stringify(messages)).not.toContain(leaked)
     }
 
@@ -674,6 +675,12 @@ const playwright = createRequire(createRequire(import.meta.url).resolve('@vostri
 ) as PlaywrightBinary
 
 const BROWSER_COOKIE_VALUE = 'made-up-session-cookie-for-the-browser'
+const BROWSER_SESSION_STORAGE_VALUE = 'made-up-session-storage-for-the-browser'
+
+// The page tells the server only whether the item was there when its first script ran.
+const START_PAGE = `<!doctype html><title>shop</title><script>
+fetch('/seen?item=' + (sessionStorage.getItem('made-up:user') === null ? 'no' : 'yes'))
+</script><p>shop</p>`
 
 describe('a live session in a real browser opens its start url with the mounted state', () => {
   let tempDir: string
@@ -682,6 +689,7 @@ describe('a live session in a real browser opens its start url with the mounted 
   let server: Server
   let startUrl: string
   let cookieHeaders: Array<string | undefined>
+  let seen: string[]
   const sessions: LiveSession[] = []
 
   beforeEach(async () => {
@@ -705,10 +713,12 @@ describe('a live session in a real browser opens its start url with the mounted 
       '',
     ].join('\n'))
     cookieHeaders = []
+    seen = []
     server = createServer((req, res) => {
       if (req.url === '/start') cookieHeaders.push(req.headers.cookie)
+      if (req.url?.startsWith('/seen?item=')) seen.push(req.url.slice('/seen?item='.length))
       res.writeHead(200, { 'content-type': 'text/html' })
-      res.end('<!doctype html><title>shop</title><p>shop</p>')
+      res.end(START_PAGE)
     })
     await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
     startUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/start`
@@ -754,7 +764,7 @@ describe('a live session in a real browser opens its start url with the mounted 
   }
 
   async function start(config: Partial<LiveSessionConfig>): Promise<LiveSession> {
-    const session = new LiveSession('auth-browser-session', { configManager, configPath })
+    const session = new LiveSession(`auth-browser-session-${sessions.length}`, { configManager, configPath })
     sessions.push(session)
     await session.initialize({ ...webConfig, targetName: 'staging-web', url: startUrl, ...config })
     return session
@@ -779,6 +789,35 @@ describe('a live session in a real browser opens its start url with the mounted 
     expect(captured.cookies.map(({ name, domain }) => ({ name, domain }))).toEqual([
       { name: 'sid', domain: '127.0.0.1' },
     ])
+  })
+
+  it("captures the open tab's sessionStorage, and a session that mounts it has the item at document start", async () => {
+    const first = await start({})
+    await vi.waitFor(() => expect(seen).toEqual(['no']))
+    const page = (first as unknown as { adapter: { getPage(): { evaluate<A>(fn: (arg: A) => void, arg: A): Promise<void> } } })
+      .adapter.getPage()
+    await page.evaluate((value) => sessionStorage.setItem('made-up:user', value), BROWSER_SESSION_STORAGE_VALUE)
+
+    const metadata = await first.captureWebAuthState('buyer-tab')
+    expect(JSON.stringify(metadata)).not.toContain(BROWSER_SESSION_STORAGE_VALUE)
+    const paths = resolveAuthStatePaths({
+      configDir: tempDir,
+      targetName: 'staging-web',
+      stateName: 'buyer-tab',
+      target: { platform: 'web' },
+    })
+    const captured = JSON.parse(await readFile(paths.payloadPath, 'utf-8')) as {
+      origins: Array<{ origin: string; sessionStorage?: Array<{ name: string }> }>
+    }
+    const origin = new URL(startUrl).origin
+    expect(captured.origins.find((entry) => entry.origin === origin)?.sessionStorage?.map(({ name }) => name)).toEqual([
+      'made-up:user',
+    ])
+
+    seen = []
+    const resolved = { ...resolvedFixture(paths.payloadPath), stateName: 'buyer-tab' }
+    await start({ authState: { name: 'buyer-tab', load: true, resolved } })
+    await vi.waitFor(() => expect(seen).toEqual(['yes']))
   })
 
   it('sends no cookie when the session names no state', async () => {

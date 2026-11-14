@@ -14,6 +14,7 @@ import {
 import { resolveConfig } from '../config.js'
 import { resolveTarget } from '../targets.js'
 import type { AgentQaConfig, AuthStateMetadata } from '@vostride/agent-qa-core'
+import type { AuthStateContext } from '@vostride/agent-qa-web'
 
 type BrowserName = 'chromium' | 'firefox' | 'webkit'
 type ConfirmationResult = 'confirmed' | 'cancelled' | 'browser-closed'
@@ -22,10 +23,11 @@ interface BrowserLike {
   close(): Promise<void>
   on(event: 'disconnected', listener: () => void): unknown
   off?(event: 'disconnected', listener: () => void): unknown
-  newContext(): Promise<{
-    newPage(): Promise<{ goto(url: string, options?: Record<string, unknown>): Promise<unknown> }>
-    storageState(options?: { indexedDB?: boolean }): Promise<unknown>
-  }>
+  newContext(): Promise<
+    AuthStateContext & {
+      newPage(): Promise<{ goto(url: string, options?: Record<string, unknown>): Promise<unknown> }>
+    }
+  >
 }
 
 interface BrowserLauncher {
@@ -109,7 +111,7 @@ async function authStateExists(paths: Parameters<typeof readAuthStateMetadata>[0
 
 function buildConfirmationMessage(targetName: string, stateName: string, exists: boolean): string {
   const replace = exists ? ' Existing auth state will be replaced.' : ''
-  return `Log in in the opened browser, then press Enter to save auth state "${stateName}" for target "${targetName}".${replace} Press Ctrl+C to cancel.`
+  return `Log in in the opened browser, then press Enter to save auth state "${stateName}" for target "${targetName}". Keep the signed-in tab open until then: sessionStorage is saved from open tabs only.${replace} Press Ctrl+C to cancel.`
 }
 
 async function loadCommandContext(command: Command): Promise<{
@@ -299,7 +301,8 @@ export function createAuthStateCommand(deps: AuthStateCommandDeps = {}): Command
             return
           }
 
-          const payload = await context.storageState({ indexedDB: true })
+          const { captureAuthState } = await import('@vostride/agent-qa-web')
+          const payload = await captureAuthState(context)
           try {
             await writeAuthStateFiles(paths, {
               payload,
