@@ -219,6 +219,20 @@ describe('an interactive re-run ends on its next steps and starts nothing', () =
     expect(result.entries.some((entry) => entry.text.startsWith('Dashboard'))).toBe(false)
   })
 
+  it('lists the sign-in of a pending subscription and not the model page', async () => {
+    const project = await initializedProject('ending-pending-subscription', { llm: 'claude-code' })
+
+    const result = await rerun(project, ['--json'], { plain: true })
+
+    expect(result.exit, result.stderr).toBe(0)
+    const doc = JSON.parse(result.stdout) as InitDocument
+    expect(doc.nextSteps).toContainEqual({
+      command: 'npx agent-qa auth login --config claude-code',
+      description: 'Sign in with your subscription:',
+    })
+    expect(doc.nextSteps.some((step) => step.command.includes('--open'))).toBe(false)
+  })
+
   it('lists the dashboard and no model page once the model is ready, and runs no dashboard', async () => {
     const project = await initializedProject('ending-ready-model')
     saveGeminiKey(project.home)
