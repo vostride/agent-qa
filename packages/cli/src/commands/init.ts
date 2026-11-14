@@ -89,15 +89,7 @@ import {
   resolveLlmFlag,
   type InitModelPick,
 } from './init-model-choice.js'
-import { EXAMPLE_PATHS, initNextSteps, nextStepLines } from './init-next-steps.js'
-import {
-  dashboardPage,
-  dashboardPortOf,
-  findFreePort,
-  initDashboardStep,
-  probeDashboardPort,
-  type DashboardPort,
-} from './init-dashboard.js'
+import { EXAMPLE_PATHS, dashboardPage, initNextSteps, nextStepLines } from './init-next-steps.js'
 import {
   INTERRUPTED,
   NOT_RUN,
@@ -624,8 +616,6 @@ export interface InitCommandHooks {
   cwd?: string
   host?: Partial<ProjectHost>
   ui?: InitUi
-  // Probes the dashboard's port; the default binds it on loopback and lets it go.
-  dashboardPort?: DashboardPort
   chromium?: ChromiumResolver
   // The re-run's latest agent-qa; the default asks the npm registry under a short deadline.
   latestVersion?: LatestVersionAsk
@@ -904,7 +894,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       'coding agents to set up: claude-code, codex, all or none (default: the ones detected)',
     )
     .option('--no-browsers', 'do not download Chromium for web targets')
-    .option('--no-dashboard', 'do not start the dashboard at the end')
     .option('--force', 'overwrite existing files')
     .option(
       '--setup <list>',
@@ -925,6 +914,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
     )
     // Declared so commander does not answer it with a suggestion of --agents.
     .addOption(new Option('--agent').hideHelp())
+    // Removed: declared so it is refused with its line.
+    .addOption(new Option('--no-dashboard').hideHelp())
     .action(async (opts, command: Command) => {
       const json = opts.json === true && opts.capabilities !== true
       // Taken first and released only after a run that ended well: a failure's block must go to
@@ -944,6 +935,16 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         if (opts.agent === true) {
           throw new CliRefusal(
             [pc.red('--agent is now --capabilities: run npx agent-qa init --capabilities.')],
+            2,
+          )
+        }
+        if (opts.dashboard === false) {
+          throw new CliRefusal(
+            [
+              pc.red(
+                '--no-dashboard was removed: init no longer starts the dashboard, so drop the flag.',
+              ),
+            ],
             2,
           )
         }
@@ -1052,14 +1053,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         })
         // Without a question drawn, every answer takes its flag or its default.
         const ask = mode === 'interactive'
-        const dashboardStep = initDashboardStep({
-          interactive: mode === 'interactive',
-          noDashboard: opts.dashboard === false,
-          host,
-          range,
-          runningVersion,
-          ports: hooks.dashboardPort ?? { probe: probeDashboardPort, findFree: findFreePort },
-        })
         let asked = false
 
         // Derives the outcome from file outcomes; a scaffold that throws reaches neither call site.
@@ -1222,7 +1215,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             onHandOff: () => {
               delegated = true
             },
-            dashboard: dashboardStep,
           })
           return
         }
@@ -1623,14 +1615,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         // A Ctrl-C that landed outside a step is read here.
         if (runner.interrupted()) throw new PromptCancelled()
 
-        const port = dashboardPortOf(config)
-        const scaffolded = runner
-          .records()
-          .some((record) => record.name === 'scaffold' && record.outcome === 'done')
-        const dashboard = await dashboardStep.decide(runner, {
-          port,
-          ...(scaffolded ? {} : { skip: 'no config was written' }),
-        })
         recorder.model({
           ...(modelSetup.entry === undefined
             ? {}
@@ -1649,10 +1633,6 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         ) {
           showExampleSecretLine(ui)
         }
-        const suitePath = join(dir, EXAMPLES_SUITE_PATH)
-        const suiteKept = outcomes.some(
-          result => result.path === suitePath && result.outcome === 'preserved',
-        )
         const records = runner.records()
         const skillsDone = records.some(
           (record) => record.name === 'skills' && record.outcome === 'done',
@@ -1660,6 +1640,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         const mobileStarters = playgroundRuntimes.filter(
           (runtime) => devices[runtime] !== undefined && arrivedApps.includes(runtime),
         )
+        const modelPage = dashboardPage({ model: status.status, dashboard: modelSetup.dashboard })
         const next = initNextSteps({
           steps: records,
           ...(modelSetup.entry === undefined
@@ -1673,22 +1654,15 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
                   pluginInstalled,
                 },
               }),
-          web: hasWeb(platform),
-          ...(suiteKept ? { examples: { starter: true, suite: true, bug: true } } : {}),
+          webStarter: hasWeb(platform),
+          ...(modelPage === undefined ? {} : { modelPage }),
           ...(mobileStarters.length > 0 ? { mobileStarters } : {}),
           agents: skillsDone ? agents : [],
-          dashboard,
         })
         recorder.nextSteps(next.steps)
         ui.note('Next steps', nextStepLines(next.steps))
         for (const hint of next.hints) ui.line(hint)
         if (runner.interrupted()) throw new PromptCancelled()
-        if (dashboard === 'starting') {
-          await dashboardStep.start(runner, ui, {
-            port,
-            page: dashboardPage({ model: status.status, dashboard: modelSetup.dashboard }),
-          })
-        }
         ui.outro(GETTING_STARTED_URL)
         if (runner.failed()) throw new CliRefusal([], 3)
       } catch (error) {

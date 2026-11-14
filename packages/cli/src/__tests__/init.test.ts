@@ -158,7 +158,7 @@ function withoutInstall(args: readonly string[]): string[] {
   if (args.includes('--capabilities')) return [...args]
   const pm = args.includes('--pm') ? [] : ['--pm', 'none']
   const agents = args.includes('--agents') ? [] : ['--agents', 'none']
-  return [...args, ...pm, ...agents, '--no-dashboard']
+  return [...args, ...pm, ...agents]
 }
 
 async function runInit(
@@ -1128,7 +1128,7 @@ describe('init command', () => {
 
     const output = consoleOutput()
     expect(output).toContain('npx agent-qa install-browsers --chromium')
-    expect(output).toContain('npx agent-qa run suites/examples.suite.yaml')
+    expect(output).toContain('npx agent-qa run tests/examples/komazon-cart-total.yaml')
   })
 
   it('routes nested test files through the safe filesystem writer', async () => {

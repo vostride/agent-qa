@@ -713,7 +713,8 @@ type DashboardCommandOptions = {
   open?: true | string
 }
 
-// The URL-encoded form a page path may take: none of these characters means anything to a shell.
+// The URL-encoded form a page path may take. None of these characters means anything to a shell
+// inside double quotes, and init prints the page inside them, since an unquoted ? or & does.
 const DASHBOARD_OPEN_PATH = /^\/[A-Za-z0-9\-._~/?&=]*$/u
 
 export function dashboardOpenPath(open: true | string): string {

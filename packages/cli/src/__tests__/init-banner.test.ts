@@ -204,7 +204,6 @@ function initOnTheRail(
       'claude-code',
       '--pm',
       'none',
-      '--no-dashboard',
     ])
     .then(() => {})
   return { root, streams, terminal, done }

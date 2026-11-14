@@ -12,9 +12,12 @@ into a project folder and records them in its manifest, and
 `agent-qa init` sets up the folder it runs in. In a terminal it asks the
 platform, the model and the coding agents on a Clack rail; with `--yes`,
 `--json`, in CI or without a terminal it asks nothing and prints plain lines.
-It runs its steps through one runner, one line each, and an interactive init
-ends by starting the dashboard unless `--no-dashboard` is given. With `--json`
-it prints one JSON document on stdout on every exit.
+It runs its steps through one runner, one line each, and ends on its next
+steps: it starts nothing, at a terminal or without one. The next steps list
+what is left, then the dashboard's model page while the model is finished
+there, then `npx agent-qa dashboard` to run a test in the dashboard, then one
+starter per chosen platform that can run, to run a test from the terminal.
+With `--json` it prints one JSON document on stdout on every exit.
 `agent-qa init --capabilities` prints the JSON capability manifest and writes
 nothing.
 
@@ -58,8 +61,8 @@ never pre-checked and never taken by `all`; only naming its row in `--setup`
 runs it. The `upgrade` row bumps agent-qa and its plugins to the latest exact
 version, installs them and hands the rest of the run to the new copy. `--llm`,
 `--model` and `--base-url` set the model. Validate always runs, then the next
-steps, and an interactive re-run opens the dashboard only while the model is
-pending. With `--json` a re-run also prints one JSON document on every exit.
+steps, and a re-run starts nothing either. With `--json` a re-run also prints
+one JSON document on every exit.
 The menu's checks live in `src/commands/setup-rows.ts`, and doctor uses the
 same ones.
 

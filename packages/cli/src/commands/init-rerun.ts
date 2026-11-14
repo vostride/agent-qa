@@ -16,7 +16,6 @@ import { CODING_AGENTS, readAgentSetupManifest, type CodingAgent } from './agent
 import { guideLines, versionMove, type VersionMove } from './agent-qa-upgrade.js'
 import { configWithModelEntry } from './config-model-edit.js'
 import type { ChromiumResolver } from './browser-resolver.js'
-import { dashboardPage, dashboardPortOf, type InitDashboardStep } from './init-dashboard.js'
 import { INIT_AGENT_OPTIONS, parseInitAgentsFlag } from './init-agents.js'
 import type { InitDocumentLatest, InitDocumentRecorder } from './init-document.js'
 import {
@@ -36,7 +35,13 @@ import {
   type InitModelSetup,
   type InitModelStatus,
 } from './init-model-choice.js'
-import { EXAMPLE_PATHS, INIT_COMMAND, initNextSteps, nextStepLines } from './init-next-steps.js'
+import {
+  EXAMPLE_PATHS,
+  INIT_COMMAND,
+  dashboardPage,
+  initNextSteps,
+  nextStepLines,
+} from './init-next-steps.js'
 import type { LatestVersionAsk } from './latest-version-ask.js'
 import {
   createInitStepRunner,
@@ -85,7 +90,6 @@ export interface InitRerunOptions {
   baseUrl?: string
   agents?: string
   browsers?: boolean
-  dashboard?: boolean
   pm?: string
   yes?: boolean
   json?: boolean
@@ -124,8 +128,6 @@ export interface InitRerunInput {
   }
   // Called once the newly installed copy has run: its document and exit code stand for this run.
   onHandOff: () => void
-  // The fresh init's own dashboard step.
-  dashboard: InitDashboardStep
 }
 
 const SETUP_BROWSERS_WITH_NO_BROWSERS_LINE =
@@ -137,8 +139,6 @@ const MODEL_FLAGS_WITHOUT_LLM_LINE =
   '--model and --base-url set the model --llm names; pass --llm <choice> with them.'
 const MODEL_TITLE = 'Setting the model'
 const DASHBOARD_FINISHES = 'the dashboard finishes setting it up'
-const MODEL_READY = 'model ready'
-const CONFIG_UNREAD = 'the config does not parse'
 
 function setupCommand(row: SetupRowName): string {
   return `${INIT_COMMAND} --setup ${row}`
@@ -304,7 +304,6 @@ function handOffArgs(
     ...(opts.json === true ? ['--json'] : []),
     ...(opts.yes === true ? ['--yes'] : []),
     ...(opts.pm === undefined ? [] : ['--pm', opts.pm]),
-    ...(opts.dashboard === false ? ['--no-dashboard'] : []),
     // A browsers row checked in the menu wins; the new copy refuses it with --no-browsers.
     ...(opts.browsers === false && !rows.includes('browsers') ? ['--no-browsers'] : []),
   ]
@@ -793,24 +792,19 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
 
   // The model as the rows leave it: the deps row may have installed its plugin.
   const after = modelSetup === undefined ? undefined : await recordModel(input, modelSetup)
-  const pending = after?.status.status === 'pending'
-  const port = dashboardPortOf(readConfig(input)?.config ?? {})
-  const dashboard = await input.dashboard.decide(runner, {
-    port,
-    ...(pending ? {} : { skip: after === undefined ? CONFIG_UNREAD : MODEL_READY }),
-  })
+  const modelPage =
+    after?.status.status === 'pending'
+      ? dashboardPage({ model: 'pending', dashboard: after.setup.dashboard })
+      : undefined
   const records = runner.records()
   const agentRowFailed = records.some(
     (record) => AGENT_ROWS.includes(record.name as SetupRowName) && record.outcome === 'failed',
   )
   const entry = after?.setup.entry
   const platform = projectPlatform(input.configPath, input.host.io)
-  const found = (path: string): boolean => input.host.io.exists(join(input.dir, path))
-  const examples = {
-    starter: found(EXAMPLE_PATHS.starter),
-    suite: found(EXAMPLE_PATHS.suite),
-    bug: found(EXAMPLE_PATHS.bug),
-  }
+  const webStarter =
+    platform.capabilities.includes('web') &&
+    input.host.io.exists(join(input.dir, EXAMPLE_PATHS.starter))
   const next = initNextSteps({
     steps: records,
     ...(after === undefined || entry === undefined
@@ -824,22 +818,15 @@ export async function runInitRerun(input: InitRerunInput): Promise<void> {
             pluginInstalled: after.pluginInstalled,
           },
         }),
-    web: platform.capabilities.includes('web'),
-    examples,
+    webStarter,
+    ...(modelPage === undefined ? {} : { modelPage }),
     agents: agentRowFailed ? [] : agents,
-    dashboard,
     ...(knownMove === undefined ? {} : { upgrade: knownMove }),
   })
   input.recorder.nextSteps(next.steps)
   ui.note('Next steps', nextStepLines(next.steps))
   for (const hint of next.hints) ui.line(hint)
   if (runner.interrupted()) throw new PromptCancelled()
-  if (dashboard === 'starting') {
-    await input.dashboard.start(runner, ui, {
-      port,
-      page: dashboardPage({ model: 'pending', dashboard: after?.setup.dashboard }),
-    })
-  }
 
   ui.outro(input.outro)
   if (runner.failed()) throw new CliRefusal([], 3)

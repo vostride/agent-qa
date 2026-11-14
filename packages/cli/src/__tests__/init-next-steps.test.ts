@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
+import { dashboardOpenPath } from '../commands/dashboard.js'
 import {
   CODEX_TRUST_HINT,
   CODING_AGENT_HINT,
+  dashboardPage,
   initNextSteps,
   nextStepLines,
   type InitNextStepFacts,
@@ -10,19 +12,15 @@ import {
 } from '../commands/init-next-steps.js'
 import type { InitStepRecord } from '../commands/init-steps.js'
 
+const DASHBOARD = 'npx agent-qa dashboard'
 const RUN_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total.yaml'
-const RUN_SUITE = 'npx agent-qa run suites/examples.suite.yaml'
-const RUN_BUG_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total-bug.yaml'
 const RUN_ANDROID_STARTER = 'npx agent-qa run tests/examples/playground-android-open-komazon.yaml'
 const RUN_IOS_STARTER = 'npx agent-qa run tests/examples/playground-ios-open-komazon.yaml'
-const DASHBOARD_STARTER_DESCRIPTION = 'Run the starter test in the dashboard, or:'
-const STARTER_DESCRIPTION = 'Start with the two-step test, which passes:'
-const FRESH_SUITE_DESCRIPTION = 'Then run the suite of three Komazon tests, which passes:'
-const RERUN_SUITE_DESCRIPTION = 'Run the example suite:'
-const BUG_STARTER_DESCRIPTION =
-  "Run the test that fails on the playground's deliberate bug (exit 1):"
-const ANDROID_STARTER_DESCRIPTION = 'Run the Android starter on the Playground app:'
-const IOS_STARTER_DESCRIPTION = 'Run the iOS starter on the Playground app:'
+const IN_THE_DASHBOARD = 'Run a test in the dashboard:'
+const FROM_THE_TERMINAL = 'Run a test from the terminal:'
+const ADD_MODEL = 'Add the model in the dashboard:'
+const FINISH_MODEL = 'Finish setting up the model in the dashboard:'
+const READY_LINE = 'Your coding agent can use agent-qa now.'
 
 const CLAUDE_PENDING: InitNextStepModel = {
   name: 'claude-code',
@@ -57,9 +55,8 @@ function facts(overrides: Partial<InitNextStepFacts> = {}): InitNextStepFacts {
   return {
     steps: DONE,
     model: CLAUDE_READY,
-    web: true,
+    webStarter: true,
     agents: [],
-    dashboard: 'starting',
     ...overrides,
   }
 }
@@ -68,8 +65,139 @@ function commands(input: InitNextStepFacts): string[] {
   return initNextSteps(input).steps.map((step) => step.command)
 }
 
-describe('the next steps are derived from what happened', () => {
-  it('a failed pnpm install, a pending Claude subscription and no dashboard list the install, the auth login line, the three example runs and the dashboard', () => {
+describe('the next steps are what is left, then the dashboard, then the terminal', () => {
+  it('web alone with nothing left lists the dashboard group, then the web starter in the terminal group', () => {
+    const { steps } = initNextSteps(facts())
+
+    expect(steps).toEqual([
+      { command: DASHBOARD, description: IN_THE_DASHBOARD },
+      { command: RUN_STARTER, description: FROM_THE_TERMINAL },
+    ])
+    expect(nextStepLines(steps)).toEqual([
+      IN_THE_DASHBOARD,
+      DASHBOARD,
+      '',
+      FROM_THE_TERMINAL,
+      RUN_STARTER,
+    ])
+  })
+
+  it('web with Android and iOS lists the three starters in the terminal group, in the order web, Android, iOS', () => {
+    const { steps } = initNextSteps(facts({ mobileStarters: ['ios', 'android'] }))
+
+    expect(steps).toEqual([
+      { command: DASHBOARD, description: IN_THE_DASHBOARD },
+      { command: RUN_STARTER, description: FROM_THE_TERMINAL },
+      { command: RUN_ANDROID_STARTER, description: FROM_THE_TERMINAL },
+      { command: RUN_IOS_STARTER, description: FROM_THE_TERMINAL },
+    ])
+    expect(nextStepLines(steps)).toEqual([
+      IN_THE_DASHBOARD,
+      DASHBOARD,
+      '',
+      FROM_THE_TERMINAL,
+      RUN_STARTER,
+      RUN_ANDROID_STARTER,
+      RUN_IOS_STARTER,
+    ])
+  })
+
+  it('mobile alone lists the Android starter, then the iOS starter', () => {
+    expect(commands(facts({ webStarter: false, mobileStarters: ['ios', 'android'] }))).toEqual([
+      DASHBOARD,
+      RUN_ANDROID_STARTER,
+      RUN_IOS_STARTER,
+    ])
+  })
+
+  it('a runtime that is not among the starters that can run gets no command', () => {
+    expect(commands(facts({ webStarter: false, mobileStarters: ['ios'] }))).toEqual([
+      DASHBOARD,
+      RUN_IOS_STARTER,
+    ])
+  })
+
+  it('with no starter that can run, lists the dashboard group alone and no terminal description', () => {
+    const { steps } = initNextSteps(facts({ webStarter: false }))
+
+    expect(steps).toEqual([{ command: DASHBOARD, description: IN_THE_DASHBOARD }])
+    expect(nextStepLines(steps)).toEqual([IN_THE_DASHBOARD, DASHBOARD])
+  })
+
+  it('names no suite and no [Bug] test', () => {
+    const all = commands(facts({ mobileStarters: ['android', 'ios'] }))
+
+    expect(all.join('\n')).not.toMatch(/examples\.suite|-bug\.yaml/u)
+  })
+
+  it('a failed Playground app download adds no step, and no command names the app', () => {
+    const failed: InitStepRecord = {
+      name: 'playground-app',
+      outcome: 'failed',
+      reason: 'The Playground app for Android was not downloaded: fetch failed.',
+    }
+    const steps = [...DONE.slice(0, 4), failed, ...DONE.slice(4)]
+    const next = initNextSteps(facts({ steps }))
+
+    expect(next.steps).toEqual(initNextSteps(facts()).steps)
+    expect(next.steps.filter((step) => /app-bundles|playground-app/u.test(step.command))).toEqual(
+      [],
+    )
+  })
+})
+
+describe('a model finished in the dashboard', () => {
+  it('a page that adds a model gives one command that opens it in double quotes, described as adding the model', () => {
+    const page = '/config/models?add=openai-compatible-key&name=my-key'
+
+    expect(initNextSteps(facts({ model: GEMINI_READY, modelPage: page })).steps).toEqual([
+      {
+        command: `npx agent-qa dashboard --open "${page}"`,
+        description: ADD_MODEL,
+      },
+      { command: DASHBOARD, description: IN_THE_DASHBOARD },
+      { command: RUN_STARTER, description: FROM_THE_TERMINAL },
+    ])
+  })
+
+  it('the plain model page is described as finishing the model', () => {
+    expect(initNextSteps(facts({ modelPage: '/config/models' })).steps[0]).toEqual({
+      command: 'npx agent-qa dashboard --open "/config/models"',
+      description: FINISH_MODEL,
+    })
+  })
+
+  it('comes after what is left and before the dashboard group, each group under a blank line', () => {
+    const steps = withRecord(DONE, {
+      name: 'chromium',
+      outcome: 'skipped',
+      reason: '--no-browsers',
+      command: 'npx agent-qa install-browsers --chromium',
+    })
+    const next = initNextSteps(facts({ steps, model: CLAUDE_PENDING, modelPage: '/config/models' }))
+
+    expect(nextStepLines(next.steps)).toEqual([
+      'npx agent-qa install-browsers --chromium',
+      'npx agent-qa auth login --config claude-code',
+      '',
+      FINISH_MODEL,
+      'npx agent-qa dashboard --open "/config/models"',
+      '',
+      IN_THE_DASHBOARD,
+      DASHBOARD,
+      '',
+      FROM_THE_TERMINAL,
+      RUN_STARTER,
+    ])
+  })
+
+  it('no model page gives no model step', () => {
+    expect(commands(facts()).some((command) => command.includes('--open'))).toBe(false)
+  })
+})
+
+describe('what is left comes first', () => {
+  it('a failed pnpm install and a pending Claude subscription list the install and the auth login line before the groups', () => {
     const steps = withRecord(DONE, {
       name: 'install',
       outcome: 'failed',
@@ -78,62 +206,16 @@ describe('the next steps are derived from what happened', () => {
     })
 
     expect(
-      commands(
-        facts({
-          steps,
-          model: { ...CLAUDE_PENDING, pluginInstalled: false },
-          dashboard: { command: 'npx agent-qa dashboard' },
-        }),
-      ),
+      commands(facts({ steps, model: { ...CLAUDE_PENDING, pluginInstalled: false } })),
     ).toEqual([
       'pnpm install',
       'npx agent-qa auth login --config claude-code',
+      DASHBOARD,
       RUN_STARTER,
-      RUN_SUITE,
-      RUN_BUG_STARTER,
-      'npx agent-qa dashboard',
     ])
   })
 
-  it('a run that went through with a ready model and the dashboard starting lists the starter, the suite and the [Bug] test, each introduced', () => {
-    const { steps } = initNextSteps(facts())
-
-    expect(steps).toEqual([
-      { command: RUN_STARTER, description: DASHBOARD_STARTER_DESCRIPTION },
-      { command: RUN_SUITE, description: FRESH_SUITE_DESCRIPTION },
-      { command: RUN_BUG_STARTER, description: BUG_STARTER_DESCRIPTION },
-    ])
-    expect(nextStepLines(steps)).toEqual([
-      DASHBOARD_STARTER_DESCRIPTION,
-      RUN_STARTER,
-      FRESH_SUITE_DESCRIPTION,
-      RUN_SUITE,
-      BUG_STARTER_DESCRIPTION,
-      RUN_BUG_STARTER,
-    ])
-  })
-
-  it('with the dashboard not starting, the starter is the two-step test that passes and the dashboard command follows the examples', () => {
-    const { steps } = initNextSteps(facts({ dashboard: { command: 'npx agent-qa dashboard' } }))
-
-    expect(steps).toEqual([
-      { command: RUN_STARTER, description: STARTER_DESCRIPTION },
-      { command: RUN_SUITE, description: FRESH_SUITE_DESCRIPTION },
-      { command: RUN_BUG_STARTER, description: BUG_STARTER_DESCRIPTION },
-      { command: 'npx agent-qa dashboard', description: 'Open the dashboard' },
-    ])
-    expect(nextStepLines(steps)).toEqual([
-      STARTER_DESCRIPTION,
-      RUN_STARTER,
-      FRESH_SUITE_DESCRIPTION,
-      RUN_SUITE,
-      BUG_STARTER_DESCRIPTION,
-      RUN_BUG_STARTER,
-      'npx agent-qa dashboard',
-    ])
-  })
-
-  it('the examples come after a failed step, a skipped step, the plugin line and the sign-in line', () => {
+  it('a failed step, a skipped step, the plugin line and the sign-in line come in that order', () => {
     const steps = withRecord(
       withRecord(DONE, {
         name: 'validate',
@@ -156,13 +238,12 @@ describe('the next steps are derived from what happened', () => {
       'npx agent-qa install-browsers --chromium',
       'npx agent-qa plugins add @vostride/agent-qa-subscription-auth',
       'npx agent-qa auth login --config claude-code',
+      DASHBOARD,
       RUN_STARTER,
-      RUN_SUITE,
-      RUN_BUG_STARTER,
     ])
   })
 
-  it('--no-browsers adds the Chromium command', () => {
+  it('prints what is left as commands alone, with no blank line at the top of the box', () => {
     const steps = withRecord(DONE, {
       name: 'chromium',
       outcome: 'skipped',
@@ -170,20 +251,14 @@ describe('the next steps are derived from what happened', () => {
       command: 'npx agent-qa install-browsers --chromium',
     })
 
-    expect(commands(facts({ steps }))).toEqual([
+    expect(nextStepLines(initNextSteps(facts({ steps })).steps)).toEqual([
       'npx agent-qa install-browsers --chromium',
+      '',
+      IN_THE_DASHBOARD,
+      DASHBOARD,
+      '',
+      FROM_THE_TERMINAL,
       RUN_STARTER,
-      RUN_SUITE,
-      RUN_BUG_STARTER,
-    ])
-  })
-
-  it('a subscription plugin missing after a finished install adds the plugins add line', () => {
-    expect(
-      commands(facts({ model: { ...CLAUDE_PENDING, pluginInstalled: false } })).slice(0, 2),
-    ).toEqual([
-      'npx agent-qa plugins add @vostride/agent-qa-subscription-auth',
-      'npx agent-qa auth login --config claude-code',
     ])
   })
 
@@ -214,24 +289,25 @@ describe('the next steps are derived from what happened', () => {
       'npm install',
       'npx agent-qa validate',
       'npx agent-qa auth login --config claude-code',
+      DASHBOARD,
       RUN_STARTER,
-      RUN_SUITE,
-      RUN_BUG_STARTER,
+    ])
+  })
+
+  it('a subscription plugin missing after a finished install adds the plugins add line', () => {
+    expect(
+      commands(facts({ model: { ...CLAUDE_PENDING, pluginInstalled: false } })).slice(0, 2),
+    ).toEqual([
+      'npx agent-qa plugins add @vostride/agent-qa-subscription-auth',
+      'npx agent-qa auth login --config claude-code',
     ])
   })
 
   it('a pending subscription gives one auth login line, described as its sign-in', () => {
-    const { steps } = initNextSteps(facts({ model: CLAUDE_PENDING }))
-
-    expect(steps).toEqual([
-      {
-        command: 'npx agent-qa auth login --config claude-code',
-        description: 'Sign in with your subscription',
-      },
-      { command: RUN_STARTER, description: DASHBOARD_STARTER_DESCRIPTION },
-      { command: RUN_SUITE, description: FRESH_SUITE_DESCRIPTION },
-      { command: RUN_BUG_STARTER, description: BUG_STARTER_DESCRIPTION },
-    ])
+    expect(initNextSteps(facts({ model: CLAUDE_PENDING })).steps[0]).toEqual({
+      command: 'npx agent-qa auth login --config claude-code',
+      description: 'Sign in with your subscription',
+    })
   })
 
   it('a ready subscription gives no auth login line', () => {
@@ -263,23 +339,28 @@ describe('the next steps are derived from what happened', () => {
       CLAUDE_PENDING,
       { ...CLAUDE_PENDING, pluginInstalled: false },
     ]
-    const dashboards: InitNextStepFacts['dashboard'][] = [
-      'starting',
-      { command: 'npx agent-qa dashboard' },
-    ]
+    const pages = [undefined, '/config/models', '/config/models?add=anthropic-compatible-key']
     const plainInstalls = new Set(['pnpm install', 'yarn install'])
     let checked = 0
     for (const install of installs) {
       for (const chromium of chromiums) {
         for (const model of models) {
-          for (const dashboard of dashboards) {
-            for (const web of [true, false]) {
+          for (const modelPage of pages) {
+            for (const webStarter of [true, false]) {
               const steps = withRecord(withRecord(DONE, install), chromium)
-              const input = facts({ steps, dashboard, web })
-              const all = commands(model === undefined ? { ...input, model: undefined } : {
-                ...input,
-                model,
+              const input = facts({
+                steps,
+                webStarter,
+                ...(modelPage === undefined ? {} : { modelPage }),
               })
+              const all = commands(
+                model === undefined
+                  ? { ...input, model: undefined }
+                  : {
+                      ...input,
+                      model,
+                    },
+              )
               for (const command of all) {
                 checked += 1
                 expect(
@@ -299,70 +380,49 @@ describe('the next steps are derived from what happened', () => {
   })
 })
 
-describe('the mobile starters', () => {
-  const mobileOnly = facts({
-    web: false,
-    mobileStarters: ['android', 'ios'],
-    dashboard: { command: 'npx agent-qa dashboard' },
+describe('the page a next step names', () => {
+  it('is the model page while the model is pending', () => {
+    expect(dashboardPage({ model: 'pending' })).toBe('/config/models')
   })
 
-  it('with a web target, the web starter leads and the Android and iOS starters follow it, before the suite and the [Bug] test', () => {
-    expect(initNextSteps(facts({ mobileStarters: ['android', 'ios'] })).steps).toEqual([
-      { command: RUN_STARTER, description: DASHBOARD_STARTER_DESCRIPTION },
-      { command: RUN_ANDROID_STARTER, description: ANDROID_STARTER_DESCRIPTION },
-      { command: RUN_IOS_STARTER, description: IOS_STARTER_DESCRIPTION },
-      { command: RUN_SUITE, description: FRESH_SUITE_DESCRIPTION },
-      { command: RUN_BUG_STARTER, description: BUG_STARTER_DESCRIPTION },
-    ])
+  it('is none once the model is ready', () => {
+    expect(dashboardPage({ model: 'ready' })).toBeUndefined()
   })
 
-  it('with no web target, the Android starter leads, the iOS starter follows with its own description and the dashboard comes last', () => {
-    expect(initNextSteps(mobileOnly).steps).toEqual([
-      { command: RUN_ANDROID_STARTER, description: STARTER_DESCRIPTION },
-      { command: RUN_IOS_STARTER, description: IOS_STARTER_DESCRIPTION },
-      { command: 'npx agent-qa dashboard', description: 'Open the dashboard' },
-    ])
+  it('adds a saved compatible key by its name and a new endpoint by its kind', () => {
+    const saved = { add: 'openai-compatible-key', name: 'work' }
+    expect(dashboardPage({ model: 'pending', dashboard: saved })).toBe(
+      '/config/models?add=openai-compatible-key&name=work',
+    )
+    const endpoint = { add: 'anthropic-compatible-key' }
+    expect(dashboardPage({ model: 'pending', dashboard: endpoint })).toBe(
+      '/config/models?add=anthropic-compatible-key',
+    )
   })
 
-  it("draws each mobile starter's description on the line above its command", () => {
-    expect(nextStepLines(initNextSteps(mobileOnly).steps)).toEqual([
-      STARTER_DESCRIPTION,
-      RUN_ANDROID_STARTER,
-      IOS_STARTER_DESCRIPTION,
-      RUN_IOS_STARTER,
-      'npx agent-qa dashboard',
-    ])
-  })
-
-  it('with no web target and iOS alone, the iOS starter leads', () => {
-    expect(initNextSteps(facts({ web: false, mobileStarters: ['ios'] })).steps).toEqual([
-      { command: RUN_IOS_STARTER, description: DASHBOARD_STARTER_DESCRIPTION },
-    ])
-  })
-
-  it('lists Android before iOS whatever order the runtimes are given in', () => {
-    expect(commands(facts({ mobileStarters: ['ios', 'android'] }))).toEqual([
-      RUN_STARTER,
-      RUN_ANDROID_STARTER,
-      RUN_IOS_STARTER,
-      RUN_SUITE,
-      RUN_BUG_STARTER,
-    ])
-  })
-
-  it('a failed Playground app download adds no step, and no command names the app', () => {
-    const failed: InitStepRecord = {
-      name: 'playground-app',
-      outcome: 'failed',
-      reason: 'The Playground app for Android was not downloaded: fetch failed.',
-    }
-    const steps = [...DONE.slice(0, 4), failed, ...DONE.slice(4)]
-    const next = initNextSteps(facts({ steps }))
-
-    expect(next.steps).toEqual(initNextSteps(facts()).steps)
+  it('leaves out a name that is not a slug, so the page stays one plain argument', () => {
     expect(
-      next.steps.filter((step) => /app-bundles|playground-app/u.test(step.command)),
-    ).toEqual([])
+      dashboardPage({
+        model: 'pending',
+        dashboard: { add: 'openai-compatible-key', name: 'Work Key"; rm -rf ~' },
+      }),
+    ).toBe('/config/models?add=openai-compatible-key')
+  })
+
+  it('is always one that dashboard --open takes', () => {
+    const setups = [
+      undefined,
+      { add: 'openai-compatible-key' },
+      { add: 'anthropic-compatible-key' },
+      { add: 'openai-compatible-key', name: 'my-key.v2' },
+      { add: 'anthropic-compatible-key', name: 'Not A Slug"$(x)' },
+    ]
+    for (const model of ['pending', 'ready'] as const) {
+      for (const dashboard of setups) {
+        const page = dashboardPage({ model, ...(dashboard === undefined ? {} : { dashboard }) })
+        if (page !== undefined) expect(dashboardOpenPath(page)).toBe(page)
+      }
+    }
   })
 })
 
@@ -372,7 +432,9 @@ describe('the lines under the box', () => {
       withRecord(DONE, { name: 'package-json', outcome: 'failed', reason: 'EACCES' }),
       { name: 'scaffold', outcome: 'skipped', reason: 'package.json was not written' },
     )
-    const next = initNextSteps(facts({ steps, model: CLAUDE_PENDING, agents: ['codex'] }))
+    const next = initNextSteps(
+      facts({ steps, model: CLAUDE_PENDING, modelPage: '/config/models', agents: ['codex'] }),
+    )
 
     expect(next.steps).toEqual([
       {
@@ -398,21 +460,21 @@ describe('the lines under the box', () => {
     expect(initNextSteps(facts({ agents: [] })).hints).toEqual([])
   })
 
-  it('the coding agent hint asks for the starter test when one is listed, and names no example when none is', () => {
+  it('the coding agent hint asks for the starter test when one is listed, and is the plain ready line when none is', () => {
     expect(initNextSteps(facts({ agents: ['claude-code'] })).hints).toEqual([
       'Your coding agent can use agent-qa now: ask it to run the starter test.',
     ])
-    expect(initNextSteps(facts({ web: false, agents: ['claude-code'] })).hints).toEqual([
-      'Your coding agent can use agent-qa now.',
+    expect(initNextSteps(facts({ webStarter: false, agents: ['claude-code'] })).hints).toEqual([
+      READY_LINE,
     ])
   })
 
   it('a mobile starter listed alone gives the coding agent hint that asks for the starter test', () => {
     const next = initNextSteps(
-      facts({ web: false, mobileStarters: ['android'], agents: ['claude-code'] }),
+      facts({ webStarter: false, mobileStarters: ['android'], agents: ['claude-code'] }),
     )
 
-    expect(next.steps.map((step) => step.command)).toEqual([RUN_ANDROID_STARTER])
+    expect(next.steps.map((step) => step.command)).toEqual([DASHBOARD, RUN_ANDROID_STARTER])
     expect(next.hints).toEqual([CODING_AGENT_HINT])
   })
 })
@@ -426,86 +488,16 @@ describe("a re-run's next steps", () => {
     { name: 'validate', outcome: 'done' },
   ]
   const rerunFacts = (overrides: Partial<InitNextStepFacts> = {}): InitNextStepFacts =>
-    facts({
-      steps: RERUN_DONE,
-      model: GEMINI_READY,
-      dashboard: { command: 'npx agent-qa dashboard' },
-      examples: { starter: true, suite: true, bug: true },
-      ...overrides,
-    })
+    facts({ steps: RERUN_DONE, model: GEMINI_READY, ...overrides })
 
   it('a scaffold row that is current never asks for init again', () => {
-    expect(commands(rerunFacts())).toEqual([
-      RUN_STARTER,
-      RUN_SUITE,
-      RUN_BUG_STARTER,
-      'npx agent-qa dashboard',
-    ])
+    expect(commands(rerunFacts())).toEqual([DASHBOARD, RUN_STARTER])
   })
 
-  it('each example file the project holds gets its command, introduced, starter first and the dashboard last', () => {
-    const { steps } = initNextSteps(rerunFacts())
+  it('a project without the starter file gets no terminal group', () => {
+    const { steps } = initNextSteps(rerunFacts({ webStarter: false }))
 
-    expect(steps).toEqual([
-      { command: RUN_STARTER, description: STARTER_DESCRIPTION },
-      { command: RUN_SUITE, description: RERUN_SUITE_DESCRIPTION },
-      { command: RUN_BUG_STARTER, description: BUG_STARTER_DESCRIPTION },
-      { command: 'npx agent-qa dashboard', description: 'Open the dashboard' },
-    ])
-    expect(nextStepLines(steps)).toEqual([
-      STARTER_DESCRIPTION,
-      RUN_STARTER,
-      RERUN_SUITE_DESCRIPTION,
-      RUN_SUITE,
-      BUG_STARTER_DESCRIPTION,
-      RUN_BUG_STARTER,
-      'npx agent-qa dashboard',
-    ])
-  })
-
-  it('a project without the starter file gets no starter command, and still the suite and the [Bug] test', () => {
-    expect(commands(rerunFacts({ examples: { starter: false, suite: true, bug: true } }))).toEqual([
-      RUN_SUITE,
-      RUN_BUG_STARTER,
-      'npx agent-qa dashboard',
-    ])
-  })
-
-  it('a project with none of the example files gets no example command', () => {
-    expect(
-      commands(rerunFacts({ examples: { starter: false, suite: false, bug: false } })),
-    ).toEqual(['npx agent-qa dashboard'])
-  })
-
-  it('the suite is described with no claim that it passes, since a project keeps the suite an older init wrote', () => {
-    const suite = initNextSteps(rerunFacts()).steps.find((step) => step.command === RUN_SUITE)
-
-    expect(suite?.description).toBe(RERUN_SUITE_DESCRIPTION)
-    expect(suite?.description).not.toMatch(/pass/iu)
-  })
-
-  it('with the dashboard starting, the starter is introduced as the test to run in the dashboard', () => {
-    expect(initNextSteps(rerunFacts({ dashboard: 'starting' })).steps).toEqual([
-      { command: RUN_STARTER, description: DASHBOARD_STARTER_DESCRIPTION },
-      { command: RUN_SUITE, description: RERUN_SUITE_DESCRIPTION },
-      { command: RUN_BUG_STARTER, description: BUG_STARTER_DESCRIPTION },
-    ])
-  })
-
-  it('a project without the starter file gets the coding agent hint that names no starter', () => {
-    const examples = { starter: false, suite: true, bug: true }
-
-    expect(initNextSteps(rerunFacts({ examples, agents: ['claude-code'] })).hints).toEqual([
-      'Your coding agent can use agent-qa now: ask it to run the examples.',
-    ])
-  })
-
-  it('a project with none of the example files gets the coding agent hint that names no example', () => {
-    const examples = { starter: false, suite: false, bug: false }
-
-    expect(initNextSteps(rerunFacts({ examples, agents: ['claude-code'] })).hints).toEqual([
-      'Your coding agent can use agent-qa now.',
-    ])
+    expect(nextStepLines(steps)).toEqual([IN_THE_DASHBOARD, DASHBOARD])
   })
 
   it('a row left unchecked lists its --setup command with the row description, after a failed row', () => {

@@ -156,7 +156,6 @@ describe('a fresh init draws one line per step', () => {
       'Installing Chromium',
       'Setting up the coding agents',
       'validate: install first (--pm none)',
-      'Dashboard: skipped (not interactive)',
     ])
     expect(ui.output()).not.toContain('tests/examples/komazon-checkout.yaml')
     expect(ui.output()).not.toContain('agent-qa-knowledge/README.md')
@@ -251,8 +250,8 @@ describe('a fresh init draws one line per step', () => {
     expect(existsSync(join(root, 'agent-qa.config.yaml'))).toBe(false)
   })
 
-  it('an interactive init that wrote no config skips the dashboard and lists init as the next step', async () => {
-    const { root, home } = tempProject('steps-no-config-no-dashboard')
+  it('an interactive init that wrote no config lists init as the only next step and runs nothing', async () => {
+    const { root, home } = tempProject('steps-no-config')
     const ui = fakeInitUi()
     const run = fakeRunner()
     const parent = new Command()
@@ -263,12 +262,6 @@ describe('a fresh init draws one line per step', () => {
       composeAnalytics: silentAnalytics,
       ...mobileInitFakes().hooks,
       ui,
-      dashboardPort: {
-        probe: async () => {
-          throw new Error('the port was probed')
-        },
-        findFree: async () => 0,
-      },
       afterWrite: (result) => {
         if (result.path.endsWith('package.json')) throw new Error('EACCES: permission denied')
       },
@@ -282,10 +275,6 @@ describe('a fresh init draws one line per step', () => {
       .catch((caught: unknown) => caught)
 
     expect(error).toMatchObject({ name: 'CliRefusal', exitCode: 3 })
-    expect(ui.entries).toContainEqual({
-      kind: 'skipped',
-      text: 'Dashboard: skipped (no config was written)',
-    })
     expect(ui.entries.find((entry) => entry.kind === 'note')).toMatchObject({
       text: 'Next steps',
       lines: ['npx agent-qa init'],
@@ -424,7 +413,6 @@ describe('the steps after the install', () => {
       'Chromium installed',
       'Claude Code: 2 skills, MCP entries, AGENTS.md block',
       'validate: the config and tests are valid',
-      'Dashboard: skipped (not interactive)',
     ])
     expect(lines[0]).toMatch(/^package\.json created/u)
     expect(lines[1]).toMatch(/^Scaffold:/u)
@@ -473,7 +461,6 @@ describe('the steps after the install', () => {
       'Chromium download failed twice',
       'Claude Code: 2 skills, MCP entries, AGENTS.md block',
       'validate: the config and tests are valid',
-      'Dashboard: skipped (not interactive)',
     ])
   })
 

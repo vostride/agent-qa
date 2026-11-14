@@ -249,15 +249,14 @@ describe("the re-run's upgrade row moves the project to a newer agent-qa patch",
     ])
   })
 
-  it("passes on the run's own --json, --pm, --no-dashboard and --no-browsers and writes no document itself", async () => {
+  it("passes on the run's own --json, --pm and --no-browsers and writes no document itself", async () => {
     const project = await initializedProject('upgrade-passes-flags')
     const run = upgradeMachine('0.3.2')
 
-    const result = await rerun(
-      project,
-      ['--yes', '--json', '--pm', 'npm', '--no-dashboard', '--no-browsers'],
-      { run, hooks: { latestVersion: answering('0.3.2') } },
-    )
+    const result = await rerun(project, ['--yes', '--json', '--pm', 'npm', '--no-browsers'], {
+      run,
+      hooks: { latestVersion: answering('0.3.2') },
+    })
 
     expect(result.exit, result.stderr).toBe(0)
     expect(childOf(run)?.args.slice(1)).toEqual([
@@ -270,7 +269,6 @@ describe("the re-run's upgrade row moves the project to a newer agent-qa patch",
       '--yes',
       '--pm',
       'npm',
-      '--no-dashboard',
       '--no-browsers',
     ])
     expect(result.stdout).toBe('')

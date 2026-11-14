@@ -8,7 +8,7 @@ export function createPlainUi(
   const print = (text: string): void => write(`${text}\n`)
   const block = (title: string, lines: readonly string[]): void => {
     print(title)
-    for (const line of lines) print(`  ${line}`)
+    for (const line of lines) print(line === '' ? '' : `  ${line}`)
   }
   return {
     banner: () => {},

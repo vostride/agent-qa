@@ -18,7 +18,6 @@ export type InitStepName =
   | 'browsers'
   | 'gitignore'
   | 'validate'
-  | 'dashboard'
 
 export interface InitStepRecord {
   name: InitStepName
@@ -68,17 +67,15 @@ export function freshInitPlan({ mobile = false }: { mobile?: boolean } = {}): In
     ...(mobile ? (['playground-app'] as const) : []),
     'skills',
     'validate',
-    'dashboard',
   ]
 }
 
-// A re-run plans the model its flags set, then the menu's shown rows in menu order, then validate
-// and the dashboard.
+// A re-run plans the model its flags set, then the menu's shown rows in menu order, then validate.
 export function rerunPlan(
   rows: readonly SetupRowName[],
   { model = false }: { model?: boolean } = {},
 ): InitStepName[] {
-  return [...(model ? (['model'] as const) : []), ...rows, 'validate', 'dashboard']
+  return [...(model ? (['model'] as const) : []), ...rows, 'validate']
 }
 
 // A bug is reported with its stack, not drawn as a failed step.

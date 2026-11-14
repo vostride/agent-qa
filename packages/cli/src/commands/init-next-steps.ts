@@ -1,5 +1,8 @@
+import { NAME_SLUG_PATTERN } from '@vostride/agent-qa-schema'
+
 import type { CodingAgent } from './agent-setup-manifest.js'
 import { guideLines, type VersionMove } from './agent-qa-upgrade.js'
+import type { InitModelSetup, InitModelStatus } from './init-model-choice.js'
 import type { InitStepName, InitStepRecord } from './init-steps.js'
 
 export interface InitNextStep {
@@ -15,30 +18,23 @@ export interface InitNextStepModel {
   pluginInstalled: boolean
 }
 
-export interface InitExampleFiles {
-  starter: boolean
-  suite: boolean
-  bug: boolean
-}
-
 export interface InitNextStepFacts {
   steps: readonly InitStepRecord[]
   model?: InitNextStepModel
-  web: boolean
-  // The example files on disk after a run that kept some of them: a re-run, or a fresh init
-  // over a suite file. A run that wrote every example gives none.
-  examples?: InitExampleFiles
+  // Web was chosen and the web starter's file is there.
+  webStarter: boolean
+  // The dashboard page that finishes the model's setup.
+  modelPage?: string
   // The mobile runtimes whose starter can run: a device was written and the app is in place.
   // A re-run gives none.
   mobileStarters?: readonly ('android' | 'ios')[]
   // The coding agents whose setup went through.
   agents: readonly CodingAgent[]
-  dashboard: 'starting' | { command: string }
   // The version move a re-run knows of.
   upgrade?: VersionMove
 }
 
-// The example files the next steps name. init.ts writes them at these paths.
+// The example files init writes at these paths.
 export const EXAMPLE_PATHS = {
   starter: 'tests/examples/komazon-cart-total.yaml',
   suite: 'suites/examples.suite.yaml',
@@ -47,35 +43,26 @@ export const EXAMPLE_PATHS = {
   iosStarter: 'tests/examples/playground-ios-open-komazon.yaml',
 } as const
 
-export const SUBSCRIPTION_PLUGIN_COMMAND =
-  'npx agent-qa plugins add @vostride/agent-qa-subscription-auth'
+const SUBSCRIPTION_PLUGIN_COMMAND = 'npx agent-qa plugins add @vostride/agent-qa-subscription-auth'
 const STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.starter}`
-const ANDROID_STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.androidStarter}`
-const IOS_STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.iosStarter}`
-// In the order they are listed, each with the description it has when another starter leads.
+// In the order they are listed.
 const MOBILE_STARTERS = [
-  {
-    runtime: 'android',
-    command: ANDROID_STARTER_RUN_COMMAND,
-    description: 'Run the Android starter on the Playground app:',
-  },
-  {
-    runtime: 'ios',
-    command: IOS_STARTER_RUN_COMMAND,
-    description: 'Run the iOS starter on the Playground app:',
-  },
+  { runtime: 'android', command: `npx agent-qa run ${EXAMPLE_PATHS.androidStarter}` },
+  { runtime: 'ios', command: `npx agent-qa run ${EXAMPLE_PATHS.iosStarter}` },
 ] as const
-export const EXAMPLES_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.suite}`
-const BUG_STARTER_RUN_COMMAND = `npx agent-qa run ${EXAMPLE_PATHS.bug}`
-export const DASHBOARD_COMMAND = 'npx agent-qa dashboard'
+const DASHBOARD_COMMAND = 'npx agent-qa dashboard'
 export const INIT_COMMAND = 'npx agent-qa init'
+const IN_THE_DASHBOARD = 'Run a test in the dashboard:'
+const FROM_THE_TERMINAL = 'Run a test from the terminal:'
+const ADD_MODEL = 'Add the model in the dashboard:'
+const FINISH_MODEL = 'Finish setting up the model in the dashboard:'
 const CODING_AGENT_READY = 'Your coding agent can use agent-qa now'
 export const CODING_AGENT_HINT = `${CODING_AGENT_READY}: ask it to run the starter test.`
-const CODING_AGENT_EXAMPLES_HINT = `${CODING_AGENT_READY}: ask it to run the examples.`
 export const CODEX_TRUST_HINT =
   'Codex reads .codex/config.toml only in a trusted folder: trust this folder when Codex asks.'
 
 const AUTH_LOGIN_DESCRIPTION = 'Sign in with your subscription'
+const MODEL_PAGE = '/config/models'
 
 function authLoginCommand(name: string): string {
   return `npx agent-qa auth login --config ${name}`
@@ -96,10 +83,29 @@ const STEP_DESCRIPTIONS: Record<InitStepName, string> = {
   browsers: "Install Chromium for agent-qa's Playwright",
   gitignore: "Restore init's .gitignore block",
   validate: 'Check the config and the tests',
-  dashboard: 'Open the dashboard',
 }
 
-// Only what is left: what failed first, then what was skipped, then what the model still needs.
+// The model page that finishes the setup, or none once the model is ready. A name outside the
+// slug form is left out, so the page stays one argument that `dashboard --open` takes.
+export function dashboardPage({
+  model,
+  dashboard,
+}: {
+  model: InitModelStatus['status']
+  dashboard?: InitModelSetup['dashboard']
+}): string | undefined {
+  if (dashboard !== undefined) {
+    const add = `${MODEL_PAGE}?add=${encodeURIComponent(dashboard.add)}`
+    const { name } = dashboard
+    return name !== undefined && NAME_SLUG_PATTERN.test(name)
+      ? `${add}&name=${encodeURIComponent(name)}`
+      : add
+  }
+  return model === 'pending' ? MODEL_PAGE : undefined
+}
+
+// What is left first: what failed, then what was skipped, then what the model still needs. Then
+// the model page while the model is finished there, the dashboard, and the starters that can run.
 export function initNextSteps(facts: InitNextStepFacts): {
   steps: InitNextStep[]
   hints: string[]
@@ -142,56 +148,41 @@ export function initNextSteps(facts: InitNextStepFacts): {
   if (model?.subscription === true && model.status === 'pending') {
     add(authLoginCommand(model.name), AUTH_LOGIN_DESCRIPTION)
   }
-  // With no examples fact, this run wrote every example.
-  const examples = facts.examples ?? { starter: true, suite: true, bug: true }
-  const lead =
-    facts.dashboard === 'starting'
-      ? 'Run the starter test in the dashboard, or:'
-      : 'Start with the two-step test, which passes:'
-  // The web starter leads, and without it the first mobile starter does.
-  const webStarter = facts.web && examples.starter
-  if (webStarter) add(STARTER_RUN_COMMAND, lead)
-  const mobile = MOBILE_STARTERS.filter((starter) =>
-    (facts.mobileStarters ?? []).includes(starter.runtime),
-  )
-  for (const [index, starter] of mobile.entries()) {
-    add(starter.command, index === 0 && !webStarter ? lead : starter.description)
+  if (facts.modelPage !== undefined) {
+    add(
+      `${DASHBOARD_COMMAND} --open "${facts.modelPage}"`,
+      facts.modelPage.includes('?add=') ? ADD_MODEL : FINISH_MODEL,
+    )
   }
-  if (facts.web) {
-    // A suite file that was kept may be an older init's, which does not pass.
-    if (examples.suite) {
-      add(
-        EXAMPLES_RUN_COMMAND,
-        facts.examples === undefined
-          ? 'Then run the suite of three Komazon tests, which passes:'
-          : 'Run the example suite:',
-      )
-    }
-    if (examples.bug) {
-      add(
-        BUG_STARTER_RUN_COMMAND,
-        "Run the test that fails on the playground's deliberate bug (exit 1):",
-      )
+  add(DASHBOARD_COMMAND, IN_THE_DASHBOARD)
+  if (facts.webStarter) add(STARTER_RUN_COMMAND, FROM_THE_TERMINAL)
+  for (const starter of MOBILE_STARTERS) {
+    if (facts.mobileStarters?.includes(starter.runtime) === true) {
+      add(starter.command, FROM_THE_TERMINAL)
     }
   }
-  if (facts.dashboard !== 'starting') add(facts.dashboard.command, STEP_DESCRIPTIONS.dashboard)
 
   const hints: string[] = facts.upgrade === undefined ? [] : guideLines(facts.upgrade)
   if (facts.agents.length > 0) {
-    const listed = (command: string): boolean => steps.some((step) => step.command === command)
-    const starters = [STARTER_RUN_COMMAND, ANDROID_STARTER_RUN_COMMAND, IOS_STARTER_RUN_COMMAND]
-    if (starters.some(listed)) hints.push(CODING_AGENT_HINT)
-    else if (listed(EXAMPLES_RUN_COMMAND) || listed(BUG_STARTER_RUN_COMMAND)) {
-      hints.push(CODING_AGENT_EXAMPLES_HINT)
-    } else hints.push(`${CODING_AGENT_READY}.`)
+    const starterListed = steps.some((step) => step.description === FROM_THE_TERMINAL)
+    hints.push(starterListed ? CODING_AGENT_HINT : `${CODING_AGENT_READY}.`)
   }
   if (facts.agents.includes('codex')) hints.push(CODEX_TRUST_HINT)
   return { steps, hints }
 }
 
-// A description that ends in a colon introduces its command; the others stay in the document.
+// A description that ends in a colon is printed once above its group's commands, under an empty
+// line unless it opens the box; the other descriptions stay in the document.
 export function nextStepLines(steps: readonly InitNextStep[]): string[] {
-  return steps.flatMap((step) =>
-    step.description.endsWith(':') ? [step.description, step.command] : [step.command],
-  )
+  const lines: string[] = []
+  steps.forEach((step, index) => {
+    const opensGroup =
+      step.description.endsWith(':') && steps[index - 1]?.description !== step.description
+    if (opensGroup) {
+      if (lines.length > 0) lines.push('')
+      lines.push(step.description)
+    }
+    lines.push(step.command)
+  })
+  return lines
 }

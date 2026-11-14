@@ -481,7 +481,7 @@ describe('the next steps after a fresh mobile init', () => {
     expect(stepOf(doc, 'playground-app')).toEqual({ name: 'playground-app', outcome: 'done' })
     expect(doc.nextSteps).toContainEqual({
       command: RUN_ANDROID_STARTER,
-      description: 'Start with the two-step test, which passes:',
+      description: 'Run a test from the terminal:',
     })
     expect(nextCommandsOf(doc)).not.toContain(RUN_IOS_STARTER)
   })
