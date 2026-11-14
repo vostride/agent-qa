@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { HealthDot } from '@/components/live-preview/health-dot'
 import { PreviewChrome } from '@/components/live-preview/preview-chrome'
 import { fetchEditorLiveUrl, fetchLiveUrl } from '@/lib/api'
+import { cn } from '@/lib/utils'
 import {
   LIVE_PREVIEW_ACTION_LABELS,
   LIVE_PREVIEW_HOST_QUERY,
@@ -364,9 +365,7 @@ export function LivePreview({ subject, chrome }: LivePreviewProps) {
       <PreviewChrome status={status}>{chrome}</PreviewChrome>
 
       {/* `pt-8` keeps the picture clear of the dot's corner even in a short preview area. */}
-      <div
-        className={`relative flex min-h-0 flex-1 items-center justify-center [container-type:size]${dot !== null ? ' pt-8' : ''}`}
-      >
+      <div className={cn('relative flex min-h-0 flex-1 items-center justify-center [container-type:size]', dot !== null && 'pt-8')}>
         {dot !== null && (
           <div data-preview-dot-corner className="absolute right-1 top-1 z-10">
             {dot}
