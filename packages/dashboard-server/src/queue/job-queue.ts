@@ -38,7 +38,7 @@ export class JobQueue extends EventEmitter {
   private concurrency: number
   private activeCount = 0
   private activePlatforms = new Set<string>()
-  private activeRuns = new Map<string, { platform: string }>()
+  private activeRuns = new Map<string, { platform: string | null }>()
   private requestStop: ((runId: string) => boolean) | undefined
   private stopped = false
 
@@ -88,7 +88,7 @@ export class JobQueue extends EventEmitter {
       kind: opts.kind ?? 'test',
       payload: {
         runtime: {
-          platform: opts.platform ?? 'web',
+          ...(opts.platform === undefined ? {} : { platform: opts.platform }),
           queued: true,
         },
         source: {
@@ -115,7 +115,7 @@ export class JobQueue extends EventEmitter {
         if (!next) break
 
         const isParallel = Boolean(next.parallel)
-        const platform = next.platform ?? 'web'
+        const platform = next.platform
         const isMobile = platform === 'ios' || platform === 'android'
 
         this.activeCount++
@@ -216,7 +216,7 @@ export class JobQueue extends EventEmitter {
     const pending = this.db.getPendingRuns()
     for (const run of pending) {
       const isParallel = Boolean(run.parallel)
-      const platform = run.platform ?? 'web'
+      const platform = run.platform
       const isMobile = platform === 'ios' || platform === 'android'
 
       if (isMobile) {

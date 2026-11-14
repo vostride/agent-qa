@@ -192,7 +192,7 @@ describe('status word classes', () => {
     ])
 
     const [platform] = db.getInsightsBreakdown('platform')
-    expect(platform).toMatchObject({ key: 'web', runs: 7, passed: 2, failed: 2 })
+    expect(platform).toMatchObject({ key: 'unknown', runs: 7, passed: 2, failed: 2 })
     expect(platform!.passRate).toBeCloseTo(2 / 4)
   })
 

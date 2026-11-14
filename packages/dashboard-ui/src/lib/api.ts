@@ -42,7 +42,7 @@ export interface RunRow {
   errorLog: string | null
   testId: string | null
   suiteId: string | null
-  platform: string
+  platform: string | null
   testFileContent: string | null
   modelName: string | null
   llmProvider: string | null

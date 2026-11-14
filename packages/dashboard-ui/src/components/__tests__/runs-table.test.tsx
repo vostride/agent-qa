@@ -317,12 +317,6 @@ describe("RunsTable", () => {
     expect(view.textContent).not.toContain("Actions")
   })
 
-  it("renders target as targetName plus platform and falls back to No target", async () => {
-    const { view } = await renderTable()
-
-    expect(view.textContent).toContain("hn-staging (Android)")
-    expect(view.textContent).toContain("No target (Web)")
-  })
 
   it("shows expanded child rows on the same visible contract as parent rows", async () => {
     const { view } = await renderTable({
@@ -707,5 +701,68 @@ describe("the runs table's badge, tab stops and truncated cells", () => {
     let wrapper: HTMLElement | null = view.querySelector("table")
     while (wrapper && !wrapper.classList.contains("@container/runs")) wrapper = wrapper.parentElement
     expect(wrapper, "the table's scroll wrapper is the runs container").not.toBeNull()
+  })
+
+  function targetCells(view: HTMLDivElement): Map<string, string> {
+    const [, ...cells] = cellsOfColumn(view, "Target")
+    const rows = Array.from(view.querySelectorAll<HTMLTableRowElement>("tbody tr"))
+    const byRun = new Map<string, string>()
+    rows.forEach((row, index) => {
+      const id = row.querySelector<HTMLElement>("[data-runs-row-surface]")?.dataset.runsRowSurface
+        ?? row.dataset.runsRowSurface
+      const shown = cells[index]?.querySelector<HTMLElement>(".truncate")?.textContent
+      if (id !== undefined && shown !== undefined && shown !== null) byRun.set(id, shown)
+    })
+    return byRun
+  }
+
+  const plain = runs[1]!
+
+  it("a row with a target and a platform reads the name with the platform in brackets", async () => {
+    const { view } = await renderTable({
+      selectedRunId: null,
+      tableRuns: [{ ...plain, id: "run_known", targetName: "hn-staging", platform: "android" }],
+    })
+    expect(targetCells(view).get("run_known")).toBe("hn-staging (Android)")
+  })
+
+  it("a row with a target and no platform reads the name alone", async () => {
+    const { view } = await renderTable({
+      selectedRunId: null,
+      tableRuns: [{ ...plain, id: "run_name_only", targetName: "hn-staging", platform: null }],
+    })
+    expect(targetCells(view).get("run_name_only")).toBe("hn-staging")
+  })
+
+  it("a row with no target reads a dash and no platform, whatever its platform", async () => {
+    const { view } = await renderTable({
+      selectedRunId: null,
+      tableRuns: [
+        { ...plain, id: "run_web", targetName: null, platform: "web" },
+        { ...plain, id: "run_android", targetName: null, platform: "android" },
+        { ...plain, id: "run_none", targetName: null, platform: null },
+      ],
+    })
+    const cells = targetCells(view)
+    for (const id of ["run_web", "run_android", "run_none"]) {
+      expect(cells.get(id), id).toBe("\u2014")
+    }
+    expect(view.textContent).not.toContain("No target")
+  })
+
+  it("sorting by target puts the rows in the order of the text shown", async () => {
+    const { view } = await renderTable({
+      selectedRunId: null,
+      tableRuns: [
+        { ...plain, id: "run_b", targetName: "beta", platform: "ios" },
+        { ...plain, id: "run_dash", targetName: null, platform: "web" },
+        { ...plain, id: "run_a", targetName: "alpha", platform: null },
+      ],
+    })
+    const [head] = cellsOfColumn(view, "Target")
+    await act(async () => {
+      head!.querySelector("button")!.dispatchEvent(new MouseEvent("click", { bubbles: true }))
+    })
+    expect(Array.from(targetCells(view).values())).toEqual(["\u2014", "alpha", "beta (iOS)"])
   })
 })

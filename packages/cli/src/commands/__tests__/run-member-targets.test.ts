@@ -63,3 +63,41 @@ describe('every member gets its own answer, in its own slot', () => {
     expect(facts.probeUrls).toEqual([undefined, 'https://web.example/one'])
   })
 })
+
+describe("the run's own target and platform are the ones every member shares, or absent", () => {
+  it('members that all name one target give that name and its platform', () => {
+    const facts = resolveMemberTargetFacts(config, here('phone', 'phone'))
+    expect(facts.targetName).toBe('phone')
+    expect(facts.platform).toBe('ios')
+  })
+
+  it('members on two targets of one platform give the platform and no name', () => {
+    const facts = resolveMemberTargetFacts(config, here('web', 'web-shared'))
+    expect(facts).not.toHaveProperty('targetName')
+    expect(facts.platform).toBe('web')
+  })
+
+  it('members on targets of different platforms give neither', () => {
+    const facts = resolveMemberTargetFacts(config, here('web', 'phone'))
+    expect(facts).not.toHaveProperty('targetName')
+    expect(facts).not.toHaveProperty('platform')
+  })
+
+  it('a member that names no target leaves the run with no name and no platform', () => {
+    const facts = resolveMemberTargetFacts(config, here('phone', undefined))
+    expect(facts).not.toHaveProperty('targetName')
+    expect(facts).not.toHaveProperty('platform')
+  })
+
+  it('a target the config does not hold gives its name and no platform', () => {
+    const facts = resolveMemberTargetFacts(config, here('nowhere'))
+    expect(facts.targetName).toBe('nowhere')
+    expect(facts).not.toHaveProperty('platform')
+  })
+
+  it('a member on a remote browser still counts toward the shared target', () => {
+    const facts = resolveMemberTargetFacts(config, [{ target: 'web', remote: true }])
+    expect(facts.targetName).toBe('web')
+    expect(facts.platform).toBe('web')
+  })
+})

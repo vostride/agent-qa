@@ -116,4 +116,24 @@ describe('opening a run record', () => {
     )
     await expect(other.open({ runId: first, configDir }), 'the record after the refusal').resolves.toBeUndefined()
   })
+
+  it("a run's row keeps the target and platform its attach names, the target masked", async () => {
+    const configDir = tempRoot()
+    const runId = generateRunId()
+    const subject = record()
+    await subject.open({ runId, configDir })
+
+    const attached = subject.subscriber({
+      mask: (text) => text.replaceAll('staging-secret', '[masked]'),
+      members: [{ name: 'Open the shop', testId: 't_open', filePath: 'tests/open.yaml' }],
+      targetName: 'playground-ios-staging-secret',
+      platform: 'ios',
+    })
+    attached.handler({ seq: 1, ts: 1, runId, type: 'runStarted', payload: { memberTestCount: 1 } } as never)
+
+    const row = subject.db?.getRun(runId)
+    expect(row?.status, 'the claimed row').toBe('running')
+    expect(row?.platform, 'the stored platform').toBe('ios')
+    expect(row?.metadata?.target, 'the stored target').toBe('playground-ios-[masked]')
+  })
 })

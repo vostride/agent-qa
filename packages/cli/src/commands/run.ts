@@ -192,6 +192,9 @@ export interface MemberTargetFacts {
   readonly probeUrls: readonly (string | undefined)[]
   /** The first member whose target resolved — the invocation's product when nothing else names it. */
   readonly firstResolvedProduct?: string
+  // The run's own target and platform: present only when every member shares one.
+  readonly targetName?: string
+  readonly platform?: ResolvedTarget['platform']
 }
 
 export function resolveMemberTargetFacts(
@@ -200,10 +203,14 @@ export function resolveMemberTargetFacts(
 ): MemberTargetFacts {
   const probeUrls: (string | undefined)[] = []
   let firstResolvedProduct: string | undefined
+  const names = new Set<string | undefined>()
+  const platforms = new Set<ResolvedTarget['platform'] | undefined>()
 
   for (const { target: targetName, remote } of members) {
+    names.add(targetName)
     if (targetName === undefined) {
       probeUrls.push(undefined)
+      platforms.add(undefined)
       continue
     }
     try {
@@ -212,16 +219,31 @@ export function resolveMemberTargetFacts(
       const probeUrl = resolved.platform === 'web' && resolved.url ? resolved.url : undefined
       probeUrls.push(remote ? undefined : probeUrl)
       firstResolvedProduct ??= resolved.product
+      platforms.add(resolved.platform)
     } catch {
       // Best-effort resolution: the member closure still surfaces the real target error as the
       // framework error it is.
       probeUrls.push(undefined)
+      platforms.add(undefined)
     }
   }
 
+  const [sharedName] = names.size === 1 ? names : []
+  const [sharedPlatform] = platforms.size === 1 ? platforms : []
   return {
     probeUrls,
     ...(firstResolvedProduct === undefined ? {} : { firstResolvedProduct }),
+    ...(sharedName === undefined ? {} : { targetName: sharedName }),
+    ...(sharedPlatform === undefined ? {} : { platform: sharedPlatform }),
+  }
+}
+
+function runTargetSeed(
+  facts: MemberTargetFacts,
+): { targetName?: string; platform?: ResolvedTarget['platform'] } {
+  return {
+    ...(facts.targetName === undefined ? {} : { targetName: facts.targetName }),
+    ...(facts.platform === undefined ? {} : { platform: facts.platform }),
   }
 }
 
@@ -1060,6 +1082,8 @@ export interface RunRecordAttach {
   readonly mask: MaskFn
   readonly members: readonly RunIdentityMember[]
   readonly attributes?: RunAttributes
+  readonly targetName?: string
+  readonly platform?: ResolvedTarget['platform']
   readonly onMemberSnapshot?: (listener: RunArtifactSnapshotListener) => () => void
   readonly snapshots?: { readonly config?: unknown; readonly source?: unknown }
   readonly gateRun?: boolean
@@ -1221,6 +1245,8 @@ export function createRunRecord(input: {
           ...(member.suiteName === undefined ? {} : { suiteName: attach.mask(member.suiteName) }),
         })),
         ...(attributes === undefined ? {} : { attributes }),
+        ...(attach.targetName === undefined ? {} : { targetName: attach.mask(attach.targetName) }),
+        ...(attach.platform === undefined ? {} : { platform: attach.platform }),
         onRunCreated: (created) => { ownRow = created },
       })
       const unsubscribe = attach.onMemberSnapshot?.((snapshot) => { ingest.stageSnapshots(snapshot) })
@@ -4101,6 +4127,7 @@ export async function produceSuiteRunMembers(
           variableContext?.userRunAttributes ?? {},
           runnerForPlaces(suiteRunPlaces),
         ),
+        ...runTargetSeed(suiteTargetFacts),
       }
     })(),
     remotePlugins: runRemotePlugins(config, suiteRunPlaces),
@@ -4216,6 +4243,8 @@ export interface ProducedCliRunMembers {
     readonly configSnapshot?: unknown
     readonly sourceSnapshot?: unknown
     readonly attributes?: RunAttributes
+    readonly targetName?: string
+    readonly platform?: ResolvedTarget['platform']
   }
   // Each member's and suite's source and config, masked; latecomers get a replay.
   readonly onMemberSnapshot?: (listener: RunArtifactSnapshotListener) => () => void
@@ -5035,7 +5064,7 @@ export async function produceDirectRunMembers(
       : { remoteProgress: directPluginHost.remoteProgress }),
     getCurationModelDeps: () => singleCurationModelDeps,
     onMemberSnapshot: memberSnapshots.subscribe,
-    subscriberSeed: { attributes: directRunAttributes },
+    subscriberSeed: { attributes: directRunAttributes, ...runTargetSeed(directTargetFacts) },
     remotePlugins: runRemotePlugins(config, directPlaces),
     platforms: runPlatforms(config, directPlaces),
     loadPlugins: input.inputs.loadPlugins,
