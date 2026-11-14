@@ -1,6 +1,6 @@
 import { format } from 'node:util'
 import type WebSocket from 'ws'
-import { parseTestFile, printRunText } from '@vostride/agent-qa-core'
+import { normalizeAuthStateUse, parseTestFile, printRunText } from '@vostride/agent-qa-core'
 import type { LiveSession } from './live-session.js'
 import { LIVE_EDITOR_SUPERSEDED_CLOSE_CODE, LIVE_EDITOR_UNKNOWN_SESSION_CLOSE_CODE } from './types.js'
 import type {
@@ -245,6 +245,9 @@ export function createSessionHandler(
             const stepInstructions: string[] = testDef.steps.map((s: string | { step: string }) =>
               typeof s === 'string' ? s : s.step,
             )
+            const authStateName = normalizeAuthStateUse(
+              testDef.use as { authState?: unknown } | undefined,
+            )?.name
             const stepCount = stepInstructions.length
             const setupCount = (testDef.setup ?? []).length
             const teardownCount = (testDef.teardown ?? []).length
@@ -274,6 +277,7 @@ export function createSessionHandler(
                 steps: stepInstructions,
                 setup: testDef.setup ?? [],
                 teardown: testDef.teardown ?? [],
+                ...(authStateName === undefined ? {} : { authStateName }),
               },
             )
 

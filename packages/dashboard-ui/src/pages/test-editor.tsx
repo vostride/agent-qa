@@ -352,6 +352,10 @@ export default function TestEditorPage() {
     ? selectedTargetName
     : null
   const draftAuthStateName = useMemo(() => readDraftAuthStateName(content), [content])
+  const sessionAuthState = liveEditor.authState
+  const signedOutAuthState = sessionAuthState && sessionAuthState.capturedAt === null && activeAuthStateTargetName
+    ? { name: sessionAuthState.name, targetName: activeAuthStateTargetName }
+    : null
   const setupHooksStale = hasLiveSession && formState !== null && !arraysEqual(formState.setup, liveHookConfig.setup)
 
   const pageTitle = useMemo(() => {
@@ -972,6 +976,7 @@ export default function TestEditorPage() {
         isSaving: isSavingAuthState,
         onSave: handleSaveLiveAuthState,
       } : null}
+      signedOutAuthState={signedOutAuthState}
     />
   )
 

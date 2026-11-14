@@ -967,6 +967,7 @@ export class LiveSession {
         env: this.getHookEnvVars(),
         secretStore: this.secretStore,
         secretRedactor: this.secretRedactor,
+        ...(this.authState?.resolved === undefined ? {} : { authState: this.authState.resolved }),
       })
       const hookResult = result.results.get(hookDef.name)
       const completed = this.emitHookComplete(started, {
@@ -1329,6 +1330,7 @@ export class LiveSession {
             env: this.getHookEnvVars(),
             secretEnv: resolveSecretEnv(this.secretStore),
             secretRedactor: this.secretRedactor,
+            ...(this.authState?.resolved === undefined ? {} : { authState: this.authState.resolved }),
           })
           executionLogs.push({
             id: randomUUID(),
@@ -1661,6 +1663,8 @@ export class LiveSession {
       steps: string[]
       setup: string[]
       teardown: string[]
+      // The member file's own `use.authState` name.
+      authStateName?: string
     },
     onPhase?: (event: StepPhaseEvent) => void,
   ): Promise<LiveTestResultPayload> {
@@ -1691,6 +1695,27 @@ export class LiveSession {
     }
 
     try {
+      // The session owns the shared browser context; a member can only repeat its auth state.
+      const sessionAuthStateName = this.authState?.name
+      if (
+        sessionAuthStateName !== undefined &&
+        testDraft.authStateName !== undefined &&
+        testDraft.authStateName !== sessionAuthStateName
+      ) {
+        const message = `Suite auth state "${sessionAuthStateName}" conflicts with child test auth state "${testDraft.authStateName}". Use one primary auth state per suite.`
+        const line = `[live-session] executeTestCommand: ${message}`
+        const detail = { testName: testDraft.testName }
+        printRunText(format(line, detail), () => console.warn(line, detail))
+        return this.redact({
+          status: 'failed',
+          duration: performance.now() - start,
+          error: message,
+          setupHookExecutions: [],
+          stepResults: [],
+          teardownHookExecutions: [],
+        })
+      }
+
       // A test runs at its own effective limits, resolved once before its first step.
       let testLimits: PlannerLimits
       try {
@@ -1926,6 +1951,22 @@ export class LiveSession {
       await writeAuthStateFiles(paths, { payload, metadata })
     } catch {
       throw new Error(`Could not save auth state "${paths.stateName}" for target "${paths.targetName}".`)
+    }
+
+    // As in a run, a state captured under the session's own name is the one its later hooks get.
+    if (this.authState !== null && this.authState.name === paths.stateName) {
+      this.authState = {
+        ...this.authState,
+        resolved: {
+          version: metadata.version,
+          kind: metadata.kind,
+          targetName: metadata.target,
+          stateName: metadata.name,
+          capturedAt: metadata.capturedAt,
+          storageStatePath: paths.payloadPath,
+        },
+      }
+      this.dispatch({ type: 'session-state', state: this.getState() })
     }
 
     return metadata

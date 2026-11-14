@@ -667,4 +667,66 @@ describe('LiveSession.executeTestCommand (suite-mode orchestration)', () => {
       }),
     ]))
   })
+
+  describe('one auth state per suite session', () => {
+    const memberDraft = (authStateName?: string) => ({
+      testIndex: 0,
+      testId: 't_member',
+      testName: 'Member',
+      steps: ['step one'],
+      setup: ['per-test-setup'],
+      teardown: [],
+      ...(authStateName === undefined ? {} : { authStateName }),
+    })
+
+    async function startNaming(authState?: { name: string; load: boolean }) {
+      await session.initialize({
+        ...webConfig,
+        resolvedHooks: new Map([['per-test-setup', makeHookDef('per-test-setup')]]),
+        ...(authState === undefined ? {} : { authState }),
+      })
+      mockRunHooks.mockImplementation((hooks: Array<{ name: string }>) =>
+        Promise.resolve(mockHookResults(hooks.map((hook) => ({ name: hook.name, success: true })))),
+      )
+      mockRunHooks.mockClear()
+      mockExecuteStep.mockClear()
+    }
+
+    it('refuses a member that names a different state, with the sentence a run gives, before its hooks and steps', async () => {
+      await startNaming({ name: 'buyer', load: true })
+
+      const result = await session.executeTestCommand('exec-conflict', memberDraft('admin'))
+
+      expect(result).toMatchObject({
+        status: 'failed',
+        error: 'Suite auth state "buyer" conflicts with child test auth state "admin". Use one primary auth state per suite.',
+        setupHookExecutions: [],
+        stepResults: [],
+        teardownHookExecutions: [],
+      })
+      expect(mockRunHooks).not.toHaveBeenCalled()
+      expect(mockExecuteStep).not.toHaveBeenCalled()
+    })
+
+    it.each([
+      ['the same state', 'buyer'],
+      ['no state', undefined],
+    ])('runs a member that names %s', async (_label, name) => {
+      await startNaming({ name: 'buyer', load: true })
+
+      const result = await session.executeTestCommand('exec-same', memberDraft(name))
+
+      expect(result.status).toBe('passed')
+      expect(mockExecuteStep).toHaveBeenCalledTimes(1)
+    })
+
+    it('runs a member that names a state when the session names none', async () => {
+      await startNaming()
+
+      const result = await session.executeTestCommand('exec-free', memberDraft('admin'))
+
+      expect(result.status).toBe('passed')
+      expect(mockExecuteStep).toHaveBeenCalledTimes(1)
+    })
+  })
 })
