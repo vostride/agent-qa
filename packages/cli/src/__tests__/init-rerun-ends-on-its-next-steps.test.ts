@@ -22,6 +22,9 @@ const NODE = '/fake/node'
 const OK: RunResult = { code: 0, signal: null, output: '' }
 const GUIDE_LINE = 'agent-qa 0.4.0 can change your config. To upgrade, point your coding agent at'
 const GUIDE_0_3_TO_0_4 = 'https://vostride.com/docs/agent-qa/migrate/v0-3-to-v0-4'
+const DASHBOARD = 'npx agent-qa dashboard'
+const MODEL_PAGE = 'npx agent-qa dashboard --open "/config/models"'
+const RUN_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total.yaml'
 
 afterEach(() => {
   cleanupTempProjects()
@@ -67,10 +70,6 @@ function interactive(run: FakeRunner, extra: RerunOptions = {}): RerunOptions {
   }
 }
 
-function dashboardStep(doc: InitDocument) {
-  return doc.steps.find((step) => step.name === 'dashboard')
-}
-
 describe('a re-run ends with validate and the next steps', () => {
   it('records validate after the rows and draws the next steps box after it', async () => {
     const project = await initializedProject('ending-validate-then-next-steps')
@@ -87,17 +86,18 @@ describe('a re-run ends with validate and the next steps', () => {
     expect(validated).toBeGreaterThanOrEqual(0)
     expect(note).toBeGreaterThan(validated)
     expect(nextSteps(result.entries)).toEqual([
-      'Start with the two-step test, which passes:',
-      'npx agent-qa run tests/examples/komazon-cart-total.yaml',
-      'Run the example suite:',
-      'npx agent-qa run suites/examples.suite.yaml',
-      "Run the test that fails on the playground's deliberate bug (exit 1):",
-      'npx agent-qa run tests/examples/komazon-cart-total-bug.yaml',
-      'npx agent-qa dashboard',
+      'Finish setting up the model in the dashboard:',
+      MODEL_PAGE,
+      '',
+      'Run a test in the dashboard:',
+      DASHBOARD,
+      '',
+      'Run a test from the terminal:',
+      RUN_STARTER,
     ])
   })
 
-  it('lists no command for an example file the project no longer holds, leaves it absent and names the scaffold row', async () => {
+  it('a project without the starter file gets no terminal group, the file stays absent and the scaffold row is named', async () => {
     const project = await initializedProject('ending-starter-deleted')
     const starter = join(project.root, 'tests', 'examples', 'komazon-cart-total.yaml')
     rmSync(starter)
@@ -107,28 +107,29 @@ describe('a re-run ends with validate and the next steps', () => {
     expect(result.exit, result.stderr).toBe(0)
     expect(nextSteps(result.entries)).toEqual([
       'npx agent-qa init --setup scaffold',
-      'Run the example suite:',
-      'npx agent-qa run suites/examples.suite.yaml',
-      "Run the test that fails on the playground's deliberate bug (exit 1):",
-      'npx agent-qa run tests/examples/komazon-cart-total-bug.yaml',
-      'npx agent-qa dashboard',
+      '',
+      'Finish setting up the model in the dashboard:',
+      MODEL_PAGE,
+      '',
+      'Run a test in the dashboard:',
+      DASHBOARD,
     ])
     expect(existsSync(starter)).toBe(false)
   })
 
-  it('puts the --json document steps in order: the rows, validate, then the dashboard', async () => {
+  it('puts the --json document steps in order, ending at validate', async () => {
     const project = await initializedProject('ending-json-steps')
 
     const result = await rerun(project, ['--json'], { plain: true })
 
     expect(result.exit, result.stderr).toBe(0)
     const doc = JSON.parse(result.stdout) as InitDocument
-    expect(doc.steps.slice(-2).map((step) => step.name)).toEqual(['validate', 'dashboard'])
-    expect(doc.nextSteps.map((step) => step.command)).toEqual([
-      'npx agent-qa run tests/examples/komazon-cart-total.yaml',
-      'npx agent-qa run suites/examples.suite.yaml',
-      'npx agent-qa run tests/examples/komazon-cart-total-bug.yaml',
-      'npx agent-qa dashboard',
+    expect(doc.steps.at(-1)?.name).toBe('validate')
+    expect(doc.steps.some((step) => (step.name as string) === 'dashboard')).toBe(false)
+    expect(doc.nextSteps).toEqual([
+      { command: MODEL_PAGE, description: 'Finish setting up the model in the dashboard:' },
+      { command: DASHBOARD, description: 'Run a test in the dashboard:' },
+      { command: RUN_STARTER, description: 'Run a test from the terminal:' },
     ])
   })
 
@@ -165,7 +166,7 @@ describe('a re-run ends with validate and the next steps', () => {
     const project = await initializedProject('ending-menu-unchecked')
     writeFileSync(join(project.root, '.gitignore'), 'dist/\n')
 
-    const result = await rerun(project, ['--no-dashboard'], {
+    const result = await rerun(project, [], {
       hooks: { isTTY: true },
       answers: { [SETUP_MENU_QUESTION]: [] },
     })
@@ -187,10 +188,7 @@ describe('a re-run ends with validate and the next steps', () => {
 
     expect(result.exit, result.stderr).toBe(0)
     expect(nextSteps(result.entries)[0]).toBe('npx agent-qa init --setup upgrade')
-    expect(linesAfterNextSteps(result.entries).slice(0, 2)).toEqual([
-      GUIDE_LINE,
-      GUIDE_0_3_TO_0_4,
-    ])
+    expect(linesAfterNextSteps(result.entries).slice(0, 2)).toEqual([GUIDE_LINE, GUIDE_0_3_TO_0_4])
   })
 
   it('adds no guide line for a patch move', async () => {
@@ -206,30 +204,23 @@ describe('a re-run ends with validate and the next steps', () => {
   })
 })
 
-describe('an interactive re-run opens the dashboard only while the model is pending', () => {
-  it('starts the dashboard on the model page after the next steps while the model is pending', async () => {
-    const project = await initializedProject('ending-dashboard-pending')
+describe('an interactive re-run ends on its next steps and starts nothing', () => {
+  it('lists the model page and the dashboard while the model is pending, and runs no dashboard', async () => {
+    const project = await initializedProject('ending-pending-model')
     const run = recordingRunner()
 
     const result = await rerun(project, [], interactive(run))
 
     expect(result.exit, result.stderr).toBe(0)
-    expect(dashboardCalls(run).map((args) => args.slice(-3))).toEqual([
-      ['dashboard', '--open', '/config/models'],
-    ])
-    const note = result.entries.findIndex(
-      (entry) => entry.kind === 'note' && entry.text === 'Next steps',
-    )
-    const starting = result.entries.findIndex(
-      (entry) => entry.kind === 'line' && entry.text.startsWith('Starting the dashboard on '),
-    )
-    expect(starting).toBeGreaterThan(note)
-    expect(result.entries).toContainEqual({ kind: 'done', text: 'Dashboard stopped' })
-    expect(nextSteps(result.entries)).not.toContain('npx agent-qa dashboard')
+    expect(dashboardCalls(run)).toEqual([])
+    expect(nextSteps(result.entries)).toContain(MODEL_PAGE)
+    expect(nextSteps(result.entries)).toContain(DASHBOARD)
+    expect(result.entries.at(-1)?.kind).toBe('outro')
+    expect(result.entries.some((entry) => entry.text.startsWith('Dashboard'))).toBe(false)
   })
 
-  it('skips the dashboard with "model ready" once the model is ready', async () => {
-    const project = await initializedProject('ending-dashboard-ready')
+  it('lists the dashboard and no model page once the model is ready, and runs no dashboard', async () => {
+    const project = await initializedProject('ending-ready-model')
     saveGeminiKey(project.home)
     const run = recordingRunner()
 
@@ -237,49 +228,7 @@ describe('an interactive re-run opens the dashboard only while the model is pend
 
     expect(result.exit, result.stderr).toBe(0)
     expect(dashboardCalls(run)).toEqual([])
-    expect(result.entries).toContainEqual({
-      kind: 'skipped',
-      text: 'Dashboard: skipped (model ready)',
-    })
-    expect(nextSteps(result.entries)).toContain('npx agent-qa dashboard')
-  })
-})
-
-describe('the dashboard never starts on a re-run that is not interactive', () => {
-  const cells: [string, readonly string[], RerunOptions['hooks'], string][] = [
-    ['--no-dashboard', ['--no-dashboard'], { isTTY: true }, '--no-dashboard'],
-    ['--yes', ['--yes'], { isTTY: true }, 'not interactive'],
-    ['--json', ['--json'], { isTTY: true }, 'not interactive'],
-    ['CI', [], { isTTY: true, host: { env: { CI: 'true' } } }, 'not interactive'],
-    ['a run without a terminal', [], { isTTY: false }, 'not interactive'],
-  ]
-
-  cells.forEach(([label, args, hooks, reason], index) => {
-    it(`${label} skips the dashboard with "${reason}" and starts nothing`, async () => {
-      const project = await initializedProject(`ending-no-dashboard-${index}`)
-      const run = recordingRunner()
-
-      const result = await rerun(project, args, { run, hooks })
-
-      expect(result.exit, result.stderr).toBe(0)
-      expect(dashboardCalls(run)).toEqual([])
-      expect(result.entries).toContainEqual({
-        kind: 'skipped',
-        text: `Dashboard: skipped (${reason})`,
-      })
-    })
-  })
-
-  it('records the skip and its reason in the --json document', async () => {
-    const project = await initializedProject('ending-no-dashboard-json')
-
-    const result = await rerun(project, ['--json'], { plain: true, hooks: { isTTY: true } })
-
-    expect(result.exit, result.stderr).toBe(0)
-    expect(dashboardStep(JSON.parse(result.stdout) as InitDocument)).toEqual({
-      name: 'dashboard',
-      outcome: 'skipped',
-      reason: 'not interactive',
-    })
+    expect(nextSteps(result.entries)).toContain(DASHBOARD)
+    expect(nextSteps(result.entries).some((line) => line.includes('--open'))).toBe(false)
   })
 })

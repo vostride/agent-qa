@@ -256,7 +256,6 @@ async function agentsOnTheRail(
       'claude-code',
       '--pm',
       'none',
-      '--no-dashboard',
     ],
   )
   await streams.waitFor(AGENTS_QUESTION)

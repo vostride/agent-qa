@@ -1,16 +1,14 @@
-// Loaded before every CLI test file: the default runner refuses a real browser install and a real
-// dashboard, the dashboard command's default opener refuses to open a real browser, the
-// dashboard's port probe refuses a fixed port, the update notice's default spawn refuses to
-// start a real registry refresh, the default latest-version ask refuses to reach the registry, the
-// default Chromium resolver refuses to read this machine's browser cache, the default Playground
-// download refuses to reach its GitHub release, and the default Android and iOS listers refuse to
-// list this machine's phones, emulators and simulators.
+// Loaded before every CLI test file: the default runner refuses a real browser install, the
+// dashboard command's default opener refuses to open a real browser, the update notice's default
+// spawn refuses to start a real registry refresh, the default latest-version ask refuses to reach
+// the registry, the default Chromium resolver refuses to read this machine's browser cache, the
+// default Playground download refuses to reach its GitHub release, and the default Android and iOS
+// listers refuse to list this machine's phones, emulators and simulators.
 import type * as AndroidModule from '@vostride/agent-qa-android'
 import type * as IOSModule from '@vostride/agent-qa-ios'
 import { afterEach, vi } from 'vitest'
 
 import type * as BrowserResolverModule from '../commands/browser-resolver.js'
-import type * as InitDashboardModule from '../commands/init-dashboard.js'
 import type * as LatestVersionAskModule from '../commands/latest-version-ask.js'
 import type * as OpenUrlModule from '../commands/open-url.js'
 import type * as PlaygroundAppFetchModule from '../commands/playground-app-fetch.js'
@@ -19,18 +17,13 @@ import type * as VersionRefreshSpawnModule from '../version-refresh-spawn.js'
 
 const RECORD = Symbol.for('agent-qa.test-side-effect-guard')
 const INSTALL_ADVICE = 'Pass --no-browsers or inject host.run.'
-const DASHBOARD_ADVICE = 'Inject host.run or pass --no-dashboard.'
 const OPENER_ADVICE = 'Pass an opener to createDashboardCommand.'
-const PROBE_ADVICE = 'Inject hooks.dashboardPort or pass --no-dashboard.'
 const REFRESH_ADVICE = 'Inject spawnRefresh.'
 const REGISTRY_ADVICE = 'Inject hooks.latestVersion.'
 const CHROMIUM_ADVICE = 'Inject hooks.chromium.'
 const PLAYGROUND_ADVICE = 'Inject hooks.playgroundApp.'
 const DEVICES_ADVICE = 'Inject listDevicesHere.'
 const REFUSAL = `A test reached the real browser install. ${INSTALL_ADVICE}`
-const DASHBOARD_REFUSAL = `A test reached a real dashboard. ${DASHBOARD_ADVICE}`
-// Linux hands out ports from 32768 and macOS and Windows from 49152, so a lower one is fixed.
-const FIRST_ASSIGNED_PORT = 32768
 
 type GuardedGlobal = Record<symbol, string[] | undefined>
 
@@ -42,15 +35,10 @@ vi.mock('../commands/project-host.js', async (importOriginal) => {
   const real = await importOriginal<typeof ProjectHostModule>()
   const store = Symbol.for('agent-qa.test-side-effect-guard')
   const guarded: ProjectHostModule.CommandRunner = async (command, args, options) => {
-    const refusal = args.includes('install-browsers')
-      ? REFUSAL
-      : args.includes('dashboard')
-        ? DASHBOARD_REFUSAL
-        : undefined
-    if (refusal !== undefined) {
+    if (args.includes('install-browsers')) {
       const calls = ((globalThis as unknown as GuardedGlobal)[store] ??= [])
       calls.push([command, ...args].join(' '))
-      throw new Error(refusal)
+      throw new Error(REFUSAL)
     }
     return await real.spawnRunner(command, args, options)
   }
@@ -86,20 +74,6 @@ vi.mock('../commands/open-url.js', async (importOriginal) => {
     spawn: (_command, args) => refuse(String(args.at(-1)).replace(/^"|"$/gu, '')),
   }
   return { ...real, systemBrowserOpener }
-})
-
-vi.mock('../commands/init-dashboard.js', async (importOriginal) => {
-  const real = await importOriginal<typeof InitDashboardModule>()
-  const store = Symbol.for('agent-qa.test-side-effect-guard')
-  return {
-    ...real,
-    probeDashboardPort: async (port: number, host?: string) => {
-      if (port >= FIRST_ASSIGNED_PORT) return await real.probeDashboardPort(port, host)
-      const calls = ((globalThis as unknown as GuardedGlobal)[store] ??= [])
-      calls.push(`probe ${port}`)
-      throw new Error(`A test reached a real probe of port ${port}. ${PROBE_ADVICE}`)
-    },
-  }
 })
 
 vi.mock('../version-refresh-spawn.js', async (importOriginal) => {
@@ -175,8 +149,7 @@ function adviceFor(call: string): string {
   if (call.startsWith('refresh ')) return REFRESH_ADVICE
   if (call.startsWith('registry ')) return REGISTRY_ADVICE
   if (call.startsWith('playground ')) return PLAYGROUND_ADVICE
-  if (call.startsWith('probe ')) return PROBE_ADVICE
-  return call.split(' ').includes('install-browsers') ? INSTALL_ADVICE : DASHBOARD_ADVICE
+  return INSTALL_ADVICE
 }
 
 export function takeGuardedCalls(): string[] {

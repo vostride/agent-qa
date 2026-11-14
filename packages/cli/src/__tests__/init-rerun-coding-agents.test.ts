@@ -427,7 +427,6 @@ describe("a re-run's agent rows together", () => {
       'gitignore skipped',
       'scaffold skipped',
       'validate done',
-      'dashboard skipped',
     ])
     expect(doc.files).toContainEqual({ path: ALPHA, outcome: 'replaced', step: 'skills' })
     expect(doc.files).toContainEqual({ path: '.mcp.json', outcome: 'replaced', step: 'mcp' })

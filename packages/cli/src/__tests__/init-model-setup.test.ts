@@ -85,7 +85,7 @@ async function init(
   const { root, home } = projectWithStore(options.store)
   const ui = options.ui ?? fakeInitUi()
   const error = await initCommand(root, home, { isTTY: options.isTTY ?? false, ui })
-    .parseAsync(['node', 'test', 'init', ...args, '--pm', 'none', '--no-dashboard'])
+    .parseAsync(['node', 'test', 'init', ...args, '--pm', 'none'])
     .then(
       () => undefined,
       (caught: unknown) => caught,
@@ -112,17 +112,7 @@ function initOnTheRail(
     terminal: answeringTerminal().port,
     rail: { input: streams.input, output: streams.output },
   })
-    .parseAsync([
-      'node',
-      'test',
-      'init',
-      ...args,
-      '--agents',
-      'claude-code',
-      '--pm',
-      'none',
-      '--no-dashboard',
-    ])
+    .parseAsync(['node', 'test', 'init', ...args, '--agents', 'claude-code', '--pm', 'none'])
     .then(() => {})
   return { root, streams, done }
 }
@@ -514,14 +504,6 @@ describe('subscription model defaults', () => {
 })
 
 const GETTING_STARTED = 'https://vostride.com/docs/agent-qa/quickstart'
-const EXAMPLE_LINES = [
-  'Start with the two-step test, which passes:',
-  'npx agent-qa run tests/examples/komazon-cart-total.yaml',
-  'Then run the suite of three Komazon tests, which passes:',
-  'npx agent-qa run suites/examples.suite.yaml',
-  "Run the test that fails on the playground's deliberate bug (exit 1):",
-  'npx agent-qa run tests/examples/komazon-cart-total-bug.yaml',
-]
 
 function nextStepNotes(ui: FakeInitUi): string[][] {
   return ui.entries.flatMap((entry) =>
@@ -530,7 +512,7 @@ function nextStepNotes(ui: FakeInitUi): string[][] {
 }
 
 describe('init next steps', () => {
-  it('a Codex subscription under --pm none lists the install, validate, the auth login line, the examples and the dashboard in one box', async () => {
+  it('a Codex subscription under --pm none lists the install, validate, the auth login line, the model page, the dashboard and the starter in one box', async () => {
     const { ui } = await init(['--platform', 'web', '--llm', 'codex'])
 
     expect(nextStepNotes(ui)).toEqual([
@@ -538,8 +520,15 @@ describe('init next steps', () => {
         'npm install',
         'npx agent-qa validate',
         'npx agent-qa auth login --config codex',
-        ...EXAMPLE_LINES,
+        '',
+        'Finish setting up the model in the dashboard:',
+        'npx agent-qa dashboard --open "/config/models"',
+        '',
+        'Run a test in the dashboard:',
         'npx agent-qa dashboard',
+        '',
+        'Run a test from the terminal:',
+        'npx agent-qa run tests/examples/komazon-cart-total.yaml',
       ],
     ])
     expect(ui.entries.at(-1)).toEqual({ kind: 'outro', text: GETTING_STARTED })
@@ -637,7 +626,7 @@ describe('the example secret line', () => {
       stdoutIsTTY: true,
       terminal: answeringTerminal().port,
       rail: { input: streams.input, output: streams.output },
-    }).parseAsync(['node', 'test', 'init', ...WEB, '--force', '--no-dashboard'])
+    }).parseAsync(['node', 'test', 'init', ...WEB, '--force'])
 
     const lines = stripVTControlCharacters(streams.text()).split('\n')
     expect(lines.filter((line) => line.includes('KOMAZON_PASSWORD'))).toEqual([EXAMPLE_SECRET_LINE])

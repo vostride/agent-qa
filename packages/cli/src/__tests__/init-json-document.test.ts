@@ -197,7 +197,6 @@ describe('init --json prints one document on stdout', () => {
         reason: 'install first (--pm none)',
         command: 'npx agent-qa validate',
       },
-      { name: 'dashboard', outcome: 'skipped', reason: 'not interactive' },
     ])
     expect(doc.files).toContainEqual({
       path: '.gitignore',
@@ -236,19 +235,18 @@ describe('init --json prints one document on stdout', () => {
           subscription: true,
           pluginInstalled: false,
         },
-        web: true,
+        webStarter: true,
+        modelPage: '/config/models',
         agents: doc.agents,
-        dashboard: { command: 'npx agent-qa dashboard' },
       }).steps,
     )
     expect(doc.nextSteps.map((step) => step.command)).toEqual([
       'npm install',
       'npx agent-qa validate',
       'npx agent-qa auth login --config claude-code',
-      'npx agent-qa run tests/examples/komazon-cart-total.yaml',
-      'npx agent-qa run suites/examples.suite.yaml',
-      'npx agent-qa run tests/examples/komazon-cart-total-bug.yaml',
+      'npx agent-qa dashboard --open "/config/models"',
       'npx agent-qa dashboard',
+      'npx agent-qa run tests/examples/komazon-cart-total.yaml',
     ])
     expect(result.stderr).toContain('✓ package.json created')
     expect(result.stderr).toContain('– Declared agent-qa')
@@ -273,7 +271,6 @@ describe('init --json prints one document on stdout', () => {
       'chromium',
       'skills',
       'validate',
-      'dashboard',
     ])
     expect(doc.steps.find((step) => step.name === 'chromium')).toEqual({
       name: 'chromium',
@@ -424,7 +421,6 @@ describe('init --json prints one document on stdout', () => {
         reason: 'npm ERR! boom',
         command: 'npx agent-qa validate',
       },
-      { name: 'dashboard', outcome: 'skipped', reason: 'not interactive' },
     ])
     expect(doc.plugins).toEqual([])
     expect(result.stderr).toContain('✗ Install failed: npm exited 1')
@@ -469,7 +465,6 @@ describe('init --json prints one document on stdout', () => {
       { name: 'chromium', outcome: 'skipped', reason: 'not run' },
       { name: 'skills', outcome: 'skipped', reason: 'not run' },
       { name: 'validate', outcome: 'skipped', reason: 'not run' },
-      { name: 'dashboard', outcome: 'skipped', reason: 'not run' },
     ])
   })
 
@@ -501,7 +496,6 @@ describe('init --json prints one document on stdout', () => {
       { name: 'chromium', outcome: 'skipped', reason: 'not run' },
       { name: 'skills', outcome: 'skipped', reason: 'not run' },
       { name: 'validate', outcome: 'skipped', reason: 'not run' },
-      { name: 'dashboard', outcome: 'skipped', reason: 'not run' },
     ])
   })
 
@@ -562,7 +556,6 @@ describe('init --json prints one document on stdout', () => {
       { name: 'chromium', outcome: 'skipped', reason: 'interrupted' },
       { name: 'skills', outcome: 'skipped', reason: 'interrupted' },
       { name: 'validate', outcome: 'skipped', reason: 'interrupted' },
-      { name: 'dashboard', outcome: 'skipped', reason: 'interrupted' },
     ])
     expect(result.stderr).toContain('Cancelled.\n')
   })
@@ -611,13 +604,12 @@ describe('init --json prints one document on stdout', () => {
       ['chromium', 'skipped', '--no-browsers'],
       ['skills', 'skipped', 'none chosen'],
       ['validate', 'done', undefined],
-      ['dashboard', 'skipped', 'interrupted'],
     ])
     expect(result.stderr).toContain('Cancelled.\n')
     expect(process.listeners('SIGINT')).toEqual(before)
   })
 
-  it('a re-run of an initialized project skips its current rows and the dashboard, validates and writes no file', async () => {
+  it('a re-run of an initialized project skips its current rows, validates and writes no file', async () => {
     const { root, home } = tempProject('json-initialized')
     await init(root, home, ['--platform', 'web', '--pm', 'none'])
     const declared = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
@@ -641,7 +633,6 @@ describe('init --json prints one document on stdout', () => {
       { name: 'gitignore', outcome: 'skipped', reason: 'current' },
       { name: 'scaffold', outcome: 'skipped', reason: 'current' },
       { name: 'validate', outcome: 'done' },
-      { name: 'dashboard', outcome: 'skipped', reason: 'not interactive' },
     ])
     expect(doc.agentQa).toEqual({ version: VERSION, via: 'running' })
   })
@@ -669,7 +660,6 @@ describe('init --json prints one document on stdout', () => {
       'skipped',
       'done',
       'done',
-      'skipped',
       'skipped',
     ])
     expect(doc.files).toContainEqual({
@@ -777,17 +767,14 @@ describe("a mobile init's --json document", () => {
     ).toEqual([])
   })
 
-  it('lists the web, Android and iOS starters in that order, each with its description', async () => {
+  it('lists the web, Android and iOS starters in that order, each in the terminal group', async () => {
     const { doc } = await mobileInit('json-mobile-next-steps')
     const starters = [RUN_WEB_STARTER, RUN_ANDROID_STARTER, RUN_IOS_STARTER]
 
     expect(doc.nextSteps.filter((step) => starters.includes(step.command))).toEqual([
-      { command: RUN_WEB_STARTER, description: 'Start with the two-step test, which passes:' },
-      {
-        command: RUN_ANDROID_STARTER,
-        description: 'Run the Android starter on the Playground app:',
-      },
-      { command: RUN_IOS_STARTER, description: 'Run the iOS starter on the Playground app:' },
+      { command: RUN_WEB_STARTER, description: 'Run a test from the terminal:' },
+      { command: RUN_ANDROID_STARTER, description: 'Run a test from the terminal:' },
+      { command: RUN_IOS_STARTER, description: 'Run a test from the terminal:' },
     ])
   })
 
@@ -955,10 +942,7 @@ describe("a re-run's --json document on every exit", () => {
       latest: { source: 'none' },
     })
     expect(doc.setup?.length).toBeGreaterThan(0)
-    expect(doc.steps.slice(-2)).toEqual([
-      { name: 'validate', outcome: 'failed', reason: 'interrupted' },
-      { name: 'dashboard', outcome: 'skipped', reason: 'interrupted' },
-    ])
+    expect(doc.steps.at(-1)).toEqual({ name: 'validate', outcome: 'failed', reason: 'interrupted' })
     expect(process.listeners('SIGINT')).toEqual(before)
   })
 })

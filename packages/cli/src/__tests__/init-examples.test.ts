@@ -424,18 +424,12 @@ describe('the init examples', () => {
     }
   })
 
-  it('a fresh init over an existing suite file keeps it and makes no claim that it passes', async () => {
+  it('a fresh init over an existing suite file keeps it and writes the other examples', async () => {
     vi.mocked(existsSync).mockImplementation(path => String(path) === `${DIR}/${SUITE}`)
     const writes = await initWrites()
-    const output = consoleOutput()
-    const nextSteps = output.slice(output.indexOf('Next steps\n'))
 
     expect(writes.map(write => write.path)).not.toContain(SUITE)
     expect(writes.map(write => write.path)).toContain(CART_TOTAL)
-    expect(nextSteps).toContain('Run the example suite:')
-    expect(nextSteps).toContain(`npx agent-qa run ${SUITE}`)
-    expect(nextSteps).not.toContain('suite of three')
-    expect(nextSteps).toContain('Start with the two-step test, which passes:')
   })
 
   it('every generated test and suite parses with the shipped schemas', async () => {

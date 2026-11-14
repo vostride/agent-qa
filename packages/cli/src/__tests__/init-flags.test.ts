@@ -49,7 +49,7 @@ async function initInATerminal(args: readonly string[], ui: FakeInitUi): Promise
   parent.exitOverride()
   command.exitOverride()
   parent.addCommand(command)
-  await parent.parseAsync(['node', 'test', 'init', ...args, '--pm', 'none', '--no-dashboard'])
+  await parent.parseAsync(['node', 'test', 'init', ...args, '--pm', 'none'])
   return root
 }
 
@@ -90,14 +90,14 @@ describe('init --help', () => {
     expect(help).not.toContain('--write-agent-instructions')
   })
 
-  it('lists --no-dashboard and --no-browsers', () => {
+  it('lists --no-browsers and not the removed --no-dashboard', () => {
     const help = createInitCommand().helpInformation()
 
-    expect(help).toContain('--no-dashboard')
     expect(help).toContain('--no-browsers')
+    expect(help).not.toContain('--no-dashboard')
   })
 
-  it('lists every init flag and hides --agent, --dir and --config', () => {
+  it('lists every init flag and hides --agent, --no-dashboard, --dir and --config', () => {
     const flags = createInitCommand()
       .helpInformation()
       .split('\n')
@@ -115,12 +115,12 @@ describe('init --help', () => {
         '--json',
         '--agents',
         '--no-browsers',
-        '--no-dashboard',
         '--capabilities',
         '--setup',
       ]),
     )
     expect(flags).not.toContain('--agent')
+    expect(flags).not.toContain('--no-dashboard')
     expect(flags).not.toContain('--dir')
     expect(flags).not.toContain('--config')
   })
@@ -137,6 +137,8 @@ describe('init --help', () => {
 
 const SPAWN_BUDGET_MS = 60_000
 const AGENT_LINE = '--agent is now --capabilities: run npx agent-qa init --capabilities.'
+const NO_DASHBOARD_LINE =
+  '--no-dashboard was removed: init no longer starts the dashboard, so drop the flag.'
 
 function builtProject(label: string): string {
   const freshness = buildFreshness()
@@ -215,6 +217,44 @@ describe('a bare --agent is refused with a line naming --capabilities', () => {
   )
 })
 
+describe('the removed --no-dashboard is refused with a line saying init no longer starts the dashboard', () => {
+  it(
+    'prints the line, suggests nothing, exits 2 and writes nothing',
+    async () => {
+      const root = builtProject('no-dashboard')
+      const before = filesUnder(root)
+
+      const outcome = await builtInit(root, ['--no-dashboard'])
+      const text = `${outcome.stdout}\n${outcome.stderr}`
+
+      expect(outcome.code, text).toBe(2)
+      expect(outcome.stderr.split('\n'), text).toContain(NO_DASHBOARD_LINE)
+      expect(text).not.toContain('Did you mean')
+      expect(filesUnder(root)).toEqual(before)
+    },
+    SPAWN_BUDGET_MS,
+  )
+
+  it(
+    'under --json prints one refused document with the line',
+    async () => {
+      const root = builtProject('no-dashboard-json')
+      const before = filesUnder(root)
+
+      const outcome = await builtInit(root, ['--no-dashboard', '--json'])
+
+      expect(outcome.code, outcome.stderr).toBe(2)
+      expect(JSON.parse(outcome.stdout)).toMatchObject({
+        outcome: 'refused',
+        exitCode: 2,
+        message: NO_DASHBOARD_LINE,
+      })
+      expect(filesUnder(root)).toEqual(before)
+    },
+    SPAWN_BUDGET_MS,
+  )
+})
+
 describe('init in a terminal', () => {
   it('asks its questions without --yes or --json', async () => {
     const ui = fakeInitUi({ 'Which model should agent-qa use?': { kind: 'new', choice: 'gemini' } })
@@ -264,17 +304,7 @@ async function initWithFlags(
   command.exitOverride()
   parent.addCommand(command)
   const error = await parent
-    .parseAsync([
-      'node',
-      'test',
-      'init',
-      ...args,
-      '--llm',
-      'claude-code',
-      '--pm',
-      'none',
-      '--no-dashboard',
-    ])
+    .parseAsync(['node', 'test', 'init', ...args, '--llm', 'claude-code', '--pm', 'none'])
     .then(
       () => undefined,
       (caught: unknown) => caught,
