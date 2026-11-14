@@ -425,7 +425,7 @@ test('PLAYER-REPEATED-SEEK and member continuation preserve explicit offsets and
   const media = video({ onRecordingEnded: ended })
   metadata(media)
   act(() => button(PLAYER_COPY.speed).dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })))
-  const speed = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(node => node.textContent === '4×')!
+  const speed = [...document.querySelectorAll<HTMLElement>('[role="option"]')].find(node => node.textContent === '2×')!
   act(() => speed.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })))
   render({ source: 'video', recording: recording(), media, seekFraction: 0.25, seekRevision: 1, onRecordingEnded: ended })
   act(() => media.fire('timeupdate', 8))
@@ -438,7 +438,7 @@ test('PLAYER-REPEATED-SEEK and member continuation preserve explicit offsets and
   await act(async () => next.fire('loadedmetadata'))
   expect(next.currentTime).toBe(0)
   expect(next.paused).toBe(false)
-  expect(next.playbackRate).toBe(4)
+  expect(next.playbackRate).toBe(2)
   expect(media.paused).toBe(true)
 })
 for (const reason of ['unsupported', 'not-captured', 'failed', 'unavailable'] as const) {
@@ -549,6 +549,15 @@ test('PLAYER-PREFERENCE-EXPLICIT-TOGGLE-ONLY', () => {
   expect(storage.setItem).not.toHaveBeenCalled()
   act(() => query('[data-slot="toggle-group-item"][aria-label^="Video"]').click())
   expect(storage.setItem).toHaveBeenCalledWith(PLAYER_SOURCE_STORAGE_KEY, 'video')
+})
+test('a recording plays at 4× until the viewer picks another speed', async () => {
+  const media = video()
+  expect(media.playbackRate).toBe(4)
+  metadata(media)
+  expect(button(PLAYER_COPY.speed).textContent).toBe('4×')
+  await act(async () => button(PLAYER_COPY.play).click())
+  expect(media.paused).toBe(false)
+  expect(media.playbackRate).toBe(4)
 })
 test('PLAYER-VIDEO-SPEED-AND-CLEANUP', async () => {
   const media = video()
