@@ -28,6 +28,8 @@ export interface OwnershipContract {
   internalDependencies: readonly string[]
   // Its published build carries its external libraries, so they belong in devDependencies.
   publishesSelfContainedBundle?: boolean
+  // Dependencies declared only to fix the versions another one resolves; no source names them.
+  resolutionPins?: readonly string[]
   ledger?: readonly LedgerEntry[]
 }
 

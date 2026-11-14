@@ -17,6 +17,16 @@ export const AGENT_QA_APPIUM_RUNTIME_EXTERNAL_DEPENDENCIES = [
   'tree-kill',
 ] as const
 export const AGENT_QA_APPIUM_RUNTIME_INTERNAL_DEPENDENCIES = [] as const
+export const AGENT_QA_APPIUM_RUNTIME_RESOLUTION_PINS = [
+  '@appium/base-driver',
+  '@appium/base-plugin',
+  '@appium/docutils',
+  '@appium/http-server',
+  '@appium/logger',
+  '@appium/schema',
+  '@appium/support',
+  '@appium/types',
+] as const
 
 export const AGENT_QA_APPIUM_RUNTIME_OWNERSHIP_CONTRACT = {
   packageName: AGENT_QA_APPIUM_RUNTIME_PACKAGE_NAME,
@@ -26,4 +36,5 @@ export const AGENT_QA_APPIUM_RUNTIME_OWNERSHIP_CONTRACT = {
   forbiddenResponsibilities: AGENT_QA_APPIUM_RUNTIME_FORBIDDEN_RESPONSIBILITIES,
   externalDependencies: AGENT_QA_APPIUM_RUNTIME_EXTERNAL_DEPENDENCIES,
   internalDependencies: AGENT_QA_APPIUM_RUNTIME_INTERNAL_DEPENDENCIES,
+  resolutionPins: AGENT_QA_APPIUM_RUNTIME_RESOLUTION_PINS,
 } as const satisfies OwnershipContract

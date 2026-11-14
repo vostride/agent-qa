@@ -5,7 +5,9 @@
 This package depends on Appium and the UiAutomator2 and XCUITest drivers at
 exact versions and exports `startAppiumServer`, which prepares a temporary
 `APPIUM_HOME` linking the two drivers and starts that Appium server on
-loopback.
+loopback. It also pins, at exact versions, Appium's own `@appium/*` packages,
+which Appium and its packages ask for by range, so an install resolves the
+versions this release ran on; no source imports them.
 
 ## Read First
 

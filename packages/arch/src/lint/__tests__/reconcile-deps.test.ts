@@ -14,7 +14,10 @@ function fixtureContract(
   overrides: Partial<
     Pick<
       OwnershipContract,
-      'externalDependencies' | 'internalDependencies' | 'publishesSelfContainedBundle'
+      | 'externalDependencies'
+      | 'internalDependencies'
+      | 'publishesSelfContainedBundle'
+      | 'resolutionPins'
     >
   >,
 ): OwnershipContract {
@@ -27,6 +30,7 @@ function fixtureContract(
     externalDependencies: overrides.externalDependencies ?? [],
     internalDependencies: overrides.internalDependencies ?? [],
     publishesSelfContainedBundle: overrides.publishesSelfContainedBundle,
+    resolutionPins: overrides.resolutionPins,
   }
 }
 
@@ -128,6 +132,46 @@ describe('findDepReconciliationOffenders', () => {
     expect(findDepReconciliationOffenders(contract, [hit('zod')], repoRoot)).toEqual([
       'packages/fixture package.json vs contract: missing zod',
     ])
+  })
+})
+
+describe('findDepReconciliationOffenders on resolution pins', () => {
+  it('accepts a pin in dependencies that no source names', () => {
+    const repoRoot = fixtureRepoRoot({ appium: '4.0.0', '@appium/base-driver': '11.0.0' })
+    const contract = fixtureContract({
+      externalDependencies: ['appium'],
+      resolutionPins: ['@appium/base-driver'],
+    })
+
+    expect(findDepReconciliationOffenders(contract, [hit('appium')], repoRoot)).toEqual([])
+  })
+
+  it('flags a pin that package.json does not declare', () => {
+    const repoRoot = fixtureRepoRoot({ appium: '4.0.0' })
+    const contract = fixtureContract({
+      externalDependencies: ['appium'],
+      resolutionPins: ['@appium/base-driver'],
+    })
+
+    expect(findDepReconciliationOffenders(contract, [hit('appium')], repoRoot)).toEqual([
+      'packages/fixture package.json vs contract: missing @appium/base-driver',
+    ])
+  })
+
+  it('flags a pin that source imports as an unexpected external dependency, and only that', () => {
+    const repoRoot = fixtureRepoRoot({ appium: '4.0.0', '@appium/base-driver': '11.0.0' })
+    const contract = fixtureContract({
+      externalDependencies: ['appium'],
+      resolutionPins: ['@appium/base-driver'],
+    })
+
+    expect(
+      findDepReconciliationOffenders(
+        contract,
+        [hit('appium'), hit('@appium/base-driver')],
+        repoRoot,
+      ),
+    ).toEqual(['packages/fixture external deps: unexpected @appium/base-driver'])
   })
 })
 
