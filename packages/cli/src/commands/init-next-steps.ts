@@ -61,7 +61,7 @@ export const CODING_AGENT_HINT = `${CODING_AGENT_READY}: ask it to run the start
 export const CODEX_TRUST_HINT =
   'Codex reads .codex/config.toml only in a trusted folder: trust this folder when Codex asks.'
 
-const AUTH_LOGIN_DESCRIPTION = 'Sign in with your subscription'
+const AUTH_LOGIN_DESCRIPTION = 'Sign in with your subscription:'
 const MODEL_PAGE = '/config/models'
 
 function authLoginCommand(name: string): string {
@@ -105,7 +105,8 @@ export function dashboardPage({
 }
 
 // What is left first: what failed, then what was skipped, then what the model still needs. Then
-// the model page while the model is finished there, the dashboard, and the starters that can run.
+// the model page when the model is finished there and not by a sign-in, the dashboard, and the
+// starters that can run.
 export function initNextSteps(facts: InitNextStepFacts): {
   steps: InitNextStep[]
   hints: string[]
@@ -145,10 +146,10 @@ export function initNextSteps(facts: InitNextStepFacts): {
   if (model?.subscription === true && !model.pluginInstalled && !installPending) {
     add(SUBSCRIPTION_PLUGIN_COMMAND, 'Install the subscription sign-in plugin')
   }
-  if (model?.subscription === true && model.status === 'pending') {
-    add(authLoginCommand(model.name), AUTH_LOGIN_DESCRIPTION)
-  }
-  if (facts.modelPage !== undefined) {
+  const signIn = model?.subscription === true && model.status === 'pending'
+  if (signIn) add(authLoginCommand(model.name), AUTH_LOGIN_DESCRIPTION)
+  // The sign-in finishes a pending subscription, so its model page would be a second way to it.
+  if (facts.modelPage !== undefined && !signIn) {
     add(
       `${DASHBOARD_COMMAND} --open "${facts.modelPage}"`,
       facts.modelPage.includes('?add=') ? ADD_MODEL : FINISH_MODEL,

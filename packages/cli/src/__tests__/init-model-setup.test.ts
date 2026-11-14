@@ -512,17 +512,16 @@ function nextStepNotes(ui: FakeInitUi): string[][] {
 }
 
 describe('init next steps', () => {
-  it('a Codex subscription under --pm none lists the install, validate, the auth login line, the model page, the dashboard and the starter in one box', async () => {
+  it('a Codex subscription under --pm none lists the install, validate, its sign-in, the dashboard and the starter in one box', async () => {
     const { ui } = await init(['--platform', 'web', '--llm', 'codex'])
 
     expect(nextStepNotes(ui)).toEqual([
       [
         'npm install',
         'npx agent-qa validate',
-        'npx agent-qa auth login --config codex',
         '',
-        'Finish setting up the model in the dashboard:',
-        'npx agent-qa dashboard --open "/config/models"',
+        'Sign in with your subscription:',
+        'npx agent-qa auth login --config codex',
         '',
         'Run a test in the dashboard:',
         'npx agent-qa dashboard',

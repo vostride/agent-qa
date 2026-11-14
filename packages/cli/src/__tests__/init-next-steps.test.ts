@@ -21,6 +21,7 @@ const FROM_THE_TERMINAL = 'Run a test from the terminal:'
 const ADD_MODEL = 'Add the model in the dashboard:'
 const FINISH_MODEL = 'Finish setting up the model in the dashboard:'
 const READY_LINE = 'Your coding agent can use agent-qa now.'
+const SIGN_IN = 'Sign in with your subscription:'
 
 const CLAUDE_PENDING: InitNextStepModel = {
   name: 'claude-code',
@@ -37,6 +38,7 @@ const GEMINI_READY: InitNextStepModel = {
   subscription: false,
   pluginInstalled: false,
 }
+const GEMINI_PENDING: InitNextStepModel = { ...GEMINI_READY, status: 'pending' }
 
 const DONE: InitStepRecord[] = [
   { name: 'package-json', outcome: 'done' },
@@ -167,18 +169,17 @@ describe('a model finished in the dashboard', () => {
     })
   })
 
-  it('comes after what is left and before the dashboard group, each group under a blank line', () => {
+  it('a pending model that is not a subscription comes after what is left and before the dashboard group, each group under a blank line', () => {
     const steps = withRecord(DONE, {
       name: 'chromium',
       outcome: 'skipped',
       reason: '--no-browsers',
       command: 'npx agent-qa install-browsers --chromium',
     })
-    const next = initNextSteps(facts({ steps, model: CLAUDE_PENDING, modelPage: '/config/models' }))
+    const next = initNextSteps(facts({ steps, model: GEMINI_PENDING, modelPage: '/config/models' }))
 
     expect(nextStepLines(next.steps)).toEqual([
       'npx agent-qa install-browsers --chromium',
-      'npx agent-qa auth login --config claude-code',
       '',
       FINISH_MODEL,
       'npx agent-qa dashboard --open "/config/models"',
@@ -189,6 +190,37 @@ describe('a model finished in the dashboard', () => {
       FROM_THE_TERMINAL,
       RUN_STARTER,
     ])
+  })
+
+  it('a pending subscription lists its sign-in alone, under its heading, and not the model page', () => {
+    const steps = withRecord(DONE, {
+      name: 'chromium',
+      outcome: 'skipped',
+      reason: '--no-browsers',
+      command: 'npx agent-qa install-browsers --chromium',
+    })
+    const next = initNextSteps(facts({ steps, model: CLAUDE_PENDING, modelPage: '/config/models' }))
+
+    expect(nextStepLines(next.steps)).toEqual([
+      'npx agent-qa install-browsers --chromium',
+      '',
+      SIGN_IN,
+      'npx agent-qa auth login --config claude-code',
+      '',
+      IN_THE_DASHBOARD,
+      DASHBOARD,
+      '',
+      FROM_THE_TERMINAL,
+      RUN_STARTER,
+    ])
+  })
+
+  it('a model handed to the dashboard keeps its page when no sign-in is listed', () => {
+    const page = '/config/models?add=anthropic-compatible-key'
+
+    expect(commands(facts({ model: GEMINI_PENDING, modelPage: page }))[0]).toBe(
+      `npx agent-qa dashboard --open "${page}"`,
+    )
   })
 
   it('no model page gives no model step', () => {
@@ -306,7 +338,7 @@ describe('what is left comes first', () => {
   it('a pending subscription gives one auth login line, described as its sign-in', () => {
     expect(initNextSteps(facts({ model: CLAUDE_PENDING })).steps[0]).toEqual({
       command: 'npx agent-qa auth login --config claude-code',
-      description: 'Sign in with your subscription',
+      description: SIGN_IN,
     })
   })
 

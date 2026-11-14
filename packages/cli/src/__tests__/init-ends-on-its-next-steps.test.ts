@@ -158,7 +158,7 @@ describe('an interactive fresh init ends on its next steps and starts nothing', 
     ])
   })
 
-  it('a pending Claude subscription asks its three questions, signs nothing in and lists the sign-in line and the model page', async () => {
+  it('a pending Claude subscription asks its three questions, signs nothing in and lists its sign-in and not the model page', async () => {
     const target = project()
     writeInstalledPackage(target.root, SUBSCRIPTION_AUTH_PACKAGE, installedAgentQaVersion())
     const ui = fakeInitUi({ 'Which coding agents should agent-qa set up?': [] })
@@ -176,10 +176,13 @@ describe('an interactive fresh init ends on its next steps and starts nothing', 
       { kind: 'select', text: 'Which model should agent-qa use?', answer: expect.anything() },
       { kind: 'multiselect', text: 'Which coding agents should agent-qa set up?', answer: [] },
     ])
-    expect(ui.output()).not.toMatch(/sign(ed|ing)?[ -]in/iu)
+    const drawn = ui.entries.filter((entry) => entry.kind !== 'note')
+    expect(drawn.map((entry) => entry.text).join('\n')).not.toMatch(/sign(ed|ing)?[ -]in/iu)
     expect(dashboardCalls(run)).toEqual([])
-    expect(nextSteps(ui)).toContain('npx agent-qa auth login --config claude-code')
-    expect(nextSteps(ui)).toContain(MODEL_PAGE)
+    const lines = nextSteps(ui)
+    const signIn = lines.indexOf('npx agent-qa auth login --config claude-code')
+    expect(lines[signIn - 1]).toBe('Sign in with your subscription:')
+    expect(lines.some((line) => line.includes('--open'))).toBe(false)
   })
 
   it('a saved compatible key lists the model page with its name', async () => {

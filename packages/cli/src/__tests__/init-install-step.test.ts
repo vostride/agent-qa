@@ -960,8 +960,14 @@ const NPM_PLUGIN_INSTALL = new RegExp(
 function nextSteps(): string[] {
   const lines = printed().split('\n')
   const start = lines.indexOf('Next steps')
-  const end = lines.findIndex((line, index) => index > start && !line.startsWith('  '))
-  return lines.slice(start + 1, end === -1 ? undefined : end).map((line) => line.trim())
+  // The box separates its groups with empty lines and ends at the first line outside it.
+  const end = lines.findIndex(
+    (line, index) => index > start && line !== '' && !line.startsWith('  '),
+  )
+  return lines
+    .slice(start + 1, end === -1 ? undefined : end)
+    .map((line) => line.trim())
+    .filter((line) => line !== '')
 }
 
 describe("init's subscription next step", () => {

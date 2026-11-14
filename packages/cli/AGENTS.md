@@ -14,9 +14,11 @@ platform, the model and the coding agents on a Clack rail; with `--yes`,
 `--json`, in CI or without a terminal it asks nothing and prints plain lines.
 It runs its steps through one runner, one line each, and ends on its next
 steps: it starts nothing, at a terminal or without one. The next steps list
-what is left, then the dashboard's model page while the model is finished
-there, then `npx agent-qa dashboard` to run a test in the dashboard, then one
-starter per chosen platform that can run, to run a test from the terminal.
+what is left, a pending subscription's sign-in among it, then the dashboard's
+model page while the model still needs its key or endpoint there, then
+`npx agent-qa dashboard` to run a test in the dashboard, then one starter per
+chosen platform that can run, to run a test from the terminal. A pending
+subscription is listed with its sign-in alone, not with the model page too.
 With `--json` it prints one JSON document on stdout on every exit.
 `agent-qa init --capabilities` prints the JSON capability manifest and writes
 nothing.

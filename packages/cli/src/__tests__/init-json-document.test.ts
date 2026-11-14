@@ -244,10 +244,13 @@ describe('init --json prints one document on stdout', () => {
       'npm install',
       'npx agent-qa validate',
       'npx agent-qa auth login --config claude-code',
-      'npx agent-qa dashboard --open "/config/models"',
       'npx agent-qa dashboard',
       'npx agent-qa run tests/examples/komazon-cart-total.yaml',
     ])
+    expect(doc.nextSteps).toContainEqual({
+      command: 'npx agent-qa auth login --config claude-code',
+      description: 'Sign in with your subscription:',
+    })
     expect(result.stderr).toContain('✓ package.json created')
     expect(result.stderr).toContain('– Declared agent-qa')
   })
