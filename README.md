@@ -15,6 +15,7 @@
   <a href="https://github.com/vostride/agent-qa/actions/workflows/ci.yml"><img src="https://github.com/vostride/agent-qa/actions/workflows/ci.yml/badge.svg?branch=main" alt="CI"></a>
   <a href="https://vostride.com/docs/agent-qa"><img src="https://img.shields.io/badge/docs-agent--qa-196872" alt="Documentation"></a>
   <a href="https://github.com/vostride/agent-qa/blob/main/LICENSE.md"><img src="https://img.shields.io/badge/license-FSL--1.1--ALv2-196872" alt="License: FSL-1.1-ALv2"></a>
+  <a href="https://github.com/NipunaRanasinghe/awesome-ai-agents"><img src="https://img.shields.io/badge/Featured_in-Awesome_AI_Agents-2ea44f" alt="Featured in Awesome AI Agents"></a>
 </p>
 
 <p align="center">
