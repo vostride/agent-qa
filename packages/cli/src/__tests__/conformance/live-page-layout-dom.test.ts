@@ -934,6 +934,11 @@ function expectContained(reading: { page: ContainmentReading; embed: EmbedReadin
   expect(inside(frame, parentContent), `${context} — the frame lies inside its parent's content box`).toBe(true)
   expect(Math.abs(ratioOf(frame) / (picture.width / picture.height) - 1), `${context} — the frame keeps the picture's ratio`)
     .toBeLessThanOrEqual(0.01)
+  const topGap = frame.y - pane.y
+  const bottomGap = pane.y + pane.height - (frame.y + frame.height)
+  expect(bottomGap, `${context} — a gap is left under the picture`).toBeGreaterThan(0)
+  expect(Math.abs(bottomGap - topGap), `${context} — the gap under the picture equals the gap above it`)
+    .toBeLessThanOrEqual(1)
   expectNoScroll(reading.page.paneScroll, 'the preview pane', context)
   expectNoScroll(reading.page.documentScroll, 'the page', context)
 

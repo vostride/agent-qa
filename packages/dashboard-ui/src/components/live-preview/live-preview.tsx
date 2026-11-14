@@ -364,8 +364,8 @@ export function LivePreview({ subject, chrome }: LivePreviewProps) {
       {/* One preview that follows the running member; the host decides the handle. */}
       <PreviewChrome status={status}>{chrome}</PreviewChrome>
 
-      {/* `pt-8` keeps the picture clear of the dot's corner even in a short preview area. */}
-      <div className={cn('relative flex min-h-0 flex-1 items-center justify-center [container-type:size]', dot !== null && 'pt-8')}>
+      {/* `py-8` keeps the picture clear of the dot's corner and leaves the same gap below it. */}
+      <div className={cn('relative flex min-h-0 flex-1 items-center justify-center [container-type:size]', dot !== null && 'py-8')}>
         {dot !== null && (
           <div data-preview-dot-corner className="absolute right-1 top-1 z-10">
             {dot}
