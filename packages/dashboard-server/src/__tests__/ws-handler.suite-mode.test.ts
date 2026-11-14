@@ -44,6 +44,7 @@ function createMockSession(overrides: Partial<LiveSession> = {}) {
     createdAt: Date.now(),
     interactive: true,
     terminalError: null,
+    authState: null,
   }
 
   let sink: ((message: unknown) => void) | null = null

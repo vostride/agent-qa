@@ -8,12 +8,18 @@ export interface LiveSessionBootstrap {
   headless?: boolean
   useDeviceName?: string
   appState?: 'preserve' | 'reset'
+  authState?: unknown
 }
 
-const AUTH_STATE_NAME_PATTERN = /^[a-z][a-z0-9-]*[a-z0-9]$/
-const AUTH_STATE_OBJECT_KEYS = new Set(['name', 'load', 'capture'])
+interface DraftUse {
+  headless?: boolean
+  device?: string
+  appState?: 'preserve' | 'reset'
+  // As written; the server parses it with core's schema, as a run does.
+  authState?: unknown
+}
 
-function readDraftUse(content: string): { headless?: boolean; device?: string; appState?: 'preserve' | 'reset' } {
+function readDraftUse(content: string): DraftUse {
   try {
     const doc = parseDocument(content)
     if (doc.errors.length > 0) return {}
@@ -23,6 +29,7 @@ function readDraftUse(content: string): { headless?: boolean; device?: string; a
             browser?: { headless?: boolean }
             mobile?: { appState?: string }
             device?: string
+            authState?: unknown
           }
         }
       | null
@@ -32,6 +39,7 @@ function readDraftUse(content: string): { headless?: boolean; device?: string; a
       headless: data?.use?.browser?.headless,
       device: typeof data?.use?.device === 'string' ? data.use.device : undefined,
       appState: appState === 'preserve' || appState === 'reset' ? appState : undefined,
+      ...(data?.use?.authState === undefined ? {} : { authState: data.use.authState }),
     }
   } catch {
     return {}
@@ -39,27 +47,14 @@ function readDraftUse(content: string): { headless?: boolean; device?: string; a
 }
 
 export function readDraftAuthStateName(content: string): string | null {
-  try {
-    const doc = parseDocument(content)
-    if (doc.errors.length > 0) return null
-    const data = doc.toJSON() as { use?: { authState?: unknown } } | null
-    const authState = data?.use?.authState
-    const candidate = typeof authState === 'string'
-      ? authState.trim()
-      : authState
-        && typeof authState === 'object'
-        && !Array.isArray(authState)
-        && Object.keys(authState).every((key) => AUTH_STATE_OBJECT_KEYS.has(key))
-        && ((authState as { load?: unknown }).load === undefined || typeof (authState as { load?: unknown }).load === 'boolean')
-        && ((authState as { capture?: unknown }).capture === undefined || typeof (authState as { capture?: unknown }).capture === 'boolean')
-        && typeof (authState as { name?: unknown }).name === 'string'
-        ? (authState as { name: string }).name.trim()
-        : ''
-    if (!candidate) return null
-    return AUTH_STATE_NAME_PATTERN.test(candidate) ? candidate : null
-  } catch {
-    return null
-  }
+  const authState = readDraftUse(content).authState
+  const name = typeof authState === 'string'
+    ? authState
+    : authState !== null && typeof authState === 'object' && !Array.isArray(authState)
+      ? (authState as { name?: unknown }).name
+      : undefined
+  const trimmed = typeof name === 'string' ? name.trim() : ''
+  return trimmed.length > 0 ? trimmed : null
 }
 
 export function buildLiveSessionConfig(opts: {
@@ -87,6 +82,7 @@ export function buildLiveSessionConfig(opts: {
       targetName: opts.targetName,
       url: target.url,
       headless,
+      ...(draftUse.authState === undefined ? {} : { authState: draftUse.authState }),
     }
   }
 
@@ -96,5 +92,6 @@ export function buildLiveSessionConfig(opts: {
     useDeviceName: draftUse.device,
     appState: draftUse.appState ?? opts.globalUse?.mobile?.appState,
     headless,
+    ...(draftUse.authState === undefined ? {} : { authState: draftUse.authState }),
   }
 }

@@ -550,6 +550,7 @@ describe('API Routes', () => {
             createdAt: 0,
             interactive: true,
             terminalError: null,
+            authState: null,
           }),
         })),
       }

@@ -7,6 +7,7 @@ import type {
   RemoteBrowserConfig,
   RemotePluginBrowserConfig,
   RunSecretRedactor,
+  RuntimeAuthStateConfig,
   StepAnnotation,
   SecretStore,
 } from '@vostride/agent-qa-runner'
@@ -192,6 +193,14 @@ export interface SessionState {
   createdAt: number
   interactive: boolean
   terminalError: string | null
+  // null when the session loads no state; capturedAt null when it started signed out.
+  authState: { name: string; capturedAt: string | null } | null
+}
+
+export interface LiveSessionAuthState {
+  name: string
+  load: boolean
+  resolved?: RuntimeAuthStateConfig
 }
 
 export interface LiveSessionConfig {
@@ -225,6 +234,8 @@ export interface LiveSessionConfig {
   navigationTimeoutMs?: number
   useDeviceName?: string
   appState?: 'preserve' | 'reset'
+  // The web auth state the editor's draft names, resolved at the create door as a run resolves it.
+  authState?: LiveSessionAuthState
 }
 
 // The close code for a session this process does not hold; the dashboard UI spells it too.

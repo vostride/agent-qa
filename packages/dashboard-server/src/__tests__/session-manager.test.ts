@@ -13,6 +13,7 @@ const mockGetState = vi.fn<() => SessionState>().mockReturnValue({
   createdAt: Date.now(),
   interactive: true,
   terminalError: null,
+  authState: null,
 })
 
 vi.mock('../live-editor/live-session.js', () => ({

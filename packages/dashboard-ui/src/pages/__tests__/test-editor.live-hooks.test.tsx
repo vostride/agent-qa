@@ -267,11 +267,14 @@ vi.mock('@/lib/live-session-config', async () => {
   const actual = await vi.importActual<typeof import('@/lib/live-session-config')>('@/lib/live-session-config')
   return {
     ...actual,
-    buildLiveSessionConfig: () => ({
-    platform: 'web',
-    targetName: 'demo-target',
-    url: 'https://example.com',
-  }),
+    // The page's own draft, read against one fixed web target.
+    buildLiveSessionConfig: (opts: Parameters<typeof actual.buildLiveSessionConfig>[0]) =>
+      actual.buildLiveSessionConfig({
+        ...opts,
+        targetName: 'demo-target',
+        targets: { 'demo-target': { platform: 'web', url: 'https://example.com' } },
+        globalUse: null,
+      }),
   }
 })
 
@@ -471,7 +474,18 @@ describe('TestEditorPage live hook safeguards', () => {
     expect(createTestFileMock).not.toHaveBeenCalled()
   })
 
-  it('does not pass invalid draft auth-state values to the pane and returns safe save failures', async () => {
+  it('starts live mode with the auth state the draft names', async () => {
+    const rootElement = await render(<TestEditorPage />)
+
+    await click(getButtonByText(rootElement, 'Connect Live Session'))
+
+    expect(createLiveEditorSessionMock.mock.calls[0]?.[0]).toMatchObject({
+      targetName: 'demo-target',
+      authState: 'admin',
+    })
+  })
+
+  it('sends the draft auth state to the create door as written and returns safe save failures', async () => {
     fetchTestFileMock.mockResolvedValue({
       path: 'tests/live-hook-test.yaml',
       content: BASE_YAML.replace('authState: admin', 'authState: ../admin.json'),
@@ -481,15 +495,15 @@ describe('TestEditorPage live hook safeguards', () => {
 
     await click(getButtonByText(rootElement, 'Connect Live Session'))
 
+    expect(createLiveEditorSessionMock.mock.calls[0]?.[0]).toMatchObject({ authState: '../admin.json' })
     const authStateCapture = liveSessionPaneProps?.authStateCapture as {
       initialName: string | null
       onSave: (input: { name: string; replace: boolean }) => Promise<void>
     }
-    expect(authStateCapture.initialName).toBeNull()
 
     await expect(authStateCapture.onSave({ name: 'admin', replace: false }))
       .rejects.toThrow('Could not save auth state "admin" for target "demo-target".')
-    expect(JSON.stringify(liveSessionPaneProps)).not.toContain('../admin.json')
+    expect(JSON.stringify(liveSessionPaneProps)).not.toContain('secret-cookie')
     expect(updateTestFileMock).not.toHaveBeenCalled()
   })
 })

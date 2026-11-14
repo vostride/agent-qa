@@ -64,6 +64,7 @@ function createMockSession(overrides: Partial<LiveSession> = {}) {
     createdAt: Date.now(),
     interactive: true,
     terminalError: null,
+    authState: null,
   }
 
   // The attachment generation, shared by every handler attached to this session.
@@ -187,6 +188,7 @@ describe('ws-handler', () => {
       createdAt: Date.now(),
       interactive: true,
       terminalError: null,
+      authState: null,
     })
 
     const handler = createSessionHandler(session as unknown as LiveSession, onTerminate)

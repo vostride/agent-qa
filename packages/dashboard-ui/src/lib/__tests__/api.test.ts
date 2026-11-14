@@ -221,6 +221,34 @@ describe('dashboard analytics instrumentation boundaries', () => {
     })
   })
 
+  it('sends the auth state it was given to the create door', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ sessionId: 'live_auth', sessionNumber: 1 }),
+    })
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    await createLiveEditorSession({ platform: 'web', targetName: 'shop', authState: { name: 'buyer', load: false } })
+
+    const body = JSON.parse((fetchMock.mock.calls[0]?.[1] as { body: string }).body) as Record<string, unknown>
+    expect(body.authState).toEqual({ name: 'buyer', load: false })
+  })
+
+  it('sends no auth state key when it was given none', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 201,
+      json: async () => ({ sessionId: 'live_auth', sessionNumber: 1 }),
+    })
+    globalThis.fetch = fetchMock as unknown as typeof fetch
+
+    await createLiveEditorSession({ platform: 'web', targetName: 'shop' })
+
+    const body = JSON.parse((fetchMock.mock.calls[0]?.[1] as { body: string }).body) as Record<string, unknown>
+    expect('authState' in body).toBe(false)
+  })
+
   it('tracks successful live mode starts without passing entity identifiers', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,

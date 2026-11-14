@@ -20,10 +20,12 @@ import { createUndoStore, UNDO_RETENTION_MS } from '../config/undo-store.js'
 import { HookRegistryManager, isHookRegistryMutationError } from '../hooks/hook-registry-manager.js'
 import { carriesNonJsonBody, readJsonBody } from './body-parser.js'
 import {
+  LiveAuthStateRefusedError,
   LiveNavigationTimeoutRefusedError,
   LivePlannerLimitsRefusedError,
   LiveRemotesRefusedError,
   readLiveRemotes,
+  resolveLiveAuthState,
   resolveLiveNavigationTimeoutMs,
   resolveLivePlace,
   resolveLivePlannerLimits,
@@ -4485,6 +4487,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             setupHooks?: unknown
             teardownHooks?: unknown
             entity?: { type?: string; id?: string }
+            authState?: unknown
           }>(req)
           const targetName = typeof body?.targetName === 'string' ? body.targetName : undefined
           const platform = body?.platform ?? 'web'
@@ -4576,6 +4579,12 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             return
           }
           const remote = placed?.place.kind === 'remote' ? placed.place.remote : undefined
+          // The draft's `use.authState`, by the run's rules; nothing of the state reaches the reply.
+          const authState = await resolveLiveAuthState(configManager, deps.configPath, {
+            platform,
+            targetName,
+            authState: body?.authState,
+          })
           // Each test a session runs gets project, then the session's suite, then its own `use`:
           // the chain the CLI suite producer resolves per member.
           const sessionSuiteRef = entityRef?.type === 'suite' ? entityRef : undefined
@@ -4611,6 +4620,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
               ...(remote === undefined ? {} : { remote }),
               useDeviceName: typeof body?.useDeviceName === 'string' ? body.useDeviceName : undefined,
               appState: body?.appState === 'preserve' || body?.appState === 'reset' ? body.appState : undefined,
+              ...(authState === undefined ? {} : { authState }),
             },
             entityRef,
           )
@@ -4618,12 +4628,13 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         } catch (err: unknown) {
           const raw = err instanceof Error ? err.message : String(err)
           const message = replyRedactor?.redactString(raw) ?? raw
-          // A planner limit or navigation timeout the CLI refuses is refused here, before any
-          // session exists.
+          // A planner limit, navigation timeout or auth state the CLI refuses is refused here,
+          // before any session exists.
           const refused =
             err instanceof LivePlannerLimitsRefusedError ||
             err instanceof LiveNavigationTimeoutRefusedError ||
             err instanceof LiveRemotesRefusedError ||
+            err instanceof LiveAuthStateRefusedError ||
             isRemoteRefusal(err)
           const status = refused ? 400 : 500
           json(res, { error: message }, status)
