@@ -179,8 +179,75 @@ describe('buildLiveSessionConfig', () => {
   })
 })
 
+describe('buildLiveSessionConfig auth state', () => {
+  const webTargets: Record<string, TargetDetail> = {
+    webTarget: { platform: 'web', url: 'https://example.com' },
+  }
+  const androidTargets: Record<string, TargetDetail> = {
+    phone: { platform: 'android', appPackage: 'org.example.shop' },
+  }
+
+  it('carries the draft use.authState name for a web target', () => {
+    const result = buildLiveSessionConfig({
+      content: 'name: Demo\nuse:\n  authState: buyer\nsteps:\n  - Open the page\n',
+      targetName: 'webTarget',
+      targets: webTargets,
+      globalUse: null,
+    })
+
+    expect(result.authState).toBe('buyer')
+  })
+
+  it('carries the object form as written', () => {
+    const result = buildLiveSessionConfig({
+      content: 'name: Demo\nuse:\n  authState:\n    name: buyer\n    load: false\nsteps:\n  - Open the page\n',
+      targetName: 'webTarget',
+      targets: webTargets,
+      globalUse: null,
+    })
+
+    expect(result.authState).toEqual({ name: 'buyer', load: false })
+  })
+
+  it.each([
+    ['a draft with no use.authState', 'name: Demo\nsteps:\n  - Open the page\n'],
+    ['a draft that does not parse', 'name: [unclosed\n'],
+  ])('carries no auth state key for %s', (_label, content) => {
+    const result = buildLiveSessionConfig({
+      content,
+      targetName: 'webTarget',
+      targets: webTargets,
+      globalUse: null,
+    })
+
+    expect('authState' in result).toBe(false)
+  })
+
+  it('carries the draft use.authState for a mobile target, which the server refuses as a run does', () => {
+    const result = buildLiveSessionConfig({
+      content: 'name: Demo\nuse:\n  authState: buyer\nsteps:\n  - Open the app\n',
+      targetName: 'phone',
+      targets: androidTargets,
+      globalUse: null,
+    })
+
+    expect(result.authState).toBe('buyer')
+  })
+
+  it('carries no auth state key for a mobile draft that names none', () => {
+    const result = buildLiveSessionConfig({
+      content: 'name: Demo\nsteps:\n  - Open the app\n',
+      targetName: 'phone',
+      targets: androidTargets,
+      globalUse: null,
+    })
+
+    expect('authState' in result).toBe(false)
+  })
+})
+
 describe('readDraftAuthStateName', () => {
-  it('returns a valid draft use.authState slug', () => {
+  it('returns the draft use.authState string', () => {
     expect(readDraftAuthStateName([
       'name: Authenticated flow',
       'use:',
@@ -191,7 +258,7 @@ describe('readDraftAuthStateName', () => {
     ].join('\n'))).toBe('admin')
   })
 
-  it('returns a valid draft use.authState.name slug from object form', () => {
+  it('returns the object form name', () => {
     expect(readDraftAuthStateName([
       'name: Authenticated flow',
       'use:',
@@ -206,22 +273,20 @@ describe('readDraftAuthStateName', () => {
   })
 
   it.each([
-    ['missing value', 'name: No auth\nsteps: []\n', ''],
-    ['uppercase value', 'use:\n  authState: Admin\n', 'Admin'],
-    ['slash value', 'use:\n  authState: admin/state\n', 'admin/state'],
-    ['path-like value', 'use:\n  authState: ../admin.json\n', '../admin.json'],
-    ['uppercase object name', 'use:\n  authState:\n    name: Admin\n', 'Admin'],
-    ['path-like object name', 'use:\n  authState:\n    name: ../admin.json\n', '../admin.json'],
-    ['array value', 'use:\n  authState:\n    - admin\n', 'admin'],
-    ['missing object name', 'use:\n  authState:\n    capture: true\n', 'capture'],
-    ['unsafe object', 'use:\n  authState:\n    name: admin\n    path: ../admin.json\n', '../admin.json'],
-    ['unsafe load value', 'use:\n  authState:\n    name: admin\n    load: sometimes\n', 'sometimes'],
-  ])('returns null for %s without echoing unsafe input', (_label, content, unsafeValue) => {
-    const result = readDraftAuthStateName(content)
+    ['an uppercase value', 'use:\n  authState: Admin\n', 'Admin'],
+    ['a path-like value', 'use:\n  authState: ../admin.json\n', '../admin.json'],
+    ['an object name with a key the schema refuses beside it', 'use:\n  authState:\n    name: admin\n    path: ../admin.json\n', 'admin'],
+    ['a trimmed value', 'use:\n  authState: "  admin  "\n', 'admin'],
+  ])('returns %s as written, for the capture form and the server to check', (_label, content, expected) => {
+    expect(readDraftAuthStateName(content)).toBe(expected)
+  })
 
-    expect(result).toBeNull()
-    if (unsafeValue) {
-      expect(JSON.stringify(result)).not.toContain(unsafeValue)
-    }
+  it.each([
+    ['no value', 'name: No auth\nsteps: []\n'],
+    ['an array value', 'use:\n  authState:\n    - admin\n'],
+    ['an object with no name', 'use:\n  authState:\n    capture: true\n'],
+    ['a draft that does not parse', 'use: [unclosed\n'],
+  ])('returns null for %s', (_label, content) => {
+    expect(readDraftAuthStateName(content)).toBeNull()
   })
 })

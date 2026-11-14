@@ -1393,6 +1393,8 @@ export async function createLiveEditorSession(
     setupHooks?: string[]
     teardownHooks?: string[]
     entity?: { type: 'suite' | 'test'; id: string }
+    // The draft's `use.authState` as written; the server parses and resolves it.
+    authState?: unknown
   },
   signal?: AbortSignal,
 ): Promise<{ sessionId: string; sessionNumber: number | null }> {

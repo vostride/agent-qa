@@ -3,6 +3,7 @@ import { dirname, posix, resolve as resolvePath } from 'node:path'
 import { format } from 'node:util'
 import {
   AUTH_STATE_SCHEMA_VERSION,
+  AuthStateUseSchema,
   MobileSetupError,
   PlannerConfigSchema,
   PluginsSchema,
@@ -14,10 +15,12 @@ import {
   connectionSecretMisuse,
   createPluginHostPool,
   getAgentQaVersion,
+  normalizeAuthStateUse,
   pluginHostVersions,
   pluginSecretResolver,
   printRunText,
   readAuthStateMetadata,
+  resolveAuthStateForRun,
   resolveAuthStatePaths,
   selectSuitePlace,
   selectWebPlace,
@@ -94,6 +97,7 @@ import type {
   LiveStepResultPayload,
   LiveSubActionData,
   LiveHookPayload,
+  LiveSessionAuthState,
   LiveTestExecutionPayload,
   LiveTestResultPayload,
   LiveTestStepPayload,
@@ -251,6 +255,73 @@ export async function resolveLiveNavigationTimeoutMs(
     navigation = parsed.data
   }
   return navigation
+}
+
+export class LiveAuthStateRefusedError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'LiveAuthStateRefusedError'
+  }
+}
+
+// A schema error's own message is a JSON list of its issues; the first issue says it.
+function coreReason(err: unknown): string {
+  const issues = (err as { issues?: Array<{ message?: unknown }> } | null)?.issues
+  if (Array.isArray(issues) && typeof issues[0]?.message === 'string') return issues[0].message
+  return err instanceof Error ? err.message : String(err)
+}
+
+/**
+ * The auth state a live session loads, by the run's rules: core parses the draft's
+ * `use.authState`, names its file and reads it. A name with no readable state starts the
+ * session signed out instead of refusing it, so a person can sign in and capture it there.
+ */
+export async function resolveLiveAuthState(
+  configManager: ConfigManager | undefined,
+  configPath: string | undefined,
+  input: { platform: string; targetName: string | undefined; authState: unknown },
+): Promise<LiveSessionAuthState | undefined> {
+  if (input.authState === undefined) return undefined
+  const parsed = AuthStateUseSchema.safeParse(input.authState)
+  if (!parsed.success) {
+    const issue = parsed.error.issues[0]?.message ?? 'invalid value'
+    throw new LiveAuthStateRefusedError(
+      `The draft sets use.authState to ${shownLimitValue(input.authState)}: ${issue}. The CLI refuses this file too.`,
+    )
+  }
+  const use = normalizeAuthStateUse({ authState: parsed.data })
+  if (use === undefined) return undefined
+  // A run resolves the state's paths when it loads or captures it, and so refuses a mobile target.
+  if (use.load === false && use.capture === false) {
+    return input.platform === 'web' ? { name: use.name, load: false } : undefined
+  }
+  if (configManager === undefined || configPath === undefined) {
+    throw new LiveAuthStateRefusedError(
+      `Auth state "${use.name}" cannot be loaded because workspace config is unavailable.`,
+    )
+  }
+  const config = await readConfigValues(configManager)
+  const resolveInput = {
+    configDir: dirname(resolvePath(configPath)),
+    authStateDir: getConfiguredAuthStateDir(config),
+    targetName: input.targetName ?? '',
+    stateName: use.name,
+    target: { platform: input.platform as 'web' | 'android' | 'ios' },
+  }
+  try {
+    resolveAuthStatePaths(resolveInput)
+  } catch (err) {
+    if (input.platform !== 'web') throw new LiveAuthStateRefusedError(coreReason(err))
+    throw new LiveAuthStateRefusedError(
+      `Auth state "${use.name}" for target "${resolveInput.targetName}" cannot be loaded: ${coreReason(err)}`,
+    )
+  }
+  if (!use.load) return { name: use.name, load: false }
+  try {
+    return { name: use.name, load: true, resolved: await resolveAuthStateForRun(resolveInput) }
+  } catch {
+    return { name: use.name, load: true }
+  }
 }
 
 function stringEntries(value: unknown): Record<string, string> | undefined {
@@ -657,6 +728,8 @@ export class LiveSession {
   private currentStep: string | null = null
   private platform: 'web' | 'android' | 'ios' = 'web'
   private targetName: string | null = null
+  // A web session's named auth state; `resolved` and its path never leave this object.
+  private authState: LiveSessionAuthState | null = null
   private currentUrl: string | null = null
   private executing = false
   private idleTimer: ReturnType<typeof setTimeout> | null = null
@@ -1133,6 +1206,7 @@ export class LiveSession {
     this.plannerLimitsForTest = config.plannerLimitsForTest
     this.readyForInteraction = false
     this.terminalError = null
+    this.authState = config.platform === 'web' && config.authState !== undefined ? config.authState : null
 
     const setupResult = await this.runLifecycleHooks('setup', this.setupHooks)
     if (!setupResult.allPassed) {
@@ -1174,6 +1248,7 @@ export class LiveSession {
         ...(config.navigationTimeoutMs === undefined
           ? {}
           : { timeouts: { navigation: config.navigationTimeoutMs } }),
+        ...(this.authState?.resolved === undefined ? {} : { authState: this.authState.resolved }),
       })
       this.adapter = adapter
 
@@ -1930,7 +2005,14 @@ export class LiveSession {
       createdAt: this.createdAt,
       interactive: this.readyForInteraction,
       terminalError: this.terminalError,
+      authState: this.reportedAuthState(),
     }
+  }
+
+  private reportedAuthState(): SessionState['authState'] {
+    const authState = this.authState
+    if (authState === null || (!authState.load && authState.resolved === undefined)) return null
+    return { name: authState.name, capturedAt: authState.resolved?.capturedAt ?? null }
   }
 
   async getAriaTree(): Promise<string | null> {
