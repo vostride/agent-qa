@@ -556,14 +556,6 @@ export interface LiveStepExecutionResult extends StepResult {
   subActionsData?: LiveSubActionData[]
 }
 
-interface WebStorageStateContext {
-  storageState(options?: { indexedDB?: boolean }): Promise<unknown>
-}
-
-interface WebStorageStatePage {
-  context(): WebStorageStateContext
-}
-
 // Shared with ws-handler.ts toStepResultPayload. Kept in-module so that
 // executeTestCommand can assemble its stepResults array without a
 // cross-module import that would create a circular dependency.
@@ -612,22 +604,6 @@ function coerceRunJSResult(value: unknown): string {
     return String(value)
   }
   return JSON.stringify(value)
-}
-
-function getWebStorageStateContext(adapter: PlatformAdapter | null): WebStorageStateContext | null {
-  if (!adapter || !('getPage' in adapter)) return null
-  const page = (adapter as { getPage?: () => unknown }).getPage?.()
-  if (!page || typeof page !== 'object') return null
-
-  const contextFactory = (page as Partial<WebStorageStatePage>).context
-  if (typeof contextFactory !== 'function') return null
-
-  const context = contextFactory.call(page)
-  if (!context || typeof context !== 'object') return null
-
-  const storageState = (context as Partial<WebStorageStateContext>).storageState
-  if (typeof storageState !== 'function') return null
-  return context as WebStorageStateContext
 }
 
 function getConfiguredAuthStateDir(config: Record<string, unknown>): string | undefined {
@@ -1913,8 +1889,8 @@ export class LiveSession {
       throw new Error('Cannot save auth state because workspace config is unavailable.')
     }
 
-    const context = getWebStorageStateContext(this.adapter)
-    if (!context) {
+    const capturing = this.adapter as { captureAuthState?: () => Promise<unknown> }
+    if (typeof capturing.captureAuthState !== 'function') {
       throw new Error('Cannot save auth state because the active browser context is unavailable.')
     }
 
@@ -1938,7 +1914,7 @@ export class LiveSession {
       throw new Error(`Auth state "${paths.stateName}" for target "${paths.targetName}" already exists. Use replace=true to replace it.`)
     }
 
-    const payload = await context.storageState({ indexedDB: true })
+    const payload = await capturing.captureAuthState()
     const metadata: AuthStateMetadata = {
       version: AUTH_STATE_SCHEMA_VERSION,
       kind: 'web',

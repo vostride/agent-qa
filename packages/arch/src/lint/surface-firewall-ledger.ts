@@ -28,6 +28,12 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'auth-state inspection reads resolved config directly; moves behind the typed config action class',
   },
   {
+    file: 'packages/cli/src/commands/auth-state.ts',
+    specifier: '@vostride/agent-qa-web',
+    clearedBy: '395',
+    reason: "auth-state capture reads the opened browser through the web adapter's shared capture; moves behind the typed config action class",
+  },
+  {
     file: 'packages/cli/src/commands/auth.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',
