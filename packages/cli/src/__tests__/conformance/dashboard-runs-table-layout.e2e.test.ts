@@ -26,11 +26,15 @@ import {
 
 const FILE_BUDGET_MS = 240_000
 const PAGE_BUDGET_MS = 30_000
-const VIEWPORTS = [1280, 1024, 1600] as const
+const VIEWPORTS = [1280, 1024, 1440, 1600] as const
 const NARROW = [1280, 1024] as const
 const NAME_FLOOR_PX = 272
 const ALWAYS_SHOWN = ['Status', 'Duration', 'Started'] as const
 const LONG_TARGET = 'checkout-staging-eu-west-registry-target'
+// The longest target and platform `agent-qa init` scaffolds.
+const INIT_TARGET = 'playground-android'
+const INIT_TARGET_TEXT = 'playground-android (Android)'
+const INIT_RUN_NAME = 'Playground opens Komazon on Android'
 
 const VERIFY_RUN_NAME =
   'Sign in as the seeded shopper, open the account page, change the delivery address to the second '
@@ -44,6 +48,7 @@ interface SeedFields {
   readonly minutes: number
   readonly attributes?: Record<string, string>
   readonly suiteId?: string
+  readonly target?: { readonly name: string; readonly platform: string }
 }
 
 interface SeedMember {
@@ -71,6 +76,7 @@ interface ViewportView {
   readonly columns: readonly ColumnView[]
   readonly nameCells: readonly number[]
   readonly fits: readonly { label: string; scrollWidth: number; clientWidth: number }[]
+  readonly targets: readonly { text: string; scrollWidth: number; clientWidth: number; tooltip: boolean }[]
   readonly scrollers: readonly { slot: string; scrollWidth: number; clientWidth: number }[]
   readonly wrapperRight: number
   readonly badge?: { readonly top: number; readonly nameTop: number; readonly lineHeight: number }
@@ -107,8 +113,10 @@ function seedRuns(root: string): Seeded[] {
         duration: 4_200,
         startedAt: at(fields.minutes),
         endedAt: at(fields.minutes + 1),
-        platform: 'web',
-        testFileContent: testFile(name, LONG_TARGET),
+        platform: fields.target?.platform ?? 'web',
+        ...(fields.target === undefined
+          ? { testFileContent: testFile(name, LONG_TARGET) }
+          : { metadata: { target: fields.target.name } }),
         ...(fields.attributes === undefined ? {} : { attributes: fields.attributes }),
         ...(fields.suiteId === undefined ? {} : { suiteId: fields.suiteId }),
         ...(fields.status === 'failed' ? { failureSummary: 'The card was accepted.' } : {}),
@@ -156,6 +164,11 @@ function seedRuns(root: string): Seeded[] {
         outcome: index === 1 ? 'failed' : 'passed',
       })),
     )
+    add(INIT_RUN_NAME, {
+      status: 'passed',
+      minutes: 5,
+      target: { name: INIT_TARGET, platform: 'android' },
+    })
     add(FAILED_RUN_NAME, {
       status: 'failed',
       minutes: 4,
@@ -207,6 +220,16 @@ async function observe(width: number, captureDir: string | undefined): Promise<V
           clientWidth: cell?.clientWidth ?? -1,
         }))
       })
+      const targetIndex = columns.findIndex((column) => column.label.startsWith('Target'))
+      const targets = rows.map((row) => {
+        const shown = cellAt(row, targetIndex)?.querySelector<HTMLElement>('.truncate')
+        return {
+          text: shown?.textContent ?? '',
+          scrollWidth: shown?.scrollWidth ?? -1,
+          clientWidth: shown?.clientWidth ?? -1,
+          tooltip: shown?.hasAttribute('data-state') ?? false,
+        }
+      })
       const scrollers = ['scroll-area', 'table-container'].map((slot) => {
         const element = document.querySelector<HTMLElement>(`[data-slot="${slot}"]`)
         return {
@@ -233,6 +256,7 @@ async function observe(width: number, captureDir: string | undefined): Promise<V
         columns,
         nameCells,
         fits,
+        targets,
         scrollers,
         wrapperRight: wrapper?.getBoundingClientRect().right ?? -1,
         ...(badge === undefined ? {} : { badge }),
@@ -337,5 +361,19 @@ describe('the dashboard runs table layout', () => {
     expect(view!.rows, 'rows at 1600px').toBe(scene.seeded.length)
     expect(column(view!, 'Attributes')?.shown, 'Attributes at 1600px').toBe(true)
     expect(column(view!, 'Attributes')!.width, 'Attributes width at 1600px').toBeGreaterThan(0)
+  })
+
+  it('the longest target init scaffolds shows in full from 1280px up, and a longer one truncates with its tooltip at 1024px', () => {
+    expect(scene.error, facts()).toBeUndefined()
+    for (const width of [1280, 1440, 1600]) {
+      const cell = scene.views.get(width)?.targets.find((target) => target.text === INIT_TARGET_TEXT)
+      expect(cell, `the ${INIT_TARGET_TEXT} cell at ${String(width)}px\n${facts()}`).toBeDefined()
+      expect(cell!.scrollWidth, `${INIT_TARGET_TEXT} is shown in full at ${String(width)}px`)
+        .toBeLessThanOrEqual(cell!.clientWidth)
+    }
+    const narrow = scene.views.get(1024)?.targets.find((target) => target.text === `${LONG_TARGET} (Web)`)
+    expect(narrow, `the long target's cell at 1024px\n${facts()}`).toBeDefined()
+    expect(narrow!.scrollWidth, 'the long target truncates at 1024px').toBeGreaterThan(narrow!.clientWidth)
+    expect(narrow!.tooltip, 'the truncated target is a tooltip trigger').toBe(true)
   })
 })

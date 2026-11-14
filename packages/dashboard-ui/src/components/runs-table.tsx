@@ -75,7 +75,8 @@ export interface VisibleRunRow {
 const COLUMN_WIDTHS: Partial<Record<string, string>> = {
   select: "44px",
   status: "clamp(112px, 13cqw, 136px)",
-  target: "clamp(96px, 12cqw, 180px)",
+  // Holds `playground-android (Android)` from a 1040px table up, and leaves the name 272px at 784px.
+  target: "clamp(96px, calc(30cqw - 116px), 240px)",
   attributes: "260px",
   duration: "104px",
   createdAt: "128px",
@@ -541,7 +542,7 @@ function getHeadClassName(columnId: string) {
     columnId === "select" && "w-11 px-2 text-center",
     columnId === "status" && "w-[clamp(112px,13cqw,136px)] px-3",
     columnId === "name" && "min-w-[280px] px-3",
-    columnId === "target" && "w-[clamp(96px,12cqw,180px)] px-3",
+    columnId === "target" && "w-[clamp(96px,calc(30cqw_-_116px),240px)] px-3",
     columnId === "attributes" && cn("w-[260px] px-3", HIDDEN_WHEN_NARROW),
     columnId === "duration" && "w-[104px] px-3 text-right",
     columnId === "createdAt" && "w-[128px] px-3 text-right",
@@ -554,7 +555,7 @@ function getCellClassName(columnId: string, isChild: boolean) {
     columnId === "select" && "w-11 px-2",
     columnId === "status" && "w-[clamp(112px,13cqw,136px)] px-3",
     columnId === "name" && cn("min-w-[280px] max-w-0 px-3", isChild && "pl-8"),
-    columnId === "target" && "w-[clamp(96px,12cqw,180px)] max-w-0 px-3 text-muted-foreground",
+    columnId === "target" && "w-[clamp(96px,calc(30cqw_-_116px),240px)] max-w-0 px-3 text-muted-foreground",
     columnId === "attributes" && cn("w-[260px] max-w-0 px-3", HIDDEN_WHEN_NARROW),
     columnId === "duration" && "w-[104px] px-3 text-right tabular-nums",
     columnId === "createdAt" && "w-[128px] px-3 text-right tabular-nums",
