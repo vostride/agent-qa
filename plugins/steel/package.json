@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-plugin-steel",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "private": false,
   "description": "agent-qa plugin for Steel: creates a Steel browser session before a test connects and releases it after.",
   "keywords": [
