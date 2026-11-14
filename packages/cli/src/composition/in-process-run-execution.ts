@@ -348,6 +348,12 @@ export async function runInProcessCliRun(
         ...(produced.subscriberSeed?.attributes === undefined
           ? {}
           : { attributes: produced.subscriberSeed.attributes }),
+        ...(produced.subscriberSeed?.targetName === undefined
+          ? {}
+          : { targetName: produced.subscriberSeed.targetName }),
+        ...(produced.subscriberSeed?.platform === undefined
+          ? {}
+          : { platform: produced.subscriberSeed.platform }),
       })
       session.subscribe(REPLAY_FROM_START, record.handler)
       startedRecord = record

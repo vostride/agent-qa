@@ -52,6 +52,9 @@ export interface DashboardRunIngestDeps {
   members?: readonly RunIdentityMember[]
   /** Trusted run attributes, written to the run row + artifact metadata. */
   attributes?: RunAttributes
+  // The one target and platform every member shares; absent ones leave the row's own.
+  targetName?: string
+  platform?: 'web' | 'android' | 'ios'
   /** Fired once the primary DB row exists (log correlation / live-view wiring). */
   onRunCreated?: (runId: string) => void
   /** Injectable clock for deterministic tests. */
@@ -96,15 +99,10 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
   const attributes = deps.attributes
   const now = deps.now ?? (() => new Date().toISOString())
 
-
-  const configRecord = isRecord(configSnapshot) ? configSnapshot : undefined
-  const configRuntime = isRecord(configRecord?.runtime) ? (configRecord!.runtime as ArtifactRecord) : undefined
-
   const runMembers = deps.members ?? []
   const identity = runRowIdentity(runMembers)
   // Several members outside one suite own their sources; other runs keep the first-wins source.
   const membersMode = runMembers.length > 1 && identity.suiteId === undefined
-  const platform = readString(configRuntime?.platform) ?? 'web'
 
   /** The primary DB row id lifecycle status/finalize writes target. */
   let runId: string | undefined
@@ -142,7 +140,8 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
       filePath: identity.filePath,
       ...(attributes ? { attributes } : {}),
       startedAt,
-      platform,
+      ...(deps.platform === undefined ? {} : { platform: deps.platform }),
+      ...(deps.targetName === undefined ? {} : { targetName: deps.targetName }),
       testId: identity.testId,
       suiteId: identity.suiteId,
     })

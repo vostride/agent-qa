@@ -1122,7 +1122,7 @@ export default function RunDetailPage() {
                   allSteps={displaySteps}
                   executionLogs={selection?.type === 'hook' && selectedHookLog ? [selectedHookLog]
                     : selection?.type === 'execution' && selectedExecutionLog ? [selectedExecutionLog] : []}
-                  platform={run.platform}
+                  platform={run.platform ?? undefined}
                   pipelineRef={pipelineRef}
                   knowledge={knowledgeView}
                   knowledgeStepRefs={knowledgeStepRefs}

@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { randomUUID } from 'node:crypto'
 import { readFile, writeFile } from 'node:fs/promises'
-import { isAbsolute, basename, resolve, dirname } from 'node:path'
+import { isAbsolute, basename, resolve, dirname, relative } from 'node:path'
 
 import type { AttributePredicate, DashboardDatabase, InsightsBreakdownDimension, RunArtifactRow, RunRow } from '../db/database.js'
 import { isRunStatusWord, memberOutcomeClass, runStatusClass, type RunStatusClass } from '../db/run-status-class.js'
@@ -1110,13 +1110,61 @@ type EnrichedRunRow = RunRow & {
   tests?: EnrichedRunRow[]
 }
 
+// The run's own target, written by the trigger, the enqueue door or the claim; nothing else counts.
+function storedRunTarget(run: RunRow): string | null {
+  const value = run.metadata?.target
+  return typeof value === 'string' && value.trim().length > 0 ? value : null
+}
+
+// A project test file's target, keyed by the workspace-relative path rows store in `filePath`.
+type TestFileTargets = ReadonlyMap<string, string>
+
+function testFileTargetsKey(filePath: string, configDir: string | undefined): string {
+  const forward = filePath.replace(/\\/g, '/')
+  if (configDir === undefined || !isAbsolute(filePath)) return forward
+  return relative(configDir, filePath).replace(/\\/g, '/')
+}
+
+function needsTestFileTargets(run: RunRow): boolean {
+  return storedRunTarget(run) === null && !run.testFileContent && typeof run.filePath === 'string' && run.filePath.length > 0
+}
+
+async function readTestFileTargets(
+  testFileManager: TestFileManager | undefined,
+  configDir: string | undefined,
+): Promise<TestFileTargets> {
+  const targets = new Map<string, string>()
+  if (!testFileManager) return targets
+  try {
+    for (const file of await testFileManager.list()) {
+      if (file.targetName) targets.set(testFileTargetsKey(file.path, configDir), file.targetName)
+    }
+  } catch {
+    // An unreadable project leaves old rows with what they stored.
+  }
+  return targets
+}
+
 function enrichRunRow(
   run: RunRow,
   targetPlatforms: Map<string, SupportedPlatform>,
   tests?: EnrichedRunRow[],
+  fileTargets?: { readonly targets: TestFileTargets; readonly configDir?: string },
 ): EnrichedRunRow {
+  const storedTarget = storedRunTarget(run)
+  if (storedTarget !== null) {
+    return {
+      ...run,
+      platform: normalizeSupportedPlatform(run.platform) ?? targetPlatforms.get(storedTarget) ?? null,
+      targetName: storedTarget,
+      ...(tests ? { tests } : {}),
+    }
+  }
   const metadata = run.testFileContent ? extractTestFileMetadata(run.testFileContent) : null
   let targetName = metadata?.targetName ?? extractRunTargetName(run.testFileContent)
+  if (!targetName && run.filePath && fileTargets) {
+    targetName = fileTargets.targets.get(testFileTargetsKey(run.filePath, fileTargets.configDir)) ?? null
+  }
   if (!targetName && tests && tests.length > 0) {
     const uniqueChildTargets = [...new Set(
       tests
@@ -1145,7 +1193,7 @@ function enrichRunRow(
 
   return {
     ...run,
-    platform: platform ?? run.platform,
+    platform,
     targetName,
     ...(tests ? { tests } : {}),
   }
@@ -1155,16 +1203,54 @@ function enrichRunRow(
 function suiteTargetOf(
   runs: readonly RunRow[],
   targetPlatforms: Map<string, SupportedPlatform>,
+  fileTargets?: { readonly targets: TestFileTargets; readonly configDir?: string },
 ): { platform: string | null; targetName: string | null } {
   let last: EnrichedRunRow | undefined
   for (const run of runs) {
-    const enriched = enrichRunRow(run, targetPlatforms)
+    const enriched = enrichRunRow(run, targetPlatforms, undefined, fileTargets)
     last ??= enriched
     const targetName = enriched.targetName?.trim()
     if (targetName) return { platform: enriched.platform, targetName }
   }
   if (!last) return { platform: null, targetName: null }
   return { platform: last.platform, targetName: last.targetName?.trim() || null }
+}
+
+// What a queued file names: a test's target, or a suite's own target, with that target's platform.
+async function queuedFileTarget(input: {
+  storagePath: string
+  isSuite: boolean
+  testFileManager?: TestFileManager
+  suiteFileManager?: SuiteFileManager
+  configManager?: ConfigManager
+}): Promise<{ targetName?: string; platform?: SupportedPlatform }> {
+  try {
+    if (input.isSuite) {
+      if (!input.suiteFileManager) return {}
+      const parsed = parseYaml(await input.suiteFileManager.read(input.storagePath)) as unknown
+      if (!isRecord(parsed)) return {}
+      const target = typeof parsed.target === 'string' && parsed.target.trim().length > 0 ? parsed.target : undefined
+      if (target !== undefined) {
+        const platform = (await readTargetPlatformMap(input.configManager)).get(target)
+        return { targetName: target, ...(platform ? { platform } : {}) }
+      }
+      const legacy = normalizeSupportedPlatform(isRecord(parsed.config) ? parsed.config.platform : undefined)
+      return legacy ? { platform: legacy } : {}
+    }
+    if (!input.testFileManager) return {}
+    const metadata = extractTestFileMetadata(await input.testFileManager.read(input.storagePath))
+    const platform = resolveEffectivePlatform(
+      metadata.platform,
+      metadata.targetName,
+      await readTargetPlatformMap(input.configManager),
+    )
+    return {
+      ...(metadata.targetName ? { targetName: metadata.targetName } : {}),
+      ...(platform ? { platform } : {}),
+    }
+  } catch {
+    return {}
+  }
 }
 
 function matchesTargetFilter(run: EnrichedRunRow, filterValue: string | null): boolean {
@@ -1876,7 +1962,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
       }
 
       void readTargetPlatformMap(configManager)
-        .then((targetPlatforms) => {
+        .then(async (targetPlatforms) => {
           const allRuns = db.getRuns({
             statuses,
             name,
@@ -1884,7 +1970,11 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             to,
             attributePredicates: attributePredicatesResult.predicates,
           })
-          const enrichedRuns = allRuns.map(run => enrichRunRow(run, targetPlatforms))
+          const configDir = workspacePaths?.configDir
+          const fileTargets = allRuns.some(needsTestFileTargets)
+            ? { targets: await readTestFileTargets(testFileManager, configDir), ...(configDir ? { configDir } : {}) }
+            : undefined
+          const enrichedRuns = allRuns.map(run => enrichRunRow(run, targetPlatforms, undefined, fileTargets))
           const platformFilteredRuns = enrichedRuns.filter(run =>
             matchesPlatformFilter(run, normalizeSupportedPlatform(platform)),
           )
@@ -2472,6 +2562,17 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             return
           }
           const args = normalizedFileTarget ? [normalizedFileTarget.executionPath] : []
+          const named = normalizedFileTarget
+            ? await queuedFileTarget({
+              storagePath: normalizedFileTarget.storagePath,
+              isSuite: isSuiteFile,
+              testFileManager,
+              suiteFileManager,
+              configManager,
+            })
+            : {}
+          // A platform agent-qa does not run on is treated as not sent.
+          const platform = named.platform ?? normalizeSupportedPlatform(body.platform) ?? undefined
           const runId = jobQueue.enqueue({
             name: body.name,
             filePath: normalizedFileTarget?.storagePath,
@@ -2479,12 +2580,13 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             kind: 'test',
             attributes,
             priority: body.priority,
-            platform: body.platform,
+            ...(platform ? { platform } : {}),
             parallel: body.parallel,
             metadata: {
               ...queuedMetadata.metadata,
               args,
               ...(isSuiteFile ? { isSuite: true } : {}),
+              ...(named.targetName ? { target: named.targetName } : {}),
             },
           })
           const pending = db.getPendingRuns()
@@ -2579,34 +2681,31 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             : 'unknown'
 
           let fileParallel: boolean | undefined
-          let platform: string | undefined
 
           if (isSuite && body.file && suiteFileManager) {
-            // Parse suite YAML for name and platform
             try {
               const content = await suiteFileManager.read(normalizedFileTarget?.storagePath ?? body.file)
               fileParallel = readSuiteYamlParallel(content)
               const parsed = parseYaml(content)
               if (parsed?.name) testName = parsed.name
-              platform = parsed?.config?.platform ?? undefined
             } catch { /* fall back to defaults */ }
           } else if (body.file && testFileManager) {
-            // Parse test YAML for name, use.parallel, and platform metadata
             try {
               const readPath = normalizedTestTarget?.storagePath ?? body.file
-              const content = await testFileManager.read(readPath)
-              const metadata = extractTestFileMetadata(content)
-              const targetPlatforms = await readTargetPlatformMap(configManager)
+              const metadata = extractTestFileMetadata(await testFileManager.read(readPath))
               if (metadata.name) testName = metadata.name
               if (metadata.parallel !== null) fileParallel = metadata.parallel
-              platform = resolveEffectivePlatform(
-                metadata.platform,
-                metadata.targetName,
-                targetPlatforms,
-                platform,
-              ) ?? undefined
             } catch { /* fall back to defaults */ }
           }
+          const named = body.file
+            ? await queuedFileTarget({
+              storagePath: normalizedFileTarget?.storagePath ?? body.file,
+              isSuite,
+              testFileManager,
+              suiteFileManager,
+              configManager,
+            })
+            : {}
 
           const configParallel = await readConfigUseParallel(configManager)
           const effectiveParallel = fileParallel ?? configParallel ?? false
@@ -2627,11 +2726,12 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             attributes: buildRunRequestAttributes({
               trigger: triggerSource.trigger,
             }),
-            platform,
+            ...(named.platform ? { platform: named.platform } : {}),
             parallel: effectiveParallel,
             metadata: {
               args,
               isSuite: isSuite || undefined,
+              ...(named.targetName ? { target: named.targetName } : {}),
               ...toExecutionTimeoutMetadata(executionTimeout),
             },
           })
@@ -2987,23 +3087,28 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         return
       }
       Promise.all([suiteFileManager.list(), readTargetPlatformMap(configManager), readAnalyticsScopePredicates(configManager)])
-        .then(([files, targetPlatforms, scopeResult]) => {
+        .then(async ([files, targetPlatforms, scopeResult]) => {
           if (!scopeResult.ok) {
             json(res, { error: scopeResult.error }, 400)
             return
           }
           const scope = scopeResult.predicates.length > 0 ? { attributePredicates: scopeResult.predicates } : undefined
+          const runsBySuite = new Map(files.flatMap((file) => (file.suiteId ? [[file.suiteId, db.getRunsBySuiteId(file.suiteId)] as const] : [])))
+          const configDir = workspacePaths?.configDir
+          const fileTargets = [...runsBySuite.values()].some((runs) => runs.some(needsTestFileTargets))
+            ? { targets: await readTestFileTargets(testFileManager, configDir), ...(configDir ? { configDir } : {}) }
+            : undefined
           const suites = files.map((file) => {
             if (!file.suiteId) {
               return { path: file.path, suiteId: null, passRate: null, passed: 0, decided: 0, lastRun: null, platform: null, targetName: null }
             }
-            const runs = db.getRunsBySuiteId(file.suiteId)
+            const runs = runsBySuite.get(file.suiteId) ?? []
             return {
               path: file.path,
               suiteId: file.suiteId,
               ...passRateOf(db.getSuiteTrends(file.suiteId, scope)),
               lastRun: lastRunOf(runs[0]),
-              ...suiteTargetOf(runs, targetPlatforms),
+              ...suiteTargetOf(runs, targetPlatforms, fileTargets),
             }
           })
           json(res, { suites })

@@ -93,9 +93,15 @@ function formatPlatform(platform: string) {
     : platform.charAt(0).toUpperCase() + platform.slice(1)
 }
 
+// A platform beside an unknown target would be a guess, so an unknown target reads the dash alone.
 function formatTarget(run: RunRow) {
-  const targetName = run.targetName?.trim() || "No target"
-  return `${targetName} (${formatPlatform(run.platform)})`
+  const targetName = run.targetName?.trim()
+  if (!targetName) return "—"
+  return run.platform ? `${targetName} (${formatPlatform(run.platform)})` : targetName
+}
+
+function targetSortText(run: RunRow) {
+  return run.targetName?.trim() ? formatTarget(run) : ""
 }
 
 function isSuiteParent(run: RunRow) {
@@ -480,7 +486,7 @@ const columns: ColumnDef<typeof runsTableFeatures, RunRow>[] = [
   },
   {
     id: "target",
-    accessorFn: (row) => `${row.targetName ?? "No target"} ${row.platform}`,
+    accessorFn: (row) => targetSortText(row),
     header: ({ column }) => (
       <Button
         variant="ghost"

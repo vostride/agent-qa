@@ -719,4 +719,65 @@ describe('the list reads agree with the viewers on pass rate and last run', () =
         .toEqual(lastRunFields(viewer.runs[0], false))
     }
   })
+
+  it('a suite whose newest run stored a target and a platform returns them', async () => {
+    mkdirSync(join(dir, 'tests'), { recursive: true })
+    mkdirSync(join(dir, 'suites'), { recursive: true })
+    writeFileSync(join(dir, 'tests', 'phone.yaml'), ['name: Phone', 'test-id: t_phone', 'steps: []', ''].join('\n'))
+    writeFileSync(
+      join(dir, 'suites', 'phone.suite.yaml'),
+      ['suite-id: s_phone', 'name: Phone suite', 'tests:', '  - test: tests/phone.yaml', '    id: t_phone', ''].join('\n'),
+    )
+    const workspacePaths = resolveWorkspacePaths({
+      config: {
+        workspace: {
+          testMatch: ['tests/*.yaml'],
+          suiteMatch: ['suites/*.suite.yaml'],
+          hooksFile: 'hooks.yaml',
+          envFile: '.env',
+          secretsFile: '.env.secrets.local',
+        },
+        knowledge: { dir: 'agent-qa-knowledge' },
+      },
+      configPath,
+    })
+    vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    const handle = await startServer({
+      declaredSecretMask: (text) => text,
+      db: new DashboardDatabase({ dbPath }),
+      port: 0,
+      configPath,
+      workspacePaths,
+      executionBackend: new IdleBackend() as unknown as ExecutionBackend,
+    })
+    started.push(handle)
+    const origin = `http://127.0.0.1:${String((handle.server.address() as AddressInfo).port)}`
+    const startedAt = new Date(Date.UTC(2026, 9, 3)).toISOString()
+    const id = db.insertRun({
+      name: 'Phone suite',
+      status: 'passed',
+      duration: 1000,
+      startedAt,
+      endedAt: startedAt,
+      platform: 'ios',
+      metadata: { target: 'playground-ios' },
+    })
+    db.upsertRunMember({
+      runId: id,
+      testIndex: 0,
+      testId: 't_phone',
+      name: 'Phone',
+      filePath: 'tests/phone.yaml',
+      suiteId: 's_phone',
+      suiteName: 'Phone suite',
+      outcome: 'passed',
+    })
+
+    const batch = await read(`${origin}/api/analytics/suite-summaries`)
+    expect(batchRow(batch, 'suites', 'suites/phone.suite.yaml')).toMatchObject({
+      suiteId: 's_phone',
+      targetName: 'playground-ios',
+      platform: 'ios',
+    })
+  })
 })

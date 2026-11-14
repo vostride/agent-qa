@@ -4,7 +4,11 @@ import { IncomingMessage, type IncomingHttpHeaders, type ServerResponse } from '
 import { Socket } from 'node:net'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { describe, it, expect, beforeEach } from 'vitest'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+
+import { resolveWorkspacePaths } from '@vostride/agent-qa-core'
 
 import {
   CLIENT_WRITABLE_QUEUED_RUN_METADATA_KEYS,
@@ -16,6 +20,13 @@ import {
   sanitizeQueuedExecutionTimeout,
 } from '../server/routes.js'
 import { RUN_ARTIFACT_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
+import type { RunEventEnvelope } from '@vostride/agent-qa-schema'
+import { ConfigManager } from '../config/index.js'
+import { DashboardDatabase } from '../db/database.js'
+import { JobQueue } from '../queue/job-queue.js'
+import { createDashboardRunIngest } from '../reporter/dashboard-subscriber.js'
+import { SuiteFileManager } from '../tests/suite-file-manager.js'
+import { TestFileManager } from '../tests/test-file-manager.js'
 
 interface MockRun {
   id: string
@@ -1283,5 +1294,220 @@ describe('the local door serves stored run text unchanged on every human run rea
       expect(response.status, path).toBe(200)
       expect(response.body, path).toContain(STORED_TEXT)
     }
+  })
+})
+
+describe("a run's target and platform are the ones its file and its producer name, or null", () => {
+  const CONFIG = [
+    'registry:',
+    '  targets:',
+    '    playground-ios:',
+    '      platform: ios',
+    '      bundleId: com.example.playground',
+    '    playground-android:',
+    '      platform: android',
+    '      appPackage: com.example.playground',
+    '    hn-web:',
+    '      platform: web',
+    '      url: https://news.ycombinator.com',
+    '',
+  ].join('\n')
+
+  let dir: string
+  let db: DashboardDatabase
+  let queue: JobQueue
+  let router: ReturnType<typeof createRouter>
+  let seq = 0
+
+  async function project(): Promise<void> {
+    dir = await mkdtemp(join(tmpdir(), 'agent-qa-run-target-'))
+    await mkdir(join(dir, 'tests'), { recursive: true })
+    const configPath = join(dir, 'agent-qa.config.yaml')
+    await writeFile(configPath, CONFIG, 'utf-8')
+    await writeFile(join(dir, 'tests', 'ios.yaml'), ['name: Open iOS', 'target: playground-ios', 'steps:', '  - Open the app', ''].join('\n'))
+    await writeFile(join(dir, 'tests', 'android.yaml'), ['name: Open Android', 'target: playground-android', 'steps:', '  - Open the app', ''].join('\n'))
+    await writeFile(join(dir, 'tests', 'none.yaml'), ['name: No target', 'steps:', '  - Open the app', ''].join('\n'))
+    const workspacePaths = resolveWorkspacePaths({
+      config: {
+        workspace: {
+          testMatch: ['tests/**/*.yaml'],
+          suiteMatch: ['tests/**/*.suite.yaml'],
+          hooksFile: 'hooks.yaml',
+          envFile: '.env',
+          secretsFile: '.env.secrets.local',
+        },
+        knowledge: { dir: 'agent-qa-knowledge' },
+      },
+      configPath,
+    })
+    const testFileManager = new TestFileManager(workspacePaths)
+    db = new DashboardDatabase({ dbPath: join(dir, 'runs.db') })
+    queue = new JobQueue({ db })
+    router = createRouter({
+      db,
+      jobQueue: queue,
+      workspacePaths,
+      testFileManager,
+      suiteFileManager: new SuiteFileManager(workspacePaths, testFileManager),
+      configManager: new ConfigManager(configPath, (text) => text),
+    })
+  }
+
+  beforeEach(async () => {
+    seq = 0
+    await project()
+  })
+
+  afterEach(async () => {
+    queue.stop()
+    db.close()
+    await rm(dir, { recursive: true, force: true })
+  })
+
+  function ev(runId: string, type: string, payload: Record<string, unknown> = {}): RunEventEnvelope {
+    return { seq: ++seq, ts: seq, runId, type, payload } as unknown as RunEventEnvelope
+  }
+
+  async function listed(query = ''): Promise<{
+    runs: Array<{ id: string; status: string; targetName: string | null; platform: string | null }>
+    targets: string[]
+  }> {
+    const res = await invokeRoute(router, `/api/runs${query}`)
+    expect(res.status).toBe(200)
+    return JSON.parse(res.body)
+  }
+
+  async function rowOf(id: string) {
+    return (await listed()).runs.find((run) => run.id === id)
+  }
+
+  it('a dashboard-started iOS run reads playground-ios on iOS while pending, once claimed and after its verdict', async () => {
+    const started = await postJson(router, '/api/runs/trigger', { file: 'tests/ios.yaml' })
+    expect(started.status).toBe(202)
+    const runId = (JSON.parse(started.body) as { runId: string }).runId
+
+    expect(await rowOf(runId), 'pending').toMatchObject({ status: 'pending', targetName: 'playground-ios', platform: 'ios' })
+
+    db.updateRunStatus(runId, 'running')
+    const ingest = createDashboardRunIngest({ db, runId, targetName: 'playground-ios', platform: 'ios' })
+    ingest.handler(ev(runId, 'runStarted', { memberTestCount: 1 }))
+    expect(await rowOf(runId), 'claimed').toMatchObject({ status: 'running', targetName: 'playground-ios', platform: 'ios' })
+
+    ingest.handler(ev(runId, 'verdict', { verdict: 'failed' }))
+    ingest.handler(ev(runId, 'runFinished', { aggregateVerdict: 'failed', disposition: 'detached', finalSeq: seq }))
+    await ingest.finalize({})
+    expect(await rowOf(runId), 'ended').toMatchObject({ status: 'failed', targetName: 'playground-ios', platform: 'ios' })
+  })
+
+  it('a claim whose producer knows nothing keeps what the trigger stored', async () => {
+    const started = await postJson(router, '/api/runs/trigger', { file: 'tests/android.yaml' })
+    const runId = (JSON.parse(started.body) as { runId: string }).runId
+    db.updateRunStatus(runId, 'running')
+    createDashboardRunIngest({ db, runId }).handler(ev(runId, 'runStarted', { memberTestCount: 1 }))
+    expect(await rowOf(runId)).toMatchObject({ status: 'running', targetName: 'playground-android', platform: 'android' })
+  })
+
+  it('the trigger door stores neither a target nor a platform for a file that names no target', async () => {
+    const started = await postJson(router, '/api/runs/trigger', { file: 'tests/none.yaml' })
+    const runId = (JSON.parse(started.body) as { runId: string }).runId
+    expect(db.getRun(runId)?.platform).toBeNull()
+    expect(db.getRun(runId)?.metadata).not.toHaveProperty('target')
+    expect(await rowOf(runId)).toMatchObject({ targetName: null, platform: null })
+  })
+
+  it('the enqueue door stores no platform it does not run on', async () => {
+    const started = await postJson(router, '/api/queue/enqueue', { name: 'Desktop', platform: 'desktop' })
+    expect(started.status).toBe(202)
+    const runId = (JSON.parse(started.body) as { runId: string }).runId
+    expect(db.getRun(runId)?.platform).toBeNull()
+  })
+
+  it('the enqueue door keeps a platform from the body that agent-qa runs on', async () => {
+    const started = await postJson(router, '/api/queue/enqueue', { name: 'Android', platform: 'android' })
+    const runId = (JSON.parse(started.body) as { runId: string }).runId
+    expect(db.getRun(runId)?.platform).toBe('android')
+  })
+
+  it('the enqueue door given a test file that names a target stores that target and its platform', async () => {
+    const started = await postJson(router, '/api/queue/enqueue', { name: 'Open iOS', file: 'tests/ios.yaml', platform: 'web' })
+    const runId = (JSON.parse(started.body) as { runId: string }).runId
+    expect(db.getRun(runId)?.platform).toBe('ios')
+    expect(db.getRun(runId)?.metadata?.target).toBe('playground-ios')
+  })
+
+  it("an old row is read with its project test file's target, and with its stored platform once the file is gone", async () => {
+    const id = db.insertRun({
+      name: 'Old Android',
+      filePath: 'tests/android.yaml',
+      status: 'passed',
+      duration: 1,
+      platform: 'web',
+      startedAt: '2026-11-01T00:00:00.000Z',
+      endedAt: '2026-11-01T00:00:01.000Z',
+    })
+    const absolute = db.insertRun({
+      name: 'Old Android, absolute path',
+      filePath: join(dir, 'tests', 'android.yaml'),
+      status: 'passed',
+      duration: 1,
+      platform: 'web',
+      startedAt: '2026-11-01T00:00:00.000Z',
+      endedAt: '2026-11-01T00:00:01.000Z',
+    })
+    expect(await rowOf(id)).toMatchObject({ targetName: 'playground-android', platform: 'android' })
+    expect(await rowOf(absolute)).toMatchObject({ targetName: 'playground-android', platform: 'android' })
+
+    await rm(join(dir, 'tests', 'android.yaml'))
+    expect(await rowOf(id)).toMatchObject({ targetName: null, platform: 'web' })
+  })
+
+  it('a row with no platform and no target reads null for both, is not a web run and adds no target option', async () => {
+    const id = db.insertRun({
+      name: 'Unknown',
+      status: 'passed',
+      duration: 1,
+      startedAt: '2026-11-01T00:00:00.000Z',
+      endedAt: '2026-11-01T00:00:01.000Z',
+    })
+    const all = await listed()
+    expect(all.runs.find((run) => run.id === id)).toMatchObject({ targetName: null, platform: null })
+    expect(all.targets).toEqual([])
+    expect((await listed('?platform=web')).runs.map((run) => run.id)).not.toContain(id)
+  })
+
+  it('a row whose stored target is not a non-empty string is read as having none', async () => {
+    const id = db.insertRun({
+      name: 'Odd metadata',
+      status: 'passed',
+      duration: 1,
+      platform: 'ios',
+      metadata: { target: { name: 'playground-ios' } },
+      startedAt: '2026-11-01T00:00:00.000Z',
+      endedAt: '2026-11-01T00:00:01.000Z',
+    })
+    const blank = db.insertRun({
+      name: 'Blank target',
+      status: 'passed',
+      duration: 1,
+      platform: 'ios',
+      metadata: { target: '  ' },
+      startedAt: '2026-11-01T00:00:00.000Z',
+      endedAt: '2026-11-01T00:00:01.000Z',
+    })
+    expect(await rowOf(id)).toMatchObject({ targetName: null, platform: 'ios' })
+    expect(await rowOf(blank)).toMatchObject({ targetName: null, platform: 'ios' })
+  })
+
+  it('a row with a stored target and a stored platform that is not supported reads the config platform of its target', async () => {
+    const id = db.insertRun({
+      name: 'Stored target',
+      status: 'passed',
+      duration: 1,
+      platform: 'desktop',
+      metadata: { target: 'hn-web' },
+      startedAt: '2026-11-01T00:00:00.000Z',
+      endedAt: '2026-11-01T00:00:01.000Z',
+    })
+    expect(await rowOf(id)).toMatchObject({ targetName: 'hn-web', platform: 'web' })
   })
 })

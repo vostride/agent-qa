@@ -1235,3 +1235,30 @@ describe('a run stamped before its start time was read', () => {
     }
   })
 })
+
+describe("a run row's platform and target are stored as given, never defaulted", () => {
+  const storedPlatform = (id: string): unknown =>
+    (db['db'].prepare('SELECT platform FROM runs WHERE id = ?').get(id) as { platform: unknown }).platform
+
+  it('a finished row and a pending row given no platform store NULL and read back null', () => {
+    const finished = insertSampleRun({ platform: undefined })
+    const pending = db.insertPendingRun({ name: 'Pending' })
+    for (const id of [finished, pending]) {
+      expect(storedPlatform(id)).toBeNull()
+      expect(db.getRun(id)?.platform).toBeNull()
+    }
+  })
+
+  it('the claim writes the target into the metadata the row already holds and keeps its other keys', () => {
+    const id = db.insertPendingRun({ name: 'Queued', platform: 'ios', metadata: { args: ['a.yaml'], isSuite: true } })
+    db.updateRunStatus(id, 'running')
+    expect(db.claimRunningRow(id, { startedAt: '2026-11-14T00:00:00.000Z', targetName: 'playground-ios' })).toBe(true)
+    expect(db.getRun(id)?.metadata).toEqual({ args: ['a.yaml'], isSuite: true, target: 'playground-ios' })
+    expect(db.getRun(id)?.platform).toBe('ios')
+  })
+
+  it('a row whose stored platform is not one agent-qa runs on reads back as it was stored', () => {
+    const id = insertSampleRun({ platform: 'desktop' })
+    expect(db.getRun(id)?.platform).toBe('desktop')
+  })
+})

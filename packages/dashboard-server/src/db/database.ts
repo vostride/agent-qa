@@ -67,7 +67,7 @@ export interface RunRow {
   errorLog: string | null
   testId: string | null
   suiteId: string | null
-  platform: string
+  platform: string | null
   testFileContent: string | null
   modelName: string | null
   llmProvider: string | null
@@ -505,7 +505,7 @@ export class DashboardDatabase {
       run.startedAt,
       run.endedAt,
       run.failureSummary ?? null,
-      run.platform ?? 'web',
+      run.platform ?? null,
       run.testFileContent ?? null,
       run.modelName ?? null,
       run.llmProvider ?? null,
@@ -526,19 +526,26 @@ export class DashboardDatabase {
     attributes?: RunAttributes
     startedAt: string
     platform?: string
+    // Written as the `target` key of the row's metadata by the claim itself, so a running row never lacks it.
+    targetName?: string
     testId?: string
     suiteId?: string
   }): boolean {
     const stamp = this.ownStamps.get(id) ?? this.readOwnStamp()
     const result = this.db.prepare(`
-      INSERT INTO runs (id, name, file_path, status, duration, attributes, started_at, ended_at, platform, test_id, suite_id, owner_pid, owner_incarnation, owner_host)
-      VALUES (?1, COALESCE(?2, 'run'), ?3, 'running', 0, COALESCE(?4, '{}'), ?5, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
+      INSERT INTO runs (id, name, file_path, status, duration, attributes, metadata, started_at, ended_at, platform, test_id, suite_id, owner_pid, owner_incarnation, owner_host)
+      VALUES (?1, COALESCE(?2, 'run'), ?3, 'running', 0, COALESCE(?4, '{}'),
+        CASE WHEN ?12 IS NULL THEN NULL ELSE json_object('target', ?12) END,
+        ?5, ?5, ?6, ?7, ?8, ?9, ?10, ?11)
       ON CONFLICT(id) DO UPDATE SET
         started_at = excluded.started_at,
         ended_at = excluded.ended_at,
         name = COALESCE(?2, runs.name),
         attributes = COALESCE(?4, runs.attributes),
-        platform = excluded.platform,
+        metadata = CASE WHEN ?12 IS NULL THEN runs.metadata
+          ELSE json_set(CASE WHEN json_valid(runs.metadata) AND json_type(runs.metadata) = 'object'
+            THEN runs.metadata ELSE '{}' END, '$.target', ?12) END,
+        platform = COALESCE(?6, runs.platform),
         test_id = COALESCE(excluded.test_id, runs.test_id),
         suite_id = COALESCE(excluded.suite_id, runs.suite_id)
       WHERE runs.status = 'running'
@@ -551,12 +558,13 @@ export class DashboardDatabase {
       fields.filePath ?? null,
       fields.attributes === undefined ? null : JSON.stringify(fields.attributes),
       fields.startedAt,
-      fields.platform ?? 'web',
+      fields.platform ?? null,
       fields.testId ?? null,
       fields.suiteId ?? null,
       stamp.pid,
       stamp.incarnation,
       stamp.host,
+      fields.targetName ?? null,
     )
     if (Number(result.changes) !== 1) return false
     this.ownStamps.set(id, stamp)
@@ -648,7 +656,7 @@ export class DashboardDatabase {
       run.filePath ?? null,
       run.priority ?? 0,
       JSON.stringify(run.attributes ?? {}),
-      run.platform ?? 'web',
+      run.platform ?? null,
       run.testFileContent ?? null,
       run.modelName ?? null,
       run.llmProvider ?? null,
@@ -1996,7 +2004,7 @@ export class DashboardDatabase {
       errorLog: (r.error_log as string) ?? null,
       testId: (r.test_id as string) ?? null,
       suiteId: (r.suite_id as string) ?? null,
-      platform: (r.platform as string) ?? 'web',
+      platform: typeof r.platform === 'string' ? r.platform : null,
       testFileContent: (r.test_file_content as string) ?? null,
       modelName: (r.model_name as string) ?? null,
       llmProvider: (r.llm_provider as string) ?? null,

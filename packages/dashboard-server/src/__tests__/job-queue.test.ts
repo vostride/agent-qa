@@ -42,8 +42,22 @@ describe('JobQueue', () => {
       const artifact = db.getRunArtifact(runId)
       expect(artifact?.kind).toBe('test')
       expect(artifact?.finalizedAt).toBeNull()
-      expect(artifact?.payload.runtime).toMatchObject({ queued: true, platform: 'web' })
+      expect(artifact?.payload.runtime).toEqual({ queued: true })
       expect(artifact?.payload.metadata?.attributes).toEqual(attributes)
+    })
+
+    it('a run enqueued with no platform stores none, on its row and in its queued artifact', () => {
+      const runId = queue.enqueue({ name: 'No Platform' })
+      const stored = db['db'].prepare('SELECT platform FROM runs WHERE id = ?').get(runId) as { platform: unknown }
+      expect(stored.platform).toBeNull()
+      expect(db.getRun(runId)?.platform).toBeNull()
+      expect(db.getRunArtifact(runId)?.payload.runtime).not.toHaveProperty('platform')
+    })
+
+    it('a run enqueued with a platform stores it, on its row and in its queued artifact', () => {
+      const runId = queue.enqueue({ name: 'Android', platform: 'android' })
+      expect(db.getRun(runId)?.platform).toBe('android')
+      expect(db.getRunArtifact(runId)?.payload.runtime).toEqual({ queued: true, platform: 'android' })
     })
 
     it('passes priority to the database', () => {
@@ -259,6 +273,20 @@ describe('JobQueue', () => {
       const defaultQueue = new JobQueue({ db })
       expect(defaultQueue.getConcurrency()).toBe(cpus().length)
       defaultQueue.stop()
+    })
+
+    it('a run with no platform is dispatched as a run that is not mobile', () => {
+      const unknown = cQueue.enqueue({ name: 'Unknown', parallel: false })
+      const ios = cQueue.enqueue({ name: 'iOS', parallel: true, platform: 'ios' })
+
+      const executed: string[] = []
+      cQueue.on('execute', (run) => executed.push(run.id))
+      cQueue.processNext()
+      expect(executed).toEqual([unknown])
+
+      db.updateRunStatus(unknown, 'passed')
+      cQueue.onSlotFreed(unknown)
+      expect(executed).toEqual([unknown, ios])
     })
 
     it('with concurrency=2, enqueue 3 parallel jobs — only first 2 execute', () => {

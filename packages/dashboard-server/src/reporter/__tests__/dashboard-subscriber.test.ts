@@ -796,3 +796,59 @@ describe('the closing write after a failed artifact write', () => {
     }
   })
 })
+
+describe("the claim stores the run's target and platform as the producer knows them", () => {
+  function storedPlatform(runId: string): unknown {
+    return (db['db'].prepare('SELECT platform FROM runs WHERE id = ?').get(runId) as { platform: unknown }).platform
+  }
+
+  it('an ingest given neither claims a fresh row whose platform is NULL and that holds no target', () => {
+    const runId = generateRunId()
+    const ingest = createDashboardRunIngest({ db, runId, configSnapshot: testConfig() })
+    ingest.handler(ev(runId, 'runStarted', { memberTestCount: 1 }))
+
+    expect(db.getRun(runId)?.status).toBe('running')
+    expect(storedPlatform(runId)).toBeNull()
+    expect(db.getRun(runId)?.platform).toBeNull()
+    expect(db.getRun(runId)?.metadata?.target).toBeUndefined()
+  })
+
+  it('a queued row that holds android and a target keeps both when the ingest has neither', () => {
+    const runId = db.insertPendingRun({
+      name: 'Queued Android',
+      platform: 'android',
+      metadata: { args: ['tests/a.yaml'], target: 'playground-android' },
+    })
+    db.updateRunStatus(runId, 'running')
+    const ingest = createDashboardRunIngest({ db, runId })
+    ingest.handler(ev(runId, 'runStarted', { memberTestCount: 1 }))
+
+    const row = db.getRun(runId)
+    expect(row?.platform).toBe('android')
+    expect(row?.metadata).toMatchObject({ args: ['tests/a.yaml'], target: 'playground-android' })
+  })
+
+  it("the ingest's target and platform replace the queued ones when it has them", () => {
+    const runId = db.insertPendingRun({
+      name: 'Queued',
+      platform: 'android',
+      metadata: { args: ['tests/a.yaml'], target: 'playground-android' },
+    })
+    db.updateRunStatus(runId, 'running')
+    const ingest = createDashboardRunIngest({ db, runId, targetName: 'playground-ios', platform: 'ios' })
+    ingest.handler(ev(runId, 'runStarted', { memberTestCount: 1 }))
+
+    const row = db.getRun(runId)
+    expect(row?.platform).toBe('ios')
+    expect(row?.metadata).toMatchObject({ args: ['tests/a.yaml'], target: 'playground-ios' })
+  })
+
+  it('a fresh row claimed with a target and a platform stores both', () => {
+    const runId = generateRunId()
+    const ingest = createDashboardRunIngest({ db, runId, targetName: 'playground-ios', platform: 'ios' })
+    ingest.handler(ev(runId, 'runStarted', { memberTestCount: 1 }))
+
+    expect(db.getRun(runId)?.platform).toBe('ios')
+    expect(db.getRun(runId)?.metadata).toEqual({ target: 'playground-ios' })
+  })
+})
