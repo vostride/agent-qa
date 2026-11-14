@@ -96,6 +96,7 @@ function resetLiveEditorState() {
     sessionGone: false,
     deviceLogs: [],
     platform: 'web',
+    authState: null,
     ariaTree: null,
     requestAriaTree: vi.fn(),
     isRunningAll: false,
@@ -479,5 +480,18 @@ describe('SuiteEditorPage live mode orchestration', () => {
       .rejects.toThrow('Could not save auth state "suite-admin" for target "demo-target".')
     expect(JSON.stringify(liveSessionPaneProps)).not.toContain('secret-cookie')
     expect(updateSuiteFileMock).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['started signed out', { name: 'buyer', capturedAt: null }, { name: 'buyer', targetName: 'demo-target' }],
+    ['mounted its state', { name: 'buyer', capturedAt: '2026-11-14T10:00:00.000Z' }, null],
+    ['names no auth state', null, null],
+  ])('passes the pane the signed-out notice only for a session that %s', async (_label, authState, expected) => {
+    liveEditorState.authState = authState
+    const rootElement = await render(<SuiteEditorPage />)
+
+    await click(getButtonByText(rootElement, 'Connect Live Session'))
+
+    expect(liveSessionPaneProps?.signedOutAuthState).toEqual(expected)
   })
 })

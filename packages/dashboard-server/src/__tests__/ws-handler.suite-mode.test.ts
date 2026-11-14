@@ -264,3 +264,40 @@ describe('ws-handler suite-mode transport', () => {
     })
   })
 })
+
+describe('ws-handler execute-test hands the member auth state name to the session', () => {
+  const memberWith = (use: string) =>
+    `test-id: ${PARSEABLE_TEST_ID}\nname: Checkout\ntarget: demo-target\n${use}steps:\n  - click checkout\n`
+
+  async function executeMember(content: string): Promise<Record<string, unknown>> {
+    const ws = new MockWebSocket()
+    const session = createMockSession()
+    const testFileManager = { testsDir: '/workspace/tests', read: vi.fn().mockResolvedValue(content) }
+    createSessionHandler(session as unknown as LiveSession, vi.fn(), undefined, testFileManager as any)(ws as any)
+    ws.simulateMessage({
+      type: 'execute-test',
+      testExecutionId: 'exec-auth',
+      testId: PARSEABLE_TEST_ID,
+      path: 'tests/checkout.yaml',
+      testIndex: 0,
+    })
+    const execute = session.executeTestCommand as unknown as Mock
+    await vi.waitFor(() => expect(execute).toHaveBeenCalledTimes(1))
+    return execute.mock.calls[0]?.[1] as Record<string, unknown>
+  }
+
+  it.each([
+    ['the string form', 'use:\n  authState: admin\n'],
+    ['the object form', 'use:\n  authState:\n    name: admin\n    load: false\n'],
+  ])('carries the name the member names in %s', async (_label, use) => {
+    const draft = await executeMember(memberWith(use))
+
+    expect(draft.authStateName).toBe('admin')
+  })
+
+  it('carries no name for a member that names none', async () => {
+    const draft = await executeMember(memberWith(''))
+
+    expect('authStateName' in draft).toBe(false)
+  })
+})

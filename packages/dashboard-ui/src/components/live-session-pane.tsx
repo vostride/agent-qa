@@ -91,6 +91,20 @@ interface LiveSessionPaneProps {
   liveSessionNumber?: number | null
   unitRowsSlot?: ReactNode
   authStateCapture?: LiveModeAuthStateCaptureConfig | null
+  // The auth state a web session named but could not load, so it started signed out.
+  signedOutAuthState?: { name: string; targetName: string } | null
+}
+
+function PaneNotice({ children, action }: { children: ReactNode; action?: ReactNode }) {
+  return (
+    <div className="mt-3 flex flex-wrap items-start justify-between gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
+      <div className="flex min-w-0 flex-1 items-start gap-2">
+        <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+        <span>{children}</span>
+      </div>
+      {action}
+    </div>
+  )
 }
 
 function draftBadgeMeta(draftState: LiveSessionPaneProps["draftState"]): { label: string; className: string } {
@@ -453,6 +467,7 @@ export function LiveSessionPane({
   stopAllLabel,
   unitRowsSlot,
   authStateCapture = null,
+  signedOutAuthState = null,
 }: LiveSessionPaneProps) {
   const [copied, setCopied] = useState(false)
   const [addressValue, setAddressValue] = useState("")
@@ -745,19 +760,20 @@ export function LiveSessionPane({
         </div>
 
         {setupHooksStale && !terminalState && (
-          <div className="mt-3 flex flex-wrap items-start justify-between gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
-            <div className="flex min-w-0 flex-1 items-start gap-2">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-              <span>
-                Hook order or names changed after this live session started. Continue using the current disposable session, or restart to apply the latest setup and teardown hooks.
-              </span>
-            </div>
-            {onRestartSession && (
+          <PaneNotice
+            action={onRestartSession && (
               <Button type="button" size="sm" className="shrink-0" onClick={onRestartSession}>
                 Restart Live Session
               </Button>
             )}
-          </div>
+          >
+            Hook order or names changed after this live session started. Continue using the current disposable session, or restart to apply the latest setup and teardown hooks.
+          </PaneNotice>
+        )}
+        {signedOutAuthState && !terminalState && (
+          <PaneNotice>
+            Auth state "{signedOutAuthState.name}" for target "{signedOutAuthState.targetName}" was not found or could not be read, so this session started signed out. Sign in here, then use Save auth state to capture it.
+          </PaneNotice>
         )}
 
       </div>

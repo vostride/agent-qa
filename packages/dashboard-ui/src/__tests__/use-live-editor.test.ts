@@ -558,3 +558,85 @@ describe('editor session lifecycle', () => {
     }
   })
 })
+
+describe('the session auth state the hook exposes', () => {
+  let container: HTMLDivElement
+  let root: Root | null
+  let originalWebSocket: typeof WebSocket
+  const holder: { current: UseLiveEditorReturn | null } = { current: null }
+
+  function Harness({ sessionId }: { sessionId: string | null }) {
+    holder.current = useLiveEditor(sessionId, { allowReconnect: false })
+    return null
+  }
+
+  const sessionState = (authState: unknown) => ({
+    type: 'session-state',
+    state: {
+      sessionId: 'session-auth',
+      platform: 'web',
+      status: 'idle',
+      currentStep: null,
+      currentUrl: 'https://shop.example.test/',
+      stepsExecuted: 0,
+      createdAt: 0,
+      interactive: true,
+      terminalError: null,
+      authState,
+    },
+  })
+
+  beforeEach(async () => {
+    vi.useFakeTimers()
+    originalWebSocket = globalThis.WebSocket
+    LifecycleProbeSocket.instances = []
+    globalThis.WebSocket = LifecycleProbeSocket as unknown as typeof WebSocket
+    vi.stubGlobal('fetch', vi.fn(() => Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) })))
+    container = document.createElement('div')
+    document.body.appendChild(container)
+    root = createRoot(container)
+    await act(async () => {
+      root?.render(createElement(Harness, { sessionId: 'session-auth' }))
+    })
+  })
+
+  afterEach(async () => {
+    await act(async () => {
+      root?.unmount()
+    })
+    root = null
+    container.remove()
+    holder.current = null
+    globalThis.WebSocket = originalWebSocket
+    vi.unstubAllGlobals()
+    vi.useRealTimers()
+  })
+
+  it('follows each session-state message, and a new session starts from null', async () => {
+    const socket = LifecycleProbeSocket.instances[0]
+    expect(holder.current?.authState).toBeNull()
+
+    await act(async () => {
+      socket.emit(sessionState({ name: 'buyer', capturedAt: null }))
+    })
+    expect(holder.current?.authState).toEqual({ name: 'buyer', capturedAt: null })
+
+    await act(async () => {
+      socket.emit(sessionState({ name: 'buyer', capturedAt: '2026-11-14T10:00:00.000Z' }))
+    })
+    expect(holder.current?.authState).toEqual({ name: 'buyer', capturedAt: '2026-11-14T10:00:00.000Z' })
+
+    await act(async () => {
+      socket.emit(sessionState(null))
+    })
+    expect(holder.current?.authState).toBeNull()
+
+    await act(async () => {
+      socket.emit(sessionState({ name: 'buyer', capturedAt: null }))
+    })
+    await act(async () => {
+      root?.render(createElement(Harness, { sessionId: 'session-next' }))
+    })
+    expect(holder.current?.authState).toBeNull()
+  })
+})

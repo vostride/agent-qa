@@ -119,7 +119,7 @@ import {
   writeAuthStateFiles,
   type AuthStateMetadata,
 } from '@vostride/agent-qa-core'
-import type { RuntimeAuthStateConfig } from '@vostride/agent-qa-runner'
+import { parseHookInline, type RuntimeAuthStateConfig } from '@vostride/agent-qa-runner'
 import { ConfigManager } from '../../config/index.js'
 import { LiveSession } from '../live-session.js'
 import type { LiveSessionConfig, ServerMessage } from '../types.js'
@@ -469,6 +469,198 @@ describe('a live session mounts the auth state its config names', () => {
     Object.assign(session as unknown as Record<string, unknown>, { platform: 'android' })
 
     expect(session.getState().authState).toBeNull()
+  })
+})
+
+const hookDef = (id: string) => ({
+  id,
+  name: id,
+  runtime: 'node' as const,
+  file: `/tmp/${id}.js`,
+  deps: [],
+  timeout: 30_000,
+  network: false,
+})
+
+function passingHooks(hooks: Array<{ name: string }>) {
+  return {
+    results: new Map(hooks.map((hook) => [hook.name, {
+      success: true,
+      variables: {},
+      output: '',
+      stdout: '',
+      stderr: '',
+      duration: 1,
+    }])),
+    variables: {},
+    allPassed: true,
+    duration: 1,
+  }
+}
+
+describe('a live session gives its hooks the auth state a run gives them', () => {
+  let tempDir: string
+  let configPath: string
+  let configManager: ConfigManager
+  let payloadPath: string
+
+  beforeEach(async () => {
+    vi.clearAllMocks()
+    real.adapter = false
+    mockRunHooks.mockImplementation(async (hooks: Array<{ name: string }>) => passingHooks(hooks))
+    mockRunHookInSandbox.mockResolvedValue({
+      success: false,
+      variables: {},
+      output: '',
+      stdout: '',
+      stderr: 'stopped here',
+      duration: 1,
+    })
+    mockVariableStoreInstance.getAll.mockReturnValue(new Map())
+    mockVariableStoreInstance.snapshot.mockReturnValue({})
+    mockStorageState.mockResolvedValue(STORAGE_STATE)
+    mockGetPage.mockReturnValue({
+      context: () => ({ storageState: mockStorageState }),
+      evaluate: vi.fn(),
+      url: () => 'https://staging.example.com/dashboard',
+    })
+    tempDir = await mkdtemp(join(tmpdir(), 'agent-qa-live-auth-hooks-'))
+    configPath = join(tempDir, 'agent-qa.config.yaml')
+    configManager = new ConfigManager(configPath, (text) => text)
+    await writeFile(configPath, [
+      'registry:',
+      '  targets:',
+      '    staging-web:',
+      '      platform: web',
+      '      url: https://staging.example.com',
+      '',
+    ].join('\n'))
+    payloadPath = join(tempDir, 'buyer.json')
+    await writeFile(payloadPath, JSON.stringify(STORAGE_STATE))
+  })
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true })
+  })
+
+  async function start(
+    authState: LiveSessionConfig['authState'],
+    messages: ServerMessage[] = [],
+  ): Promise<LiveSession> {
+    const session = new LiveSession('auth-hooks-session', { configManager, configPath })
+    session.attachMessageSink((message) => messages.push(message))
+    await session.initialize({
+      ...webConfig,
+      targetName: 'staging-web',
+      setupHooks: ['h-setup'],
+      teardownHooks: ['h-teardown'],
+      resolvedHooks: new Map([
+        ['h-setup', hookDef('h-setup')],
+        ['h-teardown', hookDef('h-teardown')],
+        ['h-inline', hookDef('h-inline')],
+      ]),
+      ...(authState === undefined ? {} : { authState }),
+    })
+    return session
+  }
+
+  function hookOptions(callIndex: number): Record<string, unknown> {
+    return mockRunHooks.mock.calls[callIndex]?.[1] as Record<string, unknown>
+  }
+
+  async function runInlineHook(session: LiveSession): Promise<Record<string, unknown>> {
+    vi.mocked(parseHookInline).mockReturnValueOnce([{ hookId: 'h-inline' }] as never)
+    await session.executeStepCommand('{{hook:h-inline}} open the cart')
+    return mockRunHookInSandbox.mock.calls[0]?.[1] as Record<string, unknown>
+  }
+
+  it('gives setup, teardown and inline hooks the resolved state, setup before the adapter', async () => {
+    const order: string[] = []
+    mockRunHooks.mockImplementationOnce(async (hooks: Array<{ name: string }>) => {
+      order.push('setup-hook')
+      return passingHooks(hooks)
+    })
+    mockSetup.mockImplementationOnce(async () => { order.push('adapter') })
+    const resolved = resolvedFixture(payloadPath)
+    const session = await start({ name: 'buyer', load: true, resolved })
+
+    expect(order).toEqual(['setup-hook', 'adapter'])
+    expect(hookOptions(0).authState).toEqual(resolved)
+
+    await session.executeHookCommand('teardown', 'h-teardown')
+    expect(hookOptions(1).authState).toEqual(resolved)
+
+    expect((await runInlineHook(session)).authState).toEqual(resolved)
+  })
+
+  it('gives the hooks no state when none was resolved', async () => {
+    const session = await start({ name: 'buyer', load: true })
+
+    expect(hookOptions(0).authState).toBeUndefined()
+    await session.executeHookCommand('teardown', 'h-teardown')
+    expect(hookOptions(1).authState).toBeUndefined()
+    expect((await runInlineHook(session)).authState).toBeUndefined()
+  })
+
+  it('makes a capture of the named state the session state, says so once, and gives it to later hooks', async () => {
+    const messages: ServerMessage[] = []
+    const session = await start({ name: 'buyer', load: true }, messages)
+    messages.length = 0
+
+    const metadata = await session.captureWebAuthState('buyer')
+
+    expect(session.getState().authState).toEqual({ name: 'buyer', capturedAt: metadata.capturedAt })
+    const stateMessages = messages.filter((message) => message.type === 'session-state')
+    expect(stateMessages).toHaveLength(1)
+    expect(stateMessages[0]).toMatchObject({ state: { authState: { name: 'buyer', capturedAt: metadata.capturedAt } } })
+    for (const leaked of [SECRET_COOKIE_VALUE, SECRET_LOCAL_STORAGE_VALUE, '.json']) {
+      expect(JSON.stringify(messages)).not.toContain(leaked)
+    }
+
+    await session.executeHookCommand('teardown', 'h-teardown')
+    const written = resolveAuthStatePaths({
+      configDir: tempDir,
+      targetName: 'staging-web',
+      stateName: 'buyer',
+      target: { platform: 'web' },
+    })
+    expect(hookOptions(1).authState).toMatchObject({
+      stateName: 'buyer',
+      targetName: 'staging-web',
+      capturedAt: metadata.capturedAt,
+      storageStatePath: written.payloadPath,
+    })
+  })
+
+  it('leaves the session state alone when another name is captured', async () => {
+    const messages: ServerMessage[] = []
+    const session = await start({ name: 'buyer', load: true }, messages)
+    messages.length = 0
+
+    await session.captureWebAuthState('someone-else')
+
+    expect(session.getState().authState).toEqual({ name: 'buyer', capturedAt: null })
+    expect(messages.filter((message) => message.type === 'session-state')).toHaveLength(0)
+  })
+
+  it('a session that names no state is unchanged by a capture', async () => {
+    const messages: ServerMessage[] = []
+    const session = await start(undefined, messages)
+    messages.length = 0
+
+    await session.captureWebAuthState('buyer')
+
+    expect(session.getState().authState).toBeNull()
+    expect(messages.filter((message) => message.type === 'session-state')).toHaveLength(0)
+  })
+
+  it('a load false session that captures its named state reports it from then on', async () => {
+    const session = await start({ name: 'buyer', load: false })
+    expect(session.getState().authState).toBeNull()
+
+    const metadata = await session.captureWebAuthState('buyer')
+
+    expect(session.getState().authState).toEqual({ name: 'buyer', capturedAt: metadata.capturedAt })
   })
 })
 

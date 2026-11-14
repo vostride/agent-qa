@@ -460,3 +460,44 @@ describe('LiveSessionPane shared live preview', () => {
   })
 })
 
+
+describe('LiveSessionPane signed-out auth state notice', () => {
+  const SENTENCE = 'Auth state "buyer" for target "komazon" was not found or could not be read, so this session started signed out. Sign in here, then use Save auth state to capture it.'
+  const HOOKS_NOTICE = 'Hook order or names changed after this live session started.'
+
+  function occurrences(text: string): number {
+    return (container.textContent ?? '').split(text).length - 1
+  }
+
+  it('shows the sentence once for a session that started signed out', () => {
+    renderPane({ signedOutAuthState: { name: 'buyer', targetName: 'komazon' } })
+
+    expect(occurrences(SENTENCE)).toBe(1)
+  })
+
+  it('shows nothing when no state is missing', () => {
+    renderPane({ signedOutAuthState: null })
+
+    expect(container.textContent).not.toContain('started signed out')
+  })
+
+  it('shows nothing in a terminal state', () => {
+    renderPane({
+      signedOutAuthState: { name: 'buyer', targetName: 'komazon' },
+      terminalState: { reason: 'ended', title: 'Session ended', description: 'Start a fresh session.' },
+    })
+
+    expect(container.textContent).not.toContain('started signed out')
+  })
+
+  it('shows it beside the hooks-changed notice, each once', () => {
+    renderPane({
+      signedOutAuthState: { name: 'buyer', targetName: 'komazon' },
+      setupHooksStale: true,
+      onRestartSession: vi.fn(),
+    })
+
+    expect(occurrences(SENTENCE)).toBe(1)
+    expect(occurrences(HOOKS_NOTICE)).toBe(1)
+  })
+})

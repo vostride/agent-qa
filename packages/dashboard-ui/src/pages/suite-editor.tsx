@@ -177,6 +177,10 @@ export default function SuiteEditorPage() {
     ? selectedTargetName
     : null
   const draftAuthStateName = useMemo(() => readDraftAuthStateName(content), [content])
+  const sessionAuthState = liveEditor.authState
+  const signedOutAuthState = sessionAuthState && sessionAuthState.capturedAt === null && activeAuthStateTargetName
+    ? { name: sessionAuthState.name, targetName: activeAuthStateTargetName }
+    : null
 
   // Only setup and teardown make hooks stale; test-list edits flow through with no banner.
   const setupHooksStale = hasLiveSession
@@ -797,6 +801,7 @@ export default function SuiteEditorPage() {
         isSaving: isSavingAuthState,
         onSave: handleSaveLiveAuthState,
       } : null}
+      signedOutAuthState={signedOutAuthState}
     />
   )
 

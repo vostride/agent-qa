@@ -113,6 +113,18 @@ export interface LiveDraftMetadata {
   testContext?: string
 }
 
+export interface LiveSessionAuthState {
+  name: string
+  capturedAt: string | null
+}
+
+function readSessionAuthState(value: unknown): LiveSessionAuthState | null {
+  if (value === null || typeof value !== 'object') return null
+  const { name, capturedAt } = value as { name?: unknown; capturedAt?: unknown }
+  if (typeof name !== 'string') return null
+  return { name, capturedAt: typeof capturedAt === 'string' ? capturedAt : null }
+}
+
 export interface LiveHookExecution {
   id: string
   executionId?: string | null
@@ -191,6 +203,7 @@ export interface UseLiveEditorReturn {
   sessionGone: boolean
   deviceLogs: Array<{ level: string; message: string; timestamp: number }>
   platform: 'web' | 'android' | 'ios'
+  authState: LiveSessionAuthState | null
   ariaTree: string | null
   requestAriaTree: () => void
   isRunningAll: boolean
@@ -436,6 +449,8 @@ export function useLiveEditor(
   const [isRunningAllTests, setIsRunningAllTests] = useState(false)
   const [isStoppingRunAllTests, setIsStoppingRunAllTests] = useState(false)
   const [sessionGone, setSessionGone] = useState(false)
+  // The session's named auth state; capturedAt null when it started signed out.
+  const [authState, setAuthState] = useState<LiveSessionAuthState | null>(null)
 
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectCountRef = useRef(0)
@@ -986,6 +1001,9 @@ export function useLiveEditor(
           if (msg.state && 'currentUrl' in msg.state) {
             setCurrentUrl(msg.state.currentUrl ?? null)
           }
+          if (msg.state && 'authState' in msg.state) {
+            setAuthState(readSessionAuthState(msg.state.authState))
+          }
           if (msg.state?.interactive === false) {
             setConnectionState('error')
             setError(msg.state.terminalError ?? 'Live session is not ready')
@@ -1129,6 +1147,7 @@ export function useLiveEditor(
 
   useEffect(() => {
     setSessionGone(false)
+    setAuthState(null)
     if (!sessionId) {
       setConnectionState('idle')
       setSteps(externalSteps ? syncExternalSteps([], externalSteps) : [])
@@ -1573,6 +1592,7 @@ export function useLiveEditor(
     sessionGone,
     deviceLogs,
     platform,
+    authState,
     ariaTree,
     requestAriaTree,
     isRunningAll,
