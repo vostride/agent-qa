@@ -52,7 +52,15 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "appium": "4.0.0-beta.7",
+    "@appium/base-driver": "11.0.0-beta.7",
+    "@appium/base-plugin": "4.0.0-beta.7",
+    "@appium/docutils": "4.0.0-beta.7",
+    "@appium/http-server": "1.0.0-beta.7",
+    "@appium/logger": "3.0.0-beta.2",
+    "@appium/schema": "2.0.0-beta.4",
+    "@appium/support": "8.0.0-beta.7",
+    "@appium/types": "2.0.0-beta.6",
+    "appium": "4.0.0-beta.8",
     "appium-uiautomator2-driver": "9.0.2",
     "appium-xcuitest-driver": "13.0.8",
     "tree-kill": "1.2.2"

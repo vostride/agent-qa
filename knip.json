@@ -9,5 +9,17 @@
     }
   },
   "ignoreBinaries": ["adb", "mkfifo"],
-  "ignoreDependencies": ["publint", "@arethetypeswrong/core", "@sentry/cli"]
+  "ignoreDependencies": [
+    "publint",
+    "@arethetypeswrong/core",
+    "@sentry/cli",
+    "@appium/base-driver",
+    "@appium/base-plugin",
+    "@appium/docutils",
+    "@appium/http-server",
+    "@appium/logger",
+    "@appium/schema",
+    "@appium/support",
+    "@appium/types"
+  ]
 }

@@ -63,7 +63,7 @@ export function findDepReconciliationOffenders(
       : findSetMismatchOffenders(
           `${contract.packageDir} package.json vs contract`,
           packageJsonDeps.dependencies,
-          [...contract.externalDependencies].sort(),
+          [...contract.externalDependencies, ...(contract.resolutionPins ?? [])].sort(),
         )),
   ]
 }
