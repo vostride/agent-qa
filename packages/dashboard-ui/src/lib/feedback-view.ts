@@ -25,6 +25,7 @@ import type {
 import type { FeedbackReadFailure, MarksHistoryRead } from './api'
 import { UNNAMED_STEP_LABEL } from './display-step'
 import { memberDisplayName, memberHandleLabel } from './run-detail-view'
+import { t } from "@/lib/i18n"
 
 /** A UI pointer to a mark address, never a new identity. */
 export interface FeedbackTarget {
@@ -940,11 +941,11 @@ export const HISTORY_EMPTY_TEXT = {
 export function historyStateText(state: 'run-not-found' | 'ledger-corrupt' | 'ledger-unavailable', line?: number): string {
   switch (state) {
     case 'run-not-found':
-      return "This run's feedback history can't be found."
+      return t("This run's feedback history can't be found.")
     case 'ledger-corrupt':
       return `This run's feedback history is damaged at line ${String(line)}, so it can't be shown.`
     case 'ledger-unavailable':
-      return "This run's feedback history can't be read right now."
+      return t("This run's feedback history can't be read right now.")
     default:
       return state satisfies never
   }

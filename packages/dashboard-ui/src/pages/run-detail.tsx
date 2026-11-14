@@ -55,6 +55,7 @@ import { getRunFaviconState, useRunStatusFavicon } from "@/hooks/use-run-status-
 import { hasStepId, isSubactionSelection, runDetailStepKey, type Selection } from "@/lib/selection"
 import { displayStepsForGroups, type DisplayStep } from "@/lib/display-step"
 import { buildTimelineModel, findMarkerBySha, latestUsableFrame, type PlayerSource, parkTargetForStep, playheadFromSelection, selectionFromPlayhead, type Playhead } from '@/lib/playhead'
+import { t } from "@/lib/i18n"
 
 const TAB_NAMES = ['overview', 'env', 'network', 'console', 'aria', 'a11y', 'knowledge'] as const
 
@@ -975,9 +976,9 @@ export default function RunDetailPage() {
     return (
       <EmptyState
         icon={FileSearch}
-        title="Run not found"
-        description="This test run doesn't exist or has been deleted"
-        actionLabel="View All Runs"
+        title={t("Run not found")}
+        description={t("This test run doesn't exist or has been deleted")}
+        actionLabel={t("View All Runs")}
         onAction={() => navigate(routes.runs)}
       />
     )
@@ -1048,7 +1049,7 @@ export default function RunDetailPage() {
                 <Collapsible className="mx-2 mt-1">
                   <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors group w-full">
                     <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
-                    <span>Error Details</span>
+                    <span>{t("Error Details")}</span>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <pre className="mt-1 text-xs font-mono bg-muted/30 border border-border/50 rounded-[2px] px-3 py-2 overflow-x-auto whitespace-pre-wrap max-h-60 overflow-y-auto text-foreground/70 select-text">

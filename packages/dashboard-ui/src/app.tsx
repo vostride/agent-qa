@@ -9,6 +9,7 @@ import {
 } from "react-router"
 import { routes } from "@/lib/routes"
 import { fetchAppMetadata, type AppMetadataResponse } from "@/lib/api"
+import { LanguageProvider } from "@/lib/i18n"
 import { ThemeProvider } from "@/components/theme-provider"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -413,9 +414,11 @@ const router = createBrowserRouter([
 
 export default function App() {
   return (
-    <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <RouterProvider router={router} />
-      <Toaster richColors position="bottom-right" />
-    </ThemeProvider>
+    <LanguageProvider>
+      <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
+        <RouterProvider router={router} />
+        <Toaster richColors position="bottom-right" />
+      </ThemeProvider>
+    </LanguageProvider>
   )
 }

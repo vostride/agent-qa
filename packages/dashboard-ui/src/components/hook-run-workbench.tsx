@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn, formatDuration } from '@/lib/utils'
+import { t } from "@/lib/i18n"
 
 function formatRelativeCompact(iso: string): string {
   if (!iso) return 'just now'
@@ -66,7 +67,7 @@ export function HookRunWorkbench({
       <div className="border-b px-4 py-1.5">
         <TabsList variant="line" className="h-7 w-auto justify-start rounded-none p-0">
           <TabsTrigger value="inputs" className="flex-initial rounded-none px-2.5 text-xs">Input</TabsTrigger>
-          <TabsTrigger value="logs" className="flex-initial rounded-none px-2.5 text-xs">Run logs</TabsTrigger>
+          <TabsTrigger value="logs" className="flex-initial rounded-none px-2.5 text-xs">{t("Run logs")}</TabsTrigger>
         </TabsList>
       </div>
 
@@ -81,7 +82,7 @@ export function HookRunWorkbench({
             ) : null}
 
             <section className="space-y-2">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Workspace env</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("Workspace env")}</div>
               <div className="rounded-sm border bg-muted/20 px-3 py-2.5">
                 <div className="text-sm text-foreground">
                   {isBaselineLoading
@@ -103,7 +104,7 @@ export function HookRunWorkbench({
             <section className="space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
-                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Runtime variables</div>
+                  <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("Runtime variables")}</div>
                   <div className="text-sm text-muted-foreground">
                     Variables added for this run only. They override inherited workspace values and can model env
                     handoff between hooks.
@@ -139,14 +140,14 @@ export function HookRunWorkbench({
                           <Button
                             variant="ghost"
                             size="icon-sm"
-                            aria-label="Remove variable"
+                            aria-label={t("Remove variable")}
                             onClick={() => onRemoveOverride(row.id)}
                           >
                             <Trash className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                         {overridesEnv ? (
-                          <div className="mt-2 text-xs text-primary">Overrides .env</div>
+                          <div className="mt-2 text-xs text-primary">{t("Overrides .env")}</div>
                         ) : null}
                       </div>
                     )
@@ -172,7 +173,7 @@ export function HookRunWorkbench({
             ) : null}
 
             <section className="space-y-2">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Local runs</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t("Local runs")}</div>
               <div className="text-sm text-muted-foreground">
                 Recent hook runs stay in this browser and are not added to dashboard history.
               </div>

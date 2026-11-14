@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { useEvidenceRecords } from '@/hooks/use-evidence-records'
 import { EVIDENCE_COPY, resolveEvidenceView } from '@/lib/evidence-state-view'
 import { EvidenceLoading, EvidenceState } from './evidence-state'
+import { t } from "@/lib/i18n"
 
 interface TabConsoleProps {
   step: Pick<DisplayStep, 'stepOrder' | 'displayStepOrder' | 'consoleLogs' | 'testIndex' | 'stepIndex' | 'evidence'> | null
@@ -133,7 +134,7 @@ function ConsoleRecords({ step, allSteps, executionLogs, isHookStep }: Omit<TabC
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter..."
+            placeholder={t("Filter...")}
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
           {query && (
@@ -147,12 +148,12 @@ function ConsoleRecords({ step, allSteps, executionLogs, isHookStep }: Omit<TabC
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="rounded-sm">
-              <SelectItem value="all" className="text-xs">All levels</SelectItem>
-              <SelectItem value="error" className="text-xs">Errors</SelectItem>
-              <SelectItem value="warn" className="text-xs">Warnings</SelectItem>
-              <SelectItem value="info" className="text-xs">Info</SelectItem>
-              <SelectItem value="log" className="text-xs">Log</SelectItem>
-              <SelectItem value="debug" className="text-xs">Debug</SelectItem>
+              <SelectItem value="all" className="text-xs">{t("All levels")}</SelectItem>
+              <SelectItem value="error" className="text-xs">{t("Errors")}</SelectItem>
+              <SelectItem value="warn" className="text-xs">{t("Warnings")}</SelectItem>
+              <SelectItem value="info" className="text-xs">{t("Info")}</SelectItem>
+              <SelectItem value="log" className="text-xs">{t("Log")}</SelectItem>
+              <SelectItem value="debug" className="text-xs">{t("Debug")}</SelectItem>
             </SelectContent>
           </Select>
           {query && (
@@ -195,7 +196,7 @@ function ConsoleRecords({ step, allSteps, executionLogs, isHookStep }: Omit<TabC
 
         {hasHookOutput && hasConsoleLogs && (
           <div className="border-t border-border/30 pt-2 mb-1">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Browser Console</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t("Browser Console")}</span>
           </div>
         )}
 

@@ -14,6 +14,20 @@ const sidebarMock = vi.hoisted(() => ({
   restartTour: vi.fn(),
 }))
 
+const localeMock = vi.hoisted(() => ({
+  locale: "en" as "en" | "zh-CN",
+  getLocale: vi.fn<() => "en" | "zh-CN">(),
+  setLocale: vi.fn<(locale: "en" | "zh-CN") => void>(),
+  radioGroupValue: "en" as "en" | "zh-CN",
+  onValueChange: undefined as ((value: string) => void) | undefined,
+}))
+
+vi.mock("@/lib/i18n", () => ({
+  getLocale: () => localeMock.getLocale(),
+  setLocale: (locale: "en" | "zh-CN") => localeMock.setLocale(locale),
+  t: (key: string) => key,
+}))
+
 function icon(name: string) {
   return ({ className }: { className?: string }) => <svg data-icon={name} className={className} />
 }
@@ -30,6 +44,7 @@ vi.mock("lucide-react", () => ({
   SlidersHorizontal: icon("SlidersHorizontal"),
   Sun: icon("Sun"),
   Moon: icon("Moon"),
+  Languages: icon("Languages"),
   ChevronLeft: icon("ChevronLeft"),
   ChevronRight: icon("ChevronRight"),
   Bug: icon("Bug"),
@@ -101,6 +116,29 @@ vi.mock("@/components/ui/dropdown-menu", () => ({
       </button>
     )
   },
+  DropdownMenuRadioGroup: ({
+    children,
+    value,
+    onValueChange,
+  }: {
+    children: React.ReactNode
+    value: string
+    onValueChange?: (value: string) => void
+  }) => {
+    localeMock.onValueChange = onValueChange
+    localeMock.radioGroupValue = value as "en" | "zh-CN"
+    return <div data-testid="locale-radio-group">{children}</div>
+  },
+  DropdownMenuRadioItem: ({ children, value }: { children: React.ReactNode; value: string }) => (
+    <button
+      type="button"
+      data-testid={`locale-item-${value}`}
+      data-checked={localeMock.radioGroupValue === value}
+      onClick={() => localeMock.onValueChange?.(value)}
+    >
+      {children}
+    </button>
+  ),
 }))
 
 vi.mock("@/components/ui/sidebar", () => ({
@@ -147,6 +185,7 @@ vi.mock("@/components/ui/sidebar", () => ({
 }))
 
 import { AppSidebar } from "@/components/app-sidebar"
+import { LOCALE_SWITCH_CONFIRMATION, selectLocale } from "@/components/app-sidebar"
 
 describe("AppSidebar", () => {
   let container: HTMLDivElement
@@ -158,6 +197,10 @@ describe("AppSidebar", () => {
     sidebarMock.fetchAppMetadata.mockReset()
     sidebarMock.restartTour.mockReset()
     sidebarMock.fetchAppMetadata.mockResolvedValue({ version: "0.1.18" })
+    localeMock.locale = "en"
+    localeMock.getLocale.mockImplementation(() => localeMock.locale)
+    localeMock.setLocale.mockReset()
+    localeMock.onValueChange = undefined
   })
 
   afterEach(() => {
@@ -406,5 +449,110 @@ describe("AppSidebar", () => {
 
     expect(publicSurface).not.toMatch(/star/i)
     expect(container.querySelector('a[aria-label="Star us on GitHub"]')).toBeNull()
+  })
+
+  describe("language switching", () => {
+    let confirmSpy: ReturnType<typeof vi.spyOn>
+    let reloadSpy: ReturnType<typeof vi.fn>
+    let originalLocation: Location
+
+    beforeEach(() => {
+      confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true)
+      // jsdom freezes location.reload, so swap in a replaceable location object.
+      reloadSpy = vi.fn()
+      originalLocation = window.location
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        writable: true,
+        value: { ...originalLocation, reload: reloadSpy },
+      })
+    })
+
+    afterEach(() => {
+      confirmSpy.mockRestore()
+      Object.defineProperty(window, "location", {
+        configurable: true,
+        writable: true,
+        value: originalLocation,
+      })
+    })
+
+    it("renders a language menu with the active locale checked", async () => {
+      await renderSidebar()
+
+      const trigger = Array.from(container.querySelectorAll("button")).find(
+        (button) => button.textContent?.includes("Language"),
+      ) as HTMLButtonElement | undefined
+      expect(trigger).toBeDefined()
+
+      const zh = container.querySelector('[data-testid="locale-item-zh-CN"]')
+      const en = container.querySelector('[data-testid="locale-item-en"]')
+      expect(zh?.textContent).toBe("Simplified Chinese")
+      expect(en?.getAttribute("data-checked")).toBe("true")
+      expect(zh?.getAttribute("data-checked")).toBe("false")
+    })
+
+    it("confirms in both languages before persisting a switch and reloading", async () => {
+      await renderSidebar()
+
+      act(() => {
+        container.querySelector<HTMLButtonElement>('[data-testid="locale-item-zh-CN"]')?.click()
+      })
+
+      expect(confirmSpy).toHaveBeenCalledTimes(1)
+      const message = String(confirmSpy.mock.calls[0][0])
+      expect(message).toBe(LOCALE_SWITCH_CONFIRMATION)
+      expect(message).toContain("reload")
+      expect(message).toContain("unsaved")
+      expect(message).toContain("页面将重新加载")
+      expect(message).toContain("未保存")
+      expect(localeMock.setLocale).toHaveBeenCalledWith("zh-CN")
+      expect(reloadSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it("keeps the current locale and skips the reload when the prompt is cancelled", async () => {
+      confirmSpy.mockReturnValue(false)
+      await renderSidebar()
+
+      act(() => {
+        container.querySelector<HTMLButtonElement>('[data-testid="locale-item-zh-CN"]')?.click()
+      })
+
+      expect(confirmSpy).toHaveBeenCalledTimes(1)
+      expect(localeMock.setLocale).not.toHaveBeenCalled()
+      expect(reloadSpy).not.toHaveBeenCalled()
+    })
+
+    it("does nothing when the active language is selected again", async () => {
+      await renderSidebar()
+
+      act(() => {
+        container.querySelector<HTMLButtonElement>('[data-testid="locale-item-en"]')?.click()
+      })
+
+      expect(confirmSpy).not.toHaveBeenCalled()
+      expect(localeMock.setLocale).not.toHaveBeenCalled()
+      expect(reloadSpy).not.toHaveBeenCalled()
+    })
+
+    it("selectLocale guards a direct call with the same checks", () => {
+      selectLocale("zh-CN")
+      expect(confirmSpy).toHaveBeenCalledTimes(1)
+      expect(localeMock.setLocale).toHaveBeenCalledWith("zh-CN")
+      expect(reloadSpy).toHaveBeenCalledTimes(1)
+
+      confirmSpy.mockClear()
+      localeMock.setLocale.mockClear()
+      reloadSpy.mockClear()
+      confirmSpy.mockReturnValue(false)
+      selectLocale("en")
+      expect(confirmSpy).not.toHaveBeenCalled()
+
+      localeMock.locale = "zh-CN"
+      selectLocale("zh-CN")
+      expect(confirmSpy).not.toHaveBeenCalled()
+      expect(localeMock.setLocale).not.toHaveBeenCalled()
+      expect(reloadSpy).not.toHaveBeenCalled()
+    })
   })
 })

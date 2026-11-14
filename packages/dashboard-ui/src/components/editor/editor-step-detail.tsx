@@ -5,6 +5,7 @@ import { ConfidenceBadge } from '@/components/confidence-badge'
 import type { LiveSubAction } from '@/hooks/use-live-editor'
 import type { DisplayStep } from '@/lib/display-step'
 import { RESULT_WORDS } from '@/lib/action-vocabulary'
+import { t } from "@/lib/i18n"
 
 interface EditorStepDetailProps {
   step: DisplayStep
@@ -155,7 +156,7 @@ export function EditorStepDetail({ step, subAction }: EditorStepDetailProps) {
       {sections.length > 0 ? (
         <ReasoningPipeline mode="static" sections={sections} />
       ) : (
-        <p className="text-sm text-muted-foreground">No reasoning data yet.</p>
+        <p className="text-sm text-muted-foreground">{t("No reasoning data yet.")}</p>
       )}
 
       {step.error && (

@@ -7,6 +7,7 @@ import type { DisplayStep } from "@/lib/display-step"
 import { useEvidenceRecords } from '@/hooks/use-evidence-records'
 import { EVIDENCE_COPY, resolveEvidenceView } from '@/lib/evidence-state-view'
 import { EvidenceLoading, EvidenceState } from './evidence-state'
+import { t } from "@/lib/i18n"
 
 interface TabEnvProps {
   step: Pick<DisplayStep, 'variableSnapshot' | 'testIndex' | 'stepIndex' | 'evidence'> | null
@@ -122,7 +123,7 @@ function Variables({ step, executionLogs = [] }: { step: Pick<DisplayStep, 'vari
 
       <SectionHeader title="runJS" count={runjsLogs.length} defaultOpen={runjsLogs.length > 0}>
         {runjsLogs.length === 0 ? (
-          <EmptySection message="No runJS executions for this step" />
+          <EmptySection message={t("No runJS executions for this step")} />
         ) : (
           <div className="px-3 pb-2 space-y-2">
             {runjsLogs.map((log) => (
@@ -151,9 +152,9 @@ function Variables({ step, executionLogs = [] }: { step: Pick<DisplayStep, 'vari
         )}
       </SectionHeader>
 
-      <SectionHeader title="Hooks" count={hookLogs.length} defaultOpen={hookLogs.length > 0}>
+      <SectionHeader title={t("Hooks")} count={hookLogs.length} defaultOpen={hookLogs.length > 0}>
         {hookLogs.length === 0 ? (
-          <EmptySection message="No hooks ran for this step" />
+          <EmptySection message={t("No hooks ran for this step")} />
         ) : (
           <div className="px-3 pb-2 space-y-2">
             {hookLogs.map((log) => (
@@ -169,7 +170,7 @@ function Variables({ step, executionLogs = [] }: { step: Pick<DisplayStep, 'vari
                 </div>
                 {log.variables && Object.keys(log.variables).length > 0 && (
                   <div className="mt-1.5 space-y-0.5">
-                    <span className="text-muted-foreground text-[10px]">Emitted variables:</span>
+                    <span className="text-muted-foreground text-[10px]">{t("Emitted variables:")}</span>
                     {Object.entries(log.variables).map(([k, v]) => (
                       <div key={k} className="flex gap-2 pl-2 font-mono text-[11px]">
                         <span className="text-muted-foreground">{k}:</span>

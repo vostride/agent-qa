@@ -6,6 +6,7 @@ import type { StepAnnotation } from "@/lib/api"
 import { MediaAnnotationOverlay } from "./media-annotation-overlay"
 import { MediaViewport } from './media-viewport'
 import { cn } from "@/lib/utils"
+import { t } from "@/lib/i18n"
 
 // Takes a minted `src`, never a path: the route map is the one minter, so this builds no URL.
 interface ScreenshotViewerProps {
@@ -141,7 +142,7 @@ export function ScreenshotViewer({
       >
         <div className="text-muted-foreground flex flex-col items-center gap-2">
           <Camera className="h-8 w-8" />
-          <span className="text-sm">Screenshot unavailable</span>
+          <span className="text-sm">{t("Screenshot unavailable")}</span>
         </div>
       </div>
     )
@@ -239,7 +240,7 @@ export function ScreenshotViewer({
               size="icon-sm"
               className="h-7 w-7 bg-background/80 backdrop-blur-sm"
               onClick={(e) => { e.stopPropagation(); setFullscreen(true) }}
-              title="View full size"
+              title={t("View full size")}
             >
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>

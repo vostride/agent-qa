@@ -25,6 +25,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command"
+import { t } from "@/lib/i18n"
 
 const pages = [
   { title: "Runs", url: routes.runs, icon: Play },
@@ -196,19 +197,19 @@ export function CommandPalette() {
     <CommandDialog
       open={open}
       onOpenChange={setOpen}
-      title="Command Palette"
-      description="Search runs, tests, hooks, suites, and pages..."
+      title={t("Command Palette")}
+      description={t("Search runs, tests, hooks, suites, and pages...")}
       className="top-[18vh] translate-y-0"
     >
       <CommandInput
-        placeholder="Search runs, tests, hooks, suites, and pages..."
+        placeholder={t("Search runs, tests, hooks, suites, and pages...")}
         value={searchQuery}
         onValueChange={setSearchQuery}
       />
       <CommandList className="min-h-[320px]">
-        <CommandEmpty>No results found.</CommandEmpty>
+        <CommandEmpty>{t("No results found.")}</CommandEmpty>
 
-        <CommandGroup heading="Pages">
+        <CommandGroup heading={t("Pages")}>
           {pages.map((page) => (
             <CommandItem
               key={page.url}
@@ -216,13 +217,13 @@ export function CommandPalette() {
               onSelect={() => handleSelect(page.url)}
             >
               <page.icon />
-              <span>{page.title}</span>
+              <span>{t(page.title)}</span>
             </CommandItem>
           ))}
         </CommandGroup>
 
         <CommandSeparator />
-        <CommandGroup heading="Create">
+        <CommandGroup heading={t("Create")}>
           {createActions.map((action) => (
             <CommandItem
               key={action.url}
@@ -230,27 +231,27 @@ export function CommandPalette() {
               onSelect={() => handleSelect(action.url)}
             >
               <action.icon />
-              <span>{action.title}</span>
+              <span>{t(action.title)}</span>
             </CommandItem>
           ))}
         </CommandGroup>
 
         <CommandSeparator />
-        <CommandGroup heading="Help">
+        <CommandGroup heading={t("Help")}>
           <CommandItem
             value="help take product tour onboarding agent-qa"
             data-tour-id="tour-command-product-tour"
             onSelect={handleTakeProductTour}
           >
             <LifeBuoy />
-            <span>Take product tour</span>
+            <span>{t("Take product tour")}</span>
           </CommandItem>
         </CommandGroup>
 
         {searchResults.runs.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Runs">
+            <CommandGroup heading={t("Runs")}>
               {searchResults.runs.map((run) => (
                 <CommandItem
                   key={run.id}
@@ -271,7 +272,7 @@ export function CommandPalette() {
         {searchResults.tests.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Tests">
+            <CommandGroup heading={t("Tests")}>
               {searchResults.tests.map((test) => (
                 <CommandItem
                   key={test.path}
@@ -296,7 +297,7 @@ export function CommandPalette() {
         {searchResults.hooks.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Hooks">
+            <CommandGroup heading={t("Hooks")}>
               {searchResults.hooks.map((hook) => (
                 <CommandItem
                   key={hook.id}
@@ -317,7 +318,7 @@ export function CommandPalette() {
         {searchResults.suites.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Suites">
+            <CommandGroup heading={t("Suites")}>
               {searchResults.suites.map((suite) =>
                 suite.suiteId ? (
                   <CommandItem
@@ -344,7 +345,7 @@ export function CommandPalette() {
         {configResults.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Config">
+            <CommandGroup heading={t("Config")}>
               {configResults.map(({ tab, section }) => (
                 <CommandItem
                   key={`${tab}-${section}`}

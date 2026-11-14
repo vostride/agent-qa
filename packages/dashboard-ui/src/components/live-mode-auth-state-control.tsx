@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import type { AuthStateMetadata } from "@/lib/api"
 import { cn } from "@/lib/utils"
+import { t } from "@/lib/i18n"
 
 const AUTH_STATE_NAME_PATTERN = /^[a-z][a-z0-9-]*[a-z0-9]$/
 
@@ -101,7 +102,7 @@ export function LiveModeAuthStateControl({
             size="icon-sm"
             className="rounded-l-sm px-2"
             disabled={busy}
-            aria-label="Open auth state save form"
+            aria-label={t("Open auth state save form")}
             onClick={() => setOpen(true)}
           >
             {busy && capture.isSaving ? (
@@ -114,20 +115,20 @@ export function LiveModeAuthStateControl({
       </div>
       <PopoverContent align="end" className="w-[360px] max-w-[calc(100vw-32px)] space-y-4">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold">Save auth state</h3>
+          <h3 className="text-sm font-semibold">{t("Save auth state")}</h3>
           <p className="text-sm text-muted-foreground">
             Capture the current browser session for this target.
           </p>
         </div>
 
         <div className="rounded-md border bg-muted/30 px-3 py-2">
-          <div className="text-xs font-medium text-muted-foreground">Target</div>
+          <div className="text-xs font-medium text-muted-foreground">{t("Target")}</div>
           <div className="mt-1 min-w-0 font-mono text-xs [overflow-wrap:anywhere]">{targetName}</div>
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <Label htmlFor="auth-state-name">Auth state name</Label>
+            <Label htmlFor="auth-state-name">{t("Auth state name")}</Label>
             <Input
               id="auth-state-name"
               name="authStateName"
@@ -140,11 +141,11 @@ export function LiveModeAuthStateControl({
               aria-invalid={visibleError ? "true" : undefined}
               autoFocus
             />
-            <p className="text-xs text-muted-foreground">Use lowercase letters, numbers, and hyphens.</p>
+            <p className="text-xs text-muted-foreground">{t("Use lowercase letters, numbers, and hyphens.")}</p>
           </div>
 
           <div className="space-y-2">
-            <div className="text-xs font-medium text-muted-foreground">Saved for this target</div>
+            <div className="text-xs font-medium text-muted-foreground">{t("Saved for this target")}</div>
             {savedForTarget.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
                 {savedForTarget.map((state) => (
@@ -167,7 +168,7 @@ export function LiveModeAuthStateControl({
           {replacing && (
             <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-2 text-xs text-amber-700 dark:text-amber-300">
               <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-              <span>Existing auth state will be replaced.</span>
+              <span>{t("Existing auth state will be replaced.")}</span>
             </div>
           )}
 

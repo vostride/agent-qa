@@ -22,6 +22,7 @@ import type { HookCatalogEntry } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
+import { t } from '@/lib/i18n'
 
 type HookPhase = 'setup' | 'teardown'
 
@@ -54,7 +55,7 @@ function splitHookValues(raw: string): string[] {
 }
 
 function getEmptyStateLabel(phase: HookPhase): string {
-  return phase === 'setup' ? 'No setup hooks' : 'No teardown hooks'
+  return phase === 'setup' ? t('No setup hooks') : t('No teardown hooks')
 }
 
 function buildHookId(phase: HookPhase, value: string): string {
@@ -104,7 +105,7 @@ function SortableHookRow({
       <button
         type="button"
         className="mt-0.5 flex shrink-0 items-center p-0.5 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing touch-none disabled:cursor-not-allowed"
-        aria-label={`Reorder ${displayName}`}
+        aria-label={t('Reorder {name}', { name: displayName })}
         disabled={disabled}
         {...attributes}
         {...listeners}
@@ -133,7 +134,7 @@ function SortableHookRow({
               : 'text-amber-700 dark:text-amber-300',
           )}
         >
-          {isKnown ? 'Saved as stable ID' : 'Saved as stable ID - Not found in configured hooks file'}
+          {isKnown ? t('Saved as stable ID') : t('Saved as stable ID - Not found in configured hooks file')}
         </div>
       </div>
 
@@ -145,7 +146,7 @@ function SortableHookRow({
           className="text-muted-foreground"
           onClick={onRemove}
           disabled={disabled}
-          aria-label={`Remove ${displayName}`}
+          aria-label={t('Remove {name}', { name: displayName })}
         >
           <X className="size-3.5" />
         </Button>
@@ -161,7 +162,7 @@ export function TestHookListField({
   suggestions,
   onChange,
   disabled = false,
-  placeholder = 'Search hook names or paste an h_ ID',
+  placeholder = t('Search hook names or paste an h_ ID'),
 }: TestHookListFieldProps) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [inputValue, setInputValue] = useState('')
@@ -248,7 +249,7 @@ export function TestHookListField({
     )
 
     if (resolvedTokens.some((token) => token === null)) {
-      setComposerError('Search hook names or paste an h_ ID')
+      setComposerError(t('Search hook names or paste an h_ ID'))
       return
     }
 
@@ -297,7 +298,9 @@ export function TestHookListField({
         <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground/50">
-            {values.length} {values.length === 1 ? 'hook' : 'hooks'}
+            {values.length === 1
+              ? t('{count} hook', { count: values.length })
+              : t('{count} hooks', { count: values.length })}
           </span>
           <Button
             type="button"
@@ -307,7 +310,7 @@ export function TestHookListField({
             disabled={disabled}
           >
             <Plus className="size-3" />
-            Add Hook
+            {t('Add Hook')}
           </Button>
         </div>
       </div>
@@ -373,7 +376,7 @@ export function TestHookListField({
               disabled={disabled || (inputValue.trim().length === 0 && filteredSuggestions.length === 0)}
             >
               <Plus className="size-3.5" />
-              Add Hook
+              {t('Add Hook')}
             </Button>
           </div>
 
@@ -414,8 +417,8 @@ export function TestHookListField({
             ) : (
               <div className="px-3 py-2 text-xs text-muted-foreground">
                 {inputValue.trim()
-                  ? 'Search hook names or paste an h_ ID'
-                  : 'No matching hooks.'}
+                  ? t('Search hook names or paste an h_ ID')
+                  : t('No matching hooks.')}
               </div>
             )}
           </div>

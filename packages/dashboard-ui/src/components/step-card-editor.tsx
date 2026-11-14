@@ -35,6 +35,7 @@ import type { LiveSubAction } from '@/hooks/use-live-editor'
 import { RESULT_WORDS } from '@/lib/action-vocabulary'
 import type { StepOverrides } from '@/lib/test-yaml-serializer'
 import { cn } from '@/lib/utils'
+import { t } from "@/lib/i18n"
 
 export type StepCardLiveStatus =
   | 'idle'
@@ -320,7 +321,7 @@ export function StepCardEditor({
                 if (autocomplete.handleKeyDown(event)) return
               }}
               onBlur={() => { setTimeout(() => autocomplete.setVisible(false), 150) }}
-              placeholder="Describe what this step should do..."
+              placeholder={t("Describe what this step should do...")}
               disabled={disabled || isExecutingLiveStep}
               rows={1}
               className="min-w-0 w-full resize-none overflow-hidden border-none bg-transparent p-0 text-sm text-foreground outline-none placeholder:text-muted-foreground/40"
@@ -390,7 +391,7 @@ export function StepCardEditor({
                 isSettingsOpen && "bg-muted/60 text-foreground",
               )}
               aria-label={`Open settings for step ${index + 1}`}
-              title="Step settings"
+              title={t("Step settings")}
             >
               <SlidersHorizontal className="size-3.5" />
             </Button>
@@ -403,7 +404,7 @@ export function StepCardEditor({
                   size="icon-sm"
                   disabled={disabled || isExecutingLiveStep}
                   aria-label={`Delete step ${index + 1}`}
-                  title="Delete step"
+                  title={t("Delete step")}
                   className="text-muted-foreground/70 hover:text-destructive"
                 >
                   <X className="size-3.5" />
@@ -411,13 +412,13 @@ export function StepCardEditor({
               </AlertDialogTrigger>
               <AlertDialogContent size="sm">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete step?</AlertDialogTitle>
+                  <AlertDialogTitle>{t("Delete step?")}</AlertDialogTitle>
                   <AlertDialogDescription>
                     Step #{index + 1} will be removed. This cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>{t("Cancel")}</AlertDialogCancel>
                   <AlertDialogAction variant="destructive" onClick={() => onDelete(index)}>
                     Delete
                   </AlertDialogAction>
@@ -439,7 +440,7 @@ export function StepCardEditor({
                 id={`step-${index}-timeout`}
                 value={overrides.timeout ?? ''}
                 onChange={(event) => onOverrideChange(index, 'timeout', event.target.value || undefined)}
-                placeholder="e.g. 30s"
+                placeholder={t("e.g. 30s")}
                 disabled={disabled}
                 className="h-8 text-xs"
               />

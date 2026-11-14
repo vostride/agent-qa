@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { useEvidenceRecords } from '@/hooks/use-evidence-records'
 import { EVIDENCE_COPY, resolveEvidenceView } from '@/lib/evidence-state-view'
 import { EvidenceLoading, EvidenceState } from './evidence-state'
+import { t } from "@/lib/i18n"
 
 export function formatRelativeTime(offsetMs: number): string {
   if (offsetMs >= 1000) return `+${(offsetMs / 1000).toFixed(1)}s`
@@ -109,34 +110,34 @@ function ExpandedDetail({ entry }: { entry: NetworkEntry }) {
       <td colSpan={6} className="px-0 py-0">
         <div className="bg-muted/20 border-b border-border/50 px-4 py-3 space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <DetailSection label="Request Headers">
+            <DetailSection label={t("Request Headers")}>
               <HeadersTable headers={entry.requestHeaders ?? {}} />
             </DetailSection>
 
-            <DetailSection label="Response Headers">
+            <DetailSection label={t("Response Headers")}>
               <HeadersTable headers={entry.responseHeaders ?? {}} />
             </DetailSection>
           </div>
 
           {isPost && (
-            <DetailSection label="Request Body">
+            <DetailSection label={t("Request Body")}>
               {entry.requestBody ? (
                 <pre className="text-xs font-mono bg-background/60 rounded-sm px-3 py-2 overflow-x-auto max-h-48 whitespace-pre-wrap break-all">{entry.requestBody}</pre>
               ) : (
-                <span className="text-xs text-muted-foreground italic">No request body</span>
+                <span className="text-xs text-muted-foreground italic">{t("No request body")}</span>
               )}
             </DetailSection>
           )}
 
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Response Body</h4>
+              <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t("Response Body")}</h4>
               {entry.body && <CopyButton text={entry.body} />}
             </div>
             {entry.body ? (
               <ResponseBody body={entry.body} contentType={(entry.responseHeaders?.['content-type'] ?? '')} />
             ) : (
-              <span className="text-xs text-muted-foreground italic">Not captured</span>
+              <span className="text-xs text-muted-foreground italic">{t("Not captured")}</span>
             )}
           </div>
 
@@ -256,7 +257,7 @@ function NetworkRecords({ step, allSteps, platform }: Omit<TabNetworkProps, 'ste
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Filter..."
+          placeholder={t("Filter...")}
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
         {query && (
@@ -279,7 +280,7 @@ function NetworkRecords({ step, allSteps, platform }: Omit<TabNetworkProps, 'ste
               <th className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground">URL</th>
               <th className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground w-16">Status</th>
               <th className="text-right py-1.5 px-2 text-xs font-medium text-muted-foreground w-20">Time</th>
-              <th className="text-right py-1.5 px-2 text-xs font-medium text-muted-foreground w-20">Duration</th>
+              <th className="text-right py-1.5 px-2 text-xs font-medium text-muted-foreground w-20">{t("Duration")}</th>
             </tr>
           </thead>
           <tbody>

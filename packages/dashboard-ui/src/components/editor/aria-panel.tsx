@@ -1,5 +1,6 @@
 import { RefreshCw } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { t } from "@/lib/i18n"
 
 interface EditorAriaPanelProps {
   ariaTree: string | null
@@ -11,7 +12,7 @@ export function EditorAriaPanel({ ariaTree, onRefresh, isExecuting }: EditorAria
   if (!ariaTree) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2 text-sm text-muted-foreground">
-        <span>Run a step or click Fetch to capture the accessibility tree</span>
+        <span>{t("Run a step or click Fetch to capture the accessibility tree")}</span>
         {onRefresh && (
           <button
             type="button"
@@ -36,7 +37,7 @@ export function EditorAriaPanel({ ariaTree, onRefresh, isExecuting }: EditorAria
             onClick={onRefresh}
             disabled={isExecuting}
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-            aria-label="Refresh ARIA tree"
+            aria-label={t("Refresh ARIA tree")}
           >
             <RefreshCw className="size-3" />
             Refresh

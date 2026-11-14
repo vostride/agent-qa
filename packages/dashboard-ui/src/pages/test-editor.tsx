@@ -57,6 +57,7 @@ import { FileCode, Info } from "lucide-react"
 import { getWorkspaceFilenameError } from "@/lib/filename-validation"
 import { generateTestId } from "@/lib/generate-test-id"
 import { updateYamlField, yamlToFormState } from "@/lib/test-yaml-serializer"
+import { t } from "@/lib/i18n"
 
 const DEFAULT_TEMPLATE = `name: My Test
 test-id: ""
@@ -834,9 +835,9 @@ export default function TestEditorPage() {
     return (
       <EmptyState
         icon={FileCode}
-        title="Test not found"
-        description="This test file doesn't exist"
-        actionLabel="View All Tests"
+        title={t("Test not found")}
+        description={t("This test file doesn't exist")}
+        actionLabel={t("View All Tests")}
         onAction={() => navigate(routes.tests)}
       />
     )
@@ -1044,8 +1045,8 @@ export default function TestEditorPage() {
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
         <SheetContent side="right" className="sm:max-w-[400px] overflow-y-auto p-0">
           <SheetHeader className="px-4 pt-4 pb-2">
-            <SheetTitle>Test Settings</SheetTitle>
-            <SheetDescription>Advanced configuration for this test</SheetDescription>
+            <SheetTitle>{t("Test Settings")}</SheetTitle>
+            <SheetDescription>{t("Advanced configuration for this test")}</SheetDescription>
           </SheetHeader>
           <div className="px-4 pb-4">
             <TestSettingsPanel content={content} onChange={setContent} selectedTarget={displayFormState?.target} />
@@ -1061,8 +1062,8 @@ export default function TestEditorPage() {
             className="h-[100dvh] max-h-[100dvh] rounded-none p-0"
           >
             <SheetHeader className="sr-only">
-              <SheetTitle>Live Session</SheetTitle>
-              <SheetDescription>Live execution workspace for the current draft.</SheetDescription>
+              <SheetTitle>{t("Live Session")}</SheetTitle>
+              <SheetDescription>{t("Live execution workspace for the current draft.")}</SheetDescription>
             </SheetHeader>
             {livePane}
           </SheetContent>

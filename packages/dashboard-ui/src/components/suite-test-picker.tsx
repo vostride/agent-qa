@@ -8,6 +8,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import type { TestFileInfo } from '@/lib/api'
+import { t } from "@/lib/i18n"
 
 interface SuiteTestPickerProps {
   availableTests: TestFileInfo[]
@@ -30,9 +31,9 @@ export function SuiteTestPicker({ availableTests, onAdd, disabled = false }: Sui
   return (
     <div className="space-y-1.5">
       <Command className="rounded-md border">
-        <CommandInput placeholder="Search by test name, path, or ID..." disabled={disabled} />
+        <CommandInput placeholder={t("Search by test name, path, or ID...")} disabled={disabled} />
         <CommandList className="max-h-64">
-          <CommandEmpty>No tests match your query.</CommandEmpty>
+          <CommandEmpty>{t("No tests match your query.")}</CommandEmpty>
           <CommandGroup>
             {availableTests.map((tf) => (
               <CommandItem

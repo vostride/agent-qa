@@ -1,6 +1,7 @@
 import type { RunArtifactResponse } from "@/lib/api"
 import { DRAWER_COPY } from "@/lib/drawer-view"
 import { InspectorSection, isArtifactArray, isArtifactRecord, KeyValueTree, RawBlock } from "./artifact-renderers"
+import { t } from "@/lib/i18n"
 
 function valueAt(record: Record<string, unknown> | null, key: string): unknown {
   return record ? record[key] : undefined
@@ -45,7 +46,7 @@ export function ArtifactConfigTab({ response }: { response: RunArtifactResponse 
         {effectiveConfig == null ? DRAWER_COPY.notCaptured : <KeyValueTree label="effectiveConfig" value={effectiveConfig} />}
       </InspectorSection>
       <InspectorSection title={DRAWER_COPY.globalConfigAsWritten} data-drawer-section="global-config">
-        {rawConfig ? <RawBlock label="Raw global config" content={rawConfig} /> : DRAWER_COPY.notCaptured}
+        {rawConfig ? <RawBlock label={t("Raw global config")} content={rawConfig} /> : DRAWER_COPY.notCaptured}
       </InspectorSection>
       <InspectorSection title={DRAWER_COPY.model} data-drawer-section="model">
         {model == null ? DRAWER_COPY.notCaptured : <KeyValueTree label="model" value={model} />}

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { ShortcutKey, ShortcutLegend } from "@/components/shortcut-hints"
+import { t } from "@/lib/i18n"
 
 interface TestNavbarProps {
   testName: string
@@ -89,7 +90,7 @@ export function TestNavbar({
         </Link>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         {isCreateMode ? (
-          <span className="text-sm font-medium truncate">New Test</span>
+          <span className="text-sm font-medium truncate">{t("New Test")}</span>
         ) : testHref && !isViewMode ? (
           <Link to={testHref} className="truncate text-sm font-medium hover:text-primary transition-colors">
             {testName}
@@ -100,7 +101,7 @@ export function TestNavbar({
         {showEditCrumb && (
           <>
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="text-sm font-medium truncate">Edit</span>
+            <span className="text-sm font-medium truncate">{t("Edit")}</span>
           </>
         )}
         {unsaved && (

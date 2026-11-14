@@ -23,6 +23,7 @@ import {
 import type { MemberRow } from '@/lib/run-stream-reducer'
 
 import type { LiveStreamDeclaration } from '@vostride/agent-qa-schema'
+import { t } from "@/lib/i18n"
 
 export interface LivePreviewRunSubject {
   kind: 'run'
@@ -394,7 +395,7 @@ export function LivePreview({ subject, chrome }: LivePreviewProps) {
               data-live-embed
               sandbox="allow-scripts"
               src={withHostHint(mint.liveUrl)}
-              title="live preview"
+              title={t("live preview")}
               className="size-full border-0"
             />
           </div>

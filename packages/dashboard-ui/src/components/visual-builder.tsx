@@ -39,6 +39,7 @@ import {
   type TestFormState,
 } from '@/lib/test-yaml-serializer'
 import { cn } from '@/lib/utils'
+import { t } from "@/lib/i18n"
 
 interface VisualBuilderProps {
   content: string
@@ -273,7 +274,7 @@ export function VisualBuilder({
         {yamlError && (
           <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
             <AlertCircle className="size-4 shrink-0" />
-            <span>YAML has errors — builder shows last valid state</span>
+            <span>{t("YAML has errors — builder shows last valid state")}</span>
           </div>
         )}
 
@@ -293,7 +294,7 @@ export function VisualBuilder({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Webhook className="size-4 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground">Hooks</span>
+                  <span className="text-xs font-medium text-muted-foreground">{t("Hooks")}</span>
                 </div>
 
                 <span className="text-[10px] text-muted-foreground/50">
@@ -321,7 +322,7 @@ export function VisualBuilder({
                   values={display.setup}
                   suggestions={hooks}
                   disabled={disabled || yamlError}
-                  placeholder="Search hook names or paste an h_ ID"
+                  placeholder={t("Search hook names or paste an h_ ID")}
                   onChange={(values) => handleMetadataChange('setup', values)}
                 />
 
@@ -331,7 +332,7 @@ export function VisualBuilder({
                   values={display.teardown}
                   suggestions={hooks}
                   disabled={disabled || yamlError}
-                  placeholder="Search hook names or paste an h_ ID"
+                  placeholder={t("Search hook names or paste an h_ ID")}
                   onChange={(values) => handleMetadataChange('teardown', values)}
                 />
               </div>
@@ -341,7 +342,7 @@ export function VisualBuilder({
               {showLiveStepActions && (
                 <LiveHookSection
                   phase="setup"
-                  title="Setup Run Status"
+                  title={t("Setup Run Status")}
                   hooks={liveSetupHooks ?? []}
                   selection={selection ?? null}
                   onSelect={onSelect}
@@ -445,7 +446,7 @@ export function VisualBuilder({
               {showLiveStepActions && (
                 <LiveHookSection
                   phase="teardown"
-                  title="Teardown Run Status"
+                  title={t("Teardown Run Status")}
                   hooks={liveTeardownHooks ?? []}
                   selection={selection ?? null}
                   onSelect={onSelect}

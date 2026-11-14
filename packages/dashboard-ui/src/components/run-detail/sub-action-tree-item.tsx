@@ -3,6 +3,7 @@ import { readIdempotentNoopMeta, type RunDetailSubAction } from '@vostride/agent
 import { ActionSentence } from './action-sentence'
 import { CacheStatusIconWrapper } from './cache-status-marker'
 import { cn } from '@/lib/utils'
+import { t } from "@/lib/i18n"
 
 interface SubActionTreeItemProps {
   sub: RunDetailSubAction
@@ -50,7 +51,7 @@ export function SubActionTreeItem({ sub, stepId, cached, isSelected, isPlayheadR
               marker='sub-action-status'
               state='cached'
               tone='primary'
-              label='Cached action'
+              label={t("Cached action")}
             >
               {icon}
             </CacheStatusIconWrapper>

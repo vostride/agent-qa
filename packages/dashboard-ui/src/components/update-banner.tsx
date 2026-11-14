@@ -2,6 +2,7 @@ import { Check, CircleAlert, Copy, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { useClipboardCopy } from "@/hooks/use-clipboard-copy"
+import { t } from "@/lib/i18n"
 
 export const UPDATE_BANNER_DISMISS_COOKIE = "agent_qa_update_notice_dismissed"
 export const UPDATE_BANNER_DISMISS_MS = 24 * 60 * 60 * 1000
@@ -83,7 +84,7 @@ export function UpdateBanner({
       className="flex min-h-12 w-full items-center justify-between gap-3 border-b border-border bg-muted/70 px-4 text-[13px] text-foreground md:h-10 md:min-h-10"
     >
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="font-medium">Update available</span>
+        <span className="font-medium">{t("Update available")}</span>
         <span className="text-muted-foreground">
           agent-qa v{latestVersion} is available. You are using v{installedVersion}.
         </span>
@@ -96,7 +97,7 @@ export function UpdateBanner({
           View releases
         </a>
         <span className="flex items-center gap-1.5">
-          <span className="text-muted-foreground">Run in this project:</span>
+          <span className="text-muted-foreground">{t("Run in this project:")}</span>
           <code data-update-command className="rounded bg-background/70 px-1.5 py-0.5 font-mono">
             {UPDATE_COMMAND}
           </code>
@@ -132,7 +133,7 @@ export function UpdateBanner({
         type="button"
         variant="ghost"
         size="icon-lg"
-        aria-label="Dismiss update notice"
+        aria-label={t("Dismiss update notice")}
         onClick={onDismiss}
         className="-mr-2"
       >

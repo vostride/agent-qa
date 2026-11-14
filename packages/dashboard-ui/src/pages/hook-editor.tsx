@@ -40,6 +40,7 @@ import { generateHookId } from '@/lib/generate-hook-id'
 import { HOOK_RUNTIME_OPTIONS, buildHookDraft, getHookRuntimeMeta, runtimeToLanguage } from '@/lib/hook-runtime'
 import { routes } from '@/lib/routes'
 import { cn } from '@/lib/utils'
+import { t } from "@/lib/i18n"
 
 function InlineNotice({
   title,
@@ -402,9 +403,9 @@ export default function HookEditorPage() {
     return (
       <EmptyState
         icon={AlertTriangle}
-        title="Hook not found"
-        description="This hook doesn't exist or could not be loaded."
-        actionLabel="View All Hooks"
+        title={t("Hook not found")}
+        description={t("This hook doesn't exist or could not be loaded.")}
+        actionLabel={t("View All Hooks")}
         onAction={() => navigate(routes.hooks)}
       />
     )
@@ -424,24 +425,24 @@ export default function HookEditorPage() {
     >
       <div className="space-y-3 shrink-0">
         {saveError ? (
-          <InlineNotice title="Couldn't save this hook." body={saveError} tone="error" />
+          <InlineNotice title={t("Couldn't save this hook.")} body={saveError} tone="error" />
         ) : null}
 
         {fileMissingWarning ? (
           <InlineNotice
-            title="Hook file missing"
+            title={t("Hook file missing")}
             body="This hook is still registered, but its source file can't be found. Update the path or recreate the file, then save again."
           />
         ) : null}
 
         <section className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="hook-name">Hook name</Label>
+            <Label htmlFor="hook-name">{t("Hook name")}</Label>
             <Input
               id="hook-name"
               value={name}
               onChange={(event) => handleNameChange(event.currentTarget.value)}
-              placeholder="Capture auth session"
+              placeholder={t("Capture auth session")}
               aria-invalid={Boolean(nameError)}
             />
             {nameError ? <p className="text-xs text-destructive">{nameError.message}</p> : null}
@@ -463,7 +464,7 @@ export default function HookEditorPage() {
                   variant="ghost"
                   size="icon-sm"
                   onClick={handleRegenerateHookId}
-                  aria-label="Generate new hook ID"
+                  aria-label={t("Generate new hook ID")}
                 >
                   <RefreshCw className="size-3.5" />
                 </Button>
@@ -472,7 +473,7 @@ export default function HookEditorPage() {
           ) : null}
 
           <div className="space-y-1.5">
-            <Label htmlFor="hook-file">File path</Label>
+            <Label htmlFor="hook-file">{t("File path")}</Label>
             <Input
               id="hook-file"
               value={file}
@@ -502,7 +503,7 @@ export default function HookEditorPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="hook-timeout">Timeout</Label>
+              <Label htmlFor="hook-timeout">{t("Timeout")}</Label>
               <Input
                 id="hook-timeout"
                 value={timeout}
@@ -510,7 +511,7 @@ export default function HookEditorPage() {
                 placeholder="5s"
                 aria-invalid={Boolean(timeoutError)}
               />
-              <p className="text-xs text-muted-foreground">Examples: 5s, 10m, 250ms</p>
+              <p className="text-xs text-muted-foreground">{t("Examples: 5s, 10m, 250ms")}</p>
               {timeoutError ? <p className="text-xs text-destructive">{timeoutError.message}</p> : null}
             </div>
 

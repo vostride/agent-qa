@@ -21,6 +21,7 @@ import { ApiError, deleteHook, fetchHookDetail, type HookDeleteReference, type H
 import { getHookRuntimeMeta, runtimeToLanguage } from '@/lib/hook-runtime'
 import { routes } from '@/lib/routes'
 import { cn, formatDuration } from '@/lib/utils'
+import { t } from "@/lib/i18n"
 
 const VALID_HOOK_VIEWER_TABS = ['overview', 'source', 'run'] as const
 
@@ -256,9 +257,9 @@ export default function HookViewerPage() {
     return (
       <EmptyState
         icon={Wrench}
-        title="Hook not found"
-        description="This hook doesn't exist or could not be loaded."
-        actionLabel="View All Hooks"
+        title={t("Hook not found")}
+        description={t("This hook doesn't exist or could not be loaded.")}
+        actionLabel={t("View All Hooks")}
         onAction={() => navigate(routes.hooks)}
       />
     )
@@ -268,9 +269,9 @@ export default function HookViewerPage() {
     return (
       <EmptyState
         icon={AlertTriangle}
-        title="Hook couldn't be loaded"
+        title={t("Hook couldn't be loaded")}
         description={loadError ?? 'This hook could not be loaded right now.'}
-        actionLabel="View All Hooks"
+        actionLabel={t("View All Hooks")}
         onAction={() => navigate(routes.hooks)}
       />
     )
@@ -285,17 +286,17 @@ export default function HookViewerPage() {
     >
       <div className="space-y-3 shrink-0">
         {loadError ? (
-          <InlineNotice title="Hook could not be loaded" body={loadError} tone="error" />
+          <InlineNotice title={t("Hook could not be loaded")} body={loadError} tone="error" />
         ) : null}
         {fileMissing ? (
           <InlineNotice
-            title="Hook file missing"
+            title={t("Hook file missing")}
             body="This hook is still registered, but its source file can't be found. Update the path or recreate the file, then save again."
           />
         ) : null}
         {otherFieldErrors.length > 0 ? (
           <InlineNotice
-            title="Hook has recoverable authoring issues"
+            title={t("Hook has recoverable authoring issues")}
             body={otherFieldErrors.map((error) => error.message).join(' ')}
           />
         ) : null}
@@ -321,7 +322,7 @@ export default function HookViewerPage() {
                 </div>
               )}
             />
-            <RailField label="Timeout" value={formatDuration(detail.hook.timeout)} />
+            <RailField label={t("Timeout")} value={formatDuration(detail.hook.timeout)} />
             <RailField label="Network" value={detail.hook.network ? 'Enabled' : 'Disabled'} />
             <RailField label="Health" value={<HookStatusBadge fileMissing={fileMissing} />} />
           </div>
@@ -356,7 +357,7 @@ export default function HookViewerPage() {
           >
             <div>
               <AlertTriangle className="mx-auto h-5 w-5 text-muted-foreground" />
-              <div className="mt-3 text-sm font-medium text-foreground">No hook source found for this record.</div>
+              <div className="mt-3 text-sm font-medium text-foreground">{t("No hook source found for this record.")}</div>
               <div className="mt-1 text-sm text-muted-foreground">
                 Update the path or recreate the file in edit mode.
               </div>

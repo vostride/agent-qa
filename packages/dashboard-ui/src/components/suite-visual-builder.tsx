@@ -46,6 +46,7 @@ import {
   type SuiteTestEntry,
 } from '@/lib/suite-yaml-serializer'
 import { fetchTestFiles, type TestFileInfo } from '@/lib/api'
+import { t as tI18n } from "@/lib/i18n"
 
 interface SuiteVisualBuilderProps {
   content: string
@@ -285,7 +286,7 @@ export function SuiteVisualBuilder({
         {yamlError && (
           <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
             <AlertCircle className="size-4 shrink-0" />
-            <span>YAML has errors — builder shows last valid state</span>
+            <span>{tI18n("YAML has errors — builder shows last valid state")}</span>
           </div>
         )}
 
@@ -293,7 +294,7 @@ export function SuiteVisualBuilder({
           <div className="flex flex-wrap items-start justify-between gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
             <div className="flex min-w-0 flex-1 items-start gap-2">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-              <span>Setup hooks changed — restart session to re-apply the latest setup and teardown hooks.</span>
+              <span>{tI18n("Setup hooks changed — restart session to re-apply the latest setup and teardown hooks.")}</span>
             </div>
             {onRestartSession && (
               <Button type="button" size="sm" className="shrink-0" onClick={onRestartSession}>
@@ -319,7 +320,7 @@ export function SuiteVisualBuilder({
 
             {liveMode && (
               <LiveHookList
-                title="Setup Hooks (Live)"
+                title={tI18n("Setup Hooks (Live)")}
                 hooks={liveSetupHooks}
                 selection={selection}
                 onSelect={onSelect}
@@ -330,7 +331,7 @@ export function SuiteVisualBuilder({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Webhook className="size-4 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground">Hooks</span>
+                  <span className="text-xs font-medium text-muted-foreground">{tI18n("Hooks")}</span>
                 </div>
                 <span className="text-[10px] text-muted-foreground/50">
                   {display.setup.length + display.teardown.length}{' '}
@@ -356,7 +357,7 @@ export function SuiteVisualBuilder({
                   values={display.setup}
                   suggestions={hookCatalogEntries}
                   disabled={hookControlsDisabled}
-                  placeholder="Search hook names or paste an h_ ID"
+                  placeholder={tI18n("Search hook names or paste an h_ ID")}
                   onChange={(values) => handleMetadataChange('setup', values)}
                 />
                 <TestHookListField
@@ -365,7 +366,7 @@ export function SuiteVisualBuilder({
                   values={display.teardown}
                   suggestions={hookCatalogEntries}
                   disabled={hookControlsDisabled}
-                  placeholder="Search hook names or paste an h_ ID"
+                  placeholder={tI18n("Search hook names or paste an h_ ID")}
                   onChange={(values) => handleMetadataChange('teardown', values)}
                 />
               </div>
@@ -373,7 +374,7 @@ export function SuiteVisualBuilder({
 
             {liveMode && (
               <LiveHookList
-                title="Teardown Hooks (Live)"
+                title={tI18n("Teardown Hooks (Live)")}
                 hooks={liveTeardownHooks}
                 selection={selection}
                 onSelect={onSelect}
@@ -419,7 +420,7 @@ export function SuiteVisualBuilder({
                 </div>
               </div>
               {display.tests.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No tests added yet. Use the picker below.</p>
+                <p className="text-sm text-muted-foreground">{tI18n("No tests added yet. Use the picker below.")}</p>
               ) : (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={testIds} strategy={verticalListSortingStrategy}>
@@ -469,7 +470,7 @@ export function SuiteVisualBuilder({
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Available Tests</span>
+                <span className="text-xs font-medium text-muted-foreground">{tI18n("Available Tests")}</span>
                 <Button
                   type="button"
                   variant="outline"

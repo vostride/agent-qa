@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { ShortcutKey, ShortcutLegend } from "@/components/shortcut-hints"
+import { t } from "@/lib/i18n"
 
 interface SuiteNavbarProps {
   suiteName: string
@@ -88,7 +89,7 @@ export function SuiteNavbar({
         </Link>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         {isCreateMode ? (
-          <span className="text-sm font-medium truncate">New Suite</span>
+          <span className="text-sm font-medium truncate">{t("New Suite")}</span>
         ) : suiteHref && !isViewMode ? (
           <Link to={suiteHref} className="truncate text-sm font-medium hover:text-primary transition-colors">
             {suiteName}
@@ -99,7 +100,7 @@ export function SuiteNavbar({
         {showEditCrumb && (
           <>
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="text-sm font-medium truncate">Edit</span>
+            <span className="text-sm font-medium truncate">{t("Edit")}</span>
           </>
         )}
         {unsaved && (
@@ -220,7 +221,7 @@ export function SuiteNavbar({
                   </span>
                 </TooltipTrigger>
                 {hasLiveSession && (
-                  <TooltipContent>End the live session to queue a new suite run.</TooltipContent>
+                  <TooltipContent>{t("End the live session to queue a new suite run.")}</TooltipContent>
                 )}
               </Tooltip>
             )}

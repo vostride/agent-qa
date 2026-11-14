@@ -16,6 +16,7 @@ import {
   SelectContent,
   SelectItem,
 } from '@/components/ui/select'
+import { t } from "@/lib/i18n"
 
 interface TestSettingsPanelProps {
   content: string
@@ -58,9 +59,9 @@ interface ParsedAuthStateUse {
 }
 
 function inheritedAppStateLabel(value: MobileAppState | undefined): string {
-  if (value === 'preserve') return 'Preserve app data (inherited)'
-  if (value === 'reset') return 'Reset app data (inherited)'
-  return 'Select app state'
+  if (value === 'preserve') return t("Preserve app data (inherited)")
+  if (value === 'reset') return t("Reset app data (inherited)")
+  return t("Select app state")
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -344,7 +345,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-0.5">
-                <Label className="text-[11px] text-muted-foreground">Viewport W</Label>
+                <Label className="text-[11px] text-muted-foreground">{t("Viewport W")}</Label>
                 <Input
                   type="number"
                   value={viewportWidth ?? ''}
@@ -354,7 +355,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
                 />
               </div>
               <div className="space-y-0.5">
-                <Label className="text-[11px] text-muted-foreground">Viewport H</Label>
+                <Label className="text-[11px] text-muted-foreground">{t("Viewport H")}</Label>
                 <Input
                   type="number"
                   value={viewportHeight ?? ''}
@@ -371,7 +372,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
         <>
           <div className="space-y-1 opacity-50">
             <span className="text-sm font-semibold text-foreground tracking-tight">Browser</span>
-            <p className="text-[11px] text-muted-foreground">Not applicable to mobile targets</p>
+            <p className="text-[11px] text-muted-foreground">{t("Not applicable to mobile targets")}</p>
           </div>
           <Separator />
         </>
@@ -380,9 +381,9 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
       {!isMobile ? (
         <>
           <div className="space-y-2">
-            <span className="text-sm font-semibold text-foreground tracking-tight">Auth State</span>
+            <span className="text-sm font-semibold text-foreground tracking-tight">{t("Auth State")}</span>
             <div className="space-y-0.5">
-              <Label htmlFor="auth-state-name" className="text-[11px] text-muted-foreground">Auth state name</Label>
+              <Label htmlFor="auth-state-name" className="text-[11px] text-muted-foreground">{t("Auth state name")}</Label>
               <Input
                 id="auth-state-name"
                 value={draftAuthStateName}
@@ -391,11 +392,11 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
                 className="h-7 text-xs font-mono"
               />
               {authStateNameInvalid ? (
-                <p className="text-[11px] text-destructive">Auth state name must be a lowercase slug.</p>
+                <p className="text-[11px] text-destructive">{t("Auth state name must be a lowercase slug.")}</p>
               ) : null}
             </div>
             <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="auth-state-load" className="text-[11px] text-muted-foreground">Load before run</Label>
+              <Label htmlFor="auth-state-load" className="text-[11px] text-muted-foreground">{t("Load before run")}</Label>
               <Switch
                 id="auth-state-load"
                 checked={authStateControlsEnabled ? authStateLoad : true}
@@ -404,7 +405,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
               />
             </div>
             <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="auth-state-capture" className="text-[11px] text-muted-foreground">Capture after success</Label>
+              <Label htmlFor="auth-state-capture" className="text-[11px] text-muted-foreground">{t("Capture after success")}</Label>
               <Switch
                 id="auth-state-capture"
                 checked={authStateControlsEnabled ? authStateCapture : false}
@@ -430,7 +431,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
       ) : parsedAuthState.present ? (
         <>
           <div className="space-y-1 opacity-70">
-            <span className="text-sm font-semibold text-foreground tracking-tight">Auth State</span>
+            <span className="text-sm font-semibold text-foreground tracking-tight">{t("Auth State")}</span>
             <p className="text-[11px] text-muted-foreground">
               Web auth state is not available for mobile targets. Use Mobile / App state to preserve app data.
             </p>
@@ -453,7 +454,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
               />
             </div>
             <div className="space-y-0.5">
-              <Label className="text-[11px] text-muted-foreground">App state</Label>
+              <Label className="text-[11px] text-muted-foreground">{t("App state")}</Label>
               <Select
                 value={appState ?? ''}
                 onValueChange={(val) => handleAppStateSet(val as MobileAppState)}
@@ -462,8 +463,8 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
                   <SelectValue placeholder={inheritedAppStateLabel(gAppState)} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="preserve">Preserve app data</SelectItem>
-                  <SelectItem value="reset">Reset app data</SelectItem>
+                  <SelectItem value="preserve">{t("Preserve app data")}</SelectItem>
+                  <SelectItem value="reset">{t("Reset app data")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -474,7 +475,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
 
       {/* Timeouts */}
       <div className="space-y-2">
-        <span className="text-sm font-semibold text-foreground tracking-tight">Timeouts</span>
+        <span className="text-sm font-semibold text-foreground tracking-tight">{t("Timeouts")}</span>
         <div className="grid grid-cols-3 gap-2">
           <div className="space-y-0.5">
             <Label className="text-[11px] text-muted-foreground">Step</Label>
@@ -495,7 +496,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
             />
           </div>
           <div className="space-y-0.5">
-            <Label className="text-[11px] text-muted-foreground">Navigation</Label>
+            <Label className="text-[11px] text-muted-foreground">{t("Navigation")}</Label>
             <Input
               value={navTimeout ?? ''}
               onChange={(e) => handleSet(['use', 'timeout', 'navigation'], e.target.value || undefined)}
@@ -513,19 +514,19 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
         <span className="text-sm font-semibold text-foreground tracking-tight">Agent</span>
         <div className="grid grid-cols-3 gap-2">
           <PlannerLimitInput
-            label="Max Actions"
+            label={t("Max Actions")}
             value={plannerMaxActions}
             onCommit={(value) => handleSet(['use', 'planner', 'maxActions'], value)}
             placeholder={ih(g?.planner?.maxActions ?? DEFAULT_PLANNER_LIMITS.maxActions)}
           />
           <PlannerLimitInput
-            label="Planner Calls"
+            label={t("Planner Calls")}
             value={plannerMaxPlanningTurns}
             onCommit={(value) => handleSet(['use', 'planner', 'maxPlanningTurns'], value)}
             placeholder={ih(g?.planner?.maxPlanningTurns ?? DEFAULT_PLANNER_LIMITS.maxPlanningTurns)}
           />
           <div className="space-y-0.5">
-            <Label className="text-[11px] text-muted-foreground">Prev Steps</Label>
+            <Label className="text-[11px] text-muted-foreground">{t("Prev Steps")}</Label>
             <Input
               type="number"
               min={0}
@@ -542,7 +543,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
 
       {/* Log Capture */}
       <div className="space-y-2">
-        <span className="text-sm font-semibold text-foreground tracking-tight">Log Capture</span>
+        <span className="text-sm font-semibold text-foreground tracking-tight">{t("Log Capture")}</span>
         <div className="flex items-center justify-between">
           <Label className="text-[11px] text-muted-foreground">Console {logConsole === undefined && <span className="text-muted-foreground/50">{ihBool(gLogConsole)}</span>}</Label>
           <Switch
@@ -565,7 +566,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
       <div className="space-y-2">
         <span className="text-sm font-semibold text-foreground tracking-tight">LLM</span>
         <div className="space-y-0.5">
-          <Label className="text-[11px] text-muted-foreground">LLM Config</Label>
+          <Label className="text-[11px] text-muted-foreground">{t("LLM Config")}</Label>
           <Input
             value={llm ?? ''}
             onChange={(e) => handleSet(['use', 'llm'], e.target.value || undefined)}
@@ -596,12 +597,12 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
                 min={0}
                 value={retries ?? ''}
                 onChange={(e) => handleSet(['meta', 'retries'], e.target.value ? Number(e.target.value) : undefined)}
-                placeholder="0 (inherited)"
+                placeholder={t("0 (inherited)")}
                 className="h-7 text-xs"
               />
             </div>
             <div className="space-y-0.5">
-              <Label className="text-[11px] text-muted-foreground">Record {record === undefined && <span className="text-muted-foreground/50">(inherited: off)</span>}</Label>
+              <Label className="text-[11px] text-muted-foreground">Record {record === undefined && <span className="text-muted-foreground/50">{t("(inherited: off)")}</span>}</Label>
               <div className="flex items-center h-7">
                 <Switch
                   checked={record ?? false}

@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { t } from "@/lib/i18n"
 
 interface HookDeleteDialogProps {
   open: boolean
@@ -90,7 +91,7 @@ export function HookDeleteDialog({
             <div className="flex items-start gap-3 rounded-sm border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
               <div className="space-y-1">
-                <div className="font-medium text-foreground">Force delete only if you will fix these references immediately.</div>
+                <div className="font-medium text-foreground">{t("Force delete only if you will fix these references immediately.")}</div>
                 <div className="text-muted-foreground">
                   Remove or replace these hook usages first when possible.
                 </div>

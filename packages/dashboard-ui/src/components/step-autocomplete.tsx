@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { pillBgColor } from '@/components/run-detail/step-name-pills'
 import type { VariableSuggestion } from '@/hooks/use-variable-suggestions'
 import { cn } from '@/lib/utils'
+import { t } from '@/lib/i18n'
 
 interface AutocompleteContext {
   active: boolean
@@ -205,7 +206,7 @@ export function useStepAutocomplete({
           </div>
         ) : (
           <div className="px-3 py-2 text-sm italic text-muted-foreground text-center">
-            No matches
+            {t("No matches")}
           </div>
         )}
       </div>

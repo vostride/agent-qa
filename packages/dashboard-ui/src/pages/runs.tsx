@@ -30,6 +30,7 @@ import { useRunsSearchParams } from "@/hooks/use-runs-search-params"
 import { usePageTitle } from "@/hooks/use-page-title"
 import { useSelectionQueue } from "@/hooks/use-selection-queue"
 import { ShortcutLegend } from "@/components/shortcut-hints"
+import { t } from "@/lib/i18n"
 
 const NO_STATUSES: readonly string[] = []
 
@@ -58,7 +59,7 @@ function matchesSyntheticRunSearch(
 }
 
 export default function RunsPage() {
-  usePageTitle("Runs")
+  usePageTitle(t("Runs"))
   const navigate = useNavigate()
   const [runs, setRuns] = useState<RunRow[]>([])
   const [total, setTotal] = useState(0)
@@ -416,9 +417,9 @@ export default function RunsPage() {
       <div data-tour-id="tour-runs-table">
         <EmptyState
           icon={Play}
-          title="No test runs yet"
-          description="Run your first test to see results here"
-          actionLabel="View Tests"
+          title={t("No test runs yet")}
+          description={t("Run your first test to see results here")}
+          actionLabel={t("View Tests")}
           onAction={() => navigate(routes.tests)}
         />
       </div>
@@ -447,7 +448,7 @@ export default function RunsPage() {
             )}
           </TabsTrigger>
           <TabsTrigger value="completed">Completed</TabsTrigger>
-          <TabsTrigger value="failed">Failed</TabsTrigger>
+          <TabsTrigger value="failed">{t("Failed")}</TabsTrigger>
         </TabsList>
         {showConcurrency && queueStatus && (
           <Badge variant="outline" className="text-xs">
@@ -461,11 +462,11 @@ export default function RunsPage() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
       <div className="flex shrink-0 items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Runs</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("Runs")}</h1>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="Keyboard shortcuts">
+              <Button variant="ghost" size="icon-sm" aria-label={t("Keyboard shortcuts")}>
                 <Keyboard className="h-4 w-4" />
               </Button>
             </TooltipTrigger>

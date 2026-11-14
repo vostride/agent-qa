@@ -11,6 +11,7 @@ import type { DisplayStep } from "@/lib/display-step"
 import type { Selection } from "@/lib/selection"
 import type { Playhead } from '@/lib/playhead'
 import { cn, formatDuration } from "@/lib/utils"
+import { t } from "@/lib/i18n"
 
 function StepStatusIcon({ status }: { status: string }) {
   switch (status) {
@@ -66,7 +67,7 @@ export function StepTreeItem({ step, isSelected, isExpanded, selection, playhead
       marker="step-status"
       state="all"
       tone="primary"
-      label="All actions cached"
+      label={t("All actions cached")}
     >
       {stepStatusIcon}
     </CacheStatusIconWrapper>
