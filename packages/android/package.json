@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-android",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "private": false,
   "description": "agent-qa Android adapter for Appium-backed mobile testing.",
   "keywords": [

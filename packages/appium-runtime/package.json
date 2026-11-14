@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-appium-runtime",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "private": false,
   "description": "Carries Appium and the UiAutomator2 and XCUITest drivers at pinned versions and starts that Appium server for agent-qa.",
   "keywords": [
