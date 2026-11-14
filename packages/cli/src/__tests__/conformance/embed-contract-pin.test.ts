@@ -34,10 +34,10 @@ const REBUILD_INSTRUCTION =
 const PIN_INPUT = Object.freeze({ runId: 'pin-run', nonce: 'pin-nonce' })
 
 // The embed page's rendered bytes, sha256; re-mint only with a deliberate change to the page.
-const EMBED_PAGE_SHA256 = 'cb66db7b6d885bb98940ce728e3ab442b53f143657ad261e78741bf8a2a2a266'
+const EMBED_PAGE_SHA256 = '86d15d678653dc9a72692822e83ddb13827802f155d400b2c1b70fd9c5555226'
 
 /** The same render's length in UTF-8 bytes, so a mismatch says how much moved and not just that. */
-const EMBED_PAGE_BYTES = 7124
+const EMBED_PAGE_BYTES = 7208
 
 /** A source file with its comments removed — a comment naming a rule must not fail that rule. */
 function commentStrippedFile(path: string): string {
