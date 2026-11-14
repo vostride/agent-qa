@@ -18,6 +18,7 @@ export const PLAYER_COPY = {
 } as const
 export const PLAYER_SOURCE_STORAGE_KEY = 'agent-qa.run-detail.player-source'
 export const PLAYBACK_SPEEDS = [0.5, 1, 2, 4, 8, 16] as const
+export const DEFAULT_PLAYBACK_SPEED = 4
 export const VIDEO_UNTIMED_NOTE = 'This recording cannot be synchronized with the selected action. Switch to Frames to see its screenshot.'
 
 export function initialPlayerSource(recording: RecordingEntry | undefined, axis: TimelineAxis, storage?: Pick<Storage, 'getItem'>): PlayerSource {

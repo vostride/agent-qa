@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { EVIDENCE_COPY, resolveEvidenceView } from '@/lib/evidence-state-view'
 import { formatOffset, frameUsable, type PlayerSource, type Playhead, type TimelineModel, type UsableFrame } from '@/lib/playhead'
-import { captionModel, mediaErrorView, PLAYER_COPY, PLAYBACK_SPEEDS, storePlayerSource, VIDEO_UNTIMED_NOTE } from '@/lib/player-view'
+import { captionModel, DEFAULT_PLAYBACK_SPEED, mediaErrorView, PLAYER_COPY, PLAYBACK_SPEEDS, storePlayerSource, VIDEO_UNTIMED_NOTE } from '@/lib/player-view'
 import { routes } from '@/lib/routes'
 import { probeMediaError } from '@/lib/media-error-probe'
 import { frameAnnotation, videoActionOffset, videoActionCue } from '@/lib/frame-annotation'
@@ -316,7 +316,7 @@ function PlayerTime({ elapsedMs, totalMs }: { elapsedMs?: number; totalMs?: numb
 }
 
 export function Player(props: PlayerProps) {
-  const [speed, setSpeed] = useState(1)
+  const [speed, setSpeed] = useState(DEFAULT_PLAYBACK_SPEED)
   const [magnifier, setMagnifier] = useState(false)
   const [annotationsVisible, setAnnotationsVisible] = useState(true)
   const [fullscreen, setFullscreen] = useState(false)
