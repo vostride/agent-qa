@@ -1,3 +1,6 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { asRef } from '@vostride/agent-qa-schema'
 import { WebPlatformAdapter } from '../adapter.js'
@@ -405,22 +408,30 @@ describe('Integration: WebPlatformAdapter lifecycle', () => {
     )
   })
 
-  it('setup with auth state passes storageState to browser context before page creation', async () => {
-    await adapter.setup({
-      platform: 'web',
-      browser: { name: 'chromium' },
-      authState: {
-        version: 2,
-        kind: 'web',
-        targetName: 'staging-web',
-        stateName: 'admin',
-        capturedAt: '2026-05-17T00:00:00.000Z',
-        storageStatePath: '/tmp/internal/admin.json',
-      },
-    })
+  it('setup with auth state passes the payload to browser context before page creation', async () => {
+    const folder = await mkdtemp(join(tmpdir(), 'agent-qa-integration-auth-state-'))
+    const storageStatePath = join(folder, 'admin.json')
+    const payload = { cookies: [], origins: [{ origin: 'https://example.com', localStorage: [{ name: 'made-up', value: 'made-up-local' }] }] }
+    await writeFile(storageStatePath, JSON.stringify(payload))
+    try {
+      await adapter.setup({
+        platform: 'web',
+        browser: { name: 'chromium' },
+        authState: {
+          version: 2,
+          kind: 'web',
+          targetName: 'staging-web',
+          stateName: 'admin',
+          capturedAt: '2026-05-17T00:00:00.000Z',
+          storageStatePath,
+        },
+      })
+    } finally {
+      await rm(folder, { recursive: true, force: true })
+    }
 
     expect(mockBrowser.newContext).toHaveBeenCalledWith(
-      expect.objectContaining({ storageState: '/tmp/internal/admin.json' })
+      expect.objectContaining({ storageState: payload })
     )
     expect(mockBrowser.newContext.mock.invocationCallOrder[0]).toBeLessThan(
       mockContext.newPage.mock.invocationCallOrder[0]

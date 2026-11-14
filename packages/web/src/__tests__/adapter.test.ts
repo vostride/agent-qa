@@ -1,4 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { asRef } from '@vostride/agent-qa-schema'
 import { WebPlatformAdapter } from '../adapter.js'
 
@@ -54,6 +57,10 @@ const mockPage = {
   url: vi.fn().mockReturnValue('https://example.com'),
   title: vi.fn().mockResolvedValue('Example Page'),
   viewportSize: vi.fn().mockReturnValue({ width: 1280, height: 720 }),
+  route: vi.fn().mockResolvedValue(undefined),
+  unroute: vi.fn().mockResolvedValue(undefined),
+  goBack: vi.fn().mockResolvedValue(null),
+  close: vi.fn().mockResolvedValue(undefined),
 }
 
 const mockPage2 = {
@@ -163,26 +170,83 @@ describe('WebPlatformAdapter', () => {
     expect(page).not.toBeNull()
   })
 
-  it('loads selected auth storage state before creating the first page', async () => {
-    await adapter.setup({
-      platform: 'web',
-      browser: { name: 'chromium', headless: true },
-      authState: {
-        version: 2,
-        kind: 'web',
+  describe('auth state', () => {
+    let folder: string
+
+    beforeEach(async () => {
+      folder = await mkdtemp(join(tmpdir(), 'agent-qa-adapter-auth-state-'))
+    })
+
+    afterEach(async () => {
+      await rm(folder, { recursive: true, force: true })
+    })
+
+    async function authStateWith(payload: unknown) {
+      const storageStatePath = join(folder, 'admin.json')
+      await writeFile(storageStatePath, JSON.stringify(payload))
+      return {
+        version: 2 as const,
+        kind: 'web' as const,
         targetName: 'staging-web',
         stateName: 'admin',
         capturedAt: '2026-05-17T00:00:00.000Z',
-        storageStatePath: '/tmp/internal/admin.json',
-      },
+        storageStatePath,
+      }
+    }
+
+    it('hands the selected payload to the context before creating the first page', async () => {
+      const payload = {
+        cookies: [],
+        origins: [{ origin: 'https://example.com', localStorage: [{ name: 'made-up', value: 'made-up-local' }] }],
+      }
+      await adapter.setup({
+        platform: 'web',
+        browser: { name: 'chromium', headless: true },
+        authState: await authStateWith(payload),
+      })
+
+      expect(mockBrowser.newContext).toHaveBeenCalledWith(expect.objectContaining({ storageState: payload }))
+      expect(mockBrowser.newContext.mock.invocationCallOrder[0]).toBeLessThan(
+        mockContext.newPage.mock.invocationCallOrder[0],
+      )
+      expect(mockPage.route).not.toHaveBeenCalled()
     })
 
-    expect(mockBrowser.newContext).toHaveBeenCalledWith(expect.objectContaining({
-      storageState: '/tmp/internal/admin.json',
-    }))
-    expect(mockBrowser.newContext.mock.invocationCallOrder[0]).toBeLessThan(
-      mockContext.newPage.mock.invocationCallOrder[0],
-    )
+    it('opens the session on a fresh page when the sessionStorage restore fails, naming only the origin', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+      mockPage.goto.mockRejectedValueOnce(new Error('made-up refusal made-up-session-value'))
+      try {
+        await adapter.setup({
+          platform: 'web',
+          browser: { name: 'chromium', headless: true },
+          authState: await authStateWith({
+            cookies: [],
+            origins: [
+              {
+                origin: 'https://example.com',
+                localStorage: [],
+                sessionStorage: [{ name: 'made-up:user', value: 'made-up-session-value' }],
+              },
+            ],
+          }),
+        })
+
+        expect(mockPage.unroute).toHaveBeenCalledWith('**/*', mockPage.route.mock.calls[0]?.[1])
+        expect(mockPage.close).toHaveBeenCalled()
+        expect(adapter.getPage()).toBe(mockPage2)
+        expect(lastCallArg(mockBrowser.newContext).storageState).toEqual({ cookies: [], origins: [] })
+        expect(warn).toHaveBeenCalledTimes(1)
+        const message = String(warn.mock.calls[0]?.[0])
+        expect(message).toContain('Could not restore sessionStorage for https://example.com.')
+        expect(message).not.toContain('made-up-session-value')
+      } finally {
+        warn.mockRestore()
+      }
+    })
+  })
+
+  it('captureAuthState refuses before a browser context exists', async () => {
+    await expect(adapter.captureAuthState()).rejects.toThrow('WebPlatformAdapter has no browser context to capture')
   })
 
   describe('setup — navigation timeout', () => {
