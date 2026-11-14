@@ -33,7 +33,6 @@ import {
   PREVIEW_RUN_ENDED_TEXT,
   PREVIEW_SESSION_ENDED_TEXT,
   PREVIEW_UNAVAILABLE_TEXT,
-  SNAPSHOT_PREVIEW_LABEL,
   WAITING_ATTEMPT_LIMIT,
   WAITING_GAVE_UP_LABEL,
   WAITING_GAVE_UP_TEXT,
@@ -96,7 +95,6 @@ describe('the preview vocabulary', () => {
     expect(WAITING_ATTEMPT_LIMIT).toBe(24)
     expect(LIVE_PREVIEW_HOST_QUERY).toBe('?host=dashboard')
     expect(LIVE_EDITOR_SESSION_GONE_CLOSE_CODE).toBe(4404)
-    expect(SNAPSHOT_PREVIEW_LABEL).toBe('Snapshot preview · updates every 1s')
     expect(PREVIEW_LOADING_TEXT).toBe('Connecting to the preview…')
     expect(PREVIEW_DELAYED_TEXT).toBe('Preview delayed')
     expect(PREVIEW_RECONNECTING_TEXT).toBe('Reconnecting…')
@@ -246,21 +244,21 @@ describe('one machine for both entry points', () => {
     it('ONE-MACHINE-BOTH-ENTRY-POINTS: the same event script derives the same corner, step by step', () => {
       const trace = oneMachineScript(memberAnswered)
       expect(trace).toEqual([
-        { state: 'loading', words: PREVIEW_LOADING_TEXT, snapshot: false },
-        { state: 'loading', words: PREVIEW_LOADING_TEXT, snapshot: false },
-        { state: 'loading', words: PREVIEW_LOADING_TEXT, snapshot: false },
-        { state: 'live', dot: 'green', snapshot: false, frameSize: size },
-        { state: 'delayed', dot: 'amber', words: PREVIEW_DELAYED_TEXT, snapshot: false, frameSize: size },
-        { state: 'live', dot: 'green', snapshot: false, frameSize: size },
-        { state: 'reconnecting', dot: 'amber', words: PREVIEW_RECONNECTING_TEXT, snapshot: false, retryInMs: 1_000, frameSize: size },
-        { state: 'reconnecting', dot: 'amber', words: PREVIEW_RECONNECTING_TEXT, snapshot: false, retryInMs: 2_000, frameSize: size },
-        { state: 'reconnecting', dot: 'amber', words: PREVIEW_RECONNECTING_TEXT, snapshot: false, retryInMs: 4_000, frameSize: size },
-        { state: 'disconnected', dot: 'red', words: PREVIEW_DISCONNECTED_TEXT, action: 'reconnect', snapshot: false, frameSize: size },
-        { state: 'loading', words: PREVIEW_LOADING_TEXT, snapshot: false },
-        { state: 'loading', words: PREVIEW_LOADING_TEXT, snapshot: false },
-        { state: 'live', dot: 'green', snapshot: false, frameSize: size },
-        { state: 'expired', dot: 'red', words: PREVIEW_EXPIRED_TEXT, action: 'refresh', snapshot: false, frameSize: size },
-        { state: 'loading', words: PREVIEW_LOADING_TEXT, snapshot: false },
+        { state: 'loading', words: PREVIEW_LOADING_TEXT },
+        { state: 'loading', words: PREVIEW_LOADING_TEXT },
+        { state: 'loading', words: PREVIEW_LOADING_TEXT },
+        { state: 'live', dot: 'green', frameSize: size },
+        { state: 'delayed', dot: 'amber', words: PREVIEW_DELAYED_TEXT, frameSize: size },
+        { state: 'live', dot: 'green', frameSize: size },
+        { state: 'reconnecting', dot: 'amber', words: PREVIEW_RECONNECTING_TEXT, retryInMs: 1_000, frameSize: size },
+        { state: 'reconnecting', dot: 'amber', words: PREVIEW_RECONNECTING_TEXT, retryInMs: 2_000, frameSize: size },
+        { state: 'reconnecting', dot: 'amber', words: PREVIEW_RECONNECTING_TEXT, retryInMs: 4_000, frameSize: size },
+        { state: 'disconnected', dot: 'red', words: PREVIEW_DISCONNECTED_TEXT, action: 'reconnect', frameSize: size },
+        { state: 'loading', words: PREVIEW_LOADING_TEXT },
+        { state: 'loading', words: PREVIEW_LOADING_TEXT },
+        { state: 'live', dot: 'green', frameSize: size },
+        { state: 'expired', dot: 'red', words: PREVIEW_EXPIRED_TEXT, action: 'refresh', frameSize: size },
+        { state: 'loading', words: PREVIEW_LOADING_TEXT },
       ])
       expect(trace, 'the other entry point, same script').toEqual(oneMachineScript(ENTRY_POINTS[0].memberAnswered))
     })
@@ -328,28 +326,6 @@ describe('one machine for both entry points', () => {
     expect(deriveLivePreview(untimed, last + 11_000).dot).toBe('amber')
   })
 
-  it('SNAPSHOT-LABEL-IFF-SNAPSHOT-FRAME: the flag follows the newest frame, and only while green', () => {
-    expect(SNAPSHOT_PREVIEW_LABEL).toBe('Snapshot preview · updates every 1s')
-
-    const snap = liveAt(T, 'snapshot')
-    expect(deriveLivePreview(snap, T + 1_000)).toMatchObject({ state: 'live', dot: 'green', snapshot: true })
-
-    const fallback = reduceLivePreview(embedded(T, 'cdp-screencast'), frame(T, 'snapshot'), T)
-    expect(deriveLivePreview(fallback, T + 1_000).snapshot, 'the snapshot fallback under a screencast declaration').toBe(true)
-    const back = reduceLivePreview(fallback, frame(T + 1_000, 'cdp-screencast'), T + 1_000)
-    expect(deriveLivePreview(back, T + 1_500).snapshot).toBe(false)
-
-    const unlabelled = reduceLivePreview(embedded(T, 'snapshot'), frame(T), T)
-    expect(deriveLivePreview(unlabelled, T + 500).snapshot, 'a kind-less frame takes the declared kind').toBe(true)
-
-    expect(deriveLivePreview(snap, T + 5_000)).toMatchObject({ dot: 'amber', snapshot: false })
-    expect(deriveLivePreview(reduceLivePreview(snap, lost, T + 1_000), T + 1_000)).toMatchObject({ dot: 'amber', snapshot: false })
-    expect(deriveLivePreview(reduceLivePreview(snap, { type: 'renew-failed' }, T + 1_000), T + 1_000)).toMatchObject({
-      dot: 'red',
-      snapshot: false,
-    })
-  })
-
   it('LOST-RECONNECTS-THEN-DISCONNECTS: three quiet attempts on the backoff, then red with Reconnect', () => {
     let state = liveAt(T)
     for (let attempt = 1; attempt <= LIVE_RECONNECT_BACKOFF_MS.length; attempt += 1) {
@@ -390,7 +366,6 @@ describe('one machine for both entry points', () => {
         dot: 'red',
         words: PREVIEW_EXPIRED_TEXT,
         action: 'refresh',
-        snapshot: false,
         frameSize: size,
       })
     }
@@ -420,7 +395,6 @@ describe('one machine for both entry points', () => {
         dot: 'red',
         words: PREVIEW_SESSION_ENDED_TEXT,
         action: 'start-fresh',
-        snapshot: false,
       })
     }
   })
@@ -439,7 +413,6 @@ describe('one machine for both entry points', () => {
       expect(view.words).toBe(words)
       expect(view.dot, `${name} carries no alarm colour`).toBeUndefined()
       expect(view.action).toBeUndefined()
-      expect(view.snapshot).toBe(false)
     }
 
     const over = reduceLivePreview(liveAt(T), embed({ event: 'ended', reason: 'runFinished' }), T + 1)
@@ -449,7 +422,7 @@ describe('one machine for both entry points', () => {
 
   it('NOT-YET-VS-NO: a none before the member starts is waiting, after it is no-stream', () => {
     const notYet = reduceLivePreview(createInitialLivePreview(), minted('none', false), T)
-    expect(deriveLivePreview(notYet, T)).toEqual({ state: 'waiting', words: PREVIEW_LOADING_TEXT, snapshot: false })
+    expect(deriveLivePreview(notYet, T)).toEqual({ state: 'waiting', words: PREVIEW_LOADING_TEXT })
 
     const unknownRun = reduceLivePreview(createInitialLivePreview(), { type: 'mint-refused', word: 'unknown_run' }, T)
     expect(deriveLivePreview(unknownRun, T).state).toBe('waiting')
@@ -471,7 +444,6 @@ describe('one machine for both entry points', () => {
       state: 'no-stream',
       words: WAITING_GAVE_UP_TEXT,
       label: WAITING_GAVE_UP_LABEL,
-      snapshot: false,
     }
     expect(deriveLivePreview(state, T + 100_000)).toEqual(gaveUp)
     state = reduceLivePreview(state, minted('none', false), T + 110_000)
@@ -532,7 +504,6 @@ describe('one machine for both entry points', () => {
       expect(view.words ?? '', `${view.state} words`).not.toMatch(/\d/)
       expect(view.label ?? '', `${view.state} label`).not.toMatch(/\d/)
     }
-    expect(SNAPSHOT_PREVIEW_LABEL, 'the one number in the corner is the literal snapshot label').toMatch(/\d/)
   })
 
   it('PURE-AND-TOTAL: every event from every phase answers a state and never mutates its input', () => {

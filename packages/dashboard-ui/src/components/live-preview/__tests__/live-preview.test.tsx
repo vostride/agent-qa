@@ -26,7 +26,6 @@ import {
   PREVIEW_DISCONNECTED_TEXT,
   PREVIEW_EXPIRED_TEXT,
   RENEW_RETRY_MS,
-  SNAPSHOT_PREVIEW_LABEL,
 } from '@/lib/live-preview'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -286,18 +285,6 @@ describe('the corner dot', () => {
       corner: box?.querySelector('[data-preview-corner]') ?? null,
       words: box?.querySelector('[data-preview-words]') ?? null,
     }).toEqual({ dot: null, corner: null, words: null })
-  })
-
-  it('SNAPSHOT-LABEL: a snapshot frame puts the label first in the chrome\'s status cluster, with the green dot in its corner', async () => {
-    await mount(runSubject())
-    await post(frame(800, 600))
-    expect(q('[data-snapshot-label]'), 'a screencast frame carries no label').toBeNull()
-    await post(frame(800, 600, 'snapshot'))
-    const corner = q('[data-preview-chrome] [data-preview-corner]')
-    expect(corner?.firstElementChild?.hasAttribute('data-snapshot-label')).toBe(true)
-    expect(corner?.querySelector('[data-snapshot-label]')?.textContent).toBe(SNAPSHOT_PREVIEW_LABEL)
-    expect(corner?.querySelector('[data-live-dot]') ?? null).toBeNull()
-    expect(q('[data-preview-dot-corner] [data-live-dot]')?.getAttribute('data-live-dot')).toBe('green')
   })
 
   it('AMBER-WORDS: a frame then nothing for the freshness window turns the dot amber with its words', async () => {

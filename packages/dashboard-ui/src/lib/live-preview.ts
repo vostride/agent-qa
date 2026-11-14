@@ -117,7 +117,6 @@ export const LIVE_EDITOR_SESSION_GONE_CLOSE_CODE = 4404
 /** The server's close code for an editor control socket a newer one replaced; the page does not reconnect. */
 export const LIVE_EDITOR_SUPERSEDED_CLOSE_CODE = 4409
 
-export const SNAPSHOT_PREVIEW_LABEL = 'Snapshot preview · updates every 1s'
 export const PREVIEW_LOADING_TEXT = 'Connecting to the preview…'
 export const PREVIEW_DELAYED_TEXT = 'Preview delayed'
 export const PREVIEW_RECONNECTING_TEXT = 'Reconnecting…'
@@ -259,7 +258,6 @@ export interface LivePreviewView {
   words?: string
   label?: string
   action?: LivePreviewAction
-  snapshot: boolean
   retryInMs?: number
   frameSize?: { width: number; height: number }
 }
@@ -367,10 +365,9 @@ export function reduceLivePreview(state: LivePreviewMachine, event: LivePreviewE
   }
 }
 
-function view(state: LivePreviewMachine, fields: Omit<LivePreviewView, 'snapshot'> & { snapshot?: boolean }): LivePreviewView {
+function view(state: LivePreviewMachine, fields: LivePreviewView): LivePreviewView {
   const frame = state.frame
   return {
-    snapshot: false,
     ...fields,
     ...(frame === undefined ? {} : { frameSize: { width: frame.width, height: frame.height } }),
   }
@@ -388,7 +385,7 @@ export function deriveLivePreview(state: LivePreviewMachine, now: number): LiveP
       if (frame === undefined) return view(state, { state: 'loading', words: PREVIEW_LOADING_TEXT })
       const age = now - (frame.ts + (state.skew ?? 0))
       return age < LIVE_FRESHNESS_WINDOW_MS
-        ? view(state, { state: 'live', dot: 'green', snapshot: frame.kind === 'snapshot' })
+        ? view(state, { state: 'live', dot: 'green' })
         : view(state, { state: 'delayed', dot: 'amber', words: PREVIEW_DELAYED_TEXT })
     }
     case 'reconnecting': {

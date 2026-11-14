@@ -10,7 +10,6 @@ import {
   LIVE_PREVIEW_HOST_QUERY,
   NO_STREAM_RETRY_MS,
   RENEW_RETRY_MS,
-  SNAPSHOT_PREVIEW_LABEL,
   createInitialLivePreview,
   deriveLivePreview,
   parseEmbedReport,
@@ -342,14 +341,9 @@ export function LivePreview({ subject, chrome }: LivePreviewProps) {
   )
 
   // The dot never makes a row; with a dot or iframe up, words lead the chrome, else they centre.
-  const statusShown = (dot !== null || framed) && (view.words !== undefined || view.snapshot || action !== null)
+  const statusShown = (dot !== null || framed) && (view.words !== undefined || action !== null)
   const status = statusShown ? (
     <div data-preview-corner className="flex min-w-0 flex-wrap items-center gap-2">
-      {view.snapshot && (
-        <span data-snapshot-label className="text-xs text-muted-foreground">
-          {SNAPSHOT_PREVIEW_LABEL}
-        </span>
-      )}
       {view.words !== undefined && (
         <span data-preview-words className="text-xs text-foreground">
           {view.words}

@@ -49,7 +49,6 @@ function publishedMember(relativePath: string, table: string, key: string): stri
   return match[1] as string
 }
 
-const SNAPSHOT_PREVIEW_LABEL = publishedSentence('lib/live-preview.ts', 'SNAPSHOT_PREVIEW_LABEL')
 const PREVIEW_DELAYED_TEXT = publishedSentence('lib/live-preview.ts', 'PREVIEW_DELAYED_TEXT')
 const GREEN_NAME = publishedMember('lib/live-preview.ts', 'LIVE_DOT_NAMES', 'green')
 const GREEN_MEANING = publishedMember('lib/live-preview.ts', 'LIVE_DOT_MEANINGS', 'green')
@@ -61,14 +60,11 @@ const RESUME_TO_GREEN_BUDGET_MS = 3_000
 const STALL_HEARTBEAT_MS = 1_000
 
 const DOT_RUN = 'r_428_dot'
-const SNAPSHOT_RUN = 'r_428_snapshot'
-const FALLBACK_RUN = 'r_428_fallback'
 
 interface PreviewFixture {
   readonly harness: LiveViewHarness
   readonly browser: Browser
   readonly jpeg: Uint8Array
-  readonly png: Uint8Array
 }
 
 let fixture: PreviewFixture | undefined
@@ -109,32 +105,16 @@ beforeAll(async () => {
   await shotPage.setViewportSize({ width: 640, height: 400 })
   await shotPage.setContent('<body style="background:#123456"><h1>live</h1></body>')
   const jpeg = new Uint8Array(await shotPage.screenshot({ type: 'jpeg', quality: 40 }))
-  const png = new Uint8Array(await shotPage.screenshot({ type: 'png' }))
   await shotPage.close()
 
   const harness = await startLiveViewHarness({ label: 'preview', uiDir: dashboardUiDist() })
-  fixture = { harness, browser, jpeg, png }
+  fixture = { harness, browser, jpeg }
 
   plantStreamingRun({
     runId: DOT_RUN,
     heartbeatMs: 10_000,
     capability: { kind: 'cdp-screencast' },
     frameBytes: jpeg,
-  })
-  plantStreamingRun({
-    runId: SNAPSHOT_RUN,
-    heartbeatMs: 10_000,
-    capability: { kind: 'snapshot' },
-    frameBytes: png,
-    frameKind: 'snapshot',
-  })
-  // A screencast is declared but snapshots arrive; the label follows the frames.
-  plantStreamingRun({
-    runId: FALLBACK_RUN,
-    heartbeatMs: 10_000,
-    capability: { kind: 'cdp-screencast' },
-    frameBytes: png,
-    frameKind: 'snapshot',
   })
 }, 180_000)
 
@@ -172,12 +152,11 @@ async function waitForGreen(page: Page): Promise<void> {
 }
 
 /** The corner's reading at this instant, without Playwright's implicit waits. */
-async function cornerReading(page: Page): Promise<{ state: string | null; dot: string | null; words: string | null; label: string | null }> {
+async function cornerReading(page: Page): Promise<{ state: string | null; dot: string | null; words: string | null }> {
   return page.evaluate(() => ({
     state: document.querySelector('[data-preview-state]')?.getAttribute('data-preview-state') ?? null,
     dot: document.querySelector('[data-live-dot]')?.getAttribute('data-live-dot') ?? null,
     words: document.querySelector('[data-preview-words]')?.textContent ?? null,
-    label: document.querySelector('[data-snapshot-label]')?.textContent ?? null,
   }))
 }
 
@@ -412,54 +391,6 @@ describe('the live preview corner on the shipped bundle', () => {
       const resumed = JSON.stringify({ green, greenAfterMs })
       expect(green.dot, resumed).toBe('green')
       expect(green.state, resumed).toBe('live')
-    })
-  }, 120_000)
-
-  it('SNAPSHOT-LABEL-ON-SNAPSHOT-FRAMES: snapshot frames carry the literal label beside the dot', async () => {
-    expect(SNAPSHOT_PREVIEW_LABEL).toBe('Snapshot preview · updates every 1s')
-    await onLivePage(SNAPSHOT_RUN, async (page) => {
-      await waitForGreen(page)
-      const label = page.locator('[data-preview-corner] [data-snapshot-label]')
-      await label.waitFor({ state: 'attached', timeout: 10_000 })
-      expect(await label.textContent()).toBe(SNAPSHOT_PREVIEW_LABEL)
-      await capture(page, 'live-preview-corner-snapshot-1280')
-    })
-    await onLivePage(SNAPSHOT_RUN, async (page) => {
-      await waitForGreen(page)
-      const label = page.locator('[data-preview-corner] [data-snapshot-label]')
-      await label.waitFor({ state: 'attached', timeout: 10_000 })
-      expect(await label.textContent()).toBe(SNAPSHOT_PREVIEW_LABEL)
-      await capture(page, 'live-preview-corner-snapshot-400')
-    }, NARROW)
-  }, 120_000)
-
-  it('SNAPSHOT-LABEL-ON-FALLBACK-FRAMES: a declared screencast whose frames are snapshots is labelled', async () => {
-    await onLivePage(FALLBACK_RUN, async (page) => {
-      await waitForGreen(page)
-      let reading = await cornerReading(page)
-      const deadline = Date.now() + 5_000
-      while (Date.now() < deadline && reading.label === null) {
-        await page.waitForTimeout(100)
-        reading = await cornerReading(page)
-      }
-      expect(reading.label, JSON.stringify(reading)).toBe(SNAPSHOT_PREVIEW_LABEL)
-    })
-  }, 120_000)
-
-  it('NO-LABEL-ON-SCREENCAST: screencast frames show the green dot and no snapshot label', async () => {
-    await onLivePage(DOT_RUN, async (page) => {
-      await waitForGreen(page)
-      const readings: Awaited<ReturnType<typeof cornerReading>>[] = []
-      for (let sample = 0; sample < 10; sample += 1) {
-        readings.push(await cornerReading(page))
-        await page.waitForTimeout(200)
-      }
-      const context = JSON.stringify(readings)
-      for (const reading of readings) {
-        expect(reading.dot, context).toBe('green')
-        expect(reading.label, context).toBeNull()
-      }
-      expect(await page.locator('[data-snapshot-label]').count(), context).toBe(0)
     })
   }, 120_000)
 
