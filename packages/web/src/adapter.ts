@@ -58,6 +58,8 @@ import { validateAction } from './action-validator.js'
 import { waitForPageReady } from './smart-wait.js'
 import { runWebFillCompound, runWebScrollCompound, webOpenAppError } from './compound-web.js'
 import type { RefMap } from './types.js'
+import { captureAuthState, readAuthStateFile, restoreSessionStorage } from './auth-state.js'
+import type { CapturedAuthState, SessionStorageByOrigin } from './auth-state.js'
 import { formatMissingBrowserError, isPlaywrightMissingBrowserError } from './browser-install-error.js'
 import {
   classifyDisconnect,
@@ -280,6 +282,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private pageLogBuffers = new Map<Page, PageLogBuffers>()
   private logCaptureConfig: { console: boolean; network: boolean } = { console: true, network: true }
   private navigationTimeoutMs = DEFAULT_NAVIGATION_TIMEOUT_MS
+  private sessionStorageEntries: SessionStorageByOrigin = new Map()
   private disconnected = false
   private intentionalClose = false
   // Set the moment a remote session drops; the probe may turn `lost` into `ended`.
@@ -494,6 +497,8 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     if (this.browser === null) throw new Error('WebPlatformAdapter has no browser to open')
     const viewport = config.browser?.viewport ?? { width: 1280, height: 720 }
     const storageStatePath = config.authState?.storageStatePath
+    const authState = storageStatePath ? await readAuthStateFile(storageStatePath) : undefined
+    this.sessionStorageEntries = authState?.sessionStorage ?? new Map()
     let reused: BrowserContext | undefined
     if (remote?.protocol === 'cdp' && remote.context === 'reuse') {
       reused = this.browser.contexts()[0]
@@ -509,10 +514,10 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       this.context = reused
       this.ownsContext = false
       this.borrowedPages = new Set(reused.pages())
-      if (storageStatePath) await reused.setStorageState(storageStatePath)
+      if (authState) await reused.setStorageState(authState.playwright)
     } else {
       const contextOptions: Record<string, unknown> = { viewport }
-      if (storageStatePath) contextOptions.storageState = storageStatePath
+      if (authState) contextOptions.storageState = authState.playwright
       this.context = await this.browser.newContext(contextOptions)
       this.ownsContext = true
       this.borrowedPages = new Set()
@@ -532,8 +537,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       Object.defineProperty(navigator, 'webdriver', { get: () => false })
     })
 
-    this.page = await this.context.newPage()
-    if (reused !== undefined) await this.page.setViewportSize(viewport)
+    this.page = await this.newRestoredPage(reused === undefined ? undefined : viewport)
     if (remote !== undefined) {
       const platform = await this.page.evaluate(() => navigator.platform)
       this.remoteIsMac = /^Mac/.test(platform)
@@ -1010,6 +1014,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     this.operationCapture = null
     this.operationCaptureSupport = undefined
     this.lastRefs = {}
+    this.sessionStorageEntries = new Map()
     this.pageLogBuffers.clear()
     this.disconnected = false
     this.disconnectKind = undefined
@@ -1230,6 +1235,31 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
   getPage(): Page | null {
     return this.page
+  }
+
+  async captureAuthState(): Promise<CapturedAuthState> {
+    if (this.context === null) throw new Error('WebPlatformAdapter has no browser context to capture')
+    return captureAuthState(this.context)
+  }
+
+  // A tab the adapter opens gets the state's sessionStorage once, before its first navigation.
+  // A restore that fails leaves a fresh tab, so the session still opens.
+  private async newRestoredPage(viewport?: { width: number; height: number }): Promise<Page> {
+    const context = this.context!
+    const open = async (): Promise<Page> => {
+      const page = await context.newPage()
+      if (viewport !== undefined) await page.setViewportSize(viewport)
+      return page
+    }
+    const page = await open()
+    try {
+      await restoreSessionStorage(page, this.sessionStorageEntries)
+      return page
+    } catch (error) {
+      console.warn(`agent-qa: ${(error as Error).message} The tab opens without it.`)
+      await page.close().catch(() => undefined)
+      return open()
+    }
   }
 
   drainConsoleLogs(level?: string): ConsoleLogEntry[] {
@@ -1549,7 +1579,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       case 'tab': {
         // Fold re-key of newTab/switchTab: `action` discriminant selects open-new vs switch.
         if (action.action === 'new') {
-          const newPage = await this.context!.newPage()
+          const newPage = await this.newRestoredPage()
           this.attachLogListeners(newPage)
           try {
             await newPage.goto(action.url, { waitUntil: 'domcontentloaded' })

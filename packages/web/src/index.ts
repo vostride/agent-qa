@@ -1,4 +1,6 @@
 export { WebPlatformAdapter } from './adapter.js'
+export { captureAuthState } from './auth-state.js'
+export type { AuthStateContext, CapturedAuthState } from './auth-state.js'
 export { parseAriaSnapshot } from './observer.js'
 export { ElementResolver } from './element-resolver.js'
 export { validateAction, ActionValidationError } from './action-validator.js'
