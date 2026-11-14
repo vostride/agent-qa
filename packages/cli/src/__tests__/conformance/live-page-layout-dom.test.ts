@@ -74,6 +74,23 @@ const FOLLOW_SAMPLE_MS = 3_000
 /** Every word the long label paints outside its placeholder. */
 const LONG_STEP_WORDS = LONG_STEP_TEXT.replace(/<SECRET_\d+>/gu, ' ').split(/\s+/u).filter((word) => word !== '')
 
+interface Picture {
+  readonly runId: string
+  readonly name: string
+  readonly width: number
+  readonly height: number
+  readonly kind: 'snapshot' | 'cdp-screencast'
+}
+
+// A phone held upright, the same phone on its side, and a wide web page.
+const PICTURES = {
+  portrait: { runId: 'r_portrait_picture', name: 'portrait', width: 390, height: 844, kind: 'snapshot' },
+  landscape: { runId: 'r_landscape_picture', name: 'landscape', width: 844, height: 390, kind: 'snapshot' },
+  wide: { runId: 'r_wide_picture', name: 'wide', width: 1280, height: 720, kind: 'cdp-screencast' },
+} as const satisfies Record<string, Picture>
+
+const SHORT = { width: 1280, height: 500 }
+
 interface LayoutFixture {
   readonly harness: LiveViewHarness
   readonly browser: Browser
@@ -150,10 +167,33 @@ beforeAll(async () => {
   await shotPage.setViewportSize({ width: 640, height: 400 })
   await shotPage.setContent('<body style="background:#123456"><h1 style="color:#fff">live</h1></body>')
   const jpeg = new Uint8Array(await shotPage.screenshot({ type: 'jpeg', quality: 40 }))
+  const pictureBytes = new Map<string, Uint8Array>()
+  for (const picture of Object.values(PICTURES)) {
+    await shotPage.setViewportSize({ width: picture.width, height: picture.height })
+    pictureBytes.set(picture.runId, new Uint8Array(await shotPage.screenshot({ type: 'jpeg', quality: 40 })))
+  }
   await shotPage.close()
 
   const harness = await startLiveViewHarness({ label: 'layout', uiDir: dashboardUiDist() })
   fixture = { harness, browser, jpeg }
+
+  for (const picture of Object.values(PICTURES)) {
+    const run = plantLiveRun({
+      runId: picture.runId,
+      heartbeatMs: 10_000,
+      capability: { kind: picture.kind },
+      frameKind: picture.kind,
+      frameBytes: pictureBytes.get(picture.runId)!,
+      frameWidth: picture.width,
+      frameHeight: picture.height,
+    })
+    plantedRuns.push(run)
+    harness.plant(run)
+    harness.insertRunRow({ runId: picture.runId, name: `The ${picture.name} picture`, status: 'running' })
+    publishTo(run, 'runStarted', { busSchemaVersion: CURRENT_BUS_SCHEMA_VERSION, memberTestCount: 1, handles: [0] })
+    publishTestStarted(run, 0, { name: `the ${picture.name} member`, totalSteps: 1, stepTexts: ['open the app'] })
+    publishTo(run, 'stepStarted', { testIndex: 0, stepIndex: 0, stepText: 'open the app' })
+  }
 
   // Finished, running and pending rows; the pending row draws because testStarted names it.
   const rows = plantRun(ROWS_RUN, [{ name: 'the rows member', totalSteps: 3, stepTexts: ROWS_STEP_TEXTS }])
@@ -733,5 +773,249 @@ describe('a suite\'s shipped page follows its running member', () => {
       expect(after, JSON.stringify({ ...trace, after })).toEqual({ state: 'live', dot: 'green', embeds: 1 })
       await capturePage(page, 'live-suite-follow-1280')
     }, DESKTOP, (page) => { recordMints(page, mints) })
+  }, 120_000)
+})
+
+interface ScrollReading {
+  scrollWidth: number
+  scrollHeight: number
+  clientWidth: number
+  clientHeight: number
+  // How far an attempt to scroll it by 50 px moved it.
+  movedX: number
+  movedY: number
+}
+
+interface ContainmentReading {
+  viewport: { width: number; height: number }
+  pane: Box | null
+  frame: Box | null
+  parentContent: Box | null
+  containerType: string | null
+  paneScroll: ScrollReading | null
+  documentScroll: ScrollReading
+}
+
+interface EmbedReading {
+  canvas: Box | null
+  viewport: { width: number; height: number }
+  documentScroll: ScrollReading
+}
+
+async function readContainment(page: Page): Promise<ContainmentReading> {
+  return page.evaluate(() => {
+    const boxOf = (node: Element | null) => {
+      if (node === null) return null
+      const rect = node.getBoundingClientRect()
+      return { x: rect.x, y: rect.y, width: rect.width, height: rect.height }
+    }
+    const tryScroll = (element: Element, scroll: (x: number, y: number) => void, at: () => [number, number]) => {
+      const [x0, y0] = at()
+      scroll(x0 + 50, y0 + 50)
+      const [x1, y1] = at()
+      scroll(x0, y0)
+      return {
+        scrollWidth: element.scrollWidth,
+        scrollHeight: element.scrollHeight,
+        clientWidth: element.clientWidth,
+        clientHeight: element.clientHeight,
+        movedX: x1 - x0,
+        movedY: y1 - y0,
+      }
+    }
+    const pane = document.querySelector('[data-live-pane="preview"]')
+    const frame = document.querySelector('[data-preview-frame]')
+    const parent = frame?.parentElement ?? null
+    let parentContent = null
+    let containerType = null
+    if (parent !== null) {
+      const style = getComputedStyle(parent)
+      const rect = parent.getBoundingClientRect()
+      const px = (value: string) => Number.parseFloat(value) || 0
+      parentContent = {
+        x: rect.x + px(style.borderLeftWidth) + px(style.paddingLeft),
+        y: rect.y + px(style.borderTopWidth) + px(style.paddingTop),
+        width: parent.clientWidth - px(style.paddingLeft) - px(style.paddingRight),
+        height: parent.clientHeight - px(style.paddingTop) - px(style.paddingBottom),
+      }
+      containerType = style.containerType
+    }
+    const root = document.scrollingElement ?? document.documentElement
+    return {
+      viewport: { width: window.innerWidth, height: window.innerHeight },
+      pane: boxOf(pane),
+      frame: boxOf(frame),
+      parentContent,
+      containerType,
+      paneScroll: pane === null ? null : tryScroll(
+        pane,
+        (x, y) => { pane.scrollLeft = x; pane.scrollTop = y },
+        () => [pane.scrollLeft, pane.scrollTop],
+      ),
+      documentScroll: tryScroll(
+        root,
+        (x, y) => { window.scrollTo(x, y) },
+        () => [window.scrollX, window.scrollY],
+      ),
+    }
+  })
+}
+
+// The embed document's own facts, read inside the page it is.
+function readEmbedDocument(): EmbedReading {
+  const canvas = document.querySelector('[data-embed-canvas]')
+  const rect = canvas?.getBoundingClientRect()
+  const root = document.scrollingElement ?? document.documentElement
+  const [x0, y0] = [window.scrollX, window.scrollY]
+  window.scrollTo(x0 + 50, y0 + 50)
+  const [x1, y1] = [window.scrollX, window.scrollY]
+  window.scrollTo(x0, y0)
+  return {
+    canvas: rect === undefined ? null : { x: rect.x, y: rect.y, width: rect.width, height: rect.height },
+    viewport: { width: window.innerWidth, height: window.innerHeight },
+    documentScroll: {
+      scrollWidth: root.scrollWidth,
+      scrollHeight: root.scrollHeight,
+      clientWidth: root.clientWidth,
+      clientHeight: root.clientHeight,
+      movedX: x1 - x0,
+      movedY: y1 - y0,
+    },
+  }
+}
+
+async function readEmbed(page: Page): Promise<EmbedReading | null> {
+  const frame = page.frames().find((one) => one.url().includes('/live/'))
+  if (frame === undefined) return null
+  return frame.evaluate(readEmbedDocument).catch(() => null)
+}
+
+const ratioOf = (box: { width: number; height: number }): number => box.width / box.height
+
+// Waits for the embed to paint and the frame box to take the picture's ratio, then reads it all.
+async function settledContainment(page: Page, picture: Picture): Promise<{ page: ContainmentReading; embed: EmbedReading | null }> {
+  await waitForGreen(page)
+  const target = picture.width / picture.height
+  const deadline = Date.now() + 10_000
+  let reading = await readContainment(page)
+  while (Date.now() < deadline) {
+    reading = await readContainment(page)
+    const painted = await embedFramesPainted(page)
+    if (painted >= 1 && reading.frame !== null && Math.abs(ratioOf(reading.frame) / target - 1) <= 0.01) break
+    await page.waitForTimeout(100)
+  }
+  // One more report interval, so the embed has laid out the frame it reported.
+  await page.waitForTimeout(600)
+  return { page: await readContainment(page), embed: await readEmbed(page) }
+}
+
+function inside(inner: Box, outer: Box, slack = 1): boolean {
+  return inner.x >= outer.x - slack
+    && inner.y >= outer.y - slack
+    && inner.x + inner.width <= outer.x + outer.width + slack
+    && inner.y + inner.height <= outer.y + outer.height + slack
+}
+
+function expectNoScroll(scroll: ScrollReading | null, what: string, context: string): void {
+  expect(scroll, `${context} — ${what} was read`).not.toBeNull()
+  if (scroll === null) return
+  expect(scroll.scrollHeight, `${context} — ${what} is no taller than its view`).toBeLessThanOrEqual(scroll.clientHeight)
+  expect(scroll.scrollWidth, `${context} — ${what} is no wider than its view`).toBeLessThanOrEqual(scroll.clientWidth)
+  expect([scroll.movedX, scroll.movedY], `${context} — ${what} does not move when scrolled`).toEqual([0, 0])
+}
+
+function expectContained(reading: { page: ContainmentReading; embed: EmbedReading | null }, picture: Picture, label: string): void {
+  const context = `${picture.name} ${label}: ${JSON.stringify(reading)}`
+  const { pane, frame, parentContent, containerType } = reading.page
+  expect(pane !== null && frame !== null && parentContent !== null, context).toBe(true)
+  if (pane === null || frame === null || parentContent === null) return
+  expect(containerType, `${context} — the frame's parent is a size container`).toBe('size')
+  expect(inside(frame, pane), `${context} — the frame lies inside the preview pane`).toBe(true)
+  expect(inside(frame, parentContent), `${context} — the frame lies inside its parent's content box`).toBe(true)
+  expect(Math.abs(ratioOf(frame) / (picture.width / picture.height) - 1), `${context} — the frame keeps the picture's ratio`)
+    .toBeLessThanOrEqual(0.01)
+  expectNoScroll(reading.page.paneScroll, 'the preview pane', context)
+  expectNoScroll(reading.page.documentScroll, 'the page', context)
+
+  expect(reading.embed, `${context} — the embed document was read`).not.toBeNull()
+  if (reading.embed === null) return
+  expectNoScroll(reading.embed.documentScroll, 'the embed document', context)
+  const { canvas, viewport } = reading.embed
+  expect(canvas, context).not.toBeNull()
+  if (canvas === null) return
+  expect(inside(canvas, { x: 0, y: 0, ...viewport }), `${context} — the canvas lies inside the embed's viewport`).toBe(true)
+  expect(Math.abs(ratioOf(canvas) / (picture.width / picture.height) - 1), `${context} — the canvas keeps the picture's ratio`)
+    .toBeLessThanOrEqual(0.01)
+}
+
+const WINDOWS = [
+  { label: 'docked at 1280 by 800', viewport: DESKTOP },
+  { label: 'stacked at 400 by 800', viewport: NARROW },
+  { label: 'in a short window of 1280 by 500', viewport: SHORT },
+] as const
+
+describe('a running picture fits its preview pane on the shipped bundle', () => {
+  for (const picture of Object.values(PICTURES) as Picture[]) {
+    it(`a ${picture.name} picture lies wholly inside the preview pane with its ratio kept, docked, stacked and in a short window, and nothing scrolls`, async () => {
+      for (const { label, viewport } of WINDOWS) {
+        await onLivePage(picture.runId, async (page) => {
+          expectContained(await settledContainment(page, picture), picture, label)
+          await capturePage(page, `live-picture-${picture.name}-${String(viewport.width)}x${String(viewport.height)}`)
+        }, viewport)
+      }
+    }, 180_000)
+  }
+
+  it('a portrait picture still fits after the divider between the panes is moved either way', async () => {
+    const picture: Picture = PICTURES.portrait
+    for (const { label, viewport } of WINDOWS.slice(0, 2)) {
+      for (const offset of [-200, 200]) {
+        await onLivePage(picture.runId, async (page) => {
+          await settledContainment(page, picture)
+          const handle = page.locator('[data-slot="resizable-handle"]').first()
+          const box = await handle.boundingBox()
+          expect(box, 'the divider').not.toBeNull()
+          const before = await readContainment(page)
+          const stacked = viewport.width < 768
+          // Off the picture's centre line, so the pointer never passes over the embed while it drags.
+          const from = stacked
+            ? { x: box!.x + 10, y: box!.y + box!.height / 2 }
+            : { x: box!.x + box!.width / 2, y: box!.y + 10 }
+          await page.mouse.move(from.x, from.y)
+          await page.mouse.down()
+          await page.mouse.move(from.x + (stacked ? 0 : offset), from.y + (stacked ? offset : 0), { steps: 10 })
+          await page.mouse.up()
+          const after = await settledContainment(page, picture)
+          const moved = stacked
+            ? Math.abs((after.page.pane?.height ?? 0) - (before.pane?.height ?? 0))
+            : Math.abs((after.page.pane?.width ?? 0) - (before.pane?.width ?? 0))
+          expect(moved, `${label}, divider moved by ${String(offset)} — the pane changed size`).toBeGreaterThan(20)
+          expectContained(after, picture, `${label}, divider moved by ${String(offset)}`)
+        }, viewport)
+      }
+    }
+  }, 240_000)
+
+  it('the embed opened by itself fits a portrait picture inside a landscape viewport and does not scroll', async () => {
+    const picture: Picture = PICTURES.portrait
+    const minted = await fetch(`${held().harness.origin}/api/runs/${encodeURIComponent(picture.runId)}/live-url?handle=0`)
+    expect(minted.status, 'the mint door').toBe(200)
+    const { liveUrl } = await minted.json() as { liveUrl: string }
+    const context = await held().browser.newContext({ viewport: { width: 800, height: 600 } })
+    try {
+      const page = await context.newPage()
+      await page.goto(liveUrl)
+      await page.locator('[data-embed-state="live"]').waitFor({ state: 'attached', timeout: 40_000 })
+      await page.waitForTimeout(600)
+      const reading = await page.evaluate(readEmbedDocument)
+      const label = `embed alone at 800 by 600: ${JSON.stringify(reading)}`
+      expectNoScroll(reading.documentScroll, 'the embed document', label)
+      expect(reading.canvas, label).not.toBeNull()
+      expect(inside(reading.canvas!, { x: 0, y: 0, ...reading.viewport }), `${label} — the whole canvas is in view`).toBe(true)
+      expect(Math.abs(ratioOf(reading.canvas!) / (picture.width / picture.height) - 1), `${label} — the ratio is kept`)
+        .toBeLessThanOrEqual(0.01)
+    } finally {
+      await context.close()
+    }
   }, 120_000)
 })

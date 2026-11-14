@@ -59,10 +59,11 @@ export const LIVE_EMBED_NO_STREAM_MESSAGE = 'no live preview for this target'
 // What an ended editor session says, exactly.
 export const LIVE_EMBED_SESSION_ENDED_MESSAGE = 'session ended'
 
+// One definite grid cell, so the canvas's two max sizes fit it inside the viewport with its ratio kept.
 const STYLE = `
   :root { color-scheme: dark light }
-  html, body { margin: 0; height: 100%; background: #0b0d10; }
-  main { display: grid; place-items: center; height: 100%; font: 14px/1.5 ui-sans-serif, system-ui, sans-serif; color: #c9d1d9; }
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0b0d10; }
+  main { display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; height: 100%; overflow: hidden; font: 14px/1.5 ui-sans-serif, system-ui, sans-serif; color: #c9d1d9; }
   canvas { max-width: 100%; max-height: 100%; display: none; pointer-events: none; }
   main[data-embed-state="live"] canvas { display: block; }
   main[data-embed-state="live"] p { display: none; }
