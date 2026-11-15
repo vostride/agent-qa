@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, afterEach } from 'vitest'
-import { formatDuration, formatDate, statusColor, escapeHtml, debounce, createElement } from '../lib/utils.js'
+import { describe, it, expect, vi, afterEach, type MockInstance } from 'vitest'
+import i18n from '@/i18n'
+import { formatDuration, formatDate, formatDateShort, statusColor, escapeHtml, debounce, createElement } from '../lib/utils.js'
 
 describe('formatDuration', () => {
   it('formats milliseconds', () => {
@@ -54,6 +55,52 @@ describe('formatDate', () => {
     vi.useFakeTimers()
     vi.setSystemTime(new Date('2026-03-04T12:00:00Z'))
     expect(formatDate('2026-03-03T12:00:00Z')).toBe('yesterday')
+  })
+})
+
+describe('durations and dates at every size and in every browser', () => {
+  let languagesSpy: MockInstance | undefined
+
+  afterEach(async () => {
+    vi.useRealTimers()
+    languagesSpy?.mockRestore()
+    languagesSpy = undefined
+    await i18n.changeLanguage('en')
+  })
+
+  it('keeps US English in a browser set to English (India)', () => {
+    const iso = '2026-11-15T14:05:00Z'
+    const us = formatDateShort(iso)
+    languagesSpy = vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['en-IN', 'en'])
+    expect(formatDuration(1200)).toBe('1.2s')
+    expect(formatDateShort(iso)).toBe(us)
+  })
+
+  it('never groups hours and keeps the arithmetic it has', () => {
+    expect(formatDuration((1000 * 60 + 5) * 60_000)).toBe('1000h 5m')
+    expect(formatDuration(3_599_600)).toBe('59m 60s')
+  })
+
+  it('formats durations and relative dates in German', async () => {
+    await i18n.changeLanguage('de')
+    expect(formatDuration(43_400)).toContain('43,4')
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-03T12:05:00Z'))
+    expect(formatDate('2026-03-03T12:00:00Z')).toContain('vor')
+  })
+
+  it('says yesterday in Japanese', async () => {
+    await i18n.changeLanguage('ja')
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-04T12:00:00Z'))
+    expect(formatDate('2026-03-03T12:00:00Z')).toBe('昨日')
+  })
+
+  it('writes a past time in Russian', async () => {
+    await i18n.changeLanguage('ru')
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-03-03T12:05:00Z'))
+    expect(formatDate('2026-03-03T12:00:00Z')).toContain('назад')
   })
 })
 
