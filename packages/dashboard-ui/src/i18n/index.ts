@@ -7,8 +7,16 @@ import en from './locales/en'
 type Bundle = { default: Record<string, string> }
 type Loader = () => Promise<Bundle>
 
-const loaders: Partial<Record<Exclude<Language, 'en'>, Loader>> = {
+const loaders: Record<Exclude<Language, 'en'>, Loader> = {
+  'zh-Hans': () => import('./locales/zh-Hans'),
+  'zh-Hant': () => import('./locales/zh-Hant'),
+  ja: () => import('./locales/ja'),
+  ko: () => import('./locales/ko'),
+  es: () => import('./locales/es'),
+  'pt-BR': () => import('./locales/pt-BR'),
   de: () => import('./locales/de'),
+  fr: () => import('./locales/fr'),
+  ru: () => import('./locales/ru'),
 }
 
 i18n.on('languageChanged', (language) => {
@@ -30,15 +38,12 @@ let latestRequest = 0
 export async function applyLanguage(language: Language, load?: Loader): Promise<void> {
   const request = ++latestRequest
   if (language !== 'en' && !i18n.hasResourceBundle(language, 'translation')) {
-    const loader = load ?? loaders[language]
-    if (loader) {
-      const bundle = await loader().then(
-        (loaded) => loaded.default,
-        () => undefined,
-      )
-      if (bundle) i18n.addResourceBundle(language, 'translation', bundle, true, true)
-      if (request !== latestRequest || !bundle) return
-    }
+    const bundle = await (load ?? loaders[language])().then(
+      (loaded) => loaded.default,
+      () => undefined,
+    )
+    if (bundle) i18n.addResourceBundle(language, 'translation', bundle, true, true)
+    if (request !== latestRequest || !bundle) return
   }
   if (request !== latestRequest) return
   await i18n.changeLanguage(language)

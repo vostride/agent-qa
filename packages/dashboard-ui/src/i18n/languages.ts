@@ -36,7 +36,7 @@ function browserTags(): readonly string[] {
   return nav.language ? [nav.language] : []
 }
 
-function browserLanguage(tags: readonly string[] = browserTags()): Language {
+export function browserLanguage(tags: readonly string[] = browserTags()): Language {
   const kept = tags.filter(wellFormed)
   if (kept.length === 0) return 'en'
   try {
@@ -47,7 +47,7 @@ function browserLanguage(tags: readonly string[] = browserTags()): Language {
   }
 }
 
-function readLanguageChoice(storage?: Pick<Storage, 'getItem'>): Language | undefined {
+export function readLanguageChoice(storage?: Pick<Storage, 'getItem'>): Language | undefined {
   try {
     const stored = (storage ?? globalThis.localStorage)?.getItem(LANGUAGE_STORAGE_KEY)
     return isLanguage(stored) ? stored : undefined
