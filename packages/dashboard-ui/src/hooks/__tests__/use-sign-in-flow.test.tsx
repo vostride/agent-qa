@@ -241,4 +241,14 @@ describe('useSignInFlow', () => {
     expect(read()).toMatchObject({ state: 'failed', reason: 'Another provider holds that name.' })
     expect(completions).toHaveLength(0)
   })
+
+  it('a poll answering error with no message leaves the flow failed with no reason of its own', async () => {
+    await mount()
+    answerStart('browser-poll', true)
+    await start('openai-subscription', 'gpt-5.6')
+    vi.mocked(pollPluginAuthResult).mockResolvedValueOnce({ status: 'error' })
+    await advance(2000)
+    expect(flow!.state).toBe('failed')
+    expect(flow!.reason).toBeUndefined()
+  })
 })

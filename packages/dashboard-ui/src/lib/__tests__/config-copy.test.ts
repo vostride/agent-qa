@@ -46,6 +46,7 @@ function functionOutputs(): string[] {
     copy.nameTakenError('gpt'),
     copy.nameCredentialConflictError('gpt', 'Gemini'),
     copy.signInFailedText('the page was closed'),
+    copy.signInFailedText(undefined),
     copy.connectedSavedText('gpt'),
     copy.applyActionName('knowledge folder'),
     copy.keepPathName('knowledge folder'),
@@ -282,5 +283,62 @@ describe('The Config tables in another language', () => {
       'shared',
       'production',
     ])
+  })
+})
+
+describe('The Config sentences in another language', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('en')
+    i18n.removeResourceBundle('fr', 'translation')
+  })
+
+  it('an undo line puts the name where the language writes it', async () => {
+    i18n.addResourceBundle('fr', 'translation', { 'config.undo.deleteModel': '{{name}} supprimé' })
+    await i18n.changeLanguage('fr')
+    expect(copy.undoLine('delete-model', 'gpt')).toBe('gpt supprimé')
+
+    await i18n.changeLanguage('en')
+    expect(copy.undoLine('delete-model', 'gpt')).toBe('Deleted gpt')
+  })
+
+  it('a failed sign-in keeps the server reason unchanged inside the language sentence', async () => {
+    expect(copy.signInFailedText('The sign-in was denied.')).toBe(
+      "Sign-in didn't finish: The sign-in was denied.",
+    )
+    i18n.addResourceBundle('fr', 'translation', {
+      'config.signInFailed.reason': 'La connexion n’a pas abouti : {{reason}}',
+    })
+    await i18n.changeLanguage('fr')
+    expect(copy.signInFailedText('The sign-in was denied.')).toBe(
+      'La connexion n’a pas abouti : The sign-in was denied.',
+    )
+  })
+
+  it('a failed sign-in with no reason reads its whole sentence when it is called', async () => {
+    expect(copy.signInFailedText(undefined)).toBe(
+      "Sign-in didn't finish: the sign-in could not be completed.",
+    )
+    i18n.addResourceBundle('fr', 'translation', {
+      'config.signInFailed.noReason': 'La connexion n’a pas pu aboutir.',
+    })
+    await i18n.changeLanguage('fr')
+    expect(copy.signInFailedText(undefined)).toBe('La connexion n’a pas pu aboutir.')
+  })
+
+  it('a refusal with an issue keeps the server issue unchanged inside the language sentence', async () => {
+    const issues = [{ message: 'Step timeout must be a duration' }]
+    expect(copy.connectRefusalSentence('validation_failed', issues)).toBe(
+      'The config file has a problem to fix first: Step timeout must be a duration',
+    )
+    i18n.addResourceBundle('fr', 'translation', {
+      'config.connectRefusalIssue.validationFailed': 'Le fichier a un problème : {{issue}}',
+    })
+    await i18n.changeLanguage('fr')
+    expect(copy.connectRefusalSentence('validation_failed', issues)).toBe(
+      'Le fichier a un problème : Step timeout must be a duration',
+    )
+    expect(copy.connectRefusalSentence('not_a_code')).toBe(
+      schemaProviderErrorSentence('network_error', ''),
+    )
   })
 })
