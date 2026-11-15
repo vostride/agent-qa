@@ -1,23 +1,30 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { formatDateTime, formatTimeAgo, formatUnit, formatUnitList } from './format'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
 export function formatDuration(ms: number): string {
-  if (ms < 1000) return `${Math.round(ms)}ms`
+  if (ms < 1000) return formatUnit(Math.round(ms), 'millisecond')
   const sec = ms / 1000
   if (sec < 60) {
     const rounded = Math.round(sec * 10) / 10
-    return rounded === Math.floor(rounded) ? `${rounded}s` : `${rounded}s`
+    return formatUnit(rounded, 'second')
   }
   const min = Math.floor(sec / 60)
   const remSec = Math.round(sec % 60)
-  if (min < 60) return remSec > 0 ? `${min}m ${remSec}s` : `${min}m`
+  if (min < 60) {
+    return remSec > 0
+      ? formatUnitList([formatUnit(min, 'minute'), formatUnit(remSec, 'second')])
+      : formatUnit(min, 'minute')
+  }
   const hr = Math.floor(min / 60)
   const remMin = min % 60
-  return remMin > 0 ? `${hr}h ${remMin}m` : `${hr}h`
+  return remMin > 0
+    ? formatUnitList([formatUnit(hr, 'hour'), formatUnit(remMin, 'minute')])
+    : formatUnit(hr, 'hour')
 }
 
 export function normalizeTimestamp(ts: string): string {
@@ -30,30 +37,15 @@ export function normalizeTimestamp(ts: string): string {
 }
 
 export function formatDate(iso: string): string {
-  const date = new Date(normalizeTimestamp(iso))
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffSec = Math.floor(diffMs / 1000)
-  const diffMin = Math.floor(diffSec / 60)
-  const diffHr = Math.floor(diffMin / 60)
-  const diffDay = Math.floor(diffHr / 24)
-
-  if (diffSec < 60) return 'just now'
-  if (diffMin < 60) return `${diffMin} minute${diffMin !== 1 ? 's' : ''} ago`
-  if (diffHr < 24) return `${diffHr} hour${diffHr !== 1 ? 's' : ''} ago`
-  if (diffDay === 1) return 'yesterday'
-  if (diffDay < 7) return `${diffDay} days ago`
-  return formatDateShort(iso)
+  return formatTimeAgo(new Date(normalizeTimestamp(iso)), () => formatDateShort(iso))
 }
 
 export function formatDateShort(iso: string): string {
-  const date = new Date(normalizeTimestamp(iso))
-  return date.toLocaleDateString('en-US', {
+  return formatDateTime(new Date(normalizeTimestamp(iso)), {
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
     minute: '2-digit',
-    hour12: true,
   })
 }
 

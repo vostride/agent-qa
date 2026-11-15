@@ -1,0 +1,9 @@
+export default {
+  'time.justNow': 'just now',
+  'time.minutesAgoCompact_one': '{{count}}m ago',
+  'time.minutesAgoCompact_other': '{{count}}m ago',
+  'time.hoursAgoCompact_one': '{{count}}h ago',
+  'time.hoursAgoCompact_other': '{{count}}h ago',
+  'time.daysAgoCompact_one': '{{count}}d ago',
+  'time.daysAgoCompact_other': '{{count}}d ago',
+} as const
