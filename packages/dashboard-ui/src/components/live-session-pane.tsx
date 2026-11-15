@@ -34,6 +34,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { ConnectionState, EditorStep, EditorTest, LiveHookExecution, PendingNavigationState } from "@/hooks/use-live-editor"
 import { fromEditorStep, type DisplayStep } from "@/lib/display-step"
+import { formatUnit } from "@/lib/format"
 import type { Selection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
 
@@ -150,6 +151,11 @@ function normalizeAddressInput(value: string, currentUrl: string | null): string
   return trimmed
 }
 
+function formatLiveDuration(ms: number): string {
+  if (ms < 1000) return formatUnit(ms, "millisecond")
+  return formatUnit(Number((ms / 1000).toFixed(1)), "second", { minimumFractionDigits: 1 })
+}
+
 function HookStatusBadge({ hook }: { hook: LiveHookExecution }) {
   if (hook.status === "passed") {
     return (
@@ -218,7 +224,7 @@ function HookDetailPanel({ hook }: { hook: LiveHookExecution }) {
         </Badge>
         <HookStatusBadge hook={hook} />
         {hook.duration != null && (
-          <span className="text-xs text-muted-foreground">{hook.duration < 1000 ? `${hook.duration}ms` : `${(hook.duration / 1000).toFixed(1)}s`}</span>
+          <span className="text-xs text-muted-foreground">{formatLiveDuration(hook.duration)}</span>
         )}
       </div>
 
@@ -332,7 +338,7 @@ function SelectedTestSummary({
         </Badge>
         {typeof test.duration === "number" && (
           <span className="text-xs text-muted-foreground">
-            {test.duration < 1000 ? `${test.duration}ms` : `${(test.duration / 1000).toFixed(1)}s`}
+            {formatLiveDuration(test.duration)}
           </span>
         )}
       </div>
@@ -389,7 +395,7 @@ function SelectedTestSummary({
                     </span>
                     {step.duration > 0 && (
                       <span className="text-xs text-muted-foreground">
-                        {step.duration < 1000 ? `${step.duration}ms` : `${(step.duration / 1000).toFixed(1)}s`}
+                        {formatLiveDuration(step.duration)}
                       </span>
                     )}
                   </div>

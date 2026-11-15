@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams, useSearchParams } from "react-router"
-import { formatRegionalNumber } from "@/lib/format"
+import { formatRegionalNumber, formatRelativeCompact } from "@/lib/format"
 import { routes } from "@/lib/routes"
 import { toast } from "sonner"
 import { FileCode, Zap } from "lucide-react"
@@ -87,21 +87,6 @@ function createEmptySuiteAnalytics(suiteId: string): SuiteAnalyticsDetail {
 
 function formatPassRate(rate: number | null): string {
   return rate === null ? "\u2014" : `${Math.round(rate * 100)}%`
-}
-
-function formatRelativeCompact(iso: string): string {
-  if (!iso) return ""
-  const date = new Date(normalizeTimestamp(iso))
-  const diffMs = Date.now() - date.getTime()
-  const diffSec = Math.floor(diffMs / 1000)
-  if (diffSec < 60) return "just now"
-  const diffMin = Math.floor(diffSec / 60)
-  if (diffMin < 60) return `${diffMin}m ago`
-  const diffHr = Math.floor(diffMin / 60)
-  if (diffHr < 24) return `${diffHr}h ago`
-  const diffDay = Math.floor(diffHr / 24)
-  if (diffDay < 7) return `${diffDay}d ago`
-  return formatDate(iso)
 }
 
 function MetricScopeControl({
@@ -195,7 +180,10 @@ function RunHistoryTable({
             <TableCell>
               {compactDate ? (
                 <span className="text-muted-foreground">
-                  {formatRelativeCompact(run.createdAt)}
+                  {formatRelativeCompact(normalizeTimestamp(run.createdAt), {
+                    empty: "",
+                    after: { days: 7, format: () => formatDate(run.createdAt) },
+                  })}
                 </span>
               ) : (
                 <Tooltip>

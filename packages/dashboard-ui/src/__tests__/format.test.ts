@@ -158,6 +158,11 @@ describe('formatRelativeCompact', () => {
     expect(formatRelativeCompact(ago(6 * DAY + 1000), { after })).toBe('6d ago')
   })
 
+  it('hands an unparsable timestamp over to the caller', () => {
+    const after = { days: 7, format: () => 'older' }
+    expect(formatRelativeCompact('not a date', { after })).toBe('older')
+  })
+
   it('takes its words from the catalog of the dashboard language', async () => {
     i18n.addResourceBundle('fr', 'translation', {
       'time.justNow': 'à l’instant',

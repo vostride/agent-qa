@@ -2,14 +2,18 @@ import { useState, useMemo, useCallback, useDeferredValue, useEffect, Fragment }
 import { Badge } from "@/components/ui/badge"
 import { ChevronRight, Search, X, Copy, Check } from "lucide-react"
 import type { DisplayStep } from "@/lib/display-step"
+import { formatUnit } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { useEvidenceRecords } from '@/hooks/use-evidence-records'
 import { EVIDENCE_COPY, resolveEvidenceView } from '@/lib/evidence-state-view'
 import { EvidenceLoading, EvidenceState } from './evidence-state'
 
 export function formatRelativeTime(offsetMs: number): string {
-  if (offsetMs >= 1000) return `+${(offsetMs / 1000).toFixed(1)}s`
-  return `+${Math.round(offsetMs)}ms`
+  if (offsetMs >= 1000) {
+    const seconds = Number((offsetMs / 1000).toFixed(1))
+    return `+${formatUnit(seconds, "second", { minimumFractionDigits: 1 })}`
+  }
+  return `+${formatUnit(Math.round(offsetMs), "millisecond")}`
 }
 
 export function filterTimingEntries(timing: Record<string, number>): [string, number][] {
@@ -149,7 +153,7 @@ function ExpandedDetail({ entry }: { entry: NetworkEntry }) {
                   {validTimings.map(([phase, ms]) => (
                     <div key={phase} className="text-xs font-mono">
                       <span className="text-muted-foreground">{phase}:</span>{" "}
-                      <span>{Math.round(ms)}ms</span>
+                      <span>{formatUnit(Math.round(ms), "millisecond")}</span>
                     </div>
                   ))}
                 </div>
@@ -319,7 +323,9 @@ function NetworkRecords({ step, allSteps, platform }: Omit<TabNetworkProps, 'ste
                       {formatRelativeTime(entry.startTime - baseline)}
                     </td>
                     <td className="py-1.5 px-2 text-xs text-muted-foreground text-right">
-                      {duration < 1 ? '<1' : Math.round(duration)}ms
+                      {duration < 1
+                        ? `<${formatUnit(1, "millisecond")}`
+                        : formatUnit(Math.round(duration), "millisecond")}
                     </td>
                   </tr>
                   {isExpanded && <ExpandedDetail entry={entry} />}

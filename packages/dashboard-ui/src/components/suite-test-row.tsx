@@ -11,6 +11,7 @@ import {
   Webhook,
   AlertTriangle,
 } from 'lucide-react'
+import { formatUnit } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { RESULT_WORDS } from '@/lib/action-vocabulary'
 import { Button } from '@/components/ui/button'
@@ -48,9 +49,11 @@ interface SuiteTestRowProps {
 }
 
 function formatDuration(ms: number): string {
-  if (ms < 1000) return `${Math.round(ms)}ms`
+  if (ms < 1000) return formatUnit(Math.round(ms), 'millisecond')
   const s = ms / 1000
-  return s < 10 ? `${s.toFixed(1)}s` : `${Math.round(s)}s`
+  return s < 10
+    ? formatUnit(Number(s.toFixed(1)), 'second', { minimumFractionDigits: 1 })
+    : formatUnit(Math.round(s), 'second')
 }
 
 function HookStatusIcon({ status }: { status: LiveHookExecution['status'] }) {

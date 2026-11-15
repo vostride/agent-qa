@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react"
+import { formatUnit, formatUnitList } from "@/lib/format"
 import { normalizeTimestamp } from "@/lib/utils"
 
 export function ElapsedTimer({ startedAt }: { startedAt: string }) {
@@ -17,5 +18,9 @@ export function ElapsedTimer({ startedAt }: { startedAt: string }) {
 
   const min = Math.floor(elapsed / 60)
   const sec = elapsed % 60
-  return <span className="text-blue-500 tabular-nums">{min}m {sec}s</span>
+  return (
+    <span className="text-blue-500 tabular-nums">
+      {formatUnitList([formatUnit(min, "minute"), formatUnit(sec, "second")])}
+    </span>
+  )
 }

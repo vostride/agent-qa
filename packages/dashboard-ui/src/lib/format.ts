@@ -154,6 +154,7 @@ export function formatRelativeCompact(
   const diffHr = Math.floor(diffMin / 60)
   if (diffHr < 24) return t('time.hoursAgoCompact', { count: diffHr })
   const diffDay = Math.floor(diffHr / 24)
-  if (options.after && diffDay >= options.after.days) return options.after.format()
+  // Written as "not under" so an unparsable timestamp also hands over, as the viewers did.
+  if (options.after && !(diffDay < options.after.days)) return options.after.format()
   return t('time.daysAgoCompact', { count: diffDay })
 }

@@ -3,6 +3,7 @@ import {
   InsightsLineGrid,
   InsightsLineNotice,
 } from "@/components/insights/insights-line-grid"
+import { formatUnit, formatUnitList } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import {
@@ -21,11 +22,13 @@ const BREAKDOWN_COPY: Record<InsightsBreakdownDimension, { title: string; label:
 }
 
 function formatDuration(ms: number) {
-  if (ms < 1000) return `${Math.round(ms)}ms`
-  if (ms < 60_000) return `${(ms / 1000).toFixed(1)}s`
+  if (ms < 1000) return formatUnit(Math.round(ms), "millisecond")
+  if (ms < 60_000) {
+    return formatUnit(Number((ms / 1000).toFixed(1)), "second", { minimumFractionDigits: 1 })
+  }
   const mins = Math.floor(ms / 60_000)
   const secs = Math.round((ms % 60_000) / 1000)
-  return `${mins}m ${secs}s`
+  return formatUnitList([formatUnit(mins, "minute"), formatUnit(secs, "second")])
 }
 
 function toPercent(value: number) {

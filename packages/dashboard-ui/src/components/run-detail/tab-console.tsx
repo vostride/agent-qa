@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { ExecutionLogEntry, LiveExecutionLogEntry } from "@/lib/api"
 import type { DisplayStep } from "@/lib/display-step"
-import { formatRegionalDateTime } from "@/lib/format"
+import { formatRegionalDateTime, formatUnit } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { useEvidenceRecords } from '@/hooks/use-evidence-records'
 import { EVIDENCE_COPY, resolveEvidenceView } from '@/lib/evidence-state-view'
@@ -188,7 +188,7 @@ function ConsoleRecords({ step, allSteps, executionLogs, isHookStep }: Omit<TabC
                   )}>
                     {log.status}
                   </span>
-                  <span className="text-[10px] text-muted-foreground ml-auto">{log.duration}ms</span>
+                  <span className="text-[10px] text-muted-foreground ml-auto">{formatUnit(log.duration, "millisecond")}</span>
                 </div>
                 {log.stdout && (
                   <pre className="px-3 py-2 font-mono text-xs whitespace-pre-wrap text-foreground/90">{log.stdout}</pre>
