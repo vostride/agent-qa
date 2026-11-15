@@ -12,6 +12,7 @@ import type {
 } from '@vostride/agent-qa-schema'
 
 import type { PostProcessingRead } from './api'
+import { formatRegionalDateTime } from './format'
 import { formatDuration, normalizeTimestamp } from './utils'
 
 // The stages the chain runs.
@@ -236,12 +237,12 @@ export function legacyCurationPairText(curated: number, deprecated: number): str
 }
 
 // `h23`, so a 24-hour reader never sees `12:41:02 AM` where the log says `00:41:02`.
-const CLOCK_FORMAT = new Intl.DateTimeFormat(undefined, {
+const CLOCK_OPTIONS: Intl.DateTimeFormatOptions = {
   hour: '2-digit',
   minute: '2-digit',
   second: '2-digit',
   hourCycle: 'h23',
-})
+}
 
 // SQLite's `CURRENT_TIMESTAMP` form parses as local time, so `normalizeTimestamp` fixes it first.
 function instantOf(stored: string | undefined): number | undefined {
@@ -253,7 +254,7 @@ function instantOf(stored: string | undefined): number | undefined {
 /** The queue moment as a local wall clock, or nothing when the stored string does not parse. */
 export function formatClockTime(iso: string): string | undefined {
   const at = instantOf(iso)
-  return at === undefined ? undefined : CLOCK_FORMAT.format(at)
+  return at === undefined ? undefined : formatRegionalDateTime(at, CLOCK_OPTIONS)
 }
 
 /**

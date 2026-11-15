@@ -31,6 +31,7 @@ import {
   InsightsMetricCell,
 } from "@/components/insights/insights-line-grid"
 import { Button } from "@/components/ui/button"
+import { formatRegionalNumber } from "@/lib/format"
 import { cn, formatDuration } from "@/lib/utils"
 
 const WINDOW_OPTIONS: Array<{ value: InsightsTimeWindow; label: string }> = [
@@ -289,7 +290,7 @@ export default function InsightsPage() {
                   <InsightsMetricCell
                     className="border-b border-border sm:border-r"
                     label="Total Runs"
-                    value={stats.totalRuns.toLocaleString()}
+                    value={formatRegionalNumber(stats.totalRuns)}
                     description={`${avgRunsPerDay} ${scopeActive ? "scoped " : ""}runs per active day in this ${timeWindow === "all" ? "range" : "window"}.`}
                   />
                   <InsightsMetricCell

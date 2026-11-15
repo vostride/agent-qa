@@ -1,6 +1,7 @@
 import * as React from "react"
 import * as RechartsPrimitive from "recharts"
 
+import { formatRegionalNumber } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 type ChartPayloadItem = {
@@ -251,7 +252,7 @@ function ChartTooltipContent({
                       </div>
                       {item.value != null && (
                         <span className="font-mono font-medium text-foreground tabular-nums">
-                          {typeof item.value === "number" ? item.value.toLocaleString() : String(item.value)}
+                          {typeof item.value === "number" ? formatRegionalNumber(item.value) : String(item.value)}
                         </span>
                       )}
                     </div>

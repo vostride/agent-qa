@@ -5,6 +5,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
+import { formatDateTime } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 const chartConfig = {
@@ -20,8 +21,7 @@ interface PassRateChartProps {
 }
 
 function formatDate(value: string) {
-  const d = new Date(value)
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+  return formatDateTime(new Date(value), { month: "short", day: "numeric" })
 }
 
 export function PassRateChart({ data, className }: PassRateChartProps) {

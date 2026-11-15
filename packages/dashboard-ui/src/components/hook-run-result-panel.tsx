@@ -5,7 +5,18 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { getHookRuntimeMeta } from '@/lib/hook-runtime'
+import { formatRegionalDateTime } from '@/lib/format'
 import { formatDuration } from '@/lib/utils'
+
+// The fields of a bare `toLocaleString()`, in the dashboard's language and the browser's region.
+const EXECUTED_AT_OPTIONS: Intl.DateTimeFormatOptions = {
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: 'numeric',
+  second: 'numeric',
+}
 
 function formatRelativeCompact(iso: string): string {
   if (!iso) return 'just now'
@@ -129,7 +140,7 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
               </div>
               <div className="rounded-sm border px-3 py-2.5">
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Executed</div>
-                <div className="mt-2 text-sm text-foreground">{new Date(result.executedAt).toLocaleString()}</div>
+                <div className="mt-2 text-sm text-foreground">{formatRegionalDateTime(new Date(result.executedAt), EXECUTED_AT_OPTIONS)}</div>
               </div>
               <div className="rounded-sm border px-3 py-2.5">
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recency</div>

@@ -24,6 +24,7 @@ import type {
 
 import type { FeedbackReadFailure, MarksHistoryRead } from './api'
 import { UNNAMED_STEP_LABEL } from './display-step'
+import { formatRegionalDateTime } from './format'
 import { memberDisplayName, memberHandleLabel } from './run-detail-view'
 
 /** A UI pointer to a mark address, never a new identity. */
@@ -956,17 +957,17 @@ export function HISTORY_READ_FAILED_TEXT(reason: string): string {
 
 export const HISTORY_RETRY_ACCESSIBLE_NAME = `${RETRY_LABEL} loading feedback history`
 
-const MARK_TIME_FORMAT = new Intl.DateTimeFormat(undefined, {
+const MARK_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
   month: 'short',
   day: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
   hourCycle: 'h23',
-})
+}
 
-/** The browser's own short date and 24-hour time; cells compare through this, never a clock literal. */
+/** A short date and 24-hour time in the dashboard's language and the browser's region; cells compare through this, never a clock literal. */
 export function formatMarkTime(markedAt: number | undefined): string | undefined {
-  return markedAt === undefined || !Number.isFinite(markedAt) ? undefined : MARK_TIME_FORMAT.format(new Date(markedAt))
+  return markedAt === undefined || !Number.isFinite(markedAt) ? undefined : formatRegionalDateTime(markedAt, MARK_TIME_OPTIONS)
 }
 
 /** Where a run-list entry landed: a step by number and name, a test by name and handle. */

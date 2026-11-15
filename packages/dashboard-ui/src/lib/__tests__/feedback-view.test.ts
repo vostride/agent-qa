@@ -17,6 +17,7 @@ import { generateRunId } from '@vostride/agent-qa-ids'
 import type { FeedbackReadFailure } from '@/lib/api'
 
 import { UNNAMED_STEP_LABEL } from '@/lib/display-step'
+import { formatLocale } from '@/lib/format'
 import {
   CHOICE_LABELS,
   CHOICE_LEGEND,
@@ -599,12 +600,13 @@ describe('Technical details copy', () => {
   })
 })
 
-// A time is the browser's own format of `markedAt`, so cells compute it with `formatMarkTime`.
+// A time is `markedAt` in the dashboard's language and the browser's region, so cells compute it
+// with `formatMarkTime`.
 describe('the history copy', () => {
   const RUN_ID = generateRunId()
 
-  it('MARK-TIME-FORMAT: the month, day and 24-hour time of markedAt in the browser locale; a non-finite time has none', () => {
-    const format = new Intl.DateTimeFormat(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+  it("the month, day and 24-hour time of markedAt in the dashboard's language and the browser's region; a non-finite time has none", () => {
+    const format = new Intl.DateTimeFormat(formatLocale(), { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
     for (const ms of [0, Date.UTC(2026, 8, 23, 10, 41), Date.UTC(2026, 0, 1, 23, 5)]) {
       expect(formatMarkTime(ms)).toBe(format.format(new Date(ms)))
     }

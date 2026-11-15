@@ -23,10 +23,6 @@ const chartConfig = {
   },
 } satisfies ChartConfig
 
-function formatAxis(value: number) {
-  return new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(value)
-}
-
 function aggregateByModel(data: TokenUsageChartProps["data"]) {
   const byModel = new Map<string, { model: string; promptTokens: number; completionTokens: number }>()
 
@@ -100,7 +96,7 @@ export function TokenUsageChart({ data, className }: TokenUsageChartProps) {
         <CartesianGrid horizontal={false} />
         <XAxis
           type="number"
-          tickFormatter={formatAxis}
+          tickFormatter={formatTokens}
           tickLine={false}
           axisLine={false}
         />

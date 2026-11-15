@@ -10,7 +10,7 @@ import type {
   RunTokenTotals,
 } from '@vostride/agent-qa-schema'
 
-import { formatTokens } from './format'
+import { formatNumber, formatTokens } from './format'
 import { DID_NOT_RUN_NOTE } from './run-stream-reducer'
 
 // ---------------------------------- copy ----------------------------------
@@ -152,9 +152,6 @@ export function reranLabel(attempts: number): string | undefined {
 
 // -------------------------- token line and usage --------------------------
 
-// One module-level formatter, because constructing `Intl.NumberFormat` is the expensive half.
-const fullTokens = new Intl.NumberFormat('en-US')
-
 // Absent sums read as not measured; a measured zero reads `0 in · 0 out`.
 export function tokenPairLine(tokens: RunTokenTotals): string {
   const { measuredSteps, promptTokens, completionTokens } = tokens
@@ -175,7 +172,7 @@ export function usageTotalsLine(tokens: RunTokenTotals): string {
   ) {
     return TOKENS_NOT_MEASURED_LABEL
   }
-  return `${fullTokens.format(totalTokens)} total · ${fullTokens.format(promptTokens)} in · ${fullTokens.format(completionTokens)} out`
+  return `${formatNumber(totalTokens)} total · ${formatNumber(promptTokens)} in · ${formatNumber(completionTokens)} out`
 }
 
 // A fully measured run renders nothing, so every card line is a reported fact.
@@ -191,7 +188,7 @@ export function usageCoverageLine(tokens: RunTokenTotals): string | undefined {
 export function cachedInputLine(tokens: RunTokenTotals): string | undefined {
   const { measuredSteps, cachedInputTokens, cachedMeasuredSteps, cachedInputMeasuredTokens } = tokens
   if (cachedInputTokens === undefined) return undefined
-  const cached = fullTokens.format(cachedInputTokens)
+  const cached = formatNumber(cachedInputTokens)
   if (
     cachedMeasuredSteps === undefined ||
     cachedMeasuredSteps >= measuredSteps ||
@@ -199,7 +196,7 @@ export function cachedInputLine(tokens: RunTokenTotals): string | undefined {
   ) {
     return `cached input ${cached} (provider-reported)`
   }
-  return `cached input ${cached} of ${fullTokens.format(cachedInputMeasuredTokens)} (provider-reported) over ${String(cachedMeasuredSteps)} of ${String(measuredSteps)} measured steps`
+  return `cached input ${cached} of ${formatNumber(cachedInputMeasuredTokens)} (provider-reported) over ${String(cachedMeasuredSteps)} of ${String(measuredSteps)} measured steps`
 }
 
 /** One line of the usage card's model section; the card renders every line as a plain text node. */

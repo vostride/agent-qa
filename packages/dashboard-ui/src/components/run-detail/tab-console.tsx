@@ -4,10 +4,18 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { ExecutionLogEntry, LiveExecutionLogEntry } from "@/lib/api"
 import type { DisplayStep } from "@/lib/display-step"
+import { formatRegionalDateTime } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { useEvidenceRecords } from '@/hooks/use-evidence-records'
 import { EVIDENCE_COPY, resolveEvidenceView } from '@/lib/evidence-state-view'
 import { EvidenceLoading, EvidenceState } from './evidence-state'
+
+// The fields of a bare `toLocaleTimeString()`, in the dashboard's language and browser's region.
+const CONSOLE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
+  hour: "numeric",
+  minute: "numeric",
+  second: "numeric",
+}
 
 interface TabConsoleProps {
   step: Pick<DisplayStep, 'stepOrder' | 'displayStepOrder' | 'consoleLogs' | 'testIndex' | 'stepIndex' | 'evidence'> | null
@@ -208,7 +216,7 @@ function ConsoleRecords({ step, allSteps, executionLogs, isHookStep }: Omit<TabC
               {entry.level}
             </span>
             <span className="text-muted-foreground/60 shrink-0 text-[10px] tabular-nums">
-              {new Date(entry.timestamp).toLocaleTimeString()}
+              {formatRegionalDateTime(new Date(entry.timestamp), CONSOLE_TIME_OPTIONS)}
             </span>
             <span className="flex-1 min-w-0 break-all whitespace-pre-wrap overflow-hidden">
               <HighlightMatch text={entry.text} query={deferredQuery} />

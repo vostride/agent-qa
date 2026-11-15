@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type { ConfigFieldParse } from "@/hooks/use-config-autosave"
 import { fetchAuthStates, type AuthStateMetadata } from "@/lib/api"
+import { formatRegionalDateTime } from "@/lib/format"
 import {
   LOGIN_STATES_DIR_PLACEHOLDER,
   LOGIN_STATES_DIR_REQUIRED_ERROR,
@@ -28,10 +29,10 @@ type LoginStatesRead =
   | { kind: "error" }
   | { kind: "ready"; states: AuthStateMetadata[] }
 
-const DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
+const DATE_OPTIONS: Intl.DateTimeFormatOptions = {
   dateStyle: "medium",
   timeStyle: "short",
-})
+}
 
 const CELL_CLASS = "max-w-[220px] whitespace-normal font-mono text-xs [overflow-wrap:anywhere]"
 
@@ -40,7 +41,7 @@ function formatCapturedAt(value: string) {
   if (Number.isNaN(date.getTime())) {
     return value
   }
-  return DATE_FORMAT.format(date)
+  return formatRegionalDateTime(date, DATE_OPTIONS)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams, useSearchParams } from "react-router"
+import { formatRegionalNumber } from "@/lib/format"
 import { routes } from "@/lib/routes"
 import { toast } from "sonner"
 import { FileCode, Zap } from "lucide-react"
@@ -443,7 +444,7 @@ export default function SuiteViewerPage() {
         <InsightsLineCell className="flex flex-col gap-0.5 border-t border-border px-3 py-2">
           <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Total Runs</span>
           <span className="text-xl font-semibold text-foreground">
-            {analyticsData.total.toLocaleString()}
+            {formatRegionalNumber(analyticsData.total)}
           </span>
         </InsightsLineCell>
         <InsightsLineCell className="flex flex-col gap-0.5 border-t border-border px-3 py-2">
@@ -564,7 +565,7 @@ export default function SuiteViewerPage() {
                 <InsightsLineCell className="border-b border-border md:border-b-0">
                   <div>
                     <p className="text-sm text-muted-foreground">Total Runs</p>
-                    <p className="mt-0.5 text-2xl font-semibold">{analyticsData.total.toLocaleString()}</p>
+                    <p className="mt-0.5 text-2xl font-semibold">{formatRegionalNumber(analyticsData.total)}</p>
                   </div>
                 </InsightsLineCell>
                 <InsightsLineCell className="border-b border-border md:border-b-0 md:border-r">
