@@ -6,6 +6,8 @@ import type {
   VerifierVerdict,
 } from '@vostride/agent-qa-schema'
 
+import { t } from '@/i18n'
+
 import type { AccessibilityViolation } from './api'
 import type { RunDetailGroup } from './run-detail-view'
 import { runDetailStepKey } from './selection'
@@ -84,7 +86,7 @@ export interface DisplayStep {
 }
 
 /** What a step with no recorded text is called, so the tree never renders a blank row. */
-export const UNNAMED_STEP_LABEL = 'Untitled step'
+export const UNNAMED_STEP_LABEL = () => t('common.untitledStep')
 
 // Status falls back to the verifier's `pass`, and `tokenUsage` passes through with no `?? 0`.
 export function fromRunDetailStep(
@@ -93,7 +95,7 @@ export function fromRunDetailStep(
 ): DisplayStep {
   return {
     id: runDetailStepKey(step.testIndex, step.stepIndex),
-    name: step.stepText ?? UNNAMED_STEP_LABEL,
+    name: step.stepText ?? UNNAMED_STEP_LABEL(),
     status: step.status ?? (step.verifierVerdict.pass ? 'passed' : 'failed'),
     duration: step.durationMs ?? 0,
     error: step.error,

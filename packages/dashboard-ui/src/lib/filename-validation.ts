@@ -1,3 +1,5 @@
+import { t } from '@/i18n'
+
 const PATH_SEGMENT_RE = /^[a-zA-Z0-9._-]+$/
 const YAML_EXT_RE = /\.(yaml|yml)$/
 
@@ -23,20 +25,20 @@ function matchesAnyGlob(path: string, patterns: string[]): boolean {
 
 export function getFilenameError(input: string): string | null {
   const trimmed = input.trim()
-  if (!trimmed) return 'Filename is required'
-  if (trimmed.includes('..')) return "Path must not contain '..' segments"
-  if (trimmed.startsWith('/')) return 'Path must be relative, not absolute'
+  if (!trimmed) return t('common.filename.required')
+  if (trimmed.includes('..')) return t('common.filename.parentSegment')
+  if (trimmed.startsWith('/')) return t('common.filename.absolute')
 
   const segments = trimmed.split('/')
   for (const seg of segments) {
-    if (!seg) return 'Path contains empty segment (double slash)'
+    if (!seg) return t('common.filename.emptySegment')
     if (!PATH_SEGMENT_RE.test(seg))
-      return 'Path must contain only letters, numbers, hyphens, dots, underscores, and forward slashes, ending with .yaml or .yml'
+      return t('common.filename.characters')
   }
 
   const filename = segments[segments.length - 1]
   if (!YAML_EXT_RE.test(filename))
-    return 'File must end with .yaml or .yml'
+    return t('common.filename.extension')
 
   return null
 }
@@ -51,11 +53,11 @@ export function getWorkspaceFilenameError(
 
   const configuredPatterns = (patterns ?? []).map((pattern) => pattern.trim()).filter(Boolean)
   if (configuredPatterns.length === 0) {
-    return `workspace.${label} must contain at least one pattern`
+    return t('common.filename.noPattern', { key: `workspace.${label}` })
   }
 
   if (!matchesAnyGlob(filename.trim(), configuredPatterns)) {
-    return `File path must match one of your workspace's ${label} patterns (${configuredPatterns.join(', ')})`
+    return t('common.filename.noMatch', { label, patterns: configuredPatterns.join(', ') })
   }
 
   return null

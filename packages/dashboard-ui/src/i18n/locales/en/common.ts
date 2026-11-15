@@ -28,4 +28,27 @@ export default {
   'common.screenshot.enableMagnifier': 'Enable magnifier',
   'common.screenshot.disableMagnifier': 'Disable magnifier',
   'common.screenshot.viewFullSize': 'View full size',
+  'common.untitledStep': 'Untitled step',
+  'common.api.error': 'API error {{status}}: {{statusText}}',
+  'common.api.errorStatus': 'API error {{status}}',
+  'common.api.invalidAuthState': 'Invalid auth state response',
+  'common.api.runNotReady': 'The dashboard cannot start a run right now: {{reason}}',
+  'common.api.notReady.serviceDown': 'the run service is not up',
+  'common.api.notReady.noHost': 'this dashboard composed no host to run tests with',
+  'common.api.notReady.unreachable':
+    'the dashboard server did not answer its readiness check ({{detail}})',
+  'common.api.notReady.refused': 'the readiness check was refused ({{detail}})',
+  'common.api.notReady.unreadable': 'the readiness answer could not be read',
+  'common.api.notReady.unknownShape':
+    'the readiness answer was not in a shape this build understands',
+  'common.filename.required': 'Filename is required',
+  'common.filename.parentSegment': "Path must not contain '..' segments",
+  'common.filename.absolute': 'Path must be relative, not absolute',
+  'common.filename.emptySegment': 'Path contains empty segment (double slash)',
+  'common.filename.characters':
+    'Path must contain only letters, numbers, hyphens, dots, underscores, and forward slashes, ending with .yaml or .yml',
+  'common.filename.extension': 'File must end with .yaml or .yml',
+  'common.filename.noPattern': '{{key}} must contain at least one pattern',
+  'common.filename.noMatch':
+    "File path must match one of your workspace's {{label}} patterns ({{patterns}})",
 } as const

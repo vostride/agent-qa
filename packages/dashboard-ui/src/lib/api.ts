@@ -27,6 +27,8 @@ import type {
   LlmCredentialMoveRequest,
 } from '@vostride/agent-qa-schema'
 
+import { t } from '@/i18n'
+
 export interface RunRow {
   id: string
   name: string
@@ -220,7 +222,7 @@ export class ApiError extends Error {
       writeBackSentence ||
       (payload && typeof payload.error === 'string' && payload.error) ||
       (payload && typeof payload.message === 'string' && payload.message) ||
-      `API error ${status}: ${statusText}`
+      t('common.api.error', { status, statusText })
     super(message)
     this.name = 'ApiError'
     this.status = status
@@ -467,7 +469,7 @@ export async function saveLiveAuthState(
   )
   const authState = toAuthStateMetadata(result.authState)
   if (!authState) {
-    throw new Error('Invalid auth state response')
+    throw new Error(t('common.api.invalidAuthState'))
   }
   return { authState }
 }
@@ -615,15 +617,15 @@ export class RunNotReadyError extends Error {
     /** The facts the door reported, when it reported any. Absent when it could not be reached. */
     readonly readiness?: RunServiceReadiness,
   ) {
-    super(`The dashboard cannot start a run right now: ${reason}`)
+    super(t('common.api.runNotReady', { reason }))
     this.name = 'RunNotReadyError'
   }
 }
 
 // Only `service` and `hostComposed` decide; `contractVersion` is unread, so version 1 passes.
 function notReadyReason(readiness: RunServiceReadiness): string | undefined {
-  if (readiness.service !== 'up') return 'the run service is not up'
-  if (!readiness.hostComposed) return 'this dashboard composed no host to run tests with'
+  if (readiness.service !== 'up') return t('common.api.notReady.serviceDown')
+  if (!readiness.hostComposed) return t('common.api.notReady.noHost')
   return undefined
 }
 
@@ -645,23 +647,25 @@ async function assertRunReadiness(): Promise<void> {
     response = await fetch(`${API_BASE}/api/run-readiness`)
   } catch (error) {
     throw new RunNotReadyError(
-      `the dashboard server did not answer its readiness check (${error instanceof Error ? error.message : String(error)})`,
+      t('common.api.notReady.unreachable', {
+        detail: error instanceof Error ? error.message : String(error),
+      }),
     )
   }
   if (NO_READINESS_DOOR.has(response.status)) return
   if (!response.ok) {
     const payload = await parseErrorPayload(response)
     const detail = payload && typeof payload.error === 'string' ? payload.error : `HTTP ${String(response.status)}`
-    throw new RunNotReadyError(`the readiness check was refused (${detail})`)
+    throw new RunNotReadyError(t('common.api.notReady.refused', { detail }))
   }
   let body: unknown
   try {
     body = await response.json()
   } catch {
-    throw new RunNotReadyError('the readiness answer could not be read')
+    throw new RunNotReadyError(t('common.api.notReady.unreadable'))
   }
   if (!isReadiness(body)) {
-    throw new RunNotReadyError('the readiness answer was not in a shape this build understands')
+    throw new RunNotReadyError(t('common.api.notReady.unknownShape'))
   }
   const reason = notReadyReason(body)
   if (reason !== undefined) throw new RunNotReadyError(reason, body)
@@ -1406,7 +1410,7 @@ export async function createLiveEditorSession(
   })
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: res.statusText }))
-    throw new Error(err.error || `API error ${res.status}`)
+    throw new Error(err.error || t('common.api.errorStatus', { status: res.status }))
   }
   const body = await res.json()
   const result = {

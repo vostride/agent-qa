@@ -209,7 +209,7 @@ export function composerHeading({ member, step, stepCount, suite }: ComposerHead
   if (step !== undefined) {
     return {
       prefix: `Feedback on step ${String(step.stepIndex + 1)} of ${String(stepCount)} · `,
-      name: step.stepText ?? UNNAMED_STEP_LABEL,
+      name: step.stepText ?? UNNAMED_STEP_LABEL(),
     }
   }
   return suite

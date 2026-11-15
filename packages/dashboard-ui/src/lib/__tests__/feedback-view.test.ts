@@ -220,7 +220,7 @@ describe('the composer names its target', () => {
       prefix: 'Feedback on ',
       name: memberDisplayName(checkout),
     })
-    expect(composerHeading({ member: checkout, step: { stepIndex: 0 }, stepCount: 1, suite: false }).name).toBe(UNNAMED_STEP_LABEL)
+    expect(composerHeading({ member: checkout, step: { stepIndex: 0 }, stepCount: 1, suite: false }).name).toBe(UNNAMED_STEP_LABEL())
     expect(feedbackPartsText({ prefix: 'a', name: 'b', suffix: 'c' })).toBe('abc')
     expect(feedbackPartsText({ prefix: 'a' })).toBe('a')
 
@@ -229,9 +229,9 @@ describe('the composer names its target', () => {
       steps: [0, 1, 2].map((stepIndex) => ({ testIndex: 0, stepIndex, cacheStatus: 'miss', verifierVerdict: { pass: true, reasoning: '' }, selfHealOccurred: false, briefDigest: 'd' }) as const),
     }
     expect(feedbackPartsText(feedbackTargetView({ detail, target: { testIndex: 0, stepIndex: 1 }, runStatus: 'passed' }).heading))
-      .toBe(`Feedback on step 2 of 3 · ${UNNAMED_STEP_LABEL}`)
+      .toBe(`Feedback on step 2 of 3 · ${UNNAMED_STEP_LABEL()}`)
     expect(feedbackPartsText(feedbackTargetView({ detail, target: { testIndex: 1, stepIndex: 0 }, runStatus: 'passed' }).heading))
-      .toBe(`Feedback on step 1 of 7 · ${UNNAMED_STEP_LABEL}`)
+      .toBe(`Feedback on step 1 of 7 · ${UNNAMED_STEP_LABEL()}`)
   })
 
   it('SCOPE-LINE: whole test or one step, the suite step naming its test, then the target recorded result', () => {
@@ -679,7 +679,7 @@ describe('the history copy', () => {
     expect(historyTargetLabel({ testIndex: 1, stepIndex: 1 }, detail)).toEqual({ prefix: 'Step 2 of 5 · ', name: 'apply coupon' })
     expect(feedbackPartsText(historyTargetLabel({ testIndex: 1 }, detail))).toBe(`checkout ${memberHandleLabel(1)} · whole test`)
     expect(historyTargetLabel({ testIndex: 1 }, detail).name).toBe('checkout')
-    expect(historyTargetLabel({ testIndex: 1, stepIndex: 3 }, detail)).toEqual({ prefix: 'Step 4 of 5 · ', name: UNNAMED_STEP_LABEL })
+    expect(historyTargetLabel({ testIndex: 1, stepIndex: 3 }, detail)).toEqual({ prefix: 'Step 4 of 5 · ', name: UNNAMED_STEP_LABEL() })
     expect(feedbackPartsText(historyTargetLabel({ testIndex: 0 }, null))).toBe(`${memberDisplayName({ testIndex: 0 })} ${memberHandleLabel(0)} · whole test`)
   })
 })
