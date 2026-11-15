@@ -12,6 +12,7 @@ const CONFIG_COPY_SOURCES = [
   'lib/config-copy.ts',
   'lib/product-tour-steps.ts',
   'i18n/locales/en/tour.ts',
+  'i18n/locales/en/config.ts',
 ] as const
 
 function listSources(relativeDir: string): string[] {

@@ -17,6 +17,9 @@ import type {
 
 import { MARKER_WRITTEN_BACK_SENTENCE, providerErrorSentence } from '@vostride/agent-qa-schema'
 
+import { t } from '@/i18n'
+import { textTable } from '@/i18n/text-table'
+
 export { providerErrorSentence } from '@vostride/agent-qa-schema'
 
 /** An edit in a text field settles this long after the last keystroke, or on blur. */
@@ -36,42 +39,42 @@ export const STATUS_SEPARATOR = ' · '
 
 export const CONFIG_PAGE_TITLE = 'Config'
 
-export const CONFIG_TAB_LABELS = {
-  models: 'Models',
-  targets: 'Targets',
-  execution: 'Execution',
-  project: 'Project',
-  advanced: 'Advanced',
-} as const satisfies Record<ConfigTab, string>
+export const CONFIG_TAB_LABELS = textTable({
+  models: () => t('config.tabs.models'),
+  targets: () => t('config.tabs.targets'),
+  execution: () => t('config.tabs.execution'),
+  project: () => t('config.tabs.project'),
+  advanced: () => t('config.tabs.advanced'),
+}) satisfies Record<ConfigTab, string>
 
 export const CONFIG_TABS_ARIA_LABEL = 'Config sections'
 export const TAB_DRAFT_SR_SUFFIX = ", has changes that aren't saved"
 
-export const CONFIG_SECTION_LABELS = {
-  models: 'Models',
-  'screenshot-size': 'Screenshot size',
-  'planner-limits': 'Planner limits',
-  targets: 'Targets',
-  remotes: 'Remotes',
-  devices: 'Devices',
-  'login-states': 'Saved login states',
-  'mobile-app-state': 'Mobile app state',
-  browser: 'Browser',
-  timeouts: 'Timeouts',
-  runs: 'Parallel runs',
-  cache: 'Cache',
-  recording: 'Recording',
-  accessibility: 'Accessibility',
-  'log-capture': 'Log capture',
-  'test-discovery': 'Test discovery',
-  files: 'Hooks, env and secrets files',
-  knowledge: 'Knowledge store',
-  dashboard: 'Dashboard',
-  logging: 'Logging',
-  'pass-rate-scope': 'Pass-rate scope',
-  mcp: 'MCP access',
-  'config-file': 'Config file',
-} as const satisfies Record<ConfigSectionId, string>
+export const CONFIG_SECTION_LABELS = textTable({
+  models: () => t('config.sections.models'),
+  'screenshot-size': () => t('config.sections.screenshotSize'),
+  'planner-limits': () => t('config.sections.plannerLimits'),
+  targets: () => t('config.sections.targets'),
+  remotes: () => t('config.sections.remotes'),
+  devices: () => t('config.sections.devices'),
+  'login-states': () => t('config.sections.loginStates'),
+  'mobile-app-state': () => t('config.sections.mobileAppState'),
+  browser: () => t('config.sections.browser'),
+  timeouts: () => t('config.sections.timeouts'),
+  runs: () => t('config.sections.runs'),
+  cache: () => t('config.sections.cache'),
+  recording: () => t('config.sections.recording'),
+  accessibility: () => t('config.sections.accessibility'),
+  'log-capture': () => t('config.sections.logCapture'),
+  'test-discovery': () => t('config.sections.testDiscovery'),
+  files: () => t('config.sections.files'),
+  knowledge: () => t('config.sections.knowledge'),
+  dashboard: () => t('config.sections.dashboard'),
+  logging: () => t('config.sections.logging'),
+  'pass-rate-scope': () => t('config.sections.passRateScope'),
+  mcp: () => t('config.sections.mcp'),
+  'config-file': () => t('config.sections.configFile'),
+}) satisfies Record<ConfigSectionId, string>
 
 export function configCommandLabel(tab: ConfigTab, section: ConfigSectionId): string {
   return `Config: ${CONFIG_TAB_LABELS[tab]} / ${CONFIG_SECTION_LABELS[section]}`
@@ -94,12 +97,12 @@ export function configFileIssuesBody(reason: string): string {
   return `${reason}. Fix it in your editor — this page picks up the change.`
 }
 
-export const SAVE_STATUS_WORDS = {
-  saving: 'Saving…',
-  saved: 'Saved',
-  draft: 'Not saved',
-  failed: "Couldn't save",
-} as const satisfies Partial<Record<SaveState, string>>
+export const SAVE_STATUS_WORDS = textTable({
+  saving: () => t('config.saveStatus.saving'),
+  saved: () => t('config.saveStatus.saved'),
+  draft: () => t('config.saveStatus.draft'),
+  failed: () => t('config.saveStatus.failed'),
+}) satisfies Partial<Record<SaveState, string>>
 
 export const RETRY_LABEL = 'Retry'
 export const NOT_SAVED_ACTION_NAME = 'Not saved. Go to the first unsaved field.'
@@ -147,33 +150,33 @@ export const ADD_MODEL_LABEL = 'Add model'
 export const NEW_MODEL_ROW_TITLE = 'New model'
 export const DISCARD_DRAFT_LABEL = 'Discard draft'
 
-export const MODEL_STATUS_WORDS = {
-  'signed-in': 'Signed in',
-  'key-saved': 'Key saved',
-  'not-connected': 'Not connected',
-  'sign-in-expired': 'Sign-in expired',
-} as const satisfies Record<ModelStatus, string>
+export const MODEL_STATUS_WORDS = textTable({
+  'signed-in': () => t('config.modelStatus.signedIn'),
+  'key-saved': () => t('config.modelStatus.keySaved'),
+  'not-connected': () => t('config.modelStatus.notConnected'),
+  'sign-in-expired': () => t('config.modelStatus.signInExpired'),
+}) satisfies Record<ModelStatus, string>
 
 export const DEFAULT_BADGE = 'Default'
 
 /** Provider labels for when the provider list can't be read; a row never shows a provider id. */
-export const PROVIDER_FALLBACK_LABELS = {
-  'openai-compatible': 'OpenAI-compatible',
-  'anthropic-compatible': 'Anthropic-compatible',
-  gemini: 'Gemini',
-  'openai-subscription': 'ChatGPT plan',
-  'anthropic-subscription': 'Claude plan',
-} as const satisfies Record<string, string>
+export const PROVIDER_FALLBACK_LABELS = textTable({
+  'openai-compatible': () => t('config.providerFallback.openaiCompatible'),
+  'anthropic-compatible': () => t('config.providerFallback.anthropicCompatible'),
+  gemini: () => 'Gemini',
+  'openai-subscription': () => t('config.providerFallback.openaiSubscription'),
+  'anthropic-subscription': () => t('config.providerFallback.anthropicSubscription'),
+}) satisfies Record<string, string>
 
 export function modelLine(model: string, providerLabel: string): string {
   return `${model}${STATUS_SEPARATOR}${providerLabel}`
 }
 
 /** The plan a sign-in provider connects through, as the signed-in sentence names it. */
-export const SUBSCRIPTION_PLAN_NAMES = {
-  'openai-subscription': 'ChatGPT',
-  'anthropic-subscription': 'Claude',
-} as const satisfies Record<string, string>
+export const SUBSCRIPTION_PLAN_NAMES = textTable({
+  'openai-subscription': () => 'ChatGPT',
+  'anthropic-subscription': () => 'Claude',
+}) satisfies Record<string, string>
 
 export interface ConnectionSentenceOptions {
   /** The model connects by signing in to a plan rather than with a key. */
@@ -213,33 +216,33 @@ export const KEEP_CURRENT_KEY_LABEL = 'Keep current key'
 export const NEW_KEY_LABEL = 'New key'
 
 /** How a saved model connects, as the fixed-facts line names it; a plugin provider uses its label. */
-export const FIXED_CONNECTION_LABELS = {
-  'openai-subscription': 'your ChatGPT plan',
-  'anthropic-subscription': 'your Claude plan',
-  'openai-compatible': 'an OpenAI-compatible API key',
-  'anthropic-compatible': 'an Anthropic-compatible key or token',
-  gemini: 'a Gemini API key',
-} as const satisfies Record<string, string>
+export const FIXED_CONNECTION_LABELS = textTable({
+  'openai-subscription': () => t('config.fixedConnection.openaiSubscription'),
+  'anthropic-subscription': () => t('config.fixedConnection.anthropicSubscription'),
+  'openai-compatible': () => t('config.fixedConnection.openaiCompatible'),
+  'anthropic-compatible': () => t('config.fixedConnection.anthropicCompatible'),
+  gemini: () => t('config.fixedConnection.gemini'),
+}) satisfies Record<string, string>
 
 export function fixedFactsLine(connectionLabel: string): string {
   return `Connects with ${connectionLabel}. The name and connection are fixed; to change them, add a new model.`
 }
 
 /** A saved model's settings in its open row; Model and Base URL share the add flow's labels. */
-export const MODEL_SETTING_LABELS = {
-  vision: 'Vision',
-  contextWindow: 'Context window',
-} as const satisfies Record<string, string>
+export const MODEL_SETTING_LABELS = textTable({
+  vision: () => t('config.modelSetting.vision'),
+  contextWindow: () => t('config.modelSetting.contextWindow'),
+}) satisfies Record<string, string>
 
-export const MODEL_SETTING_HELP = {
-  vision: 'Whether this model can read screenshots. Turn it off for text-only models.',
-  contextWindow: 'A size such as 256k. Leave it empty to detect it.',
-} as const satisfies Record<string, string>
+export const MODEL_SETTING_HELP = textTable({
+  vision: () => t('config.modelSettingHelp.vision'),
+  contextWindow: () => t('config.modelSettingHelp.contextWindow'),
+}) satisfies Record<string, string>
 
-export const HEADER_FIELD_LABELS = {
-  name: 'Name',
-  value: 'Value',
-} as const satisfies Record<string, string>
+export const HEADER_FIELD_LABELS = textTable({
+  name: () => t('config.headerField.name'),
+  value: () => t('config.headerField.value'),
+}) satisfies Record<string, string>
 
 export const SAVE_HEADER_LABEL = 'Save header'
 export const DISCARD_HEADER_LABEL = 'Discard header'
@@ -264,52 +267,52 @@ export const NO_MODELS_TEXT = 'Runs need a model. Add one to get started.'
 export const NO_DEFAULT_TEXT = 'No default model. Runs need one — make one of these the default.'
 
 /** A failed test shows providerErrorSentence instead, so `failed` has no entry here. */
-export const TEST_RESULT_TEXT = {
-  testing: 'Testing the connection…',
-  connected: 'Connected',
-  'connected-without-key': 'Connected without a key',
-} as const satisfies Partial<Record<TestResult, string>>
+export const TEST_RESULT_TEXT = textTable({
+  testing: () => t('config.testResult.testing'),
+  connected: () => t('config.testResult.connected'),
+  'connected-without-key': () => t('config.testResult.connectedWithoutKey'),
+}) satisfies Partial<Record<TestResult, string>>
 
 export const CONNECT_LABEL = 'Connect'
 export const CONNECTING_LABEL = 'Connecting…'
 export const CONNECT_FORM_LEGEND = 'How do you connect?'
 
-export const CONNECTION_CHOICE_LABELS = {
-  'chatgpt-sign-in': 'Sign in with ChatGPT',
-  'claude-sign-in': 'Sign in with Claude',
-  'openai-compatible-key': 'OpenAI-compatible API key',
-  'anthropic-compatible-key': 'Anthropic-compatible key or token',
-  'gemini-key': 'Gemini API key',
-} as const satisfies Record<ConnectionChoice, string>
+export const CONNECTION_CHOICE_LABELS = textTable({
+  'chatgpt-sign-in': () => t('config.connectionChoice.chatgptSignIn'),
+  'claude-sign-in': () => t('config.connectionChoice.claudeSignIn'),
+  'openai-compatible-key': () => t('config.connectionChoice.openaiCompatibleKey'),
+  'anthropic-compatible-key': () => t('config.connectionChoice.anthropicCompatibleKey'),
+  'gemini-key': () => t('config.connectionChoice.geminiKey'),
+}) satisfies Record<ConnectionChoice, string>
 
-export const CONNECTION_CHOICE_HINTS = {
-  'chatgpt-sign-in': 'Uses your ChatGPT plan. No key needed.',
-  'claude-sign-in': 'Uses your Claude plan. No key needed.',
-  'openai-compatible-key': 'OpenAI, or any endpoint that speaks its API.',
-  'anthropic-compatible-key': 'Anthropic, or any endpoint that speaks its API.',
-  'gemini-key': 'A key from Google AI Studio.',
-} as const satisfies Record<ConnectionChoice, string>
+export const CONNECTION_CHOICE_HINTS = textTable({
+  'chatgpt-sign-in': () => t('config.connectionChoiceHints.chatgptSignIn'),
+  'claude-sign-in': () => t('config.connectionChoiceHints.claudeSignIn'),
+  'openai-compatible-key': () => t('config.connectionChoiceHints.openaiCompatibleKey'),
+  'anthropic-compatible-key': () => t('config.connectionChoiceHints.anthropicCompatibleKey'),
+  'gemini-key': () => t('config.connectionChoiceHints.geminiKey'),
+}) satisfies Record<ConnectionChoice, string>
 
-export const ADD_FLOW_FIELD_LABELS = {
-  baseUrl: 'Base URL',
-  model: 'Model',
-  apiKey: 'API key',
-  keyType: 'Key type',
-  key: 'Key',
-  token: 'Token',
-  headers: 'Headers',
-  name: 'Name',
-  signInCode: 'Code from the sign-in page',
-} as const satisfies Record<string, string>
+export const ADD_FLOW_FIELD_LABELS = textTable({
+  baseUrl: () => t('config.addFlowField.baseUrl'),
+  model: () => t('config.addFlowField.model'),
+  apiKey: () => t('config.addFlowField.apiKey'),
+  keyType: () => t('config.addFlowField.keyType'),
+  key: () => t('config.addFlowField.key'),
+  token: () => t('config.addFlowField.token'),
+  headers: () => t('config.addFlowField.headers'),
+  name: () => t('config.addFlowField.name'),
+  signInCode: () => t('config.addFlowField.signInCode'),
+}) satisfies Record<string, string>
 
 export const ADD_HEADER_LABEL = 'Add header'
 
 export type CredentialKeyType = 'api-key' | 'bearer-token'
 
-export const KEY_TYPE_LABELS = {
-  'api-key': 'API key',
-  'bearer-token': 'Bearer token',
-} as const satisfies Record<CredentialKeyType, string>
+export const KEY_TYPE_LABELS = textTable({
+  'api-key': () => t('config.keyType.apiKey'),
+  'bearer-token': () => t('config.keyType.bearerToken'),
+}) satisfies Record<CredentialKeyType, string>
 
 export const KEY_OPTIONAL_HELP = "Leave empty if your endpoint doesn't need a key."
 export const BASE_URL_HELP = "The exact base URL. agent-qa doesn't add paths to it."
@@ -339,25 +342,25 @@ export type ConnectRefusalCode = LlmSetupRefusal | ConfigWriteRefusal | 'connect
 
 const COULD_NOT_SAVE_MODEL = "Couldn't save the model. Try again."
 
-export const CONNECT_REFUSAL_COPY = {
-  invalid_setup_input: 'Check the model and base URL.',
-  name_invalid: NAME_RULE_ERROR,
-  name_taken: 'Another model already uses this name.',
-  credential_provider_conflict: 'This name holds a key for a different connection. Choose another name.',
-  credential_not_accepted: "This connection doesn't take that kind of key.",
-  credential_missing: KEY_REQUIRED_ERROR,
-  credential_exists: 'Another saved key already uses this name.',
-  validation_failed: 'The config file has a problem to fix first.',
-  file_invalid: "The config file doesn't parse. Fix it in your editor, then connect again.",
-  invalid_write_input: COULD_NOT_SAVE_MODEL,
-  path_not_found: COULD_NOT_SAVE_MODEL,
-  write_failed: COULD_NOT_SAVE_MODEL,
-  field_changed: COULD_NOT_SAVE_MODEL,
-  path_not_writable: COULD_NOT_SAVE_MODEL,
-  marker_written_back: MARKER_WRITTEN_BACK_SENTENCE,
-  connect_failed: COULD_NOT_SAVE_MODEL,
-  cross_site_refused: "This page isn't allowed to change the config.",
-} as const satisfies Record<ConnectRefusalCode, string>
+export const CONNECT_REFUSAL_COPY = textTable({
+  invalid_setup_input: () => t('config.connectRefusal.invalidSetupInput'),
+  name_invalid: () => NAME_RULE_ERROR,
+  name_taken: () => t('config.connectRefusal.nameTaken'),
+  credential_provider_conflict: () => t('config.connectRefusal.credentialProviderConflict'),
+  credential_not_accepted: () => t('config.connectRefusal.credentialNotAccepted'),
+  credential_missing: () => KEY_REQUIRED_ERROR,
+  credential_exists: () => t('config.connectRefusal.credentialExists'),
+  validation_failed: () => t('config.connectRefusal.validationFailed'),
+  file_invalid: () => t('config.connectRefusal.fileInvalid'),
+  invalid_write_input: () => COULD_NOT_SAVE_MODEL,
+  path_not_found: () => COULD_NOT_SAVE_MODEL,
+  write_failed: () => COULD_NOT_SAVE_MODEL,
+  field_changed: () => COULD_NOT_SAVE_MODEL,
+  path_not_writable: () => COULD_NOT_SAVE_MODEL,
+  marker_written_back: () => MARKER_WRITTEN_BACK_SENTENCE,
+  connect_failed: () => COULD_NOT_SAVE_MODEL,
+  cross_site_refused: () => t('config.connectRefusal.crossSiteRefused'),
+}) satisfies Record<ConnectRefusalCode, string>
 
 const REFUSALS_WITH_ISSUES: ReadonlySet<string> = new Set<ConnectRefusalCode>(['validation_failed', 'invalid_setup_input'])
 
@@ -415,14 +418,11 @@ export function keepPathName(pathLabel: string): string {
 export type DataPathKey = 'knowledge.dir' | 'services.dashboard.dbPath' | 'services.dashboard.artifactsDir'
 
 // What applying a new data path changes, as the code does it.
-export const APPLY_CONSEQUENCES = {
-  'knowledge.dir':
-    'New runs and agents use the new folder right away; a running agent-qa daemon switches when it restarts. Nothing in the current folder is moved or deleted.',
-  'services.dashboard.dbPath':
-    "The dashboard opens the new database when it restarts, and runs in the current one won't show until you switch back. Nothing is moved or deleted.",
-  'services.dashboard.artifactsDir':
-    'New runs write their working-memory file to the new folder. Earlier runs still show, and nothing is moved or deleted.',
-} as const satisfies Record<DataPathKey, string>
+export const APPLY_CONSEQUENCES = textTable({
+  'knowledge.dir': () => t('config.applyConsequences.knowledgeDir'),
+  'services.dashboard.dbPath': () => t('config.applyConsequences.dbPath'),
+  'services.dashboard.artifactsDir': () => t('config.applyConsequences.artifactsDir'),
+}) satisfies Record<DataPathKey, string>
 
 export const PORT_RESTART_HELP = 'Takes effect after the dashboard restarts.'
 

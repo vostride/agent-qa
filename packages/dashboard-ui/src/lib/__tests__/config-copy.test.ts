@@ -7,8 +7,9 @@ import {
 } from '@vostride/agent-qa-schema'
 import { readFileSync } from 'node:fs'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
+import i18n from '@/i18n'
 import * as copy from '../config-copy'
 import { CONFIG_SECTION_IDS, CONFIG_TABS, EXPLICIT_ACTION_KINDS, MODEL_STATUSES } from '../config-tabs'
 
@@ -242,5 +243,24 @@ describe('The Connect refusal sentences', () => {
     expect(copy.connectRefusalSentence('write_failed', [{ message: 'Ignored' }])).toBe(copy.CONNECT_REFUSAL_COPY.write_failed)
     expect(copy.CONNECT_REFUSAL_COPY.name_invalid).toBe(copy.NAME_RULE_ERROR)
     expect(copy.CONNECT_REFUSAL_COPY.credential_missing).toBe(copy.KEY_REQUIRED_ERROR)
+  })
+})
+
+describe('The Config tables in another language', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('en')
+    i18n.removeResourceBundle('fr', 'translation')
+  })
+
+  it('reads a tab label in the current language from the same imported table', async () => {
+    const labels = copy.CONFIG_TAB_LABELS
+    expect(labels.models).toBe('Models')
+
+    i18n.addResourceBundle('fr', 'translation', { 'config.tabs.models': 'Modèles' })
+    await i18n.changeLanguage('fr')
+    expect(labels.models).toBe('Modèles')
+
+    await i18n.changeLanguage('en')
+    expect(labels.models).toBe('Models')
   })
 })

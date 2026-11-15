@@ -94,6 +94,7 @@ import {
   type ConfigSectionId,
   type ConfigTab,
 } from '@/lib/config-tabs'
+import i18n from '@/i18n'
 import { routes } from '@/lib/routes'
 import ConfigPage from '@/pages/config'
 
@@ -2419,3 +2420,34 @@ function cleanupAfterDialog() {
   }
   container = null
 }
+
+describe('ConfigPage after a language change', () => {
+  afterEach(async () => {
+    await act(async () => {
+      await i18n.changeLanguage('en')
+    })
+    i18n.removeResourceBundle('fr', 'translation')
+  })
+
+  it('shows the new tab label and section heading on the same nodes with no remount', async () => {
+    i18n.addResourceBundle('fr', 'translation', {
+      'config.tabs.models': 'Modèles',
+      'config.sections.screenshotSize': "Taille des captures d'écran",
+    })
+    await renderAt('/config/models')
+    const tab = tabTrigger('models')
+    const heading = section('screenshot-size')?.querySelector(':scope > h2')
+    expect(tab?.textContent).toContain('Models')
+    expect(heading?.textContent).toBe('Screenshot size')
+
+    await act(async () => {
+      await i18n.changeLanguage('fr')
+    })
+
+    expect(tabTrigger('models')).toBe(tab)
+    expect(section('screenshot-size')?.querySelector(':scope > h2')).toBe(heading)
+    expect(tab?.textContent).toContain('Modèles')
+    expect(tab?.textContent).not.toContain('Models')
+    expect(heading?.textContent).toBe("Taille des captures d'écran")
+  })
+})
