@@ -1,7 +1,8 @@
 import { readFileSync } from 'node:fs'
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
+import i18n from '@/i18n'
 import {
   CONFIG_SECTION_ALIASES,
   CONFIG_SECTION_IDS,
@@ -228,5 +229,27 @@ describe('the UI closed sets', () => {
       'change-db-path',
       'change-artifacts-dir',
     ])
+  })
+})
+
+describe('The section search words in another language', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('en')
+    i18n.removeResourceBundle('fr', 'translation')
+  })
+
+  it('finds a section by the words the current language writes for it', async () => {
+    i18n.addResourceBundle('fr', 'translation', {
+      'config.sectionAliases.models': 'modèle, fournisseur',
+    })
+    await i18n.changeLanguage('fr')
+
+    expect(CONFIG_SECTION_ALIASES.models.join(', ')).toBe('modèle, fournisseur')
+    expect(CONFIG_SECTION_ALIASES.models).toEqual(['modèle', 'fournisseur'])
+    expect(sectionsOf('fournisseur')).toContain('models')
+    expect(sectionsOf('llm')).not.toContain('models')
+
+    await i18n.changeLanguage('en')
+    expect(sectionsOf('llm')).toContain('models')
   })
 })

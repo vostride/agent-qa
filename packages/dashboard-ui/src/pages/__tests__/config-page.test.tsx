@@ -2450,4 +2450,19 @@ describe('ConfigPage after a language change', () => {
     expect(tab?.textContent).not.toContain('Models')
     expect(heading?.textContent).toBe("Taille des captures d'écran")
   })
+
+  it('shows the new label of the chosen log level on the same control', async () => {
+    i18n.addResourceBundle('fr', 'translation', { 'config.loggingLevel.info': 'Renseignement' })
+    await renderAt('/config/project')
+    const control = fieldControl(['services', 'logging', 'level'])
+    expect(control?.textContent).toContain('Info')
+
+    await act(async () => {
+      await i18n.changeLanguage('fr')
+    })
+
+    expect(fieldControl(['services', 'logging', 'level'])).toBe(control)
+    expect(control?.textContent).toContain('Renseignement')
+    expect(control?.textContent).not.toContain('Info')
+  })
 })
