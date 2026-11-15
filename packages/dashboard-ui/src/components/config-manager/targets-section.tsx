@@ -82,14 +82,19 @@ const UNSET: ConfigFieldParse = { valid: true, unset: true }
 // A select item needs a non-empty value, and no device name starts with a NUL.
 const NO_DEVICE = "\u0000none"
 
-const PLATFORM_OPTIONS = (Object.keys(TARGET_PLATFORM_LABELS) as TargetPlatform[]).map((value) => ({
-  value,
-  label: TARGET_PLATFORM_LABELS[value],
-}))
+function platformOptions() {
+  return (Object.keys(TARGET_PLATFORM_LABELS) as TargetPlatform[]).map((value) => ({
+    value,
+    label: TARGET_PLATFORM_LABELS[value],
+  }))
+}
 type TargetEnvironment = keyof typeof TARGET_ENVIRONMENT_LABELS
-const ENVIRONMENT_OPTIONS = (Object.keys(TARGET_ENVIRONMENT_LABELS) as TargetEnvironment[]).map(
-  (value) => ({ value, label: TARGET_ENVIRONMENT_LABELS[value] }),
-)
+function environmentOptions() {
+  return (Object.keys(TARGET_ENVIRONMENT_LABELS) as TargetEnvironment[]).map((value) => ({
+    value,
+    label: TARGET_ENVIRONMENT_LABELS[value],
+  }))
+}
 // The add row's choices: undeclared first, stored as the draft's empty string.
 const ENVIRONMENT_CHOICES = Object.keys(TARGET_ENVIRONMENT_CHOICE_LABELS) as (keyof typeof TARGET_ENVIRONMENT_CHOICE_LABELS)[]
 
@@ -283,7 +288,7 @@ function TargetFields({ name, target, config }: TargetFieldsProps) {
         field={{ ...platformField, pattern: "registry.targets.*.platform" }}
         label={TARGET_FIELD_LABELS.platform}
         kind="select"
-        options={PLATFORM_OPTIONS}
+        options={platformOptions()}
         parse={(raw) =>
           raw === "web" && !hasUrl ? { valid: false, error: TARGET_WEB_NEEDS_URL_ERROR } : { valid: true, value: raw }
         }
@@ -368,7 +373,7 @@ function TargetFields({ name, target, config }: TargetFieldsProps) {
         label={TARGET_FIELD_LABELS.environment}
         kind="select"
         placeholder={TARGET_ENVIRONMENT_PLACEHOLDER}
-        options={ENVIRONMENT_OPTIONS}
+        options={environmentOptions()}
       />
     </>
   )
@@ -495,7 +500,7 @@ function AddTargetRow({ initial, takenNames, onHold, onDiscard, onAdded }: AddTa
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            {PLATFORM_OPTIONS.map((option) => (
+            {platformOptions().map((option) => (
               <SelectItem key={option.value} value={option.value}>
                 {option.label}
               </SelectItem>

@@ -11,9 +11,11 @@ interface MobileSectionProps {
 
 const APP_STATE_REF = { segments: ["use", "mobile", "appState"], tab: "targets" } as const
 
-const APP_STATE_OPTIONS = (Object.keys(MOBILE_APP_STATE_LABELS) as (keyof typeof MOBILE_APP_STATE_LABELS)[]).map(
-  (value) => ({ value, label: MOBILE_APP_STATE_LABELS[value] }),
-)
+function appStateOptions() {
+  return (Object.keys(MOBILE_APP_STATE_LABELS) as (keyof typeof MOBILE_APP_STATE_LABELS)[]).map(
+    (value) => ({ value, label: MOBILE_APP_STATE_LABELS[value] }),
+  )
+}
 
 export function MobileSection(_props: MobileSectionProps) {
   const autosave = useConfigAutosaveContext()
@@ -23,7 +25,7 @@ export function MobileSection(_props: MobileSectionProps) {
       field={{ ...APP_STATE_REF, pattern: "use.mobile.appState" }}
       label={MOBILE_FIELD_LABELS.appState}
       kind="select"
-      options={APP_STATE_OPTIONS}
+      options={appStateOptions()}
       help={unset ? MOBILE_APP_STATE_HELP : undefined}
     />
   )

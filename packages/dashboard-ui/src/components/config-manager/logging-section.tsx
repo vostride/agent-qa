@@ -1,7 +1,9 @@
 import { ConfigField } from "@/components/config-manager/config-field"
 import { LOGGING_FIELD_HELP, LOGGING_FIELD_LABELS, LOGGING_LEVEL_LABELS } from "@/lib/config-copy"
 
-const LEVEL_OPTIONS = Object.entries(LOGGING_LEVEL_LABELS).map(([value, label]) => ({ value, label }))
+function levelOptions() {
+  return Object.entries(LOGGING_LEVEL_LABELS).map(([value, label]) => ({ value, label }))
+}
 
 export function LoggingSection() {
   return (
@@ -10,7 +12,7 @@ export function LoggingSection() {
       label={LOGGING_FIELD_LABELS.level}
       kind="select"
       help={LOGGING_FIELD_HELP.level}
-      options={LEVEL_OPTIONS}
+      options={levelOptions()}
       placeholder={LOGGING_LEVEL_LABELS.warn}
     />
   )

@@ -7,7 +7,10 @@ function browserField(...leaf: string[]): ConfigFieldTarget {
   return { segments, tab: "execution", pattern: segments.join(".") }
 }
 
-const BROWSER_OPTIONS = Object.entries(BROWSER_NAME_LABELS).map(([value, label]) => ({ value, label }))
+function browserOptions() {
+  return Object.entries(BROWSER_NAME_LABELS).map(([value, label]) => ({ value, label }))
+}
+
 const BROWSER_DEFAULTS = REQUIRED_SIBLING_BLOCKS["use.browser"]
 const VIEWPORT_DEFAULTS = REQUIRED_SIBLING_BLOCKS["use.browser.viewport"]
 const VIEWPORT_RULES = { min: 1, integer: true } as const
@@ -19,7 +22,7 @@ export function BrowserSection() {
         field={browserField("name")}
         label={BROWSER_FIELD_LABELS.name}
         kind="select"
-        options={BROWSER_OPTIONS}
+        options={browserOptions()}
         placeholder={BROWSER_NAME_LABELS[BROWSER_DEFAULTS.name]}
       />
       <ConfigField

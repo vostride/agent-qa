@@ -39,10 +39,12 @@ import {
 } from "@/lib/config-copy"
 
 type DevicePlatform = "android" | "ios"
-const DEVICE_PLATFORM_OPTIONS: { value: DevicePlatform; label: string }[] = [
-  { value: "android", label: TARGET_PLATFORM_LABELS.android },
-  { value: "ios", label: TARGET_PLATFORM_LABELS.ios },
-]
+function devicePlatformOptions(): { value: DevicePlatform; label: string }[] {
+  return [
+    { value: "android", label: TARGET_PLATFORM_LABELS.android },
+    { value: "ios", label: TARGET_PLATFORM_LABELS.ios },
+  ]
+}
 
 interface DeviceEntry {
   platform?: string
@@ -159,7 +161,7 @@ function DeviceFields({ name, device }: { name: string; device: DeviceEntry }) {
         field={{ ...at("platform"), pattern: "registry.devices.*.platform" }}
         label={DEVICE_FIELD_LABELS.platform}
         kind="select"
-        options={DEVICE_PLATFORM_OPTIONS}
+        options={devicePlatformOptions()}
       />
       {typeof device.remote === "string" ? (
         <p data-device-remote={device.remote} className="text-sm text-muted-foreground">
@@ -318,7 +320,7 @@ function AddDeviceRow({ initial, takenNames, onHold, onDiscard, onAdded }: AddDe
         onChange={(value) => change({ ...draft, name: value })}
         onEnter={() => void settle(draft, true)}
       />
-      {select("platform", DEVICE_FIELD_LABELS.platform, DEVICE_PLATFORM_OPTIONS)}
+      {select("platform", DEVICE_FIELD_LABELS.platform, devicePlatformOptions())}
       <Button type="button" variant="ghost" size="sm" onClick={onDiscard}>
         {DISCARD_DEVICE_LABEL}
       </Button>

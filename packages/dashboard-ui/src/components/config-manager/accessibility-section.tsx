@@ -23,8 +23,13 @@ function optionsOf(labels: Readonly<Record<string, string>>) {
   return Object.entries(labels).map(([value, label]) => ({ value, label }))
 }
 
-const STANDARD_OPTIONS = optionsOf(ACCESSIBILITY_STANDARD_LABELS)
-const RUN_AFTER_OPTIONS = optionsOf(ACCESSIBILITY_RUN_AFTER_LABELS)
+function standardOptions() {
+  return optionsOf(ACCESSIBILITY_STANDARD_LABELS)
+}
+
+function runAfterOptions() {
+  return optionsOf(ACCESSIBILITY_RUN_AFTER_LABELS)
+}
 
 export function AccessibilitySection() {
   return (
@@ -39,14 +44,14 @@ export function AccessibilitySection() {
         field={accessibilityField("standard")}
         label={ACCESSIBILITY_FIELD_LABELS.standard}
         kind="select"
-        options={STANDARD_OPTIONS}
+        options={standardOptions()}
         placeholder={ACCESSIBILITY_ALL_RULES_TEXT}
       />
       <ConfigField
         field={accessibilityField("runAfter")}
         label={ACCESSIBILITY_FIELD_LABELS.runAfter}
         kind="select"
-        options={RUN_AFTER_OPTIONS}
+        options={runAfterOptions()}
         placeholder={ACCESSIBILITY_RUN_AFTER_LABELS["every-step"]}
       />
       <ConfigField

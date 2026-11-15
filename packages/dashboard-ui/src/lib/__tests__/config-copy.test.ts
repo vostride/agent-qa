@@ -263,4 +263,24 @@ describe('The Config tables in another language', () => {
     await i18n.changeLanguage('en')
     expect(labels.models).toBe('Models')
   })
+
+  it('reads the remotes columns in the current language and keeps the sample and the dash', async () => {
+    const example = copy.REMOTES_COPY.example
+    i18n.addResourceBundle('fr', 'translation', {
+      'config.remotes.columns.name': 'Nom',
+      'config.remotes.pluginColumns.source': 'Paquet ou chemin',
+    })
+    await i18n.changeLanguage('fr')
+
+    expect(copy.REMOTES_COPY.columns.name).toBe('Nom')
+    expect(copy.REMOTES_COPY.pluginColumns.source).toBe('Paquet ou chemin')
+    expect(copy.REMOTES_COPY.example).toBe(example)
+    expect(copy.REMOTES_COPY.missingValue).toBe('—')
+    expect(Object.keys(copy.TARGET_ENVIRONMENT_CHOICE_LABELS)).toEqual([
+      'undeclared',
+      'local',
+      'shared',
+      'production',
+    ])
+  })
 })

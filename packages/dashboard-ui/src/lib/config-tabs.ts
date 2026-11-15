@@ -1,5 +1,8 @@
 // One module owns every Config tab id, section id and state word the page, palette and tour share.
 
+import { t } from '@/i18n'
+import { textTable } from '@/i18n/text-table'
+
 import { CONFIG_SECTION_LABELS } from './config-copy'
 
 export type ConfigTab = 'models' | 'targets' | 'execution' | 'project' | 'advanced'
@@ -71,32 +74,40 @@ export const CONFIG_SECTIONS = {
   advanced: ['mcp', 'config-file'],
 } as const satisfies Record<ConfigTab, readonly ConfigSectionId[]>
 
-// Palette words beside each section label: no bucket names, no dotted paths.
-export const CONFIG_SECTION_ALIASES = {
-  models: ['model', 'llm', 'llms', 'default model', 'default llm', 'providers', 'api key', 'sign in'],
-  'screenshot-size': ['vision', 'screenshot', 'resolution'],
-  'planner-limits': ['planner', 'sub actions', 'history limit'],
-  targets: ['target', 'urls', 'bundle id', 'app package'],
-  remotes: ['remote', 'remote browser', 'where tests run'],
-  devices: ['device', 'device profiles'],
-  'login-states': ['login state', 'auth state', 'auth states', 'saved auth'],
-  'mobile-app-state': ['mobile', 'app state', 'app data', 'reset app data', 'preserve app data'],
-  browser: ['viewport', 'headless', 'browser headless', 'engine'],
-  timeouts: ['timeout', 'navigation timeout', 'step timeout'],
-  runs: ['parallel', 'workers', 'build tag'],
-  cache: ['cache dir', 'cache directory'],
-  recording: ['record', 'video'],
-  accessibility: ['a11y', 'wcag'],
-  'log-capture': ['console capture', 'network capture'],
-  'test-discovery': ['tests', 'discovery', 'test match', 'suite match', 'ignore patterns'],
-  files: ['hooks file', 'env file', 'environment file', 'secrets file'],
-  knowledge: ['knowledge dir'],
-  dashboard: ['port', 'db path', 'database', 'artifacts', 'artifacts dir', 'runs db'],
-  logging: ['log level'],
-  'pass-rate-scope': ['pass rate', 'scope', 'attributes', 'flakiness'],
-  mcp: ['mcp port'],
-  'config-file': ['yaml', 'config file path', 'raw config'],
-} as const satisfies Record<ConfigSectionId, readonly string[]>
+// Palette words beside each section label: no bucket names, no dotted paths. A language writes
+// a section's words as one string, separated by commas.
+export const CONFIG_SECTION_ALIASES = textTable({
+  models: () => wordsOf(t('config.sectionAliases.models')),
+  'screenshot-size': () => wordsOf(t('config.sectionAliases.screenshotSize')),
+  'planner-limits': () => wordsOf(t('config.sectionAliases.plannerLimits')),
+  targets: () => wordsOf(t('config.sectionAliases.targets')),
+  remotes: () => wordsOf(t('config.sectionAliases.remotes')),
+  devices: () => wordsOf(t('config.sectionAliases.devices')),
+  'login-states': () => wordsOf(t('config.sectionAliases.loginStates')),
+  'mobile-app-state': () => wordsOf(t('config.sectionAliases.mobileAppState')),
+  browser: () => wordsOf(t('config.sectionAliases.browser')),
+  timeouts: () => wordsOf(t('config.sectionAliases.timeouts')),
+  runs: () => wordsOf(t('config.sectionAliases.runs')),
+  cache: () => wordsOf(t('config.sectionAliases.cache')),
+  recording: () => wordsOf(t('config.sectionAliases.recording')),
+  accessibility: () => wordsOf(t('config.sectionAliases.accessibility')),
+  'log-capture': () => wordsOf(t('config.sectionAliases.logCapture')),
+  'test-discovery': () => wordsOf(t('config.sectionAliases.testDiscovery')),
+  files: () => wordsOf(t('config.sectionAliases.files')),
+  knowledge: () => wordsOf(t('config.sectionAliases.knowledge')),
+  dashboard: () => wordsOf(t('config.sectionAliases.dashboard')),
+  logging: () => wordsOf(t('config.sectionAliases.logging')),
+  'pass-rate-scope': () => wordsOf(t('config.sectionAliases.passRateScope')),
+  mcp: () => wordsOf(t('config.sectionAliases.mcp')),
+  'config-file': () => wordsOf(t('config.sectionAliases.configFile')),
+}) satisfies Record<ConfigSectionId, readonly string[]>
+
+function wordsOf(list: string): string[] {
+  return list
+    .split(',')
+    .map((word) => word.trim())
+    .filter((word) => word !== '')
+}
 
 export type LegacyConfigPair =
   | 'workspace:discovery'

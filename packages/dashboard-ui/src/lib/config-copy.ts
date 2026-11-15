@@ -426,76 +426,75 @@ export const APPLY_CONSEQUENCES = textTable({
 
 export const PORT_RESTART_HELP = 'Takes effect after the dashboard restarts.'
 
-export const KNOWLEDGE_FIELD_LABELS = {
-  dir: 'Knowledge folder',
-} as const
+export const KNOWLEDGE_FIELD_LABELS = textTable({
+  dir: () => t('config.knowledgeField.dir'),
+})
 
-export const KNOWLEDGE_FIELD_HELP = {
-  dir: 'A folder inside this repository.',
-} as const
+export const KNOWLEDGE_FIELD_HELP = textTable({
+  dir: () => t('config.knowledgeFieldHelp.dir'),
+})
 
-export const DASHBOARD_FIELD_LABELS = {
-  port: 'Port',
-  host: 'Host',
-  dbPath: 'Database file',
-  artifactsDir: 'Artifacts folder',
-  baseUrl: 'Dashboard address',
-  workspace: 'Workspace name',
-} as const
+export const DASHBOARD_FIELD_LABELS = textTable({
+  port: () => t('config.dashboardField.port'),
+  host: () => t('config.dashboardField.host'),
+  dbPath: () => t('config.dashboardField.dbPath'),
+  artifactsDir: () => t('config.dashboardField.artifactsDir'),
+  baseUrl: () => t('config.dashboardField.baseUrl'),
+  workspace: () => t('config.dashboardField.workspace'),
+})
 
-export const DASHBOARD_FIELD_HELP = {
-  host: "Must be an address on this machine. Takes effect after the dashboard restarts.",
-  baseUrl: 'Links to tests and runs in agent answers start with this address. They need a workspace name too.',
-  workspace: 'Names this project in those links.',
-} as const
+export const DASHBOARD_FIELD_HELP = textTable({
+  host: () => t('config.dashboardFieldHelp.host'),
+  baseUrl: () => t('config.dashboardFieldHelp.baseUrl'),
+  workspace: () => t('config.dashboardFieldHelp.workspace'),
+})
 
-export const TEST_DISCOVERY_FIELD_LABELS = {
-  testMatch: 'Test files',
-  suiteMatch: 'Suite files',
-  testPathIgnore: 'Paths to skip',
-} as const
+export const TEST_DISCOVERY_FIELD_LABELS = textTable({
+  testMatch: () => t('config.testDiscoveryField.testMatch'),
+  suiteMatch: () => t('config.testDiscoveryField.suiteMatch'),
+  testPathIgnore: () => t('config.testDiscoveryField.testPathIgnore'),
+})
 
-export const TEST_DISCOVERY_FIELD_HELP = {
-  testMatch: 'One glob pattern per line. A file matching any of them is a test.',
-  suiteMatch: 'One glob pattern per line. A file matching any of them is a suite.',
-  testPathIgnore: 'One glob pattern per line. Matching files are never picked up as tests.',
-} as const
+export const TEST_DISCOVERY_FIELD_HELP = textTable({
+  testMatch: () => t('config.testDiscoveryFieldHelp.testMatch'),
+  suiteMatch: () => t('config.testDiscoveryFieldHelp.suiteMatch'),
+  testPathIgnore: () => t('config.testDiscoveryFieldHelp.testPathIgnore'),
+})
 
 export const TEST_MATCH_REQUIRED_ERROR = 'Add at least one pattern for test files.'
 export const SUITE_MATCH_REQUIRED_ERROR = 'Add at least one pattern for suite files.'
 
-export const FILES_FIELD_LABELS = {
-  hooksFile: 'Hooks file',
-  envFile: 'Environment file',
-  secretsFile: 'Secrets file',
-} as const
+export const FILES_FIELD_LABELS = textTable({
+  hooksFile: () => t('config.filesField.hooksFile'),
+  envFile: () => t('config.filesField.envFile'),
+  secretsFile: () => t('config.filesField.secretsFile'),
+})
 
-export const FILES_FIELD_HELP = {
-  hooksFile: 'The shared hooks module for tests and suites.',
-  envFile: 'A dotenv file loaded before runs start.',
-  secretsFile:
-    'A dotenv-style file for secrets that only running tests read. Its values are shown as [secret:<name>] and never restored; nothing else is masked.',
-} as const
+export const FILES_FIELD_HELP = textTable({
+  hooksFile: () => t('config.filesFieldHelp.hooksFile'),
+  envFile: () => t('config.filesFieldHelp.envFile'),
+  secretsFile: () => t('config.filesFieldHelp.secretsFile'),
+})
 
 export const HOOKS_FILE_REQUIRED_ERROR = 'Hooks file is required.'
 export const ENV_FILE_REQUIRED_ERROR = 'Environment file is required.'
 
-export const LOGGING_FIELD_LABELS = {
-  level: 'Log level',
-} as const
+export const LOGGING_FIELD_LABELS = textTable({
+  level: () => t('config.loggingField.level'),
+})
 
-export const LOGGING_FIELD_HELP = {
-  level: "How much detail a run prints. A command's own flag wins over it.",
-} as const
+export const LOGGING_FIELD_HELP = textTable({
+  level: () => t('config.loggingFieldHelp.level'),
+})
 
 /** Runs print at Warning when the level is unset. */
-export const LOGGING_LEVEL_LABELS = {
-  silent: 'Silent',
-  error: 'Error',
-  warn: 'Warning',
-  info: 'Info',
-  debug: 'Debug',
-} as const
+export const LOGGING_LEVEL_LABELS = textTable({
+  silent: () => t('config.loggingLevel.silent'),
+  error: () => t('config.loggingLevel.error'),
+  warn: () => t('config.loggingLevel.warn'),
+  info: () => t('config.loggingLevel.info'),
+  debug: () => t('config.loggingLevel.debug'),
+})
 
 export const PASS_RATE_SCOPE_HELP = 'Scoped pass rates count only runs whose attributes match every one of these.'
 export const NO_ATTRIBUTES_TEXT = 'No attributes yet.'
@@ -505,10 +504,10 @@ export const MATCH_AS_PATTERN_LABEL = 'Match as a pattern'
 export const ATTRIBUTE_PATTERN_TAG = 'Pattern'
 export const INVALID_ATTRIBUTE_PATTERN_ERROR = 'Not a valid pattern.'
 
-export const ATTRIBUTE_FIELD_LABELS = {
-  key: 'Attribute',
-  value: 'Value',
-} as const satisfies Record<string, string>
+export const ATTRIBUTE_FIELD_LABELS = textTable({
+  key: () => t('config.attributeField.key'),
+  value: () => t('config.attributeField.value'),
+}) satisfies Record<string, string>
 
 /** An attribute value's accessible label, so each eye and Replace value names its own attribute. */
 export function attributeValueLabel(key: string): string {
@@ -519,158 +518,166 @@ export function removeAttributeName(key: string): string {
   return `Remove attribute ${key}`
 }
 
-export const PRIVACY_FIELD_LABELS = {
-  privacy: 'Turn off usage data and error reports',
-} as const
+export const PRIVACY_FIELD_LABELS = textTable({
+  privacy: () => t('config.privacyField.privacy'),
+})
 
-export const PRIVACY_FIELD_HELP = {
-  privacy:
-    'When on, agent-qa sends no usage data and no error reports from this project. Error reports carry the same anonymous id and properties as usage data.',
-} as const
+export const PRIVACY_FIELD_HELP = textTable({
+  privacy: () => t('config.privacyFieldHelp.privacy'),
+})
 
 /** A duration field's draft error: the forms the field accepts. */
 export const DURATION_INPUT_ERROR = 'Use a duration like 30s, 5m or 1h.'
 
-export const BROWSER_FIELD_LABELS = {
-  name: 'Browser',
-  headless: 'Headless',
-  viewportWidth: 'Viewport width',
-  viewportHeight: 'Viewport height',
-} as const
+export const BROWSER_FIELD_LABELS = textTable({
+  name: () => t('config.browserField.name'),
+  headless: () => t('config.browserField.headless'),
+  viewportWidth: () => t('config.browserField.viewportWidth'),
+  viewportHeight: () => t('config.browserField.viewportHeight'),
+})
 
-export const BROWSER_NAME_LABELS = {
-  chromium: 'Chromium',
-  firefox: 'Firefox',
-  webkit: 'WebKit',
-} as const
+export const BROWSER_NAME_LABELS = textTable({
+  chromium: () => 'Chromium',
+  firefox: () => 'Firefox',
+  webkit: () => 'WebKit',
+})
 
 export const HEADLESS_HELP = 'Run web browsers without a visible window.'
 
-export const VISION_FIELD_LABELS = {
-  screenshotSize: 'Largest screenshot',
-  effectiveResolution: 'Longest edge in pixels',
-} as const
+export const VISION_FIELD_LABELS = textTable({
+  screenshotSize: () => t('config.visionField.screenshotSize'),
+  effectiveResolution: () => t('config.visionField.effectiveResolution'),
+})
 
-export const VISION_FIELD_HELP = {
-  screenshotSize: 'The most a screenshot sent to any vision model may weigh, such as 256k. Empty sends it uncompressed.',
-  effectiveResolution: 'Screenshots are scaled so their longest edge fits this many pixels.',
-} as const
+export const VISION_FIELD_HELP = textTable({
+  screenshotSize: () => t('config.visionFieldHelp.screenshotSize'),
+  effectiveResolution: () => t('config.visionFieldHelp.effectiveResolution'),
+})
 
-export const PLANNER_FIELD_LABELS = {
-  maxActions: 'Most actions per step',
-  maxPlanningTurns: 'Most planner calls per step',
-  previousStepCount: 'Earlier steps the planner sees',
-} as const
+export const PLANNER_FIELD_LABELS = textTable({
+  maxActions: () => t('config.plannerField.maxActions'),
+  maxPlanningTurns: () => t('config.plannerField.maxPlanningTurns'),
+  previousStepCount: () => t('config.plannerField.previousStepCount'),
+})
 
-export const PLANNER_FIELD_HELP = {
-  maxActions: 'Each step may run this many actions; the step stops with the limit reason when it needs one more. Default 30.',
-  maxPlanningTurns: 'Each step may make this many planner model calls; the step stops with the limit reason when it needs one more. Default 30.',
-  previousStepCount: 'How many earlier steps the planner reads before planning the next.',
-} as const
+export const PLANNER_FIELD_HELP = textTable({
+  maxActions: () => t('config.plannerFieldHelp.maxActions'),
+  maxPlanningTurns: () => t('config.plannerFieldHelp.maxPlanningTurns'),
+  previousStepCount: () => t('config.plannerFieldHelp.previousStepCount'),
+})
 
-export const TIMEOUT_FIELD_LABELS = {
-  step: 'Step timeout',
-  test: 'Test timeout',
-  navigation: 'Navigation timeout',
-} as const
+export const TIMEOUT_FIELD_LABELS = textTable({
+  step: () => t('config.timeoutField.step'),
+  test: () => t('config.timeoutField.test'),
+  navigation: () => t('config.timeoutField.navigation'),
+})
 
-export const TIMEOUT_FIELD_HELP = {
-  navigation: 'How long a web page load or URL wait can take. Default 2m. Android and iOS runs do not use it.',
-} as const
+export const TIMEOUT_FIELD_HELP = textTable({
+  navigation: () => t('config.timeoutFieldHelp.navigation'),
+})
 
-export const RUNS_FIELD_LABELS = {
-  parallel: 'Run tests in parallel',
-  workers: 'Parallel workers',
-  buildTag: 'Build tag',
-} as const
+export const RUNS_FIELD_LABELS = textTable({
+  parallel: () => t('config.runsField.parallel'),
+  workers: () => t('config.runsField.workers'),
+  buildTag: () => t('config.runsField.buildTag'),
+})
 
-export const RUNS_FIELD_HELP = {
-  parallel: 'Run the tests of one run at the same time.',
-  workers: 'The most tests that run at once.',
-  buildTag: 'Names the app build under test.',
-} as const
+export const RUNS_FIELD_HELP = textTable({
+  parallel: () => t('config.runsFieldHelp.parallel'),
+  workers: () => t('config.runsFieldHelp.workers'),
+  buildTag: () => t('config.runsFieldHelp.buildTag'),
+})
 
-export const CACHE_FIELD_LABELS = {
-  enabled: 'Reuse cached actions',
-  dir: 'Cache folder',
-} as const
+export const CACHE_FIELD_LABELS = textTable({
+  enabled: () => t('config.cacheField.enabled'),
+  dir: () => t('config.cacheField.dir'),
+})
 
-export const RECORDING_FIELD_LABELS = {
-  enabled: 'Record video',
-  keepFailuresOnly: 'Keep recordings of failed tests only',
-} as const
+export const RECORDING_FIELD_LABELS = textTable({
+  enabled: () => t('config.recordingField.enabled'),
+  keepFailuresOnly: () => t('config.recordingField.keepFailuresOnly'),
+})
 
-export const RECORDING_FIELD_HELP = {
-  enabled: 'Record video of each test. Recordings stay on this machine.',
-  keepFailuresOnly: 'Useful for CI and large suites. Passed tests then open on Frames.',
-} as const
+export const RECORDING_FIELD_HELP = textTable({
+  enabled: () => t('config.recordingFieldHelp.enabled'),
+  keepFailuresOnly: () => t('config.recordingFieldHelp.keepFailuresOnly'),
+})
 
-export const ACCESSIBILITY_FIELD_LABELS = {
-  enabled: 'Check accessibility',
-  standard: 'Standard',
-  runAfter: 'Run checks after',
-  failOnViolation: 'Fail tests with violations',
-  disableRules: 'Rules to skip',
-  exclude: 'Elements to skip',
-} as const
+export const ACCESSIBILITY_FIELD_LABELS = textTable({
+  enabled: () => t('config.accessibilityField.enabled'),
+  standard: () => t('config.accessibilityField.standard'),
+  runAfter: () => t('config.accessibilityField.runAfter'),
+  failOnViolation: () => t('config.accessibilityField.failOnViolation'),
+  disableRules: () => t('config.accessibilityField.disableRules'),
+  exclude: () => t('config.accessibilityField.exclude'),
+})
 
-export const ACCESSIBILITY_FIELD_HELP = {
-  disableRules: 'One axe rule ID per line.',
-  exclude: 'One CSS selector per line.',
-} as const
+export const ACCESSIBILITY_FIELD_HELP = textTable({
+  disableRules: () => t('config.accessibilityFieldHelp.disableRules'),
+  exclude: () => t('config.accessibilityFieldHelp.exclude'),
+})
 
-export const ACCESSIBILITY_FIELD_PLACEHOLDERS = {
-  disableRules: 'color-contrast',
-  exclude: '#cookie-banner',
-} as const
+export const ACCESSIBILITY_FIELD_PLACEHOLDERS = textTable({
+  disableRules: () => 'color-contrast',
+  exclude: () => '#cookie-banner',
+})
 
-export const ACCESSIBILITY_STANDARD_LABELS = {
-  wcag2a: 'WCAG 2.0 A',
-  wcag2aa: 'WCAG 2.0 AA',
-  wcag2aaa: 'WCAG 2.0 AAA',
-} as const
+export const ACCESSIBILITY_STANDARD_LABELS = textTable({
+  wcag2a: () => 'WCAG 2.0 A',
+  wcag2aa: () => 'WCAG 2.0 AA',
+  wcag2aaa: () => 'WCAG 2.0 AAA',
+})
 
 export const ACCESSIBILITY_ALL_RULES_TEXT = 'All rules'
 
-export const ACCESSIBILITY_RUN_AFTER_LABELS = {
-  'every-step': 'Every step',
-  'test-end': 'Test end',
-} as const
+export const ACCESSIBILITY_RUN_AFTER_LABELS = textTable({
+  'every-step': () => t('config.accessibilityRunAfter.everyStep'),
+  'test-end': () => t('config.accessibilityRunAfter.testEnd'),
+})
 
-export const LOG_CAPTURE_FIELD_LABELS = {
-  console: 'Capture console logs',
-  network: 'Capture network logs',
-} as const
+export const LOG_CAPTURE_FIELD_LABELS = textTable({
+  console: () => t('config.logCaptureField.console'),
+  network: () => t('config.logCaptureField.network'),
+})
 
 export const NO_TARGETS_TEXT = 'No targets yet.'
 
-export const REMOTES_COPY = {
-  defaultLabel: 'Default for web tests',
-  inherit:
-    'Tests and suites inherit this default from agent-qa.config.yaml and can override it in their settings.',
-  thisMachine: 'This machine',
-  runsOnLabel: 'Runs on',
-  suiteWinsHint: "When a suite picks where it runs, the suite's choice wins.",
+export const REMOTES_COPY = textTable({
+  defaultLabel: () => t('config.remotes.defaultLabel'),
+  inherit: () => t('config.remotes.inherit'),
+  thisMachine: () => t('config.remotes.thisMachine'),
+  runsOnLabel: () => t('config.remotes.runsOnLabel'),
+  suiteWinsHint: () => t('config.remotes.suiteWinsHint'),
   // A url remote's protocol or a plugin remote's plugins entry, and its origin or plugin source.
-  columns: { name: 'Name', kind: 'Kind', origin: 'Origin' },
-  missingValue: '—',
-  pluginNotDeclared: 'not declared under plugins',
-  empty: 'No remotes are listed. Add one under registry.remotes in agent-qa.config.yaml:',
-  example: [
-    'registry:',
-    '  remotes:',
-    '    - name: grid',
-    '      protocol: playwright # or cdp',
-    '      url: wss://grid.example.com/playwright',
-    '      query: # or headers, with the same {{secret:NAME}} values',
-    '        token: "{{secret:GRID_TOKEN}}"',
-  ].join('\n'),
-  pick: 'Pick one with use.browser.remote: <name> in agent-qa.config.yaml, a suite or a test. Use local to run on this machine.',
-  listed: 'Remotes are defined under registry.remotes in agent-qa.config.yaml and picked with use.browser.remote.',
-  pluginsTitle: 'Plugins',
-  pluginColumns: { name: 'Name', source: 'Package or path' },
-  pluginsListed: 'Plugins are declared under plugins in agent-qa.config.yaml; their options stay in the file.',
-} as const
+  columns: () =>
+    textTable({
+      name: () => t('config.remotes.columns.name'),
+      kind: () => t('config.remotes.columns.kind'),
+      origin: () => t('config.remotes.columns.origin'),
+    }),
+  missingValue: () => '—',
+  pluginNotDeclared: () => t('config.remotes.pluginNotDeclared'),
+  empty: () => t('config.remotes.empty'),
+  example: () =>
+    [
+      'registry:',
+      '  remotes:',
+      '    - name: grid',
+      '      protocol: playwright # or cdp',
+      '      url: wss://grid.example.com/playwright',
+      '      query: # or headers, with the same {{secret:NAME}} values',
+      '        token: "{{secret:GRID_TOKEN}}"',
+    ].join('\n'),
+  pick: () => t('config.remotes.pick'),
+  listed: () => t('config.remotes.listed'),
+  pluginsTitle: () => t('config.remotes.pluginsTitle'),
+  pluginColumns: () =>
+    textTable({
+      name: () => t('config.remotes.pluginColumns.name'),
+      source: () => t('config.remotes.pluginColumns.source'),
+    }),
+  pluginsListed: () => t('config.remotes.pluginsListed'),
+})
 
 export function pluginRemoteText(entry: string): string {
   return `plugin ${entry}`
@@ -706,27 +713,27 @@ export const LOGIN_STATES_LOADING_TEXT = 'Loading saved login states…'
 export const LOGIN_STATES_LOAD_FAILED_TEXT = "Couldn't load saved login states."
 export const RELOAD_LOGIN_STATES_LABEL = 'Reload login states'
 
-export const LOGIN_STATE_COLUMN_LABELS = {
-  target: 'Target',
-  name: 'Name',
-  captured: 'Captured',
-} as const satisfies Record<string, string>
+export const LOGIN_STATE_COLUMN_LABELS = textTable({
+  target: () => t('config.loginStateColumn.target'),
+  name: () => t('config.loginStateColumn.name'),
+  captured: () => t('config.loginStateColumn.captured'),
+}) satisfies Record<string, string>
 
-export const LOGIN_STATES_FIELD_LABELS = {
-  dir: 'Login states folder',
-} as const
+export const LOGIN_STATES_FIELD_LABELS = textTable({
+  dir: () => t('config.loginStatesField.dir'),
+})
 
 export const LOGIN_STATES_DIR_PLACEHOLDER = '.agent-qa/auth-states'
 export const LOGIN_STATES_DIR_REQUIRED_ERROR = 'Add a folder for saved login states.'
 
-export const MOBILE_FIELD_LABELS = {
-  appState: 'App state',
-} as const
+export const MOBILE_FIELD_LABELS = textTable({
+  appState: () => t('config.mobileField.appState'),
+})
 
-export const MOBILE_APP_STATE_LABELS = {
-  preserve: 'Preserve app data',
-  reset: 'Reset app data',
-} as const satisfies Record<'preserve' | 'reset', string>
+export const MOBILE_APP_STATE_LABELS = textTable({
+  preserve: () => t('config.mobileAppState.preserve'),
+  reset: () => t('config.mobileAppState.reset'),
+}) satisfies Record<'preserve' | 'reset', string>
 
 export const MOBILE_APP_STATE_HELP = 'Mobile runs need this choice.'
 
@@ -735,39 +742,41 @@ export const DISCARD_TARGET_LABEL = 'Discard target'
 export const ADD_DEVICE_LABEL = 'Add device'
 export const DISCARD_DEVICE_LABEL = 'Discard device'
 
-export const TARGET_PLATFORM_LABELS = {
-  web: 'Web',
-  android: 'Android',
-  ios: 'iOS',
-} as const satisfies Record<'web' | 'android' | 'ios', string>
+export const TARGET_PLATFORM_LABELS = textTable({
+  web: () => t('config.targetPlatform.web'),
+  android: () => 'Android',
+  ios: () => 'iOS',
+}) satisfies Record<'web' | 'android' | 'ios', string>
 
-export const TARGET_ENVIRONMENT_LABELS = {
-  local: 'Local',
-  shared: 'Shared',
-  production: 'Production',
-} as const satisfies Record<'local' | 'shared' | 'production', string>
+export const TARGET_ENVIRONMENT_LABELS = textTable({
+  local: () => t('config.targetEnvironment.local'),
+  shared: () => t('config.targetEnvironment.shared'),
+  production: () => t('config.targetEnvironment.production'),
+}) satisfies Record<'local' | 'shared' | 'production', string>
 
 export const TARGET_ENVIRONMENT_PLACEHOLDER = 'Undeclared'
 
 /** The add-target row's environment choices: undeclared first, then the declared classes. */
-export const TARGET_ENVIRONMENT_CHOICE_LABELS = {
-  undeclared: 'Undeclared',
-  ...TARGET_ENVIRONMENT_LABELS,
-} as const satisfies Record<'undeclared' | 'local' | 'shared' | 'production', string>
+export const TARGET_ENVIRONMENT_CHOICE_LABELS = textTable({
+  undeclared: () => t('config.targetEnvironmentChoice.undeclared'),
+  local: () => TARGET_ENVIRONMENT_LABELS.local,
+  shared: () => TARGET_ENVIRONMENT_LABELS.shared,
+  production: () => TARGET_ENVIRONMENT_LABELS.production,
+}) satisfies Record<'undeclared' | 'local' | 'shared' | 'production', string>
 
-export const TARGET_FIELD_LABELS = {
-  name: 'Name',
-  platform: 'Platform',
-  url: 'URL',
-  product: 'Product',
-  bundleId: 'Bundle ID',
-  appPackage: 'App package',
-  appActivity: 'App activity',
-  appPath: 'App file',
-  appRef: 'App reference',
-  device: 'Default device',
-  environment: 'Environment',
-} as const satisfies Record<string, string>
+export const TARGET_FIELD_LABELS = textTable({
+  name: () => t('config.targetField.name'),
+  platform: () => t('config.targetField.platform'),
+  url: () => t('config.targetField.url'),
+  product: () => t('config.targetField.product'),
+  bundleId: () => t('config.targetField.bundleId'),
+  appPackage: () => t('config.targetField.appPackage'),
+  appActivity: () => t('config.targetField.appActivity'),
+  appPath: () => t('config.targetField.appPath'),
+  appRef: () => t('config.targetField.appRef'),
+  device: () => t('config.targetField.device'),
+  environment: () => t('config.targetField.environment'),
+}) satisfies Record<string, string>
 
 export const TARGET_DEVICE_NONE = 'None'
 export const TARGET_DEVICE_HELP =
@@ -795,14 +804,14 @@ export function targetNameTakenError(name: string): string {
   return `A target named ${name} already exists.`
 }
 
-export const DEVICE_FIELD_LABELS = {
-  name: 'Name',
-  platform: 'Platform',
-  model: 'Model',
-  os: 'OS version',
-  id: 'Device ID',
-  capabilities: 'Capabilities',
-} as const satisfies Record<string, string>
+export const DEVICE_FIELD_LABELS = textTable({
+  name: () => t('config.deviceField.name'),
+  platform: () => t('config.deviceField.platform'),
+  model: () => t('config.deviceField.model'),
+  os: () => t('config.deviceField.os'),
+  id: () => t('config.deviceField.id'),
+  capabilities: () => t('config.deviceField.capabilities'),
+}) satisfies Record<string, string>
 
 export const DEVICE_NAME_REQUIRED_ERROR = 'Add a name for the device.'
 
@@ -825,24 +834,24 @@ export function deviceRemoteText(remote: string): string {
   return `Runs on remote ${remote}`
 }
 
-export const MCP_FIELD_LABELS = {
-  enabled: 'MCP server',
-  port: 'Port',
-} as const satisfies Record<string, string>
+export const MCP_FIELD_LABELS = textTable({
+  enabled: () => t('config.mcpField.enabled'),
+  port: () => t('config.mcpField.port'),
+}) satisfies Record<string, string>
 
-export const MCP_FIELD_HELP = {
-  enabled: "When off, the dashboard doesn't host the MCP endpoint.",
-} as const satisfies Record<string, string>
+export const MCP_FIELD_HELP = textTable({
+  enabled: () => t('config.mcpFieldHelp.enabled'),
+}) satisfies Record<string, string>
 
 // MCP and the run service are tokenless, so this copy has no token rows.
 
 export const CONFIG_FILE_NOTE = 'Read-only. Edit the file in your editor; changes show here by themselves.'
 export const COPY_PATH_LABEL = 'Copy config file path'
 
-export const COPY_STATUS_WORDS = {
-  copied: 'Copied',
-  failed: "Couldn't copy",
-} as const satisfies Record<'copied' | 'failed', string>
+export const COPY_STATUS_WORDS = textTable({
+  copied: () => t('config.copyStatus.copied'),
+  failed: () => t('config.copyStatus.failed'),
+}) satisfies Record<'copied' | 'failed', string>
 
 export const REPLACE_VALUE_LABEL = 'Replace value'
 export const SAVE_VALUE_LABEL = 'Save value'
