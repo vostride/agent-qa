@@ -61,6 +61,7 @@ import { ShortcutLegend } from "@/components/shortcut-hints"
 import { useSuitesSearchParams } from "@/hooks/use-suites-search-params"
 import { deleteSuiteFile, fetchSuiteFiles, fetchSuiteSummaries, triggerRun, type SuiteFileInfo, type SuiteSummary } from "@/lib/api"
 import { runStatusClass } from "@/lib/status"
+import { formatPercent } from "@/lib/format"
 import { formatDate } from "@/lib/utils"
 
 interface SuiteListRow {
@@ -328,7 +329,7 @@ export default function SuitesPage() {
         return (
           <div className="space-y-0.5 text-right">
             <div className="text-sm font-medium tabular-nums text-foreground">
-              {row.original.passRate}%
+              {formatPercent(row.original.passRate)}
             </div>
             <div className="text-xs tabular-nums text-muted-foreground">
               {row.original.passCount}/{row.original.completedRunCount}

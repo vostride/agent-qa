@@ -31,7 +31,7 @@ import {
   InsightsMetricCell,
 } from "@/components/insights/insights-line-grid"
 import { Button } from "@/components/ui/button"
-import { formatRegionalNumber } from "@/lib/format"
+import { formatPercent, formatRegionalNumber } from "@/lib/format"
 import { cn, formatDuration } from "@/lib/utils"
 
 const WINDOW_OPTIONS: Array<{ value: InsightsTimeWindow; label: string }> = [
@@ -55,9 +55,9 @@ function daysAgo(days: number): string {
   return d.toISOString()
 }
 
-function formatPercent(value: number) {
+function formatRate(value: number) {
   const normalized = value <= 1 ? value * 100 : value
-  return `${Math.round(normalized)}%`
+  return formatPercent(Math.round(normalized))
 }
 
 function getWindowFrom(timeWindow: InsightsTimeWindow) {
@@ -296,7 +296,7 @@ export default function InsightsPage() {
                   <InsightsMetricCell
                     className="border-b border-border"
                     label="Pass Rate"
-                    value={passRate === null ? "\u2014" : `${passRate}%`}
+                    value={passRate === null ? "\u2014" : formatPercent(passRate)}
                     description={`${stats.passed} successful ${scopeActive ? "scoped " : ""}runs out of ${decidedRuns} that passed or failed.`}
                   />
                   <InsightsMetricCell
@@ -307,7 +307,7 @@ export default function InsightsPage() {
                   />
                   <InsightsMetricCell
                     label="Flake Rate"
-                    value={formatPercent(stats.flakeRate)}
+                    value={formatRate(stats.flakeRate)}
                     description={`${stats.failed} failed runs with healed/flaky behavior tracked separately.`}
                   />
                 </div>

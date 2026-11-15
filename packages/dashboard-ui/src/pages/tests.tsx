@@ -57,6 +57,7 @@ import {
 import { ShortcutLegend } from "@/components/shortcut-hints"
 import { deleteTestFile, fetchTestFiles, fetchTestSummaries, purgeCache, triggerRun, type TestFileInfo, type TestSummary } from "@/lib/api"
 import { memberStatus, runStatusClass } from "@/lib/status"
+import { formatPercent } from "@/lib/format"
 import { cn, formatDate } from "@/lib/utils"
 
 interface TestRow {
@@ -220,7 +221,7 @@ const columns: ColumnDef<typeof testsTableFeatures, TestRow>[] = [
       return (
         <div className="space-y-0.5 text-right">
           <div className="text-sm font-medium tabular-nums text-foreground">
-            {row.original.passRate}%
+            {formatPercent(row.original.passRate)}
           </div>
           <div className="text-xs tabular-nums text-muted-foreground">
             {row.original.passCount}/{row.original.completedRunCount}

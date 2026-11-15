@@ -3,7 +3,7 @@ import {
   InsightsLineGrid,
   InsightsLineNotice,
 } from "@/components/insights/insights-line-grid"
-import { formatUnit, formatUnitList } from "@/lib/format"
+import { formatPercent, formatUnit, formatUnitList } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area"
 import {
@@ -37,7 +37,7 @@ function toPercent(value: number) {
 }
 
 function formatPassRate(value: number | null) {
-  return value === null ? "\u2014" : `${toPercent(value)}%`
+  return value === null ? "\u2014" : formatPercent(toPercent(value))
 }
 
 function renderCells(dimension: InsightsBreakdownDimension, row: InsightsBreakdownRow) {
@@ -58,7 +58,7 @@ function renderCells(dimension: InsightsBreakdownDimension, row: InsightsBreakdo
       <TableCell className="px-4 py-2 font-medium">{row.label}</TableCell>
       <TableCell className="px-4 py-2 text-right font-mono tabular-nums">{row.runs}</TableCell>
       <TableCell className="px-4 py-2 text-right font-mono tabular-nums">{formatPassRate(row.passRate)}</TableCell>
-      <TableCell className="px-4 py-2 text-right font-mono tabular-nums">{toPercent(row.flakeRate)}%</TableCell>
+      <TableCell className="px-4 py-2 text-right font-mono tabular-nums">{formatPercent(toPercent(row.flakeRate))}</TableCell>
       <TableCell className="px-4 py-2 text-right font-mono tabular-nums">{formatDuration(row.avgDuration)}</TableCell>
     </>
   )

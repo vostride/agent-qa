@@ -5,7 +5,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import { formatDateTime } from "@/lib/format"
+import { formatDateTime, formatPercent } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 const chartConfig = {
@@ -38,7 +38,7 @@ export function PassRateChart({ data, className }: PassRateChartProps) {
         />
         <YAxis
           domain={[0, 100]}
-          unit="%"
+          tickFormatter={(value: number) => formatPercent(value)}
           tickLine={false}
           axisLine={false}
           width={48}

@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge"
+import { formatPercent } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 interface ConfidenceBadgeProps {
@@ -17,7 +18,7 @@ export function ConfidenceBadge({ confidence }: ConfidenceBadgeProps) {
 
   return (
     <Badge variant="outline" className={cn("text-xs font-mono", colorClass)}>
-      {pct}%
+      {formatPercent(pct)}
     </Badge>
   )
 }

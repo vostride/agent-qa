@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate, useParams, useSearchParams } from "react-router"
-import { formatRegionalNumber, formatRelativeCompact } from "@/lib/format"
+import { formatPercent, formatRegionalNumber, formatRelativeCompact } from "@/lib/format"
 import { routes } from "@/lib/routes"
 import { toast } from "sonner"
 import { FileCode, Zap } from "lucide-react"
@@ -86,7 +86,7 @@ function createEmptySuiteAnalytics(suiteId: string): SuiteAnalyticsDetail {
 }
 
 function formatPassRate(rate: number | null): string {
-  return rate === null ? "\u2014" : `${Math.round(rate * 100)}%`
+  return rate === null ? "\u2014" : formatPercent(Math.round(rate * 100))
 }
 
 function MetricScopeControl({
@@ -438,7 +438,7 @@ export default function SuiteViewerPage() {
         <InsightsLineCell className="flex flex-col gap-0.5 border-t border-border px-3 py-2">
           <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Flaky Score</span>
           <span className="text-xl font-semibold text-foreground">
-            {(selectedFlakyScore * 100).toFixed(0)}%
+            {formatPercent(Number((selectedFlakyScore * 100).toFixed(0)))}
           </span>
         </InsightsLineCell>
       </InsightsLineGrid>
@@ -571,7 +571,7 @@ export default function SuiteViewerPage() {
                 <InsightsLineCell>
                   <div>
                     <p className="text-sm text-muted-foreground">Flaky Score</p>
-                    <p className="mt-0.5 text-2xl font-semibold">{(selectedFlakyScore * 100).toFixed(0)}%</p>
+                    <p className="mt-0.5 text-2xl font-semibold">{formatPercent(Number((selectedFlakyScore * 100).toFixed(0)))}</p>
                   </div>
                 </InsightsLineCell>
               </InsightsLineGrid>

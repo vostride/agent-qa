@@ -14,6 +14,7 @@ import { usePageTitle } from '@/hooks/use-page-title'
 import { getRunFaviconState, type RunFaviconState, useRunStatusFavicon } from '@/hooks/use-run-status-favicon'
 import { ApiError, cancelRun, classifyRunStreamClose, fetchRun, openRunStream } from '@/lib/api'
 import type { RunRow } from '@/lib/api'
+import { formatPercent } from '@/lib/format'
 import { rungBannerText } from '@/lib/knowledge-view'
 import { liveRunLayoutOf, liveRunPanelIds } from '@/lib/live-run-layout'
 import { watchedHandleOf } from '@/lib/live-run-watch'
@@ -40,7 +41,7 @@ export function gapMarkerText(from: number, to: number): string {
 
 // A running test's latest word from its plugin remote, such as its farm queue position.
 export function remoteProgressText(line: RemoteProgressLine): string {
-  const percent = line.percent === undefined ? '' : ` ${String(Math.round(line.percent))}%`
+  const percent = line.percent === undefined ? '' : ` ${formatPercent(Math.round(line.percent))}`
   return `Remote ${line.remote}: ${line.message}${percent}`
 }
 
