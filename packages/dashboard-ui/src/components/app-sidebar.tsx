@@ -46,17 +46,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { useTheme } from "@/components/theme-provider"
+import { useTranslation } from "@/i18n"
+import type en from "@/i18n/locales/en"
 
-const navItems = [
-  { title: "Runs", url: routes.runs, icon: Play, tourId: "tour-nav-runs" },
-  { title: "Tests", url: routes.tests, icon: FileText, tourId: "tour-nav-tests" },
-  { title: "Hooks", url: routes.hooks, icon: Webhook, tourId: "tour-nav-hooks" },
-  { title: "Suites", url: routes.suites, icon: FolderOpen, tourId: "tour-nav-suites" },
-  { title: "Insights", url: routes.insights, icon: BarChart3 },
-  { title: "Config", url: routes.config, icon: SlidersHorizontal, tourId: "tour-nav-config" },
+const navItems: { titleKey: keyof typeof en; url: string; icon: typeof Play; tourId?: string }[] = [
+  { titleKey: "nav.runs", url: routes.runs, icon: Play, tourId: "tour-nav-runs" },
+  { titleKey: "nav.tests", url: routes.tests, icon: FileText, tourId: "tour-nav-tests" },
+  { titleKey: "nav.hooks", url: routes.hooks, icon: Webhook, tourId: "tour-nav-hooks" },
+  { titleKey: "nav.suites", url: routes.suites, icon: FolderOpen, tourId: "tour-nav-suites" },
+  { titleKey: "nav.insights", url: routes.insights, icon: BarChart3 },
+  { titleKey: "nav.config", url: routes.config, icon: SlidersHorizontal, tourId: "tour-nav-config" },
 ]
 
 export function AppSidebar() {
+  const { t } = useTranslation()
   const { pathname } = useLocation()
   const { theme, setTheme } = useTheme()
   const { state, toggleSidebar } = useSidebar()
@@ -102,22 +105,23 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>{t("nav.navigation")}</SidebarGroupLabel>
           <SidebarMenu>
             {navItems.map((item) => {
               const isActive =
                 pathname === item.url ||
                 pathname.startsWith(item.url + "/")
+              const title = t(item.titleKey)
               return (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton
                     asChild
                     isActive={isActive}
-                    tooltip={item.title}
+                    tooltip={title}
                   >
                     <Link to={item.url} data-tour-id={item.tourId}>
                       <item.icon />
-                      <span>{item.title}</span>
+                      <span>{title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -129,24 +133,24 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="Report a bug">
+            <SidebarMenuButton asChild tooltip={t("nav.reportBug")}>
               <a
                 href={GITHUB_ISSUE_URL}
-                aria-label="Report a bug"
+                aria-label={t("nav.reportBug")}
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <Bug className="size-4" />
-                <span>Report a bug</span>
+                <span>{t("nav.reportBug")}</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton tooltip="Help and feedback" data-tour-id="tour-help-menu">
+                <SidebarMenuButton tooltip={t("nav.helpAndFeedback")} data-tour-id="tour-help-menu">
                   <LifeBuoy className="size-4" />
-                  <span>Help and feedback</span>
+                  <span>{t("nav.helpAndFeedback")}</span>
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="right" align="end" className="w-52">
@@ -155,27 +159,27 @@ export function AppSidebar() {
                   onSelect={() => restartTour()}
                 >
                   <Play className="size-4" />
-                  <span>Take product tour</span>
+                  <span>{t("nav.takeProductTour")}</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
-                  <a href={feedbackHref} aria-label="Send feedback">
+                  <a href={feedbackHref} aria-label={t("nav.sendFeedback")}>
                     <LifeBuoy className="size-4" />
-                    <span>Send feedback</span>
+                    <span>{t("nav.sendFeedback")}</span>
                   </a>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild tooltip="View on GitHub">
+            <SidebarMenuButton asChild tooltip={t("nav.viewOnGithub")}>
               <a
                 href={GITHUB_REPOSITORY_URL}
-                aria-label="View on GitHub"
+                aria-label={t("nav.viewOnGithub")}
                 target="_blank"
                 rel="noopener noreferrer"
               >
                 <FaGithub className="size-4" />
-                <span>View on GitHub</span>
+                <span>{t("nav.viewOnGithub")}</span>
               </a>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -185,21 +189,21 @@ export function AppSidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              tooltip="Toggle theme"
+              tooltip={t("nav.toggleTheme")}
             >
               {theme === "dark" ? <Sun className="size-4" /> : <Moon className="size-4" />}
-              <span>{theme === "dark" ? "Light Mode" : "Dark Mode"}</span>
+              <span>{theme === "dark" ? t("nav.lightMode") : t("nav.darkMode")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
               onClick={toggleSidebar}
-              tooltip={state === "expanded" ? "Collapse sidebar" : "Expand sidebar"}
+              tooltip={state === "expanded" ? t("nav.collapseSidebar") : t("nav.expandSidebar")}
             >
               {state === "expanded"
                 ? <ChevronLeft className="size-4" />
                 : <ChevronRight className="size-4" />}
-              <span>Collapse</span>
+              <span>{t("nav.collapse")}</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

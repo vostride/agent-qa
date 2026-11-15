@@ -7,7 +7,7 @@ import path from 'path'
 // package has no separate vitest.config.ts, so vitest reads this file.
 export default defineConfig({
   test: {
-    setupFiles: ['./src/test/browser-observers.ts'],
+    setupFiles: ['./src/test/browser-observers.ts', './src/test/i18n.ts'],
     // Slow CI runners push multi-step jsdom tests past the 5s default; other packages use 30s.
     testTimeout: 30_000,
     typecheck: {
