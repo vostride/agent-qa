@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import i18n from '@/i18n'
 import {
   ApiError,
   createHook,
@@ -11,6 +12,7 @@ import {
   fetchRuns,
   fetchStats,
   runHook,
+  RunNotReadyError,
   saveLiveAuthState,
   type HookRunRequest,
   type HookMutationRequest,
@@ -77,6 +79,53 @@ describe('fetchRuns', () => {
   it('throws on non-ok response', async () => {
     mockFetch.mockReturnValue(err(500, 'Internal Server Error'))
     await expect(fetchRuns()).rejects.toThrow('API error 500: Internal Server Error')
+  })
+})
+
+describe('API error messages in another language', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('en')
+    i18n.removeResourceBundle('fr', 'translation')
+  })
+
+  it('writes the status and the server status text into the language sentence unchanged', async () => {
+    i18n.addResourceBundle('fr', 'translation', {
+      'common.api.error': '{{statusText}} (erreur API {{status}})',
+    })
+    await i18n.changeLanguage('fr')
+    mockFetch.mockReturnValue(err(500, 'Internal Server Error <b>&amp;'))
+
+    await expect(fetchRuns()).rejects.toThrow('Internal Server Error <b>&amp; (erreur API 500)')
+  })
+
+  it('falls back to the English sentence in a language with no text for it', async () => {
+    await i18n.changeLanguage('ko')
+    mockFetch.mockReturnValue(err(500, 'Internal Server Error'))
+
+    await expect(fetchRuns()).rejects.toThrow('API error 500: Internal Server Error')
+  })
+
+  it('throws a message the server sent as the server wrote it', async () => {
+    i18n.addResourceBundle('fr', 'translation', {
+      'common.api.error': '{{statusText}} (erreur API {{status}})',
+    })
+    await i18n.changeLanguage('fr')
+    mockFetch.mockReturnValue(errJson(409, 'Conflict', { error: 'Test file already exists' }))
+
+    const error = await fetchRuns().catch((thrown: unknown) => thrown)
+    expect(error).toBeInstanceOf(ApiError)
+    expect((error as ApiError).message).toBe('Test file already exists')
+  })
+
+  it('writes the run-not-ready head in the language and keeps the reason inside it', async () => {
+    i18n.addResourceBundle('fr', 'translation', {
+      'common.api.runNotReady': 'Le tableau de bord ne peut pas lancer de run : {{reason}}',
+    })
+    await i18n.changeLanguage('fr')
+
+    const error = new RunNotReadyError('le service est arrêté')
+    expect(error.message).toBe('Le tableau de bord ne peut pas lancer de run : le service est arrêté')
+    expect(error.message).toContain(error.reason)
   })
 })
 
