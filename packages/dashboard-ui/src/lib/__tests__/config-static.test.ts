@@ -7,7 +7,12 @@ const srcRoot = new URL('../../', import.meta.url)
 const CONFIG_MANAGER_DIR = 'components/config-manager/'
 const CONFIG_PAGE = 'pages/config.tsx'
 const CONFIG_TABS_COMPONENT = `${CONFIG_MANAGER_DIR}config-tabs.tsx`
-const CONFIG_COPY_SOURCES = ['lib/config-tabs.ts', 'lib/config-copy.ts', 'lib/product-tour-steps.ts'] as const
+const CONFIG_COPY_SOURCES = [
+  'lib/config-tabs.ts',
+  'lib/config-copy.ts',
+  'lib/product-tour-steps.ts',
+  'i18n/locales/en/tour.ts',
+] as const
 
 function listSources(relativeDir: string): string[] {
   const files: string[] = []

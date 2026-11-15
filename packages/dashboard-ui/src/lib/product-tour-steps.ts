@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { TOUR_LLM_SETUP_BODY } from '@/lib/config-copy'
 import { routes } from '@/lib/routes'
 import { normalizeRunStatus } from '@/lib/status'
@@ -57,99 +58,153 @@ const hasSuccessfulRunDetailValue = (context: ProductTourRuntimeContext) => {
 export const foundationProductTourSteps = [
   {
     id: 'intro',
-    title: 'Welcome to agent-qa',
-    body: 'agent-qa lets you write tests in natural language for web and mobile. It runs them through a strict QA harness, learns from past runs, adapts when the UI changes, and shows you exactly what happened.',
+    get title() {
+      return t('tour.intro.title')
+    },
+    get body() {
+      return t('tour.intro.body')
+    },
     centered: true,
   },
   {
     id: 'llm-setup',
-    title: 'Configure your LLM first',
-    body: TOUR_LLM_SETUP_BODY,
+    get title() {
+      return t('tour.llmSetup.title')
+    },
+    get body() {
+      return TOUR_LLM_SETUP_BODY
+    },
     route: routes.configTab('models'),
     targetId: 'tour-config-section',
   },
   {
     id: 'runs',
-    title: 'Runs show outcomes',
-    body: 'Runs show outcomes, artifacts, and reasoning from every agent-qa execution.',
+    get title() {
+      return t('tour.runs.title')
+    },
+    get body() {
+      return t('tour.runs.body')
+    },
     route: routes.runs,
     targetId: 'tour-runs-table',
   },
   {
     id: 'tests',
-    title: 'Tests hold natural-language checks',
-    body: 'Tests are natural-language checks that agent-qa can run against your configured web or mobile target.',
+    get title() {
+      return t('tour.tests.title')
+    },
+    get body() {
+      return t('tour.tests.body')
+    },
     route: routes.tests,
     targetId: 'tour-tests-table',
   },
   {
     id: 'suites',
-    title: 'Suites group repeatable workflows',
-    body: 'Suites group related checks into repeatable workflows when one test is not enough.',
+    get title() {
+      return t('tour.suites.title')
+    },
+    get body() {
+      return t('tour.suites.body')
+    },
     route: routes.suites,
     targetId: 'tour-suites-table',
   },
   {
     id: 'hooks',
-    title: 'Hooks run around and between steps',
-    body: 'Hooks can prepare setup, run inline between steps, and handle cleanup around a test or suite.',
+    get title() {
+      return t('tour.hooks.title')
+    },
+    get body() {
+      return t('tour.hooks.body')
+    },
     route: routes.hooks,
     targetId: 'tour-hooks-table',
   },
   {
     id: 'config',
-    title: 'Config controls local setup',
-    body: 'Config controls the model, target, runtime, and dashboard setup agent-qa uses locally.',
+    get title() {
+      return t('tour.config.title')
+    },
+    get body() {
+      return t('tour.config.body')
+    },
     route: routes.configTab('models'),
     targetId: 'tour-config-section',
   },
   {
     id: 'example-test',
-    title: 'Run the example passing test',
-    body: 'This generated test is the safest first run because init creates it to validate your setup.',
+    get title() {
+      return t('tour.exampleTest.title')
+    },
+    get body() {
+      return t('tour.exampleTest.body')
+    },
     route: (context) => (context.exampleTestId ? routes.testView(context.exampleTestId) : null),
     targetId: 'tour-test-detail-overview',
     include: hasExampleTest,
   },
   {
     id: 'example-missing',
-    title: 'Find the example passing test',
-    body: 'agent-qa init normally creates Example passing test. Pick it from Tests when it is available, or create one later.',
+    get title() {
+      return t('tour.exampleMissing.title')
+    },
+    get body() {
+      return t('tour.exampleMissing.body')
+    },
     route: routes.tests,
     targetId: 'tour-tests-table',
     include: lacksExampleTest,
   },
   {
     id: 'run-action',
-    title: 'Click Run when ready',
-    body: 'Click Run when you are ready. The tour will continue from the run surface or Runs page.',
+    get title() {
+      return t('tour.runAction.title')
+    },
+    get body() {
+      return t('tour.runAction.body')
+    },
     route: (context) => (context.exampleTestId ? routes.testView(context.exampleTestId) : routes.tests),
     targetId: 'tour-test-run-action',
     include: hasExampleTest,
   },
   {
     id: 'live-run',
-    title: 'Watch the run live',
-    body: 'Live mode shows the running test: its steps on one side and the browser beside them.',
+    get title() {
+      return t('tour.liveRun.title')
+    },
+    get body() {
+      return t('tour.liveRun.body')
+    },
     route: (context) => (context.runId ? routes.runLive(context.runId) : null),
     targetId: 'tour-live-run-status',
     include: hasRun,
   },
   {
     id: 'run-detail',
-    title: 'Inspect the run detail',
-    body: 'This is the value moment: inspect what agent-qa observed, planned, executed, and verified.',
+    get title() {
+      return t('tour.runDetail.title')
+    },
+    get body() {
+      return t('tour.runDetail.body')
+    },
     route: (context) => (context.runId ? routes.runDetail(context.runId) : null),
     targetId: 'tour-run-detail-reasoning',
     include: hasRun,
   },
   {
     id: 'github-nudge',
-    title: 'If agent-qa helped',
-    body: 'If agent-qa helped, consider starring it on GitHub.',
+    get title() {
+      return t('tour.githubNudge.title')
+    },
+    get body() {
+      return t('tour.githubNudge.body')
+    },
     centered: true,
     action: {
-      label: 'View on GitHub',
+      get label() {
+        return t('tour.githubNudge.actionLabel')
+      },
       href: PRODUCT_TOUR_GITHUB_URL,
       icon: 'github',
     },
@@ -157,8 +212,12 @@ export const foundationProductTourSteps = [
   },
   {
     id: 'runs-fallback',
-    title: 'Open your latest run',
-    body: 'If a run is not open here yet, use Runs to open the latest execution and inspect the detail view.',
+    get title() {
+      return t('tour.runsFallback.title')
+    },
+    get body() {
+      return t('tour.runsFallback.body')
+    },
     route: routes.runs,
     targetId: 'tour-runs-table',
     include: lacksRun,

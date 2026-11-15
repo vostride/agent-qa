@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router'
 import { FaGithub } from 'react-icons/fa'
 
 import { Button } from '@/components/ui/button'
+import { useTranslation } from '@/i18n'
 import { fetchTestFiles } from '@/lib/api'
 import { routes } from '@/lib/routes'
 import {
@@ -312,6 +313,7 @@ export function useOptionalProductTour() {
 }
 
 export function ProductTourOverlay() {
+  const { t } = useTranslation()
   const tour = useProductTour()
   const [anchorPlacement, setAnchorPlacement] = useState<AnchorPlacement | null>(null)
   const step = tour.activeStep
@@ -415,7 +417,10 @@ export function ProductTourOverlay() {
           </div>
         ) : null}
         <div
-          aria-label={`Tour progress ${visibleStepIndex + 1} of ${tour.visibleSteps.length}`}
+          aria-label={t('tour.ui.progress', {
+            current: visibleStepIndex + 1,
+            total: tour.visibleSteps.length,
+          })}
           className="flex items-center gap-1"
         >
           {tour.visibleSteps.map((tourStep, index) => (
@@ -432,10 +437,10 @@ export function ProductTourOverlay() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <Button type="button" variant="ghost" size="sm" onClick={tour.skipTour}>
-              Skip
+              {t('tour.ui.skip')}
             </Button>
             <Button type="button" variant="outline" size="sm" onClick={tour.restartTour}>
-              Restart
+              {t('tour.ui.restart')}
             </Button>
           </div>
           <div className="flex items-center gap-2">
@@ -446,10 +451,14 @@ export function ProductTourOverlay() {
               disabled={visibleStepIndex <= 0}
               onClick={tour.backStep}
             >
-              Back
+              {t('tour.ui.back')}
             </Button>
             <Button type="button" size="sm" onClick={isLastStep ? tour.completeTour : tour.nextStep}>
-              {isLastStep ? 'Done' : step.id === 'intro' ? 'Start tour' : 'Next'}
+              {isLastStep
+                ? t('tour.ui.done')
+                : step.id === 'intro'
+                  ? t('tour.ui.startTour')
+                  : t('common.next')}
             </Button>
           </div>
         </div>
