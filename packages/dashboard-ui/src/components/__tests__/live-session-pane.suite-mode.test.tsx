@@ -185,6 +185,13 @@ describe('LiveSessionPane suite mode', () => {
     expect(container.textContent).not.toContain('Selection is no longer available')
   })
 
+  it('renders a selected test duration of a thousand seconds and over ungrouped', () => {
+    renderPane({ tests: [{ ...selectedTest, duration: 1234500 }] })
+
+    expect(container.textContent).toContain('1234.5s')
+    expect(container.textContent).not.toContain('1,234')
+  })
+
   it('keeps suite step selections attached to their owning test detail', () => {
     renderPane({
       selection: { type: 'subaction', stepId: 'step-2', subIndex: 0 },

@@ -211,6 +211,20 @@ describe('SuiteTestRow live mode', () => {
     expect(container.textContent).toContain('1.2s')
   })
 
+  it('renders a duration of a thousand seconds and over as whole seconds, ungrouped', () => {
+    mount(
+      <SuiteTestRow
+        {...baseProps}
+        liveMode
+        liveStatus="passed"
+        liveDuration={1234400}
+        onRunTest={vi.fn()}
+      />,
+    )
+    expect(container.textContent).toContain('1234s')
+    expect(container.textContent).not.toContain('1,234')
+  })
+
   it('surfaces every live step and nested sub-action inside the live row', () => {
     const onSelect = vi.fn()
     mount(
