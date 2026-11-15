@@ -47,9 +47,16 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useTheme } from "@/components/theme-provider"
 import { useTranslation } from "@/i18n"
-import type nav from "@/i18n/locales/en/nav"
 
-const navItems: { titleKey: keyof typeof nav; url: string; icon: typeof Play; tourId?: string }[] = [
+type PageTitleKey =
+  | "nav.runs"
+  | "nav.tests"
+  | "nav.hooks"
+  | "nav.suites"
+  | "nav.insights"
+  | "nav.config"
+
+const navItems: { titleKey: PageTitleKey; url: string; icon: typeof Play; tourId?: string }[] = [
   { titleKey: "nav.runs", url: routes.runs, icon: Play, tourId: "tour-nav-runs" },
   { titleKey: "nav.tests", url: routes.tests, icon: FileText, tourId: "tour-nav-tests" },
   { titleKey: "nav.hooks", url: routes.hooks, icon: Webhook, tourId: "tour-nav-hooks" },

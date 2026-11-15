@@ -13,6 +13,7 @@ import {
 } from "@/lib/api"
 import { configCommandLabel, CONFIG_SECTION_LABELS } from "@/lib/config-copy"
 import { CONFIG_SECTION_ALIASES, searchConfigSections } from "@/lib/config-tabs"
+import { useTranslation } from "@/i18n"
 import { routes } from "@/lib/routes"
 import { runStatusClass } from "@/lib/status"
 import { useProductTour } from "@/components/product-tour"
@@ -27,34 +28,34 @@ import {
 } from "@/components/ui/command"
 
 const pages = [
-  { title: "Runs", url: routes.runs, icon: Play },
-  { title: "Tests", url: routes.tests, icon: FileText },
-  { title: "Hooks", url: routes.hooks, icon: Webhook },
-  { title: "Suites", url: routes.suites, icon: FolderOpen },
-  { title: "Insights", url: routes.insights, icon: BarChart3 },
-  { title: "Config", url: routes.config, icon: SlidersHorizontal },
-]
+  { titleKey: "nav.runs", url: routes.runs, icon: Play },
+  { titleKey: "nav.tests", url: routes.tests, icon: FileText },
+  { titleKey: "nav.hooks", url: routes.hooks, icon: Webhook },
+  { titleKey: "nav.suites", url: routes.suites, icon: FolderOpen },
+  { titleKey: "nav.insights", url: routes.insights, icon: BarChart3 },
+  { titleKey: "nav.config", url: routes.config, icon: SlidersHorizontal },
+] as const
 
 const createActions = [
   {
-    title: "New Test",
+    titleKey: "nav.palette.newTest",
+    searchKey: "nav.palette.newTestSearch",
     url: routes.testNew,
     icon: FileText,
-    value: "create add new test tests yaml",
   },
   {
-    title: "New Suite",
+    titleKey: "nav.palette.newSuite",
+    searchKey: "nav.palette.newSuiteSearch",
     url: routes.suiteNew,
     icon: FolderOpen,
-    value: "create add new suite suites yaml",
   },
   {
-    title: "Create Hook",
+    titleKey: "nav.palette.createHook",
+    searchKey: "nav.palette.createHookSearch",
     url: routes.hookNew,
     icon: Webhook,
-    value: "create add new hook hooks setup teardown inline",
   },
-]
+] as const
 
 function runStatusTextClass(status: string) {
   switch (runStatusClass(status)) {
@@ -91,6 +92,7 @@ function matchesCommandQuery(values: Array<string | null | undefined>, lowerQuer
 }
 
 export function CommandPalette() {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<SearchResults>(() => emptySearchResults())
@@ -196,65 +198,65 @@ export function CommandPalette() {
     <CommandDialog
       open={open}
       onOpenChange={setOpen}
-      title="Command Palette"
-      description="Search runs, tests, hooks, suites, and pages..."
+      title={t("common.dialog.commandTitle")}
+      description={t("nav.palette.description")}
       className="top-[18vh] translate-y-0"
     >
       <CommandInput
-        placeholder="Search runs, tests, hooks, suites, and pages..."
+        placeholder={t("nav.palette.placeholder")}
         value={searchQuery}
         onValueChange={setSearchQuery}
       />
       <CommandList className="min-h-[320px]">
-        <CommandEmpty>No results found.</CommandEmpty>
+        <CommandEmpty>{t("nav.palette.empty")}</CommandEmpty>
 
-        <CommandGroup heading="Pages">
+        <CommandGroup heading={t("nav.palette.group.pages")}>
           {pages.map((page) => (
             <CommandItem
               key={page.url}
-              value={`page-${page.title}`}
+              value={`${t("nav.palette.kind.page")}-${t(page.titleKey)}`}
               onSelect={() => handleSelect(page.url)}
             >
               <page.icon />
-              <span>{page.title}</span>
+              <span>{t(page.titleKey)}</span>
             </CommandItem>
           ))}
         </CommandGroup>
 
         <CommandSeparator />
-        <CommandGroup heading="Create">
+        <CommandGroup heading={t("nav.palette.group.create")}>
           {createActions.map((action) => (
             <CommandItem
               key={action.url}
-              value={action.value}
+              value={t(action.searchKey)}
               onSelect={() => handleSelect(action.url)}
             >
               <action.icon />
-              <span>{action.title}</span>
+              <span>{t(action.titleKey)}</span>
             </CommandItem>
           ))}
         </CommandGroup>
 
         <CommandSeparator />
-        <CommandGroup heading="Help">
+        <CommandGroup heading={t("nav.palette.group.help")}>
           <CommandItem
-            value="help take product tour onboarding agent-qa"
+            value={t("nav.palette.productTourSearch")}
             data-tour-id="tour-command-product-tour"
             onSelect={handleTakeProductTour}
           >
             <LifeBuoy />
-            <span>Take product tour</span>
+            <span>{t("nav.takeProductTour")}</span>
           </CommandItem>
         </CommandGroup>
 
         {searchResults.runs.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Runs">
+            <CommandGroup heading={t("nav.palette.group.runs")}>
               {searchResults.runs.map((run) => (
                 <CommandItem
                   key={run.id}
-                  value={`run-${run.id}-${run.name}`}
+                  value={`${t("nav.palette.kind.run")}-${run.id}-${run.name}`}
                   onSelect={() => handleSelect(routes.runDetail(run.id))}
                 >
                   <Play />
@@ -271,11 +273,18 @@ export function CommandPalette() {
         {searchResults.tests.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Tests">
+            <CommandGroup heading={t("nav.palette.group.tests")}>
               {searchResults.tests.map((test) => (
                 <CommandItem
                   key={test.path}
-                  value={buildCommandValue("test", test.testId, test.name, test.path, test.targetName, test.platform)}
+                  value={buildCommandValue(
+                    t("nav.palette.kind.test"),
+                    test.testId,
+                    test.name,
+                    test.path,
+                    test.targetName,
+                    test.platform,
+                  )}
                   onSelect={() => handleSelect(routes.testView(test.testId ?? test.path))}
                 >
                   <FileText />
@@ -296,11 +305,16 @@ export function CommandPalette() {
         {searchResults.hooks.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Hooks">
+            <CommandGroup heading={t("nav.palette.group.hooks")}>
               {searchResults.hooks.map((hook) => (
                 <CommandItem
                   key={hook.id}
-                  value={buildCommandValue("hook", hook.id, hook.name, hook.file)}
+                  value={buildCommandValue(
+                    t("nav.palette.kind.hook"),
+                    hook.id,
+                    hook.name,
+                    hook.file,
+                  )}
                   onSelect={() => handleSelect(routes.hookView(hook.id))}
                 >
                   <Webhook />
@@ -317,12 +331,17 @@ export function CommandPalette() {
         {searchResults.suites.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Suites">
+            <CommandGroup heading={t("nav.palette.group.suites")}>
               {searchResults.suites.map((suite) =>
                 suite.suiteId ? (
                   <CommandItem
                     key={suite.suiteId}
-                    value={buildCommandValue("suite", suite.suiteId, suite.name, suite.path)}
+                    value={buildCommandValue(
+                      t("nav.palette.kind.suite"),
+                      suite.suiteId,
+                      suite.name,
+                      suite.path,
+                    )}
                     onSelect={() => handleSelect(routes.suiteView(suite.suiteId!))}
                   >
                     <FolderOpen />
@@ -344,12 +363,12 @@ export function CommandPalette() {
         {configResults.length > 0 && (
           <>
             <CommandSeparator />
-            <CommandGroup heading="Config">
+            <CommandGroup heading={t("nav.palette.group.config")}>
               {configResults.map(({ tab, section }) => (
                 <CommandItem
                   key={`${tab}-${section}`}
                   value={buildCommandValue(
-                    "config",
+                    t("nav.palette.kind.config"),
                     configCommandLabel(tab, section),
                     CONFIG_SECTION_LABELS[section],
                     [...CONFIG_SECTION_ALIASES[section]],
@@ -367,7 +386,7 @@ export function CommandPalette() {
         {isSearching && (
           <div className="py-4 text-center text-sm text-muted-foreground">
             <Search className="inline size-4 mr-1 animate-pulse" />
-            Searching...
+            {t("nav.palette.searching")}
           </div>
         )}
       </CommandList>

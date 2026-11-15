@@ -11,6 +11,7 @@ import {
   UpdateBanner,
   isUpdateBannerDismissed,
 } from '@/components/update-banner'
+import i18n from '@/i18n'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -329,7 +330,7 @@ describe('UpdateBanner', () => {
       await write.promise
     })
     expect(button.getAttribute('data-copy-status')).toBe('copied')
-    expect(copyStatus()).toBe(UPDATE_COMMAND_COPIED_TEXT)
+    expect(copyStatus()).toBe(UPDATE_COMMAND_COPIED_TEXT())
   })
 
   it('shows a rejected clipboard write on screen, then returns to the copy button', async () => {
@@ -349,9 +350,9 @@ describe('UpdateBanner', () => {
       expect(button.getAttribute('data-copy-status')).toBe('failed')
       expect(button.innerHTML).not.toBe(idleIcon)
       expect(container?.querySelector('[data-update-command-failed]')?.textContent).toBe(
-        UPDATE_COMMAND_COPY_FAILED_LABEL,
+        UPDATE_COMMAND_COPY_FAILED_LABEL(),
       )
-      expect(copyStatus()).not.toBe(UPDATE_COMMAND_COPIED_TEXT)
+      expect(copyStatus()).not.toBe(UPDATE_COMMAND_COPIED_TEXT())
       expect(copyStatus()).toContain('npx agent-qa@latest init')
 
       await act(async () => {
@@ -379,7 +380,7 @@ describe('UpdateBanner', () => {
     const liveRegions = container?.querySelectorAll('[role="status"], [role="alert"], [aria-live]')
     expect(liveRegions).toHaveLength(1)
     expect(liveRegions?.[0]?.contains(container?.querySelector('[data-update-command-status]') ?? null)).toBe(true)
-    expect(copyStatus()).toBe(UPDATE_COMMAND_COPIED_TEXT)
+    expect(copyStatus()).toBe(UPDATE_COMMAND_COPIED_TEXT())
   })
 
   it('invokes onDismiss once when the dismiss button is clicked', async () => {
@@ -393,6 +394,35 @@ describe('UpdateBanner', () => {
       ?.click()
 
     expect(onDismiss).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('UpdateBanner after a language change', () => {
+  afterEach(async () => {
+    await act(async () => {
+      await i18n.changeLanguage('en')
+    })
+    i18n.removeResourceBundle('fr', 'translation')
+  })
+
+  it('shows the new heading on the mounted banner and returns the new copied message', async () => {
+    i18n.addResourceBundle('fr', 'translation', {
+      'nav.update.available': 'Mise à jour disponible',
+      'common.copied': 'Copié dans le presse-papiers',
+    })
+    await renderNode(
+      <UpdateBanner installedVersion="0.1.18" latestVersion="0.1.19" onDismiss={() => {}} />,
+    )
+    const heading = queryText('Update available')
+    expect(heading).not.toBeNull()
+
+    await act(async () => {
+      await i18n.changeLanguage('fr')
+    })
+
+    expect(queryText('Update available')).toBeNull()
+    expect(queryText('Mise à jour disponible')).toBe(heading)
+    expect(UPDATE_COMMAND_COPIED_TEXT()).toBe('Copié dans le presse-papiers')
   })
 })
 

@@ -104,6 +104,7 @@ vi.mock('@/components/ui/command', () => ({
 }))
 
 import { CommandPalette } from '@/components/command-palette'
+import i18n from '@/i18n'
 
 let container: HTMLDivElement
 let root: Root
@@ -488,5 +489,40 @@ describe('command palette suite navigation', () => {
 
     expect(container.textContent).toContain('Fast run')
     expect(container.textContent).not.toContain('Slow run')
+  })
+})
+
+describe('command palette after a language change', () => {
+  afterEach(async () => {
+    await act(async () => {
+      await i18n.changeLanguage('en')
+    })
+    i18n.removeResourceBundle('fr', 'translation')
+  })
+
+  it('shows the new words in the open palette without closing or remounting it', async () => {
+    i18n.addResourceBundle('fr', 'translation', {
+      'nav.runs': 'Exécutions',
+      'nav.palette.newTest': 'Nouveau test',
+    })
+    await renderPalette()
+    const items = () =>
+      Array.from(container.querySelectorAll('[data-testid="cmd-item"]')) as HTMLButtonElement[]
+    const dialog = container.querySelector('[data-testid="cmd-dialog"]')
+    const runsEntry = items().find((el) => el.textContent === 'Runs')
+    const newTestEntry = items().find((el) => el.textContent?.includes('New Test'))
+    expect(runsEntry).toBeDefined()
+    expect(newTestEntry).toBeDefined()
+
+    await act(async () => {
+      await i18n.changeLanguage('fr')
+    })
+
+    expect(container.querySelector('[data-testid="cmd-dialog"]')).toBe(dialog)
+    expect(runsEntry?.isConnected).toBe(true)
+    expect(runsEntry?.textContent).toBe('Exécutions')
+    expect(newTestEntry?.isConnected).toBe(true)
+    expect(newTestEntry?.textContent).toContain('Nouveau test')
+    expect(items().some((el) => el.textContent?.includes('Runs'))).toBe(false)
   })
 })

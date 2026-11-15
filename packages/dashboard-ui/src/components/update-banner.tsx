@@ -2,13 +2,15 @@ import { Check, CircleAlert, Copy, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { useClipboardCopy } from "@/hooks/use-clipboard-copy"
+import { t, useTranslation } from "@/i18n"
 
 export const UPDATE_BANNER_DISMISS_COOKIE = "agent_qa_update_notice_dismissed"
 export const UPDATE_BANNER_DISMISS_MS = 24 * 60 * 60 * 1000
 export const UPDATE_COMMAND = "npx agent-qa@latest init"
-export const UPDATE_COMMAND_COPIED_TEXT = "Copied to the clipboard"
-export const UPDATE_COMMAND_COPY_FAILED_TEXT = `Could not copy — select the command to copy it: ${UPDATE_COMMAND}`
-export const UPDATE_COMMAND_COPY_FAILED_LABEL = "Could not copy — select the command"
+export const UPDATE_COMMAND_COPIED_TEXT = () => t("common.copied")
+export const UPDATE_COMMAND_COPY_FAILED_TEXT = () =>
+  t("nav.update.copyFailed", { command: UPDATE_COMMAND })
+export const UPDATE_COMMAND_COPY_FAILED_LABEL = () => t("nav.update.copyFailedLabel")
 
 export interface UpdateBannerDismissal {
   latestVersion: string
@@ -74,6 +76,7 @@ export function UpdateBanner({
   latestVersion: string
   onDismiss: () => void
 }) {
+  const { t } = useTranslation()
   const { status, copy } = useClipboardCopy()
   // The banner is the one live region; only what changes inside it, the copy result, is read out.
   return (
@@ -83,9 +86,9 @@ export function UpdateBanner({
       className="flex min-h-12 w-full items-center justify-between gap-3 border-b border-border bg-muted/70 px-4 text-[13px] text-foreground md:h-10 md:min-h-10"
     >
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-        <span className="font-medium">Update available</span>
+        <span className="font-medium">{t("nav.update.available")}</span>
         <span className="text-muted-foreground">
-          agent-qa v{latestVersion} is available. You are using v{installedVersion}.
+          {t("nav.update.versions", { latest: latestVersion, installed: installedVersion })}
         </span>
         <a
           href="https://github.com/vostride/agent-qa/releases"
@@ -93,10 +96,10 @@ export function UpdateBanner({
           rel="noopener noreferrer"
           className="font-medium text-primary underline-offset-4 hover:underline"
         >
-          View releases
+          {t("nav.update.viewReleases")}
         </a>
         <span className="flex items-center gap-1.5">
-          <span className="text-muted-foreground">Run in this project:</span>
+          <span className="text-muted-foreground">{t("nav.update.runInProject")}</span>
           <code data-update-command className="rounded bg-background/70 px-1.5 py-0.5 font-mono">
             {UPDATE_COMMAND}
           </code>
@@ -105,7 +108,7 @@ export function UpdateBanner({
             variant="ghost"
             size="xs"
             data-copy-status={status}
-            aria-label={`Copy ${UPDATE_COMMAND}`}
+            aria-label={t("nav.update.copyCommand", { command: UPDATE_COMMAND })}
             onClick={() => copy(UPDATE_COMMAND)}
           >
             {status === "copied"
@@ -116,14 +119,14 @@ export function UpdateBanner({
           </Button>
           {status === "failed" ? (
             <span data-update-command-failed aria-hidden="true" className="text-xs text-destructive">
-              {UPDATE_COMMAND_COPY_FAILED_LABEL}
+              {UPDATE_COMMAND_COPY_FAILED_LABEL()}
             </span>
           ) : null}
           <span data-update-command-status className="sr-only">
             {status === "copied"
-              ? UPDATE_COMMAND_COPIED_TEXT
+              ? UPDATE_COMMAND_COPIED_TEXT()
               : status === "failed"
-                ? UPDATE_COMMAND_COPY_FAILED_TEXT
+                ? UPDATE_COMMAND_COPY_FAILED_TEXT()
                 : ""}
           </span>
         </span>
@@ -132,7 +135,7 @@ export function UpdateBanner({
         type="button"
         variant="ghost"
         size="icon-lg"
-        aria-label="Dismiss update notice"
+        aria-label={t("nav.update.dismiss")}
         onClick={onDismiss}
         className="-mr-2"
       >
