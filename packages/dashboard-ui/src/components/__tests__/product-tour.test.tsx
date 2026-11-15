@@ -10,6 +10,7 @@ import {
   ProductTourProvider,
   useProductTour,
 } from '@/components/product-tour'
+import i18n from '@/i18n'
 import {
   PRODUCT_TOUR_COOKIE,
   PRODUCT_TOUR_SCHEMA_VERSION,
@@ -604,6 +605,32 @@ describe('AppLayout product tour integration', () => {
 
     expect(container?.querySelector('[data-testid="live-run-page"]')).not.toBeNull()
     expectNoDialog()
+  })
+})
+
+describe('an open tour after a language change', () => {
+  afterEach(async () => {
+    await act(async () => {
+      await i18n.changeLanguage('en')
+    })
+    i18n.removeResourceBundle('fr', 'translation')
+  })
+
+  it('shows the new title in the same card on /runs', async () => {
+    await renderAppAt('/runs')
+    const card = dialog()
+    expect(card?.textContent).toContain('Welcome to agent-qa')
+
+    i18n.addResourceBundle('fr', 'translation', {
+      'tour.intro.title': 'Bienvenue dans agent-qa',
+    })
+    await act(async () => {
+      await i18n.changeLanguage('fr')
+    })
+
+    expect(dialog()).toBe(card)
+    expect(card?.textContent).toContain('Bienvenue dans agent-qa')
+    expect(card?.textContent).not.toContain('Welcome to agent-qa')
   })
 })
 

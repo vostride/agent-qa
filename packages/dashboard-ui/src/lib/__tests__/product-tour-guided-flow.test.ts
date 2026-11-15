@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
+import i18n from '@/i18n'
 import {
   foundationProductTourSteps,
   getVisibleProductTourSteps,
@@ -106,5 +107,45 @@ describe('guided first-run product tour flow', () => {
     expect(stepIds({ exampleTestId: 'test-generated-pass', runId: 'run-generated-pass' })).not.toContain(
       'github-nudge',
     )
+  })
+})
+
+describe('tour steps after a language change', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('en')
+    i18n.removeResourceBundle('fr', 'translation')
+  })
+
+  it('reads the same step objects in the current language each time they are read', async () => {
+    i18n.addResourceBundle('fr', 'translation', {
+      'tour.intro.title': 'Bienvenue dans agent-qa',
+      'tour.intro.body': 'agent-qa exécute vos tests écrits en langage naturel.',
+    })
+    const intro = foundationProductTourSteps[0]
+
+    await i18n.changeLanguage('fr')
+    expect(intro.title).toBe('Bienvenue dans agent-qa')
+    expect(intro.body).toBe('agent-qa exécute vos tests écrits en langage naturel.')
+    expect(getVisibleProductTourSteps()[0].title).toBe('Bienvenue dans agent-qa')
+
+    await i18n.changeLanguage('en')
+    expect(foundationProductTourSteps[0].title).toBe('Welcome to agent-qa')
+    expect(getVisibleProductTourSteps()[0].title).toBe('Welcome to agent-qa')
+  })
+
+  it('labels the GitHub link in the current language and keeps its address and icon', async () => {
+    const nudge = foundationProductTourSteps.find((tourStep) => tourStep.id === 'github-nudge')
+    expect(nudge?.action?.label).toBe('View on GitHub')
+
+    i18n.addResourceBundle('fr', 'translation', {
+      'tour.githubNudge.actionLabel': 'Voir sur GitHub',
+    })
+    await i18n.changeLanguage('fr')
+
+    expect(nudge?.action).toMatchObject({
+      label: 'Voir sur GitHub',
+      href: 'https://github.com/vostride/agent-qa',
+      icon: 'github',
+    })
   })
 })
