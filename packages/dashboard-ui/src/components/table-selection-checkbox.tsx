@@ -1,6 +1,7 @@
 import type { FocusEvent, MouseEvent } from "react"
 
 import { Checkbox } from "@/components/ui/checkbox"
+import { useTranslation } from "@/i18n"
 
 interface SelectionCheckboxCellProps {
   checked: boolean | "indeterminate"
@@ -13,6 +14,8 @@ export function SelectionCheckboxCell({
   onCheckedChange,
   ariaLabel,
 }: SelectionCheckboxCellProps) {
+  const { t } = useTranslation()
+
   function handleHitAreaClick(event: MouseEvent<HTMLDivElement>) {
     event.stopPropagation()
 
@@ -42,7 +45,7 @@ export function SelectionCheckboxCell({
         checked={checked}
         onCheckedChange={(value) => onCheckedChange(value === true)}
         onClick={(event) => event.stopPropagation()}
-        aria-label={ariaLabel ?? "Select row"}
+        aria-label={ariaLabel ?? t('common.selection.selectRow')}
       />
     </div>
   )

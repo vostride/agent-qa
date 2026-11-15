@@ -7,6 +7,7 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
 import { ShortcutKey } from "@/components/shortcut-hints"
+import { useTranslation } from "@/i18n"
 import { cn } from "@/lib/utils"
 
 interface SplitButtonProps {
@@ -32,8 +33,9 @@ export function SplitButton({
   shortcutKey,
   runButtonTourId,
 }: SplitButtonProps) {
+  const { t } = useTranslation()
   const hasDropdownItems = !!onRunNoCache || !!onPurgeCache
-  const buttonLabel = label ?? "Run"
+  const buttonLabel = label ?? t('common.run')
   const shortcutBadge = shortcutKey ? (
     <ShortcutKey
       shortcut={shortcutKey}
@@ -84,12 +86,12 @@ export function SplitButton({
         <DropdownMenuContent align="end">
           {onRunNoCache && (
             <DropdownMenuItem onClick={() => onRunNoCache()}>
-              Run without cache
+              {t('common.run.withoutCache')}
             </DropdownMenuItem>
           )}
           {onPurgeCache && (
             <DropdownMenuItem onClick={onPurgeCache}>
-              Purge all cached plans
+              {t('common.run.purgeCache')}
             </DropdownMenuItem>
           )}
         </DropdownMenuContent>

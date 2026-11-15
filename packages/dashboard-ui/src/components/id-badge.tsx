@@ -4,18 +4,20 @@ import { Check, Copy } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { useClipboardCopy } from "@/hooks/use-clipboard-copy"
+import { t, useTranslation } from "@/i18n"
 
 export function copyIdBadgeLabel(label: string, value: string): string {
-  return `Copy ${label}: ${value}`
+  return t('common.id.copyLabel', { label, value })
 }
 
-export const ID_BADGE_COPIED_TEXT = "Copied to the clipboard"
+export const ID_BADGE_COPIED_TEXT = () => t('common.copied')
 
 export function idBadgeCopyFailedText(value: string): string {
-  return `Could not copy — select the id to copy it: ${value}`
+  return t('common.id.copyFailed', { value })
 }
 
 export function IdBadge({ label, value }: { label: string; value: string }) {
+  useTranslation()
   const { status, copy } = useClipboardCopy()
   const truncated = value.length > 16 ? value.slice(0, 16) + '…' : value
   return (
@@ -37,7 +39,7 @@ export function IdBadge({ label, value }: { label: string; value: string }) {
           : <Copy className="size-3.5 opacity-40" aria-hidden="true" />}
       </Button>
       <span data-id-badge-status role="status" aria-live="polite" className="sr-only">
-        {status === "copied" ? ID_BADGE_COPIED_TEXT : status === "failed" ? idBadgeCopyFailedText(value) : ""}
+        {status === "copied" ? ID_BADGE_COPIED_TEXT() : status === "failed" ? idBadgeCopyFailedText(value) : ""}
       </span>
     </>
   )

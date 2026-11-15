@@ -2,6 +2,7 @@ import { createPortal } from "react-dom"
 import { Trash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SplitButton } from "@/components/split-button"
+import { useTranslation } from "@/i18n"
 
 interface BatchActionBarProps {
   selectedCount: number
@@ -32,6 +33,7 @@ export function BatchActionBar({
   actionSlot,
   onDelete,
 }: BatchActionBarProps) {
+  const { t } = useTranslation()
   if (selectedCount === 0) return null
 
   const isIconOnlySecondary = !secondaryLabel && !!secondaryIcon
@@ -40,7 +42,7 @@ export function BatchActionBar({
     <div className="fixed bottom-6 left-1/2 z-50 flex w-max max-w-[calc(100vw-1rem)] -translate-x-1/2 flex-wrap items-center gap-3 rounded-md border bg-background px-4 py-3 shadow-lg sm:flex-nowrap">
       <div className="min-w-[6.5rem] shrink-0">
         <span className="text-sm font-medium">
-          {selectedCount} selected
+          {t('common.selection.selected', { count: selectedCount })}
         </span>
         {summaryMeta ? (
           <p className="text-xs text-muted-foreground">
@@ -67,7 +69,7 @@ export function BatchActionBar({
           disabled={isRunning}
         >
           <Trash className="size-4" />
-          Delete
+          {t('common.delete')}
         </Button>
       ) : null}
       <Button
@@ -78,7 +80,7 @@ export function BatchActionBar({
         onClick={onCancel}
         disabled={isRunning}
       >
-        {secondaryIcon ?? secondaryLabel ?? "Cancel"}
+        {secondaryIcon ?? secondaryLabel ?? t('common.cancel')}
       </Button>
     </div>,
     document.body,

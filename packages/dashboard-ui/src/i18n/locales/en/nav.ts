@@ -17,4 +17,8 @@ export default {
   'nav.collapseSidebar': 'Collapse sidebar',
   'nav.expandSidebar': 'Expand sidebar',
   'nav.collapse': 'Collapse',
+  'nav.sidebar': 'Sidebar',
+  'nav.sidebarDescription': 'Displays the mobile sidebar.',
+  'nav.toggleSidebar': 'Toggle Sidebar',
+  'nav.openNavigation': 'Open navigation',
 } as const

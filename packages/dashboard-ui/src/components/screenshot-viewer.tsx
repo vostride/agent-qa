@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import type { StepAnnotation } from "@/lib/api"
 import { MediaAnnotationOverlay } from "./media-annotation-overlay"
 import { MediaViewport } from './media-viewport'
+import { useTranslation } from "@/i18n"
 import { cn } from "@/lib/utils"
 
 // Takes a minted `src`, never a path: the route map is the one minter, so this builds no URL.
@@ -27,6 +28,7 @@ export function ScreenshotViewer({
   onUnavailable,
   embedded,
 }: ScreenshotViewerProps) {
+  const { t } = useTranslation()
   const containerRef = useRef<HTMLDivElement>(null)
   const [imageLoaded, setImageLoaded] = useState(false)
   const [imageError, setImageError] = useState(false)
@@ -141,7 +143,7 @@ export function ScreenshotViewer({
       >
         <div className="text-muted-foreground flex flex-col items-center gap-2">
           <Camera className="h-8 w-8" />
-          <span className="text-sm">Screenshot unavailable</span>
+          <span className="text-sm">{t('common.screenshot.unavailable')}</span>
         </div>
       </div>
     )
@@ -153,7 +155,7 @@ export function ScreenshotViewer({
   if (embedded) return <MediaViewport width={naturalSize.width} height={naturalSize.height}
     magnifier={embedded.magnifier} fullscreen={embedded.fullscreen} mediaKey={src}
     annotation={imageLoaded && embedded.annotationsVisible ? annotation ?? undefined : undefined}>
-    <img src={src} alt='Step screenshot' className='h-full w-full object-contain'
+    <img src={src} alt={t('common.screenshot.image')} className='h-full w-full object-contain'
       onLoad={handleImageLoad} onError={() => { setImageError(true); embedded.onAvailability?.(false); onUnavailable?.() }} />
   </MediaViewport>
 
@@ -181,7 +183,7 @@ export function ScreenshotViewer({
 
         <img
           src={src}
-          alt="Step screenshot"
+          alt={t('common.screenshot.image')}
           className={cn(
             "w-full h-full object-contain",
             !imageLoaded && "opacity-0",
@@ -220,7 +222,11 @@ export function ScreenshotViewer({
                 size="icon-sm"
                 className="h-7 w-7 bg-background/80 backdrop-blur-sm"
                 onClick={(e) => { e.stopPropagation(); setAnnotationsVisible(!annotationsVisible) }}
-                title={annotationsVisible ? "Hide annotations" : "Show annotations"}
+                title={
+                  annotationsVisible
+                    ? t('common.screenshot.hideAnnotations')
+                    : t('common.screenshot.showAnnotations')
+                }
               >
                 <Crosshair className={cn("h-3.5 w-3.5", annotationsVisible && "text-primary")} />
               </Button>
@@ -230,7 +236,11 @@ export function ScreenshotViewer({
               size="icon-sm"
               className="h-7 w-7 bg-background/80 backdrop-blur-sm"
               onClick={(e) => { e.stopPropagation(); setMagnifierOn(!magnifierOn) }}
-              title={magnifierOn ? "Disable magnifier" : "Enable magnifier"}
+              title={
+                magnifierOn
+                  ? t('common.screenshot.disableMagnifier')
+                  : t('common.screenshot.enableMagnifier')
+              }
             >
               <Search className={cn("h-3.5 w-3.5", magnifierOn && "text-primary")} />
             </Button>
@@ -239,7 +249,7 @@ export function ScreenshotViewer({
               size="icon-sm"
               className="h-7 w-7 bg-background/80 backdrop-blur-sm"
               onClick={(e) => { e.stopPropagation(); setFullscreen(true) }}
-              title="View full size"
+              title={t('common.screenshot.viewFullSize')}
             >
               <Maximize2 className="h-3.5 w-3.5" />
             </Button>
@@ -263,7 +273,7 @@ export function ScreenshotViewer({
           </Button>
           <img
             src={src}
-            alt="Step screenshot (full size)"
+            alt={t('common.screenshot.imageFullSize')}
             className="object-contain rounded-lg"
             style={{ maxWidth: '90vw', maxHeight: '90vh' }}
             onClick={(e) => e.stopPropagation()}
