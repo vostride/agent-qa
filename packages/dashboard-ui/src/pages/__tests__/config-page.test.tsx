@@ -758,6 +758,33 @@ describe('ConfigPage task tabs shell', () => {
     expect(currentLocation().pathname).toBe('/config/models')
   })
 
+  it('places the language block after the heading and before the tab bar', async () => {
+    const view = await renderAt('/config/models')
+
+    const heading = view.querySelector('h1')
+    const languageBlock = view.querySelector('[data-language-block]')
+    const tabBar = view.querySelector('[data-config-tabbar]')
+    expect(heading).not.toBeNull()
+    expect(languageBlock).not.toBeNull()
+    expect(tabBar).not.toBeNull()
+    expect(heading!.compareDocumentPosition(languageBlock!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(languageBlock!.compareDocumentPosition(tabBar!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('shows the language block when the config failed to load', async () => {
+    vi.mocked(fetchConfig).mockRejectedValueOnce(new Error('agent-qa.config.yaml is not valid YAML.'))
+
+    const view = await renderAt('/config/models')
+
+    const heading = view.querySelector('h1')
+    const languageBlock = view.querySelector('[data-language-block]')
+    const loadError = view.querySelector('[data-config-load-error]')
+    expect(view.querySelector('[data-config-page]')?.getAttribute('data-config-state')).toBe('error')
+    expect(languageBlock).not.toBeNull()
+    expect(heading!.compareDocumentPosition(languageBlock!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(languageBlock!.compareDocumentPosition(loadError!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
   it('TABS-FIVE-IN-ORDER: exactly five tabs in the order Models, Targets, Execution, Project, Advanced', async () => {
     const view = await renderAt('/config/models')
 
