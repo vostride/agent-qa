@@ -1,3 +1,4 @@
+import language from './language'
 import nav from './nav'
 
-export default { ...nav } as const
+export default { ...nav, ...language } as const

@@ -674,9 +674,10 @@ describe('ConfigPage autosave wiring', () => {
     const panel = container!.querySelector('[data-config-panel="execution"]')!
     const firstPanelStop = stops.findIndex((element) => panel === element || panel.contains(element))
 
-    expect(stops.indexOf(strip[0]!)).toBe(0)
-    expect(firstPanelStop).toBeGreaterThan(0)
-    expect(stops.slice(1, firstPanelStop)).toEqual([retry])
+    expect(stops[0]).toBe(container!.querySelector('[data-language-select]'))
+    expect(stops.indexOf(strip[0]!)).toBe(1)
+    expect(firstPanelStop).toBeGreaterThan(1)
+    expect(stops.slice(2, firstPanelStop)).toEqual([retry])
   })
 
   it('FILE-ISSUES-RECOVER-WITHOUT-RELOAD: a file failing validation shows one notice above the tabs, which clears when the file is fixed', async () => {
@@ -909,6 +910,8 @@ describe('ConfigPage task tabs shell', () => {
 
         const view = await renderAt('/config/models')
         const chrome = shellChrome(view)
+        // The language select chooses this browser's language and navigates nothing.
+        chrome.querySelector('[data-language-block]')?.remove()
 
         expect(view.querySelector('[data-config-mobile-selector]')).toBeNull()
         expect(chrome.querySelector('select, [role="combobox"], [role="listbox"]')).toBeNull()

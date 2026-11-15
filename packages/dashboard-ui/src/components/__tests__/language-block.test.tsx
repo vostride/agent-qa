@@ -4,13 +4,17 @@ import { act, type ComponentProps, type ReactNode } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest'
 
+import { LanguageBlock } from '@/components/language-block'
 import i18n, { applyLanguage } from '@/i18n'
+import { LanguageProvider } from '@/i18n/language-provider'
 import de from '@/i18n/locales/de'
 import en from '@/i18n/locales/en'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-const handed = vi.hoisted(() => ({ onValueChange: undefined as ((value: string) => void) | undefined }))
+const handed = vi.hoisted(() => ({
+  onValueChange: undefined as ((value: string) => void) | undefined,
+}))
 
 vi.mock('@/components/ui/select', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/components/ui/select')>()
@@ -22,14 +26,6 @@ vi.mock('@/components/ui/select', async (importOriginal) => {
     },
   }
 })
-
-const blocks = import.meta.glob<typeof import('../language-block')>('../language-block.tsx', {
-  eager: true,
-})
-const providers = import.meta.glob<typeof import('@/i18n/language-provider')>(
-  '../../i18n/language-provider.tsx',
-  { eager: true },
-)
 
 const STORAGE_KEY = 'agent-qa.language'
 const NAMES = [
@@ -49,25 +45,9 @@ let container: HTMLDivElement | null = null
 let root: Root | null = null
 let languages: MockInstance<() => readonly string[]> | undefined
 
-function blockModule() {
-  const loaded = blocks['../language-block.tsx']
-  expect(loaded, 'src/components/language-block.tsx exports LanguageBlock').toBeDefined()
-  return loaded!
-}
-
-function providerModule() {
-  const loaded = providers['../../i18n/language-provider.tsx']
-  expect(loaded, 'src/i18n/language-provider.tsx exports LanguageProvider').toBeDefined()
-  return loaded!
-}
-
 async function mount(withProvider: boolean) {
-  const { LanguageBlock } = blockModule()
   let tree: ReactNode = <LanguageBlock />
-  if (withProvider) {
-    const { LanguageProvider } = providerModule()
-    tree = <LanguageProvider>{tree}</LanguageProvider>
-  }
+  if (withProvider) tree = <LanguageProvider>{tree}</LanguageProvider>
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
@@ -203,7 +183,7 @@ describe('the language block', () => {
     expect(label().textContent).toBe(de['language.label'])
   })
 
-  it('removes the saved choice and follows the browser again when the first entry is chosen', async () => {
+  it('removes the saved choice and follows the browser when the first entry is chosen', async () => {
     await mount(true)
     choose('日本語')
     await settledOn('ja')

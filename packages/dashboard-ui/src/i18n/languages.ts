@@ -15,9 +15,24 @@ export const LANGUAGES = [
 
 export type Language = (typeof LANGUAGES)[number]
 
-const LANGUAGE_STORAGE_KEY = 'agent-qa.language'
+export type LanguageChoice = Language | 'browser'
 
-function isLanguage(value: unknown): value is Language {
+export const LANGUAGE_NAMES: Record<Language, string> = {
+  en: 'English',
+  'zh-Hans': '简体中文',
+  'zh-Hant': '繁體中文',
+  ja: '日本語',
+  ko: '한국어',
+  es: 'Español',
+  'pt-BR': 'Português (Brasil)',
+  de: 'Deutsch',
+  fr: 'Français',
+  ru: 'Русский',
+}
+
+export const LANGUAGE_STORAGE_KEY = 'agent-qa.language'
+
+export function isLanguage(value: unknown): value is Language {
   return typeof value === 'string' && (LANGUAGES as readonly string[]).includes(value)
 }
 
@@ -53,6 +68,19 @@ export function readLanguageChoice(storage?: Pick<Storage, 'getItem'>): Language
     return isLanguage(stored) ? stored : undefined
   } catch {
     return undefined
+  }
+}
+
+export function storeLanguageChoice(
+  choice: LanguageChoice,
+  storage?: Pick<Storage, 'setItem' | 'removeItem'>,
+): void {
+  try {
+    const target = storage ?? globalThis.localStorage
+    if (choice === 'browser') target?.removeItem(LANGUAGE_STORAGE_KEY)
+    else target?.setItem(LANGUAGE_STORAGE_KEY, choice)
+  } catch {
+    // Storage is optional; the choice still applies to this page.
   }
 }
 

@@ -10,6 +10,7 @@ import {
 import { routes } from "@/lib/routes"
 import { fetchAppMetadata, type AppMetadataResponse } from "@/lib/api"
 import { ThemeProvider } from "@/components/theme-provider"
+import { LanguageProvider } from "@/i18n/language-provider"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { MobileNavigationTrigger } from "@/components/mobile-navigation-trigger"
@@ -414,8 +415,10 @@ const router = createBrowserRouter([
 export default function App() {
   return (
     <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme">
-      <RouterProvider router={router} />
-      <Toaster richColors position="bottom-right" />
+      <LanguageProvider>
+        <RouterProvider router={router} />
+        <Toaster richColors position="bottom-right" />
+      </LanguageProvider>
     </ThemeProvider>
   )
 }

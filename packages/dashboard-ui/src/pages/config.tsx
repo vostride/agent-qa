@@ -4,6 +4,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { FormSkeleton } from "@/components/page-skeleton"
+import { LanguageBlock } from "@/components/language-block"
 import { fetchAppMetadata } from "@/lib/api"
 import { usePageTitle } from "@/hooks/use-page-title"
 import {
@@ -245,6 +246,8 @@ export default function ConfigPage() {
   return (
     <div data-config-page data-config-state={state.kind} className="max-w-4xl">
       <h1 className="text-2xl font-semibold tracking-tight">{CONFIG_PAGE_TITLE}</h1>
+
+      <LanguageBlock />
 
       {showLegacyNotice ? (
         <ConfigLineNotice data-config-invalid-notice className="mt-6">
