@@ -35,7 +35,7 @@ interface TabOverviewProps extends OverviewPlayerProps {
 }
 
 /** The three words a recorded result can be — raw, closed, and never a sentence. */
-function resultWord(sub: RunDetailSubAction): "success" | "failure" | typeof RESULT_WORDS["no-input"] {
+function resultWord(sub: RunDetailSubAction): string {
   if (readIdempotentNoopMeta(sub.result)) return RESULT_WORDS["no-input"]
   return sub.result.success ? "success" : "failure"
 }

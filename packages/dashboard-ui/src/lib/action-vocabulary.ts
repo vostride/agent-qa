@@ -6,6 +6,9 @@ import {
   Smartphone, Terminal, TextCursorInput, Wrench, type LucideIcon,
 } from 'lucide-react'
 
+import { t } from '@/i18n'
+import { textTable } from '@/i18n/text-table'
+
 export const ACTION_VERBS = {
   click: { past: 'Clicked', infinitive: 'click' },
   doubleClick: { past: 'Double-clicked', infinitive: 'double-click' },
@@ -75,9 +78,12 @@ export const ACTION_FAMILY_ICONS = {
 export const UNKNOWN_ACTION_ICON = CircleDashed
 export type ActionOutcome = 'succeeded' | 'failed' | 'no-input'
 export const ACTION_OUTCOMES = ['succeeded', 'failed', 'no-input'] as const satisfies readonly ActionOutcome[]
-export const RESULT_WORDS = {
-  passed: 'passed', failed: 'failed', healed: 'healed', 'no-input': 'no input sent',
-} as const
+export const RESULT_WORDS = textTable({
+  passed: () => t('action.result.passed'),
+  failed: () => t('action.result.failed'),
+  healed: () => t('action.result.healed'),
+  'no-input': () => t('action.result.noInput'),
+})
 export const ACTION_FAILURE_SUFFIX = ' — failed'
 const UNKNOWN_VERB = { past: 'Performed an action', infinitive: 'perform an action' }
 const NAVIGATION_VERBS = {
