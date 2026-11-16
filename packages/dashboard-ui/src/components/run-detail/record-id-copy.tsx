@@ -26,7 +26,7 @@ export function RecordIdCopy({ id, className }: { id: string; className?: string
           : <Copy className="size-3.5" aria-hidden="true" />}
       </Button>
       <span data-record-id-copy-status role="status" aria-live="polite" className="sr-only">
-        {status === "copied" ? RECORD_ID_COPIED_TEXT : status === "failed" ? recordIdCopyFailedText(id) : ""}
+        {status === "copied" ? RECORD_ID_COPIED_TEXT() : status === "failed" ? recordIdCopyFailedText(id) : ""}
       </span>
     </>
   )

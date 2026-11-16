@@ -32,7 +32,6 @@ import {
   ATTRIBUTION_PENDING_TEXT,
   ATTRIBUTION_UNKNOWN_TEXT,
   BROKE_CAUSE_LABELS,
-  CANARY_BADGE_TEXT,
   NO_MEMORY_CHANGES_SENTENCE,
   CHANGES_NOT_AVAILABLE_TEXT,
   CHANGES_UNREADABLE_TEXT,
@@ -61,7 +60,6 @@ import {
   STORE_READ_INCOMPLETE_TEXT,
   USED_HEADING,
   CHANNEL_EYEBROWS,
-  DOCTOR_HINT_TEXT,
   DOCTOR_POINTER_TEXT,
   RUNG_CAUSE_LABELS,
   RUNG_LABELS,
@@ -145,7 +143,7 @@ describe('a failed read is its own state, never an empty panel', () => {
 
     expect(view.state).toBe('error')
     if (view.state !== 'error') throw new Error('unreachable')
-    expect(view.heading).toBe(READ_FAILED_HEADING)
+    expect(view.heading).toBe(READ_FAILED_HEADING())
     expect(view.body).toBe(readFailedBody('read_failed'))
     expect(view.body).toContain('read_failed')
     expect(view.body).toContain('agent-qa doctor')
@@ -177,9 +175,9 @@ describe('no knowledge reader bound is not a rung, it is a state', () => {
 
     expect(view.state).toBe('empty-no-store')
     if (view.state !== 'empty-no-store') throw new Error('unreachable')
-    expect(view.heading).toBe(NO_STORE_HEADING)
-    expect(view.body).toBe(NO_STORE_BODY)
-    expect(NO_STORE_HEADING).toBe('No knowledge store configured for this project')
+    expect(view.heading).toBe(NO_STORE_HEADING())
+    expect(view.body).toBe(NO_STORE_BODY())
+    expect(NO_STORE_HEADING()).toBe('No knowledge store configured for this project')
   })
 })
 
@@ -205,7 +203,7 @@ describe('the Used summary is DERIVED from the rows the panel already holds', ()
 
   it('says nothing was served when every segment is zero — never an empty line', () => {
     expect(usedSummaryLine({ stepsBriefed: 0, canaryLines: 0, replays: 0, hints: 0 }))
-      .toBe(NO_BRIEF_LINES_TEXT)
+      .toBe(NO_BRIEF_LINES_TEXT())
   })
 
   it('counts a step as briefed when ANY of its three channels carried a line', () => {
@@ -234,8 +232,8 @@ describe('the Used summary is DERIVED from the rows the panel already holds', ()
   it('says NO BRIEF WAS SERVED — a different sentence — when the run has no steps at all', () => {
     const view = projectKnowledgeView(ready({ steps: [] }))
 
-    expect(usedOf(view).summary).toBe(NO_BRIEF_SERVED_TEXT)
-    expect(NO_BRIEF_SERVED_TEXT).not.toBe(NO_BRIEF_LINES_TEXT)
+    expect(usedOf(view).summary).toBe(NO_BRIEF_SERVED_TEXT())
+    expect(NO_BRIEF_SERVED_TEXT()).not.toBe(NO_BRIEF_LINES_TEXT())
     expect(usedOf(view).steps).toEqual([])
   })
 })
@@ -301,9 +299,9 @@ describe('one row per step, whatever the row served', () => {
 
     const [replay, hint] = usedOf(view).steps
     expect(replay.planSource).toBe('procedure-replay')
-    expect(replay.facts).toContain(REPLAY_FACT)
+    expect(replay.facts).toContain(REPLAY_FACT())
     expect(hint.planSource).toBe('procedure-hint')
-    expect(hint.facts).toContain(HINT_FACT)
+    expect(hint.facts).toContain(HINT_FACT())
     expect(usedOf(view).summary).toBe('2 steps briefed · 1 procedure replay, 1 hint')
   })
 
@@ -314,7 +312,7 @@ describe('one row per step, whatever the row served', () => {
     expect(row.noBrief).toBe(true)
     expect(row.facts).toEqual([])
     expect(row.briefLines).toBe(0)
-    expect(usedOf(view).summary).toBe(NO_BRIEF_LINES_TEXT)
+    expect(usedOf(view).summary).toBe(NO_BRIEF_LINES_TEXT())
   })
 })
 
@@ -376,12 +374,12 @@ describe('the reserved copy the expansion plans consume is published NOW', () =>
   })
 
   it('gives every no-trace arm and every half heading its own sentence', () => {
-    expect(PRE_TRACE_TEXT).toBe('no trace was captured for this run')
-    expect(STEP_NOT_FOUND_TEXT).toBe('no evidence recorded for this step')
-    expect(STEP_NO_BRIEF_TEXT).toBe('no brief served')
-    expect(USED_HEADING).toBe('Knowledge used')
-    expect(MEMORY_CHANGES_HEADING).toBe('Memory changes')
-    expect(new Set([PRE_TRACE_TEXT, STEP_NOT_FOUND_TEXT, STEP_NO_BRIEF_TEXT]).size).toBe(3)
+    expect(PRE_TRACE_TEXT()).toBe('no trace was captured for this run')
+    expect(STEP_NOT_FOUND_TEXT()).toBe('no evidence recorded for this step')
+    expect(STEP_NO_BRIEF_TEXT()).toBe('no brief served')
+    expect(USED_HEADING()).toBe('Knowledge used')
+    expect(MEMORY_CHANGES_HEADING()).toBe('Memory changes')
+    expect(new Set([PRE_TRACE_TEXT(), STEP_NOT_FOUND_TEXT(), STEP_NO_BRIEF_TEXT()]).size).toBe(3)
   })
 })
 
@@ -574,8 +572,8 @@ describe('a canary line is never blank — it says pending, not-attributed, or t
   })
 
   it('draws the line between the two words in the published copy, not in a component', () => {
-    expect(ATTRIBUTION_UNKNOWN_TEXT).toBe('attribution unknown')
-    expect(ATTRIBUTION_UNKNOWN_TEXT).not.toBe(NOT_ATTRIBUTED_TEXT)
+    expect(ATTRIBUTION_UNKNOWN_TEXT()).toBe('attribution unknown')
+    expect(ATTRIBUTION_UNKNOWN_TEXT()).not.toBe(NOT_ATTRIBUTED_TEXT())
   })
 
   // Only the sweep proves no other combination leaks into `unknown`.
@@ -655,11 +653,11 @@ describe('a replay states its guard outcome and a hint states its demotion', () 
   })
 
   it('says procedure hint, and says so it was DEMOTED when the evidence recorded a demotion', () => {
-    expect(planSourceSentence({ kind: 'procedure-hint', procedureId: 'p_2' })).toBe(PROCEDURE_HINT_TEXT)
+    expect(planSourceSentence({ kind: 'procedure-hint', procedureId: 'p_2' })).toBe(PROCEDURE_HINT_TEXT())
     expect(planSourceSentence({ kind: 'procedure-hint', procedureId: 'p_2', demotion: 'body-empty' }))
-      .toBe(PROCEDURE_HINT_DEMOTED_TEXT)
-    expect(PROCEDURE_HINT_TEXT).toBe('procedure hint')
-    expect(PROCEDURE_HINT_DEMOTED_TEXT).toBe('procedure hint (demoted from replay)')
+      .toBe(PROCEDURE_HINT_DEMOTED_TEXT())
+    expect(PROCEDURE_HINT_TEXT()).toBe('procedure hint')
+    expect(PROCEDURE_HINT_DEMOTED_TEXT()).toBe('procedure hint (demoted from replay)')
   })
 
   it('tones the row ok, broke or hint — the three looks the UI-SPEC colours', () => {
@@ -680,7 +678,7 @@ describe('a replay states its guard outcome and a hint states its demotion', () 
     })
 
     expect(planSourceView({ kind: 'procedure-hint', procedureId: 'p' }))
-      .toEqual({ kind: 'procedure-hint', procedureId: 'p', sentence: PROCEDURE_HINT_TEXT, tone: 'hint' })
+      .toEqual({ kind: 'procedure-hint', procedureId: 'p', sentence: PROCEDURE_HINT_TEXT(), tone: 'hint' })
   })
 
   it('names the three broke causes exactly as the Copywriting Contract spells them', () => {
@@ -830,11 +828,10 @@ describe('the projection joins the trace, the ledger, the outcome and the plan s
 })
 
 describe('the canary and attribution copy is published as constants, like every sentence before it', () => {
-  it('spells the canary marker and both unsettled words exactly once', () => {
-    expect(CANARY_BADGE_TEXT).toBe('canary')
-    expect(ATTRIBUTION_PENDING_TEXT).toBe('attribution pending')
-    expect(NOT_ATTRIBUTED_TEXT).toBe('not attributed')
-    expect(new Set([CANARY_BADGE_TEXT, ATTRIBUTION_PENDING_TEXT, NOT_ATTRIBUTED_TEXT]).size).toBe(3)
+  it('spells both unsettled words exactly once', () => {
+    expect(ATTRIBUTION_PENDING_TEXT()).toBe('attribution pending')
+    expect(NOT_ATTRIBUTED_TEXT()).toBe('not attributed')
+    expect(new Set([ATTRIBUTION_PENDING_TEXT(), NOT_ATTRIBUTED_TEXT()]).size).toBe(2)
   })
 
   it('rounds a trace score to three places, so two adjacent candidates stop looking identical', () => {
@@ -919,7 +916,7 @@ describe('the Learned half mirrors the curation word and NEVER renders blank', (
   it('says deltas are still coming while curation is pending — a sentence, not a spinner', () => {
     const view = learnedFrom({ curation: { status: 'pending' } })
     expect(view.state).toBe('pending')
-    expect(view.sentence).toBe(CHANGES_PENDING_TEXT)
+    expect(view.sentence).toBe(CHANGES_PENDING_TEXT())
     expect(view.rows).toEqual([])
     expect(view.countLine).toBeUndefined()
   })
@@ -927,13 +924,13 @@ describe('the Learned half mirrors the curation word and NEVER renders blank', (
   it('says the SAME sentence while curation is running — the reader waits on one fact, not two', () => {
     const view = learnedFrom({ curation: { status: 'running' } })
     expect(view.state).toBe('running')
-    expect(view.sentence).toBe(CHANGES_PENDING_TEXT)
+    expect(view.sentence).toBe(CHANGES_PENDING_TEXT())
   })
 
   it('states the failure outright rather than showing an empty list that reads as "nothing changed"', () => {
     const view = learnedFrom({ curation: { status: 'failed' } })
     expect(view.state).toBe('failed')
-    expect(view.sentence).toBe(CURATION_FAILED_TEXT)
+    expect(view.sentence).toBe(CURATION_FAILED_TEXT())
     expect(view.rows).toEqual([])
   })
 
@@ -946,7 +943,7 @@ describe('the Learned half mirrors the curation word and NEVER renders blank', (
   it('says the counts were not recorded — never a zero — when a settled row committed none', () => {
     const view = learnedFrom({ curation: { status: 'complete' } })
     expect(view.state).toBe('counts-absent')
-    expect(view.sentence).toBe(COUNTS_NOT_RECORDED_SENTENCE)
+    expect(view.sentence).toBe(COUNTS_NOT_RECORDED_SENTENCE())
     expect(view.countLine).toBe(COUNTS_NOT_RECORDED_TEXT())
     expect(view.countNote).toBeUndefined()
     expect(JSON.stringify(view)).not.toContain('0')
@@ -965,7 +962,7 @@ describe('a settled curation says what it changed, in the chip\'s own words', ()
     expect(view.state).toBe('complete')
     expect(view.countLine).toBe(legacyCurationPairText(0, 0))
     expect(view.countNote).toBe(BREAKDOWN_NOT_RECORDED_TEXT())
-    expect(view.sentence).toBe(NO_MEMORY_CHANGES_SENTENCE)
+    expect(view.sentence).toBe(NO_MEMORY_CHANGES_SENTENCE())
     expect(view.rows).toEqual([])
   })
 
@@ -976,7 +973,7 @@ describe('a settled curation says what it changed, in the chip\'s own words', ()
     })
     expect(view.state).toBe('complete')
     expect(view.countLine).toBe(legacyCurationPairText(3, 1))
-    expect(view.sentence).toBe(CHANGES_NOT_AVAILABLE_TEXT)
+    expect(view.sentence).toBe(CHANGES_NOT_AVAILABLE_TEXT())
     expect(view.rows).toEqual([])
   })
 
@@ -1030,7 +1027,7 @@ describe('a settled curation says what it changed, in the chip\'s own words', ()
 
     expect(view.countLine).toBe(NO_MEMORY_CHANGES_TEXT())
     expect(view.countNote).toBeUndefined()
-    expect(view.sentence).toBe(NO_MEMORY_CHANGES_SENTENCE)
+    expect(view.sentence).toBe(NO_MEMORY_CHANGES_SENTENCE())
   })
 
   // An older run's pair is a coarser measurement, so five buckets are never synthesized from two.
@@ -1168,7 +1165,7 @@ describe('a count that disagrees with the rows says so, and says why', () => {
 
     expect(view.state).toBe('failed')
     expect(view.rows.length).toBe(3)
-    expect(view.chainNote).toBe(CURATION_FAILED_PARTIAL_TEXT)
+    expect(view.chainNote).toBe(CURATION_FAILED_PARTIAL_TEXT())
     expect(view.sentence).toBeUndefined()
   })
 
@@ -1184,7 +1181,7 @@ describe('a count that disagrees with the rows says so, and says why', () => {
     })
 
     expect(view.rows.length).toBe(3)
-    expect(view.readNote).toBe(STORE_READ_INCOMPLETE_TEXT)
+    expect(view.readNote).toBe(STORE_READ_INCOMPLETE_TEXT())
     expect(view.scanIncomplete).toBe(true)
   })
 
@@ -1297,7 +1294,7 @@ describe('a curated NEW fact is what the run learned', () => {
     expect(view.countLine).toBe(legacyCurationPairText(1, 0))
     expect(view.rows.length).toBe(1)
     expect(view.rows[0]?.bucket).toBe('added')
-    expect(view.rows[0]?.primary).toBe(RECORD_CONTENT_NOT_RECORDED_LEAD)
+    expect(view.rows[0]?.primary).toBe(RECORD_CONTENT_NOT_RECORDED_LEAD())
     expect(view.sentence).toBeUndefined()
   })
 
@@ -1334,7 +1331,7 @@ describe('a curated NEW fact is what the run learned', () => {
         learned: { changes: [change('added'), change('confirmed')], canaryAttributions: [] },
       })
       expect(view.rows).toEqual([])
-      expect(view.sentence).toBe(CHANGES_PENDING_TEXT)
+      expect(view.sentence).toBe(CHANGES_PENDING_TEXT())
       expect(view.chainNote).toBeUndefined()
     }
   })
@@ -1351,7 +1348,7 @@ describe('a curated NEW fact is what the run learned', () => {
     // The failure is a NOTE beside the rows, never a sentence over them: `sentence`'s own
     // published contract is "absent exactly when rows is non-empty".
     expect(view.sentence).toBeUndefined()
-    expect(view.chainNote).toBe(CURATION_FAILED_PARTIAL_TEXT)
+    expect(view.chainNote).toBe(CURATION_FAILED_PARTIAL_TEXT())
     // Counts come only from the settled notification row.
     expect(view.countLine).toBeUndefined()
   })
@@ -1363,7 +1360,7 @@ describe('a curated NEW fact is what the run learned', () => {
     })
 
     expect(view.state).toBe('failed')
-    expect(view.sentence).toBe(CURATION_FAILED_TEXT)
+    expect(view.sentence).toBe(CURATION_FAILED_TEXT())
     expect(view.rows).toEqual([])
     expect(view.chainNote).toBeUndefined()
     expect(view.countLine).toBeUndefined()
@@ -1379,7 +1376,7 @@ describe('a curated NEW fact is what the run learned', () => {
     })
 
     expect(view.rows.map(row => row.bucket)).toEqual(['added'])
-    expect(view.chainNote).toBe(CURATION_FAILED_PARTIAL_TEXT)
+    expect(view.chainNote).toBe(CURATION_FAILED_PARTIAL_TEXT())
   })
 
   // A record's changes are one row in its strongest bucket, keyed by index so no id reaches it.
@@ -1499,15 +1496,15 @@ describe('an unreadable store is named, never called "not available yet"', () =>
 
     expect(view.state).toBe('complete')
     expect(view.countLine).toBe(legacyCurationPairText(3, 1))
-    expect(view.sentence).toBe(CHANGES_UNREADABLE_TEXT)
+    expect(view.sentence).toBe(CHANGES_UNREADABLE_TEXT())
     expect(view.scanIncomplete).toBe(true)
     expect(view.rows).toEqual([])
   })
 
   it('sends the reader to the one door that grades the same fold — `doctor`, not a reload', () => {
-    expect(CHANGES_UNREADABLE_TEXT)
-      .toBe(`Change records could not be read from the knowledge store. ${DOCTOR_HINT_TEXT}`)
-    expect(CHANGES_UNREADABLE_TEXT).not.toBe(CHANGES_NOT_AVAILABLE_TEXT)
+    expect(CHANGES_UNREADABLE_TEXT())
+      .toBe('Change records could not be read from the knowledge store. Run `agent-qa doctor`.')
+    expect(CHANGES_UNREADABLE_TEXT()).not.toBe(CHANGES_NOT_AVAILABLE_TEXT())
   })
 
   it('carries NO scanIncomplete member on a clean read — the flag is true or absent, never false', () => {
@@ -1517,7 +1514,7 @@ describe('an unreadable store is named, never called "not available yet"', () =>
     })
 
     expect(view.scanIncomplete).toBeUndefined()
-    expect(view.sentence).toBe(CHANGES_NOT_AVAILABLE_TEXT)
+    expect(view.sentence).toBe(CHANGES_NOT_AVAILABLE_TEXT())
   })
 })
 
@@ -1539,7 +1536,7 @@ describe('a partial read decorates the answer, it never replaces it', () => {
     expect(view.rows[0]?.bucket).toBe('confirmed')
     expect(view.sentence).toBeUndefined()
     expect(view.scanIncomplete).toBe(true)
-    expect(view.readNote).toBe(STORE_READ_INCOMPLETE_TEXT)
+    expect(view.readNote).toBe(STORE_READ_INCOMPLETE_TEXT())
   })
 
   // With nothing to list and nothing readable, the sentence already names the store, so no note.
@@ -1549,7 +1546,7 @@ describe('a partial read decorates the answer, it never replaces it', () => {
       learned: { changes: [], canaryAttributions: [], scanIncomplete: true },
     })
 
-    expect(view.sentence).toBe(CHANGES_UNREADABLE_TEXT)
+    expect(view.sentence).toBe(CHANGES_UNREADABLE_TEXT())
     expect(view.rows).toEqual([])
     expect(view.scanIncomplete).toBe(true)
     expect(view.readNote).toBeUndefined()
@@ -1565,10 +1562,10 @@ describe('a partial read decorates the answer, it never replaces it', () => {
       })
 
       expect(view.state).toBe(status)
-      expect(view.sentence).toBe(CHANGES_PENDING_TEXT)
+      expect(view.sentence).toBe(CHANGES_PENDING_TEXT())
       expect(view.rows).toEqual([])
       expect(view.scanIncomplete).toBe(true)
-      expect(view.readNote).toBe(STORE_READ_INCOMPLETE_TEXT)
+      expect(view.readNote).toBe(STORE_READ_INCOMPLETE_TEXT())
     }
   })
 
@@ -1579,10 +1576,10 @@ describe('a partial read decorates the answer, it never replaces it', () => {
     })
 
     expect(view.state).toBe('failed')
-    expect(view.sentence).toBe(CURATION_FAILED_TEXT)
+    expect(view.sentence).toBe(CURATION_FAILED_TEXT())
     expect(view.rows).toEqual([])
     expect(view.scanIncomplete).toBe(true)
-    expect(view.readNote).toBe(STORE_READ_INCOMPLETE_TEXT)
+    expect(view.readNote).toBe(STORE_READ_INCOMPLETE_TEXT())
   })
 
   // Chain fate and store readability fold apart, so `chainNote` and `readNote` are siblings.
@@ -1599,9 +1596,9 @@ describe('a partial read decorates the answer, it never replaces it', () => {
     expect(view.state).toBe('failed')
     expect(view.rows.length).toBe(1)
     expect(view.sentence).toBeUndefined()
-    expect(view.chainNote).toBe(CURATION_FAILED_PARTIAL_TEXT)
+    expect(view.chainNote).toBe(CURATION_FAILED_PARTIAL_TEXT())
     expect(view.scanIncomplete).toBe(true)
-    expect(view.readNote).toBe(STORE_READ_INCOMPLETE_TEXT)
+    expect(view.readNote).toBe(STORE_READ_INCOMPLETE_TEXT())
     expect(view.chainNote).not.toBe(view.readNote)
   })
 
@@ -1620,7 +1617,7 @@ describe('a partial read decorates the answer, it never replaces it', () => {
     expect(view.rows.length).toBe(1)
     expect(view.sentence).toBeUndefined()
     expect(view.scanIncomplete).toBe(true)
-    expect(view.readNote).toBe(STORE_READ_INCOMPLETE_TEXT)
+    expect(view.readNote).toBe(STORE_READ_INCOMPLETE_TEXT())
   })
 
   it('carries NEITHER member on a clean read, in every state — absence is an absent key', () => {
@@ -1636,10 +1633,10 @@ describe('a partial read decorates the answer, it never replaces it', () => {
   })
 
   it('sends the reader to the same door as every other degradation, in its own words', () => {
-    expect(STORE_READ_INCOMPLETE_TEXT)
-      .toBe(`The knowledge store could not be fully read. ${DOCTOR_HINT_TEXT}`)
-    expect(STORE_READ_INCOMPLETE_TEXT).not.toBe(CHANGES_UNREADABLE_TEXT)
-    expect(STORE_READ_INCOMPLETE_TEXT).not.toBe(CHANGES_NOT_AVAILABLE_TEXT)
+    expect(STORE_READ_INCOMPLETE_TEXT())
+      .toBe('The knowledge store could not be fully read. Run `agent-qa doctor`.')
+    expect(STORE_READ_INCOMPLETE_TEXT()).not.toBe(CHANGES_UNREADABLE_TEXT())
+    expect(STORE_READ_INCOMPLETE_TEXT()).not.toBe(CHANGES_NOT_AVAILABLE_TEXT())
   })
 })
 
@@ -1677,26 +1674,26 @@ describe('the ready arm carries the Learned half so the tab does not have to bui
 
 describe('the Memory changes copy is published as constants, like every sentence before it', () => {
   it('spells each Learned sentence exactly once, and no two the same', () => {
-    expect(CHANGES_PENDING_TEXT).toBe('Memory changes appear after post-run processing finishes.')
-    expect(CURATION_FAILED_TEXT).toBe('Curation failed — nothing was learned from this run.')
-    expect(CURATION_FAILED_PARTIAL_TEXT)
+    expect(CHANGES_PENDING_TEXT()).toBe('Memory changes appear after post-run processing finishes.')
+    expect(CURATION_FAILED_TEXT()).toBe('Curation failed — nothing was learned from this run.')
+    expect(CURATION_FAILED_PARTIAL_TEXT())
       .toBe('Curation failed — these records were committed before it stopped.')
-    expect(COUNTS_NOT_RECORDED_SENTENCE).toBe('Counts not recorded for this run.')
-    expect(CHANGES_NOT_AVAILABLE_TEXT).toBe('Change records for this run are not available yet.')
-    expect(NO_MEMORY_CHANGES_SENTENCE).toBe('Post-run processing finished and changed nothing in memory.')
-    expect(RECONCILIATION_UNATTRIBUTED_TEXT).toBe("The difference could not be attributed to this run's rows.")
+    expect(COUNTS_NOT_RECORDED_SENTENCE()).toBe('Counts not recorded for this run.')
+    expect(CHANGES_NOT_AVAILABLE_TEXT()).toBe('Change records for this run are not available yet.')
+    expect(NO_MEMORY_CHANGES_SENTENCE()).toBe('Post-run processing finished and changed nothing in memory.')
+    expect(RECONCILIATION_UNATTRIBUTED_TEXT()).toBe("The difference could not be attributed to this run's rows.")
     expect(new Set([
-      CHANGES_PENDING_TEXT,
-      CURATION_FAILED_TEXT,
-      CURATION_FAILED_PARTIAL_TEXT,
-      COUNTS_NOT_RECORDED_SENTENCE,
-      CHANGES_NOT_AVAILABLE_TEXT,
-      NO_MEMORY_CHANGES_SENTENCE,
+      CHANGES_PENDING_TEXT(),
+      CURATION_FAILED_TEXT(),
+      CURATION_FAILED_PARTIAL_TEXT(),
+      COUNTS_NOT_RECORDED_SENTENCE(),
+      CHANGES_NOT_AVAILABLE_TEXT(),
+      NO_MEMORY_CHANGES_SENTENCE(),
     ]).size).toBe(6)
   })
 
   it('keeps the Memory changes heading beside them', () => {
-    expect(MEMORY_CHANGES_HEADING).toBe('Memory changes')
+    expect(MEMORY_CHANGES_HEADING()).toBe('Memory changes')
   })
 })
 
@@ -1714,7 +1711,7 @@ describe('the strip sentence exists only for warning classes, composed from clos
   it('renders a locked index as its statement plus the doctor pointer, and paints nothing for the info classes', () => {
     expect(retrievalStatement).toBeTypeOf('function')
     expect(rungBannerText({ rung: 'bundle-scan', reason: 'index-locked' })).toBe(
-      `${retrievalStatement('bundle-scan', 'index-locked')} ${DOCTOR_POINTER_TEXT}`,
+      `${retrievalStatement('bundle-scan', 'index-locked')} ${DOCTOR_POINTER_TEXT()}`,
     )
     expect(rungBannerText({ rung: 'bundle-scan', reason: 'index-not-built' })).toBeUndefined()
     expect(rungBannerText({ rung: 'static-floor', reason: 'profile-static-configured' })).toBeUndefined()
@@ -1736,15 +1733,14 @@ describe('the strip sentence exists only for warning classes, composed from clos
   })
 
   it('ends every warning sentence with the doctor pointer; no rung sentence says Retrieval degraded or carries a backtick', () => {
-    expect(DOCTOR_HINT_TEXT).toBe('Run `agent-qa doctor`.')
     for (const reason of RETRIEVAL_RUNG_REASONS) {
       for (const rung of ['bundle-scan', 'static-floor', 'lexical-only'] as const) {
         const text = rungBannerText({ rung, reason })
         if (text === undefined) continue
-        expect(text.endsWith(` ${DOCTOR_POINTER_TEXT}`)).toBe(true)
+        expect(text.endsWith(` ${DOCTOR_POINTER_TEXT()}`)).toBe(true)
         expect(text).not.toContain('Retrieval degraded')
         expect(text).not.toContain('`')
-        expect(text).not.toContain(DOCTOR_HINT_TEXT)
+        expect(text).not.toContain('Run `agent-qa doctor`.')
       }
     }
   })

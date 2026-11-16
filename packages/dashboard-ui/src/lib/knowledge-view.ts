@@ -49,14 +49,13 @@ import type { KnowledgeRead } from './api'
 // ─────────────────────────────────────────────────────────────────────────────
 
 // A run with no reader bound asked retrieval nothing, so it is neither a rung nor an empty result.
-export const NO_STORE_HEADING = 'No knowledge store configured for this project'
+export const NO_STORE_HEADING = () => t('knowledge.page.noStoreHeading')
 
 /** The no-store body: what this means, and the one thing that changes it. */
-export const NO_STORE_BODY =
-  'Runs in this project are executed without a brief. Add a knowledge root to your config to start serving one.'
+export const NO_STORE_BODY = () => t('knowledge.page.noStoreBody')
 
 /** What the tab says when the read itself failed or was refused — never a blank pane. */
-export const READ_FAILED_HEADING = 'Knowledge could not be read'
+export const READ_FAILED_HEADING = () => t('knowledge.page.readFailedHeading')
 
 // The masked error is forwarded whole, because a truncated one leaves half a word to search for.
 export function readFailedBody(error: string): string {
@@ -71,20 +70,20 @@ export function readFailedBody(error: string): string {
  * briefed work in it, the other is an empty store or a failing retriever — two different things
  * to go and look at.
  */
-export const NO_BRIEF_SERVED_TEXT = 'This run used no stored knowledge: no step asked for a brief.'
+export const NO_BRIEF_SERVED_TEXT = () => t('knowledge.used.noBriefServed')
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Used half
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** The Knowledge used section's heading, one `<h4>` at 16px/500. */
-export const USED_HEADING = 'Knowledge used'
+export const USED_HEADING = () => t('knowledge.used.heading')
 
 /** The summary line when every derived segment is zero. See {@link NO_BRIEF_SERVED_TEXT}. */
-export const NO_BRIEF_LINES_TEXT = 'This run used no stored knowledge: retrieval ran and found nothing that applied.'
+export const NO_BRIEF_LINES_TEXT = () => t('knowledge.used.noBriefLines')
 
 /** What a step row says instead of badges when that step served nothing (muted, not a Badge). */
-export const STEP_NO_BRIEF_TEXT = 'no brief served'
+export const STEP_NO_BRIEF_TEXT = () => t('knowledge.used.stepNoBrief')
 
 /** The fact badge counting a row's served lines. */
 export function briefLinesFact(count: number): string {
@@ -97,10 +96,10 @@ export function canaryFact(count: number): string {
 }
 
 /** The fact badge on a step whose plan came from a replayed procedure. */
-export const REPLAY_FACT = 'replay'
+export const REPLAY_FACT = () => t('knowledge.used.replayFact')
 
 /** The fact badge on a step whose plan was hinted by a procedure. */
-export const HINT_FACT = 'hint'
+export const HINT_FACT = () => t('knowledge.used.hintFact')
 
 /** One step row's title: the ONE-BASED ordinal a person counts by, then the step's own text. */
 export function stepRowTitle(stepIndex: number, stepText: string): string {
@@ -138,7 +137,7 @@ export function usedSummaryLine(counts: UsedCounts): string {
       : (replays ?? hints)
   if (procedure !== undefined) segments.push(procedure)
 
-  if (segments.length === 0) return NO_BRIEF_LINES_TEXT
+  if (segments.length === 0) return NO_BRIEF_LINES_TEXT()
   return segments.join(' · ')
 }
 
@@ -188,13 +187,13 @@ export const USE_VERB_PHRASES = {
   }),
 } satisfies Record<UseVerb, { readonly lead: string; readonly follow: string }>
 
-export const EFFECT_HEADING = 'Effect on this run'
+export const EFFECT_HEADING = () => t('knowledge.effect.heading')
 
-export const RETRIEVAL_DETAILS_LABEL = 'Retrieval details'
+export const RETRIEVAL_DETAILS_LABEL = () => t('knowledge.retrieval.detailsLabel')
 
-export const EFFECT_NOTHING_MEASURED_TEXT = 'Nothing was measured on this run. Only knowledge on trial and procedure replays are measured.'
+export const EFFECT_NOTHING_MEASURED_TEXT = () => t('knowledge.effect.nothingMeasured')
 
-export const EFFECT_NOTHING_USED_TEXT = 'Nothing to measure: this run used no stored knowledge.'
+export const EFFECT_NOTHING_USED_TEXT = () => t('knowledge.effect.nothingUsed')
 
 export function usedCountLine(count: number): string {
   return t('knowledge.used.records', { count })
@@ -348,7 +347,7 @@ function isRecordKind(kind: string): kind is RecordKind {
   return RECORD_KINDS.has(kind)
 }
 
-export const RECORD_UNREADABLE_LEAD = 'A record that can no longer be read'
+export const RECORD_UNREADABLE_LEAD = () => t('knowledge.used.recordUnreadable')
 
 export const CONTENT_ABSENCE_REASON_TEXT = textTable({
   'not-found': () => t('knowledge.record.absence.notFound'),
@@ -356,7 +355,7 @@ export const CONTENT_ABSENCE_REASON_TEXT = textTable({
   'not-bound': () => t('knowledge.record.absence.notBound'),
 }) satisfies Record<RunKnowledgeContentAbsence['reason'], string>
 
-export const PROCEDURE_CONTENT_NOT_RECORDED_LEAD = "A procedure whose content isn't part of this run's record"
+export const PROCEDURE_CONTENT_NOT_RECORDED_LEAD = () => t('knowledge.used.procedureContentNotRecorded')
 
 export const USED_PAGE_SIZE = 50
 
@@ -485,10 +484,9 @@ export function applicabilityText(view: ApplicabilityView): string {
     .join(' · ')
 }
 
-export const ON_TRIAL_TAG = 'on trial'
+export const ON_TRIAL_TAG = () => t('knowledge.used.onTrialTag')
 
-export const ON_TRIAL_TOOLTIP =
-  "New knowledge that isn't proven yet is given to the agent on trial, so a run can show whether it holds up. This run's result counts for or against it."
+export const ON_TRIAL_TOOLTIP = () => t('knowledge.used.onTrialTooltip')
 
 // The schema's status enum, derived rather than re-spelled.
 export type BundleStatus = RunKnowledgeRecordContent['currentStatus']
@@ -534,9 +532,9 @@ export function trustCountsLine(confirmations: number, contradictions: number): 
   })
 }
 
-export const SHOW_FULL_RECORD_LABEL = 'Show full record'
+export const SHOW_FULL_RECORD_LABEL = () => t('knowledge.record.showFull')
 
-export const EVIDENCE_NOTE_LABEL = "Curator's note — written by the curator, not verified"
+export const EVIDENCE_NOTE_LABEL = () => t('knowledge.record.evidenceNote')
 
 export type UsedLeadSource = 'served' | 'joined' | 'absent' | 'not-recorded'
 
@@ -618,8 +616,8 @@ function usedRecordsById(
         : content !== undefined
           ? [content.summary, 'joined']
           : absence !== undefined || !planSourceOnly
-            ? [RECORD_UNREADABLE_LEAD, 'absent']
-            : [PROCEDURE_CONTENT_NOT_RECORDED_LEAD, 'not-recorded']
+            ? [RECORD_UNREADABLE_LEAD(), 'absent']
+            : [PROCEDURE_CONTENT_NOT_RECORDED_LEAD(), 'not-recorded']
     const kind =
       content !== undefined
         ? content.kind
@@ -704,12 +702,12 @@ export interface EffectSentenceParts {
 
 type TrialOutcome = Exclude<EffectOutcome, 'replay-stopped' | 'replay-complete'>
 
-const STEPS_MARK = ''
+const STEPS_MARK = String.fromCharCode(0xe000)
 
-// The page draws the steps between the lead and the tail, with a space after the lead.
+// The page draws the steps between the lead and the tail; the sentence keeps its own spacing.
 function aroundSteps(sentence: string): EffectSentenceParts {
   const [lead = '', tail = ''] = sentence.split(STEPS_MARK)
-  return { lead: lead.trimEnd(), tail }
+  return { lead, tail }
 }
 
 // Every entry names its steps, so pending and unknown carry them too.
@@ -789,14 +787,14 @@ export function isReplayComplete(guard: ReplayGuard): boolean {
 }
 
 export function effectSentenceText(parts: EffectSentenceParts, stepsText: string): string {
-  return `${parts.lead} ${stepsText}${parts.tail}`
+  return `${parts.lead}${stepsText}${parts.tail}`
 }
 
 export function uncountedTrialsLine(count: number): string {
   return t('knowledge.effect.uncounted', { count })
 }
 
-export const UNCOUNTED_TRIALS_TOOLTIP = "Post-run processing finished without counting this run's result toward it."
+export const UNCOUNTED_TRIALS_TOOLTIP = () => t('knowledge.effect.uncountedTrialsTooltip')
 
 export function unmeasuredRecordsLine(count: number): string {
   return t('knowledge.effect.unmeasured', { count })
@@ -945,7 +943,7 @@ export function effectSectionView(
     tone: EFFECT_TONE_OF[draft.outcome],
     parts: draft.parts,
     addresses: draft.addresses,
-    record: used.get(draft.recordId)?.primary ?? RECORD_UNREADABLE_LEAD,
+    record: used.get(draft.recordId)?.primary ?? RECORD_UNREADABLE_LEAD(),
   }))
 
   const measured = new Set(drafts.map(draft => draft.recordId))
@@ -954,7 +952,7 @@ export function effectSectionView(
   const uncounted = uncountedCount === 0 ? {} : { uncounted: { count: uncountedCount, line: uncountedTrialsLine(uncountedCount) } }
 
   if (entries.length === 0) {
-    return { entries, absence: used.size === 0 ? EFFECT_NOTHING_USED_TEXT : EFFECT_NOTHING_MEASURED_TEXT, ...uncounted }
+    return { entries, absence: used.size === 0 ? EFFECT_NOTHING_USED_TEXT() : EFFECT_NOTHING_MEASURED_TEXT(), ...uncounted }
   }
   return {
     entries,
@@ -986,16 +984,13 @@ export function cutCandidatesLabel(count: number): string {
 }
 
 /** The `pre-trace-run` no-trace arm, stated rather than dropped. */
-export const PRE_TRACE_TEXT = 'no trace was captured for this run'
+export const PRE_TRACE_TEXT = () => t('knowledge.trace.preTrace')
 
 /** The `step-not-found` no-trace arm, stated rather than dropped. */
-export const STEP_NOT_FOUND_TEXT = 'no evidence recorded for this step'
-
-/** The serve-time canary marker, worn by every canary line whatever curation did with it. */
-export const CANARY_BADGE_TEXT = 'canary'
+export const STEP_NOT_FOUND_TEXT = () => t('knowledge.trace.stepNotFound')
 
 /** The canary marker as Retrieval details states it, beside the line's record id. */
-export const LEDGER_ON_TRIAL_TEXT = 'on trial (canary)'
+export const LEDGER_ON_TRIAL_TEXT = () => t('knowledge.trace.ledgerOnTrial')
 
 /** The four outcomes the store can attribute to a canary line, as opposed to the three non-answers. */
 export type AttributedOutcomeWord = Extract<CanaryOutcomeWord, 'confirmed' | 'contradicted' | 'helpful' | 'harmful'>
@@ -1016,7 +1011,7 @@ export function copyRecordIdLabel(id: string): string {
 }
 
 /** Announced when a record id reached the clipboard. */
-export const RECORD_ID_COPIED_TEXT = 'Record id copied to the clipboard'
+export const RECORD_ID_COPIED_TEXT = () => t('knowledge.trace.recordIdCopied')
 
 /** Announced when it did not, with the id spelled out so it can still be selected. */
 export function recordIdCopyFailedText(id: string): string {
@@ -1032,22 +1027,22 @@ export function ledgerRungLine(rung: Exclude<RetrievalRung, 'memidex'>, reason?:
 }
 
 // Not deciding yet differs from attributing nothing, so a pending canary line says so.
-export const ATTRIBUTION_PENDING_TEXT = 'attribution pending'
+export const ATTRIBUTION_PENDING_TEXT = () => t('knowledge.trace.attributionPending')
 
 // Nobody will decide this line, which differs from `pending` and from `not attributed`.
-export const ATTRIBUTION_SKIPPED_TEXT = 'attribution skipped'
+export const ATTRIBUTION_SKIPPED_TEXT = () => t('knowledge.trace.attributionSkipped')
 
 // Only when the chain settled, the store walk completed and no outcome carried this observation.
-export const NOT_ATTRIBUTED_TEXT = 'not attributed'
+export const NOT_ATTRIBUTED_TEXT = () => t('knowledge.trace.notAttributed')
 
 // The partial read decides this, not the chip: nobody could finish looking, whatever the chain did.
-export const ATTRIBUTION_UNKNOWN_TEXT = 'attribution unknown'
+export const ATTRIBUTION_UNKNOWN_TEXT = () => t('knowledge.trace.attributionUnknown')
 
 // The plan-source sentence for a step whose plan a procedure only hinted at.
-export const PROCEDURE_HINT_TEXT = 'procedure hint'
+export const PROCEDURE_HINT_TEXT = () => t('knowledge.trace.procedureHint')
 
 // Only the recorded demotion tells a demoted replay apart from an ordinary served hint.
-export const PROCEDURE_HINT_DEMOTED_TEXT = 'procedure hint (demoted from replay)'
+export const PROCEDURE_HINT_DEMOTED_TEXT = () => t('knowledge.trace.procedureHintDemoted')
 
 /** The replay sentence when the guard passed every check it had. */
 export function replayedText(checksPassed: number, total: number): string {
@@ -1083,38 +1078,36 @@ export function showAllLinesLabel(total: number): string {
 }
 
 // The Memory changes section's heading, one `<h4>` at 16px/500.
-export const MEMORY_CHANGES_HEADING = 'Memory changes'
+export const MEMORY_CHANGES_HEADING = () => t('knowledge.changes.heading')
 
 // The Learned half's copy
 
 // A sentence, not a skeleton: curation may wait hours on a daemon, so name what the changes await.
-export const CHANGES_PENDING_TEXT = 'Memory changes appear after post-run processing finishes.'
+export const CHANGES_PENDING_TEXT = () => t('knowledge.changes.pending')
 
 // An empty list under a failed chip would read as a settled no-op, so the sentence states the loss.
-export const CURATION_FAILED_TEXT = 'Curation failed — nothing was learned from this run.'
+export const CURATION_FAILED_TEXT = () => t('knowledge.changes.curationFailed')
 
 // Rides under rows a failed chain committed; the stronger failed sentence is false beside them.
-export const CURATION_FAILED_PARTIAL_TEXT =
-  'Curation failed — these records were committed before it stopped.'
+export const CURATION_FAILED_PARTIAL_TEXT = () => t('knowledge.changes.curationFailedPartial')
 
 // Published separately from the chip fragment, never derived from it by casing.
-export const COUNTS_NOT_RECORDED_SENTENCE = 'Counts not recorded for this run.'
+export const COUNTS_NOT_RECORDED_SENTENCE = () => t('knowledge.changes.countsNotRecorded')
 
 // `yet` matters: no rows here is an absence of attribution, and the moved counts stay on screen.
-export const CHANGES_NOT_AVAILABLE_TEXT = 'Change records for this run are not available yet.'
+export const CHANGES_NOT_AVAILABLE_TEXT = () => t('knowledge.changes.notAvailable')
 
 // An unreadable store differs from no attribution, so it points to `doctor` rather than `yet`.
-export const CHANGES_UNREADABLE_TEXT = 'Change records could not be read from the knowledge store. Run `agent-qa doctor`.'
+export const CHANGES_UNREADABLE_TEXT = () => t('knowledge.changes.unreadable')
 
 // Never stands alone: it rides under real rows or a pending sentence when the read is partial.
-export const STORE_READ_INCOMPLETE_TEXT = 'The knowledge store could not be fully read. Run `agent-qa doctor`.'
+export const STORE_READ_INCOMPLETE_TEXT = () => t('knowledge.changes.storeReadIncomplete')
 
 // What the half says when curation settled having changed nothing.
-export const NO_MEMORY_CHANGES_SENTENCE = 'Post-run processing finished and changed nothing in memory.'
+export const NO_MEMORY_CHANGES_SENTENCE = () => t('knowledge.changes.noMemoryChanges')
 
 // The cause when the read proves no other: a counted gap nobody can account for, said aloud.
-export const RECONCILIATION_UNATTRIBUTED_TEXT =
-  "The difference could not be attributed to this run's rows."
+export const RECONCILIATION_UNATTRIBUTED_TEXT = () => t('knowledge.changes.reconciliationUnattributed')
 
 // The noun agrees with the count and the second number is bare, as in the breakdown line.
 export function reconciliationCountText(counted: number, shown: number): string {
@@ -1171,13 +1164,15 @@ const CHANGE_BUCKETS = {
   deprecated: 'deprecated',
 } as const satisfies Record<LearnedChangeKind, CurationBucket>
 
-export const PROPOSED_NOTE = 'recorded, not applied'
+export const PROPOSED_NOTE = () => t('knowledge.learned.proposedNote')
 
-export const OPEN_QUESTION_NOTE = 'open question recorded'
+export const OPEN_QUESTION_NOTE = () => t('knowledge.learned.openQuestionNote')
 
-export const WAS_PREFIX = 'Was:'
+export const RECORD_CONTENT_NOT_RECORDED_LEAD = () => t('knowledge.learned.recordContentNotRecorded')
 
-export const RECORD_CONTENT_NOT_RECORDED_LEAD = "A record whose content isn't part of this run's record"
+export function supersededWasText(record: string): string {
+  return t('knowledge.learned.was', { record })
+}
 
 export function sinceThisRunHeading(count: number): string {
   return t('knowledge.learned.sinceThisRun', { count })
@@ -1405,7 +1400,7 @@ export function canaryOutcomeWord(
 // A recorded guard failure beats the check count; precedence is miss, then adapter, then verifier.
 export function planSourceSentence(planSource: RunKnowledgePlanSource): string {
   if (planSource.kind === 'procedure-hint') {
-    return planSource.demotion === undefined ? PROCEDURE_HINT_TEXT : PROCEDURE_HINT_DEMOTED_TEXT
+    return planSource.demotion === undefined ? PROCEDURE_HINT_TEXT() : PROCEDURE_HINT_DEMOTED_TEXT()
   }
 
   const broke = brokeAt(planSource.guard)
@@ -1595,8 +1590,8 @@ function stepRow(
   const facts: string[] = []
   if (briefLines > 0) facts.push(briefLinesFact(briefLines))
   if (canaryLines > 0) facts.push(canaryFact(canaryLines))
-  if (planSource === 'procedure-replay') facts.push(REPLAY_FACT)
-  if (planSource === 'procedure-hint') facts.push(HINT_FACT)
+  if (planSource === 'procedure-replay') facts.push(REPLAY_FACT())
+  if (planSource === 'procedure-hint') facts.push(HINT_FACT())
 
   return {
     testIndex: step.testIndex,
@@ -1732,15 +1727,15 @@ function changeDrafts(projection: Extract<RunKnowledgeProjection, { kind: 'ready
 
 function leadOf(join: RecordJoin | undefined): { primary: string; leadSource: LearnedLeadSource } {
   if (join?.content !== undefined) return { primary: join.content.summary, leadSource: 'joined' }
-  if (join?.absence !== undefined) return { primary: RECORD_UNREADABLE_LEAD, leadSource: 'absent' }
-  return { primary: RECORD_CONTENT_NOT_RECORDED_LEAD, leadSource: 'not-recorded' }
+  if (join?.absence !== undefined) return { primary: RECORD_UNREADABLE_LEAD(), leadSource: 'absent' }
+  return { primary: RECORD_CONTENT_NOT_RECORDED_LEAD(), leadSource: 'not-recorded' }
 }
 
 function learnedRow(draft: ChangeDraft, index: number, joins: ReadonlyMap<string, RecordJoin>): LearnedRowView {
   const join = joins.get(draft.subjectId)
   const content = join?.content
   const absence = content === undefined ? join?.absence : undefined
-  const note = draft.bucket !== 'proposed' ? undefined : content?.kind === 'unknown' ? OPEN_QUESTION_NOTE : PROPOSED_NOTE
+  const note = draft.bucket !== 'proposed' ? undefined : content?.kind === 'unknown' ? OPEN_QUESTION_NOTE() : PROPOSED_NOTE()
   return {
     key: String(index),
     bucket: draft.bucket,
@@ -1815,7 +1810,7 @@ export function learnedView(
   // Absent rather than `false` on a clean read, as the wire flag is typed.
   const degraded = projection.learned.scanIncomplete === true ? { scanIncomplete: true as const } : {}
   const readNote =
-    projection.learned.scanIncomplete === true ? { readNote: STORE_READ_INCOMPLETE_TEXT } : {}
+    projection.learned.scanIncomplete === true ? { readNote: STORE_READ_INCOMPLETE_TEXT() } : {}
 
   // Already filtered to this run by `runs.knowledge`; this narrows the kinds and nothing else.
   const { curationSnapshot, sinceThen } = projection.learned
@@ -1860,7 +1855,7 @@ export function learnedView(
 
   if (status === 'pending' || status === 'running') {
     // An unsettled chain has not finished deciding, so its rows in scope are not listed.
-    return { state: status, sentence: CHANGES_PENDING_TEXT, rows: [], ...degraded, ...readNote, ...snapshot }
+    return { state: status, sentence: CHANGES_PENDING_TEXT(), rows: [], ...degraded, ...readNote, ...snapshot }
   }
 
   if (status === 'failed') {
@@ -1869,20 +1864,20 @@ export function learnedView(
       ? {
           state: 'failed',
           rows,
-          chainNote: CURATION_FAILED_PARTIAL_TEXT,
+          chainNote: CURATION_FAILED_PARTIAL_TEXT(),
           ...degraded,
           ...readNote,
-          ...reconciled(CURATION_FAILED_PARTIAL_TEXT),
+          ...reconciled(CURATION_FAILED_PARTIAL_TEXT()),
         }
-      : { state: 'failed', sentence: CURATION_FAILED_TEXT, rows: [], ...degraded, ...readNote, ...snapshot }
+      : { state: 'failed', sentence: CURATION_FAILED_TEXT(), rows: [], ...degraded, ...readNote, ...snapshot }
   }
 
   const state: LearnedState = counts === undefined ? 'counts-absent' : 'complete'
 
   // Only an incomplete scan proves why rows are missing; on a clean read no cause is known.
   const settledCause = projection.learned.scanIncomplete === true
-    ? CHANGES_UNREADABLE_TEXT
-    : RECONCILIATION_UNATTRIBUTED_TEXT
+    ? CHANGES_UNREADABLE_TEXT()
+    : RECONCILIATION_UNATTRIBUTED_TEXT()
 
   // The heading runs `curationBreakdownLine` on the card's snapshot, so the two always agree.
   const breakdown = curationSnapshot?.breakdown
@@ -1913,33 +1908,33 @@ export function learnedView(
       state,
       countLine,
       ...countNote,
-      sentence: CHANGES_UNREADABLE_TEXT,
+      sentence: CHANGES_UNREADABLE_TEXT(),
       rows: [],
       scanIncomplete: true,
-      ...reconciled(CHANGES_UNREADABLE_TEXT),
+      ...reconciled(CHANGES_UNREADABLE_TEXT()),
     }
   }
 
   // A snapshot whose buckets are all zero reads its own sentence, not the counts-absent one.
   if (breakdown !== undefined) {
     return counted === 0
-      ? { state, countLine, ...countNote, sentence: NO_MEMORY_CHANGES_SENTENCE, rows: [], ...reconciled(settledCause) }
-      : { state, countLine, ...countNote, sentence: CHANGES_NOT_AVAILABLE_TEXT, rows: [], ...reconciled(settledCause) }
+      ? { state, countLine, ...countNote, sentence: NO_MEMORY_CHANGES_SENTENCE(), rows: [], ...reconciled(settledCause) }
+      : { state, countLine, ...countNote, sentence: CHANGES_NOT_AVAILABLE_TEXT(), rows: [], ...reconciled(settledCause) }
   }
 
   if (counts === undefined) {
-    return { state, countLine, ...countNote, sentence: COUNTS_NOT_RECORDED_SENTENCE, rows: [], ...snapshot }
+    return { state, countLine, ...countNote, sentence: COUNTS_NOT_RECORDED_SENTENCE(), rows: [], ...snapshot }
   }
 
   return counts.curated === 0 && counts.deprecated === 0
-    ? { state, countLine, ...countNote, sentence: NO_MEMORY_CHANGES_SENTENCE, rows: [], ...snapshot }
-    : { state, countLine, ...countNote, sentence: CHANGES_NOT_AVAILABLE_TEXT, rows: [], ...snapshot }
+    ? { state, countLine, ...countNote, sentence: NO_MEMORY_CHANGES_SENTENCE(), rows: [], ...snapshot }
+    : { state, countLine, ...countNote, sentence: CHANGES_NOT_AVAILABLE_TEXT(), rows: [], ...snapshot }
 }
 
 // Each absence sends a reader somewhere different, so each keeps its own sentence.
 export function projectKnowledgeView(read: KnowledgeRead): KnowledgeView {
   if (read.kind === 'unavailable') {
-    return { state: 'error', heading: READ_FAILED_HEADING, body: readFailedBody(read.error) }
+    return { state: 'error', heading: READ_FAILED_HEADING(), body: readFailedBody(read.error) }
   }
 
   const projection = read.projection
@@ -1949,7 +1944,7 @@ export function projectKnowledgeView(read: KnowledgeRead): KnowledgeView {
   // one of them served nothing. Describing that as "retrieval served no lines" would be true and
   // useless — the actionable fact is that there is no store to serve from.
   if (projection.knowledgeStore === 'unbound') {
-    return { state: 'empty-no-store', heading: NO_STORE_HEADING, body: NO_STORE_BODY }
+    return { state: 'empty-no-store', heading: NO_STORE_HEADING(), body: NO_STORE_BODY() }
   }
 
   const steps = projection.steps.map(step =>
@@ -1961,7 +1956,7 @@ export function projectKnowledgeView(read: KnowledgeRead): KnowledgeView {
     ),
   )
   const summary = steps.length === 0
-    ? NO_BRIEF_SERVED_TEXT
+    ? NO_BRIEF_SERVED_TEXT()
     : usedSummaryLine({
         stepsBriefed: steps.filter(row => row.briefLines > 0).length,
         canaryLines: steps.reduce((total, row) => total + row.canaryLines, 0),
@@ -1975,7 +1970,7 @@ export function projectKnowledgeView(read: KnowledgeRead): KnowledgeView {
   const used: UsedSectionView = {
     ...(records.length > 0
       ? { records, countLine: usedCountLine(records.length) }
-      : { records, absence: steps.length === 0 ? NO_BRIEF_SERVED_TEXT : NO_BRIEF_LINES_TEXT }),
+      : { records, absence: steps.length === 0 ? NO_BRIEF_SERVED_TEXT() : NO_BRIEF_LINES_TEXT() }),
     ...(retrieval === undefined ? {} : { retrieval }),
   }
   const effect = effectSectionView(projection)
@@ -2040,9 +2035,6 @@ function rungCauseLabel(reason: RetrievalRungReason): string {
   return (RUNG_CAUSE_LABELS as Partial<Record<string, string>>)[reason] ?? reason
 }
 
-// `doctor` reads the host as it is, so the banner points there rather than probing itself.
-export const DOCTOR_HINT_TEXT = 'Run `agent-qa doctor`.'
-
 // The class is derived from the recorded rung and reason only; it is never stored or probed.
 
 export type RetrievalClass =
@@ -2088,8 +2080,7 @@ export const RETRIEVAL_CLASS_TONES = {
 } as const satisfies Record<RetrievalClass, RetrievalTone>
 
 /** Where a warning sends the reader. No backticks: `agent-qa doctor` renders in a code element. */
-export const DOCTOR_POINTER_TEXT =
-  "To check the store's health now, run agent-qa doctor. It reports current health and doesn't change what this run recorded."
+export const DOCTOR_POINTER_TEXT = () => t('knowledge.retrieval.doctorPointer')
 
 /** `undefined` at memidex; a lower rung with no recorded reason claims neither a fault nor health. */
 export function retrievalClassFor(rung: RungView): RetrievalClass | undefined {
@@ -2148,7 +2139,7 @@ export function retrievalStatementView(rung: RungView | undefined): RetrievalSta
     rung: rung.rung,
     ...(rung.reason === undefined ? {} : { reason: rung.reason }),
     sentence: retrievalStatement(rung.rung, rung.reason),
-    ...(tone === 'warning' ? { pointer: DOCTOR_POINTER_TEXT } : {}),
+    ...(tone === 'warning' ? { pointer: DOCTOR_POINTER_TEXT() } : {}),
   }
 }
 

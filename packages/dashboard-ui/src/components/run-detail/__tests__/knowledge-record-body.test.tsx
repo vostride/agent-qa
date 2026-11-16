@@ -99,7 +99,7 @@ function mountRecord(record: RecordShape | undefined): HTMLElement {
 
 function triggerOf(view: HTMLElement): HTMLElement | undefined {
   return [...view.querySelectorAll<HTMLElement>('[data-slot="collapsible-trigger"]')]
-    .find(element => element.textContent === SHOW_FULL_RECORD_LABEL)
+    .find(element => element.textContent === SHOW_FULL_RECORD_LABEL())
 }
 
 function open(view: HTMLElement): HTMLElement | null {
@@ -133,8 +133,8 @@ describe("the full record reads in one order (memory.md §7.5)", () => {
     expect(body?.className).toContain("wrap-anywhere")
 
     const note = full?.querySelector<HTMLElement>("[data-evidence-note]")
-    expect(note?.firstElementChild?.textContent).toBe(EVIDENCE_NOTE_LABEL)
-    expect(EVIDENCE_NOTE_LABEL).toBe("Curator's note — written by the curator, not verified")
+    expect(note?.firstElementChild?.textContent).toBe(EVIDENCE_NOTE_LABEL())
+    expect(EVIDENCE_NOTE_LABEL()).toBe("Curator's note — written by the curator, not verified")
     expect(note?.lastElementChild?.textContent).toBe("Seen twice.\nOnce contradicted.")
     expect(note?.lastElementChild?.className).toContain("whitespace-pre-wrap")
     expect(note?.className).toContain("pl-2")

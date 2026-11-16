@@ -315,7 +315,7 @@ describe("a rejected read is a STATE on the tab, never a skeleton that never res
     const view = await renderAt(`/runs/${RUN_ID}?tab=knowledge`)
 
     expect(knowledgeState(view)).toBe("error")
-    expect(view.textContent).toContain(READ_FAILED_HEADING)
+    expect(view.textContent).toContain(READ_FAILED_HEADING())
     expect(view.textContent).toContain(readFailedBody("read_failed"))
     expect(view.querySelector('[data-slot="skeleton"]')).toBeNull()
   })
@@ -343,7 +343,7 @@ describe("a rejected read is a STATE on the tab, never a skeleton that never res
     const view = await renderAt(`/runs/${RUN_ID}?tab=knowledge`)
 
     expect(knowledgeState(view)).toBe("empty-no-store")
-    expect(view.textContent).toContain(NO_STORE_HEADING)
+    expect(view.textContent).toContain(NO_STORE_HEADING())
   })
 })
 
@@ -458,7 +458,7 @@ describe("a partial store read paints the rows it was handed AND says the read w
     expect(learned?.getAttribute("data-learned-read")).toBe("incomplete")
     expect(view.querySelector("[data-learned-sentence]")).toBeNull()
     expect(view.querySelector("[data-learned-read-note]")?.textContent)
-      .toBe(STORE_READ_INCOMPLETE_TEXT)
+      .toBe(STORE_READ_INCOMPLETE_TEXT())
   })
 
   it("keeps a canary outcome that WAS read — a partial read does not un-answer an answered line", async () => {
@@ -488,7 +488,7 @@ describe("a partial store read paints the rows it was handed AND says the read w
     await act(async () => { (trigger as HTMLElement).click() })
 
     expect(view.querySelector('li[data-served-channel="1"]')?.getAttribute("data-canary-outcome")).toBe("unknown")
-    expect(view.textContent).toContain(ATTRIBUTION_UNKNOWN_TEXT)
+    expect(view.textContent).toContain(ATTRIBUTION_UNKNOWN_TEXT())
     expect(view.querySelector("[data-learned-state]")?.getAttribute("data-learned-read"))
       .toBe("incomplete")
   })
@@ -522,7 +522,7 @@ describe("a served attribution row beats a FAILED curation chain, at the page", 
     // already appended, and this projection is holding the row that proves it appended one.
     expect(line?.getAttribute("data-canary-outcome")).toBe("confirmed")
     expect(line?.textContent).toContain("confirmed")
-    expect(view.textContent).not.toContain(NOT_ATTRIBUTED_TEXT)
+    expect(view.textContent).not.toContain(NOT_ATTRIBUTED_TEXT())
 
     // THE CHIP ANSWERS FROM THE CHAIN, and it is not softened by the row. These are different
     // questions and the page answers each from its own evidence — which is the whole point of the
@@ -550,7 +550,7 @@ describe("a served attribution row beats a FAILED curation chain, at the page", 
     })
 
     expect(line?.getAttribute("data-canary-outcome")).toBe("unknown")
-    expect(view.textContent).toContain(ATTRIBUTION_UNKNOWN_TEXT)
+    expect(view.textContent).toContain(ATTRIBUTION_UNKNOWN_TEXT())
   })
 
   it("says NOT-ATTRIBUTED for a failed chain with no row when the read was CLEAN — the walk finished and found nothing", async () => {
@@ -561,7 +561,7 @@ describe("a served attribution row beats a FAILED curation chain, at the page", 
     })
 
     expect(line?.getAttribute("data-canary-outcome")).toBe("not-attributed")
-    expect(view.textContent).toContain(NOT_ATTRIBUTED_TEXT)
+    expect(view.textContent).toContain(NOT_ATTRIBUTED_TEXT())
   })
 })
 
@@ -588,11 +588,11 @@ describe("the Learned half paints what a failed chain committed, and states its 
       .toBe(SERVED_CHANGE.recordId)
 
     expect(view.querySelector("[data-learned-chain-note]")?.textContent)
-      .toBe(CURATION_FAILED_PARTIAL_TEXT)
+      .toBe(CURATION_FAILED_PARTIAL_TEXT())
 
     // The sentence slot is empty, and its words appear nowhere above a painted record.
     expect(view.querySelector("[data-learned-sentence]")).toBeNull()
-    expect(view.textContent).not.toContain(CURATION_FAILED_TEXT)
+    expect(view.textContent).not.toContain(CURATION_FAILED_TEXT())
 
     // The chip still reports the chain beside the rows; neither half speaks for the other.
     expect(view.querySelector("[data-learned-state]")?.getAttribute("data-learned-state"))
@@ -612,9 +612,9 @@ describe("the Learned half paints what a failed chain committed, and states its 
     const learned = view.querySelector("[data-learned-state]")
     expect(learned?.getAttribute("data-learned-read")).toBe("incomplete")
     expect(view.querySelector("[data-learned-chain-note]")?.textContent)
-      .toBe(CURATION_FAILED_PARTIAL_TEXT)
+      .toBe(CURATION_FAILED_PARTIAL_TEXT())
     expect(view.querySelector("[data-learned-read-note]")?.textContent)
-      .toBe(STORE_READ_INCOMPLETE_TEXT)
+      .toBe(STORE_READ_INCOMPLETE_TEXT())
 
     // Two producers, two paragraphs, in the order the component argues for: the chain note is
     // about the list on screen, the read note about how much of the store anyone could see.
@@ -622,7 +622,7 @@ describe("the Learned half paints what a failed chain committed, and states its 
       "p[data-learned-chain-note], p[data-learned-read-note]",
     )]
     expect(notes.map(note => note.textContent))
-      .toEqual([CURATION_FAILED_PARTIAL_TEXT, STORE_READ_INCOMPLETE_TEXT])
+      .toEqual([CURATION_FAILED_PARTIAL_TEXT(), STORE_READ_INCOMPLETE_TEXT()])
   })
 
   it("still prints the APPROVED sentence, and no note, when the failed chain committed nothing", async () => {
@@ -631,7 +631,7 @@ describe("the Learned half paints what a failed chain committed, and states its 
 
     const view = await renderAt(`/runs/${RUN_ID}?tab=knowledge`)
 
-    expect(view.querySelector("[data-learned-sentence]")?.textContent).toBe(CURATION_FAILED_TEXT)
+    expect(view.querySelector("[data-learned-sentence]")?.textContent).toBe(CURATION_FAILED_TEXT())
     expect(view.querySelectorAll("li[data-record-change]").length).toBe(0)
     expect(view.querySelector("[data-learned-chain-note]")).toBeNull()
     expect(view.querySelector("[data-learned-state]")?.getAttribute("data-learned-state"))

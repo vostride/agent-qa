@@ -22,7 +22,6 @@ import {
   RECORD_CONTENT_NOT_RECORDED_LEAD,
   RECORD_UNREADABLE_LEAD,
   SINCE_THEN_DETAILS,
-  WAS_PREFIX,
   changeLedgerViews,
   learnedView,
   ledgerEventText,
@@ -30,6 +29,7 @@ import {
   projectKnowledgeView,
   sinceThenDetail,
   sinceThisRunHeading,
+  supersededWasText,
 } from '@/lib/knowledge-view'
 
 type ReadyProjection = Extract<RunKnowledgeProjection, { kind: 'ready' }>
@@ -145,14 +145,14 @@ describe('Memory changes are one row per affected record, in the curation bucket
     expect(both.rows[0]?.leadSource).toBe('joined')
     expect(both.rows[0]?.content?.summary).toBe('summary fact-new')
     expect(both.rows[0]?.was).toEqual({ primary: 'summary fact-old', leadSource: 'joined' })
-    expect(WAS_PREFIX).toBe('Was:')
+    expect(supersededWasText('summary fact-old')).toBe('Was: summary fact-old')
 
     const newOnly = learnedView(projection('complete', {
       changes: [recorded('fact-old', 'superseded', 40, { byRecordId: 'fact-new' }), joined(recorded('fact-new', 'added', 40))],
       curationSnapshot: snapshot,
     }))
     expect(newOnly.rows[0]?.primary).toBe('summary fact-new')
-    expect(newOnly.rows[0]?.was).toEqual({ primary: RECORD_CONTENT_NOT_RECORDED_LEAD, leadSource: 'not-recorded' })
+    expect(newOnly.rows[0]?.was).toEqual({ primary: RECORD_CONTENT_NOT_RECORDED_LEAD(), leadSource: 'not-recorded' })
   })
 
   it('NO-SNAPSHOT-MAPPING: without a snapshot, changes group per record onto the same words and Proposed is never guessed', () => {
@@ -193,13 +193,13 @@ describe('Memory changes are one row per affected record, in the curation bucket
       curationSnapshot: snapshot,
     }))
 
-    expect(view.rows.map(row => row.primary)).toEqual(['summary rec-joined', RECORD_UNREADABLE_LEAD, RECORD_CONTENT_NOT_RECORDED_LEAD])
+    expect(view.rows.map(row => row.primary)).toEqual(['summary rec-joined', RECORD_UNREADABLE_LEAD(), RECORD_CONTENT_NOT_RECORDED_LEAD()])
     expect(view.rows.map(row => row.leadSource)).toEqual(['joined', 'absent', 'not-recorded'])
     expect(view.rows[1]?.contentAbsence).toEqual({ reason: 'not-found' })
     expect(view.rows[0]?.applicability?.lead).toBe('Applies to shop · checkout')
     expect(view.rows[2]).not.toHaveProperty('content')
     expect(view.curationSnapshot?.reconciliation).toBeUndefined()
-    expect(RECORD_CONTENT_NOT_RECORDED_LEAD).toBe("A record whose content isn't part of this run's record")
+    expect(RECORD_CONTENT_NOT_RECORDED_LEAD()).toBe("A record whose content isn't part of this run's record")
   })
 
   it('PROPOSED-NOT-APPLIED: a proposed row is recorded and not applied, and an open question says so', () => {
@@ -221,10 +221,10 @@ describe('Memory changes are one row per affected record, in the curation bucket
       curationSnapshot: snapshot,
     }))
 
-    expect(view.rows.map(row => row.note)).toEqual([PROPOSED_NOTE, OPEN_QUESTION_NOTE, undefined])
+    expect(view.rows.map(row => row.note)).toEqual([PROPOSED_NOTE(), OPEN_QUESTION_NOTE(), undefined])
     expect(view.rows[2]).not.toHaveProperty('note')
-    expect(PROPOSED_NOTE).toBe('recorded, not applied')
-    expect(OPEN_QUESTION_NOTE).toBe('open question recorded')
+    expect(PROPOSED_NOTE()).toBe('recorded, not applied')
+    expect(OPEN_QUESTION_NOTE()).toBe('open question recorded')
   })
 
   it('SINCE-THEN-ROWS: a later change is its own row with what happened later, and never moves the counts', () => {
@@ -266,11 +266,11 @@ describe('every bucket word explains itself, and the section speaks of memory ch
     expect(Object.keys(BUCKET_MEANINGS)).toEqual(Object.keys(BUCKET_LABELS))
     expect(new Set(Object.values(BUCKET_MEANINGS)).size).toBe(CURATION_BREAKDOWN_BUCKETS.length)
 
-    expect(CHANGES_PENDING_TEXT).toBe('Memory changes appear after post-run processing finishes.')
-    expect(NO_MEMORY_CHANGES_SENTENCE).toBe('Post-run processing finished and changed nothing in memory.')
+    expect(CHANGES_PENDING_TEXT()).toBe('Memory changes appear after post-run processing finishes.')
+    expect(NO_MEMORY_CHANGES_SENTENCE()).toBe('Post-run processing finished and changed nothing in memory.')
     for (const status of ['pending', 'running'] as const) {
       const unsettled = learnedView(projection(status, {}))
-      expect(unsettled.sentence).toBe(CHANGES_PENDING_TEXT)
+      expect(unsettled.sentence).toBe(CHANGES_PENDING_TEXT())
       expect(unsettled.curationSnapshot?.reconciliation).toBeUndefined()
     }
     const zero = CurationSnapshotSchema.parse({
@@ -278,7 +278,7 @@ describe('every bucket word explains itself, and the section speaks of memory ch
     })
     const nothing = learnedView(projection('complete', { curationSnapshot: zero, sinceThen: { changes: [], count: 0 } }))
     expect(nothing.countLine).toBe(NO_MEMORY_CHANGES_TEXT())
-    expect(nothing.sentence).toBe(NO_MEMORY_CHANGES_SENTENCE)
+    expect(nothing.sentence).toBe(NO_MEMORY_CHANGES_SENTENCE())
     expect(nothing.rows).toEqual([])
   })
 })

@@ -235,7 +235,7 @@ describe("the default view never shows a record id", () => {
 
     // The not-found opened record keeps its row, led by the absence lead rather than by its id.
     const gone = sectionOf(host, "used").querySelector('li[data-content-absence="not-found"]')
-    expect(gone?.querySelector("[data-row-primary]")?.textContent).toBe(RECORD_UNREADABLE_LEAD)
+    expect(gone?.querySelector("[data-row-primary]")?.textContent).toBe(RECORD_UNREADABLE_LEAD())
   })
 
   it("IDS-ONLY-IN-DETAILS: once Retrieval details and its rows are opened, every one of those ids reads inside it", () => {

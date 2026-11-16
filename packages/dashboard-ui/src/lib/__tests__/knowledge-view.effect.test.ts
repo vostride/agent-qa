@@ -190,7 +190,7 @@ describe('an uncounted trial is not an effect', () => {
 
     expect(view.entries).toEqual([])
     expect(view.uncounted).toEqual({ count: 1, line: uncountedTrialsLine(1) })
-    expect(view.absence).toBe(EFFECT_NOTHING_MEASURED_TEXT)
+    expect(view.absence).toBe(EFFECT_NOTHING_MEASURED_TEXT())
     expect(view.unmeasured).toBeUndefined()
   })
 
@@ -224,7 +224,7 @@ describe('a procedure hint is a use, never an effect', () => {
     ]))
 
     expect(view.entries).toEqual([])
-    expect(view.absence).toBe(EFFECT_NOTHING_MEASURED_TEXT)
+    expect(view.absence).toBe(EFFECT_NOTHING_MEASURED_TEXT())
   })
 })
 
@@ -391,7 +391,7 @@ describe('only a fold that passed every attempted check is a completed replay', 
     const view = effectSectionView(projection([step(0, { planSource: denied })]))
 
     expect(view.entries).toEqual([])
-    expect(view.absence).toBe(EFFECT_NOTHING_MEASURED_TEXT)
+    expect(view.absence).toBe(EFFECT_NOTHING_MEASURED_TEXT())
     const parsed = projection([step(0, { planSource: denied })]).steps[0]?.planSource
     if (parsed === undefined) throw new Error('expected a plan source')
     expect(planSourceSentence(parsed)).toBe('replayed 0/1')
@@ -542,10 +542,10 @@ describe('the closing line counts the rest', () => {
     const measuredNothing = effectSectionView(projection([step(0, { channel1: [line('rec_o', 'a plain line')] })]))
     expect(measuredNothing.entries).toEqual([])
     expect(measuredNothing.unmeasured).toBeUndefined()
-    expect(measuredNothing.absence).toBe(EFFECT_NOTHING_MEASURED_TEXT)
+    expect(measuredNothing.absence).toBe(EFFECT_NOTHING_MEASURED_TEXT())
 
     const usedNothing = effectSectionView(projection([step(0, {})]))
-    expect(usedNothing.absence).toBe(EFFECT_NOTHING_USED_TEXT)
+    expect(usedNothing.absence).toBe(EFFECT_NOTHING_USED_TEXT())
     expect(usedNothing.unmeasured).toBeUndefined()
     expect(usedNothing.uncounted).toBeUndefined()
   })
@@ -593,6 +593,6 @@ describe('each outcome reads as a plain sentence with its steps', () => {
   it('EFFECT-SENTENCES: the uncounted line and its tooltip say no reason beyond the fixed sentence', () => {
     expect(uncountedTrialsLine(1)).toBe("1 record on trial wasn't counted for or against by this run")
     expect(uncountedTrialsLine(2)).toBe("2 records on trial weren't counted for or against by this run")
-    expect(UNCOUNTED_TRIALS_TOOLTIP).toBe("Post-run processing finished without counting this run's result toward it.")
+    expect(UNCOUNTED_TRIALS_TOOLTIP()).toBe("Post-run processing finished without counting this run's result toward it.")
   })
 })

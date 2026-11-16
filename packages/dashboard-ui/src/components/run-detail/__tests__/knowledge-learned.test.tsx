@@ -41,7 +41,6 @@ import {
   RECORD_UNREADABLE_LEAD,
   SHOW_FULL_RECORD_LABEL,
   STORE_READ_INCOMPLETE_TEXT,
-  WAS_PREFIX,
   learnedView,
   projectKnowledgeView,
   reconciliationCountText,
@@ -168,23 +167,23 @@ describe('receipt-backed promotion attribution', () => {
 
 describe("an unsettled curation says so in words, never in a spinner", () => {
   it("carries the pending word on the root and the one sentence a reader can act on", () => {
-    const host = render({ state: "pending", sentence: CHANGES_PENDING_TEXT, rows: [] })
+    const host = render({ state: "pending", sentence: CHANGES_PENDING_TEXT(), rows: [] })
 
     expect(stateOf(host)).toBe("pending")
-    expect(host.textContent).toContain(CHANGES_PENDING_TEXT)
+    expect(host.textContent).toContain(CHANGES_PENDING_TEXT())
     expect(rowsOf(host).length).toBe(0)
     expect(host.querySelector('[data-slot="skeleton"]')).toBeNull()
   })
 
   it("carries the running word with the SAME sentence — one fact is being waited on, not two", () => {
-    const host = render({ state: "running", sentence: CHANGES_PENDING_TEXT, rows: [] })
+    const host = render({ state: "running", sentence: CHANGES_PENDING_TEXT(), rows: [] })
 
     expect(stateOf(host)).toBe("running")
-    expect(host.textContent).toContain(CHANGES_PENDING_TEXT)
+    expect(host.textContent).toContain(CHANGES_PENDING_TEXT())
   })
 
   it("renders NO count line while curation is unsettled — counts come only from the frozen row", () => {
-    const host = render({ state: "pending", sentence: CHANGES_PENDING_TEXT, rows: [] })
+    const host = render({ state: "pending", sentence: CHANGES_PENDING_TEXT(), rows: [] })
 
     expect(host.querySelector("[data-learned-count-line]")).toBeNull()
   })
@@ -192,10 +191,10 @@ describe("an unsettled curation says so in words, never in a spinner", () => {
 
 describe("a failed curation states the consequence, not just the failure", () => {
   it("carries the failed word and says nothing was learned — and offers no retry", () => {
-    const host = render({ state: "failed", sentence: CURATION_FAILED_TEXT, rows: [] })
+    const host = render({ state: "failed", sentence: CURATION_FAILED_TEXT(), rows: [] })
 
     expect(stateOf(host)).toBe("failed")
-    expect(host.textContent).toContain(CURATION_FAILED_TEXT)
+    expect(host.textContent).toContain(CURATION_FAILED_TEXT())
     expect(rowsOf(host).length).toBe(0)
     expect(host.querySelector("button")).toBeNull()
   })
@@ -207,25 +206,25 @@ describe("a failed chain paints the records it committed and notes its fate BESI
     const host = render({
       state: "failed",
       rows: [row()],
-      chainNote: CURATION_FAILED_PARTIAL_TEXT,
+      chainNote: CURATION_FAILED_PARTIAL_TEXT(),
     })
 
     expect(stateOf(host)).toBe("failed")
     expect(rowsOf(host).length).toBe(1)
     expect(host.querySelector("[data-learned-chain-note]")?.textContent)
-      .toBe(CURATION_FAILED_PARTIAL_TEXT)
+      .toBe(CURATION_FAILED_PARTIAL_TEXT())
     // The falsifiable claim is the one that must be gone: `Curation failed — nothing was learned
     // from this run.` printed over a record the same projection carries is a claim that projection
     // disproves. The slot it lived in is empty here, not reworded.
     expect(host.querySelector("[data-learned-sentence]")).toBeNull()
-    expect(host.textContent).not.toContain(CURATION_FAILED_TEXT)
+    expect(host.textContent).not.toContain(CURATION_FAILED_TEXT())
   })
 
   it("leaves the no-rows arm exactly as it shipped — the approved sentence, and no note ELEMENT", () => {
-    const host = render({ state: "failed", sentence: CURATION_FAILED_TEXT, rows: [] })
+    const host = render({ state: "failed", sentence: CURATION_FAILED_TEXT(), rows: [] })
 
     expect(stateOf(host)).toBe("failed")
-    expect(host.querySelector("[data-learned-sentence]")?.textContent).toBe(CURATION_FAILED_TEXT)
+    expect(host.querySelector("[data-learned-sentence]")?.textContent).toBe(CURATION_FAILED_TEXT())
     expect(rowsOf(host).length).toBe(0)
     // Absent, never blank. An empty paragraph would be a chain-failure stamp on an arm whose
     // failure is already stated above it, and a cell could not tell the two apart.
@@ -236,18 +235,18 @@ describe("a failed chain paints the records it committed and notes its fate BESI
     const host = render({
       state: "failed",
       rows: [row()],
-      chainNote: CURATION_FAILED_PARTIAL_TEXT,
+      chainNote: CURATION_FAILED_PARTIAL_TEXT(),
       scanIncomplete: true,
-      readNote: STORE_READ_INCOMPLETE_TEXT,
+      readNote: STORE_READ_INCOMPLETE_TEXT(),
     })
 
     expect(rowsOf(host).length).toBe(1)
     expect(host.querySelector("[data-learned-state]")?.getAttribute("data-learned-read"))
       .toBe("incomplete")
     expect(host.querySelector("[data-learned-chain-note]")?.textContent)
-      .toBe(CURATION_FAILED_PARTIAL_TEXT)
+      .toBe(CURATION_FAILED_PARTIAL_TEXT())
     expect(host.querySelector("[data-learned-read-note]")?.textContent)
-      .toBe(STORE_READ_INCOMPLETE_TEXT)
+      .toBe(STORE_READ_INCOMPLETE_TEXT())
 
     // ORDER IS PART OF THE CONTRACT: the chain note is about the LIST a reader is already looking
     // at, the read note is about how much of the store anyone could see, so the chain note rides
@@ -258,7 +257,7 @@ describe("a failed chain paints the records it committed and notes its fate BESI
       "p[data-learned-chain-note], p[data-learned-read-note]",
     )]
     expect(notes.map(note => note.textContent))
-      .toEqual([CURATION_FAILED_PARTIAL_TEXT, STORE_READ_INCOMPLETE_TEXT])
+      .toEqual([CURATION_FAILED_PARTIAL_TEXT(), STORE_READ_INCOMPLETE_TEXT()])
 
     const chain = host.querySelector("[data-learned-chain-note]")
     const read = host.querySelector("[data-learned-read-note]")
@@ -275,12 +274,12 @@ describe("a settled curation with no counts says so — never a zero", () => {
     const host = render({
       state: "counts-absent",
       countLine: COUNTS_NOT_RECORDED_TEXT(),
-      sentence: COUNTS_NOT_RECORDED_SENTENCE,
+      sentence: COUNTS_NOT_RECORDED_SENTENCE(),
       rows: [],
     })
 
     expect(stateOf(host)).toBe("counts-absent")
-    expect(host.textContent).toContain(COUNTS_NOT_RECORDED_SENTENCE)
+    expect(host.textContent).toContain(COUNTS_NOT_RECORDED_SENTENCE())
     expect(host.querySelector("[data-learned-count-line]")?.textContent)
       .toBe(COUNTS_NOT_RECORDED_TEXT())
     expect(host.textContent).not.toContain("0")
@@ -292,13 +291,13 @@ describe("a settled curation that changed nothing says that, and lists nothing",
     const host = render({
       state: "complete",
       countLine: legacyCurationPairText(0, 0),
-      sentence: NO_MEMORY_CHANGES_SENTENCE,
+      sentence: NO_MEMORY_CHANGES_SENTENCE(),
       rows: [],
     })
 
     expect(stateOf(host)).toBe("complete")
     expect(host.querySelector("[data-learned-count-line]")?.textContent).toBe(legacyCurationPairText(0, 0))
-    expect(host.textContent).toContain(NO_MEMORY_CHANGES_SENTENCE)
+    expect(host.textContent).toContain(NO_MEMORY_CHANGES_SENTENCE())
     expect(rowsOf(host).length).toBe(0)
   })
 
@@ -306,13 +305,13 @@ describe("a settled curation that changed nothing says that, and lists nothing",
     const host = render({
       state: "complete",
       countLine: legacyCurationPairText(3, 1),
-      sentence: CHANGES_NOT_AVAILABLE_TEXT,
+      sentence: CHANGES_NOT_AVAILABLE_TEXT(),
       rows: [],
     })
 
     expect(host.querySelector("[data-learned-count-line]")?.textContent)
       .toBe(legacyCurationPairText(3, 1))
-    expect(host.textContent).toContain(CHANGES_NOT_AVAILABLE_TEXT)
+    expect(host.textContent).toContain(CHANGES_NOT_AVAILABLE_TEXT())
     expect(rowsOf(host).length).toBe(0)
   })
 })
@@ -364,7 +363,7 @@ describe("a mismatch is explained beneath the heading, and only when there is on
         breakdown,
         reconciliation: {
           count: reconciliationCountText(3, 1),
-          cause: RECONCILIATION_UNATTRIBUTED_TEXT,
+          cause: RECONCILIATION_UNATTRIBUTED_TEXT(),
         },
       },
     })
@@ -378,7 +377,7 @@ describe("a mismatch is explained beneath the heading, and only when there is on
     expect(count?.className).toContain("tabular-nums")
     expect(count?.className).toContain("text-xs")
     expect(cause?.tagName).toBe("P")
-    expect(cause?.textContent).toBe(RECONCILIATION_UNATTRIBUTED_TEXT)
+    expect(cause?.textContent).toBe(RECONCILIATION_UNATTRIBUTED_TEXT())
     expect(cause?.className).toContain("text-muted-foreground")
     // Both paragraphs carry `tabular-nums`, so a cause that later names a count lines up.
     expect(cause?.className).toContain("tabular-nums")
@@ -401,13 +400,13 @@ describe("a mismatch is explained beneath the heading, and only when there is on
     const host = render({
       state: "failed",
       rows: [row()],
-      chainNote: CURATION_FAILED_PARTIAL_TEXT,
+      chainNote: CURATION_FAILED_PARTIAL_TEXT(),
       curationSnapshot: {
         breakdown,
         sinceThenCount: 2,
         reconciliation: {
           count: reconciliationCountText(3, 1),
-          cause: CURATION_FAILED_PARTIAL_TEXT,
+          cause: CURATION_FAILED_PARTIAL_TEXT(),
         },
       },
     })
@@ -416,9 +415,9 @@ describe("a mismatch is explained beneath the heading, and only when there is on
     expect(section?.getAttribute("data-learned-since-then")).toBe("2")
     expect(section?.getAttribute("data-learned-snapshot")).toBe("recorded")
     expect(host.querySelector("[data-learned-reconciliation-cause]")?.textContent)
-      .toBe(CURATION_FAILED_PARTIAL_TEXT)
+      .toBe(CURATION_FAILED_PARTIAL_TEXT())
     expect(host.querySelector("[data-learned-chain-note]")?.textContent)
-      .toBe(CURATION_FAILED_PARTIAL_TEXT)
+      .toBe(CURATION_FAILED_PARTIAL_TEXT())
     expect(rowsOf(host).length).toBe(1)
   })
 })
@@ -436,7 +435,7 @@ describe("the record list is one row per affected record, in the curation bucket
   it("renders the heading, the count line and one li per change, in the projection's order", () => {
     const host = render(populated)
 
-    expect(host.querySelector("h4")?.textContent).toBe(MEMORY_CHANGES_HEADING)
+    expect(host.querySelector("h4")?.textContent).toBe(MEMORY_CHANGES_HEADING())
     expect(host.querySelector("[data-learned-count-line]")?.textContent)
       .toBe(legacyCurationPairText(3, 1))
     expect(rowsOf(host).map((el) => el.getAttribute("data-record-change")))
@@ -549,13 +548,13 @@ describe("a curated NEW fact is painted, not denied", () => {
       state: "complete",
       countLine: curationBreakdownLine({ added: 0, confirmed: 0, superseded: 0, deprecated: 0, proposed: 2 }),
       rows: [
-        row({ key: "0", bucket: "proposed", primary: "the cart page lives at /view_cart", kind: "fact", note: PROPOSED_NOTE }),
-        row({ key: "1", bucket: "proposed", primary: "does checkout need a login?", kind: "unknown", note: OPEN_QUESTION_NOTE }),
+        row({ key: "0", bucket: "proposed", primary: "the cart page lives at /view_cart", kind: "fact", note: PROPOSED_NOTE() }),
+        row({ key: "1", bucket: "proposed", primary: "does checkout need a login?", kind: "unknown", note: OPEN_QUESTION_NOTE() }),
       ],
     })
 
     const notes = rowsOf(host).map(el => el.querySelector<HTMLElement>("[data-proposed-note]"))
-    expect(notes.map(note => note?.textContent)).toEqual([`· ${PROPOSED_NOTE}`, `· ${OPEN_QUESTION_NOTE}`])
+    expect(notes.map(note => note?.textContent)).toEqual([`· ${PROPOSED_NOTE()}`, `· ${OPEN_QUESTION_NOTE()}`])
     expect(notes[0]?.className).toContain("text-muted-foreground")
     expect(rowsOf(host).map(el => el.getAttribute("data-record-change"))).toEqual(["proposed", "proposed"])
   })
@@ -652,7 +651,7 @@ describe("an unreadable store is stamped on the root, never inferred from an emp
   const unreadable: LearnedView = {
     state: "complete",
     countLine: legacyCurationPairText(3, 1),
-    sentence: CHANGES_UNREADABLE_TEXT,
+    sentence: CHANGES_UNREADABLE_TEXT(),
     rows: [],
     scanIncomplete: true,
   }
@@ -665,7 +664,7 @@ describe("an unreadable store is stamped on the root, never inferred from an emp
     expect(host.querySelector("[data-learned-count-line]")?.textContent)
       .toBe(legacyCurationPairText(3, 1))
     expect(host.querySelector("[data-learned-sentence]")?.textContent)
-      .toBe(CHANGES_UNREADABLE_TEXT)
+      .toBe(CHANGES_UNREADABLE_TEXT())
     expect(rowsOf(host).length).toBe(0)
   })
 
@@ -673,7 +672,7 @@ describe("an unreadable store is stamped on the root, never inferred from an emp
     const host = render({
       state: "complete",
       countLine: legacyCurationPairText(3, 1),
-      sentence: CHANGES_NOT_AVAILABLE_TEXT,
+      sentence: CHANGES_NOT_AVAILABLE_TEXT(),
       rows: [],
     })
 
@@ -692,7 +691,7 @@ describe("a partial read is painted beside the rows, and beneath an unsettled se
       countLine: legacyCurationPairText(1, 0),
       rows: [row()],
       scanIncomplete: true,
-      readNote: STORE_READ_INCOMPLETE_TEXT,
+      readNote: STORE_READ_INCOMPLETE_TEXT(),
     })
 
     expect(host.querySelector("[data-learned-state]")?.getAttribute("data-learned-read"))
@@ -700,24 +699,24 @@ describe("a partial read is painted beside the rows, and beneath an unsettled se
     expect(rowsOf(host).length).toBe(1)
     expect(host.querySelector("[data-learned-sentence]")).toBeNull()
     expect(host.querySelector("[data-learned-read-note]")?.textContent)
-      .toBe(STORE_READ_INCOMPLETE_TEXT)
+      .toBe(STORE_READ_INCOMPLETE_TEXT())
   })
 
   it("paints the pending sentence AND the note when a chain has not settled over an unreadable store", () => {
     const host = render({
       state: "pending",
-      sentence: CHANGES_PENDING_TEXT,
+      sentence: CHANGES_PENDING_TEXT(),
       rows: [],
       scanIncomplete: true,
-      readNote: STORE_READ_INCOMPLETE_TEXT,
+      readNote: STORE_READ_INCOMPLETE_TEXT(),
     })
 
     expect(stateOf(host)).toBe("pending")
     expect(host.querySelector("[data-learned-state]")?.getAttribute("data-learned-read"))
       .toBe("incomplete")
-    expect(host.querySelector("[data-learned-sentence]")?.textContent).toBe(CHANGES_PENDING_TEXT)
+    expect(host.querySelector("[data-learned-sentence]")?.textContent).toBe(CHANGES_PENDING_TEXT())
     expect(host.querySelector("[data-learned-read-note]")?.textContent)
-      .toBe(STORE_READ_INCOMPLETE_TEXT)
+      .toBe(STORE_READ_INCOMPLETE_TEXT())
     expect(host.querySelector("[data-learned-count-line]")).toBeNull()
     expect(rowsOf(host).length).toBe(0)
   })
@@ -752,8 +751,8 @@ describe("a partial read is painted beside the rows, and beneath an unsettled se
 
 describe("no pending-proposals line or review command is rendered", () => {
   it.each([
-    ["complete", { state: "complete", countLine: legacyCurationPairText(0, 0), sentence: NO_MEMORY_CHANGES_SENTENCE, rows: [] }],
-    ["pending", { state: "pending", sentence: CHANGES_PENDING_TEXT, rows: [] }],
+    ["complete", { state: "complete", countLine: legacyCurationPairText(0, 0), sentence: NO_MEMORY_CHANGES_SENTENCE(), rows: [] }],
+    ["pending", { state: "pending", sentence: CHANGES_PENDING_TEXT(), rows: [] }],
   ] as const)("a %s half renders no proposals line, command or copy button", (_state, view) => {
     const host = render(view as LearnedView)
 
@@ -862,12 +861,12 @@ describe("a failed chain keeps its learned rows beside the snapshot sections", (
     const host = render(learnedView(projection))
 
     expect(stateOf(host)).toBe("failed")
-    expect(primariesOf(host)).toEqual(["summary fact-before-failure", RECORD_UNREADABLE_LEAD])
+    expect(primariesOf(host)).toEqual(["summary fact-before-failure", RECORD_UNREADABLE_LEAD()])
     expect(rowsOf(host).map(el => el.getAttribute("data-record-change"))).toEqual(["added", "confirmed"])
     expect(rowsOf(host).some(el => el.hasAttribute("data-record-id"))).toBe(false)
-    expect(host.querySelector("[data-learned-chain-note]")?.textContent).toBe(CURATION_FAILED_PARTIAL_TEXT)
+    expect(host.querySelector("[data-learned-chain-note]")?.textContent).toBe(CURATION_FAILED_PARTIAL_TEXT())
     expect(host.querySelector("[data-learned-sentence]")).toBeNull()
-    expect(host.textContent).not.toContain(CURATION_FAILED_TEXT)
+    expect(host.textContent).not.toContain(CURATION_FAILED_TEXT())
   })
 
   it("FAILED-NO-SNAPSHOT: an absent snapshot is stated on the half, with no since-then count and no invented counts", () => {
@@ -917,11 +916,11 @@ describe("a failed chain keeps its learned rows beside the snapshot sections", (
 
     const supersession = rowsOf(host)[2]
     expect(supersession?.querySelector("[data-row-primary]")?.textContent).toBe("summary fact-replacement")
-    expect(supersession?.querySelector("[data-superseded-was]")?.textContent).toBe(`${WAS_PREFIX} summary fact-victim`)
+    expect(supersession?.querySelector("[data-superseded-was]")?.textContent).toBe("Was: summary fact-victim")
     expect(rowsOf(host).filter(el => el.querySelector("[data-superseded-was]") !== null).length).toBe(1)
     for (const el of rowsOf(host)) {
       expect(el.querySelector("[data-row-applicability]")).not.toBeNull()
-      expect([...el.querySelectorAll("button")].some(button => button.textContent === SHOW_FULL_RECORD_LABEL)).toBe(true)
+      expect([...el.querySelectorAll("button")].some(button => button.textContent === SHOW_FULL_RECORD_LABEL())).toBe(true)
     }
     expect(host.querySelector("[data-since-this-run]")).toBeNull()
   })

@@ -156,7 +156,7 @@ describe('every way the run used a record is one row, in first-use order', () =>
       [{ verb: 'caution', addresses: [at(0)] }],
       [{ verb: 'replayed', addresses: [at(1)] }, { verb: 'hint', addresses: [at(2)] }],
     ])
-    expect(views.map(view => view.primary)).toEqual(['fact A', 'caution B', PROCEDURE_CONTENT_NOT_RECORDED_LEAD])
+    expect(views.map(view => view.primary)).toEqual(['fact A', 'caution B', PROCEDURE_CONTENT_NOT_RECORDED_LEAD()])
     expect(views.map(view => view.key)).toEqual(['0', '1', '2'])
     expect(JSON.stringify(views)).not.toContain('rec_')
   })
@@ -170,7 +170,7 @@ describe('every way the run used a record is one row, in first-use order', () =>
         planSource: hint('rec_p'),
       }),
     ]))
-    expect(oneStep.map(view => view.primary)).toEqual(['A', 'B', PROCEDURE_CONTENT_NOT_RECORDED_LEAD, 'C'])
+    expect(oneStep.map(view => view.primary)).toEqual(['A', 'B', PROCEDURE_CONTENT_NOT_RECORDED_LEAD(), 'C'])
     expect(oneStep.map(view => view.uses.map(use => use.verb))).toEqual([['given'], ['caution'], ['hint'], ['opened']])
 
     const inOrder = [
@@ -209,10 +209,10 @@ describe('one pinned rule leads every used row', () => {
     expect(views.map(view => [view.primary, view.leadSource])).toEqual([
       ['what the agent saw', 'served'],
       ['joined summary of O', 'joined'],
-      [RECORD_UNREADABLE_LEAD, 'absent'],
+      [RECORD_UNREADABLE_LEAD(), 'absent'],
       ['procedure summary from a learned change', 'joined'],
       ['caution as served', 'served'],
-      [PROCEDURE_CONTENT_NOT_RECORDED_LEAD, 'not-recorded'],
+      [PROCEDURE_CONTENT_NOT_RECORDED_LEAD(), 'not-recorded'],
     ])
     expect(views.map(view => view.kind)).toEqual(['caution', 'policy', undefined, 'procedure', undefined, undefined])
     expect(views[0]?.content?.summary).toBe('what the store says now')

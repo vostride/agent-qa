@@ -36,13 +36,13 @@ function outcomeText(word: CanaryOutcomeWord): string {
     case "harmful":
       return attributionWordText(word)
     case "pending":
-      return ATTRIBUTION_PENDING_TEXT
+      return ATTRIBUTION_PENDING_TEXT()
     case "not-attributed":
-      return NOT_ATTRIBUTED_TEXT
+      return NOT_ATTRIBUTED_TEXT()
     case "unknown":
-      return ATTRIBUTION_UNKNOWN_TEXT
+      return ATTRIBUTION_UNKNOWN_TEXT()
     case "skipped":
-      return ATTRIBUTION_SKIPPED_TEXT
+      return ATTRIBUTION_SKIPPED_TEXT()
   }
 }
 
@@ -73,7 +73,7 @@ export function KnowledgeBriefLine({ line }: { line: BriefLineView }) {
           <p className={`${MONO_CLASS} min-w-0 wrap-anywhere`}>{line.id}</p>
           <RecordIdCopy id={line.id} />
         </div>
-        {line.servedAsCanary ? <span className={LEDGER_WORD_CLASS}>{LEDGER_ON_TRIAL_TEXT}</span> : null}
+        {line.servedAsCanary ? <span className={LEDGER_WORD_CLASS}>{LEDGER_ON_TRIAL_TEXT()}</span> : null}
       </div>
       <p className={MONO_CLASS}>{trustMetaLine(line.trust, line.tier, line.status)}</p>
       <LineWhyRow line={line} />
@@ -97,7 +97,7 @@ function LineWhyRow({ line }: { line: BriefLineView }) {
 
   return (
     <p className={LEDGER_WORD_CLASS}>
-      {line.why.reason === "pre-trace-run" ? PRE_TRACE_TEXT : STEP_NOT_FOUND_TEXT}
+      {line.why.reason === "pre-trace-run" ? PRE_TRACE_TEXT() : STEP_NOT_FOUND_TEXT()}
     </p>
   )
 }

@@ -137,7 +137,7 @@ describe("a record that can no longer be read keeps its row", () => {
     const [row] = rows(view)
     expect(row).toBeDefined()
     expect(row?.getAttribute("data-content-absence")).toBe("not-found")
-    expect(row?.querySelector("[data-row-primary]")?.textContent).toBe(RECORD_UNREADABLE_LEAD)
+    expect(row?.querySelector("[data-row-primary]")?.textContent).toBe(RECORD_UNREADABLE_LEAD())
     expect(row?.querySelector("[data-row-absence-reason]")?.textContent).toBe(CONTENT_ABSENCE_REASON_TEXT["not-found"])
     expect([...view.querySelectorAll("*")].some(element => element.textContent === "Show full record")).toBe(false)
     expect(view.outerHTML).not.toContain("rec_gone")
@@ -337,18 +337,18 @@ describe("a record on trial says what that means, without the store's word for i
     const [trial, proven] = rows(view)
     expect(trial?.getAttribute("data-on-trial")).toBe("true")
     expect(proven?.hasAttribute("data-on-trial")).toBe(false)
-    expect(proven?.textContent).not.toContain(ON_TRIAL_TAG)
+    expect(proven?.textContent).not.toContain(ON_TRIAL_TAG())
 
     const trigger = trial?.querySelector<HTMLElement>('[data-slot="tooltip-trigger"]')
     expect(trigger).not.toBeNull()
-    expect(trigger?.querySelector('[data-slot="badge"]')?.textContent).toBe(ON_TRIAL_TAG)
-    expect(describedBy(trigger).targets[0]?.textContent).toBe(ON_TRIAL_TOOLTIP)
+    expect(trigger?.querySelector('[data-slot="badge"]')?.textContent).toBe(ON_TRIAL_TAG())
+    expect(describedBy(trigger).targets[0]?.textContent).toBe(ON_TRIAL_TOOLTIP())
     expect(trigger?.querySelector("svg")?.getAttribute("aria-hidden")).toBe("true")
 
     const section = view.querySelector('[data-knowledge-section="used"]')
     expect(section?.textContent).not.toMatch(/canary/i)
     await act(async () => { trigger?.focus() })
-    expect(document.querySelector('[role="tooltip"]')?.textContent).toBe(ON_TRIAL_TOOLTIP)
+    expect(document.querySelector('[role="tooltip"]')?.textContent).toBe(ON_TRIAL_TOOLTIP())
     expect(section?.textContent).not.toMatch(/canary/i)
   })
 
@@ -360,8 +360,8 @@ describe("a record on trial says what that means, without the store's word for i
     expect(trigger?.tagName).toBe("BUTTON")
     expect(trigger?.getAttribute("type")).toBe("button")
     for (const attribute of ["role", "aria-label", "title"]) expect(trigger?.hasAttribute(attribute), attribute).toBe(false)
-    expect(trigger?.textContent?.trim()).toBe(ON_TRIAL_TAG)
-    expect(trigger?.textContent).not.toContain(ON_TRIAL_TOOLTIP)
+    expect(trigger?.textContent?.trim()).toBe(ON_TRIAL_TAG())
+    expect(trigger?.textContent).not.toContain(ON_TRIAL_TOOLTIP())
 
     const { ids, targets } = describedBy(trigger)
     expect(ids).toHaveLength(1)
@@ -369,12 +369,12 @@ describe("a record on trial says what that means, without the store's word for i
     expect(description).not.toBeNull()
     expect(trigger?.contains(description ?? null)).toBe(false)
     expect(description?.hasAttribute("hidden")).toBe(true)
-    expect(description?.textContent).toBe(ON_TRIAL_TOOLTIP)
-    expect(`${trigger?.textContent ?? ""} ${description?.textContent ?? ""}`.split(ON_TRIAL_TOOLTIP).length - 1).toBe(1)
+    expect(description?.textContent).toBe(ON_TRIAL_TOOLTIP())
+    expect(`${trigger?.textContent ?? ""} ${description?.textContent ?? ""}`.split(ON_TRIAL_TOOLTIP()).length - 1).toBe(1)
 
     await act(async () => { trigger?.focus() })
     const tooltip = document.querySelector<HTMLElement>('[role="tooltip"]')
-    expect(tooltip?.textContent).toBe(ON_TRIAL_TOOLTIP)
+    expect(tooltip?.textContent).toBe(ON_TRIAL_TOOLTIP())
     expect(describedBy(trigger).ids).toEqual([tooltip?.id])
 
     await act(async () => { trigger?.blur() })
@@ -419,7 +419,7 @@ describe("a used row opens to its whole record, counts before the curator's note
     ])} />)
 
     const trigger = [...view.querySelectorAll<HTMLElement>('[data-slot="collapsible-trigger"]')]
-      .find(element => element.textContent === SHOW_FULL_RECORD_LABEL)
+      .find(element => element.textContent === SHOW_FULL_RECORD_LABEL())
     expect(trigger).toBeDefined()
     act(() => { trigger?.click() })
 

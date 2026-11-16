@@ -182,8 +182,8 @@ describe("every record id copies, and the result is announced", () => {
 
     expect(writeText).toHaveBeenCalledExactlyOnceWith(SERVED)
     expect(button.getAttribute("data-copy-status")).toBe("copied")
-    expect(statusOf(button)?.textContent).toBe(RECORD_ID_COPIED_TEXT)
-    expect(RECORD_ID_COPIED_TEXT).toBe("Record id copied to the clipboard")
+    expect(statusOf(button)?.textContent).toBe(RECORD_ID_COPIED_TEXT())
+    expect(RECORD_ID_COPIED_TEXT()).toBe("Record id copied to the clipboard")
     // Both copy controls wear the success token.
     expect(button.querySelector("svg")?.getAttribute("class")).toContain("text-success")
   })

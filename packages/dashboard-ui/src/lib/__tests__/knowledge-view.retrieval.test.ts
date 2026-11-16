@@ -191,9 +191,9 @@ describe('each class states this run\'s retrieval level in its own words', () =>
   })
 
   it('the doctor pointer says doctor reads current health and changes nothing this run recorded', () => {
-    expect(DOCTOR_POINTER_TEXT).toBe(POINTER)
-    expect(DOCTOR_POINTER_TEXT).not.toContain('`')
-    expect(DOCTOR_POINTER_TEXT).not.toMatch(/\b(repair|fix|rewrite|rebuild)/iu)
+    expect(DOCTOR_POINTER_TEXT()).toBe(POINTER)
+    expect(DOCTOR_POINTER_TEXT()).not.toContain('`')
+    expect(DOCTOR_POINTER_TEXT()).not.toMatch(/\b(repair|fix|rewrite|rebuild)/iu)
   })
 
   it('no statement carries a backtick or the retired degraded wording', () => {
@@ -216,7 +216,7 @@ describe('the ready view carries the statement under used, and only below memide
       rung: 'bundle-scan',
       reason: 'index-locked',
       sentence: retrievalStatement('bundle-scan', 'index-locked'),
-      pointer: DOCTOR_POINTER_TEXT,
+      pointer: DOCTOR_POINTER_TEXT(),
     })
   })
 
@@ -253,7 +253,7 @@ describe('the ready view carries the statement under used, and only below memide
       expect(usedRetrieval(read)).toEqual(first)
       const banner = rungBannerText({ rung, reason })
       if (RETRIEVAL_CLASS_TONES[cls as keyof typeof RETRIEVAL_CLASS_TONES] === 'warning') {
-        expect(banner).toBe(`${first?.sentence ?? ''} ${DOCTOR_POINTER_TEXT}`)
+        expect(banner).toBe(`${first?.sentence ?? ''} ${DOCTOR_POINTER_TEXT()}`)
       } else {
         expect(banner).toBeUndefined()
       }

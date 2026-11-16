@@ -173,6 +173,64 @@ export default {
   'knowledge.retrieval.statement.configuredLexical':
     "This run's knowledge retrieval used keyword and anchor matching only, as this project is configured to.",
   'knowledge.retrieval.banner': '{{statement}} {{pointer}}',
+  'knowledge.page.noStoreHeading': 'No knowledge store configured for this project',
+  'knowledge.page.noStoreBody':
+    'Runs in this project are executed without a brief. Add a knowledge root to your config to start serving one.',
+  'knowledge.page.readFailedHeading': 'Knowledge could not be read',
+  'knowledge.used.noBriefServed': 'This run used no stored knowledge: no step asked for a brief.',
+  'knowledge.used.heading': 'Knowledge used',
+  'knowledge.used.noBriefLines':
+    'This run used no stored knowledge: retrieval ran and found nothing that applied.',
+  'knowledge.used.stepNoBrief': 'no brief served',
+  'knowledge.used.replayFact': 'replay',
+  'knowledge.used.hintFact': 'hint',
+  'knowledge.used.recordUnreadable': 'A record that can no longer be read',
+  'knowledge.used.procedureContentNotRecorded':
+    "A procedure whose content isn't part of this run's record",
+  'knowledge.used.onTrialTag': 'on trial',
+  'knowledge.used.onTrialTooltip':
+    "New knowledge that isn't proven yet is given to the agent on trial, so a run can show whether it holds up. This run's result counts for or against it.",
+  'knowledge.record.showFull': 'Show full record',
+  'knowledge.record.evidenceNote': "Curator's note — written by the curator, not verified",
+  'knowledge.effect.heading': 'Effect on this run',
+  'knowledge.effect.nothingMeasured':
+    'Nothing was measured on this run. Only knowledge on trial and procedure replays are measured.',
+  'knowledge.effect.nothingUsed': 'Nothing to measure: this run used no stored knowledge.',
+  'knowledge.effect.uncountedTrialsTooltip':
+    "Post-run processing finished without counting this run's result toward it.",
+  'knowledge.trace.preTrace': 'no trace was captured for this run',
+  'knowledge.trace.stepNotFound': 'no evidence recorded for this step',
+  'knowledge.trace.ledgerOnTrial': 'on trial (canary)',
+  'knowledge.trace.recordIdCopied': 'Record id copied to the clipboard',
+  'knowledge.trace.attributionPending': 'attribution pending',
+  'knowledge.trace.attributionSkipped': 'attribution skipped',
+  'knowledge.trace.notAttributed': 'not attributed',
+  'knowledge.trace.attributionUnknown': 'attribution unknown',
+  'knowledge.trace.procedureHint': 'procedure hint',
+  'knowledge.trace.procedureHintDemoted': 'procedure hint (demoted from replay)',
+  'knowledge.changes.heading': 'Memory changes',
+  'knowledge.changes.pending': 'Memory changes appear after post-run processing finishes.',
+  'knowledge.changes.curationFailed': 'Curation failed — nothing was learned from this run.',
+  'knowledge.changes.curationFailedPartial':
+    'Curation failed — these records were committed before it stopped.',
+  'knowledge.changes.countsNotRecorded': 'Counts not recorded for this run.',
+  'knowledge.changes.notAvailable': 'Change records for this run are not available yet.',
+  'knowledge.changes.unreadable':
+    'Change records could not be read from the knowledge store. Run `agent-qa doctor`.',
+  'knowledge.changes.storeReadIncomplete':
+    'The knowledge store could not be fully read. Run `agent-qa doctor`.',
+  'knowledge.changes.noMemoryChanges':
+    'Post-run processing finished and changed nothing in memory.',
+  'knowledge.changes.reconciliationUnattributed':
+    "The difference could not be attributed to this run's rows.",
+  'knowledge.learned.proposedNote': 'recorded, not applied',
+  'knowledge.learned.openQuestionNote': 'open question recorded',
+  'knowledge.learned.recordContentNotRecorded':
+    "A record whose content isn't part of this run's record",
+  'knowledge.learned.was': 'Was: {{record}}',
+  'knowledge.retrieval.detailsLabel': 'Retrieval details',
+  'knowledge.retrieval.doctorPointer':
+    "To check the store's health now, run agent-qa doctor. It reports current health and doesn't change what this run recorded.",
   'knowledge.rungCause.native-runtime-unavailable': 'native ONNX runtime unavailable',
   'knowledge.rungCause.profile-unresolved': 'embedder profile unresolved (deferred)',
   'knowledge.rungCause.model-not-downloaded': 'embedding model not downloaded',

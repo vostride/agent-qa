@@ -63,7 +63,7 @@ export function KnowledgeEffect({
   const [uncountedOpen, setUncountedOpen] = useState(false)
   return (
     <section data-knowledge-section="effect" aria-labelledby={headingId} className="space-y-2">
-      <h4 id={headingId} className={HEADING_CLASS}>{EFFECT_HEADING}</h4>
+      <h4 id={headingId} className={HEADING_CLASS}>{EFFECT_HEADING()}</h4>
       {view.entries.length === 0 ? (
         <p data-section-absence className="text-sm text-muted-foreground">{view.absence}</p>
       ) : (
@@ -86,9 +86,9 @@ export function KnowledgeEffect({
                 {view.uncounted.line}
               </button>
             </TooltipTrigger>
-            <span id={uncountedMeaningId} hidden>{UNCOUNTED_TRIALS_TOOLTIP}</span>
+            <span id={uncountedMeaningId} hidden>{UNCOUNTED_TRIALS_TOOLTIP()}</span>
             <TooltipContent side="bottom" align="start" sideOffset={4} className="max-w-[320px] text-left">
-              {UNCOUNTED_TRIALS_TOOLTIP}
+              {UNCOUNTED_TRIALS_TOOLTIP()}
             </TooltipContent>
           </Tooltip>
         </p>
@@ -123,7 +123,7 @@ function EffectEntry({
       {/* mt-0.5: the 2px optical offset that seats a 14px glyph on the 14px sentence's first line */}
       <Glyph className={`mt-0.5 size-3.5 ${look.glyph}`} aria-hidden />
       <p data-effect-sentence className={`text-sm ${look.sentence}`}>
-        {entry.parts.lead}{" "}
+        {entry.parts.lead}
         <KnowledgeStepRefs segments={formatStepRefs(entry.addresses, testNames)} stepRefs={stepRefs} testNames={testNames} />
         {entry.parts.tail}
       </p>

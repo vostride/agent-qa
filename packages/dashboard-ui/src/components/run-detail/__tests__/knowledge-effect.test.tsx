@@ -230,12 +230,12 @@ describe("uncounted trials are one quiet, explained line", () => {
     expect(trigger?.tabIndex).toBe(0)
     expect(trigger?.firstChild?.textContent).toBe(uncountedTrialsLine(2))
     // The meaning is announced without hover, as the other tooltip triggers' is.
-    expect(describedBy(trigger).targets[0]?.textContent).toBe(UNCOUNTED_TRIALS_TOOLTIP)
+    expect(describedBy(trigger).targets[0]?.textContent).toBe(UNCOUNTED_TRIALS_TOOLTIP())
     expect(line?.querySelector("svg")).toBeNull()
     expect(line?.outerHTML).not.toMatch(/amber|destructive/)
 
     await act(async () => { trigger?.focus() })
-    expect(document.querySelector('[role="tooltip"]')?.textContent).toBe(UNCOUNTED_TRIALS_TOOLTIP)
+    expect(document.querySelector('[role="tooltip"]')?.textContent).toBe(UNCOUNTED_TRIALS_TOOLTIP())
   })
 
   it("TRIGGER-ACCESSIBLE-NAME: the uncounted line is a button named by its sentence, its meaning its one description, open or closed", async () => {
@@ -247,7 +247,7 @@ describe("uncounted trials are one quiet, explained line", () => {
     expect(trigger?.getAttribute("type")).toBe("button")
     for (const attribute of ["role", "aria-label", "title"]) expect(trigger?.hasAttribute(attribute), attribute).toBe(false)
     expect(trigger?.textContent?.trim()).toBe(uncountedTrialsLine(2))
-    expect(trigger?.textContent).not.toContain(UNCOUNTED_TRIALS_TOOLTIP)
+    expect(trigger?.textContent).not.toContain(UNCOUNTED_TRIALS_TOOLTIP())
     for (const name of ["underline", "decoration-dotted", "cursor-help", "text-left"]) expect(trigger?.classList.contains(name), name).toBe(true)
     expect(line?.querySelector("svg")).toBeNull()
     expect(line?.outerHTML).not.toMatch(/amber|destructive/)
@@ -258,12 +258,12 @@ describe("uncounted trials are one quiet, explained line", () => {
     expect(description).not.toBeNull()
     expect(trigger?.contains(description ?? null)).toBe(false)
     expect(description?.hasAttribute("hidden")).toBe(true)
-    expect(description?.textContent).toBe(UNCOUNTED_TRIALS_TOOLTIP)
-    expect(`${trigger?.textContent ?? ""} ${description?.textContent ?? ""}`.split(UNCOUNTED_TRIALS_TOOLTIP).length - 1).toBe(1)
+    expect(description?.textContent).toBe(UNCOUNTED_TRIALS_TOOLTIP())
+    expect(`${trigger?.textContent ?? ""} ${description?.textContent ?? ""}`.split(UNCOUNTED_TRIALS_TOOLTIP()).length - 1).toBe(1)
 
     await act(async () => { trigger?.focus() })
     const tooltip = document.querySelector<HTMLElement>('[role="tooltip"]')
-    expect(tooltip?.textContent).toBe(UNCOUNTED_TRIALS_TOOLTIP)
+    expect(tooltip?.textContent).toBe(UNCOUNTED_TRIALS_TOOLTIP())
     expect(describedBy(trigger).ids).toEqual([tooltip?.id])
 
     await act(async () => { trigger?.blur() })
@@ -274,7 +274,7 @@ describe("uncounted trials are one quiet, explained line", () => {
     const view = mount(<KnowledgeEffect view={effectSectionView(projection([step(0, [line("rec_q", "a quiet trial")])]))} />)
 
     expect(view.querySelector("[data-effect-list]")).toBeNull()
-    expect(view.querySelector("[data-section-absence]")?.textContent).toBe(EFFECT_NOTHING_MEASURED_TEXT)
+    expect(view.querySelector("[data-section-absence]")?.textContent).toBe(EFFECT_NOTHING_MEASURED_TEXT())
     expect(view.querySelector('[data-effect-uncounted="1"] [data-slot="tooltip-trigger"]')?.firstChild?.textContent).toBe(uncountedTrialsLine(1))
     expect(view.querySelector("[data-effect-unmeasured]")).toBeNull()
   })
@@ -283,16 +283,16 @@ describe("uncounted trials are one quiet, explained line", () => {
 describe("an empty Effect section states its absence", () => {
   it("EFFECT-ABSENCE: knowledge used but nothing measured, and nothing used at all", () => {
     const measuredNothing = mount(<KnowledgeEffect view={effectSectionView(projection([step(0, [line("rec_o", "a plain line", false)])]))} />)
-    expect(section(measuredNothing).querySelector("h4")?.textContent).toBe(EFFECT_HEADING)
+    expect(section(measuredNothing).querySelector("h4")?.textContent).toBe(EFFECT_HEADING())
     expect(measuredNothing.querySelectorAll("[data-section-absence]").length).toBe(1)
-    expect(measuredNothing.querySelector("[data-section-absence]")?.textContent).toBe(EFFECT_NOTHING_MEASURED_TEXT)
+    expect(measuredNothing.querySelector("[data-section-absence]")?.textContent).toBe(EFFECT_NOTHING_MEASURED_TEXT())
     expect(measuredNothing.querySelector("[data-effect-list]")).toBeNull()
     act(() => { root?.unmount() })
     root = undefined
 
     const usedNothing = mount(<KnowledgeEffect view={effectSectionView(projection([step(0, [])]))} />)
     expect(usedNothing.querySelectorAll("[data-section-absence]").length).toBe(1)
-    expect(usedNothing.querySelector("[data-section-absence]")?.textContent).toBe(EFFECT_NOTHING_USED_TEXT)
+    expect(usedNothing.querySelector("[data-section-absence]")?.textContent).toBe(EFFECT_NOTHING_USED_TEXT())
     expect(usedNothing.querySelector("[data-effect-list]")).toBeNull()
   })
 

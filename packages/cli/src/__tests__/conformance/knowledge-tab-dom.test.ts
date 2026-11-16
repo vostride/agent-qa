@@ -83,16 +83,6 @@ function knowledgeViewSource(): string {
   return readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', KNOWLEDGE_VIEW_REL), 'utf8')
 }
 
-/** A top-level single-quoted `export const` — `run-detail-dom.test.ts`'s `publishedConstant`. */
-function publishedConstant(name: string): string {
-  const entry = new RegExp(`export const ${name}(?::\\s*string)?\\s*=\\s*'([^']*)'`, 'u')
-    .exec(knowledgeViewSource())
-  if (entry === null) {
-    throw new Error(`${name} is no longer a single-quoted top-level constant in ${KNOWLEDGE_VIEW_REL}`)
-  }
-  return entry[1] as string
-}
-
 /**
  * An exported `Record` literal of single-quoted key/value pairs, as a map.
  *
@@ -227,13 +217,13 @@ for (const retrievalClass of Object.values(RETRIEVAL_CLASS_BY_REASON)) {
     throw new Error(`RETRIEVAL_CLASS_TONES in ${KNOWLEDGE_VIEW_REL} gives no tone for the class \`${retrievalClass}\``)
   }
 }
-const NO_BRIEF_LINES_TEXT = publishedConstant('NO_BRIEF_LINES_TEXT')
-const NO_BRIEF_SERVED_TEXT = publishedConstant('NO_BRIEF_SERVED_TEXT')
-const STEP_NO_BRIEF_TEXT = publishedConstant('STEP_NO_BRIEF_TEXT')
-const CHANGES_UNREADABLE_TEXT = publishedConstant('CHANGES_UNREADABLE_TEXT')
-const STORE_READ_INCOMPLETE_TEXT = publishedConstant('STORE_READ_INCOMPLETE_TEXT')
-// Read from source: a literal reds on a rewording and passes if the view drops the note.
-const CURATION_FAILED_PARTIAL_TEXT = publishedConstant('CURATION_FAILED_PARTIAL_TEXT')
+const NO_BRIEF_LINES_TEXT = publishedText('knowledge', 'knowledge.used.noBriefLines')
+const NO_BRIEF_SERVED_TEXT = publishedText('knowledge', 'knowledge.used.noBriefServed')
+const STEP_NO_BRIEF_TEXT = publishedText('knowledge', 'knowledge.used.stepNoBrief')
+const CHANGES_UNREADABLE_TEXT = publishedText('knowledge', 'knowledge.changes.unreadable')
+const STORE_READ_INCOMPLETE_TEXT = publishedText('knowledge', 'knowledge.changes.storeReadIncomplete')
+// Read from the catalog: a literal reds on a rewording and passes if the view drops the note.
+const CURATION_FAILED_PARTIAL_TEXT = publishedText('knowledge', 'knowledge.changes.curationFailedPartial')
 /** The five Learned kinds `learnedView` narrows to, READ FROM SOURCE and never retyped here. */
 const LEARNED_CHANGE_KINDS = publishedStringArray('LEARNED_CHANGE_KINDS')
 /** Each Learned kind's bucket word when a run has no snapshot, read from source. */
@@ -244,9 +234,9 @@ for (const kind of LEARNED_CHANGE_KINDS) {
   }
 }
 // What the effect section says when the run used no stored knowledge.
-const EFFECT_NOTHING_USED_TEXT = publishedConstant('EFFECT_NOTHING_USED_TEXT')
+const EFFECT_NOTHING_USED_TEXT = publishedText('knowledge', 'knowledge.effect.nothingUsed')
 /** What the changes section says when post-run processing changed nothing. */
-const NO_MEMORY_CHANGES_SENTENCE = publishedConstant('NO_MEMORY_CHANGES_SENTENCE')
+const NO_MEMORY_CHANGES_SENTENCE = publishedText('knowledge', 'knowledge.changes.noMemoryChanges')
 /** The breakdown line of an all-zero snapshot, read from the English catalog. */
 const NO_MEMORY_CHANGES_TEXT =
   publishedText('runDetail', 'runDetail.postProcessing.noMemoryChanges')
@@ -2631,7 +2621,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     expect(
       served.failedWithChanges?.visit?.learnedChainNote,
       `the failed-with-changes world's page printed no \`[data-learned-chain-note]\` carrying `
-      + `\`CURATION_FAILED_PARTIAL_TEXT\` (read from \`knowledge-view.ts\`, never retyped here). `
+      + `\`CURATION_FAILED_PARTIAL_TEXT\` (read from the English catalog, never retyped here). `
       + `Rows without the note is a page that has silently dropped the chain's fate; the note `
       + `without rows is the sentence arm and a different world.${seenFWC}`,
     ).toBe(CURATION_FAILED_PARTIAL_TEXT)

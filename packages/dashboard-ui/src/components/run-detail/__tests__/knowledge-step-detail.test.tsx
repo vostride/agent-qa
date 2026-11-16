@@ -156,7 +156,7 @@ describe("a served line carries the trace that explains it, inline", () => {
     )
 
     expect(view.querySelector("li")?.getAttribute("data-trace-state")).toBe("pre-trace-run")
-    expect(view.textContent).toContain(PRE_TRACE_TEXT)
+    expect(view.textContent).toContain(PRE_TRACE_TEXT())
     expect(view.querySelector('[data-evidence-state="unavailable"][data-evidence-incomplete]')).toBeNull()
   })
 
@@ -166,7 +166,7 @@ describe("a served line carries the trace that explains it, inline", () => {
     )
 
     expect(view.querySelector("li")?.getAttribute("data-trace-state")).toBe("step-not-found")
-    expect(view.textContent).toContain(STEP_NOT_FOUND_TEXT)
+    expect(view.textContent).toContain(STEP_NOT_FOUND_TEXT())
   })
 })
 
@@ -262,9 +262,9 @@ describe("a canary line is marked ALWAYS, and its outcome is never blank", () =>
     expect(li?.getAttribute("data-canary-outcome")).toBe("confirmed")
 
     expect(view.querySelectorAll('[data-slot="badge"]').length).toBe(0)
-    plainWord(view, LEDGER_ON_TRIAL_TEXT)
+    plainWord(view, LEDGER_ON_TRIAL_TEXT())
     plainWord(view, attributionWordText("confirmed"))
-    expect(LEDGER_ON_TRIAL_TEXT).toBe("on trial (canary)")
+    expect(LEDGER_ON_TRIAL_TEXT()).toBe("on trial (canary)")
     expect(attributionWordText("confirmed")).toBe("attribution: confirmed")
   })
 
@@ -275,8 +275,8 @@ describe("a canary line is marked ALWAYS, and its outcome is never blank", () =>
 
     expect(view.querySelector("li")?.getAttribute("data-canary-outcome")).toBe("pending")
     expect(view.querySelectorAll('[data-slot="badge"]').length).toBe(0)
-    plainWord(view, LEDGER_ON_TRIAL_TEXT)
-    plainWord(view, ATTRIBUTION_PENDING_TEXT)
+    plainWord(view, LEDGER_ON_TRIAL_TEXT())
+    plainWord(view, ATTRIBUTION_PENDING_TEXT())
   })
 
   it("says NOT ATTRIBUTED when the fold recorded nothing for it — never an empty slot", () => {
@@ -285,8 +285,8 @@ describe("a canary line is marked ALWAYS, and its outcome is never blank", () =>
     )
 
     expect(view.querySelector("li")?.getAttribute("data-canary-outcome")).toBe("not-attributed")
-    expect(view.textContent).toContain(NOT_ATTRIBUTED_TEXT)
-    plainWord(view, NOT_ATTRIBUTED_TEXT)
+    expect(view.textContent).toContain(NOT_ATTRIBUTED_TEXT())
+    plainWord(view, NOT_ATTRIBUTED_TEXT())
   })
 
   // A partial read leaves the store's answer unknown, so the line says so in the same muted text.
@@ -297,9 +297,9 @@ describe("a canary line is marked ALWAYS, and its outcome is never blank", () =>
 
     expect(view.querySelector("li")?.getAttribute("data-canary-outcome")).toBe("unknown")
     expect(view.querySelectorAll('[data-slot="badge"]').length).toBe(0)
-    plainWord(view, LEDGER_ON_TRIAL_TEXT)
+    plainWord(view, LEDGER_ON_TRIAL_TEXT())
 
-    const outcome = plainWord(view, ATTRIBUTION_UNKNOWN_TEXT).className
+    const outcome = plainWord(view, ATTRIBUTION_UNKNOWN_TEXT()).className
     expect(outcome).toContain("text-muted-foreground")
     expect(outcome).not.toContain("text-amber-500")
     expect(outcome).not.toContain("text-emerald-500")
@@ -311,7 +311,7 @@ describe("a canary line is marked ALWAYS, and its outcome is never blank", () =>
     const li = view.querySelector("li")
     expect(li?.getAttribute("data-served-as-canary")).toBe("false")
     expect(li?.hasAttribute("data-canary-outcome")).toBe(false)
-    expect(view.textContent).not.toContain(LEDGER_ON_TRIAL_TEXT)
+    expect(view.textContent).not.toContain(LEDGER_ON_TRIAL_TEXT())
     expect(view.textContent).not.toContain("canary")
   })
 })
@@ -425,13 +425,13 @@ describe("a replay states its guard outcome and a hint states its demotion", () 
 
   it("keeps a demoted hint tellable apart from an ordinary one", () => {
     const view = mount(<KnowledgeStepDetail detail={detail({
-      planSource: { kind: "procedure-hint", procedureId: "procedure-flow-search-12cd", sentence: PROCEDURE_HINT_DEMOTED_TEXT, tone: "hint" },
+      planSource: { kind: "procedure-hint", procedureId: "procedure-flow-search-12cd", sentence: PROCEDURE_HINT_DEMOTED_TEXT(), tone: "hint" },
     })} />)
 
     const row = planSourceRow(view, "procedure-flow-search-12cd")
     expect(row?.getAttribute("data-plan-source-outcome")).toBe("hint")
-    expect(row?.textContent).toContain(PROCEDURE_HINT_DEMOTED_TEXT)
-    expect(PROCEDURE_HINT_DEMOTED_TEXT).not.toBe(PROCEDURE_HINT_TEXT)
+    expect(row?.textContent).toContain(PROCEDURE_HINT_DEMOTED_TEXT())
+    expect(PROCEDURE_HINT_DEMOTED_TEXT()).not.toBe(PROCEDURE_HINT_TEXT())
   })
 
   it("renders no plan-source row on a step whose plan no procedure touched", () => {

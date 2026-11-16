@@ -29,7 +29,7 @@ export function RetrievalDetails({ ledger }: { ledger: LedgerView }) {
       <Collapsible>
         <CollapsibleTrigger id={triggerId} className={NESTED_TRIGGER_CLASS}>
           <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
-          {RETRIEVAL_DETAILS_LABEL}
+          {RETRIEVAL_DETAILS_LABEL()}
         </CollapsibleTrigger>
         <CollapsibleContent className="mt-4 space-y-4">
           <p data-used-summary className="text-xs text-muted-foreground tabular-nums">{ledger.summary}</p>
@@ -42,7 +42,7 @@ export function RetrievalDetails({ ledger }: { ledger: LedgerView }) {
           ) : null}
           {ledger.changes.length === 0 ? null : (
             <div className="space-y-3">
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{MEMORY_CHANGES_HEADING}</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">{MEMORY_CHANGES_HEADING()}</p>
               {ledger.changes.map(entry => (
                 <ChangeLedgerEntry key={entry.key} entry={entry} />
               ))}
@@ -69,7 +69,7 @@ function StepRow({ row }: { row: StepRowView }) {
           <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
           <span className="truncate">{row.title}</span>
           {row.noBrief === true ? (
-            <span className="text-xs text-muted-foreground">{STEP_NO_BRIEF_TEXT}</span>
+            <span className="text-xs text-muted-foreground">{STEP_NO_BRIEF_TEXT()}</span>
           ) : (
             // flex-wrap lets the badges shrink to their widest one, so the truncating title keeps room.
             <span className="flex flex-wrap items-center gap-1">

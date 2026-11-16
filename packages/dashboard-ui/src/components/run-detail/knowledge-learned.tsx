@@ -10,8 +10,8 @@ import {
   BUCKET_LABELS,
   BUCKET_MEANINGS,
   MEMORY_CHANGES_HEADING,
-  WAS_PREFIX,
   sinceThisRunHeading,
+  supersededWasText,
   type LearnedRowView,
   type LearnedView,
 } from "@/lib/knowledge-view"
@@ -55,7 +55,7 @@ export function KnowledgeLearned({ view }: { view: LearnedView }) {
       className="space-y-2"
     >
       <div className="flex flex-wrap items-baseline gap-2">
-        <h4 id={headingId} className={HEADING_CLASS}>{MEMORY_CHANGES_HEADING}</h4>
+        <h4 id={headingId} className={HEADING_CLASS}>{MEMORY_CHANGES_HEADING()}</h4>
         {view.countLine === undefined ? null : (
           <span data-learned-count-line className="text-xs text-muted-foreground tabular-nums">
             {view.countLine}
@@ -155,9 +155,7 @@ function BucketRow({ row }: { row: LearnedRowView }) {
       {row.was === undefined ? null : (
         <p data-superseded-was className="flex items-baseline gap-1 text-xs text-muted-foreground wrap-anywhere">
           <CornerDownRight className="size-3 shrink-0" aria-hidden />
-          <span>
-            {WAS_PREFIX} {row.was.primary}
-          </span>
+          <span>{supersededWasText(row.was.primary)}</span>
         </p>
       )}
       {row.applicability === undefined ? null : <RecordApplicability view={row.applicability} />}

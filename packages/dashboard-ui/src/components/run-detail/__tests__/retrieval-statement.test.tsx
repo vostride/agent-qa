@@ -139,7 +139,7 @@ describe("the tab states every lower retrieval level in plain words", () => {
     const [sentence, pointer] = [...(el?.querySelectorAll("p") ?? [])]
     expect(sentence?.textContent).toBe(retrievalStatement(rung, reason))
     expect(pointer?.hasAttribute("data-doctor-pointer")).toBe(true)
-    expect(el?.textContent).toBe(`${retrievalStatement(rung, reason)}${DOCTOR_POINTER_TEXT}`)
+    expect(el?.textContent).toBe(`${retrievalStatement(rung, reason)}${DOCTOR_POINTER_TEXT()}`)
   })
 
   it("NO-POINTER-ON-INFO: no info statement carries the doctor pointer or names doctor", () => {
@@ -158,7 +158,7 @@ describe("the tab states every lower retrieval level in plain words", () => {
     for (const [rung, reason] of WARNING) {
       const host = usedSection(recorded(rung, reason))
       const pointer = host.querySelector("[data-doctor-pointer]")
-      expect(pointer?.textContent).toBe(DOCTOR_POINTER_TEXT)
+      expect(pointer?.textContent).toBe(DOCTOR_POINTER_TEXT())
       expect(pointer?.querySelector("code")?.textContent).toBe("agent-qa doctor")
       expect(pointer?.querySelector("code")?.getAttribute("class")).toContain("font-mono")
       expect(statement(host)?.textContent).not.toContain("`")
@@ -195,7 +195,7 @@ describe("memidex, no rung and no store say nothing; the statement sits under th
     const withRows = usedSection({ rung: "bundle-scan", reason: "index-not-built" }, true)
     const section = withRows.querySelector("[data-knowledge-section='used']")
     const children = [...(section?.children ?? [])]
-    const headingRow = children.findIndex(child => child.querySelector("h4")?.textContent === USED_HEADING)
+    const headingRow = children.findIndex(child => child.querySelector("h4")?.textContent === USED_HEADING())
     const at = children.findIndex(child => child.hasAttribute("data-retrieval-statement"))
     const list = children.findIndex(child => child.tagName === "UL")
     expect(headingRow).toBe(0)

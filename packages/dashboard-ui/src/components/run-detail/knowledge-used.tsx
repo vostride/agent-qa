@@ -35,7 +35,7 @@ export function KnowledgeUsed({ view, stepRefs }: { view: UsedSectionView; stepR
   return (
     <section data-knowledge-section="used" aria-labelledby={headingId} className="space-y-2">
       <div className="flex flex-wrap items-baseline gap-2">
-        <h4 id={headingId} className={HEADING_CLASS}>{USED_HEADING}</h4>
+        <h4 id={headingId} className={HEADING_CLASS}>{USED_HEADING()}</h4>
         {view.countLine === undefined ? null : (
           <span data-used-count-line className="text-xs text-muted-foreground tabular-nums">
             {view.countLine}
@@ -132,13 +132,13 @@ function OnTrialTag() {
         <button type="button" aria-describedby={open ? undefined : meaningId} className={`inline-flex rounded-md ${FOCUS_RING}`}>
           <Badge variant="outline" className="cursor-help text-muted-foreground">
             <FlaskConical className="size-3" aria-hidden />
-            {ON_TRIAL_TAG}
+            {ON_TRIAL_TAG()}
           </Badge>
         </button>
       </TooltipTrigger>
-      <span id={meaningId} hidden>{ON_TRIAL_TOOLTIP}</span>
+      <span id={meaningId} hidden>{ON_TRIAL_TOOLTIP()}</span>
       <TooltipContent side="bottom" align="start" sideOffset={4} className="max-w-[320px] text-left">
-        {ON_TRIAL_TOOLTIP}
+        {ON_TRIAL_TOOLTIP()}
       </TooltipContent>
     </Tooltip>
   )

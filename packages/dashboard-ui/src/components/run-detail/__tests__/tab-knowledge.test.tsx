@@ -79,7 +79,7 @@ function row(overrides: Partial<StepRowView> = {}): StepRowView {
 const LEARNED_NOTHING: LearnedView = {
   state: "complete",
   countLine: legacyCurationPairText(0, 0),
-  sentence: NO_MEMORY_CHANGES_SENTENCE,
+  sentence: NO_MEMORY_CHANGES_SENTENCE(),
   rows: [],
 }
 
@@ -90,8 +90,8 @@ function readyView(
 ): KnowledgeView {
   return {
     state: "ready",
-    used: { records: [], absence: steps.length === 0 ? NO_BRIEF_SERVED_TEXT : NO_BRIEF_LINES_TEXT },
-    effect: { entries: [], absence: EFFECT_NOTHING_USED_TEXT },
+    used: { records: [], absence: steps.length === 0 ? NO_BRIEF_SERVED_TEXT() : NO_BRIEF_LINES_TEXT() },
+    effect: { entries: [], absence: EFFECT_NOTHING_USED_TEXT() },
     ledger: { summary, steps, changes: [] },
     learned,
   }
@@ -121,16 +121,16 @@ describe("the first read has not landed (UI-SPEC page-level states)", () => {
 describe("the read failed or was refused", () => {
   it("states the failure, forwards the masked reason and points at doctor", () => {
     const error = "read_failed"
-    const view = mount(<TabKnowledge view={{ state: "error", heading: READ_FAILED_HEADING, body: readFailedBody(error) }} />)
+    const view = mount(<TabKnowledge view={{ state: "error", heading: READ_FAILED_HEADING(), body: readFailedBody(error) }} />)
 
     expect(stateOf(view)).toBe("error")
-    expect(view.textContent).toContain(READ_FAILED_HEADING)
+    expect(view.textContent).toContain(READ_FAILED_HEADING())
     expect(view.textContent).toContain(error)
     expect(view.textContent).toContain("agent-qa doctor")
   })
 
   it("lets a long masked reason WRAP rather than truncate the doctor pointer away", () => {
-    const view = mount(<TabKnowledge view={{ state: "error", heading: READ_FAILED_HEADING, body: readFailedBody("x".repeat(200)) }} />)
+    const view = mount(<TabKnowledge view={{ state: "error", heading: READ_FAILED_HEADING(), body: readFailedBody("x".repeat(200)) }} />)
 
     const body = view.querySelector("p")
     expect(body).not.toBeNull()
@@ -150,11 +150,11 @@ describe("the handoff was pruned", () => {
 
 describe("the project has no knowledge store", () => {
   it("says so, and says the one thing that changes it", () => {
-    const view = mount(<TabKnowledge view={{ state: "empty-no-store", heading: NO_STORE_HEADING, body: NO_STORE_BODY }} />)
+    const view = mount(<TabKnowledge view={{ state: "empty-no-store", heading: NO_STORE_HEADING(), body: NO_STORE_BODY() }} />)
 
     expect(stateOf(view)).toBe("empty-no-store")
-    expect(view.textContent).toContain(NO_STORE_HEADING)
-    expect(view.textContent).toContain(NO_STORE_BODY)
+    expect(view.textContent).toContain(NO_STORE_HEADING())
+    expect(view.textContent).toContain(NO_STORE_BODY())
   })
 })
 
@@ -169,7 +169,7 @@ describe("a ready panel paints the Used half from the view it was handed", () =>
     expect(stateOf(view)).toBe("ready")
 
     const heading = view.querySelector("h4")
-    expect(heading?.textContent).toBe(USED_HEADING)
+    expect(heading?.textContent).toBe(USED_HEADING())
 
     openRetrievalDetails(view)
 
@@ -212,7 +212,7 @@ describe("a ready panel paints the Used half from the view it was handed", () =>
     openRetrievalDetails(view)
 
     const rowEl = view.querySelector("[data-step-index]") as HTMLElement
-    expect(rowEl.textContent).toContain(STEP_NO_BRIEF_TEXT)
+    expect(rowEl.textContent).toContain(STEP_NO_BRIEF_TEXT())
     expect(rowEl.querySelectorAll('[data-slot="badge"]').length).toBe(0)
     expect(rowEl.getAttribute("data-brief-lines")).toBe("0")
   })
@@ -260,11 +260,11 @@ describe("a ready panel paints the Used half from the view it was handed", () =>
   })
 
   it("prints the no-brief-served sentence and NO rows when the run had no steps at all", () => {
-    const view = mount(<TabKnowledge view={readyView([], NO_BRIEF_SERVED_TEXT)} />)
+    const view = mount(<TabKnowledge view={readyView([], NO_BRIEF_SERVED_TEXT())} />)
 
     expect(stateOf(view)).toBe("ready")
     const used = view.querySelector('[data-knowledge-section="used"]')
-    expect(used?.querySelector("[data-section-absence]")?.textContent).toBe(NO_BRIEF_SERVED_TEXT)
+    expect(used?.querySelector("[data-section-absence]")?.textContent).toBe(NO_BRIEF_SERVED_TEXT())
     expect(used?.querySelectorAll("[data-used-record]").length).toBe(0)
     openRetrievalDetails(view)
     expect(view.querySelectorAll("[data-step-index]").length).toBe(0)
@@ -283,7 +283,7 @@ describe("producer text reaches the DOM as TEXT, never as markup", () => {
 
   it("renders a hostile masked error as a text node too", () => {
     const hostile = "<img src=x onerror=alert(1)>"
-    const view = mount(<TabKnowledge view={{ state: "error", heading: READ_FAILED_HEADING, body: readFailedBody(hostile) }} />)
+    const view = mount(<TabKnowledge view={{ state: "error", heading: READ_FAILED_HEADING(), body: readFailedBody(hostile) }} />)
 
     expect(view.querySelector("img")).toBeNull()
     expect(view.textContent).toContain(hostile)
@@ -318,21 +318,21 @@ describe("the ready arm paints four sections in KNOWLEDGE_SECTIONS order", () =>
 
     expect(stateOf(view)).toBe("ready")
     expect([...view.querySelectorAll("h4")].map(heading => heading.textContent))
-      .toEqual([USED_HEADING, EFFECT_HEADING, MEMORY_CHANGES_HEADING])
+      .toEqual([USED_HEADING(), EFFECT_HEADING(), MEMORY_CHANGES_HEADING()])
     for (const name of ["used", "effect", "changes"]) {
       const section = view.querySelector(`[data-knowledge-section="${name}"]`)
       expect(section?.querySelectorAll("[data-section-absence]").length).toBe(1)
       expect(section?.querySelectorAll("ul").length).toBe(0)
     }
-    expect(view.querySelector('[data-knowledge-section="used"] [data-section-absence]')?.textContent).toBe(NO_BRIEF_SERVED_TEXT)
-    expect(view.querySelector('[data-knowledge-section="effect"] [data-section-absence]')?.textContent).toBe(EFFECT_NOTHING_USED_TEXT)
-    expect(view.querySelector('[data-knowledge-section="changes"] [data-section-absence]')?.textContent).toBe(NO_MEMORY_CHANGES_SENTENCE)
+    expect(view.querySelector('[data-knowledge-section="used"] [data-section-absence]')?.textContent).toBe(NO_BRIEF_SERVED_TEXT())
+    expect(view.querySelector('[data-knowledge-section="effect"] [data-section-absence]')?.textContent).toBe(EFFECT_NOTHING_USED_TEXT())
+    expect(view.querySelector('[data-knowledge-section="changes"] [data-section-absence]')?.textContent).toBe(NO_MEMORY_CHANGES_SENTENCE())
   })
 
   it("the Memory changes section renders its heading on every ready run", () => {
     const views: KnowledgeView[] = [
       readyView([row()]),
-      readyView([], NO_BRIEF_SERVED_TEXT),
+      readyView([], NO_BRIEF_SERVED_TEXT()),
       pageView("pending", {}),
       pageView("failed", {}),
       allZeroView(),
@@ -340,7 +340,7 @@ describe("the ready arm paints four sections in KNOWLEDGE_SECTIONS order", () =>
     for (const knowledge of views) {
       const view = mount(<TabKnowledge view={knowledge} />)
       const changes = view.querySelector('[data-knowledge-section="changes"]')
-      expect(changes?.querySelector("h4")?.textContent).toBe(MEMORY_CHANGES_HEADING)
+      expect(changes?.querySelector("h4")?.textContent).toBe(MEMORY_CHANGES_HEADING())
       act(() => { root?.unmount() })
       container?.remove()
       root = undefined
@@ -416,11 +416,11 @@ describe("the page path keeps failed-chain rows and states the snapshot sections
     expect(view.querySelector("[data-learned-state]")?.getAttribute("data-learned-state")).toBe("failed")
     expect(learnedRows(view).map(row => row.getAttribute("data-record-change"))).toEqual(["added", "confirmed"])
     expect(learnedRows(view).map(row => row.querySelector("[data-row-primary]")?.textContent))
-      .toEqual(["summary fact-before-failure", RECORD_UNREADABLE_LEAD])
+      .toEqual(["summary fact-before-failure", RECORD_UNREADABLE_LEAD()])
     expect(learnedRows(view).some(row => row.hasAttribute("data-record-id"))).toBe(false)
-    expect(view.querySelector("[data-learned-chain-note]")?.textContent).toBe(CURATION_FAILED_PARTIAL_TEXT)
+    expect(view.querySelector("[data-learned-chain-note]")?.textContent).toBe(CURATION_FAILED_PARTIAL_TEXT())
     expect(view.querySelector("[data-learned-state]")?.getAttribute("data-learned-read")).toBe("incomplete")
-    expect(view.textContent).not.toContain(CURATION_FAILED_TEXT)
+    expect(view.textContent).not.toContain(CURATION_FAILED_TEXT())
   })
 
   it("FAILED-NO-SNAPSHOT: the tab states the absent snapshot and paints no since-then count", () => {

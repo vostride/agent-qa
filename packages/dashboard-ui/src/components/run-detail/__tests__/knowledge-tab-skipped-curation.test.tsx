@@ -168,7 +168,7 @@ describe("the Knowledge tab when curation was skipped", () => {
     expect(section.getAttribute("data-learned-state")).toBe("skipped")
     expect(section.querySelector("[data-learned-sentence]")?.textContent).toBe(STAGE_SKIPPED_TEXT["gate-run"].curation)
     expect(section.querySelector("[data-learned-count-line]")).toBeNull()
-    expect(section.textContent).not.toContain(CHANGES_PENDING_TEXT)
+    expect(section.textContent).not.toContain(CHANGES_PENDING_TEXT())
   })
 
   it("an outcome-excluded run's Memory changes reads the outcome-excluded sentence", () => {
@@ -178,7 +178,7 @@ describe("the Knowledge tab when curation was skipped", () => {
     expect(section.querySelector("[data-learned-sentence]")?.textContent)
       .toBe(STAGE_SKIPPED_TEXT["outcome-excluded"].curation)
     expect(section.querySelector("[data-learned-count-line]")).toBeNull()
-    expect(section.textContent).not.toContain(CHANGES_PENDING_TEXT)
+    expect(section.textContent).not.toContain(CHANGES_PENDING_TEXT())
   })
 
   it("a skipped run's attributed rows are painted with the skip stated beside them", () => {
@@ -200,13 +200,13 @@ describe("the Knowledge tab when curation was skipped", () => {
     const section = changesSection(mount(<TabKnowledge view={view(projection)} />))
 
     expect(section.getAttribute("data-learned-state")).toBe("pending")
-    expect(section.querySelector("[data-learned-sentence]")?.textContent).toBe(CHANGES_PENDING_TEXT)
+    expect(section.querySelector("[data-learned-sentence]")?.textContent).toBe(CHANGES_PENDING_TEXT())
   })
 
   it("a gate run's canary line reads attribution skipped in Retrieval details", () => {
     const skippedLine = canaryLine(mountOpened(world({ reason: "gate-run" })))
     expect(skippedLine.getAttribute("data-canary-outcome")).toBe("skipped")
-    expect(skippedLine.textContent).toContain(ATTRIBUTION_SKIPPED_TEXT)
+    expect(skippedLine.textContent).toContain(ATTRIBUTION_SKIPPED_TEXT())
 
     // Rows win: a served attribution row is the line's answer on a skipped run too.
     const servedLine = canaryLine(mountOpened(world({ reason: "gate-run", canaryAttributions: [attribution("confirmed")] })))
@@ -219,7 +219,7 @@ describe("the Knowledge tab when curation was skipped", () => {
 
     expect(effect).not.toBeNull()
     expect(effect?.querySelector("[data-effect-entry]")).toBeNull()
-    expect(effect?.querySelector("[data-section-absence]")?.textContent).toBe(EFFECT_NOTHING_MEASURED_TEXT)
+    expect(effect?.querySelector("[data-section-absence]")?.textContent).toBe(EFFECT_NOTHING_MEASURED_TEXT())
     if (tabView.state !== "ready") throw new Error("the view must be ready")
     expect("uncounted" in tabView.effect).toBe(false)
   })
@@ -230,7 +230,7 @@ describe("the Knowledge tab when curation was skipped", () => {
       '[data-canary-outcome="pending"]',
       '[data-effect-outcome="pending"]',
     ]
-    const pendingTexts = [CHANGES_PENDING_TEXT, ATTRIBUTION_PENDING_TEXT, EFFECT_SENTENCES.pending.tail]
+    const pendingTexts = [CHANGES_PENDING_TEXT(), ATTRIBUTION_PENDING_TEXT(), EFFECT_SENTENCES.pending.tail]
 
     // The control world, with no skipped key, shows every pending mark, so the probe can see them.
     const control = mountOpened(world())
