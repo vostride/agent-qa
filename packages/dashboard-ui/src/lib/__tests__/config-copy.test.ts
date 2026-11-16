@@ -341,4 +341,43 @@ describe('The Config sentences in another language', () => {
       schemaProviderErrorSentence('network_error', ''),
     )
   })
+
+  it('a not-listed sentence returns its parts in the language order, with the name kept whole', async () => {
+    expect(copy.remoteNotListedParts('grid')[0]).toBe('grid')
+    i18n.addResourceBundle('fr', 'translation', {
+      'config.remoteNotListed': 'Absent de registry.remotes : {{name}}',
+      'config.remoteUnlistedChoice': '(absent) {{name}}',
+      'config.remotePickNotListed': 'Le remote {{name}} manque dans la config.',
+    })
+    await i18n.changeLanguage('fr')
+    expect(copy.remoteNotListedParts('grid').join('|')).toBe('Absent de registry.remotes : |grid')
+    expect(copy.remoteUnlistedChoiceParts('gird').join('|')).toBe('(absent) |gird')
+    expect(copy.remotePickNotListedParts('gird').join('|')).toBe(
+      'Le remote |gird| manque dans la config.',
+    )
+    expect(copy.remotePickNotListedParts('{{name}}').join('|')).toBe(
+      'Le remote |{{name}}| manque dans la config.',
+    )
+    expect(copy.remoteChoiceParts('grid', 'playwright').join('|')).toBe('grid| (playwright)')
+
+    await i18n.changeLanguage('en')
+    expect(copy.remoteNotListedParts('grid')[0]).toBe('grid')
+    expect(copy.remoteUnlistedChoiceParts('gird').join('|')).toBe('gird| (not listed)')
+  })
+
+  it('the credentials line names the secrets file, or says where to set one', async () => {
+    expect(copy.remoteCredentialsLine('.env.secrets.local')).toBe(
+      'Write credentials as {{secret:NAME}} references to names declared in .env.secrets.local.',
+    )
+    expect(copy.remoteCredentialsLine(undefined)).toBe(
+      'Write credentials as {{secret:NAME}} references to names declared in your secrets file (set workspace.secretsFile).',
+    )
+    i18n.addResourceBundle('fr', 'translation', {
+      'config.remoteCredentials.file': 'Références {{reference}} déclarées dans {{file}}.',
+    })
+    await i18n.changeLanguage('fr')
+    expect(copy.remoteCredentialsLine('.env.secrets.local')).toBe(
+      'Références {{secret:NAME}} déclarées dans .env.secrets.local.',
+    )
+  })
 })
