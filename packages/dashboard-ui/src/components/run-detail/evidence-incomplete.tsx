@@ -12,7 +12,7 @@ export function EvidenceIncomplete({ variant }: { variant: EvidenceIncompleteVar
       incomplete
       variant={variant}
       title={variant === 'inline' ? EVIDENCE_INCOMPLETE_LABEL : EVIDENCE_COPY.frame.unavailable.title}
-      explanation={EVIDENCE_INCOMPLETE_EXPLANATION}
+      explanation={EVIDENCE_INCOMPLETE_EXPLANATION()}
     />
   )
 }

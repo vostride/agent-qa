@@ -1,46 +1,50 @@
 import type { RunArtifactKind } from '@vostride/agent-qa-schema'
+import { t } from '@/i18n'
+import { textTable } from '@/i18n/text-table'
 
-export const DRAWER_COPY = {
-  test: 'Test',
-  config: 'Config',
-  testAsWritten: 'Test as written',
-  resolvedDefinition: 'Resolved definition',
-  suiteMembers: 'Suite members',
-  runTests: 'Tests in this run',
-  runAttributes: 'Run attributes',
-  effectiveConfig: 'Effective config',
-  globalConfigAsWritten: 'Global config as written',
-  model: 'Model',
-  runtime: 'Runtime',
-  errors: 'Errors',
-  notCaptured: 'Not captured',
-  configNotCaptured: 'Config not captured',
-  unsealedCapture: "This run's setup capture didn't finish, so the test and config shown here may be incomplete.",
-  technicalDetails: 'Technical details',
-  runId: 'Run ID',
-  artifactKind: 'Artifact kind',
-  schemaVersion: 'Schema version',
-  captureSealedAt: 'Capture sealed at',
-  copyRunId: 'Copy run ID',
-  retry: 'Retry loading run details',
-  ranHere: 'Ran on this machine',
-  opensInNewTab: '(opens in a new tab)',
-} as const
+export const DRAWER_COPY = textTable({
+  test: () => t('evidence.drawer.test'),
+  config: () => t('evidence.drawer.config'),
+  testAsWritten: () => t('evidence.drawer.testAsWritten'),
+  resolvedDefinition: () => t('evidence.drawer.resolvedDefinition'),
+  suiteMembers: () => t('evidence.drawer.suiteMembers'),
+  runTests: () => t('evidence.drawer.runTests'),
+  runAttributes: () => t('evidence.drawer.runAttributes'),
+  effectiveConfig: () => t('evidence.drawer.effectiveConfig'),
+  globalConfigAsWritten: () => t('evidence.drawer.globalConfigAsWritten'),
+  model: () => t('evidence.drawer.model'),
+  runtime: () => t('evidence.drawer.runtime'),
+  errors: () => t('evidence.drawer.errors'),
+  notCaptured: () => t('evidence.drawer.notCaptured'),
+  configNotCaptured: () => t('evidence.drawer.configNotCaptured'),
+  unsealedCapture: () => t('evidence.drawer.unsealedCapture'),
+  technicalDetails: () => t('evidence.drawer.technicalDetails'),
+  runId: () => t('evidence.drawer.runId'),
+  artifactKind: () => t('evidence.drawer.artifactKind'),
+  schemaVersion: () => t('evidence.drawer.schemaVersion'),
+  captureSealedAt: () => t('evidence.drawer.captureSealedAt'),
+  copyRunId: () => t('evidence.drawer.copyRunId'),
+  retry: () => t('evidence.drawer.retry'),
+  ranHere: () => t('evidence.drawer.ranHere'),
+  opensInNewTab: () => t('evidence.drawer.opensInNewTab'),
+})
 
 /** Where a test ran: the remote's name, then its protocol and origin, then its browser version. */
 export function ranOnLine(name: string, where: string, version: string | null): string {
-  return `Ran on ${name}${where ? ` (${where})` : ''}${version ? `, ${version}` : ''}`
+  const remote = remoteName(name, where)
+  return version ? t('evidence.drawer.ranOnVersion', { remote, version }) : t('evidence.drawer.ranOn', { remote })
 }
 
-const DROPPED_SESSION_ENDINGS = {
-  lost: 'until the connection was lost',
-  ended: 'until the remote ended the session',
-} as const
+function remoteName(name: string, where: string): string {
+  return where ? t('evidence.drawer.remote', { name, where }) : name
+}
 
-export type DroppedSessionKind = keyof typeof DROPPED_SESSION_ENDINGS
+const DROPPED_SESSION_KINDS = ['lost', 'ended'] as const
+
+export type DroppedSessionKind = (typeof DROPPED_SESSION_KINDS)[number]
 
 export function isDroppedSessionKind(kind: string): kind is DroppedSessionKind {
-  return Object.hasOwn(DROPPED_SESSION_ENDINGS, kind)
+  return DROPPED_SESSION_KINDS.some((dropped) => dropped === kind)
 }
 
 /** A test that ran on a remote until its session dropped. */
@@ -50,15 +54,25 @@ export function droppedOnLine(
   version: string | null,
   kind: DroppedSessionKind,
 ): string {
-  return `${ranOnLine(name, where, version)}, ${DROPPED_SESSION_ENDINGS[kind]}`
+  const remote = remoteName(name, where)
+  if (kind === 'lost') {
+    return version
+      ? t('evidence.drawer.lostOnVersion', { remote, version })
+      : t('evidence.drawer.lostOn', { remote })
+  }
+  return version
+    ? t('evidence.drawer.endedOnVersion', { remote, version })
+    : t('evidence.drawer.endedOn', { remote })
 }
 
-const REFUSAL_WORDING: ReadonlyMap<string, string> = new Map([['refused', 'session refused']])
+const REFUSAL_WORDING: ReadonlyMap<string, () => string> = new Map([
+  ['refused', () => t('evidence.drawer.sessionRefused')],
+])
 
 /** A remote that refused the test before it ran, and the failure kind its evidence records. */
 export function couldNotRunOnLine(name: string, where: string, failureKind: string): string {
-  const reason = REFUSAL_WORDING.get(failureKind) ?? failureKind
-  return `Could not run on ${name}${where ? ` (${where})` : ''}: ${reason}`
+  const reason = REFUSAL_WORDING.get(failureKind)?.() ?? failureKind
+  return t('evidence.drawer.couldNotRun', { remote: remoteName(name, where), reason })
 }
 
 const DEVICE_TYPES = ['simulator', 'real device'] as const
@@ -84,7 +98,7 @@ export function deviceDetail(
 /** A test that ran here, with its iOS device type when one was recorded. */
 export function ranHereLine(deviceType: string | null): string {
   return isShownDeviceType(deviceType)
-    ? `${DRAWER_COPY.ranHere}, ${deviceType}`
+    ? t('evidence.drawer.ranHereOn', { deviceType })
     : DRAWER_COPY.ranHere
 }
 
@@ -94,12 +108,14 @@ export function pluginLine(plugin: unknown): string | null {
   const entry = text(shown.entry)
   if (entry === undefined) return null
   const source = [text(shown.package) ?? text(shown.path), text(shown.version)].filter(Boolean)
-  return source.length > 0 ? `Plugin ${entry} (${source.join(' ')})` : `Plugin ${entry}`
+  return source.length > 0
+    ? t('evidence.drawer.pluginSource', { entry, source: source.join(' ') })
+    : t('evidence.drawer.plugin', { entry })
 }
 
 export interface SessionLink {
   href: string
-  label: 'Session page'
+  label: string
   target: '_blank'
   rel: 'noopener noreferrer'
 }
@@ -114,13 +130,13 @@ export function sessionLink(link: unknown): SessionLink | null {
     return null
   }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
-  return { href: url.href, label: 'Session page', target: '_blank', rel: 'noopener noreferrer' }
+  return { href: url.href, label: t('evidence.drawer.sessionPage'), target: '_blank', rel: 'noopener noreferrer' }
 }
 
-export const RUN_ARTIFACT_KIND_LABELS = {
-  test: 'Test',
-  unknown: 'Not recorded',
-} satisfies Record<RunArtifactKind, string>
+export const RUN_ARTIFACT_KIND_LABELS = textTable({
+  test: () => t('evidence.drawer.kind.test'),
+  unknown: () => t('evidence.drawer.kind.unknown'),
+}) satisfies Record<RunArtifactKind, string>
 
 export type CaptureState = 'sealed' | 'unsealed'
 export const CAPTURE_STATES = ['sealed', 'unsealed'] as const satisfies readonly CaptureState[]
@@ -130,7 +146,7 @@ export function captureStateOf(artifact: { finalizedAt?: string | null }): Captu
 }
 
 export function DRAWER_TITLE_FALLBACK(id: string): string {
-  return `Run ${id}`
+  return t('evidence.drawer.titleFallback', { id })
 }
 
 function record(value: unknown): Record<string, unknown> {

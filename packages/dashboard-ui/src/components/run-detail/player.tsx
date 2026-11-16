@@ -403,7 +403,7 @@ export function Player(props: PlayerProps) {
       </div>}
       {/* The gesture owner stays outside member-keyed media, including absent/source transitions. */}
       <PlayerFooter timeline={props.timeline} caption={title}
-        note={source === 'video' && recording?.state === 'present' && !absent && model.axis === 'ordinal' ? VIDEO_UNTIMED_NOTE : undefined}
+        note={source === 'video' && recording?.state === 'present' && !absent && model.axis === 'ordinal' ? VIDEO_UNTIMED_NOTE() : undefined}
         readout={<span ref={setReadoutHost} className={source === 'video' ? 'flex w-[13ch] shrink-0 font-mono text-xs' : 'contents'}>
           {source === 'video' && (recording?.state !== 'present' || absent) && <PlayerTime totalMs={props.clock?.totalMs} />}
         </span>}

@@ -1,25 +1,27 @@
 import type { RecordingEntry } from '@vostride/agent-qa-schema'
+import { t } from '@/i18n'
+import { textTable } from '@/i18n/text-table'
 import { buildActionSentence, RESULT_WORDS } from './action-vocabulary'
 import { EVIDENCE_COPY, EVIDENCE_RETRY_LABELS } from './evidence-state-view'
 import { formatOffset, type PlayerSource, type TimelineAxis, type TimelineMarker, type UsableFrame } from './playhead'
 
-export const PLAYER_COPY = {
-  frames: 'Frames',
-  video: 'Video',
-  source: 'Playback source',
-  framesTooltip: 'The exact screenshots the model saw when it decided',
-  play: 'Play recording',
-  pause: 'Pause recording',
-  speed: 'Playback speed',
-  substitution: (shown: number, total: number) => `Showing #${shown} of ${total} — the latest sub-action with a screenshot`,
-  lightboxTitle: 'Cited screenshot',
-  lightboxClose: 'Close screenshot',
-  lightboxNote: 'This screenshot is cited by the analysis but does not belong to a recorded sub-action, so it has no place on the timeline.',
-} as const
+export const PLAYER_COPY = textTable({
+  frames: () => t('player.frames'),
+  video: () => t('player.video'),
+  source: () => t('player.source'),
+  framesTooltip: () => t('player.framesTooltip'),
+  play: () => t('player.play'),
+  pause: () => t('player.pause'),
+  speed: () => t('player.speed'),
+  substitution: () => (shown: number, total: number) => t('player.substitution', { shown, total }),
+  lightboxTitle: () => t('player.lightboxTitle'),
+  lightboxClose: () => t('player.lightboxClose'),
+  lightboxNote: () => t('player.lightboxNote'),
+})
 export const PLAYER_SOURCE_STORAGE_KEY = 'agent-qa.run-detail.player-source'
 export const PLAYBACK_SPEEDS = [0.5, 1, 2, 4, 8, 16] as const
 export const DEFAULT_PLAYBACK_SPEED = 4
-export const VIDEO_UNTIMED_NOTE = 'This recording cannot be synchronized with the selected action. Switch to Frames to see its screenshot.'
+export const VIDEO_UNTIMED_NOTE = () => t('player.videoUntimed')
 
 export function initialPlayerSource(recording: RecordingEntry | undefined, axis: TimelineAxis, storage?: Pick<Storage, 'getItem'>): PlayerSource {
   if (recording?.state !== 'present' || axis === 'ordinal') return 'frames'

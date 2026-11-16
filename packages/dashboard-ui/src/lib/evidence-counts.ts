@@ -1,4 +1,6 @@
 import type { AriaEvidenceEntry, EvidenceKind, StepEvidenceEntries } from '@vostride/agent-qa-schema'
+import { t } from '@/i18n'
+import { textTable } from '@/i18n/text-table'
 import { EVIDENCE_COPY, resolveEvidenceView } from './evidence-state-view'
 
 export type StepSignal = 'console' | 'network' | 'a11y'
@@ -11,9 +13,13 @@ export type TabCount =
 
 export const PROBLEM_COUNT_TONES = { high: 'text-red-500', moderate: 'text-amber-500' } as const
 
-const TAB_NAMES = {
-  variables: 'Variables', network: 'Network', console: 'Console', aria: 'ARIA Tree', a11y: 'A11y',
-} satisfies Record<EvidenceKind, string>
+const TAB_NAMES = textTable({
+  variables: () => t('evidence.tab.variables'),
+  network: () => t('evidence.tab.network'),
+  console: () => t('evidence.tab.console'),
+  aria: () => t('evidence.tab.aria'),
+  a11y: () => t('evidence.tab.a11y'),
+}) satisfies Record<EvidenceKind, string>
 
 export function stepSignals(entries: StepEvidenceEntries | undefined): Record<StepSignal, number | undefined> {
   const consoleEntry = entries?.console
@@ -73,22 +79,36 @@ export function tabCounts(
 
 export function countedTriggerName(kind: EvidenceKind, value: Exclude<TabCount, { kind: 'absent' }>): string {
   const { count } = value
-  const nouns = value.kind === 'problem'
-    ? { console: ['error', 'errors'], network: ['failed request', 'failed requests'], a11y: ['violation', 'violations'] }
-    : { console: ['message', 'messages'], network: ['request', 'requests'], a11y: ['violation', 'violations'] }
-  const noun = kind === 'variables' || kind === 'aria' ? '' : ` ${nouns[kind][count === 1 ? 0 : 1]}`
-  return `${TAB_NAMES[kind]}, ${count}${noun}`
+  const problem = value.kind === 'problem'
+  switch (kind) {
+    case 'variables':
+      return t('evidence.trigger.variables', { count })
+    case 'aria':
+      return t('evidence.trigger.aria', { count })
+    case 'console':
+      return problem
+        ? t('evidence.trigger.consoleErrors', { count })
+        : t('evidence.trigger.consoleMessages', { count })
+    case 'network':
+      return problem
+        ? t('evidence.trigger.networkFailed', { count })
+        : t('evidence.trigger.networkRequests', { count })
+    case 'a11y':
+      return t('evidence.trigger.a11yViolations', { count })
+  }
 }
 
 export function absentTriggerName(kind: EvidenceKind, title: string): string {
-  return `${TAB_NAMES[kind]} — ${title}`
+  return t('evidence.trigger.absent', { tab: TAB_NAMES[kind], title })
 }
 
 export function signalBadgeName(kind: StepSignal, count: number, step: number): string {
-  const nouns = {
-    console: ['console error', 'console errors'],
-    network: ['failed request', 'failed requests'],
-    a11y: ['accessibility violation', 'accessibility violations'],
+  switch (kind) {
+    case 'console':
+      return t('evidence.signal.console', { count, step })
+    case 'network':
+      return t('evidence.signal.network', { count, step })
+    case 'a11y':
+      return t('evidence.signal.a11y', { count, step })
   }
-  return `${count} ${nouns[kind][count === 1 ? 0 : 1]} on step ${step} — open ${TAB_NAMES[kind]}`
 }

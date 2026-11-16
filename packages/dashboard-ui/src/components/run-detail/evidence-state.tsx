@@ -51,7 +51,7 @@ export function EvidenceState({ kind, state, failure, incomplete, title, explana
 export function EvidenceLoading({ kind }: { kind: EvidenceKindLabel }) {
   return (
     <div data-evidence-loading data-evidence-kind={kind} aria-busy="true" className="space-y-2 p-3">
-      <span role="status" className="sr-only">{EVIDENCE_LOADING_LABEL}</span>
+      <span role="status" className="sr-only">{EVIDENCE_LOADING_LABEL()}</span>
       <Skeleton className="h-8 w-full" />
       <Skeleton className="h-8 w-full" />
       <Skeleton className="h-8 w-full" />

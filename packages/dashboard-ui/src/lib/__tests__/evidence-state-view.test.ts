@@ -60,11 +60,11 @@ test('every evidence tab has a title and an explanation for every state', () => 
     expect(pair.explanation.length).toBeGreaterThan(0)
   }
   expect(Object.keys(view.EVIDENCE_RETRY_LABELS).sort()).toEqual([...view.EVIDENCE_KIND_LABELS].sort())
-  expect(view.EVIDENCE_INCOMPLETE_EXPLANATION).toBe(`${EVIDENCE_INCOMPLETE_LABEL} — this was recorded, but the saved file is no longer on disk.`)
-  expect(frame.unavailable.explanation).toBe(view.EVIDENCE_INCOMPLETE_EXPLANATION)
+  expect(view.EVIDENCE_INCOMPLETE_EXPLANATION()).toBe(`${EVIDENCE_INCOMPLETE_LABEL} — this was recorded, but the saved file is no longer on disk.`)
+  expect(frame.unavailable.explanation).toBe(view.EVIDENCE_INCOMPLETE_EXPLANATION())
   expect(view.RECORDED_ELSEWHERE_LABEL(3)).toBe('Recorded on step 3')
   expect(view.GO_TO_STEP_LABEL(3)).toBe('Go to step 3')
-  expect(view.EVIDENCE_LOADING_LABEL).toBe('Loading records')
+  expect(view.EVIDENCE_LOADING_LABEL()).toBe('Loading records')
 })
 
 test('the evidence copy never says a capture was turned off, and only a load failure can be retried', () => {
@@ -165,7 +165,7 @@ test('VIEW-ABSENCE-REASONS preserves every recorded reason and bytes-gone explan
     view.resolveEvidenceView({ ...input, read: { kind: 'read', result: { address, outcome: 'absent', evidence } } }),
     view.resolveEvidenceView({ ...input, kind: 'video', entry: { state: 'absent', reason: 'unavailable', evidenceIncomplete: true } }),
   ]) {
-    expect(result).toMatchObject({ kind: 'state', state: 'unavailable', incomplete: true, explanation: view.EVIDENCE_INCOMPLETE_EXPLANATION })
+    expect(result).toMatchObject({ kind: 'state', state: 'unavailable', incomplete: true, explanation: view.EVIDENCE_INCOMPLETE_EXPLANATION() })
     expect(result).not.toHaveProperty('action')
   }
 })

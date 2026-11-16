@@ -23,7 +23,7 @@ afterEach(() => {
 
 test('STATE-INLINE-VARIANT', () => {
   const onAction = vi.fn()
-  const element = mount(<component.EvidenceState kind="frame" state="unavailable" incomplete variant="inline" title={EVIDENCE_INCOMPLETE_LABEL} explanation={view.EVIDENCE_INCOMPLETE_EXPLANATION} actionLabel="Unused" onAction={onAction} />)
+  const element = mount(<component.EvidenceState kind="frame" state="unavailable" incomplete variant="inline" title={EVIDENCE_INCOMPLETE_LABEL} explanation={view.EVIDENCE_INCOMPLETE_EXPLANATION()} actionLabel="Unused" onAction={onAction} />)
   const badge = element.querySelector('[data-evidence-state="unavailable"]')
   expect(badge?.tagName).toBe('SPAN')
   expect(badge?.getAttribute('data-slot')).toBe('badge')
@@ -45,7 +45,7 @@ test('STATE-LOADING-NOT-A-STATE', () => {
   expect(loading?.getAttribute('data-evidence-kind')).toBe('a11y')
   expect(loading?.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(3)
   const status = loading?.querySelector('[role="status"]')
-  expect(status?.textContent).toBe(view.EVIDENCE_LOADING_LABEL)
+  expect(status?.textContent).toBe(view.EVIDENCE_LOADING_LABEL())
   expect(status?.classList.contains('sr-only')).toBe(true)
   expect(element.querySelector('[data-evidence-state], [data-masked], [data-run-detail-error]')).toBeNull()
 })

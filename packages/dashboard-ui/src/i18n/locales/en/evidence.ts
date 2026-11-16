@@ -1,0 +1,210 @@
+export default {
+  'evidence.loading': 'Loading records',
+  'evidence.incompleteExplanation':
+    'evidence incomplete — this was recorded, but the saved file is no longer on disk.',
+  'evidence.recordedOnStep': 'Recorded on step {{step}}',
+  'evidence.goToStep': 'Go to step {{step}}',
+
+  'evidence.retry.variables': 'Retry loading variables',
+  'evidence.retry.network': 'Retry loading network records',
+  'evidence.retry.console': 'Retry loading console records',
+  'evidence.retry.aria': 'Retry loading the ARIA tree',
+  'evidence.retry.a11y': 'Retry loading accessibility results',
+  'evidence.retry.video': 'Retry loading the recording',
+  'evidence.retry.frame': 'Retry loading the screenshot',
+
+  'evidence.variables.empty.title': 'No variables at this step',
+  'evidence.variables.empty.explanation': 'No variables were set when this step ran.',
+  'evidence.variables.notCaptured.title': 'Variables not recorded for this step',
+  'evidence.variables.notCaptured.explanation': 'No variable snapshot was saved for this step.',
+  'evidence.variables.unsupported.title': "Variables aren't recorded on this platform",
+  'evidence.variables.unsupported.explanation':
+    "This run's platform does not support saving a variable snapshot.",
+  'evidence.variables.unavailable.title': 'Variables unavailable for this run',
+  'evidence.variables.unavailable.explanation':
+    'Variables were not recorded when this run happened, so there is nothing to show.',
+  'evidence.variables.failed.capture.title': 'Variable capture failed',
+  'evidence.variables.failed.capture.explanation':
+    'Saving the variable snapshot failed while the run was in progress. There is nothing to retry.',
+  'evidence.variables.failed.load.title': "Couldn't load variables",
+  'evidence.variables.failed.load.explanation': "The variables were recorded but didn't load.",
+  'evidence.variables.noSelection.title': 'No step selected',
+  'evidence.variables.noSelection.explanation':
+    'Variables are shown per step. Pick a step in the tree or on the timeline to see them.',
+
+  'evidence.network.empty.title': 'No network requests',
+  'evidence.network.empty.explanation': 'The page made no requests during this step.',
+  'evidence.network.notCaptured.title': 'Network not recorded for this step',
+  'evidence.network.notCaptured.explanation': 'No network activity was saved for this step.',
+  'evidence.network.unsupported.title': "Network isn't recorded on this platform",
+  'evidence.network.unsupported.explanation':
+    "This run's platform does not support capturing network requests.",
+  'evidence.network.unavailable.title': 'Network unavailable for this run',
+  'evidence.network.unavailable.explanation':
+    'Network activity was not recorded when this run happened. This does not mean the run made no requests.',
+  'evidence.network.failed.capture.title': 'Network capture failed',
+  'evidence.network.failed.capture.explanation':
+    'Capturing network activity failed while the run was in progress. There is nothing to retry.',
+  'evidence.network.failed.load.title': "Couldn't load network records",
+  'evidence.network.failed.load.explanation': "The records exist but didn't load.",
+  'evidence.network.noSelection.title': 'No step selected',
+  'evidence.network.noSelection.explanation':
+    'Network requests are shown per step. Pick a step in the tree or on the timeline to see them.',
+
+  'evidence.console.empty.title': 'No console output',
+  'evidence.console.empty.explanation': 'The page logged nothing during this step.',
+  'evidence.console.notCaptured.title': 'Console not recorded for this step',
+  'evidence.console.notCaptured.explanation': 'No console output was saved for this step.',
+  'evidence.console.unsupported.title': "Console isn't recorded on this platform",
+  'evidence.console.unsupported.explanation':
+    "This run's platform does not support capturing console output.",
+  'evidence.console.unavailable.title': 'Console unavailable for this run',
+  'evidence.console.unavailable.explanation':
+    'Console output was not recorded when this run happened. This does not mean the page logged nothing.',
+  'evidence.console.failed.capture.title': 'Console capture failed',
+  'evidence.console.failed.capture.explanation':
+    'Capturing console output failed while the run was in progress. There is nothing to retry.',
+  'evidence.console.failed.load.title': "Couldn't load console records",
+  'evidence.console.failed.load.explanation': "The records exist but didn't load.",
+  'evidence.console.noSelection.title': 'No step selected',
+  'evidence.console.noSelection.explanation':
+    'Console output is shown per step. Pick a step in the tree or on the timeline to see it.',
+
+  'evidence.aria.empty.title': 'Empty accessibility tree',
+  'evidence.aria.empty.explanation':
+    'The screen exposed no accessible elements when this action was decided.',
+  'evidence.aria.notCaptured.title': 'ARIA tree not recorded for this action',
+  'evidence.aria.notCaptured.explanation': 'No accessibility tree was saved for this sub-action.',
+  'evidence.aria.unsupported.title': "ARIA tree isn't recorded on this platform",
+  'evidence.aria.unsupported.explanation':
+    "This run's platform does not support capturing an accessibility tree.",
+  'evidence.aria.unavailable.title': 'ARIA tree unavailable for this run',
+  'evidence.aria.unavailable.explanation':
+    'The accessibility tree was not recorded when this run happened.',
+  'evidence.aria.failed.capture.title': 'ARIA tree capture failed',
+  'evidence.aria.failed.capture.explanation':
+    'Capturing the accessibility tree failed while the run was in progress. There is nothing to retry.',
+  'evidence.aria.failed.load.title': "Couldn't load the ARIA tree",
+  'evidence.aria.failed.load.explanation': "The tree was recorded but didn't load.",
+  'evidence.aria.noSelection.title': 'No sub-action selected',
+  'evidence.aria.noSelection.explanation':
+    'The accessibility tree is shown per sub-action. Pick a sub-action in the tree or on the timeline to see what the model saw.',
+
+  'evidence.a11y.empty.title': 'No accessibility violations found',
+  'evidence.a11y.empty.explanation': 'The checks ran on this step and found nothing to fix.',
+  'evidence.a11y.notCaptured.title': 'Accessibility checks not recorded for this step',
+  'evidence.a11y.notCaptured.explanation': 'No accessibility results were saved for this step.',
+  'evidence.a11y.unsupported.title': "Accessibility checks aren't supported on this platform",
+  'evidence.a11y.unsupported.explanation': "This run's platform cannot run accessibility checks.",
+  'evidence.a11y.unavailable.title': 'Accessibility results unavailable for this run',
+  'evidence.a11y.unavailable.explanation':
+    'Accessibility checks were not recorded when this run happened. This does not mean the run had no violations.',
+  'evidence.a11y.failed.capture.title': 'Accessibility checks failed to run',
+  'evidence.a11y.failed.capture.explanation':
+    'The checks hit an error while the run was in progress, so there are no results. There is nothing to retry.',
+  'evidence.a11y.failed.load.title': "Couldn't load accessibility results",
+  'evidence.a11y.failed.load.explanation': "The results exist but didn't load.",
+  'evidence.a11y.noSelection.title': 'No step selected',
+  'evidence.a11y.noSelection.explanation':
+    'Accessibility results are shown per step. Pick a step in the tree or on the timeline to see them.',
+
+  'evidence.video.empty.title': 'Recording has no video',
+  'evidence.video.empty.explanation':
+    'A recording was saved for this test but it contains nothing to play.',
+  'evidence.video.notCaptured.title': 'No recording for this test',
+  'evidence.video.notCaptured.explanation':
+    'No video was saved for this test. Frames still show what the model saw at each decision.',
+  'evidence.video.unsupported.title': "Recording isn't supported on this platform",
+  'evidence.video.unsupported.explanation':
+    "This run's platform does not record video. Frames still show what the model saw at each decision.",
+  'evidence.video.unavailable.title': 'Recording unavailable for this run',
+  'evidence.video.unavailable.explanation':
+    'Video was not recorded when this run happened. Frames still show what the model saw at each decision.',
+  'evidence.video.failed.capture.title': 'Recording failed',
+  'evidence.video.failed.capture.explanation':
+    'The video could not be saved when this test finished. There is nothing to retry. Frames still show what the model saw at each decision.',
+  'evidence.video.failed.load.title': "Couldn't load the recording",
+  'evidence.video.failed.load.explanation':
+    "The recording exists but didn't load. Retry, or switch to Frames.",
+  'evidence.video.noSelection.title': 'No step selected',
+  'evidence.video.noSelection.explanation':
+    'The recording follows the timeline. Pick a step in the tree or on the timeline to position it.',
+
+  'evidence.frame.notCaptured.subAction.title': 'No screenshot for this action',
+  'evidence.frame.notCaptured.subAction.explanation':
+    'No screenshot was saved for this sub-action.',
+  'evidence.frame.notCaptured.step.title': 'No screenshots for this step',
+  'evidence.frame.notCaptured.step.explanation':
+    "None of this step's sub-actions saved a screenshot.",
+  'evidence.frame.unavailable.title': 'Screenshot unavailable',
+  'evidence.frame.failed.load.title': "Couldn't load the screenshot",
+  'evidence.frame.failed.load.explanation': "The screenshot exists but didn't load.",
+
+  'evidence.tab.variables': 'Variables',
+  'evidence.tab.network': 'Network',
+  'evidence.tab.console': 'Console',
+  'evidence.tab.aria': 'ARIA Tree',
+  'evidence.tab.a11y': 'A11y',
+  'evidence.trigger.variables': 'Variables, {{count}}',
+  'evidence.trigger.aria': 'ARIA Tree, {{count}}',
+  'evidence.trigger.consoleErrors_one': 'Console, {{count}} error',
+  'evidence.trigger.consoleErrors_other': 'Console, {{count}} errors',
+  'evidence.trigger.consoleMessages_one': 'Console, {{count}} message',
+  'evidence.trigger.consoleMessages_other': 'Console, {{count}} messages',
+  'evidence.trigger.networkFailed_one': 'Network, {{count}} failed request',
+  'evidence.trigger.networkFailed_other': 'Network, {{count}} failed requests',
+  'evidence.trigger.networkRequests_one': 'Network, {{count}} request',
+  'evidence.trigger.networkRequests_other': 'Network, {{count}} requests',
+  'evidence.trigger.a11yViolations_one': 'A11y, {{count}} violation',
+  'evidence.trigger.a11yViolations_other': 'A11y, {{count}} violations',
+  'evidence.trigger.absent': '{{tab}} — {{title}}',
+  'evidence.signal.console_one': '{{count}} console error on step {{step}} — open Console',
+  'evidence.signal.console_other': '{{count}} console errors on step {{step}} — open Console',
+  'evidence.signal.network_one': '{{count}} failed request on step {{step}} — open Network',
+  'evidence.signal.network_other': '{{count}} failed requests on step {{step}} — open Network',
+  'evidence.signal.a11y_one': '{{count}} accessibility violation on step {{step}} — open A11y',
+  'evidence.signal.a11y_other': '{{count}} accessibility violations on step {{step}} — open A11y',
+
+  'evidence.drawer.test': 'Test',
+  'evidence.drawer.config': 'Config',
+  'evidence.drawer.testAsWritten': 'Test as written',
+  'evidence.drawer.resolvedDefinition': 'Resolved definition',
+  'evidence.drawer.suiteMembers': 'Suite members',
+  'evidence.drawer.runTests': 'Tests in this run',
+  'evidence.drawer.runAttributes': 'Run attributes',
+  'evidence.drawer.effectiveConfig': 'Effective config',
+  'evidence.drawer.globalConfigAsWritten': 'Global config as written',
+  'evidence.drawer.model': 'Model',
+  'evidence.drawer.runtime': 'Runtime',
+  'evidence.drawer.errors': 'Errors',
+  'evidence.drawer.notCaptured': 'Not captured',
+  'evidence.drawer.configNotCaptured': 'Config not captured',
+  'evidence.drawer.unsealedCapture':
+    "This run's setup capture didn't finish, so the test and config shown here may be incomplete.",
+  'evidence.drawer.technicalDetails': 'Technical details',
+  'evidence.drawer.runId': 'Run ID',
+  'evidence.drawer.artifactKind': 'Artifact kind',
+  'evidence.drawer.schemaVersion': 'Schema version',
+  'evidence.drawer.captureSealedAt': 'Capture sealed at',
+  'evidence.drawer.copyRunId': 'Copy run ID',
+  'evidence.drawer.retry': 'Retry loading run details',
+  'evidence.drawer.ranHere': 'Ran on this machine',
+  'evidence.drawer.ranHereOn': 'Ran on this machine, {{deviceType}}',
+  'evidence.drawer.opensInNewTab': '(opens in a new tab)',
+  'evidence.drawer.remote': '{{name}} ({{where}})',
+  'evidence.drawer.ranOn': 'Ran on {{remote}}',
+  'evidence.drawer.ranOnVersion': 'Ran on {{remote}}, {{version}}',
+  'evidence.drawer.lostOn': 'Ran on {{remote}}, until the connection was lost',
+  'evidence.drawer.lostOnVersion': 'Ran on {{remote}}, {{version}}, until the connection was lost',
+  'evidence.drawer.endedOn': 'Ran on {{remote}}, until the remote ended the session',
+  'evidence.drawer.endedOnVersion':
+    'Ran on {{remote}}, {{version}}, until the remote ended the session',
+  'evidence.drawer.couldNotRun': 'Could not run on {{remote}}: {{reason}}',
+  'evidence.drawer.sessionRefused': 'session refused',
+  'evidence.drawer.plugin': 'Plugin {{entry}}',
+  'evidence.drawer.pluginSource': 'Plugin {{entry}} ({{source}})',
+  'evidence.drawer.sessionPage': 'Session page',
+  'evidence.drawer.kind.test': 'Test',
+  'evidence.drawer.kind.unknown': 'Not recorded',
+  'evidence.drawer.titleFallback': 'Run {{id}}',
+} as const

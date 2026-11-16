@@ -1,11 +1,13 @@
+import { t } from '@/i18n'
+import { textTable } from '@/i18n/text-table'
 import { actionSentenceText, buildActionSentence, RESULT_WORDS } from './action-vocabulary'
 import { formatOffset, type TimelineMarker, type TimelineModel } from './playhead'
 
-export const TIMELINE_COPY = {
-  slider: 'Test timeline',
-  signals: 'Step signals',
-  results: RESULT_WORDS,
-} as const
+export const TIMELINE_COPY = textTable({
+  slider: () => t('player.timeline.slider'),
+  signals: () => t('player.timeline.signals'),
+  results: () => RESULT_WORDS,
+})
 
 export type MarkerDensity = 'glyph' | 'tick' | 'scroll'
 export const MARKER_DENSITIES = ['glyph', 'tick', 'scroll'] as const satisfies readonly MarkerDensity[]
@@ -18,7 +20,16 @@ export function markerDensity(slotWidth: number): MarkerDensity {
 
 export function timelineValueText(marker: TimelineMarker, total: number): string {
   const time = formatOffset(marker.recordingOffsetMs)
-  return `Step ${marker.stepIndex + 1}, sub-action ${marker.ordinal} of ${total}: ${actionSentenceText(buildActionSentence(marker.subAction))}, ${RESULT_WORDS[marker.result]}${time === undefined ? '' : `, ${time}`}`
+  const values = {
+    step: marker.stepIndex + 1,
+    ordinal: marker.ordinal,
+    total,
+    sentence: actionSentenceText(buildActionSentence(marker.subAction)),
+    result: RESULT_WORDS[marker.result],
+  }
+  return time === undefined
+    ? t('player.timeline.marker', values)
+    : t('player.timeline.markerAt', { ...values, time })
 }
 
 export function timelineReadout(model: TimelineModel, marker: TimelineMarker | undefined, short = false, position?: number): string {
@@ -26,5 +37,7 @@ export function timelineReadout(model: TimelineModel, marker: TimelineMarker | u
   const total = model.markers.length
   if (short) return `#${ordinal}/${total}`
   const offset = model.axis === 'time' ? formatOffset(position === undefined ? marker?.recordingOffsetMs : position * model.extent) : undefined
-  return `#${ordinal} of ${total}${offset === undefined ? '' : ` · ${offset} / ${formatOffset(model.extent)}`}`
+  return offset === undefined
+    ? t('player.timeline.readout', { ordinal, total })
+    : t('player.timeline.readoutAt', { ordinal, total, offset, extent: formatOffset(model.extent) ?? '' })
 }

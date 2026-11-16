@@ -491,7 +491,7 @@ test('PLAYER-VIDEO-UNTIMED-NOTE', async () => {
   delete group.steps[0]!.subActions[1]!.recordingOffsetMs
   const media = video()
   metadata(media)
-  expect(query('[data-player]').textContent).toContain(VIDEO_UNTIMED_NOTE)
+  expect(query('[data-player]').textContent).toContain(VIDEO_UNTIMED_NOTE())
   expect(query('[data-player]').textContent).not.toContain('has no per-action timing')
   expect(query('[data-player-caption]').textContent).not.toContain('0:00')
   expect(media.paused).toBe(true)
