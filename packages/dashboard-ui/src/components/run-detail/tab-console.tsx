@@ -7,7 +7,7 @@ import type { DisplayStep } from "@/lib/display-step"
 import { formatRegionalDateTime, formatUnit } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { useEvidenceRecords } from '@/hooks/use-evidence-records'
-import { EVIDENCE_COPY, resolveEvidenceView } from '@/lib/evidence-state-view'
+import { EVIDENCE_COPY, explanationWithStep, resolveEvidenceView } from '@/lib/evidence-state-view'
 import { EvidenceLoading, EvidenceState } from './evidence-state'
 import { useTranslation } from '@/i18n'
 
@@ -78,7 +78,7 @@ export function TabConsole({ step, allSteps, executionLogs, isHookStep, runId, s
   if (view.kind === 'state') {
     const action = view.action
     return <EvidenceState {...view} kind="console"
-      explanation={action?.type === 'step' ? `${view.explanation} ${action.description}` : view.explanation}
+      explanation={action?.type === 'step' ? explanationWithStep(view.explanation, action.description) : view.explanation}
       actionLabel={action?.label} onAction={action?.type === 'retry' ? retry : action?.type === 'step' && onSelectStep
         ? () => { const target = memberSteps.find(s => s.stepIndex === action.stepIndex); if (target) onSelectStep(target.id) } : undefined} />
   }

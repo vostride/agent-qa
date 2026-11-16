@@ -2,7 +2,7 @@ import type { EvidenceDocument } from '@vostride/agent-qa-schema'
 import { Badge } from '@/components/ui/badge'
 import { useEvidenceRecords } from '@/hooks/use-evidence-records'
 import type { DisplayStep } from '@/lib/display-step'
-import { resolveEvidenceView } from '@/lib/evidence-state-view'
+import { explanationWithStep, resolveEvidenceView } from '@/lib/evidence-state-view'
 import { cn } from '@/lib/utils'
 import { EvidenceState, EvidenceLoading } from './evidence-state'
 import { useTranslation } from '@/i18n'
@@ -66,7 +66,7 @@ export function TabA11y({ step, runId, selection = step ? 'step' : 'none', allSt
   if (view.kind === 'state') {
     const action = view.action
     return <EvidenceState {...view} kind="a11y"
-      explanation={action?.type === 'step' ? `${view.explanation} ${action.description}` : view.explanation}
+      explanation={action?.type === 'step' ? explanationWithStep(view.explanation, action.description) : view.explanation}
       actionLabel={action?.label} onAction={action?.type === 'retry' ? retry : action?.type === 'step' && onSelectStep
         ? () => { const target = memberSteps.find(s => s.stepIndex === action.stepIndex); if (target) onSelectStep(target.id) } : undefined} />
   }

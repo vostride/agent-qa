@@ -79,6 +79,11 @@ const DEVICE_TYPES = ['simulator', 'real device'] as const
 
 export type ShownDeviceType = (typeof DEVICE_TYPES)[number]
 
+const DEVICE_TYPE_WORDS: Readonly<Record<ShownDeviceType, string>> = textTable({
+  simulator: () => t('evidence.drawer.deviceType.simulator'),
+  'real device': () => t('evidence.drawer.deviceType.realDevice'),
+})
+
 export function isShownDeviceType(value: string | null): value is ShownDeviceType {
   return DEVICE_TYPES.some((type) => type === value)
 }
@@ -90,7 +95,7 @@ export function deviceDetail(
 ): string | null {
   const parts = [
     appiumVersion ? `Appium ${appiumVersion}` : null,
-    isShownDeviceType(deviceType) ? deviceType : null,
+    isShownDeviceType(deviceType) ? DEVICE_TYPE_WORDS[deviceType] : null,
   ].filter((part): part is string => part !== null)
   return parts.length > 0 ? parts.join(', ') : null
 }
@@ -98,7 +103,7 @@ export function deviceDetail(
 /** A test that ran here, with its iOS device type when one was recorded. */
 export function ranHereLine(deviceType: string | null): string {
   return isShownDeviceType(deviceType)
-    ? t('evidence.drawer.ranHereOn', { deviceType })
+    ? t('evidence.drawer.ranHereOn', { deviceType: DEVICE_TYPE_WORDS[deviceType] })
     : DRAWER_COPY.ranHere
 }
 

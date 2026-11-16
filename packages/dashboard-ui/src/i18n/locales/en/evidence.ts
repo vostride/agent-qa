@@ -3,6 +3,7 @@ export default {
   'evidence.incompleteExplanation':
     'evidence incomplete — this was recorded, but the saved file is no longer on disk.',
   'evidence.recordedOnStep': 'Recorded on step {{step}}',
+  'evidence.explanationWithStep': '{{explanation}} {{step}}',
   'evidence.goToStep': 'Go to step {{step}}',
 
   'evidence.retry.variables': 'Retry loading variables',
@@ -190,6 +191,8 @@ export default {
   'evidence.drawer.retry': 'Retry loading run details',
   'evidence.drawer.ranHere': 'Ran on this machine',
   'evidence.drawer.ranHereOn': 'Ran on this machine, {{deviceType}}',
+  'evidence.drawer.deviceType.simulator': 'simulator',
+  'evidence.drawer.deviceType.realDevice': 'real device',
   'evidence.drawer.opensInNewTab': '(opens in a new tab)',
   'evidence.drawer.remote': '{{name}} ({{where}})',
   'evidence.drawer.ranOn': 'Ran on {{remote}}',

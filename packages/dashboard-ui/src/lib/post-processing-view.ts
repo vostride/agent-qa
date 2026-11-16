@@ -345,9 +345,20 @@ export function stageTimingLine(
   return clauses.length === 0 ? undefined : clauses.join(' · ')
 }
 
-// A re-spelling of the schema's list, not a second closed set to register new classes in.
+const VERDICT_CLASS_WORDS: Readonly<Record<VerdictClass, string>> = textTable({
+  test_bug: () => t('runDetail.postProcessing.verdictClass.testBug'),
+  app_bug: () => t('runDetail.postProcessing.verdictClass.appBug'),
+  environment: () => t('runDetail.postProcessing.verdictClass.environment'),
+  flake: () => t('runDetail.postProcessing.verdictClass.flake'),
+  config_error: () => t('runDetail.postProcessing.verdictClass.configError'),
+  llm_error: () => t('runDetail.postProcessing.verdictClass.llmError'),
+  unknown: () => t('runDetail.postProcessing.verdictClass.unknown'),
+  timeout: () => t('runDetail.postProcessing.verdictClass.timeout'),
+})
+
+// A class newer than this dashboard is shown with its underscores spelled as spaces.
 export function verdictClassLabel(cls: VerdictClass): string {
-  return cls.replace(/_/g, ' ')
+  return VERDICT_CLASS_WORDS[cls] ?? cls.replace(/_/g, ' ')
 }
 
 /** `Analysis complete — root cause: {class} ({n} verdict|verdicts)`, or the classless form. */

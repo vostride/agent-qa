@@ -33,6 +33,11 @@ export const EVIDENCE_ICON_OF_STATE = {
 export const EVIDENCE_LOADING_LABEL = () => t('evidence.loading')
 export const EVIDENCE_INCOMPLETE_EXPLANATION = () => t('evidence.incompleteExplanation')
 export const RECORDED_ELSEWHERE_LABEL = (step: number) => t('evidence.recordedOnStep', { step })
+
+export function explanationWithStep(explanation: string, step: string): string {
+  return t('evidence.explanationWithStep', { explanation, step })
+}
+
 export const GO_TO_STEP_LABEL = (step: number) => t('evidence.goToStep', { step })
 export const EVIDENCE_RETRY_LABELS = textTable({
   variables: () => t('evidence.retry.variables'),
