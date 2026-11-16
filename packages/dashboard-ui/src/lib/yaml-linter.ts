@@ -1,5 +1,6 @@
 import * as monaco from 'monaco-editor'
 import { validateTestContent, validateSuiteContent } from '@/lib/api'
+import { t } from '@/i18n'
 
 let timer: ReturnType<typeof setTimeout> | undefined
 
@@ -26,7 +27,9 @@ export function setupYamlLinter(
         const lineContent = line <= model.getLineCount() ? model.getLineContent(line) : ''
         return {
           severity: monaco.MarkerSeverity.Error,
-          message: err.suggestion ? `${err.message}\n\nHint: ${err.suggestion}` : err.message,
+          message: err.suggestion
+            ? `${err.message}\n\n${t('editor.monaco.hint', { suggestion: err.suggestion })}`
+            : err.message,
           startLineNumber: line,
           startColumn: err.column ?? 1,
           endLineNumber: line,

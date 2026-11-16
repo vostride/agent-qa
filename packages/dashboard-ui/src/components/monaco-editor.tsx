@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback, lazy, Suspense } from 'react'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/i18n'
 
 interface MonacoEditorProps {
   value: string
@@ -16,9 +17,10 @@ interface MonacoEditorProps {
 const MonacoEditorInner = lazy(() => import('@/components/monaco-editor-inner'))
 
 function EditorFallback({ className }: { className?: string }) {
+  const { t } = useTranslation()
   return (
     <div className={cn('flex items-center justify-center bg-background border border-border rounded-md', className)}>
-      <div className="text-sm text-muted-foreground">Loading editor...</div>
+      <div className="text-sm text-muted-foreground">{t('editor.monaco.loading')}</div>
     </div>
   )
 }

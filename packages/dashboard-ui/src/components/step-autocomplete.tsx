@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { pillBgColor } from '@/components/run-detail/step-name-pills'
 import type { VariableSuggestion } from '@/hooks/use-variable-suggestions'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/i18n'
 
 interface AutocompleteContext {
   active: boolean
@@ -67,6 +68,7 @@ export function useStepAutocomplete({
   onInsert,
   anchorRef,
 }: UseStepAutocompleteOpts): UseStepAutocompleteResult {
+  const { t } = useTranslation()
   const [visible, setVisible] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(0)
   const listRef = useRef<HTMLDivElement>(null)
@@ -205,7 +207,7 @@ export function useStepAutocomplete({
           </div>
         ) : (
           <div className="px-3 py-2 text-sm italic text-muted-foreground text-center">
-            No matches
+            {t('editor.suggestions.noMatches')}
           </div>
         )}
       </div>

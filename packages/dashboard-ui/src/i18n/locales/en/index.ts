@@ -2,6 +2,7 @@ import action from './action'
 import common from './common'
 import config from './config'
 import configUi from './configUi'
+import editor from './editor'
 import evidence from './evidence'
 import feedback from './feedback'
 import insights from './insights'
@@ -34,4 +35,5 @@ export default {
   ...knowledge,
   ...feedback,
   ...tests,
+  ...editor,
 } as const

@@ -1,5 +1,8 @@
 import * as monaco from 'monaco-editor'
 
+import { t } from '@/i18n'
+import type editor from '@/i18n/locales/en/editor'
+
 export const LLM_PROVIDER_COMPLETION_VALUES = [
   'openai-compatible',
   'anthropic-compatible',
@@ -8,10 +11,12 @@ export const LLM_PROVIDER_COMPLETION_VALUES = [
   'gemini',
 ] as const
 
+type DocumentationKey = Extract<keyof typeof editor, `editor.yaml.${string}`>
+
 interface SchemaField {
   label: string
   detail: string
-  documentation?: string
+  documentation?: DocumentationKey
   kind: 'object' | 'string' | 'number' | 'boolean' | 'array' | 'enum'
   enumValues?: string[]
   children?: SchemaField[]
@@ -24,55 +29,55 @@ const SCHEMA_MAP: SchemaField = {
   kind: 'object',
   detail: 'Test definition',
   children: [
-    { label: 'name', kind: 'string', detail: 'string (required)', documentation: 'Test name — displayed in reports and dashboard' },
-    { label: 'target', kind: 'string', detail: 'string (required)', documentation: 'Named target preset from global config targets section' },
-    { label: 'context', kind: 'string', detail: 'string', documentation: 'Additional context or instructions for the AI agent' },
+    { label: 'name', kind: 'string', detail: 'string (required)', documentation: 'editor.yaml.name' },
+    { label: 'target', kind: 'string', detail: 'string (required)', documentation: 'editor.yaml.target' },
+    { label: 'context', kind: 'string', detail: 'string', documentation: 'editor.yaml.context' },
     {
       label: 'setup',
       kind: 'array',
       detail: 'string[]',
-      documentation: 'Setup hooks to run before test steps. Values reference canonical hook IDs from the configured hooks file.',
+      documentation: 'editor.yaml.setup',
     },
     {
       label: 'steps',
       kind: 'array',
       detail: 'string[] (required)',
-      documentation: 'Array of natural language test steps. Each step is a plain string like "Click the login button"',
+      documentation: 'editor.yaml.steps',
     },
     {
       label: 'teardown',
       kind: 'array',
       detail: 'string[]',
-      documentation: 'Teardown hooks to run after test steps. Values reference canonical hook IDs from the configured hooks file.',
+      documentation: 'editor.yaml.teardown',
     },
     {
       label: 'variables',
       kind: 'object',
       detail: 'Record<string, string>',
-      documentation: 'Key-value pairs for test variables. Access in steps via {{env:varName}} syntax. Overrides env file values.',
+      documentation: 'editor.yaml.variables',
     },
     {
       label: 'config',
       kind: 'object',
       detail: 'object',
-      documentation: 'Test-level configuration overrides',
+      documentation: 'editor.yaml.config',
       children: [
         {
           label: 'browser',
           kind: 'object',
           detail: 'object',
-          documentation: 'Browser configuration',
+          documentation: 'editor.yaml.config.browser',
           children: [
-            { label: 'name', kind: 'enum', detail: 'enum', enumValues: ['chromium', 'firefox', 'webkit'], documentation: 'Browser engine' },
-            { label: 'headless', kind: 'boolean', detail: 'boolean', documentation: 'Run in headless mode (default: true)' },
+            { label: 'name', kind: 'enum', detail: 'enum', enumValues: ['chromium', 'firefox', 'webkit'], documentation: 'editor.yaml.config.browser.name' },
+            { label: 'headless', kind: 'boolean', detail: 'boolean', documentation: 'editor.yaml.config.browser.headless' },
             {
               label: 'viewport',
               kind: 'object',
               detail: 'object',
-              documentation: 'Browser viewport dimensions',
+              documentation: 'editor.yaml.config.browser.viewport',
               children: [
-                { label: 'width', kind: 'number', detail: 'number', documentation: 'Viewport width in pixels' },
-                { label: 'height', kind: 'number', detail: 'number', documentation: 'Viewport height in pixels' },
+                { label: 'width', kind: 'number', detail: 'number', documentation: 'editor.yaml.config.browser.viewport.width' },
+                { label: 'height', kind: 'number', detail: 'number', documentation: 'editor.yaml.config.browser.viewport.height' },
               ],
             },
           ],
@@ -81,37 +86,37 @@ const SCHEMA_MAP: SchemaField = {
           label: 'device',
           kind: 'object',
           detail: 'object',
-          documentation: 'Mobile device configuration (Android/iOS)',
+          documentation: 'editor.yaml.config.device',
           children: [
-            { label: 'platform', kind: 'enum', detail: 'enum', enumValues: ['android', 'ios'], documentation: 'Android or iOS' },
-            { label: 'model', kind: 'string', detail: 'string', documentation: 'What people call the device, such as Pixel 8' },
-            { label: 'os', kind: 'string', detail: 'string', documentation: 'The OS version, quoted, such as "17.10"' },
-            { label: 'id', kind: 'string', detail: 'string', documentation: 'Needed only when two identical devices are attached' },
-            { label: 'remote', kind: 'string', detail: 'string', documentation: 'The registry.remotes entry whose Appium server runs this device' },
-            { label: 'capabilities', kind: 'object', detail: 'Record<string, unknown>', documentation: "Other Appium settings for this device's session" },
+            { label: 'platform', kind: 'enum', detail: 'enum', enumValues: ['android', 'ios'], documentation: 'editor.yaml.config.device.platform' },
+            { label: 'model', kind: 'string', detail: 'string', documentation: 'editor.yaml.config.device.model' },
+            { label: 'os', kind: 'string', detail: 'string', documentation: 'editor.yaml.config.device.os' },
+            { label: 'id', kind: 'string', detail: 'string', documentation: 'editor.yaml.config.device.id' },
+            { label: 'remote', kind: 'string', detail: 'string', documentation: 'editor.yaml.config.device.remote' },
+            { label: 'capabilities', kind: 'object', detail: 'Record<string, unknown>', documentation: 'editor.yaml.config.device.capabilities' },
           ],
         },
         {
           label: 'llm',
           kind: 'object',
           detail: 'object',
-          documentation: 'LLM configuration override',
+          documentation: 'editor.yaml.config.llm',
           children: [
-            { label: 'provider', kind: 'enum', detail: 'enum', enumValues: [...LLM_PROVIDER_COMPLETION_VALUES], documentation: 'LLM provider' },
-            { label: 'model', kind: 'string', detail: 'string', documentation: 'Exact model name for this provider mode.' },
-            { label: 'baseURL', kind: 'string', detail: 'string', documentation: 'Exact endpoint base URL for compatible provider modes.' },
-            { label: 'providerHeaders', kind: 'object', detail: 'Record<string, string>', documentation: 'Optional non-secret headers for anthropic-compatible endpoints.' },
+            { label: 'provider', kind: 'enum', detail: 'enum', enumValues: [...LLM_PROVIDER_COMPLETION_VALUES], documentation: 'editor.yaml.config.llm.provider' },
+            { label: 'model', kind: 'string', detail: 'string', documentation: 'editor.yaml.config.llm.model' },
+            { label: 'baseURL', kind: 'string', detail: 'string', documentation: 'editor.yaml.config.llm.baseURL' },
+            { label: 'providerHeaders', kind: 'object', detail: 'Record<string, string>', documentation: 'editor.yaml.config.llm.providerHeaders' },
           ],
         },
         {
           label: 'timeout',
           kind: 'object',
           detail: 'object',
-          documentation: 'Timeout overrides',
+          documentation: 'editor.yaml.config.timeout',
           children: [
-            { label: 'step', kind: 'string', detail: 'string', documentation: 'Per-step timeout (e.g., "30s", "5m")' },
-            { label: 'test', kind: 'string', detail: 'string', documentation: 'Per-test timeout (e.g., "10m", "1h")' },
-            { label: 'navigation', kind: 'string', detail: 'string', documentation: 'How long a web page load or URL wait can take. Default 2m. Android and iOS runs do not use it.' },
+            { label: 'step', kind: 'string', detail: 'string', documentation: 'editor.yaml.config.timeout.step' },
+            { label: 'test', kind: 'string', detail: 'string', documentation: 'editor.yaml.config.timeout.test' },
+            { label: 'navigation', kind: 'string', detail: 'string', documentation: 'editor.yaml.config.timeout.navigation' },
           ],
         },
       ],
@@ -120,16 +125,16 @@ const SCHEMA_MAP: SchemaField = {
       label: 'use',
       kind: 'object',
       detail: 'object',
-      documentation: 'Test-level runtime overrides',
+      documentation: 'editor.yaml.use',
       children: [
-        { label: 'device', kind: 'string', detail: 'string', documentation: 'Mobile device profile for this test or suite' },
+        { label: 'device', kind: 'string', detail: 'string', documentation: 'editor.yaml.use.device' },
         {
           label: 'mobile',
           kind: 'object',
           detail: 'object',
-          documentation: 'Native mobile app-state behavior',
+          documentation: 'editor.yaml.use.mobile',
           children: [
-            { label: 'appState', kind: 'enum', detail: 'enum', enumValues: ['preserve', 'reset'], documentation: 'Preserve or reset app data for native mobile app runs' },
+            { label: 'appState', kind: 'enum', detail: 'enum', enumValues: ['preserve', 'reset'], documentation: 'editor.yaml.use.mobile.appState' },
           ],
         },
       ],
@@ -138,34 +143,34 @@ const SCHEMA_MAP: SchemaField = {
       label: 'meta',
       kind: 'object',
       detail: 'object',
-      documentation: 'Test metadata',
+      documentation: 'editor.yaml.meta',
       children: [
-        { label: 'timeout', kind: 'string', detail: 'string', documentation: 'Test-level timeout override (e.g., "1m", "5m")' },
-        { label: 'retries', kind: 'number', detail: 'number', documentation: 'Number of retries on failure' },
-        { label: 'record', kind: 'boolean', detail: 'boolean', documentation: 'Enable video recording' },
+        { label: 'timeout', kind: 'string', detail: 'string', documentation: 'editor.yaml.meta.timeout' },
+        { label: 'retries', kind: 'number', detail: 'number', documentation: 'editor.yaml.meta.retries' },
+        { label: 'record', kind: 'boolean', detail: 'boolean', documentation: 'editor.yaml.meta.record' },
       ],
     },
     {
       label: 'matrix',
       kind: 'object',
       detail: 'object',
-      documentation: 'Matrix expansion for running test across multiple configurations',
+      documentation: 'editor.yaml.matrix',
       children: [
         {
           label: 'dimensions',
           kind: 'object',
           detail: 'Record<string, string[]>',
-          documentation: 'Named dimension arrays for cartesian product (e.g., { browser: ["chromium", "firefox"] })',
+          documentation: 'editor.yaml.matrix.dimensions',
         },
-        { label: 'include', kind: 'array', detail: 'object[]', documentation: 'Extra combinations to add' },
-        { label: 'exclude', kind: 'array', detail: 'object[]', documentation: 'Combinations to remove' },
-        { label: 'failFast', kind: 'boolean', detail: 'boolean', documentation: 'Stop on first failure (default: false)' },
+        { label: 'include', kind: 'array', detail: 'object[]', documentation: 'editor.yaml.matrix.include' },
+        { label: 'exclude', kind: 'array', detail: 'object[]', documentation: 'editor.yaml.matrix.exclude' },
+        { label: 'failFast', kind: 'boolean', detail: 'boolean', documentation: 'editor.yaml.matrix.failFast' },
       ],
     },
   ],
 }
 
-function findFieldAtPath(path: string[]): SchemaField | undefined {
+function findFieldAtPath(path: readonly string[]): SchemaField | undefined {
   let current: SchemaField = SCHEMA_MAP
   for (const segment of path) {
     if (!current.children) return undefined
@@ -174,6 +179,12 @@ function findFieldAtPath(path: string[]): SchemaField | undefined {
     current = child
   }
   return current
+}
+
+export function yamlKeyDocumentation(path: readonly string[]): string | undefined {
+  const key = findFieldAtPath(path)?.documentation
+  if (!key) return undefined
+  return key === 'editor.yaml.variables' ? t(key, { syntax: '{{env:varName}}' }) : t(key)
 }
 
 // Parse lines above cursor to determine the YAML path at the cursor position
@@ -322,7 +333,7 @@ export function registerYamlCompletions() {
               range,
               sortText: String(i).padStart(3, '0'),
               detail: field.detail,
-              documentation: field.documentation,
+              documentation: yamlKeyDocumentation([field.label]),
             })),
           }
         }
@@ -338,7 +349,7 @@ export function registerYamlCompletions() {
           range,
           sortText: String(i).padStart(3, '0'),
           detail: field.detail,
-          documentation: field.documentation,
+          documentation: yamlKeyDocumentation([...path, field.label]),
         })),
       }
     },

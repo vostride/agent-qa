@@ -7,6 +7,7 @@ import { registerYamlCompletions } from '@/lib/yaml-completions'
 import { setupYamlLinter } from '@/lib/yaml-linter'
 import { useTheme } from '@/components/theme-provider'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/i18n'
 
 interface MonacoEditorProps {
   value: string
@@ -50,6 +51,7 @@ function MonacoEditorInner({
   const [errors, setErrors] = useState<monaco.editor.IMarkerData[]>([])
   const [errorsExpanded, setErrorsExpanded] = useState(true)
   const { theme } = useTheme()
+  const { t } = useTranslation()
 
   // Keep refs current
   onSaveRef.current = onSave
@@ -213,14 +215,14 @@ function MonacoEditorInner({
             >
               <path d="M4 2l4 4-4 4z" />
             </svg>
-            Problems
+            {t('editor.monaco.problems')}
             {errors.length > 0 && (
               <span className="rounded-full bg-destructive/20 px-1.5 py-0.5 text-[10px] font-semibold text-destructive">
                 {errors.length}
               </span>
             )}
             {errors.length === 0 && (
-              <span className="text-[10px] text-muted-foreground/60">No problems</span>
+              <span className="text-[10px] text-muted-foreground/60">{t('editor.monaco.noProblems')}</span>
             )}
           </button>
           {errorsExpanded && errors.length > 0 && (
@@ -237,7 +239,7 @@ function MonacoEditorInner({
                     {err.message.split('\n')[0]}
                   </span>
                   <span className="shrink-0 text-muted-foreground">
-                    Ln {err.startLineNumber}
+                    {t('editor.monaco.line', { line: err.startLineNumber })}
                   </span>
                 </button>
               ))}
