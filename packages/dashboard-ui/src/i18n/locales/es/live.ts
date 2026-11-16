@@ -1,0 +1,138 @@
+import type en from '../en'
+import type { Translation } from '../../translation'
+
+export default {
+  'live.preview.loading': 'Conectando con la vista previa…',
+  'live.preview.delayed': 'Vista previa con retraso',
+  'live.preview.reconnecting': 'Reconectando…',
+  'live.preview.disconnected': 'Desconectado',
+  'live.preview.expired': 'El enlace caducó',
+  'live.preview.sessionEnded': 'La sesión terminó',
+  'live.preview.runEnded': 'La ejecución terminó',
+  'live.preview.memberEnded': 'Esta prueba terminó mientras la ejecución continúa',
+  'live.preview.unavailable': 'La vista previa en vivo no está disponible aquí',
+  'live.preview.noStream':
+    'no hay vista previa en vivo para este destino; la lista de pasos sigue avanzando',
+  'live.preview.waitingGaveUp':
+    'se esperó la vista en vivo, pero no llegó nada; la lista de pasos sigue avanzando',
+  'live.preview.waitingGaveUpLabel': 'abandonado',
+  'live.preview.action.reconnect': 'Reconectar',
+  'live.preview.action.refresh': 'Actualizar',
+  'live.preview.action.startFresh': 'Empezar de nuevo',
+  'live.preview.dotName.green': 'Vista previa en vivo en buen estado',
+  'live.preview.dotName.amber': 'Vista previa en vivo con retraso',
+  'live.preview.dotName.red': 'Vista previa en vivo detenida',
+  'live.preview.dotMeaning.green': 'Están llegando fotogramas del navegador.',
+  'live.preview.dotMeaning.amber':
+    'El fotograma más reciente llega tarde o la vista previa se está reconectando.',
+  'live.preview.dotMeaning.red': 'La vista previa dejó de recibir fotogramas.',
+  'live.preview.frameTitle': 'vista previa en vivo',
+  'live.config.targetNotFound':
+    'El destino seleccionado “{{name}}” no se encontró en la configuración del espacio de trabajo',
+  'live.config.webTargetMissingUrl': 'Al destino web seleccionado “{{name}}” le falta una URL',
+  'live.session.stepFailed': 'El paso {{number}} falló: {{error}}',
+  'live.session.stepBusy': 'Ya hay un paso en curso: {{step}}',
+  'live.session.notReady': 'La sesión en vivo no está lista',
+  'live.session.busyOrNotReady': 'La sesión en vivo está ocupada o no está lista',
+  'live.pane.fallbackTitle': 'Sesión en vivo',
+  'live.pane.draft.invalid': 'Borrador no válido',
+  'live.pane.draft.saved': 'Borrador guardado',
+  'live.pane.draft.unsaved': 'Usando el borrador sin guardar',
+  'live.pane.runAll': 'Ejecutar todos los pasos',
+  'live.pane.stopAll': 'Detener todos los pasos',
+  'live.pane.stopping': 'Deteniendo…',
+  'live.pane.endSession': 'Finalizar sesión en vivo',
+  'live.pane.restartSession': 'Reiniciar la sesión en vivo',
+  'live.pane.closeLiveMode': 'Cerrar el modo en vivo',
+  'live.pane.startFreshSession': 'Iniciar una sesión nueva',
+  'live.pane.hooksStale':
+    'El orden o los nombres de los hooks cambiaron después de que se iniciara esta sesión en vivo. Sigue usando la sesión desechable actual o reiníciala para aplicar los hooks de preparación y de limpieza más recientes.',
+  'live.pane.signedOut':
+    'El estado de autenticación “{{name}}” del destino “{{target}}” no se encontró o no se pudo leer, así que esta sesión se inició sin sesión iniciada. Inicia sesión aquí y usa Guardar estado de autenticación para registrarlo.',
+  'live.pane.idleTitle': 'El modo en vivo depende del destino',
+  'live.pane.idleDescription':
+    'Este espacio ejecuta el borrador actual del editor visual con el destino seleccionado. Las sesiones son desechables y los cambios del borrador solo se conservan cuando guardas la prueba.',
+  'live.pane.connecting': 'Conectando con el navegador…',
+  'live.pane.address.startUrl': 'URL de inicio configurada',
+  'live.pane.address.androidDevice': 'Dispositivo Android',
+  'live.pane.address.iosDevice': 'Dispositivo iOS',
+  'live.pane.address.back': 'Atrás',
+  'live.pane.address.forward': 'Adelante',
+  'live.pane.address.refresh': 'Actualizar la página',
+  'live.pane.address.copy': 'Copiar la URL',
+  'live.pane.address.copied': 'URL copiada',
+  'live.pane.tab.reasoning': 'Razonamiento',
+  'live.pane.tab.env': 'Entorno',
+  'live.pane.tab.network': 'Red',
+  'live.pane.tab.console': 'Consola',
+  'live.pane.tab.aria': 'Árbol ARIA',
+  'live.pane.hook.noVariables': 'Este hook no emitió ninguna variable',
+  'live.pane.hook.emittedVariables': 'Variables emitidas',
+  'live.pane.hook.noOutputTitle': 'Aún no hay salida de hooks',
+  'live.pane.hook.noOutputDescription':
+    'Conecta una sesión en vivo, ejecuta un hook de limpieza o finaliza la sesión actual para registrar la salida de los hooks.',
+  'live.pane.hook.withStatus': '{{name}} ({{status}})',
+  'live.pane.test.setupHooks': 'Hooks de preparación',
+  'live.pane.test.teardownHooks': 'Hooks de limpieza',
+  'live.pane.test.noSetupHooks': 'No hay hooks de preparación propios de la prueba',
+  'live.pane.test.noTeardownHooks': 'No hay hooks de limpieza propios de la prueba',
+  'live.pane.test.steps': 'Pasos',
+  'live.pane.test.stepNumber': 'Paso n.º {{number}}',
+  'live.pane.test.noStepDetail':
+    'Esta prueba aún no ha producido detalles de pasos en vivo. Ejecútala desde la cola para ver el razonamiento, la consola, la red y la salida de los hooks.',
+  'live.pane.reasoning.selectTestDescription':
+    'Elige una prueba en la cola en vivo para ver su razonamiento, sus registros, sus hooks y su actividad de red.',
+  'live.pane.reasoning.selectionGone': 'La selección ya no está disponible',
+  'live.pane.reasoning.selectionGoneDescription':
+    'Elige otro paso en el editor visual para ver su razonamiento.',
+  'live.pane.reasoning.empty': 'Aún no hay razonamiento',
+  'live.pane.reasoning.emptyDescription':
+    'Ejecuta un paso desde el editor visual o usa Ejecutar todos los pasos para llenar el rastro de razonamiento en vivo.',
+  'live.pane.selectTest': 'Selecciona una prueba para inspeccionarla',
+  'live.pane.env.selectTestHook':
+    'Selecciona un hook de la prueba o ejecuta un paso para ver las variables y la salida de runJS',
+  'live.pane.env.selectStep': 'Selecciona un paso para ver las variables y la salida de runJS',
+  'live.pane.network.hookInTest':
+    'Los hooks no registran la actividad de red del navegador. Selecciona un paso de la prueba para ver las solicitudes.',
+  'live.pane.network.hook':
+    'Los hooks no registran la actividad de red del navegador. Selecciona un paso para ver las solicitudes.',
+  'live.pane.network.runTest': 'Ejecuta esta prueba para ver su actividad de red',
+  'live.pane.network.selectStep': 'Selecciona un paso para ver la actividad de red',
+  'live.pane.console.runTest': 'Ejecuta esta prueba para ver la salida de consola',
+  'live.pane.console.selectStep': 'Selecciona un paso para ver la salida de consola',
+  'live.authState.save': 'Guardar estado de autenticación',
+  'live.authState.replace': 'Sustituir el estado de autenticación',
+  'live.authState.openForm': 'Abrir el formulario para guardar el estado de autenticación',
+  'live.authState.description':
+    'Registra la sesión actual del navegador para este destino: las cookies, localStorage, IndexedDB y el sessionStorage de sus pestañas abiertas.',
+  'live.authState.target': 'Destino',
+  'live.authState.name': 'Nombre del estado de autenticación',
+  'live.authState.nameHint': 'Usa letras minúsculas, números y guiones.',
+  'live.authState.nameInvalid':
+    'El nombre del estado de autenticación debe estar en minúsculas, con palabras separadas por guiones.',
+  'live.authState.savedForTarget': 'Guardados para este destino',
+  'live.authState.noneSaved': 'No hay estados de autenticación guardados para este destino.',
+  'live.authState.willReplace': 'Se sustituirá el estado de autenticación existente.',
+  'live.authState.saveFailed':
+    'No se pudo guardar el estado de autenticación “{{name}}” del destino “{{target}}”.',
+  'live.run.title': 'Ejecución en vivo',
+  'live.run.noRun': 'No hay ninguna ejecución seleccionada',
+  'live.run.noRunDescription': 'Selecciona una ejecución de prueba para verla en vivo',
+  'live.run.cancel': 'Cancelar',
+  'live.run.cancelling': 'Cancelando…',
+  'live.run.cancelFailed': 'No se pudo cancelar la ejecución',
+  'live.run.viewRunDetail': 'ver el detalle de la ejecución',
+  'live.run.ended': 'la ejecución terminó',
+  'live.run.over': 'esta ejecución terminó: ver el detalle de la ejecución',
+  'live.run.metaUnavailable':
+    'los detalles de la ejecución no están disponibles; la transmisión en vivo no se ve afectada',
+  'live.run.gapMarker_one':
+    '{{count}} evento perdido (sec. {{from}}–{{to}}): consulta el detalle de la ejecución',
+  'live.run.gapMarker_other':
+    '{{count}} eventos perdidos (sec. {{from}}–{{to}}): consulta el detalle de la ejecución',
+  'live.run.remoteProgress': 'Remoto {{remote}}: {{message}}',
+  'live.run.remoteProgressPercent': 'Remoto {{remote}}: {{message}} {{percent}}',
+  'live.run.testFallback': 'prueba {{number}}',
+  'live.steps.empty': 'esperando el primer paso',
+  'live.steps.memberFallback': 'miembro {{number}}',
+} satisfies Translation<typeof en>

@@ -137,7 +137,7 @@ export default {
     'Ejecuta este hook o elige un resultado local reciente para examinarlo.',
   'hooks.run.none': 'Ninguna',
   'hooks.run.latestResult': 'Último resultado del hook',
-  'hooks.run.tab.overview': 'Resumen',
+  'hooks.run.tab.overview': 'Vista general',
   'hooks.run.tab.output': 'Salida',
   'hooks.run.tab.env': 'Variables de entorno',
   'hooks.run.tab.sandbox': 'Entorno aislado',
