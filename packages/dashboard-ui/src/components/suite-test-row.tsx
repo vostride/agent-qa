@@ -19,6 +19,7 @@ import type { LiveHookExecution, TestStepDetail } from '@/hooks/use-live-editor'
 import { fromEditorStep } from '@/lib/display-step'
 import type { LiveSubAction } from '@/hooks/use-live-editor'
 import type { Selection } from '@/lib/selection'
+import { t, useTranslation } from '@/i18n'
 
 interface SuiteTestRowProps {
   id: string
@@ -84,7 +85,7 @@ function StepStatusIcon({ status }: { status: TestStepDetail['status'] }) {
 export function formatSubActionSummary(subAction: LiveSubAction): string {
   if (subAction.observation) return subAction.observation
   if (subAction.reasoning) return subAction.reasoning
-  if (subAction.plannedAction != null) return 'Planned action captured'
+  if (subAction.plannedAction != null) return t('suites.builder.row.plannedAction')
   if (subAction.verifierReasoning) return subAction.verifierReasoning
   if (subAction.result === 'no-input') return RESULT_WORDS['no-input']
   return subAction.result
@@ -115,6 +116,7 @@ export function SuiteTestRow({
   selection = null,
   onSelect,
 }: SuiteTestRowProps) {
+  useTranslation()
   const {
     attributes,
     listeners,
@@ -175,7 +177,7 @@ export function SuiteTestRow({
           className="mt-0.5 flex shrink-0 items-center p-0.5 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing touch-none disabled:cursor-not-allowed"
           {...attributes}
           {...listeners}
-          aria-label={`Reorder ${name}`}
+          aria-label={t('suites.builder.row.reorder', { name })}
           aria-disabled={disabled || sortableDisabled}
           disabled={disabled || sortableDisabled}
         >
@@ -231,11 +233,14 @@ export function SuiteTestRow({
                         event.stopPropagation()
                         onSelect?.({ type: 'step', stepId: step.id })
                       }}
-                      aria-label={`Select step ${step.stepIndex + 1} ${step.instruction}`}
+                      aria-label={t('suites.builder.row.selectStep', {
+                        number: step.stepIndex + 1,
+                        instruction: step.instruction,
+                      })}
                     >
                       <StepStatusIcon status={step.status} />
                       <span className="shrink-0 text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
-                        Step {step.stepIndex + 1}
+                        {t('suites.builder.row.step', { number: step.stepIndex + 1 })}
                       </span>
                       <span className="min-w-0 flex-1 truncate text-xs text-foreground">
                         {step.instruction}
@@ -244,8 +249,8 @@ export function SuiteTestRow({
 
                     {(isRunningStep || isStepSelected) && (
                       <div className="flex flex-wrap gap-x-2 gap-y-0.5 px-2 pb-1 text-[11px] text-muted-foreground">
-                        {isRunningStep && <span>Current step</span>}
-                        {isStepSelected && <span>Inspecting below</span>}
+                        {isRunningStep && <span>{t('suites.builder.row.currentStep')}</span>}
+                        {isStepSelected && <span>{t('suites.builder.row.inspecting')}</span>}
                       </div>
                     )}
 
@@ -265,9 +270,14 @@ export function SuiteTestRow({
                                 event.stopPropagation()
                                 onSelect?.({ type: 'subaction', stepId: step.id, subIndex: subAction.index })
                               }}
-                              aria-label={`Select sub-action ${subAction.index + 1} for step ${step.stepIndex + 1}`}
+                              aria-label={t('suites.builder.row.selectSubAction', {
+                                subAction: subAction.index + 1,
+                                step: step.stepIndex + 1,
+                              })}
                             >
-                              <span className="shrink-0 font-medium">Sub {subAction.index + 1}</span>
+                              <span className="shrink-0 font-medium">
+                                {t('suites.builder.row.subAction', { number: subAction.index + 1 })}
+                              </span>
                               <span className="min-w-0 flex-1 truncate">{formatSubActionSummary(subAction)}</span>
                             </button>
                           )
@@ -281,7 +291,7 @@ export function SuiteTestRow({
           )}
           {isMissing && (
             <div className="text-[11px] text-amber-700 dark:text-amber-300">
-              This test file no longer exists in your workspace.
+              {t('suites.builder.row.missing')}
             </div>
           )}
         </div>
@@ -304,7 +314,11 @@ export function SuiteTestRow({
                 'text-muted-foreground hover:text-foreground',
                 (!canRunTest || !onRunTest || actionsLocked) && 'text-muted-foreground/30',
               )}
-              aria-label={liveStatus === 'idle' ? `Run test ${name}` : `Re-run test ${name}`}
+              aria-label={
+                liveStatus === 'idle'
+                  ? t('suites.builder.row.run', { name })
+                  : t('suites.builder.row.rerun', { name })
+              }
             >
               <Play className="size-3.5" />
             </Button>
@@ -317,7 +331,7 @@ export function SuiteTestRow({
               size="icon-sm"
               onClick={onCancelTest}
               className="text-muted-foreground hover:text-foreground"
-              aria-label={`Cancel test ${name}`}
+              aria-label={t('suites.builder.row.cancel', { name })}
             >
               <Square className="size-3" />
             </Button>
@@ -330,7 +344,7 @@ export function SuiteTestRow({
             className="text-muted-foreground hover:text-destructive"
             onClick={onRemove}
             disabled={disabled || actionsLocked}
-            aria-label={`Remove ${name}`}
+            aria-label={t('suites.builder.row.remove', { name })}
           >
             <X className="size-3.5" />
           </Button>
@@ -339,7 +353,7 @@ export function SuiteTestRow({
 
       {isFailed && liveError && (
         <p className="text-destructive text-xs mt-1 ml-7 line-clamp-2">
-          {liveError} — see Reasoning tab for details
+          {t('suites.builder.row.failed', { error: liveError })}
         </p>
       )}
 
@@ -363,7 +377,7 @@ export function SuiteTestRow({
                 >
                   <Webhook className="size-3 text-muted-foreground shrink-0" />
                   <span className="text-xs text-muted-foreground truncate flex-1">
-                    setup: {hook.name}
+                    {t('suites.builder.row.setupHook', { name: hook.name })}
                   </span>
                   <HookStatusIcon status={hook.status} />
                 </button>
@@ -388,7 +402,7 @@ export function SuiteTestRow({
                 >
                   <Webhook className="size-3 text-muted-foreground shrink-0" />
                   <span className="text-xs text-muted-foreground truncate flex-1">
-                    teardown: {hook.name}
+                    {t('suites.builder.row.teardownHook', { name: hook.name })}
                   </span>
                   <HookStatusIcon status={hook.status} />
                 </button>

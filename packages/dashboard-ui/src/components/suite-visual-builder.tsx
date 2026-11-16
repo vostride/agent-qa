@@ -46,6 +46,7 @@ import {
   type SuiteTestEntry,
 } from '@/lib/suite-yaml-serializer'
 import { fetchTestFiles, type TestFileInfo } from '@/lib/api'
+import { useTranslation } from '@/i18n'
 
 interface SuiteVisualBuilderProps {
   content: string
@@ -196,6 +197,7 @@ export function SuiteVisualBuilder({
   selection = null,
   onSelect,
 }: SuiteVisualBuilderProps) {
+  const { t } = useTranslation()
   const lastValidRef = useRef<SuiteFormState | null>(null)
   const { hooks: hookSuggestions, warningCopy } = useTestHookCatalog()
   const hookCatalogEntries = hookSuggestions ?? []
@@ -285,7 +287,7 @@ export function SuiteVisualBuilder({
         {yamlError && (
           <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
             <AlertCircle className="size-4 shrink-0" />
-            <span>YAML has errors — builder shows last valid state</span>
+            <span>{t('suites.builder.yamlErrors')}</span>
           </div>
         )}
 
@@ -293,11 +295,11 @@ export function SuiteVisualBuilder({
           <div className="flex flex-wrap items-start justify-between gap-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300">
             <div className="flex min-w-0 flex-1 items-start gap-2">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-              <span>Setup hooks changed — restart session to re-apply the latest setup and teardown hooks.</span>
+              <span>{t('suites.builder.hooksStale')}</span>
             </div>
             {onRestartSession && (
               <Button type="button" size="sm" className="shrink-0" onClick={onRestartSession}>
-                Restart Live Session
+                {t('suites.builder.restartLive')}
               </Button>
             )}
           </div>
@@ -319,7 +321,7 @@ export function SuiteVisualBuilder({
 
             {liveMode && (
               <LiveHookList
-                title="Setup Hooks (Live)"
+                title={t('suites.builder.liveSetupHooks')}
                 hooks={liveSetupHooks}
                 selection={selection}
                 onSelect={onSelect}
@@ -330,11 +332,12 @@ export function SuiteVisualBuilder({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Webhook className="size-4 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground">Hooks</span>
+                  <span className="text-xs font-medium text-muted-foreground">{t('suites.builder.hooks')}</span>
                 </div>
                 <span className="text-[10px] text-muted-foreground/50">
-                  {display.setup.length + display.teardown.length}{' '}
-                  {display.setup.length + display.teardown.length === 1 ? 'hook' : 'hooks'}
+                  {t('suites.builder.hookCount', {
+                    count: display.setup.length + display.teardown.length,
+                  })}
                 </span>
               </div>
               {warningCopy && (
@@ -348,24 +351,24 @@ export function SuiteVisualBuilder({
               )}
               <div className="space-y-3">
                 <p className="text-[11px] text-muted-foreground">
-                  Search hook names or paste an h_ ID. Saved as stable ID in YAML. Inline runHook uses the stable hook ID.
+                  {t('suites.builder.hookHelp')}
                 </p>
                 <TestHookListField
                   phase="setup"
-                  label="Setup"
+                  label={t('suites.builder.setup')}
                   values={display.setup}
                   suggestions={hookCatalogEntries}
                   disabled={hookControlsDisabled}
-                  placeholder="Search hook names or paste an h_ ID"
+                  placeholder={t('suites.builder.hookSearch')}
                   onChange={(values) => handleMetadataChange('setup', values)}
                 />
                 <TestHookListField
                   phase="teardown"
-                  label="Teardown"
+                  label={t('suites.builder.teardown')}
                   values={display.teardown}
                   suggestions={hookCatalogEntries}
                   disabled={hookControlsDisabled}
-                  placeholder="Search hook names or paste an h_ ID"
+                  placeholder={t('suites.builder.hookSearch')}
                   onChange={(values) => handleMetadataChange('teardown', values)}
                 />
               </div>
@@ -373,7 +376,7 @@ export function SuiteVisualBuilder({
 
             {liveMode && (
               <LiveHookList
-                title="Teardown Hooks (Live)"
+                title={t('suites.builder.liveTeardownHooks')}
                 hooks={liveTeardownHooks}
                 selection={selection}
                 onSelect={onSelect}
@@ -383,12 +386,12 @@ export function SuiteVisualBuilder({
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                  Tests in Suite{' '}
-                  <InfoTip text="Tests run in the order shown. Drag to reorder. The suite fails fast if any referenced test is missing at save." />
+                  {t('suites.builder.tests')}{' '}
+                  <InfoTip text={t('suites.builder.testsHelp')} />
                 </span>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] text-muted-foreground/50">
-                    {display.tests.length} {display.tests.length === 1 ? 'test' : 'tests'}
+                    {t('suites.builder.testCount', { count: display.tests.length })}
                   </span>
                   {liveMode && (
                     <Button
@@ -401,17 +404,17 @@ export function SuiteVisualBuilder({
                       {isStoppingRunAll ? (
                         <>
                           <Loader2 className="size-3.5 animate-spin" />
-                          Stopping...
+                          {t('suites.builder.stopping')}
                         </>
                       ) : isRunningAll ? (
                         <>
                           <Square className="size-3.5" />
-                          Stop Run All
+                          {t('suites.builder.stopAll')}
                         </>
                       ) : (
                         <>
                           <PlayCircle className="size-3.5" />
-                          Run All Tests
+                          {t('suites.builder.runAll')}
                         </>
                       )}
                     </Button>
@@ -419,13 +422,13 @@ export function SuiteVisualBuilder({
                 </div>
               </div>
               {display.tests.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No tests added yet. Use the picker below.</p>
+                <p className="text-sm text-muted-foreground">{t('suites.builder.noTests')}</p>
               ) : (
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={testIds} strategy={verticalListSortingStrategy}>
                     <div className="space-y-1.5">
                       {display.tests.map((entry, i) => {
-                        const tf = availableTests.find((t) => t.path === entry.test)
+                        const tf = availableTests.find((file) => file.path === entry.test)
                         const name = tf?.name ?? entry.test.split('/').pop() ?? entry.test
                         const isMissing = availableTests.length > 0 && !tf
                         const liveTest = liveMode ? liveTests[i] : undefined
@@ -469,7 +472,7 @@ export function SuiteVisualBuilder({
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Available Tests</span>
+                <span className="text-xs font-medium text-muted-foreground">{t('suites.builder.availableTests')}</span>
                 <Button
                   type="button"
                   variant="outline"
@@ -480,7 +483,7 @@ export function SuiteVisualBuilder({
                   aria-controls="suite-test-picker-region"
                 >
                   <Plus className="size-3" />
-                  {showTestPicker ? 'Hide picker' : 'Add new test'}
+                  {showTestPicker ? t('suites.builder.hidePicker') : t('suites.builder.showPicker')}
                 </Button>
               </div>
               {showTestPicker && (
@@ -496,7 +499,7 @@ export function SuiteVisualBuilder({
           </>
         ) : (
           <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-            Enter valid YAML to use the visual builder
+            {t('suites.builder.invalidYaml')}
           </div>
         )}
       </div>

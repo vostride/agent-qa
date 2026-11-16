@@ -56,6 +56,7 @@ import {
 import { getSuiteFilenameError } from "@/lib/suite-filename-validation"
 import { generateSuiteId } from "@/lib/generate-suite-id"
 import { suiteYamlToFormState, updateSuiteField } from "@/lib/suite-yaml-serializer"
+import { useTranslation } from "@/i18n"
 
 const DEFAULT_TEMPLATE = `name: My Suite
 target: ""
@@ -87,6 +88,7 @@ function InfoTip({ text }: { text: string }) {
 }
 
 export default function SuiteEditorPage() {
+  const { t } = useTranslation()
   const params = useParams<{ "suite-id": string }>()
   const routeSuiteId = params["suite-id"] ?? ""
   const navigate = useNavigate()
@@ -142,7 +144,7 @@ export default function SuiteEditorPage() {
 
   const displayFormState = useMemo(() => suiteYamlToFormState(content), [content])
   const suiteId = displayFormState?.suiteId ?? ''
-  const suiteName = displayFormState?.name || (isCreateMode ? 'New Suite' : filePath)
+  const suiteName = displayFormState?.name || (isCreateMode ? t("suites.editor.title.new") : filePath)
 
   // The server re-reads each test's YAML per execute, so the client sends only path and test id.
   const liveTests = useMemo<LiveEditorExternalTest[]>(() => {
@@ -209,11 +211,11 @@ export default function SuiteEditorPage() {
 
   const pageTitle = useMemo(() => {
     if (hasLiveSession && liveSessionNumber !== null) {
-      const name = displayFormState?.name?.trim() || suiteName || "Suite"
-      return `Live #${liveSessionNumber} — ${name}`
+      const name = displayFormState?.name?.trim() || suiteName || t("suites.editor.title.fallback")
+      return t("suites.editor.title.live", { number: liveSessionNumber, name })
     }
-    return isCreateMode ? "New Suite" : "Edit Suite"
-  }, [hasLiveSession, liveSessionNumber, displayFormState?.name, suiteName, isCreateMode])
+    return isCreateMode ? t("suites.editor.title.new") : t("suites.editor.title.edit")
+  }, [hasLiveSession, liveSessionNumber, displayFormState?.name, suiteName, isCreateMode, t])
   usePageTitle(pageTitle)
 
   const liveDraft = useMemo(() => {
@@ -228,19 +230,19 @@ export default function SuiteEditorPage() {
     if (liveTerminalReason === "ended") {
       return {
         reason: "ended" as const,
-        title: "Live session ended",
-        description: "The current draft is unchanged. Close live mode or start a fresh disposable session from this target.",
+        title: t("suites.editor.live.endedTitle"),
+        description: t("suites.editor.live.endedDescription"),
       }
     }
     if (liveTerminalReason === "disconnected") {
       return {
         reason: "disconnected" as const,
-        title: "Live session disconnected",
-        description: "The connection dropped and could not be restored. Start a fresh session to continue.",
+        title: t("suites.editor.live.disconnectedTitle"),
+        description: t("suites.editor.live.disconnectedDescription"),
       }
     }
     return null
-  }, [liveTerminalReason])
+  }, [liveTerminalReason, t])
 
   // Fetch suite file (edit mode)
   useEffect(() => {
@@ -300,41 +302,41 @@ export default function SuiteEditorPage() {
         const fnameError = getSuiteFilenameError(filename.trim(), suiteMatchPatterns)
         if (fnameError) { toast.error(fnameError); return }
         await createSuiteFile(filename.trim(), content)
-        toast.success('Suite file created')
+        toast.success(t("suites.editor.created"))
         const newSuiteId = displayFormState?.suiteId ?? ''
         if (!newSuiteId) {
-          toast.error('Created suite is missing suite-id; please reload')
+          toast.error(t("suites.editor.createdWithoutId"))
           return
         }
         navigate(routes.suiteEdit(newSuiteId))
       } else {
         await updateSuiteFile(routeSuiteId, content)
         setSavedContent(content)
-        toast.success('Saved')
+        toast.success(t("suites.editor.saved"))
       }
     } catch (err) {
       if (err instanceof ApiError && err.missingTests && err.missingTests.length > 0) {
-        toast.error(`Cannot save — referenced tests not found: ${err.missingTests.map((m) => m.test).join(', ')}`)
+        toast.error(t("suites.editor.missingTests", { tests: err.missingTests.map((m) => m.test).join(', ') }))
       } else {
-        toast.error(`Failed to save: ${err instanceof Error ? err.message : String(err)}`)
+        toast.error(t("suites.editor.saveFailed", { message: err instanceof Error ? err.message : String(err) }))
       }
     } finally {
       setIsSaving(false)
     }
-  }, [isCreateMode, filename, suiteMatchPatterns, content, routeSuiteId, displayFormState?.suiteId, navigate])
+  }, [isCreateMode, filename, suiteMatchPatterns, content, routeSuiteId, displayFormState?.suiteId, navigate, t])
 
   const handleValidate = useCallback(async () => {
     setIsValidating(true)
     try {
       const result = await validateSuiteContent(content)
-      if (result.valid) toast.success('Valid suite')
+      if (result.valid) toast.success(t("suites.editor.valid"))
       else toast.error(result.errors.map((e) => e.message).join('\n'))
     } catch (err) {
-      toast.error(`Validation failed: ${err instanceof Error ? err.message : String(err)}`)
+      toast.error(t("suites.editor.validationFailed", { message: err instanceof Error ? err.message : String(err) }))
     } finally {
       setIsValidating(false)
     }
-  }, [content])
+  }, [content, t])
 
   const handleRun = useCallback(async () => {
     if (isCreateMode) return
@@ -342,13 +344,13 @@ export default function SuiteEditorPage() {
     try {
       const r = await triggerRun({ file: filePath })
       setRunId(r.runId)
-      toast.success("Suite run started")
+      toast.success(t("suites.editor.runStarted"))
     } catch (err) {
-      toast.error(`Failed to start run: ${err instanceof Error ? err.message : String(err)}`)
+      toast.error(t("suites.editor.runFailed", { message: err instanceof Error ? err.message : String(err) }))
     } finally {
       setIsRunning(false)
     }
-  }, [isCreateMode, filePath])
+  }, [isCreateMode, filePath, t])
 
   const handleRunClose = useCallback(() => setRunId(null), [])
 
@@ -399,7 +401,7 @@ export default function SuiteEditorPage() {
   ) => {
     const targetName = nextFormState.target.trim()
     if (!targetName) {
-      toast.error("Select a target before starting live mode")
+      toast.error(t("suites.editor.live.selectTarget"))
       return
     }
 
@@ -464,7 +466,7 @@ export default function SuiteEditorPage() {
         toast.error(
           err instanceof Error
             ? err.message
-            : "Failed to start live session",
+            : t("suites.editor.live.startFailed"),
         )
       }
       if (!options?.replaceCurrentSession) {
@@ -476,25 +478,25 @@ export default function SuiteEditorPage() {
       }
       setIsLaunchingLive(false)
     }
-  }, [content, globalUse, targets, terminateLiveSession])
+  }, [content, globalUse, targets, terminateLiveSession, t])
 
   const handleConnectLiveSession = useCallback(async () => {
     if (liveConnectDisabled) return
     if (!displayFormState) {
-      toast.error("Fix YAML errors before starting live mode")
+      toast.error(t("suites.editor.live.fixBeforeStart"))
       return
     }
     await launchLiveSession(displayFormState)
-  }, [displayFormState, launchLiveSession, liveConnectDisabled])
+  }, [displayFormState, launchLiveSession, liveConnectDisabled, t])
 
   const handleRestartLiveSession = useCallback(async () => {
     if (!hasLiveSession) return
     if (!displayFormState) {
-      toast.error("Fix YAML errors before restarting live mode")
+      toast.error(t("suites.editor.live.fixBeforeRestart"))
       return
     }
     await launchLiveSession(displayFormState, { replaceCurrentSession: true })
-  }, [displayFormState, hasLiveSession, launchLiveSession])
+  }, [displayFormState, hasLiveSession, launchLiveSession, t])
 
   const refreshAuthStates = useCallback(async () => {
     if (!activeAuthStateTargetName) {
@@ -515,21 +517,27 @@ export default function SuiteEditorPage() {
 
   const handleSaveLiveAuthState = useCallback(async (input: { name: string; replace: boolean }) => {
     if (!liveSessionId || !activeAuthStateTargetName) {
-      throw new Error(`Could not save auth state "${input.name}" for target "${activeAuthStateTargetName ?? "selected target"}".`)
+      throw new Error(t("suites.editor.authState.saveFailed", {
+        name: input.name,
+        target: activeAuthStateTargetName ?? t("suites.editor.authState.selectedTarget"),
+      }))
     }
 
-    const failureMessage = `Could not save auth state "${input.name}" for target "${activeAuthStateTargetName}".`
+    const failureMessage = t("suites.editor.authState.saveFailed", {
+      name: input.name,
+      target: activeAuthStateTargetName,
+    })
     setIsSavingAuthState(true)
     try {
       await saveLiveAuthState(liveSessionId, { name: input.name, replace: input.replace })
-      toast.success(`Saved auth state "${input.name}" for target "${activeAuthStateTargetName}".`)
+      toast.success(t("suites.editor.authState.saved", { name: input.name, target: activeAuthStateTargetName }))
       await refreshAuthStates()
     } catch {
       throw new Error(failureMessage)
     } finally {
       setIsSavingAuthState(false)
     }
-  }, [activeAuthStateTargetName, liveSessionId, refreshAuthStates])
+  }, [activeAuthStateTargetName, liveSessionId, refreshAuthStates, t])
 
   const handleLiveModeOpenChange = useCallback((open: boolean) => {
     if (open) {
@@ -542,7 +550,7 @@ export default function SuiteEditorPage() {
   // The suite allows a manual setup re-run in a session; the stale banner clears on Restart.
   const handleRunLiveHook = useCallback((phase: 'setup' | 'teardown', hookId: string) => {
     if (!hasLiveSession) {
-      toast.error('Start a live session first.')
+      toast.error(t("suites.editor.live.startFirst"))
       return
     }
     const allHooks = phase === 'setup' ? liveEditor.setupHooks : liveEditor.teardownHooks
@@ -552,7 +560,7 @@ export default function SuiteEditorPage() {
     }
     setLiveDevtoolsTab("reasoning")
     void liveEditor.executeHookById(phase, hookId)
-  }, [hasLiveSession, liveEditor])
+  }, [hasLiveSession, liveEditor, t])
 
   const handleRunLiveTest = useCallback((index: number) => {
     setLiveSelection({ type: "test", testIndex: index })
@@ -666,9 +674,9 @@ export default function SuiteEditorPage() {
     return (
       <EmptyState
         icon={FolderOpen}
-        title="Suite not found"
-        description="This suite doesn't exist"
-        actionLabel="View All Suites"
+        title={t("suites.editor.notFound.title")}
+        description={t("suites.editor.notFound.description")}
+        actionLabel={t("suites.editor.notFound.action")}
         onAction={() => navigate(routes.suites)}
       />
     )
@@ -677,7 +685,7 @@ export default function SuiteEditorPage() {
   const editorTabs = (
     <Tabs defaultValue="builder" className="flex-1 flex min-h-0 flex-col">
       <TabsList variant="line" className="px-4">
-        <TabsTrigger value="builder">Builder</TabsTrigger>
+        <TabsTrigger value="builder">{t("suites.editor.tab.builder")}</TabsTrigger>
         <TabsTrigger value="yaml">YAML</TabsTrigger>
       </TabsList>
       <TabsContent value="builder" className="mt-2 flex-1 overflow-auto [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb:hover]:bg-muted-foreground/50 [&::-webkit-scrollbar-track]:bg-transparent [scrollbar-width:thin]">
@@ -729,9 +737,9 @@ export default function SuiteEditorPage() {
           <div className="rounded-md border bg-muted/15 px-3 py-2">
             <div className="flex flex-wrap items-center gap-2">
               <Label className="flex items-center gap-1 text-xs font-medium">
-                File Path <InfoTip text="Path is relative to your workspace root. Must match your workspace's suiteMatch pattern. Directories are created automatically on save." />
+                {t("suites.editor.filePath")} <InfoTip text={t("suites.editor.filePathHelp")} />
               </Label>
-              <span className="text-[11px] text-muted-foreground">Created only when you save</span>
+              <span className="text-[11px] text-muted-foreground">{t("suites.editor.filePathNote")}</span>
             </div>
             <Input
               placeholder="my-suite.suite.yaml"
@@ -753,8 +761,8 @@ export default function SuiteEditorPage() {
     <LiveSessionPane
       connectionState={liveEditor.connectionState}
       isLaunching={isLaunchingLive}
-      targetName={selectedTargetName || "Selected Target"}
-      targetLabel={liveEditor.currentUrl || "Configured start URL"}
+      targetName={selectedTargetName || t("suites.editor.target.selected")}
+      targetLabel={liveEditor.currentUrl || t("suites.editor.target.startUrl")}
       liveSessionNumber={liveSessionNumber}
       platform={liveEditor.platform}
       liveSessionId={liveSessionId}
@@ -777,8 +785,8 @@ export default function SuiteEditorPage() {
       isStoppingRunAll={liveEditor.isStoppingRunAllTests}
       setupHooksStale={setupHooksStale}
       executionUnit="test"
-      runAllLabel="Run All Tests"
-      stopAllLabel="Stop Run All"
+      runAllLabel={t("suites.editor.live.runAll")}
+      stopAllLabel={t("suites.editor.live.stopAll")}
       unitRowsSlot={null}
       onDevtoolsTabChange={setLiveDevtoolsTab}
       onRunAll={() => void liveEditor.runAllTests(liveDraft)}
@@ -861,8 +869,8 @@ export default function SuiteEditorPage() {
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
         <SheetContent side="right" className="sm:max-w-[400px] overflow-y-auto p-0">
           <SheetHeader className="px-4 pt-4 pb-2">
-            <SheetTitle>Suite Settings</SheetTitle>
-            <SheetDescription>Advanced configuration for this suite</SheetDescription>
+            <SheetTitle>{t("suites.editor.settings.title")}</SheetTitle>
+            <SheetDescription>{t("suites.editor.settings.description")}</SheetDescription>
           </SheetHeader>
           <div className="px-4 pb-4">
             <TestSettingsPanel
@@ -883,8 +891,8 @@ export default function SuiteEditorPage() {
             className="h-[100dvh] max-h-[100dvh] rounded-none p-0"
           >
             <SheetHeader className="sr-only">
-              <SheetTitle>Live Session</SheetTitle>
-              <SheetDescription>Live execution workspace for the current suite draft.</SheetDescription>
+              <SheetTitle>{t("suites.editor.live.sheetTitle")}</SheetTitle>
+              <SheetDescription>{t("suites.editor.live.sheetDescription")}</SheetDescription>
             </SheetHeader>
             {livePane}
           </SheetContent>

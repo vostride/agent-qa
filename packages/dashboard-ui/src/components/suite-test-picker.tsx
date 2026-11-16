@@ -8,6 +8,7 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import type { TestFileInfo } from '@/lib/api'
+import { Trans, useTranslation } from '@/i18n'
 
 interface SuiteTestPickerProps {
   availableTests: TestFileInfo[]
@@ -16,13 +17,21 @@ interface SuiteTestPickerProps {
 }
 
 export function SuiteTestPicker({ availableTests, onAdd, disabled = false }: SuiteTestPickerProps) {
+  const { t } = useTranslation()
   if (availableTests.length === 0) {
     return (
       <div className="rounded-md border bg-card/20 p-3 text-sm text-muted-foreground">
-        No test files found.{' '}
-        <Link to="/tests/new" className="text-primary underline underline-offset-4 hover:text-primary/80">
-          Create a test first.
-        </Link>
+        <Trans
+          i18nKey="suites.picker.noTests"
+          components={{
+            link: (
+              <Link
+                to="/tests/new"
+                className="text-primary underline underline-offset-4 hover:text-primary/80"
+              />
+            ),
+          }}
+        />
       </div>
     )
   }
@@ -30,9 +39,9 @@ export function SuiteTestPicker({ availableTests, onAdd, disabled = false }: Sui
   return (
     <div className="space-y-1.5">
       <Command className="rounded-md border">
-        <CommandInput placeholder="Search by test name, path, or ID..." disabled={disabled} />
+        <CommandInput placeholder={t('suites.picker.search')} disabled={disabled} />
         <CommandList className="max-h-64">
-          <CommandEmpty>No tests match your query.</CommandEmpty>
+          <CommandEmpty>{t('suites.picker.noMatches')}</CommandEmpty>
           <CommandGroup>
             {availableTests.map((tf) => (
               <CommandItem
@@ -55,7 +64,7 @@ export function SuiteTestPicker({ availableTests, onAdd, disabled = false }: Sui
         </CommandList>
       </Command>
       <p className="text-[10px] text-muted-foreground/60">
-        Type to filter by name, path, or test ID. Click to add. Same test can be added multiple times.
+        {t('suites.picker.help')}
       </p>
     </div>
   )

@@ -23,6 +23,7 @@ import { useTargetDetails } from '@/hooks/use-target-details'
 import { StepPillPreview, hasTemplateVars } from '@/components/step-pill-preview'
 import { useStepAutocomplete } from '@/components/step-autocomplete'
 import type { VariableSuggestion } from '@/hooks/use-variable-suggestions'
+import { Trans, useTranslation } from '@/i18n'
 
 function InfoTip({ text }: { text: string }) {
   return (
@@ -60,6 +61,7 @@ export function SuiteMetadataForm({
   onChange,
   disabled = false,
 }: SuiteMetadataFormProps) {
+  const { t } = useTranslation()
   const { targets, isLoading: isLoadingTargets } = useTargets()
   const { targets: targetDetails } = useTargetDetails()
   const selectedDetail = target ? targetDetails[target] : undefined
@@ -85,13 +87,13 @@ export function SuiteMetadataForm({
       {/* Suite Name */}
       <div className="space-y-1.5">
         <Label htmlFor="suite-name" className="text-xs flex items-center gap-1">
-          Suite Name <span className="text-destructive">*</span>
+          {t('suites.form.name')} <span className="text-destructive">*</span>
         </Label>
         <Input
           id="suite-name"
           value={name}
           onChange={(e) => onChange('name', e.target.value)}
-          placeholder="My Suite"
+          placeholder={t('suites.form.namePlaceholder')}
           required
           disabled={disabled}
           className="h-8 text-sm"
@@ -101,7 +103,7 @@ export function SuiteMetadataForm({
       {/* Suite ID */}
       <div className="space-y-1.5">
         <Label htmlFor="suite-id" className="text-xs flex items-center gap-1">
-          Suite ID <InfoTip text="Unique identifier used for memory and analytics. Changing this breaks the association with past runs and observations." />
+          {t('suites.form.id')} <InfoTip text={t('suites.form.idHelp')} />
         </Label>
         {isCreateMode ? (
           <div className="relative">
@@ -117,7 +119,7 @@ export function SuiteMetadataForm({
               variant="ghost"
               size="icon-sm"
               onClick={() => onChange('suite-id', generateSuiteId())}
-              aria-label="Generate new ID"
+              aria-label={t('suites.form.generateId')}
               disabled={disabled}
               className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
             >
@@ -126,7 +128,7 @@ export function SuiteMetadataForm({
           </div>
         ) : (
           <p className="text-[13px] font-mono text-muted-foreground">
-            {suiteId || 'No ID assigned'}
+            {suiteId || t('suites.form.noId')}
           </p>
         )}
       </div>
@@ -134,7 +136,8 @@ export function SuiteMetadataForm({
       {/* Target */}
       <div className="space-y-1.5">
         <Label htmlFor="suite-target" className="text-xs flex items-center gap-1">
-          Target <span className="text-destructive">*</span> <InfoTip text="A registered app target from your workspace config. Defines where the suite runs (web URL or mobile app)." />
+          {t('suites.form.target')} <span className="text-destructive">*</span>{' '}
+          <InfoTip text={t('suites.form.targetHelp')} />
         </Label>
         {hasTargets ? (
           <Select
@@ -143,20 +146,27 @@ export function SuiteMetadataForm({
             disabled={disabled}
           >
             <SelectTrigger id="suite-target" className="w-full h-8 text-sm">
-              <SelectValue placeholder="Select a target" />
+              <SelectValue placeholder={t('suites.form.selectTarget')} />
             </SelectTrigger>
             <SelectContent>
-              {targets.map((t) => (
-                <SelectItem key={t} value={t}>{t}</SelectItem>
+              {targets.map((targetName) => (
+                <SelectItem key={targetName} value={targetName}>{targetName}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         ) : !isLoadingTargets ? (
           <p className="text-[13px] text-muted-foreground">
-            No targets configured.{' '}
-            <Link to="/config" className="text-primary underline underline-offset-4 hover:text-primary/80">
-              Add targets in Settings.
-            </Link>
+            <Trans
+              i18nKey="suites.form.noTargets"
+              components={{
+                link: (
+                  <Link
+                    to="/config"
+                    className="text-primary underline underline-offset-4 hover:text-primary/80"
+                  />
+                ),
+              }}
+            />
           </p>
         ) : null}
         {selectedDetail && (
@@ -178,7 +188,7 @@ export function SuiteMetadataForm({
       {/* Context */}
       <div className="space-y-1.5">
         <Label htmlFor="suite-context" className="text-xs flex items-center gap-1">
-          Context <InfoTip text="Additional instructions passed to every test in this suite before its own context. Use this for suite-wide setup notes or shared preconditions." />
+          {t('suites.form.context')} <InfoTip text={t('suites.form.contextHelp')} />
         </Label>
         <div className="relative">
           <Textarea
@@ -191,7 +201,7 @@ export function SuiteMetadataForm({
             }}
             onKeyDown={(e) => { if (autocomplete.handleKeyDown(e)) return }}
             onBlur={() => setTimeout(() => autocomplete.setVisible(false), 150)}
-            placeholder="Additional instructions applied to every test in this suite..."
+            placeholder={t('suites.form.contextPlaceholder')}
             disabled={disabled}
             className="min-h-[60px] resize-none text-sm"
             rows={2}
