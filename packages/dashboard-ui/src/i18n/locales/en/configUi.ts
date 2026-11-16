@@ -49,7 +49,6 @@ export default {
   'configUi.cancelSignInLabel': 'Cancel sign-in',
   'configUi.signInWaitingLabel': 'Waiting for sign-in…',
   'configUi.signInTimedOutText': 'Sign-in timed out. Try again.',
-  'configUi.becameDefaultText': "It's now the default model.",
   'configUi.savedBecameDefault': "{{saved}} It's now the default model.",
   'configUi.saveWithoutTestingLabel': 'Save without testing',
   'configUi.savedWithoutTestText': 'Saved without a connection test.',

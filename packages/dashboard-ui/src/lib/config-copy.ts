@@ -401,8 +401,6 @@ export function connectedSavedText(name: string): string {
   return t('config.connectedSaved', { name })
 }
 
-export const BECAME_DEFAULT_TEXT = () => t('configUi.becameDefaultText')
-
 export function savedBecameDefaultText(saved: string): string {
   return t('configUi.savedBecameDefault', { saved })
 }

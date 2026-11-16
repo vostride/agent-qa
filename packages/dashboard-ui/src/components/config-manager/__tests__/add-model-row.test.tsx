@@ -33,7 +33,6 @@ import {
   ADD_MODEL_LABEL,
   BASE_URL_HELP,
   BASE_URL_REQUIRED_ERROR,
-  BECAME_DEFAULT_TEXT,
   CANCEL_SIGN_IN_LABEL,
   CONNECT_REFUSAL_COPY,
   DISCARD_DRAFT_LABEL,
@@ -59,6 +58,7 @@ import {
   nameCredentialConflictError,
   nameTakenError,
   providerErrorSentence,
+  savedBecameDefaultText,
   signInFailedText,
   signInPluginMissingText,
 } from '@/lib/config-copy'
@@ -434,8 +434,7 @@ describe('AddModelRow Connect', () => {
     const savedRow = row('gpt-5.6')
     expect(savedRow?.getAttribute('data-model-open')).toBe('true')
     const line = savedRow!.querySelector('[data-model-landing]')
-    expect(line?.textContent).toContain(connectedSavedText('gpt-5.6'))
-    expect(line?.textContent).toContain(BECAME_DEFAULT_TEXT())
+    expect(line?.textContent).toContain(savedBecameDefaultText(connectedSavedText('gpt-5.6')))
     expect(buttonsNamed(line, MAKE_DEFAULT_LABEL())).toHaveLength(0)
     expect(document.activeElement).toBe(savedRow!.querySelector('[data-model-row-toggle]'))
     expect(applyConfigChanges).not.toHaveBeenCalled()
@@ -452,7 +451,7 @@ describe('AddModelRow Connect', () => {
     await flush()
     const other = row('gpt-5.6')!.querySelector('[data-model-landing]')
     expect(other?.textContent).toContain(connectedSavedText('gpt-5.6'))
-    expect(other?.textContent).not.toContain(BECAME_DEFAULT_TEXT())
+    expect(other?.textContent).not.toContain(savedBecameDefaultText('').trim())
     const makeDefault = buttonsNamed(other, MAKE_DEFAULT_LABEL())
     expect(makeDefault).toHaveLength(1)
     expect(makeDefault[0].getAttribute('data-size')).toBe('xs')
