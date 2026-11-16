@@ -827,7 +827,7 @@ export function RunsTable({
                 value={platformFilter || "all"}
                 onValueChange={(value) => onPlatformChange(value === "all" ? "" : value)}
               >
-                <SelectTrigger className="w-[140px]">
+                <SelectTrigger className="min-w-[140px]">
                   <SelectValue placeholder={t("runs.filter.allPlatforms")} />
                 </SelectTrigger>
                 <SelectContent>

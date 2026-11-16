@@ -373,7 +373,7 @@ export default function HooksPage() {
             />
             <div className="flex flex-col gap-3 sm:flex-row">
               <Select value={runtime || "all"} onValueChange={handleRuntimeChange}>
-                <SelectTrigger className="w-full sm:w-44" aria-label={t("hooks.list.filter.runtimeLabel")}>
+                <SelectTrigger className="w-full sm:w-fit sm:min-w-44" aria-label={t("hooks.list.filter.runtimeLabel")}>
                   <SelectValue placeholder={t("hooks.list.filter.runtime")} />
                 </SelectTrigger>
                 <SelectContent>
@@ -386,7 +386,7 @@ export default function HooksPage() {
                 </SelectContent>
               </Select>
               <Select value={health || "all"} onValueChange={handleHealthChange}>
-                <SelectTrigger className="w-full sm:w-44" aria-label={t("hooks.list.filter.healthLabel")}>
+                <SelectTrigger className="w-full sm:w-fit sm:min-w-44" aria-label={t("hooks.list.filter.healthLabel")}>
                   <SelectValue placeholder={t("hooks.list.filter.health")} />
                 </SelectTrigger>
                 <SelectContent>

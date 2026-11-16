@@ -73,7 +73,7 @@ export default {
   'runs.table.testName': 'Название теста',
   'runs.table.target': 'Цель',
   'runs.table.attributes': 'Атрибуты',
-  'runs.table.duration': 'Длительность',
+  'runs.table.duration': 'Время',
   'runs.table.started': 'Начало',
   'runs.table.selectAll': 'Выбрать все',
   'runs.table.noAttributes': 'Нет атрибутов',

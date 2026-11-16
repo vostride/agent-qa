@@ -620,7 +620,7 @@ export default function TestsPage() {
             className="max-w-[220px]"
           />
           <Select value={status || "all"} onValueChange={(v) => { setStatus(v === "all" ? "" : v); setSelectedIndex(-1) }}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="min-w-[150px]">
               <SelectValue placeholder={t("tests.list.filter.allStatuses")} />
             </SelectTrigger>
             <SelectContent>
@@ -632,7 +632,7 @@ export default function TestsPage() {
             </SelectContent>
           </Select>
           <Select value={platform || "all"} onValueChange={(v) => { setPlatform(v === "all" ? "" : v); setSelectedIndex(-1) }}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="min-w-[140px]">
               <SelectValue placeholder={t("tests.list.filter.allPlatforms")} />
             </SelectTrigger>
             <SelectContent>

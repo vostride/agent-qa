@@ -430,7 +430,10 @@ export default function RunsPage() {
   const tabsSlot = (
     <Tabs value={tab} onValueChange={setTab}>
       <div className="flex items-center gap-2">
-        <TabsList variant="line">
+        <TabsList
+          variant="line"
+          className="max-w-full justify-start overflow-x-auto [&_[role=tab]]:shrink-0"
+        >
           <TabsTrigger value="all">{t("runs.tab.all")}</TabsTrigger>
           <TabsTrigger value="running">
             {t("runs.tab.running")}

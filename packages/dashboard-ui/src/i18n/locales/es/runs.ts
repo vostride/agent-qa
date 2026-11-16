@@ -56,7 +56,7 @@ export default {
   'runs.filter.missingKeyOrValue': 'Escribe una clave y un valor de atributo, o quita este filtro.',
   'runs.filter.invalidRegex': 'Escribe una expresión regular válida.',
   'runs.table.status': 'Estado',
-  'runs.table.testName': 'Nombre de la prueba',
+  'runs.table.testName': 'Prueba',
   'runs.table.target': 'Destino',
   'runs.table.attributes': 'Atributos',
   'runs.table.duration': 'Duración',
