@@ -3,6 +3,7 @@ import common from './common'
 import config from './config'
 import configUi from './configUi'
 import evidence from './evidence'
+import feedback from './feedback'
 import insights from './insights'
 import knowledge from './knowledge'
 import language from './language'
@@ -30,4 +31,5 @@ export default {
   ...player,
   ...runDetail,
   ...knowledge,
+  ...feedback,
 } as const

@@ -55,18 +55,15 @@ import {
   previewRefusalText,
   dispositionText,
   quarantinedText,
-  APPLIED_KNOWLEDGE_PREFIX,
-  APPLIED_TEST_FILE_PREFIX,
   APPLIED_UNAVAILABLE_TEXT,
+  appliedChangeText,
   appliedRecordUnavailableText,
   TECHNICAL_DETAILS_LABEL,
   TECHNICAL_DETAILS_ROW_LABELS,
   basisDetailText,
   type SubmitBlockInput,
   NO_STEP_VERDICT_TEXT,
-  ONE_STEP_SCOPE_TEXT,
   RECORDED_RESULT_TEXT,
-  WHOLE_TEST_SCOPE_TEXT,
   composerHeading,
   feedbackEntryLabel,
   feedbackOutcomeClass,
@@ -237,24 +234,24 @@ describe('the composer names its target', () => {
   it('SCOPE-LINE: whole test or one step, the suite step naming its test, then the target recorded result', () => {
     const passedStep = { ...coupon, status: 'passed' as const }
     expect(feedbackPartsText(scopeLine({ member: checkout, suite: true, runStatus: 'failed' })))
-      .toBe(`${WHOLE_TEST_SCOPE_TEXT} · ${RECORDED_RESULT_TEXT.failed}`)
+      .toBe('Whole test · recorded: failed')
     expect(scopeLine({ member: checkout, step: passedStep, suite: true, runStatus: 'failed' })).toEqual({
-      prefix: `${ONE_STEP_SCOPE_TEXT} in `,
+      prefix: 'One step in ',
       name: memberDisplayName(checkout),
       suffix: ` ${memberHandleLabel(1)} · ${RECORDED_RESULT_TEXT.passed}`,
     })
     expect(feedbackPartsText(scopeLine({ member: checkout, step: passedStep, suite: false, runStatus: 'failed' })))
-      .toBe(`${ONE_STEP_SCOPE_TEXT} · ${RECORDED_RESULT_TEXT.passed}`)
+      .toBe('One step · recorded: passed')
     expect(feedbackPartsText(scopeLine({ member: checkout, step: { ...coupon, status: 'healed' }, suite: false, runStatus: 'failed' })))
-      .toBe(`${ONE_STEP_SCOPE_TEXT} · ${RECORDED_RESULT_TEXT.healed}`)
+      .toBe('One step · recorded: healed — counts as passed')
     expect(feedbackPartsText(scopeLine({ member: checkout, step: { ...coupon, status: 'failed' }, suite: false, runStatus: 'failed' })))
-      .toBe(`${ONE_STEP_SCOPE_TEXT} · ${RECORDED_RESULT_TEXT.passed}`)
+      .toBe('One step · recorded: passed')
     expect(feedbackPartsText(scopeLine({ member: { ...checkout, outcome: 'timeout' }, step: { stepIndex: 2 }, suite: false, runStatus: 'failed' })))
-      .toBe(`${ONE_STEP_SCOPE_TEXT} · ${NO_STEP_VERDICT_TEXT(RECORDED_RESULT_TEXT.timeout)}`)
+      .toBe("One step · no step verdict recorded — using the test's result (recorded: timed out — counts as failed)")
     expect(feedbackPartsText(scopeLine({ member: { testIndex: 0 }, suite: false, runStatus: 'healed' })))
-      .toBe(`${WHOLE_TEST_SCOPE_TEXT} · ${RECORDED_RESULT_TEXT.healed}`)
+      .toBe('Whole test · recorded: healed — counts as passed')
     expect(feedbackPartsText(scopeLine({ member: { testIndex: 0 }, suite: false, runStatus: 'running' })))
-      .toBe(`${WHOLE_TEST_SCOPE_TEXT} · ${RECORDED_RESULT_TEXT.failed}`)
+      .toBe('Whole test · recorded: failed')
   })
 
   it('RECORDED-RESULT-ROWS: one row per member outcome, each counting as the class the order uses', () => {
@@ -657,8 +654,9 @@ describe('the history copy', () => {
   })
 
   it('HISTORY-APPLIED-COPY: an applied fix says what it changed; a historical draft says its change was not recorded', () => {
-    expect(APPLIED_KNOWLEDGE_PREFIX).toBe('Changed knowledge: ')
-    expect(APPLIED_TEST_FILE_PREFIX).toBe('Edited the test file ')
+    expect(appliedChangeText({ kind: 'knowledge', records: [{ recordId: 'mem_1', content: 'Use the coupon field' }] }))
+      .toBe('Changed knowledge: “Use the coupon field”')
+    expect(appliedChangeText({ kind: 'test-file', filePath: 'tests/checkout.yaml' })).toBe('Edited the test file tests/checkout.yaml')
     expect(APPLIED_UNAVAILABLE_TEXT).toBe('What this mark changed was not recorded.')
     expect(appliedRecordUnavailableText('mem_1')).toBe('mem_1 (content unavailable)')
     expect(dispositionText({ kind: 'drafted', fix: 'fact', proposalId: 'prop_x', proposalKind: 'knowledge' }))

@@ -22,6 +22,9 @@ import type {
   RunsMarkPreviewResult,
 } from '@vostride/agent-qa-schema'
 
+import { t } from '@/i18n'
+import { textTable } from '@/i18n/text-table'
+
 import type { FeedbackReadFailure, MarksHistoryRead } from './api'
 import { UNNAMED_STEP_LABEL } from './display-step'
 import { formatRegionalDateTime } from './format'
@@ -56,9 +59,18 @@ export interface FeedbackPlace {
 }
 
 export function placeText({ stepIndex, member }: FeedbackPlace): string {
-  const test = member === undefined ? undefined : `${memberDisplayName(member)} ${memberHandleLabel(member.testIndex)}`
-  if (stepIndex === undefined) return test ?? 'this test'
-  return test === undefined ? `step ${String(stepIndex + 1)}` : `step ${String(stepIndex + 1)} of ${test}`
+  const test =
+    member === undefined
+      ? undefined
+      : t('feedback.place.test', {
+          name: memberDisplayName(member),
+          handle: memberHandleLabel(member.testIndex),
+        })
+  if (stepIndex === undefined) return test ?? t('feedback.place.thisTest')
+  const number = String(stepIndex + 1)
+  return test === undefined
+    ? t('feedback.place.step', { number })
+    : t('feedback.place.stepOfTest', { number, test })
 }
 
 /** Tests are named only when the viewed and the targeted test differ. */
@@ -67,15 +79,15 @@ export function pinnedTargetText(viewing: FeedbackPlace, target: FeedbackPlace):
     viewing.member !== undefined && target.member !== undefined && viewing.member.testIndex !== target.member.testIndex
   const viewed = differ ? viewing : { stepIndex: viewing.stepIndex }
   const about = target.stepIndex === undefined || differ ? target : { stepIndex: target.stepIndex }
-  return `You're viewing ${placeText(viewed)} — this feedback is about ${placeText(about)}.`
+  return t('feedback.composer.pinnedTarget', { viewed: placeText(viewed), about: placeText(about) })
 }
 
 export function switchTargetLabel(to: FeedbackPlace): string {
-  return `Switch to ${placeText(to)}`
+  return t('feedback.composer.switchTarget', { place: placeText(to) })
 }
 
 export function unsentDraftLabel(place: FeedbackPlace): string {
-  return `Unsent draft: ${placeText(place)}`
+  return t('feedback.composer.unsentDraft', { place: placeText(place) })
 }
 
 export const NOTE_LABEL = 'Note (optional)'
@@ -87,11 +99,11 @@ export function noteCounterText(length: number): string {
   return `${String(length)} / ${String(NOTE_MAX_LENGTH)}`
 }
 
-export const CHOICE_LABELS = {
-  'false-fail': 'This should have passed',
-  'false-pass': 'This should have failed',
-  'confirmed-bug': 'This is a real product bug',
-} satisfies Record<Mark, string>
+export const CHOICE_LABELS = textTable({
+  'false-fail': () => t('feedback.choice.falseFail'),
+  'false-pass': () => t('feedback.choice.falsePass'),
+  'confirmed-bug': () => t('feedback.choice.confirmedBug'),
+}) satisfies Record<Mark, string>
 
 export type FeedbackOutcomeClass = 'passed' | 'failed'
 
@@ -118,16 +130,16 @@ export const FEEDBACK_CHOICE_ORDER = {
 export const CHOICE_LEGEND = 'Which is true?'
 
 export const CHOICE_MEANINGS = {
-  failed: {
-    'false-fail': 'The app behaved correctly; the test was wrong to fail.',
-    'confirmed-bug': 'The failure is real — the app is broken here.',
-    'false-pass': 'The test missed a problem it should have caught.',
-  },
-  passed: {
-    'false-fail': 'The pass is right; this confirms the test.',
-    'confirmed-bug': 'The app has a real bug here, even though the test passed.',
-    'false-pass': 'The app was broken here, but the test passed anyway.',
-  },
+  failed: textTable({
+    'false-fail': () => t('feedback.choiceMeaning.failed.falseFail'),
+    'confirmed-bug': () => t('feedback.choiceMeaning.failed.confirmedBug'),
+    'false-pass': () => t('feedback.choiceMeaning.failed.falsePass'),
+  }),
+  passed: textTable({
+    'false-fail': () => t('feedback.choiceMeaning.passed.falseFail'),
+    'confirmed-bug': () => t('feedback.choiceMeaning.passed.confirmedBug'),
+    'false-pass': () => t('feedback.choiceMeaning.passed.falsePass'),
+  }),
 } satisfies Record<FeedbackOutcomeClass, Record<Mark, string>>
 
 function statusClass(status: string | undefined): FeedbackOutcomeClass {
@@ -173,20 +185,50 @@ export function feedbackPartsText(parts: FeedbackTextParts): string {
   return `${parts.prefix}${parts.name ?? ''}${parts.suffix ?? ''}`
 }
 
-export const WHOLE_TEST_SCOPE_TEXT = 'Whole test'
-export const ONE_STEP_SCOPE_TEXT = 'One step'
+type NamePartsKey =
+  | 'feedback.composer.headingStep'
+  | 'feedback.composer.headingTest'
+  | 'feedback.composer.headingSuiteTest'
+  | 'feedback.scope.oneStepInTest'
+  | 'feedback.history.targetStep'
+  | 'feedback.history.targetTest'
 
-export const RECORDED_RESULT_TEXT = {
-  passed: 'recorded: passed',
-  healed: 'recorded: healed — counts as passed',
-  failed: 'recorded: failed',
-  timeout: 'recorded: timed out — counts as failed',
-  cancelled: 'recorded: cancelled — counts as failed',
-  skipped: 'recorded: skipped — counts as failed',
-} satisfies Record<MemberTestOutcome, string>
+// The sentence is split before its slots are filled, so a step or test name is never read for slots.
+function nameParts(
+  key: NamePartsKey,
+  values: Readonly<Record<string, string>> & { name: string },
+): FeedbackTextParts {
+  const pieces = String(t(key, { skipInterpolation: true } as never)).split(/\{\{\s*(\w+)\s*\}\}/u)
+  let prefix = ''
+  let suffix = ''
+  let named = false
+  pieces.forEach((piece, index) => {
+    if (index % 2 === 1 && piece === 'name') {
+      named = true
+      return
+    }
+    const text = index % 2 === 1 ? (values[piece] ?? '') : piece
+    if (named) suffix += text
+    else prefix += text
+  })
+  return {
+    prefix,
+    ...(named ? { name: values.name } : {}),
+    ...(suffix === '' ? {} : { suffix }),
+  }
+}
+
+export const RECORDED_RESULT_TEXT = textTable({
+  passed: () => t('feedback.scope.recorded.passed'),
+  healed: () => t('feedback.scope.recorded.healed'),
+  failed: () => t('feedback.scope.recorded.failed'),
+  timeout: () => t('feedback.scope.recorded.timeout'),
+  cancelled: () => t('feedback.scope.recorded.cancelled'),
+  skipped: () => t('feedback.scope.recorded.skipped'),
+}) satisfies Record<MemberTestOutcome, string>
 
 export function NO_STEP_VERDICT_TEXT(testRecordedText: string): string {
-  return `no step verdict recorded — using the test's result (${testRecordedText})`
+  return t('feedback.scope.noStepVerdict', { recorded: testRecordedText })
 }
 
 function recordedKey(status: string | undefined): MemberTestOutcome | undefined {
@@ -207,14 +249,18 @@ export interface ComposerHeadingInput {
 // The exact step or test the composer is about; step numbers are `stepIndex + 1`.
 export function composerHeading({ member, step, stepCount, suite }: ComposerHeadingInput): FeedbackTextParts {
   if (step !== undefined) {
-    return {
-      prefix: `Feedback on step ${String(step.stepIndex + 1)} of ${String(stepCount)} · `,
+    return nameParts('feedback.composer.headingStep', {
+      number: String(step.stepIndex + 1),
+      total: String(stepCount),
       name: step.stepText ?? UNNAMED_STEP_LABEL(),
-    }
+    })
   }
   return suite
-    ? { prefix: 'Feedback on ', name: memberDisplayName(member), suffix: ` ${memberHandleLabel(member.testIndex)}` }
-    : { prefix: 'Feedback on ', name: memberDisplayName(member) }
+    ? nameParts('feedback.composer.headingSuiteTest', {
+        name: memberDisplayName(member),
+        handle: memberHandleLabel(member.testIndex),
+      })
+    : nameParts('feedback.composer.headingTest', { name: memberDisplayName(member) })
 }
 
 export interface ScopeLineInput {
@@ -239,16 +285,16 @@ function stepRecordedText(step: FeedbackScopeStep, member: FeedbackScopeMember, 
 
 export function scopeLine({ member, step, suite, runStatus }: ScopeLineInput): FeedbackTextParts {
   if (step === undefined) {
-    return { prefix: `${WHOLE_TEST_SCOPE_TEXT} · ${memberRecordedText(member, runStatus)}` }
+    return { prefix: t('feedback.scope.wholeTest', { recorded: memberRecordedText(member, runStatus) }) }
   }
   const recorded = stepRecordedText(step, member, runStatus)
   return suite
-    ? {
-        prefix: `${ONE_STEP_SCOPE_TEXT} in `,
+    ? nameParts('feedback.scope.oneStepInTest', {
         name: memberDisplayName(member),
-        suffix: ` ${memberHandleLabel(member.testIndex)} · ${recorded}`,
-      }
-    : { prefix: `${ONE_STEP_SCOPE_TEXT} · ${recorded}` }
+        handle: memberHandleLabel(member.testIndex),
+        recorded,
+      })
+    : { prefix: t('feedback.scope.oneStep', { recorded }) }
 }
 
 export interface FeedbackTargetViewInput {
@@ -482,49 +528,62 @@ export interface FeedbackEntryLabelInput {
 
 /** A step is named by number, a suite test by name and handle; a marked target says how, in plain words. */
 export function feedbackEntryLabel({ scope, stepNumber, memberName, handle, markedChoice }: FeedbackEntryLabelInput): string {
-  const base =
-    scope === 'step'
-      ? `Give feedback on step ${String(stepNumber)}`
-      : handle === undefined
-        ? FEEDBACK_ENTRY_TEST_LABEL
-        : `Give feedback on ${memberName ?? ''} ${handle}`
-  return markedChoice === undefined ? base : `${base} — already marked: ${CHOICE_LABELS[markedChoice]}`
+  if (scope === 'step') {
+    const number = String(stepNumber)
+    return markedChoice === undefined
+      ? t('feedback.entry.step', { number })
+      : t('feedback.entry.stepMarked', { number, choice: CHOICE_LABELS[markedChoice] })
+  }
+  if (handle === undefined) {
+    return markedChoice === undefined
+      ? FEEDBACK_ENTRY_TEST_LABEL
+      : t('feedback.entry.testMarked', { choice: CHOICE_LABELS[markedChoice] })
+  }
+  const name = memberName ?? ''
+  return markedChoice === undefined
+    ? t('feedback.entry.member', { name, handle })
+    : t('feedback.entry.memberMarked', { name, handle, choice: CHOICE_LABELS[markedChoice] })
 }
 
 export function stepTriggerTooltip(stepNumber: number, marked: boolean): string {
+  const number = String(stepNumber)
   return marked
-    ? `Step ${String(stepNumber)} is already marked — review or change`
-    : `Give feedback on step ${String(stepNumber)}`
+    ? t('feedback.entry.stepMarkedTooltip', { number })
+    : t('feedback.entry.step', { number })
 }
 
 // A passive trace names the plain choice, never the internal word.
 export function markGlyphLabel(kind: Mark): string {
-  return `Marked: ${CHOICE_LABELS[kind]}`
+  return t('feedback.entry.markGlyph', { choice: CHOICE_LABELS[kind] })
 }
 
 // A mark applies its fix in the call; `drafted` is an older receipt read back from a ledger.
-export const DISPOSITION_TEXT = {
-  applied: {
-    fact: 'Recorded — a knowledge fact was added',
-    caution: 'Recorded — a caution was added',
-    'procedure-hint': 'Recorded — a procedure hint was added',
-    'test-edit': 'Recorded — the test file was edited',
-  } satisfies Record<MarkFixKind, string>,
-  drafted: 'Recorded — a fix was drafted (older mark)',
-  'no-draftable-fix': 'Recorded — no fix could be drafted',
-  'confirmed-bug': 'Recorded — kept as a real product bug; nothing changed',
-  // The mark stands; its planned fix is refused and nothing changes.
-  'not-applied': {
-    'target-not-found': 'Recorded — the fix was not applied: the knowledge it replaces is gone',
-    'policy-materialize-refused': 'Recorded — the fix was not applied: its policy text was refused',
-    'outside-workspace': 'Recorded — the fix was not applied: the test file is outside the workspace',
-  } satisfies Record<MarkFixRefusal, string>,
-} as const
+const APPLIED_DISPOSITION_TEXT = textTable({
+  fact: () => t('feedback.disposition.applied.fact'),
+  caution: () => t('feedback.disposition.applied.caution'),
+  'procedure-hint': () => t('feedback.disposition.applied.procedureHint'),
+  'test-edit': () => t('feedback.disposition.applied.testEdit'),
+}) satisfies Record<MarkFixKind, string>
+
+// The mark stands; its planned fix is refused and nothing changes.
+const NOT_APPLIED_DISPOSITION_TEXT = textTable({
+  'target-not-found': () => t('feedback.disposition.notApplied.targetNotFound'),
+  'policy-materialize-refused': () => t('feedback.disposition.notApplied.policyMaterializeRefused'),
+  'outside-workspace': () => t('feedback.disposition.notApplied.outsideWorkspace'),
+}) satisfies Record<MarkFixRefusal, string>
+
+export const DISPOSITION_TEXT = textTable({
+  applied: () => APPLIED_DISPOSITION_TEXT,
+  drafted: () => t('feedback.disposition.drafted'),
+  'no-draftable-fix': () => t('feedback.disposition.noDraftableFix'),
+  'confirmed-bug': () => t('feedback.disposition.confirmedBug'),
+  'not-applied': () => NOT_APPLIED_DISPOSITION_TEXT,
+})
 
 export function dispositionText(disposition: MarkDisposition): string {
   switch (disposition.kind) {
     case 'quarantined':
-      return `Recorded — quarantined (${disposition.class})`
+      return t('feedback.disposition.quarantined', { cause: disposition.class })
     case 'applied':
       return DISPOSITION_TEXT.applied[disposition.fix]
     case 'drafted':
@@ -540,8 +599,36 @@ export function dispositionText(disposition: MarkDisposition): string {
   }
 }
 
+const APPLIED_RECORDED_TEXT = textTable({
+  fact: () => t('feedback.recorded.applied.fact'),
+  caution: () => t('feedback.recorded.applied.caution'),
+  'procedure-hint': () => t('feedback.recorded.applied.procedureHint'),
+  'test-edit': () => t('feedback.recorded.applied.testEdit'),
+}) satisfies Record<MarkFixKind, string>
+
+const NOT_APPLIED_RECORDED_TEXT = textTable({
+  'target-not-found': () => t('feedback.recorded.notApplied.targetNotFound'),
+  'policy-materialize-refused': () => t('feedback.recorded.notApplied.policyMaterializeRefused'),
+  'outside-workspace': () => t('feedback.recorded.notApplied.outsideWorkspace'),
+}) satisfies Record<MarkFixRefusal, string>
+
 export function feedbackRecordedText(disposition: MarkDisposition): string {
-  return `Feedback recorded — ${dispositionText(disposition).replace(/^Recorded — /, '')}.`
+  switch (disposition.kind) {
+    case 'quarantined':
+      return t('feedback.recorded.quarantined', { cause: disposition.class })
+    case 'applied':
+      return APPLIED_RECORDED_TEXT[disposition.fix]
+    case 'drafted':
+      return t('feedback.recorded.drafted')
+    case 'no-draftable-fix':
+      return t('feedback.recorded.noDraftableFix')
+    case 'confirmed-bug':
+      return t('feedback.recorded.confirmedBug')
+    case 'not-applied':
+      return NOT_APPLIED_RECORDED_TEXT[disposition.reason]
+    default:
+      return disposition satisfies never
+  }
 }
 
 // The consequence preview: every line is one `runs.mark.preview` field in plain words.
@@ -585,33 +672,37 @@ export function feedbackPreviewState({ kind, landed }: FeedbackPreviewStateInput
 export const PREVIEW_UPDATING_TEXT = 'Updating…'
 export const PREVIEW_IDLE_TEXT = 'Choose an option above to see what this will do.'
 
-export const PREVIEW_LINE_LABELS = {
-  knowledge: 'Knowledge',
-  change: 'Change',
-} as const
+export const PREVIEW_LINE_LABELS = textTable({
+  knowledge: () => t('feedback.preview.lineLabel.knowledge'),
+  change: () => t('feedback.preview.lineLabel.change'),
+})
 
 /**
  * Zero-count clauses are omitted. Records reached with no effect at all are all unreadable (a record
  * with effects carries at least one), so that line says so instead of printing nothing.
  */
 export function knowledgeLine(evidence: MarkPreviewKnowledge['evidence'], recordCount: number): string {
-  if (recordCount === 0) return 'No knowledge records are reached'
-  const clauses = [
-    evidence.confirmed === 0 ? undefined : `${String(evidence.confirmed)} ${evidence.confirmed === 1 ? 'record' : 'records'} confirmed`,
-    evidence.overturned === 0 ? undefined : `${String(evidence.overturned)} counted against`,
-  ].filter((clause) => clause !== undefined)
-  if (clauses.length > 0) return clauses.join(' · ')
-  return recordCount === 1 ? "1 record reached — it can't be read" : `${String(recordCount)} records reached — none can be read`
+  if (recordCount === 0) return t('feedback.preview.noRecordsReached')
+  const { confirmed, overturned } = evidence
+  if (confirmed > 0 && overturned > 0) {
+    return t('feedback.preview.confirmedAndCountedAgainst', {
+      confirmed: t('feedback.preview.confirmed', { count: confirmed }),
+      countedAgainst: t('feedback.preview.countedAgainst', { count: overturned }),
+    })
+  }
+  if (confirmed > 0) return t('feedback.preview.confirmed', { count: confirmed })
+  if (overturned > 0) return t('feedback.preview.countedAgainst', { count: overturned })
+  return t('feedback.preview.unreadableRecords', { count: recordCount })
 }
 
 export function showRecordsLabel(count: number): string {
-  return `Show records (${String(count)})`
+  return t('feedback.preview.showRecords', { number: String(count) })
 }
 
-export const RECORD_EFFECT_TEXT = {
-  confirm: 'confirms',
-  overturn: 'counts against',
-} satisfies Record<MarkPreviewEvidenceEffect['direction'], string>
+export const RECORD_EFFECT_TEXT = textTable({
+  confirm: () => t('feedback.preview.effect.confirm'),
+  overturn: () => t('feedback.preview.effect.overturn'),
+}) satisfies Record<MarkPreviewEvidenceEffect['direction'], string>
 
 export const UNREADABLE_RECORD_TEXT = "This record can't be read — it keeps its place, and nothing is applied to it."
 
@@ -620,31 +711,38 @@ export function recordEffectLine(record: MarkPreviewKnowledgeRecord): string {
   if (record.evidence.kind === 'unreadable') return UNREADABLE_RECORD_TEXT
   const { effects } = record.evidence
   const overturns = effects.filter((effect) => effect.direction === 'overturn').length
-  return [
-    effects.some((effect) => effect.direction === 'confirm') ? RECORD_EFFECT_TEXT.confirm : undefined,
-    overturns === 0 ? undefined : overturns === 1 ? RECORD_EFFECT_TEXT.overturn : `${RECORD_EFFECT_TEXT.overturn} × ${String(overturns)}`,
-  ]
-    .filter((part) => part !== undefined)
-    .join(' · ')
+  const confirms = effects.some((effect) => effect.direction === 'confirm')
+  const overturn =
+    overturns === 0
+      ? undefined
+      : overturns === 1
+        ? RECORD_EFFECT_TEXT.overturn
+        : t('feedback.preview.effect.overturnTimes', { times: String(overturns) })
+  if (overturn === undefined) return confirms ? RECORD_EFFECT_TEXT.confirm : ''
+  return confirms
+    ? t('feedback.preview.effect.confirmAndOverturn', { confirm: RECORD_EFFECT_TEXT.confirm, overturn })
+    : overturn
 }
 
-export const CONTENT_ABSENCE_TEXT = {
-  'not-found': 'Record content not found',
-  'scan-incomplete': 'Record content could not be fully read',
-  'not-bound': "Record content isn't available on this host",
-} satisfies Record<RunKnowledgeContentAbsence['reason'], string>
+export const CONTENT_ABSENCE_TEXT = textTable({
+  'not-found': () => t('feedback.preview.contentAbsence.notFound'),
+  'scan-incomplete': () => t('feedback.preview.contentAbsence.scanIncomplete'),
+  'not-bound': () => t('feedback.preview.contentAbsence.notBound'),
+}) satisfies Record<RunKnowledgeContentAbsence['reason'], string>
+
+const KNOWLEDGE_FIX_TEXT = textTable({
+  fact: () => t('feedback.preview.fix.fact'),
+  caution: () => t('feedback.preview.fix.caution'),
+  'procedure-hint': () => t('feedback.preview.fix.procedureHint'),
+}) satisfies Record<Extract<MarkPreviewDraft, { kind: 'knowledge' }>['fix'], string>
 
 // The preview says what sending will change, in the future tense of an applied fix.
-export const PREVIEW_FIX_TEXT = {
-  knowledge: {
-    fact: 'A knowledge fact will be added',
-    caution: 'A caution will be added',
-    'procedure-hint': 'A procedure hint will be added',
-  } satisfies Record<Extract<MarkPreviewDraft, { kind: 'knowledge' }>['fix'], string>,
-  'test-edit': 'The test file will be edited',
-  'no-draftable-fix': 'No fix can be made from this run',
-  'confirmed-bug': 'Nothing changes — a real product bug needs a product fix, not a test or knowledge change',
-} as const
+export const PREVIEW_FIX_TEXT = textTable({
+  knowledge: () => KNOWLEDGE_FIX_TEXT,
+  'test-edit': () => t('feedback.preview.fix.testEdit'),
+  'no-draftable-fix': () => t('feedback.preview.fix.noDraftableFix'),
+  'confirmed-bug': () => t('feedback.preview.fix.confirmedBug'),
+})
 
 export function previewFixText(draft: MarkPreviewDraft): string {
   switch (draft.kind) {
@@ -673,20 +771,24 @@ export function draftHasWording(draft: MarkPreviewDraft): boolean {
  * A later mark replaces the earlier one, and what it changed stays.
  */
 export function replacesLine(ordinal: number, time: string | undefined): string {
-  const at = time === undefined ? `#${String(ordinal)}` : `#${String(ordinal)}, ${time}`
-  return `Replaces your earlier mark (${at}); what it changed stays`
+  const mark = String(ordinal)
+  return time === undefined
+    ? t('feedback.preview.replaces', { mark })
+    : t('feedback.preview.replacesAt', { mark, time })
 }
 
 export type MarkTargetReason = Extract<RunsMarkPreviewResult, { kind: 'consequences' }>['resolvedStep']['reason']
 
 // Keyed on the read's reason and the kind, never re-derived; a step mark needs no line.
 export function resolvedStepText(reason: MarkTargetReason, kind: Mark, stepNumber: number, total: number): string | undefined {
-  const lead = `This marks step ${String(stepNumber)} of ${String(total)} — `
+  const values = { number: String(stepNumber), total: String(total) }
   switch (reason) {
     case 'failing-step':
-      return `${lead}the first step that failed.`
+      return t('feedback.preview.resolvedStep.failingStep', values)
     case 'passing-verdict':
-      return kind === 'false-pass' ? `${lead}the last step, where the test finished.` : `${lead}the last step, because no step failed.`
+      return kind === 'false-pass'
+        ? t('feedback.preview.resolvedStep.lastStepFinished', values)
+        : t('feedback.preview.resolvedStep.lastStepNoFailure', values)
     case 'step-mark':
       return undefined
     default:
@@ -695,24 +797,26 @@ export function resolvedStepText(reason: MarkTargetReason, kind: Mark, stepNumbe
 }
 
 export function showStepLabel(stepNumber: number): string {
-  return `Show step ${String(stepNumber)}`
+  return t('feedback.preview.showStep', { number: String(stepNumber) })
 }
 
 // A quarantined mark still records; an identical repeat does not, as a note alone changes nothing.
 
-export const QUARANTINE_CAUSE_TEXT = {
-  timeout: 'a timeout',
-  flake: 'a flaky run',
-  environment: 'an environment problem',
-} satisfies Record<MarkQuarantineClass, string>
+const QUARANTINED_TEXT = textTable({
+  timeout: () => t('feedback.preview.quarantined.timeout'),
+  flake: () => t('feedback.preview.quarantined.flake'),
+  environment: () => t('feedback.preview.quarantined.environment'),
+}) satisfies Record<MarkQuarantineClass, string>
 
 export function quarantinedText(cls: MarkQuarantineClass): string {
-  return `This test failed from ${QUARANTINE_CAUSE_TEXT[cls]}, so your mark is recorded but quarantined — no knowledge or tests change.`
+  return QUARANTINED_TEXT[cls]
 }
 
 /** The time is the prior mark's history entry; without history the parenthetical drops. */
 export function alreadyMarkedText(time?: string): string {
-  return `You already said this${time === undefined ? '' : ` (${time})`}. A new note alone isn't recorded.`
+  return time === undefined
+    ? t('feedback.preview.alreadyMarked')
+    : t('feedback.preview.alreadyMarkedAt', { time })
 }
 
 // A refusal is `runs.mark`'s own arm, read from its fields; a failed read names why.
@@ -721,14 +825,17 @@ export type PreviewRefusalKind = (typeof MARK_PREVIEW_REFUSALS)[number]
 export type PreviewRefusalArm<K extends PreviewRefusalKind = PreviewRefusalKind> = Extract<RunsMarkPreviewResult, { kind: K }>
 
 export const PREVIEW_REFUSAL_TEXT = {
-  'run-not-found': () => "This run is no longer in the run store, so feedback can't be recorded.",
-  'member-not-found': () => "This test can't be found in the run, so feedback can't be recorded.",
+  'run-not-found': () => t('feedback.preview.refusal.runNotFound'),
+  'member-not-found': () => t('feedback.preview.refusal.memberNotFound'),
   'step-not-found': (arm) =>
     arm.stepCount === 0
-      ? 'This test recorded no steps, so there is nothing to mark.'
-      : `This test recorded ${String(arm.stepCount)} ${arm.stepCount === 1 ? 'step' : 'steps'}, so there is no step ${String(arm.stepIndex + 1)} to mark.`,
+      ? t('feedback.preview.refusal.noSteps')
+      : t('feedback.preview.refusal.stepNotFound', {
+          count: arm.stepCount,
+          number: String(arm.stepIndex + 1),
+        }),
   'ambiguous-address': (arm) =>
-    `${String(arm.candidates.length)} tests in this run share this address, so the mark can't be placed.`,
+    t('feedback.preview.refusal.ambiguousAddress', { count: arm.candidates.length }),
 } satisfies Record<(typeof MARK_PREVIEW_REFUSALS)[number], unknown> & {
   [K in PreviewRefusalKind]: (arm: PreviewRefusalArm<K>) => string
 }
@@ -752,13 +859,13 @@ export function previewRefusalText(arm: PreviewRefusalArm): string {
   }
 }
 
-export const FEEDBACK_READ_FAILURE_TEXT = {
-  network: "the dashboard server didn't answer",
-  'ledger-corrupt': "this run's feedback ledger is damaged",
-  'ledger-unavailable': "this run's feedback ledger can't be read right now",
-  refused: 'the server refused the request',
-  shape: "the server's answer didn't match the expected shape",
-} satisfies Record<FeedbackReadFailure, string>
+export const FEEDBACK_READ_FAILURE_TEXT = textTable({
+  network: () => t('feedback.readFailure.network'),
+  'ledger-corrupt': () => t('feedback.readFailure.ledgerCorrupt'),
+  'ledger-unavailable': () => t('feedback.readFailure.ledgerUnavailable'),
+  refused: () => t('feedback.readFailure.refused'),
+  shape: () => t('feedback.readFailure.shape'),
+}) satisfies Record<FeedbackReadFailure, string>
 
 /** The error's name never reaches the page; each failure is one product sentence. */
 export function feedbackReadFailureReason(failure: FeedbackReadFailure): string {
@@ -766,7 +873,7 @@ export function feedbackReadFailureReason(failure: FeedbackReadFailure): string 
 }
 
 export function PREVIEW_READ_FAILED_TEXT(reason: string): string {
-  return `Couldn't check what this will do — ${reason}.`
+  return t('feedback.preview.readFailed', { reason })
 }
 
 /** The command is its own part so it paints in mono without splitting the sentence. */
@@ -786,19 +893,21 @@ export const PREVIEW_RETRY_ACCESSIBLE_NAME = `${RETRY_LABEL} checking what this 
 
 export const TECHNICAL_DETAILS_LABEL = 'Technical details'
 
-export const TECHNICAL_DETAILS_ROW_LABELS = {
-  kind: 'Mark kind',
-  address: 'Address',
-  testId: 'Test id',
-  records: 'Reached records',
-  basis: 'Basis',
-} as const
+export const TECHNICAL_DETAILS_ROW_LABELS = textTable({
+  kind: () => t('feedback.details.row.kind'),
+  address: () => t('feedback.details.row.address'),
+  testId: () => t('feedback.details.row.testId'),
+  records: () => t('feedback.details.row.records'),
+  basis: () => t('feedback.details.row.basis'),
+})
 
 export type TechnicalDetailsRow = keyof typeof TECHNICAL_DETAILS_ROW_LABELS
 
 export function basisDetailText(basis: MarkPreviewBasis): string {
-  const prior = basis.priorMarkOrdinal === undefined ? '' : ` · prior mark #${String(basis.priorMarkOrdinal)}`
-  return `ledger ordinal ${String(basis.ledgerOrdinal)}${prior}`
+  const ledger = String(basis.ledgerOrdinal)
+  return basis.priorMarkOrdinal === undefined
+    ? t('feedback.details.basis', { ledger })
+    : t('feedback.details.basisWithPrior', { ledger, prior: String(basis.priorMarkOrdinal) })
 }
 
 // Each history entry is one receipt; its disposition is what happened then.
@@ -832,24 +941,29 @@ export function feedbackHistoryState(read: MarksHistoryRead | undefined): Feedba
   return result.entries.length === 0 ? 'empty' : 'history'
 }
 
-export const HISTORY_TITLE_TEXT = {
-  step: 'Feedback on this step',
-  test: 'Feedback on this test',
-} satisfies Record<FeedbackEntryScope, string>
+export const HISTORY_TITLE_TEXT = textTable({
+  step: () => t('feedback.history.title.step'),
+  test: () => t('feedback.history.title.test'),
+}) satisfies Record<FeedbackEntryScope, string>
 
 export function historyTitle(scope: FeedbackEntryScope, count: number): string {
-  return `${HISTORY_TITLE_TEXT[scope]} (${String(count)})`
+  const number = String(count)
+  return scope === 'step'
+    ? t('feedback.history.titleCount.step', { number })
+    : t('feedback.history.titleCount.test', { number })
 }
 
 export function runHistoryLabel(count: number): string {
-  return `All feedback on this run (${String(count)})`
+  return t('feedback.history.runLabel', { number: String(count) })
 }
 
 export const ACTIVE_TEXT = 'Active'
 
 /** The time is the superseding entry's own; without it the clause drops rather than guessing. */
 export function replacedByText(time?: string): string {
-  return time === undefined ? 'Replaced by your later mark' : `Replaced by your later mark at ${time}`
+  return time === undefined
+    ? t('feedback.history.replacedBy')
+    : t('feedback.history.replacedByAt', { time })
 }
 
 export const REPLACEMENT_EXPLANATION = 'Only your latest mark on a test or step counts.'
@@ -861,12 +975,20 @@ export type AppliedChangeView =
   /** An older drafted receipt: its change is not recorded, and none is invented. */
   | { kind: 'unavailable' }
 
-export const APPLIED_KNOWLEDGE_PREFIX = 'Changed knowledge: '
-export const APPLIED_TEST_FILE_PREFIX = 'Edited the test file '
 export const APPLIED_UNAVAILABLE_TEXT = 'What this mark changed was not recorded.'
 
 export function appliedRecordUnavailableText(recordId: string): string {
-  return `${recordId} (content unavailable)`
+  return t('feedback.history.recordUnavailable', { recordId })
+}
+
+function appliedRecordsText(records: readonly { recordId: string; content?: string }[]): string {
+  return records
+    .map((record) =>
+      record.content === undefined
+        ? appliedRecordUnavailableText(record.recordId)
+        : t('feedback.history.quoted', { content: record.content }),
+    )
+    .join('; ')
 }
 
 /** Projected from the receipt and its joined records; every other disposition changed nothing. */
@@ -893,11 +1015,9 @@ export function appliedChangeView(
 export function appliedChangeText(view: AppliedChangeView): string {
   switch (view.kind) {
     case 'knowledge':
-      return APPLIED_KNOWLEDGE_PREFIX + view.records
-        .map((record) => (record.content === undefined ? appliedRecordUnavailableText(record.recordId) : `“${record.content}”`))
-        .join('; ')
+      return t('feedback.history.appliedKnowledge', { records: appliedRecordsText(view.records) })
     case 'test-file':
-      return APPLIED_TEST_FILE_PREFIX + view.filePath
+      return t('feedback.history.appliedTestFile', { file: view.filePath })
     case 'unavailable':
       return APPLIED_UNAVAILABLE_TEXT
     default:
@@ -911,18 +1031,21 @@ export const DRAFTED_CHANGE_NOT_RECORDED_TEXT = 'what it changed was not recorde
 
 // One line per entry: what the mark did, then what an applied fix changed, so it cannot contradict.
 export function historyChangeText(entry: Pick<MarkHistoryEntry, 'disposition' | 'changedRecords'>): string {
-  const lead = dispositionText(entry.disposition)
+  const disposition = dispositionText(entry.disposition)
   const view = appliedChangeView(entry)
-  if (view === undefined) return lead
+  if (view === undefined) return disposition
   switch (view.kind) {
     case 'knowledge':
-      return `${lead}: ${view.records
-        .map((record) => (record.content === undefined ? appliedRecordUnavailableText(record.recordId) : `“${record.content}”`))
-        .join('; ')}`
+      return t('feedback.history.change.records', {
+        disposition,
+        records: appliedRecordsText(view.records),
+      })
     case 'test-file':
-      return `${lead}: ${view.filePath}`
+      return t('feedback.history.change.file', { disposition, file: view.filePath })
     case 'unavailable':
-      return `${lead}; ${entry.disposition.kind === 'drafted' ? DRAFTED_CHANGE_NOT_RECORDED_TEXT : APPLIED_CONTENT_NOT_RECORDED_TEXT}`
+      return entry.disposition.kind === 'drafted'
+        ? t('feedback.history.change.draftedNotRecorded', { disposition })
+        : t('feedback.history.change.contentNotRecorded', { disposition })
     default:
       return view satisfies never
   }
@@ -932,27 +1055,27 @@ export function historyChangeText(entry: Pick<MarkHistoryEntry, 'disposition' | 
 export const APPLIED_CORRECTION_TEXT
   = 'A fix stays when you mark again: correct knowledge with new feedback or by forgetting it, and revert a test edit with git.'
 
-export const HISTORY_EMPTY_TEXT = {
-  step: 'No feedback on this step yet.',
-  test: 'No feedback on this test yet.',
-  run: 'No feedback on this run yet.',
-} satisfies Record<FeedbackEntryScope | 'run', string>
+export const HISTORY_EMPTY_TEXT = textTable({
+  step: () => t('feedback.history.empty.step'),
+  test: () => t('feedback.history.empty.test'),
+  run: () => t('feedback.history.empty.run'),
+}) satisfies Record<FeedbackEntryScope | 'run', string>
 
 export function historyStateText(state: 'run-not-found' | 'ledger-corrupt' | 'ledger-unavailable', line?: number): string {
   switch (state) {
     case 'run-not-found':
-      return "This run's feedback history can't be found."
+      return t('feedback.history.state.runNotFound')
     case 'ledger-corrupt':
-      return `This run's feedback history is damaged at line ${String(line)}, so it can't be shown.`
+      return t('feedback.history.state.ledgerCorrupt', { line: String(line) })
     case 'ledger-unavailable':
-      return "This run's feedback history can't be read right now."
+      return t('feedback.history.state.ledgerUnavailable')
     default:
       return state satisfies never
   }
 }
 
 export function HISTORY_READ_FAILED_TEXT(reason: string): string {
-  return `Couldn't load this run's feedback history — ${reason}.`
+  return t('feedback.history.readFailed', { reason })
 }
 
 export const HISTORY_RETRY_ACCESSIBLE_NAME = `${RETRY_LABEL} loading feedback history`
@@ -979,8 +1102,15 @@ export function historyTargetLabel(
     entry.stepIndex === undefined ? { testIndex: entry.testIndex } : { testIndex: entry.testIndex, stepIndex: entry.stepIndex }
   const view = feedbackTargetView({ detail, target, runStatus: undefined })
   if (entry.stepIndex !== undefined) {
-    return { prefix: `Step ${String(entry.stepIndex + 1)} of ${String(view.stepCount)} · `, name: view.heading.name }
+    return nameParts('feedback.history.targetStep', {
+      number: String(entry.stepIndex + 1),
+      total: String(view.stepCount),
+      name: view.heading.name ?? '',
+    })
   }
   const member = detail?.members.find((candidate) => candidate.testIndex === entry.testIndex) ?? { testIndex: entry.testIndex }
-  return { prefix: '', name: memberDisplayName(member), suffix: ` ${memberHandleLabel(entry.testIndex)} · whole test` }
+  return nameParts('feedback.history.targetTest', {
+    name: memberDisplayName(member),
+    handle: memberHandleLabel(entry.testIndex),
+  })
 }
