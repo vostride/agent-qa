@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { t, useTranslation } from '@/i18n'
 import { deleteLiveEditorSession, type LiveExecutionLogEntry } from '@/lib/api'
 import type { LivePhase } from '@/lib/display-step'
 import { logLiveDebug } from '@/lib/live-debug'
@@ -171,6 +172,25 @@ export interface PendingNavigationState {
 }
 
 export type ConnectionState = 'idle' | 'connecting' | 'connected' | 'executing' | 'disconnected' | 'error'
+
+// The server's message is kept as sent; the hook's own is kept as a code and worded when it renders.
+type LiveEditorError =
+  | string
+  | { code: 'stepBusy'; step: string }
+  | { code: 'notReady' }
+  | { code: 'busyOrNotReady' }
+
+function liveEditorErrorText(error: LiveEditorError | null): string | null {
+  if (error === null || typeof error === 'string') return error
+  switch (error.code) {
+    case 'stepBusy':
+      return t('live.session.stepBusy', { step: error.step })
+    case 'notReady':
+      return t('live.session.notReady')
+    case 'busyOrNotReady':
+      return t('live.session.busyOrNotReady')
+  }
+}
 
 export interface UseLiveEditorReturn {
   connectionState: ConnectionState
@@ -437,7 +457,8 @@ export function useLiveEditor(
   const [teardownHooks, setTeardownHooks] = useState<LiveHookExecution[]>(() => syncExternalHooks([], externalTeardownHooks, 'teardown'))
   const [currentUrl, setCurrentUrl] = useState<string | null>(null)
   const [pendingNavigation, setPendingNavigation] = useState<PendingNavigationState | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  useTranslation()
+  const [error, setError] = useState<LiveEditorError | null>(null)
   const [runningStepIndex, setRunningStepIndex] = useState<number | null>(null)
   const [deviceLogs, setDeviceLogs] = useState<Array<{ level: string; message: string; timestamp: number }>>([])
   const [platform, setPlatform] = useState<'web' | 'android' | 'ios'>('web')
@@ -851,7 +872,7 @@ export function useLiveEditor(
             const failedStep = result.stepResults.find((s: any) => s?.status === 'failed')
             if (failedStep?.error) {
               const stepIdx = result.stepResults.indexOf(failedStep)
-              resolvedError = `Step ${stepIdx + 1} failed: ${failedStep.error}`
+              resolvedError = t('live.session.stepFailed', { number: stepIdx + 1, error: failedStep.error })
             }
           }
           setTests((prev) => updateTestByMeta(prev, test, (entry) => ({
@@ -989,7 +1010,7 @@ export function useLiveEditor(
             activeHookRunRef.current = null
             setConnectionState('connected')
           }
-          setError(`Step already in progress: ${msg.currentStep}`)
+          setError({ code: 'stepBusy', step: String(msg.currentStep) })
           break
 
         case 'navigate-complete':
@@ -1006,7 +1027,7 @@ export function useLiveEditor(
           }
           if (msg.state?.interactive === false) {
             setConnectionState('error')
-            setError(msg.state.terminalError ?? 'Live session is not ready')
+            setError(msg.state.terminalError ?? { code: 'notReady' })
           }
           break
 
@@ -1268,7 +1289,7 @@ export function useLiveEditor(
 
   const executeHookById = useCallback(async (phase: 'setup' | 'teardown', hookId: string) => {
     if (connectionStateRef.current !== 'connected') {
-      setError('Live session is busy or not ready')
+      setError({ code: 'busyOrNotReady' })
       return
     }
 
@@ -1569,7 +1590,7 @@ export function useLiveEditor(
     teardownHooks,
     currentUrl,
     pendingNavigation,
-    error,
+    error: liveEditorErrorText(error),
     executeStep,
     executeStepByIndex,
     executeHookById,

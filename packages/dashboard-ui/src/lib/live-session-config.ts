@@ -1,5 +1,6 @@
 import { parseDocument } from 'yaml'
 import type { GlobalUseConfig, TargetDetail } from '@/hooks/use-target-details'
+import { t } from '@/i18n'
 
 export interface LiveSessionBootstrap {
   platform: 'web' | 'android' | 'ios'
@@ -65,7 +66,7 @@ export function buildLiveSessionConfig(opts: {
 }): LiveSessionBootstrap {
   const target = opts.targets[opts.targetName]
   if (!target) {
-    throw new Error(`Selected target "${opts.targetName}" was not found in workspace config`)
+    throw new Error(t('live.config.targetNotFound', { name: opts.targetName }))
   }
 
   const draftUse = readDraftUse(opts.content)
@@ -74,7 +75,7 @@ export function buildLiveSessionConfig(opts: {
 
   if (target.platform === 'web') {
     if (!target.url) {
-      throw new Error(`Selected web target "${opts.targetName}" is missing a URL`)
+      throw new Error(t('live.config.webTargetMissingUrl', { name: opts.targetName }))
     }
 
     return {

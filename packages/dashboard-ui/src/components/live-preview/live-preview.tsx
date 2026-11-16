@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
 import { HealthDot } from '@/components/live-preview/health-dot'
 import { PreviewChrome } from '@/components/live-preview/preview-chrome'
+import { useTranslation } from '@/i18n'
 import { fetchEditorLiveUrl, fetchLiveUrl } from '@/lib/api'
 import { cn } from '@/lib/utils'
 import {
@@ -92,6 +93,7 @@ export function withHostHint(liveUrl: string): string {
 }
 
 export function LivePreview({ subject, chrome }: LivePreviewProps) {
+  const { t } = useTranslation()
   const kind = subject.kind
   const subjectId = subject.kind === 'run' ? subject.runId : subject.sessionId
   const over = subject.kind === 'run' ? subject.terminal || subject.runOver : subject.sessionGone
@@ -387,7 +389,7 @@ export function LivePreview({ subject, chrome }: LivePreviewProps) {
               data-live-embed
               sandbox="allow-scripts"
               src={withHostHint(mint.liveUrl)}
-              title="live preview"
+              title={t('live.preview.frameTitle')}
               className="size-full border-0"
             />
           </div>

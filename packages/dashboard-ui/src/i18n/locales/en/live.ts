@@ -21,4 +21,11 @@ export default {
   'live.preview.dotMeaning.green': 'Frames are arriving from the browser.',
   'live.preview.dotMeaning.amber': 'The newest frame is late, or the preview is reconnecting.',
   'live.preview.dotMeaning.red': 'The preview stopped receiving frames.',
+  'live.preview.frameTitle': 'live preview',
+  'live.config.targetNotFound': 'Selected target "{{name}}" was not found in workspace config',
+  'live.config.webTargetMissingUrl': 'Selected web target "{{name}}" is missing a URL',
+  'live.session.stepFailed': 'Step {{number}} failed: {{error}}',
+  'live.session.stepBusy': 'Step already in progress: {{step}}',
+  'live.session.notReady': 'Live session is not ready',
+  'live.session.busyOrNotReady': 'Live session is busy or not ready',
 } as const
