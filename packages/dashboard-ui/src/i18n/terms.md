@@ -772,6 +772,7 @@ Action sentences are polite past: `{{target}}をクリックしました`, `{{ta
 | Suite | スイート | `テストスイート` where the sentence needs it. |
 | Hook | フック | |
 | Target | ターゲット | The app or site a test runs against. |
+| Platform | プラットフォーム | `実行環境` in the Tests and Suites column headers, whose column is too narrow. |
 | Config | 設定 | `設定ファイル` for the file. |
 | Step | ステップ | |
 | Insights | インサイト | The page of pass rates, durations and tokens. A run's post-run analysis is `分析`. |

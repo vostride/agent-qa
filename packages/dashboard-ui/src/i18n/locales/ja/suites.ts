@@ -8,7 +8,7 @@ export default {
   'suites.list.selectAll': 'すべて選択',
   'suites.list.column.name': '名前',
   'suites.list.column.target': 'ターゲット',
-  'suites.list.column.platform': 'プラットフォーム',
+  'suites.list.column.platform': '実行環境',
   'suites.list.column.passRate': '成功率',
   'suites.list.column.lastRun': '最終実行',
   'suites.list.noTarget': 'ターゲットなし',

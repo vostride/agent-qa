@@ -10,7 +10,7 @@ export default {
   'nav.insights': 'インサイト',
   'nav.config': '設定',
   'nav.reportBug': 'バグを報告',
-  'nav.helpAndFeedback': 'ヘルプとフィードバック',
+  'nav.helpAndFeedback': 'ヘルプとご意見',
   'nav.takeProductTour': '製品ツアーを開始',
   'nav.sendFeedback': 'フィードバックを送信',
   'nav.viewOnGithub': 'GitHubで見る',

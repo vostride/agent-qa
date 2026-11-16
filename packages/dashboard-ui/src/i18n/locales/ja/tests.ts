@@ -7,7 +7,7 @@ export default {
   'tests.list.loadFilesFailed': 'テストファイルを読み込めませんでした',
   'tests.list.column.testName': 'テスト名',
   'tests.list.column.target': 'ターゲット',
-  'tests.list.column.platform': 'プラットフォーム',
+  'tests.list.column.platform': '実行環境',
   'tests.list.column.passRate': '成功率',
   'tests.list.column.lastRun': '最終実行',
   'tests.list.noTarget': 'ターゲットなし',
