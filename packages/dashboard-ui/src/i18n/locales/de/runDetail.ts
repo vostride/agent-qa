@@ -169,7 +169,7 @@ export default {
     '{{missing}} von {{count}} zitierten Artefakt nicht verfügbar',
   'runDetail.analysis.missingEvidence_other':
     '{{missing}} von {{count}} zitierten Artefakten nicht verfügbar',
-  'runDetail.page.title': 'Lauf - {{name}}',
+  'runDetail.page.title': 'Lauf – {{name}}',
   'runDetail.page.titleEmpty': 'Lauf',
   'runDetail.page.mark.noAddress': 'Dieses Mitglied hat keine eindeutige Adresse für Bewertungen.',
   'runDetail.page.mark.receiptStale':
