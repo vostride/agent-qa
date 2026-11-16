@@ -67,7 +67,8 @@ export default {
   'hooks.viewer.loadFailedNotice': 'No se pudo cargar el hook',
   'hooks.viewer.authoringIssues': 'El hook tiene problemas de redacción que se pueden corregir',
   'hooks.viewer.noSource': 'No se encontró el código fuente del hook para este registro.',
-  'hooks.viewer.noSourceHint': 'Actualiza la ruta o vuelve a crear el archivo en el modo de edición.',
+  'hooks.viewer.noSourceHint':
+    'Actualiza la ruta o vuelve a crear el archivo en el modo de edición.',
   'hooks.navbar.hooks': 'Hooks',
   'hooks.navbar.newHook': 'Nuevo hook',
   'hooks.navbar.unsaved': 'Sin guardar',
@@ -86,7 +87,8 @@ export default {
     'Estas referencias dejarán de funcionar si fuerzas la eliminación de este hook.',
   'hooks.delete.forceWarning':
     'Fuerza la eliminación solo si vas a corregir estas referencias de inmediato.',
-  'hooks.delete.forceHint': 'Siempre que sea posible, quita o sustituye primero estos usos del hook.',
+  'hooks.delete.forceHint':
+    'Siempre que sea posible, quita o sustituye primero estos usos del hook.',
   'hooks.delete.deleting': 'Eliminando…',
   'hooks.delete.forceDelete': 'Forzar la eliminación',
   'hooks.delete.deleteHook': 'Eliminar hook',
