@@ -1,5 +1,6 @@
 import { AlertTriangle, Trash } from 'lucide-react'
 
+import { useTranslation } from '@/i18n'
 import type { HookDeleteReference, HookRuntime } from '@/lib/api'
 import { getHookRuntimeMeta } from '@/lib/hook-runtime'
 import { Button } from '@/components/ui/button'
@@ -57,6 +58,7 @@ export function HookDeleteDialog({
   onDelete,
   onForceDelete,
 }: HookDeleteDialogProps) {
+  const { t } = useTranslation()
   const runtimeMeta = getHookRuntimeMeta(hook.runtime)
   const isBlocked = blockedReferences.length > 0
 
@@ -64,19 +66,19 @@ export function HookDeleteDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{isBlocked ? 'Hook is still in use' : 'Delete hook?'}</DialogTitle>
+          <DialogTitle>
+            {isBlocked ? t('hooks.delete.titleBlocked') : t('hooks.delete.title')}
+          </DialogTitle>
           <DialogDescription>
-            {isBlocked
-              ? 'These references will break if you force delete this hook.'
-              : 'This removes the hook record from the dashboard. If the hook is still referenced, those references will be shown here before force delete is allowed.'}
+            {isBlocked ? t('hooks.delete.descriptionBlocked') : t('hooks.delete.description')}
           </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4 rounded-sm border px-4 py-3 sm:grid-cols-2">
-          <HookDeleteSummaryRow label="Hook" value={hook.name} />
-          <HookDeleteSummaryRow label="Runtime" value={runtimeMeta.label} />
-          <HookDeleteSummaryRow label="Hook ID" value={hook.id} mono />
-          <HookDeleteSummaryRow label="File" value={hook.file} mono />
+          <HookDeleteSummaryRow label={t('hooks.field.hook')} value={hook.name} />
+          <HookDeleteSummaryRow label={t('hooks.field.runtime')} value={runtimeMeta.label} />
+          <HookDeleteSummaryRow label={t('hooks.field.hookId')} value={hook.id} mono />
+          <HookDeleteSummaryRow label={t('hooks.field.file')} value={hook.file} mono />
         </div>
 
         {deleteError ? (
@@ -90,10 +92,8 @@ export function HookDeleteDialog({
             <div className="flex items-start gap-3 rounded-sm border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
               <div className="space-y-1">
-                <div className="font-medium text-foreground">Force delete only if you will fix these references immediately.</div>
-                <div className="text-muted-foreground">
-                  Remove or replace these hook usages first when possible.
-                </div>
+                <div className="font-medium text-foreground">{t('hooks.delete.forceWarning')}</div>
+                <div className="text-muted-foreground">{t('hooks.delete.forceHint')}</div>
               </div>
             </div>
 
@@ -116,7 +116,7 @@ export function HookDeleteDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {isBlocked ? 'Close' : 'Cancel'}
+            {isBlocked ? t('common.close') : t('common.cancel')}
           </Button>
           <Button
             variant="destructive"
@@ -124,7 +124,11 @@ export function HookDeleteDialog({
             disabled={isDeleting}
           >
             <Trash className="h-4 w-4" />
-            {isDeleting ? 'Deleting...' : isBlocked ? 'Force Delete' : 'Delete Hook'}
+            {isDeleting
+              ? t('hooks.delete.deleting')
+              : isBlocked
+                ? t('hooks.delete.forceDelete')
+                : t('hooks.delete.deleteHook')}
           </Button>
         </DialogFooter>
       </DialogContent>

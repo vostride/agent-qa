@@ -5,6 +5,7 @@ import configUi from './configUi'
 import editor from './editor'
 import evidence from './evidence'
 import feedback from './feedback'
+import hooks from './hooks'
 import insights from './insights'
 import knowledge from './knowledge'
 import language from './language'
@@ -38,4 +39,5 @@ export default {
   ...tests,
   ...editor,
   ...suites,
+  ...hooks,
 } as const

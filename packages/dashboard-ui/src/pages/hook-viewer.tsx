@@ -17,6 +17,7 @@ import { useHookRunSession } from '@/hooks/use-hook-run-session'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useKeyboardShortcuts } from '@/hooks/use-keyboard-shortcuts'
 import { usePageTitle } from '@/hooks/use-page-title'
+import { useTranslation } from '@/i18n'
 import { ApiError, deleteHook, fetchHookDetail, type HookDeleteReference, type HookDetailResponse } from '@/lib/api'
 import { getHookRuntimeMeta, runtimeToLanguage } from '@/lib/hook-runtime'
 import { routes } from '@/lib/routes'
@@ -59,17 +60,18 @@ function InlineNotice({
 }
 
 function HookStatusBadge({ fileMissing }: { fileMissing: boolean }) {
+  const { t } = useTranslation()
   if (fileMissing) {
     return (
       <Badge variant="outline" className="border-amber-500/30 text-amber-600">
-        File missing
+        {t('hooks.health.fileMissing')}
       </Badge>
     )
   }
 
   return (
     <Badge variant="outline" className="border-emerald-500/30 text-emerald-600">
-      Ready
+      {t('hooks.health.ready')}
     </Badge>
   )
 }
@@ -94,6 +96,7 @@ function RailField({
 }
 
 export default function HookViewerPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -143,7 +146,7 @@ export default function HookViewerPage() {
           setNotFound(true)
           return
         }
-        setLoadError(error instanceof Error ? error.message : 'Failed to load hook')
+        setLoadError(error instanceof Error ? error.message : '')
       })
       .finally(() => {
         if (!cancelled) {
@@ -156,7 +159,7 @@ export default function HookViewerPage() {
     }
   }, [hookId])
 
-  const hookName = detail?.hook.name ?? 'Hook'
+  const hookName = detail?.hook.name ?? t('hooks.fallbackName')
   usePageTitle(hookName)
 
   const runtimeMeta = useMemo(
@@ -168,10 +171,10 @@ export default function HookViewerPage() {
   const fileMissing = detail?.fieldErrors.some((error) => error.code === 'file_missing') ?? false
   const otherFieldErrors = detail?.fieldErrors.filter((error) => error.code !== 'file_missing') ?? []
   const runDisabledReason = useMemo(() => {
-    if (!detail) return 'Hook details are still loading.'
+    if (!detail) return t('hooks.viewer.detailsLoading')
     if (detail.fieldErrors.length === 0) return null
     return detail.fieldErrors.map((error) => error.message).join(' ')
-  }, [detail])
+  }, [detail, t])
 
   const handleRunAction = useCallback(async () => {
     runSectionRef.current?.scrollIntoView?.({ block: 'start' })
@@ -216,12 +219,12 @@ export default function HookViewerPage() {
 
         setDeleteError(error.message)
       } else {
-        setDeleteError(error instanceof Error ? error.message : 'Failed to delete hook')
+        setDeleteError(error instanceof Error ? error.message : t('hooks.delete.failed'))
       }
     } finally {
       setIsDeleting(false)
     }
-  }, [hookId, navigate])
+  }, [hookId, navigate, t])
 
   const editRoute = routes.hookEdit(hookId)
 
@@ -256,9 +259,9 @@ export default function HookViewerPage() {
     return (
       <EmptyState
         icon={Wrench}
-        title="Hook not found"
-        description="This hook doesn't exist or could not be loaded."
-        actionLabel="View All Hooks"
+        title={t('hooks.notFound.title')}
+        description={t('hooks.notFound.description')}
+        actionLabel={t('hooks.notFound.action')}
         onAction={() => navigate(routes.hooks)}
       />
     )
@@ -268,9 +271,13 @@ export default function HookViewerPage() {
     return (
       <EmptyState
         icon={AlertTriangle}
-        title="Hook couldn't be loaded"
-        description={loadError ?? 'This hook could not be loaded right now.'}
-        actionLabel="View All Hooks"
+        title={t('hooks.viewer.couldNotLoad.title')}
+        description={
+          loadError === null
+            ? t('hooks.viewer.couldNotLoad.description')
+            : loadError || t('hooks.loadFailed')
+        }
+        actionLabel={t('hooks.notFound.action')}
         onAction={() => navigate(routes.hooks)}
       />
     )
@@ -284,18 +291,19 @@ export default function HookViewerPage() {
       )}
     >
       <div className="space-y-3 shrink-0">
-        {loadError ? (
-          <InlineNotice title="Hook could not be loaded" body={loadError} tone="error" />
+        {loadError !== null ? (
+          <InlineNotice
+            title={t('hooks.viewer.loadFailedNotice')}
+            body={loadError || t('hooks.loadFailed')}
+            tone="error"
+          />
         ) : null}
         {fileMissing ? (
-          <InlineNotice
-            title="Hook file missing"
-            body="This hook is still registered, but its source file can't be found. Update the path or recreate the file, then save again."
-          />
+          <InlineNotice title={t('hooks.fileMissing.title')} body={t('hooks.fileMissing.body')} />
         ) : null}
         {otherFieldErrors.length > 0 ? (
           <InlineNotice
-            title="Hook has recoverable authoring issues"
+            title={t('hooks.viewer.authoringIssues')}
             body={otherFieldErrors.map((error) => error.message).join(' ')}
           />
         ) : null}
@@ -303,17 +311,17 @@ export default function HookViewerPage() {
         <section className="space-y-3">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="space-y-1">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Hook</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.field.hook')}</div>
               <div className="text-base font-semibold text-foreground">{detail.hook.name}</div>
             </div>
             <HookStatusBadge fileMissing={fileMissing} />
           </div>
 
           <div className="grid gap-x-5 gap-y-3 sm:grid-cols-2">
-            <RailField label="File" value={detail.hook.file} mono />
-            <RailField label="Hook ID" value={detail.hook.id} mono />
+            <RailField label={t('hooks.field.file')} value={detail.hook.file} mono />
+            <RailField label={t('hooks.field.hookId')} value={detail.hook.id} mono />
             <RailField
-              label="Runtime"
+              label={t('hooks.field.runtime')}
               value={(
                 <div className="flex items-center gap-2">
                   {RuntimeIcon ? <RuntimeIcon className="h-4 w-4 text-muted-foreground" /> : null}
@@ -321,9 +329,15 @@ export default function HookViewerPage() {
                 </div>
               )}
             />
-            <RailField label="Timeout" value={formatDuration(detail.hook.timeout)} />
-            <RailField label="Network" value={detail.hook.network ? 'Enabled' : 'Disabled'} />
-            <RailField label="Health" value={<HookStatusBadge fileMissing={fileMissing} />} />
+            <RailField label={t('hooks.field.timeout')} value={formatDuration(detail.hook.timeout)} />
+            <RailField
+              label={t('hooks.field.network')}
+              value={detail.hook.network ? t('hooks.network.enabled') : t('hooks.network.disabled')}
+            />
+            <RailField
+              label={t('hooks.field.health')}
+              value={<HookStatusBadge fileMissing={fileMissing} />}
+            />
           </div>
         </section>
       </div>
@@ -335,7 +349,7 @@ export default function HookViewerPage() {
           isMobile ? '' : 'flex min-h-[300px] flex-1 flex-col overflow-hidden',
         )}
       >
-        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Source</div>
+        <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.field.source')}</div>
         {detail.source ? (
           <MonacoEditor
             value={detail.source}
@@ -356,10 +370,10 @@ export default function HookViewerPage() {
           >
             <div>
               <AlertTriangle className="mx-auto h-5 w-5 text-muted-foreground" />
-              <div className="mt-3 text-sm font-medium text-foreground">No hook source found for this record.</div>
-              <div className="mt-1 text-sm text-muted-foreground">
-                Update the path or recreate the file in edit mode.
+              <div className="mt-3 text-sm font-medium text-foreground">
+                {t('hooks.viewer.noSource')}
               </div>
+              <div className="mt-1 text-sm text-muted-foreground">{t('hooks.viewer.noSourceHint')}</div>
             </div>
           </div>
         )}

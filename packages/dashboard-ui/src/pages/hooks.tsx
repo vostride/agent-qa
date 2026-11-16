@@ -8,6 +8,7 @@ import {
 } from "react"
 import { useNavigate } from "react-router"
 import { ArrowUpDown, FileCode, Keyboard, Plus } from "lucide-react"
+import type { TFunction } from "i18next"
 
 import { EmptyState } from "@/components/empty-state"
 import { TableSkeleton } from "@/components/page-skeleton"
@@ -40,6 +41,7 @@ import {
 import { useHooksSearchParams } from "@/hooks/use-hooks-search-params"
 import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { usePageTitle } from "@/hooks/use-page-title"
+import { useTranslation } from "@/i18n"
 import {
   fetchHookCatalog,
   type HookCatalogEntry,
@@ -64,16 +66,17 @@ function getHookHealth(hook: HookCatalogEntry): HookHealth {
   return hook.fileMissing ? "file-missing" : "ready"
 }
 
-function getHealthLabel(health: HookHealth): string {
-  return health === "file-missing" ? "File missing" : "Ready"
+function getHealthLabel(t: TFunction, health: HookHealth): string {
+  return health === "file-missing" ? t("hooks.health.fileMissing") : t("hooks.health.ready")
 }
 
 function HealthBadge({ hook }: { hook: HookCatalogEntry }) {
+  const { t } = useTranslation()
   const health = getHookHealth(hook)
   if (health === "file-missing") {
-    return <Badge variant="outline" className="border-amber-500/30 text-amber-600">File missing</Badge>
+    return <Badge variant="outline" className="border-amber-500/30 text-amber-600">{t("hooks.health.fileMissing")}</Badge>
   }
-  return <Badge variant="outline" className="border-emerald-500/30 text-emerald-600">Ready</Badge>
+  return <Badge variant="outline" className="border-emerald-500/30 text-emerald-600">{t("hooks.health.ready")}</Badge>
 }
 
 function RuntimePill({ runtime }: { runtime: HookRuntime }) {
@@ -110,7 +113,8 @@ function getRowClassName({ isActive }: { isActive: boolean }) {
 }
 
 export default function HooksPage() {
-  usePageTitle("Hooks")
+  const { t } = useTranslation()
+  usePageTitle(t("hooks.list.title"))
 
   const navigate = useNavigate()
   const [catalog, setCatalog] = useState<HookCatalogResponse>(EMPTY_CATALOG)
@@ -133,7 +137,7 @@ export default function HooksPage() {
       .catch((error: unknown) => {
         if (cancelled) return
         setCatalog(EMPTY_CATALOG)
-        setLoadError(error instanceof Error ? error.message : "Failed to load hooks")
+        setLoadError(error instanceof Error ? error.message : "")
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
@@ -145,31 +149,33 @@ export default function HooksPage() {
   }, [])
 
   const warningCopy = useMemo(() => {
-    if (loadError) {
+    if (loadError !== null) {
       return {
-        title: "Hooks could not be loaded",
-        body: loadError,
+        title: t("hooks.list.warning.loadFailed"),
+        body: loadError || t("hooks.list.loadFailed"),
       }
     }
 
     if (catalog.missing) {
-      const hookFileLabel = catalog.filePath ?? "configured hooks file"
       return {
-        title: `${hookFileLabel} not found`,
-        body: "Create the first hook to generate the configured hooks file for this workspace.",
+        title: catalog.filePath === null
+          ? t("hooks.list.warning.defaultFileNotFound")
+          : t("hooks.list.warning.fileNotFound", { file: catalog.filePath }),
+        body: t("hooks.list.warning.createFirst"),
       }
     }
 
     if (catalog.errors.length > 0) {
-      const hookFileLabel = catalog.filePath ?? "configured hooks file"
       return {
-        title: `Hooks could not be loaded from ${hookFileLabel}`,
-        body: catalog.errors[0] ?? "Unknown registry error",
+        title: catalog.filePath === null
+          ? t("hooks.list.warning.defaultLoadFailedFrom")
+          : t("hooks.list.warning.loadFailedFrom", { file: catalog.filePath }),
+        body: catalog.errors[0] ?? t("hooks.list.warning.unknownError"),
       }
     }
 
     return null
-  }, [catalog.errors, catalog.filePath, catalog.missing, loadError])
+  }, [catalog.errors, catalog.filePath, catalog.missing, loadError, t])
 
   const filteredHooks = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -198,7 +204,7 @@ export default function HooksPage() {
           comparison = left.timeout - right.timeout
           break
         case "health":
-          comparison = getHealthLabel(getHookHealth(left)).localeCompare(getHealthLabel(getHookHealth(right)))
+          comparison = getHealthLabel(t, getHookHealth(left)).localeCompare(getHealthLabel(t, getHookHealth(right)))
           break
         case "name":
         default:
@@ -209,7 +215,7 @@ export default function HooksPage() {
     })
 
     return sorted
-  }, [catalog.hooks, health, runtime, search, sorting])
+  }, [catalog.hooks, health, runtime, search, sorting, t])
 
   const filteredCount = filteredHooks.length
   const totalPages = Math.ceil(filteredCount / HOOKS_TABLE_PAGE_SIZE)
@@ -315,39 +321,39 @@ export default function HooksPage() {
   }
 
   const hasNoHooks = filteredCount === 0
-  const canCreate = !catalog.errors.length && !loadError
+  const canCreate = !catalog.errors.length && loadError === null
 
   return (
     <TooltipProvider>
       <div className="space-y-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Hooks</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("hooks.list.title")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Manage reusable setup, teardown, and inline hook scripts for this workspace.
+              {t("hooks.list.description")}
             </p>
           </div>
           <div className="flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" type="button" aria-label="Keyboard shortcuts">
+                <Button variant="ghost" size="icon-sm" type="button" aria-label={t("hooks.list.shortcuts.label")}>
                   <Keyboard className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="p-3">
                 <ShortcutLegend
                   hints={[
-                    { key: "J / ↓", label: "Next row" },
-                    { key: "K / ↑", label: "Previous row" },
-                    { key: "Enter", label: "Open hook" },
-                    { key: "⌘+Enter", label: "Open in new tab" },
+                    { key: "J / ↓", label: t("hooks.list.shortcuts.nextRow") },
+                    { key: "K / ↑", label: t("hooks.list.shortcuts.previousRow") },
+                    { key: "Enter", label: t("hooks.list.shortcuts.openHook") },
+                    { key: "⌘+Enter", label: t("hooks.list.shortcuts.openInNewTab") },
                   ]}
                 />
               </TooltipContent>
             </Tooltip>
             <Button type="button" data-tour-id="tour-hooks-new" onClick={() => navigate(routes.hookNew)}>
               <Plus className="h-4 w-4" />
-              Create Hook
+              {t("hooks.list.createHook")}
             </Button>
           </div>
         </div>
@@ -361,17 +367,17 @@ export default function HooksPage() {
             <Input
               value={search}
               onChange={(event) => handleSearchChange(event.currentTarget.value)}
-              placeholder="Search hooks"
+              placeholder={t("hooks.list.search")}
               className="lg:max-w-sm"
-              aria-label="Search hooks"
+              aria-label={t("hooks.list.search")}
             />
             <div className="flex flex-col gap-3 sm:flex-row">
               <Select value={runtime || "all"} onValueChange={handleRuntimeChange}>
-                <SelectTrigger className="w-full sm:w-44" aria-label="Runtime filter">
-                  <SelectValue placeholder="Runtime" />
+                <SelectTrigger className="w-full sm:w-44" aria-label={t("hooks.list.filter.runtimeLabel")}>
+                  <SelectValue placeholder={t("hooks.list.filter.runtime")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All runtimes</SelectItem>
+                  <SelectItem value="all">{t("hooks.list.filter.allRuntimes")}</SelectItem>
                   {HOOK_RUNTIME_OPTIONS.map((runtimeOption) => (
                     <SelectItem key={runtimeOption} value={runtimeOption}>
                       {getHookRuntimeMeta(runtimeOption).label}
@@ -380,13 +386,13 @@ export default function HooksPage() {
                 </SelectContent>
               </Select>
               <Select value={health || "all"} onValueChange={handleHealthChange}>
-                <SelectTrigger className="w-full sm:w-44" aria-label="Health filter">
-                  <SelectValue placeholder="Health" />
+                <SelectTrigger className="w-full sm:w-44" aria-label={t("hooks.list.filter.healthLabel")}>
+                  <SelectValue placeholder={t("hooks.list.filter.health")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All health</SelectItem>
-                  <SelectItem value="ready">Ready</SelectItem>
-                  <SelectItem value="file-missing">File missing</SelectItem>
+                  <SelectItem value="all">{t("hooks.list.filter.allHealth")}</SelectItem>
+                  <SelectItem value="ready">{t("hooks.health.ready")}</SelectItem>
+                  <SelectItem value="file-missing">{t("hooks.health.fileMissing")}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -397,13 +403,13 @@ export default function HooksPage() {
           <div data-tour-id="tour-hooks-table">
             <EmptyState
               icon={FileCode}
-              title={catalog.hooks.length === 0 ? "No hooks yet" : "No hooks match your filters"}
+              title={catalog.hooks.length === 0 ? t("hooks.list.empty.title") : t("hooks.list.noMatches.title")}
               description={
                 catalog.hooks.length === 0
-                  ? "Create a hook to add reusable setup, teardown, or inline automation to this workspace."
-                  : "Adjust your search or filters to see more hook records."
+                  ? t("hooks.list.empty.description")
+                  : t("hooks.list.noMatches.description")
               }
-              actionLabel={canCreate ? "Create Hook" : undefined}
+              actionLabel={canCreate ? t("hooks.list.createHook") : undefined}
               onAction={canCreate ? () => navigate(routes.hookNew) : undefined}
             />
           </div>
@@ -415,25 +421,25 @@ export default function HooksPage() {
                   <TableRow>
                     <TableHead className="w-[40%]">
                       <Button type="button" variant="ghost" className="-ml-3" onClick={() => toggleSort("name")}>
-                        Hook
+                        {t("hooks.list.column.hook")}
                         <ArrowUpDown className="h-4 w-4" />
                       </Button>
                     </TableHead>
                     <TableHead>
                       <Button type="button" variant="ghost" className="-ml-3" onClick={() => toggleSort("runtime")}>
-                        Runtime
+                        {t("hooks.list.column.runtime")}
                         <ArrowUpDown className="h-4 w-4" />
                       </Button>
                     </TableHead>
                     <TableHead>
                       <Button type="button" variant="ghost" className="-ml-3" onClick={() => toggleSort("timeout")}>
-                        Timeout / Network
+                        {t("hooks.list.column.timeoutNetwork")}
                         <ArrowUpDown className="h-4 w-4" />
                       </Button>
                     </TableHead>
                     <TableHead>
                       <Button type="button" variant="ghost" className="-ml-3" onClick={() => toggleSort("health")}>
-                        Health
+                        {t("hooks.list.column.health")}
                         <ArrowUpDown className="h-4 w-4" />
                       </Button>
                     </TableHead>
@@ -477,7 +483,7 @@ export default function HooksPage() {
                           <div className="space-y-1">
                             <div className="text-sm text-foreground">{formatDuration(hook.timeout)}</div>
                             <div className="text-xs text-muted-foreground">
-                              {hook.network ? "Network on" : "Network off"}
+                              {hook.network ? t("hooks.list.networkOn") : t("hooks.list.networkOff")}
                             </div>
                           </div>
                         </TableCell>
@@ -493,7 +499,7 @@ export default function HooksPage() {
             </ScrollArea>
             <div className="flex items-center justify-between px-2">
               <p className="text-sm text-muted-foreground">
-                Showing {pageStart}-{pageEnd} of {filteredCount}
+                {t("hooks.list.showing", { start: pageStart, end: pageEnd, shown: filteredCount })}
               </p>
               <div className="flex items-center gap-2">
                 <Button
@@ -506,7 +512,7 @@ export default function HooksPage() {
                   }}
                   disabled={safePageIndex === 0}
                 >
-                  Previous
+                  {t("hooks.list.previous")}
                 </Button>
                 <Button
                   type="button"
@@ -518,7 +524,7 @@ export default function HooksPage() {
                   }}
                   disabled={safePageIndex >= totalPages - 1}
                 >
-                  Next
+                  {t("common.next")}
                 </Button>
               </div>
             </div>

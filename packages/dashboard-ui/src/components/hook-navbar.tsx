@@ -10,6 +10,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useTranslation } from '@/i18n'
 
 interface HookNavbarProps {
   hookName: string
@@ -46,6 +47,7 @@ export function HookNavbar({
   shortcutsOpen = false,
   onToggleShortcuts,
 }: HookNavbarProps) {
+  const { t } = useTranslation()
   const isViewMode = mode === 'view' && !isCreateMode
   const showEditCrumb = !isCreateMode && !isViewMode && mode === 'edit'
   const showRunAction = !isCreateMode && !!onRun
@@ -58,11 +60,11 @@ export function HookNavbar({
           to="/hooks"
           className="shrink-0 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
-          Hooks
+          {t('hooks.navbar.hooks')}
         </Link>
         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         {isCreateMode ? (
-          <span className="truncate text-sm font-medium">New Hook</span>
+          <span className="truncate text-sm font-medium">{t('hooks.navbar.newHook')}</span>
         ) : hookHref && !isViewMode ? (
           <Link to={hookHref} className="truncate text-sm font-medium transition-colors hover:text-primary">
             {hookName}
@@ -73,12 +75,12 @@ export function HookNavbar({
         {showEditCrumb && (
           <>
             <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-            <span className="truncate text-sm font-medium">Edit</span>
+            <span className="truncate text-sm font-medium">{t('common.edit')}</span>
           </>
         )}
         {unsaved && (
           <Badge variant="outline" className="text-xs">
-            Unsaved
+            {t('hooks.navbar.unsaved')}
           </Badge>
         )}
       </div>
@@ -89,7 +91,7 @@ export function HookNavbar({
             <Button variant="outline" size="sm" asChild>
               <Link to={editHref ?? hookHref ?? '/hooks'}>
                 <Pencil className="h-3.5 w-3.5" />
-                Edit
+                {t('common.edit')}
                 <ShortcutKey shortcut="E" />
               </Link>
             </Button>
@@ -97,7 +99,7 @@ export function HookNavbar({
             {showRunAction ? (
               <Button size="sm" onClick={onRun} disabled={isRunning || runDisabled}>
                 <PlayCircle className="h-3.5 w-3.5" />
-                {isRunning ? 'Running...' : 'Run Hook'}
+                {isRunning ? t('hooks.navbar.running') : t('hooks.navbar.runHook')}
                 <ShortcutKey
                   shortcut="R"
                   className="border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground"
@@ -114,7 +116,7 @@ export function HookNavbar({
                 className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
               >
                 <Trash className="h-3.5 w-3.5" />
-                {isDeleting ? 'Deleting...' : 'Delete'}
+                {isDeleting ? t('hooks.navbar.deleting') : t('common.delete')}
               </Button>
             ) : null}
 
@@ -134,25 +136,25 @@ export function HookNavbar({
                         variant="ghost"
                         size="icon-sm"
                         onClick={onToggleShortcuts}
-                        aria-label="Shortcuts"
+                        aria-label={t('hooks.navbar.shortcuts')}
                       >
                         <Keyboard className="h-3.5 w-3.5" />
                       </Button>
                     </PopoverTrigger>
                   </TooltipTrigger>
-                  <TooltipContent>Shortcuts</TooltipContent>
+                  <TooltipContent>{t('hooks.navbar.shortcuts')}</TooltipContent>
                 </Tooltip>
                 <PopoverContent align="end" sideOffset={8} className="w-72 p-4">
                   <div className="space-y-3">
                     <div>
                       <h4 className="mb-2 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
-                        Actions
+                        {t('hooks.navbar.actions')}
                       </h4>
                       <ShortcutLegend
                         hints={[
-                          { key: 'E', label: 'Edit' },
-                          { key: 'R', label: 'Run Hook' },
-                          { key: '?', label: 'Toggle shortcuts' },
+                          { key: 'E', label: t('common.edit') },
+                          { key: 'R', label: t('hooks.navbar.runHook') },
+                          { key: '?', label: t('hooks.navbar.toggleShortcuts') },
                         ]}
                       />
                     </div>
@@ -165,13 +167,13 @@ export function HookNavbar({
           <>
             <Button variant="ghost" size="sm" onClick={onSave} disabled={isSaving || !onSave}>
               <Save className="h-3.5 w-3.5" />
-              {isSaving ? 'Saving...' : 'Save'}
+              {isSaving ? t('hooks.navbar.saving') : t('common.save')}
             </Button>
 
             {showRunAction ? (
               <Button size="sm" onClick={onRun} disabled={isRunning || runDisabled}>
                 <PlayCircle className="h-3.5 w-3.5" />
-                {isRunning ? 'Running...' : 'Run Hook'}
+                {isRunning ? t('hooks.navbar.running') : t('hooks.navbar.runHook')}
               </Button>
             ) : null}
 
@@ -184,7 +186,7 @@ export function HookNavbar({
                 className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
               >
                 <Trash className="h-3.5 w-3.5" />
-                {isDeleting ? 'Deleting...' : 'Delete'}
+                {isDeleting ? t('hooks.navbar.deleting') : t('common.delete')}
               </Button>
             ) : null}
           </>
