@@ -1,0 +1,60 @@
+import type en from '../en'
+import type { Translation } from '../../translation'
+
+export default {
+  'common.cancel': 'Abbrechen',
+  'common.save': 'Speichern',
+  'common.delete': 'Löschen',
+  'common.close': 'Schließen',
+  'common.edit': 'Bearbeiten',
+  'common.next': 'Weiter',
+  'common.run': 'Ausführen',
+  'common.copied': 'In die Zwischenablage kopiert',
+  'common.error.title': 'Etwas ist schiefgelaufen',
+  'common.error.unexpected': 'Ein unerwarteter Fehler ist aufgetreten',
+  'common.error.goBack': 'Zurück',
+  'common.error.tryAgain': 'Erneut versuchen',
+  'common.dialog.commandTitle': 'Befehlspalette',
+  'common.dialog.commandDescription': 'Nach einem auszuführenden Befehl suchen …',
+  'common.selection.selected_one': '{{count}} ausgewählt',
+  'common.selection.selected_other': '{{count}} ausgewählt',
+  'common.selection.selectRow': 'Zeile auswählen',
+  'common.id.copyLabel': '{{label}} kopieren: {{value}}',
+  'common.id.copyFailed':
+    'Kopieren nicht möglich – markieren Sie die ID, um sie zu kopieren: {{value}}',
+  'common.run.withoutCache': 'Ohne Cache ausführen',
+  'common.run.purgeCache': 'Alle zwischengespeicherten Pläne löschen',
+  'common.screenshot.unavailable': 'Screenshot nicht verfügbar',
+  'common.screenshot.image': 'Screenshot des Schritts',
+  'common.screenshot.imageFullSize': 'Screenshot des Schritts (volle Größe)',
+  'common.screenshot.showAnnotations': 'Markierungen einblenden',
+  'common.screenshot.hideAnnotations': 'Markierungen ausblenden',
+  'common.screenshot.enableMagnifier': 'Lupe einschalten',
+  'common.screenshot.disableMagnifier': 'Lupe ausschalten',
+  'common.screenshot.viewFullSize': 'In voller Größe anzeigen',
+  'common.untitledStep': 'Unbenannter Schritt',
+  'common.variableName': 'Variable: {{name}}',
+  'common.api.error': 'API-Fehler {{status}}: {{statusText}}',
+  'common.api.errorStatus': 'API-Fehler {{status}}',
+  'common.api.invalidAuthState': 'Ungültige Antwort zum Anmeldestatus',
+  'common.api.runNotReady': 'Das Dashboard kann gerade keinen Lauf starten: {{reason}}',
+  'common.api.notReady.serviceDown': 'der Ausführungsdienst läuft nicht',
+  'common.api.notReady.noHost':
+    'dieses Dashboard hat keinen Host eingerichtet, auf dem Tests ausgeführt werden können',
+  'common.api.notReady.unreachable':
+    'der Dashboard-Server hat auf die Bereitschaftsprüfung nicht geantwortet ({{detail}})',
+  'common.api.notReady.refused': 'die Bereitschaftsprüfung wurde abgelehnt ({{detail}})',
+  'common.api.notReady.unreadable': 'die Antwort der Bereitschaftsprüfung war nicht lesbar',
+  'common.api.notReady.unknownShape':
+    'die Antwort der Bereitschaftsprüfung hat ein Format, das diese Version nicht versteht',
+  'common.filename.required': 'Ein Dateiname ist erforderlich',
+  'common.filename.parentSegment': "Der Pfad darf keine '..'-Segmente enthalten",
+  'common.filename.absolute': 'Der Pfad muss relativ sein, nicht absolut',
+  'common.filename.emptySegment': 'Der Pfad enthält ein leeres Segment (doppelter Schrägstrich)',
+  'common.filename.characters':
+    'Der Pfad darf nur Buchstaben, Ziffern, Bindestriche, Punkte, Unterstriche und Schrägstriche enthalten und muss auf .yaml oder .yml enden',
+  'common.filename.extension': 'Die Datei muss auf .yaml oder .yml enden',
+  'common.filename.noPattern': '{{key}} muss mindestens ein Muster enthalten',
+  'common.filename.noMatch':
+    'Der Dateipfad muss zu einem der {{label}}-Muster Ihres Arbeitsbereichs passen ({{patterns}})',
+} satisfies Translation<typeof en>
