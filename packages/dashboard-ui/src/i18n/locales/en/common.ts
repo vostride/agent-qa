@@ -5,6 +5,7 @@ export default {
   'common.close': 'Close',
   'common.edit': 'Edit',
   'common.next': 'Next',
+  'common.nextPage': 'Next',
   'common.run': 'Run',
   'common.copied': 'Copied to the clipboard',
   'common.error.title': 'Something went wrong',

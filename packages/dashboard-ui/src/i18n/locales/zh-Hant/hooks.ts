@@ -57,7 +57,7 @@ export default {
   'hooks.list.networkOn': '網路開啟',
   'hooks.list.networkOff': '網路關閉',
   'hooks.list.showing': '顯示第 {{start}}-{{end}} 項，共 {{shown}} 項',
-  'hooks.list.previous': '上一步',
+  'hooks.list.previous': '上一頁',
   'hooks.viewer.detailsLoading': '仍在載入掛鉤詳細資料。',
   'hooks.viewer.couldNotLoad.title': '無法載入掛鉤',
   'hooks.viewer.couldNotLoad.description': '目前無法載入此掛鉤。',

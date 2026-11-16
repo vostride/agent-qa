@@ -8,6 +8,7 @@ export default {
   'common.close': 'Fermer',
   'common.edit': 'Modifier',
   'common.next': 'Suivant',
+  'common.nextPage': 'Suivant',
   'common.run': 'Exécuter',
   'common.copied': 'Copié dans le presse-papiers',
   'common.error.title': 'Une erreur s’est produite',

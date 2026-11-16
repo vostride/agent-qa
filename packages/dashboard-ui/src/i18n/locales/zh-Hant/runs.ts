@@ -63,7 +63,7 @@ export default {
   'runs.table.noResults': '沒有結果。',
   'runs.table.showing': '顯示第 {{start}}-{{end}} 項，共 {{total}} 項',
   'runs.table.noRuns': '找不到任何執行',
-  'runs.table.previous': '上一步',
+  'runs.table.previous': '上一頁',
   'runs.results.connecting': '正在連線…',
   'runs.results.waiting': '正在等待事件…',
 } satisfies Translation<typeof en>

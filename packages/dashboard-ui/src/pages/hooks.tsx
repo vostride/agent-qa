@@ -526,7 +526,7 @@ export default function HooksPage() {
                   }}
                   disabled={safePageIndex >= totalPages - 1}
                 >
-                  {t("common.next")}
+                  {t("common.nextPage")}
                 </Button>
               </div>
             </div>

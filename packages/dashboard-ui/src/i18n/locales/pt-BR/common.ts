@@ -8,6 +8,7 @@ export default {
   'common.close': 'Fechar',
   'common.edit': 'Editar',
   'common.next': 'Próximo',
+  'common.nextPage': 'Próxima',
   'common.run': 'Executar',
   'common.copied': 'Copiado para a área de transferência',
   'common.error.title': 'Algo deu errado',

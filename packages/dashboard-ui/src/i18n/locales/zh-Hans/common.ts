@@ -8,6 +8,7 @@ export default {
   'common.close': '关闭',
   'common.edit': '编辑',
   'common.next': '下一步',
+  'common.nextPage': '下一页',
   'common.run': '运行',
   'common.copied': '已复制到剪贴板',
   'common.error.title': '出错了',

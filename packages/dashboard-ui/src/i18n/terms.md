@@ -192,6 +192,13 @@ for slots.
 
 ## Notes by area
 
+### common
+
+- `common.next` is the tour's button to its next step. `common.nextPage` is the button to the next
+  page of a list and stands beside that list's own `previous` key (`runs.table.previous`,
+  `hooks.list.previous`, `tests.list.previous`, `suites.list.previous`), so the two read as a pair.
+  A language with one word for both writes it in both keys.
+
 ### status
 
 - `status.*` (capitalised) is the label of a run, test or step status; `status.name.*` (lowercase in

@@ -1117,7 +1117,7 @@ export function RunsTable({
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages - 1 || totalPages === 0}
             >
-              {t("common.next")}
+              {t("common.nextPage")}
             </Button>
           </div>
         </div>

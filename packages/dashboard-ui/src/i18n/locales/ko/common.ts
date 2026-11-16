@@ -8,6 +8,7 @@ export default {
   'common.close': '닫기',
   'common.edit': '편집',
   'common.next': '다음',
+  'common.nextPage': '다음',
   'common.run': '실행',
   'common.copied': '클립보드에 복사했습니다',
   'common.error.title': '문제가 발생했습니다',

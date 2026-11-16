@@ -769,7 +769,7 @@ export default function TestsPage() {
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >
-              {t("common.next")}
+              {t("common.nextPage")}
             </Button>
           </div>
         </div>

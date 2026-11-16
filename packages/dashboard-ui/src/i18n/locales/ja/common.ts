@@ -8,6 +8,7 @@ export default {
   'common.close': '閉じる',
   'common.edit': '編集',
   'common.next': '次へ',
+  'common.nextPage': '次へ',
   'common.run': '実行',
   'common.copied': 'クリップボードにコピーしました',
   'common.error.title': '問題が発生しました',
