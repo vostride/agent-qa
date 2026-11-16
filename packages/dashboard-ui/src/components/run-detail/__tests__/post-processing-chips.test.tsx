@@ -150,7 +150,7 @@ describe("a settled analysis indicator explains itself", () => {
         status: "complete",
         state: "complete",
         word: STAGE_INDICATOR_WORDS.analysis.complete,
-        card: { outcome: ANALYSIS_COMPLETE_NO_ISSUES_TEXT() },
+        card: { outcome: ANALYSIS_COMPLETE_NO_ISSUES_TEXT(), clause: "no issues found" },
       },
       { status: "complete", state: "complete", word: STAGE_INDICATOR_WORDS.curation.complete },
     ))
@@ -245,7 +245,10 @@ describe("`curated N facts, deprecated M` is gone from the header", () => {
 describe("the curation chip is a click-through into the Knowledge tab", () => {
   const SETTLED_CURATION = {
     status: "complete",
-    card: { outcome: `Curation complete — ${COUNTS_NOT_RECORDED_TEXT()}` },
+    card: {
+      outcome: `Curation complete — ${COUNTS_NOT_RECORDED_TEXT()}`,
+      clause: COUNTS_NOT_RECORDED_TEXT(),
+    },
   }
 
   function renderWithClick(onCurationClick: () => void): HTMLElement {
@@ -266,7 +269,7 @@ describe("the curation chip is a click-through into the Knowledge tab", () => {
     // A native tooltip beside a Radix one is two treatments of one concept.
     expect(root.getAttribute("title")).toBeNull()
     expect(root.getAttribute("aria-label")).toBe(
-      stageIndicatorAccessibleName("curation", "complete", SETTLED_CURATION.card.outcome, "knowledge"),
+      stageIndicatorAccessibleName("curation", "complete", SETTLED_CURATION.card.clause, "knowledge"),
     )
   })
 
@@ -322,11 +325,17 @@ describe("the curation chip is a click-through into the Knowledge tab", () => {
 describe("the analysis indicator is the door to the verdict when the page gave it one", () => {
   const FAILED_ANALYSIS = {
     status: "failed",
-    card: { outcome: `Analysis failed — ${FAILED_REASON_ABSENT_TEXT.handedOff}` },
+    card: {
+      outcome: `Analysis failed — ${FAILED_REASON_ABSENT_TEXT.handedOff}`,
+      clause: FAILED_REASON_ABSENT_TEXT.handedOff,
+    },
   }
   const SETTLED_CURATION = {
     status: "complete",
-    card: { outcome: `Curation complete — ${COUNTS_NOT_RECORDED_TEXT()}` },
+    card: {
+      outcome: `Curation complete — ${COUNTS_NOT_RECORDED_TEXT()}`,
+      clause: COUNTS_NOT_RECORDED_TEXT(),
+    },
   }
 
   /**
@@ -361,7 +370,7 @@ describe("the analysis indicator is the door to the verdict when the page gave i
     expect(root.tagName).toBe("BUTTON")
     expect(root.getAttribute("type")).toBe("button")
     expect(root.getAttribute("aria-label")).toBe(
-      stageIndicatorAccessibleName("analysis", "failed", FAILED_ANALYSIS.card.outcome, "verdict"),
+      stageIndicatorAccessibleName("analysis", "failed", FAILED_ANALYSIS.card.clause, "verdict"),
     )
     // Spelled out as well as composed, so a joiner change cannot hide behind self-consistency.
     expect(root.getAttribute("aria-label")!.endsWith(" — open verdict")).toBe(true)
@@ -392,7 +401,10 @@ describe("the analysis indicator is the door to the verdict when the page gave i
     const host = mount(
       <PostProcessingChips
         view={chipsView(
-          { status: "complete", card: { outcome: ANALYSIS_COMPLETE_NO_ISSUES_TEXT() } },
+          {
+            status: "complete",
+            card: { outcome: ANALYSIS_COMPLETE_NO_ISSUES_TEXT(), clause: "no issues found" },
+          },
           SETTLED_CURATION,
         )}
       />,
@@ -403,7 +415,7 @@ describe("the analysis indicator is the door to the verdict when the page gave i
     expect(root.getAttribute("tabindex")).toBe("0")
     expect(root.getAttribute("aria-label")).toBeNull()
     expect(root.querySelector(".sr-only")?.textContent).toBe(
-      stageIndicatorAccessibleName("analysis", "complete", ANALYSIS_COMPLETE_NO_ISSUES_TEXT()),
+      stageIndicatorAccessibleName("analysis", "complete", "no issues found"),
     )
     expect(lineOf(await cardOf(host, "analysis"), "door")).toBeUndefined()
 

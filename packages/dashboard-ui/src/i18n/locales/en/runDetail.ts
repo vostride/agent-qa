@@ -34,12 +34,19 @@ export default {
   'runDetail.postProcessing.analysis.queuedPosture': 'Analysis queued — {{posture}}',
   'runDetail.postProcessing.analysis.failedReason': 'Analysis failed — {{reason}}',
   'runDetail.postProcessing.analysis.noIssues': 'Analysis complete — no issues found',
+  'runDetail.postProcessing.analysis.noIssuesClause': 'no issues found',
   'runDetail.postProcessing.analysis.verdicts_one': 'Analysis complete — {{count}} verdict',
   'runDetail.postProcessing.analysis.verdicts_other': 'Analysis complete — {{count}} verdicts',
+  'runDetail.postProcessing.analysis.verdictsClause_one': '{{count}} verdict',
+  'runDetail.postProcessing.analysis.verdictsClause_other': '{{count}} verdicts',
   'runDetail.postProcessing.analysis.rootCause_one':
     'Analysis complete — root cause: {{verdictClass}} ({{count}} verdict)',
   'runDetail.postProcessing.analysis.rootCause_other':
     'Analysis complete — root cause: {{verdictClass}} ({{count}} verdicts)',
+  'runDetail.postProcessing.analysis.rootCauseClause_one':
+    'root cause: {{verdictClass}} ({{count}} verdict)',
+  'runDetail.postProcessing.analysis.rootCauseClause_other':
+    'root cause: {{verdictClass}} ({{count}} verdicts)',
   'runDetail.postProcessing.curation.word': 'Curation',
   'runDetail.postProcessing.curation.running': 'Curation running',
   'runDetail.postProcessing.curation.pending': 'Curation pending',
@@ -52,6 +59,8 @@ export default {
   'runDetail.postProcessing.curation.completeCounts': 'Curation complete — {{counts}}',
   'runDetail.postProcessing.curation.completeCountsNotRecorded':
     'Curation complete — counts not recorded for this run',
+  'runDetail.postProcessing.curation.completeCountsNotRecordedClause':
+    'counts not recorded for this run',
   'runDetail.postProcessing.state.complete': 'complete',
   'runDetail.postProcessing.state.running': 'running',
   'runDetail.postProcessing.state.pending': 'pending',
@@ -68,16 +77,26 @@ export default {
   'runDetail.postProcessing.loading': 'Post-processing status loading',
   'runDetail.postProcessing.skipped.gateRun.analysis':
     'Analysis skipped — gate runs are not analysed',
+  'runDetail.postProcessing.skipped.gateRun.analysisClause': 'gate runs are not analysed',
   'runDetail.postProcessing.skipped.gateRun.curation':
     'Curation skipped — gate runs are not curated',
+  'runDetail.postProcessing.skipped.gateRun.curationClause': 'gate runs are not curated',
   'runDetail.postProcessing.skipped.outcomeExcluded.analysis':
     'Analysis skipped — runs excluded from outcomes are not analysed',
+  'runDetail.postProcessing.skipped.outcomeExcluded.analysisClause':
+    'runs excluded from outcomes are not analysed',
   'runDetail.postProcessing.skipped.outcomeExcluded.curation':
     'Curation skipped — runs excluded from outcomes are not curated',
+  'runDetail.postProcessing.skipped.outcomeExcluded.curationClause':
+    'runs excluded from outcomes are not curated',
   'runDetail.postProcessing.skipped.noVerdict.analysis':
     'Analysis skipped — the run ended before it reached a verdict',
+  'runDetail.postProcessing.skipped.noVerdict.analysisClause':
+    'the run ended before it reached a verdict',
   'runDetail.postProcessing.skipped.noVerdict.curation':
     'Curation skipped — the run ended before it reached a verdict',
+  'runDetail.postProcessing.skipped.noVerdict.curationClause':
+    'the run ended before it reached a verdict',
   'runDetail.postProcessing.willRetry': 'Will retry',
   'runDetail.postProcessing.openKnowledgeTab': 'Open Knowledge tab',
   'runDetail.postProcessing.openVerdict': 'Open verdict',

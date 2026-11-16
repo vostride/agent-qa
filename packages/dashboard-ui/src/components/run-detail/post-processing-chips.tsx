@@ -158,7 +158,7 @@ function Chip({
           aria-label={
             stage === "curation"
               ? curationChipAccessibleName(chip)
-              : stageIndicatorAccessibleName(stage, chip.state, chip.card?.outcome, door)
+              : stageIndicatorAccessibleName(stage, chip.state, chip.card?.clause, door)
           }
           className={`${CHIP_ROOT_CLASS} ${FOCUS_RING} cursor-pointer transition-colors hover:text-foreground`}
         >
@@ -179,7 +179,7 @@ function Chip({
       >
         {body}
         <span className="sr-only">
-          {stageIndicatorAccessibleName(stage, chip.state, chip.card?.outcome)}
+          {stageIndicatorAccessibleName(stage, chip.state, chip.card?.clause)}
         </span>
       </span>
     </WithCard>

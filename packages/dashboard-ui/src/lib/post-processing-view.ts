@@ -72,7 +72,6 @@ export const POST_PROCESSING_UNAVAILABLE_WORD = () => t('runDetail.postProcessin
 // Announced, because `…` is nothing to a screen reader and differs from `pending`.
 export const POST_PROCESSING_LOADING_LABEL = () => t('runDetail.postProcessing.loading')
 
-// The em dash splits the state from its clause, as the accessible name does.
 export const ANALYSIS_COMPLETE_NO_ISSUES_TEXT = () =>
   t('runDetail.postProcessing.analysis.noIssues')
 
@@ -92,6 +91,24 @@ export const STAGE_SKIPPED_TEXT: Record<
   'no-verdict': textTable({
     analysis: () => t('runDetail.postProcessing.skipped.noVerdict.analysis'),
     curation: () => t('runDetail.postProcessing.skipped.noVerdict.curation'),
+  }),
+}
+
+const STAGE_SKIPPED_CLAUSE: Record<
+  PostProcessingSkipReason,
+  Record<PostProcessingStage, string>
+> = {
+  'gate-run': textTable({
+    analysis: () => t('runDetail.postProcessing.skipped.gateRun.analysisClause'),
+    curation: () => t('runDetail.postProcessing.skipped.gateRun.curationClause'),
+  }),
+  'outcome-excluded': textTable({
+    analysis: () => t('runDetail.postProcessing.skipped.outcomeExcluded.analysisClause'),
+    curation: () => t('runDetail.postProcessing.skipped.outcomeExcluded.curationClause'),
+  }),
+  'no-verdict': textTable({
+    analysis: () => t('runDetail.postProcessing.skipped.noVerdict.analysisClause'),
+    curation: () => t('runDetail.postProcessing.skipped.noVerdict.curationClause'),
   }),
 }
 
@@ -124,6 +141,8 @@ export const BREAKDOWN_WITHHELD_TEXT: Record<CurationSnapshotWithheldReason, str
  */
 export interface StageCardView {
   readonly outcome: string
+  // What the accessible name says after the state, built beside the outcome and never cut from it.
+  readonly clause?: string
   /** Why the outcome could not carry counts — the labelled absence, never a substitute for them. */
   readonly note?: string
   readonly timing?: string
@@ -154,25 +173,17 @@ const STATE_WORDS: Record<StageIndicatorState, string> = textTable({
 })
 
 /**
- * The clause an outcome sentence carries after its em dash, or nothing when it is one clause.
+ * The name says the state in its own words (`Analysis: complete`) and then the card's clause, not
+ * its outcome, so a screen reader does not hear the stage and the state twice.
  *
- * The accessible name says the state in its own words (`Analysis: complete`) and then the clause,
- * so repeating the sentence's own `Analysis complete` prefix would make a screen reader say the
- * stage and the state twice.
+ * A span carries this in an `sr-only` child, as `aria-label` on a generic element is unreliable.
  */
-function outcomeClause(outcome: string): string | undefined {
-  const at = outcome.indexOf(' — ')
-  return at === -1 ? undefined : outcome.slice(at + 3)
-}
-
-// A span carries this in an `sr-only` child, as `aria-label` on a generic element is unreliable.
 export function stageIndicatorAccessibleName(
   stage: PostProcessingStage,
   state: StageIndicatorState,
-  outcome?: string,
+  clause?: string,
   door?: StageIndicatorDoor,
 ): string {
-  const clause = outcome === undefined ? undefined : outcomeClause(outcome)
   const name = { stage: STAGE_INDICATOR_WORDS[stage].complete, state: STATE_WORDS[state] }
   if (door === undefined) {
     return clause === undefined
@@ -242,7 +253,7 @@ export const COUNTS_NOT_RECORDED_TEXT = () => t('runDetail.postProcessing.counts
 
 // A thin call into the one name function, so the header and the Knowledge tab cannot drift.
 export function curationChipAccessibleName(chip: PostProcessingChipView): string {
-  return stageIndicatorAccessibleName('curation', chip.state, chip.card?.outcome, 'knowledge')
+  return stageIndicatorAccessibleName('curation', chip.state, chip.card?.clause, 'knowledge')
 }
 
 // Bucket order is the schema's, shared with the CLI; zeros are omitted here, kept in the log line.
@@ -349,6 +360,15 @@ export function analysisCompleteWithVerdictsText(cls: VerdictClass | undefined, 
       })
 }
 
+function analysisVerdictsClause(cls: VerdictClass | undefined, n: number): string {
+  return cls === undefined
+    ? t('runDetail.postProcessing.analysis.verdictsClause', { count: n })
+    : t('runDetail.postProcessing.analysis.rootCauseClause', {
+        count: n,
+        verdictClass: verdictClassLabel(cls),
+      })
+}
+
 // `byClass` omits absent classes, so a zero never names a root cause; ties use schema order.
 function dominantVerdictClass(byClass: Partial<Record<VerdictClass, number>>): VerdictClass | undefined {
   let dominant: VerdictClass | undefined
@@ -380,19 +400,19 @@ export function curationCompleteText(read: ReadBody): StageCardView | undefined 
   const { notification, curationSnapshot, curationSnapshotWithheld } = read.status
 
   if (curationSnapshot !== undefined) {
+    const counts = curationBreakdownLine(curationSnapshot.breakdown)
     return {
-      outcome: t('runDetail.postProcessing.curation.completeCounts', {
-        counts: curationBreakdownLine(curationSnapshot.breakdown),
-      }),
+      outcome: t('runDetail.postProcessing.curation.completeCounts', { counts }),
+      clause: counts,
     }
   }
 
   const legacy = notification?.stages.curation
   if (legacy?.curated !== undefined && legacy.deprecated !== undefined) {
+    const counts = legacyCurationPairText(legacy.curated, legacy.deprecated)
     return {
-      outcome: t('runDetail.postProcessing.curation.completeCounts', {
-        counts: legacyCurationPairText(legacy.curated, legacy.deprecated),
-      }),
+      outcome: t('runDetail.postProcessing.curation.completeCounts', { counts }),
+      clause: counts,
       note: BREAKDOWN_NOT_RECORDED_TEXT(),
     }
   }
@@ -406,7 +426,10 @@ export function curationCompleteText(read: ReadBody): StageCardView | undefined 
 
   // A settled row that committed no counts says so, as a recorded absence.
   if (notification !== undefined) {
-    return { outcome: t('runDetail.postProcessing.curation.completeCountsNotRecorded') }
+    return {
+      outcome: t('runDetail.postProcessing.curation.completeCountsNotRecorded'),
+      clause: t('runDetail.postProcessing.curation.completeCountsNotRecordedClause'),
+    }
   }
 
   // No terminal row at all: the chip word came from `chips.curation` with nothing behind it. The
@@ -446,7 +469,10 @@ function stageCard(
 
   if (state === 'pending') {
     const posture = read.disposition === undefined ? undefined : PENDING_POSTURE_TEXT[read.disposition]
-    return { outcome: stageQueuedText(stage, posture) }
+    return {
+      outcome: stageQueuedText(stage, posture),
+      ...(posture === undefined ? {} : { clause: posture }),
+    }
   }
 
   if (state === 'failed') {
@@ -456,6 +482,7 @@ function stageCard(
     const reason = failure?.error ?? FAILED_REASON_ABSENT_TEXT[read.disposition ?? 'unknown']
     return {
       outcome: stageFailedText(stage, reason),
+      clause: reason,
       ...(failure?.willRetry === true ? { retry: WILL_RETRY_TEXT() } : {}),
     }
   }
@@ -466,11 +493,16 @@ function stageCard(
     // The counted `verdictSummary` is the only source, so no sentence parses another's prose.
     const summary = read.status.notification?.verdictSummary
     if (summary === undefined) return undefined
+    if (summary.total === 0) {
+      return {
+        outcome: ANALYSIS_COMPLETE_NO_ISSUES_TEXT(),
+        clause: t('runDetail.postProcessing.analysis.noIssuesClause'),
+      }
+    }
+    const dominant = dominantVerdictClass(summary.byClass)
     return {
-      outcome:
-        summary.total === 0
-          ? ANALYSIS_COMPLETE_NO_ISSUES_TEXT()
-          : analysisCompleteWithVerdictsText(dominantVerdictClass(summary.byClass), summary.total),
+      outcome: analysisCompleteWithVerdictsText(dominant, summary.total),
+      clause: analysisVerdictsClause(dominant, summary.total),
     }
   }
 
@@ -487,7 +519,10 @@ function skippedChipView(
     status: read.status.chips[stage],
     state: 'skipped',
     word: STAGE_INDICATOR_WORDS[stage].skipped,
-    card: { outcome: STAGE_SKIPPED_TEXT[reason][stage] },
+    card: {
+      outcome: STAGE_SKIPPED_TEXT[reason][stage],
+      clause: STAGE_SKIPPED_CLAUSE[reason][stage],
+    },
   }
 }
 

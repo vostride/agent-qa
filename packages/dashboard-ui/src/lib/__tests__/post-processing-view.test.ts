@@ -1,9 +1,10 @@
 // A daemon-drained failure records no reason, so the card says so rather than going blank.
 
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 import { POST_PROCESSING_SKIP_REASONS, VERDICT_CLASSES, CURATION_SNAPSHOT_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 import type { CurationBreakdown, PostProcessingStatus } from '@vostride/agent-qa-schema'
 
+import i18n from '@/i18n'
 import type { PostProcessingRead } from '@/lib/api'
 import {
   ANALYSIS_COMPLETE_NO_ISSUES_TEXT,
@@ -368,7 +369,10 @@ describe('the count line is the wording of record, in one place', () => {
   it('publishes the curation door name as a thin call into the one accessible-name function', () => {
     const settled = { status: 'complete', state: 'complete', word: STAGE_INDICATOR_WORDS.curation.complete } as const
     expect(curationChipAccessibleName(settled)).toBe('Curation: complete — open Knowledge tab')
-    expect(curationChipAccessibleName({ ...settled, card: { outcome: 'Curation complete — 2 added' } }))
+    expect(curationChipAccessibleName({
+      ...settled,
+      card: { outcome: 'Curation complete — 2 added', clause: '2 added' },
+    }))
       .toBe('Curation: complete, 2 added — open Knowledge tab')
     expect(OPEN_KNOWLEDGE_TAB_TEXT()).toBe('Open Knowledge tab')
     expect(OPEN_VERDICT_TEXT()).toBe('Open verdict')
@@ -388,7 +392,7 @@ describe('a settled analysis with nothing to report says so in one sentence', ()
     expect(view.analysis.state).toBe('complete')
     expect(view.analysis.word).toBe(STAGE_INDICATOR_WORDS.analysis.complete)
     expect(view.analysis.card?.outcome).toBe(ANALYSIS_COMPLETE_NO_ISSUES_TEXT())
-    expect(stageIndicatorAccessibleName('analysis', 'complete', ANALYSIS_COMPLETE_NO_ISSUES_TEXT()))
+    expect(stageIndicatorAccessibleName('analysis', 'complete', view.analysis.card?.clause))
       .toBe('Analysis: complete, no issues found')
   })
 })
@@ -456,6 +460,21 @@ const SKIPPED_SENTENCES = {
   },
 } as const
 
+const SKIPPED_CLAUSES = {
+  'gate-run': {
+    analysis: 'gate runs are not analysed',
+    curation: 'gate runs are not curated',
+  },
+  'outcome-excluded': {
+    analysis: 'runs excluded from outcomes are not analysed',
+    curation: 'runs excluded from outcomes are not curated',
+  },
+  'no-verdict': {
+    analysis: 'the run ended before it reached a verdict',
+    curation: 'the run ended before it reached a verdict',
+  },
+} as const
+
 describe('a skipped stage and its reason', () => {
   it("the dashboard indicator reads Analysis skipped with the reason's own sentence", () => {
     expect(POST_PROCESSING_SKIP_REASONS.length).toBeGreaterThan(0)
@@ -469,13 +488,19 @@ describe('a skipped stage and its reason', () => {
         status: 'pending',
         state: 'skipped',
         word: 'Analysis skipped',
-        card: { outcome: SKIPPED_SENTENCES[reason].analysis },
+        card: {
+          outcome: SKIPPED_SENTENCES[reason].analysis,
+          clause: SKIPPED_CLAUSES[reason].analysis,
+        },
       })
       expect(view.curation).toEqual({
         status: 'pending',
         state: 'skipped',
         word: 'Curation skipped',
-        card: { outcome: SKIPPED_SENTENCES[reason].curation },
+        card: {
+          outcome: SKIPPED_SENTENCES[reason].curation,
+          clause: SKIPPED_CLAUSES[reason].curation,
+        },
       })
     }
   })
@@ -493,13 +518,19 @@ describe('a run with no verdict skips analysis and curation', () => {
       status: 'pending',
       state: 'skipped',
       word: 'Analysis skipped',
-      card: { outcome: 'Analysis skipped — the run ended before it reached a verdict' },
+      card: {
+        outcome: 'Analysis skipped — the run ended before it reached a verdict',
+        clause: 'the run ended before it reached a verdict',
+      },
     })
     expect(view.curation).toEqual({
       status: 'pending',
       state: 'skipped',
       word: 'Curation skipped',
-      card: { outcome: 'Curation skipped — the run ended before it reached a verdict' },
+      card: {
+        outcome: 'Curation skipped — the run ended before it reached a verdict',
+        clause: 'the run ended before it reached a verdict',
+      },
     })
     expect(JSON.stringify(view)).not.toContain(PENDING_POSTURE_TEXT.handedOff)
   })
@@ -518,13 +549,19 @@ describe('a skipped chain reads skipped because the read said so, never because 
         status: 'pending',
         state: 'skipped',
         word: STAGE_INDICATOR_WORDS.analysis.skipped,
-        card: { outcome: STAGE_SKIPPED_TEXT[reason].analysis },
+        card: {
+          outcome: STAGE_SKIPPED_TEXT[reason].analysis,
+          clause: SKIPPED_CLAUSES[reason].analysis,
+        },
       })
       expect(view.curation).toEqual({
         status: 'pending',
         state: 'skipped',
         word: STAGE_INDICATOR_WORDS.curation.skipped,
-        card: { outcome: STAGE_SKIPPED_TEXT[reason].curation },
+        card: {
+          outcome: STAGE_SKIPPED_TEXT[reason].curation,
+          clause: SKIPPED_CLAUSES[reason].curation,
+        },
       })
     }
 
@@ -734,5 +771,85 @@ describe('a settled analysis with verdicts names its root cause from the summary
     expect(analysisCompleteWithVerdictsText(undefined, 1)).toBe('Analysis complete — 1 verdict')
     expect(analysisCompleteWithVerdictsText('config_error', 4))
       .toBe('Analysis complete — root cause: config error (4 verdicts)')
+  })
+})
+
+describe('the accessible name carries the clause the card built beside its outcome', () => {
+  const nameOf = (stage: 'analysis' | 'curation', subject: PostProcessingRead): string => {
+    const chip = chips(projectPostProcessingView(subject))[stage]
+    return stageIndicatorAccessibleName(stage, chip.state, chip.card?.clause)
+  }
+  const settled = (verdictSummary: unknown, extra: Record<string, unknown> = {}) => read({
+    status: status('complete', 'complete', notification({ status: 'complete' }, verdictSummary), extra),
+  })
+
+  it('names the verdicts, the root cause, the counts, the posture and the reason', () => {
+    expect(nameOf('analysis', settled({ total: 2, byClass: { app_bug: 2 } })))
+      .toBe('Analysis: complete, root cause: app bug (2 verdicts)')
+    expect(nameOf('analysis', settled({ total: 1, byClass: { app_bug: 1 } })))
+      .toBe('Analysis: complete, root cause: app bug (1 verdict)')
+    expect(nameOf('analysis', settled({ total: 3, byClass: {} })))
+      .toBe('Analysis: complete, 3 verdicts')
+    expect(nameOf('analysis', settled({ total: 1, byClass: {} })))
+      .toBe('Analysis: complete, 1 verdict')
+    expect(nameOf('curation', settled({ total: 0, byClass: {} }, {
+      curationSnapshot: {
+        schemaVersion: CURATION_SNAPSHOT_SCHEMA_VERSION,
+        rows: [],
+        breakdown: breakdown({ added: 4, deprecated: 2 }),
+      },
+    }))).toBe('Curation: complete, 4 added · 2 deprecated')
+    expect(nameOf('curation', read({
+      status: status('complete', 'complete', notification({ status: 'complete', curated: 2, deprecated: 0 })),
+    }))).toBe('Curation: complete, 2 curated · 0 deprecated')
+    expect(nameOf('curation', settled({ total: 0, byClass: {} })))
+      .toBe('Curation: complete, counts not recorded for this run')
+    expect(nameOf('analysis', read({ disposition: 'detached' })))
+      .toBe(`Analysis: pending, ${PENDING_POSTURE_TEXT.detached}`)
+    expect(nameOf('analysis', read({
+      status: status('failed', 'pending'),
+      failures: { analysis: { error: 'the model refused — twice', willRetry: false } },
+    }))).toBe('Analysis: failed, the model refused — twice')
+    expect(nameOf('curation', read({ status: status('pending', 'failed'), disposition: 'handedOff' })))
+      .toBe('Curation: failed, reason not recorded — drained by the daemon')
+  })
+
+  it('says the state alone when the outcome is one clause', () => {
+    expect(nameOf('analysis', read({ status: status('running', 'running') }))).toBe('Analysis: running')
+    expect(nameOf('analysis', read({}))).toBe('Analysis: pending')
+    expect(nameOf('curation', settled({ total: 0, byClass: {} }, {
+      curationSnapshotWithheld: { reason: 'masking-unavailable' },
+    }))).toBe('Curation: complete')
+  })
+})
+
+describe('the accessible name in a language that punctuates the outcome its own way', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('en')
+    i18n.removeResourceBundle('fr', 'translation')
+  })
+
+  it("keeps that language's clause when its outcome sentence has no em dash", async () => {
+    i18n.addResourceBundle('fr', 'translation', {
+      'runDetail.postProcessing.analysis.rootCause_other':
+        'Analyse terminée : cause principale {{verdictClass}} ({{count}} verdicts)',
+      'runDetail.postProcessing.analysis.rootCauseClause_other':
+        'cause principale {{verdictClass}} ({{count}} verdicts)',
+      'runDetail.postProcessing.curation.failedReason': 'Échec de la curation ({{reason}})',
+    })
+    await i18n.changeLanguage('fr')
+
+    const summary = { total: 2, byClass: { app_bug: 2 } }
+    const view = chips(projectPostProcessingView(read({
+      status: status('complete', 'failed', notification({ status: 'failed' }, summary)),
+      failures: { curation: { error: 'bundle locked', willRetry: false } },
+    })))
+
+    expect(view.analysis.card?.outcome).toBe('Analyse terminée : cause principale app bug (2 verdicts)')
+    expect(stageIndicatorAccessibleName('analysis', view.analysis.state, view.analysis.card?.clause))
+      .toBe('Analysis: complete, cause principale app bug (2 verdicts)')
+    expect(view.curation.card?.outcome).toBe('Échec de la curation (bundle locked)')
+    expect(curationChipAccessibleName(view.curation))
+      .toBe('Curation: failed, bundle locked — open Knowledge tab')
   })
 })
