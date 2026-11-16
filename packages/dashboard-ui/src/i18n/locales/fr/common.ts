@@ -9,6 +9,8 @@ export default {
   'common.edit': 'Modifier',
   'common.next': 'Suivant',
   'common.nextPage': 'Suivant',
+  'common.notifications': 'Notifications',
+  'common.suggestions': 'Suggestions',
   'common.run': 'Exécuter',
   'common.copied': 'Copié dans le presse-papiers',
   'common.error.title': 'Une erreur s’est produite',

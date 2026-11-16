@@ -9,6 +9,8 @@ export default {
   'common.edit': '編集',
   'common.next': '次へ',
   'common.nextPage': '次へ',
+  'common.notifications': '通知',
+  'common.suggestions': '候補',
   'common.run': '実行',
   'common.copied': 'クリップボードにコピーしました',
   'common.error.title': '問題が発生しました',

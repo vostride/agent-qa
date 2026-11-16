@@ -322,7 +322,9 @@ function formatStepList(addresses: readonly StepAddress[]): readonly StepRefSegm
       list = stepRefSentence(key, { list, item: next })
     }
   })
-  return stepRefSentence('knowledge.stepRefs.lead', { steps: list }, sorted.length)
+  // The lead shows no number, so its count only tells one step from several: Russian would
+  // otherwise word 21 steps as one.
+  return stepRefSentence('knowledge.stepRefs.lead', { steps: list }, sorted.length === 1 ? 1 : 2)
 }
 
 export interface UseView {

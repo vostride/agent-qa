@@ -9,6 +9,8 @@ export default {
   'common.edit': '编辑',
   'common.next': '下一步',
   'common.nextPage': '下一页',
+  'common.notifications': '通知',
+  'common.suggestions': '建议',
   'common.run': '运行',
   'common.copied': '已复制到剪贴板',
   'common.error.title': '出错了',

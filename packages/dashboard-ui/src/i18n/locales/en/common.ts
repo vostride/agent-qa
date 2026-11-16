@@ -6,6 +6,8 @@ export default {
   'common.edit': 'Edit',
   'common.next': 'Next',
   'common.nextPage': 'Next',
+  'common.notifications': 'Notifications',
+  'common.suggestions': 'Suggestions',
   'common.run': 'Run',
   'common.copied': 'Copied to the clipboard',
   'common.error.title': 'Something went wrong',

@@ -9,6 +9,8 @@ export default {
   'common.edit': 'Изменить',
   'common.next': 'Далее',
   'common.nextPage': 'Вперёд',
+  'common.notifications': 'Уведомления',
+  'common.suggestions': 'Подсказки',
   'common.run': 'Запустить',
   'common.copied': 'Скопировано в буфер обмена',
   'common.error.title': 'Что-то пошло не так',

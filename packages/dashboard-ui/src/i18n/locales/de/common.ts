@@ -9,6 +9,8 @@ export default {
   'common.edit': 'Bearbeiten',
   'common.next': 'Weiter',
   'common.nextPage': 'Weiter',
+  'common.notifications': 'Benachrichtigungen',
+  'common.suggestions': 'Vorschläge',
   'common.run': 'Ausführen',
   'common.copied': 'In die Zwischenablage kopiert',
   'common.error.title': 'Etwas ist schiefgelaufen',

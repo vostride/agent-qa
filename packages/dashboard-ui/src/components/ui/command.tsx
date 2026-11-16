@@ -88,9 +88,11 @@ function CommandList({
   className,
   ...props
 }: React.ComponentProps<typeof CommandPrimitive.List>) {
+  const { t } = useTranslation()
   return (
     <CommandPrimitive.List
       data-slot="command-list"
+      label={t('common.suggestions')}
       className={cn(
         "flex-1 min-h-0 scroll-py-1 overflow-x-hidden overflow-y-auto",
         className
