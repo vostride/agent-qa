@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { useTranslation } from "@/i18n"
 import type { AuthStateMetadata } from "@/lib/api"
 import { cn } from "@/lib/utils"
 
@@ -21,6 +22,8 @@ export interface LiveModeAuthStateCaptureConfig {
   onSave: (input: { name: string; replace: boolean }) => Promise<void> | void
 }
 
+type LocalError = { kind: "invalidName" } | { kind: "saveFailed"; name: string; target: string }
+
 interface LiveModeAuthStateControlProps {
   capture: LiveModeAuthStateCaptureConfig
   disabled?: boolean
@@ -35,9 +38,10 @@ export function LiveModeAuthStateControl({
   capture,
   disabled = false,
 }: LiveModeAuthStateControlProps) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(() => safeInitialName(capture.initialName))
-  const [localError, setLocalError] = useState<string | null>(null)
+  const [localError, setLocalError] = useState<LocalError | null>(null)
   const [saving, setSaving] = useState(false)
   const targetName = capture.targetName
   const trimmedName = name.trim()
@@ -55,14 +59,19 @@ export function LiveModeAuthStateControl({
     [capture.authStates, targetName],
   )
   const replacing = savedForTarget.some((state) => state.name === trimmedName)
-  const visibleError = localError ?? capture.error ?? null
+  const localErrorText = localError === null
+    ? null
+    : localError.kind === "invalidName"
+      ? t("live.authState.nameInvalid")
+      : t("live.authState.saveFailed", { name: localError.name, target: localError.target })
+  const visibleError = localErrorText ?? capture.error ?? null
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
     if (busy) return
 
     if (!AUTH_STATE_NAME_PATTERN.test(trimmedName)) {
-      setLocalError("Auth state name must be a lowercase slug.")
+      setLocalError({ kind: "invalidName" })
       return
     }
 
@@ -72,7 +81,7 @@ export function LiveModeAuthStateControl({
       await capture.onSave({ name: trimmedName, replace: replacing })
       setOpen(false)
     } catch {
-      setLocalError(`Could not save auth state "${trimmedName}" for target "${targetName}".`)
+      setLocalError({ kind: "saveFailed", name: trimmedName, target: targetName })
     } finally {
       setSaving(false)
     }
@@ -91,7 +100,7 @@ export function LiveModeAuthStateControl({
             onClick={() => setOpen(true)}
           >
             <KeyRound className="size-3.5" />
-            Save auth state
+            {t("live.authState.save")}
           </Button>
         </PopoverTrigger>
         <PopoverTrigger asChild>
@@ -101,7 +110,7 @@ export function LiveModeAuthStateControl({
             size="icon-sm"
             className="rounded-l-sm px-2"
             disabled={busy}
-            aria-label="Open auth state save form"
+            aria-label={t("live.authState.openForm")}
             onClick={() => setOpen(true)}
           >
             {busy && capture.isSaving ? (
@@ -114,20 +123,18 @@ export function LiveModeAuthStateControl({
       </div>
       <PopoverContent align="end" className="w-[360px] max-w-[calc(100vw-32px)] space-y-4">
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold">Save auth state</h3>
-          <p className="text-sm text-muted-foreground">
-            Capture the current browser session for this target: cookies, localStorage, IndexedDB and the sessionStorage of its open tabs.
-          </p>
+          <h3 className="text-sm font-semibold">{t("live.authState.save")}</h3>
+          <p className="text-sm text-muted-foreground">{t("live.authState.description")}</p>
         </div>
 
         <div className="rounded-md border bg-muted/30 px-3 py-2">
-          <div className="text-xs font-medium text-muted-foreground">Target</div>
+          <div className="text-xs font-medium text-muted-foreground">{t("live.authState.target")}</div>
           <div className="mt-1 min-w-0 font-mono text-xs [overflow-wrap:anywhere]">{targetName}</div>
         </div>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
           <div className="space-y-2">
-            <Label htmlFor="auth-state-name">Auth state name</Label>
+            <Label htmlFor="auth-state-name">{t("live.authState.name")}</Label>
             <Input
               id="auth-state-name"
               name="authStateName"
@@ -140,11 +147,11 @@ export function LiveModeAuthStateControl({
               aria-invalid={visibleError ? "true" : undefined}
               autoFocus
             />
-            <p className="text-xs text-muted-foreground">Use lowercase letters, numbers, and hyphens.</p>
+            <p className="text-xs text-muted-foreground">{t("live.authState.nameHint")}</p>
           </div>
 
           <div className="space-y-2">
-            <div className="text-xs font-medium text-muted-foreground">Saved for this target</div>
+            <div className="text-xs font-medium text-muted-foreground">{t("live.authState.savedForTarget")}</div>
             {savedForTarget.length > 0 ? (
               <div className="flex flex-wrap gap-1.5">
                 {savedForTarget.map((state) => (
@@ -159,7 +166,7 @@ export function LiveModeAuthStateControl({
               </div>
             ) : (
               <div className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
-                No auth states saved for this target.
+                {t("live.authState.noneSaved")}
               </div>
             )}
           </div>
@@ -167,7 +174,7 @@ export function LiveModeAuthStateControl({
           {replacing && (
             <div className="flex items-start gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-2 text-xs text-amber-700 dark:text-amber-300">
               <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-              <span>Existing auth state will be replaced.</span>
+              <span>{t("live.authState.willReplace")}</span>
             </div>
           )}
 
@@ -180,7 +187,7 @@ export function LiveModeAuthStateControl({
           <div className="flex justify-end">
             <Button type="submit" size="sm" disabled={busy} className={cn(replacing && "bg-primary")}>
               {saving || capture.isSaving ? <Loader2 className="size-3.5 animate-spin" /> : null}
-              {replacing ? "Replace auth state" : "Save auth state"}
+              {replacing ? t("live.authState.replace") : t("live.authState.save")}
             </Button>
           </div>
         </form>
