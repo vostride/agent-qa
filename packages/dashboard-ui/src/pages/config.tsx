@@ -30,6 +30,7 @@ import {
   CONFIG_SECTION_LABELS,
   LEGACY_LINK_NOT_FOUND_TEXT,
   RELOAD_CONFIG_LABEL,
+  VERSION_UNAVAILABLE_TEXT,
   configFileIssuesBody,
   configLoadFailedBody,
 } from "@/lib/config-copy"
@@ -127,7 +128,7 @@ export default function ConfigPage() {
   const resolvedTab = resolveConfigTab(tabParam)
   const tab: ConfigTab = resolvedTab ?? "models"
   const sectionParam = searchParams.get("section")
-  const versionText = appVersion ? `agent-qa v${appVersion}` : "agent-qa version unavailable"
+  const versionText = appVersion ? `agent-qa v${appVersion}` : VERSION_UNAVAILABLE_TEXT()
 
   useEffect(() => {
     const legacy = resolveLegacyConfigLink(searchParams)

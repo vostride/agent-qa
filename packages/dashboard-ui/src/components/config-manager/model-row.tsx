@@ -26,7 +26,6 @@ import {
   ADD_FLOW_FIELD_LABELS,
   ADD_HEADER_LABEL,
   BASE_URL_HELP,
-  BECAME_DEFAULT_TEXT,
   BASE_URL_REQUIRED_ERROR,
   DEFAULT_BADGE,
   DEFAULT_CANNOT_DELETE_LINE,
@@ -61,6 +60,7 @@ import {
   modelHeaderLabel,
   modelLine,
   providerErrorSentence,
+  savedBecameDefaultText,
   type CredentialKeyType,
 } from "@/lib/config-copy"
 import type { ModelStatus, TestResult } from "@/lib/config-tabs"
@@ -584,7 +584,7 @@ function LandingLine({
       </span>
       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         <p className="break-words text-foreground">
-          {landing.becameDefault ? `${saved} ${BECAME_DEFAULT_TEXT()}` : saved}
+          {landing.becameDefault ? savedBecameDefaultText(saved) : saved}
         </p>
         {landing.becameDefault || isDefault ? null : (
           <Button type="button" variant="outline" size="xs" onClick={onMakeDefault}>

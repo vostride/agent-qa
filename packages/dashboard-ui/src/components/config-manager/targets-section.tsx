@@ -36,7 +36,6 @@ import {
   NO_TARGETS_TEXT,
   TARGET_APP_PATH_ERROR,
   TARGET_APP_REF_NOTE,
-  TARGET_APP_SUMMARY_PREFIX,
   TARGET_DEVICE_HELP,
   TARGET_DEVICE_NONE,
   TARGET_ENVIRONMENT_CHOICE_LABELS,
@@ -50,6 +49,8 @@ import {
   TARGET_URL_REQUIRED_ERROR,
   TARGET_WEB_NEEDS_URL_ERROR,
   deleteActionName,
+  targetAppRefLabel,
+  targetAppSummary,
   targetDeviceUnlistedChoice,
   targetNameTakenError,
 } from "@/lib/config-copy"
@@ -186,7 +187,7 @@ export function summarizeTarget(target: TargetEntry): string {
     const app = [target.appPackage, target.appActivity].filter(Boolean).join(" / ")
     if (app) parts.push(app)
   }
-  if (target.app?.path) parts.push(`${TARGET_APP_SUMMARY_PREFIX()}: ${target.app.path}`)
+  if (target.app?.path) parts.push(targetAppSummary(target.app.path))
   return parts.join(" · ")
 }
 
@@ -352,7 +353,7 @@ function TargetFields({ name, target, config }: TargetFieldsProps) {
               <p className="text-sm font-medium">{TARGET_FIELD_LABELS.appRef}</p>
               <SecretValue
                 field={{ segments: ["registry", "targets", name, "app", "ref"], pattern: "registry.targets.*.app.ref" }}
-                label={`${name} ${TARGET_FIELD_LABELS.appRef}`}
+                label={targetAppRefLabel(name)}
                 maskedText={appRef}
                 readOnly
               />

@@ -1,5 +1,6 @@
 export default {
   'configUi.configPageTitle': 'Config',
+  'configUi.versionUnavailableText': 'agent-qa version unavailable',
   'configUi.configTabsAriaLabel': 'Config sections',
   'configUi.tabDraftSrSuffix': ", has changes that aren't saved",
   'configUi.legacyLinkNotFoundText':
@@ -49,6 +50,7 @@ export default {
   'configUi.signInWaitingLabel': 'Waiting for sign-in…',
   'configUi.signInTimedOutText': 'Sign-in timed out. Try again.',
   'configUi.becameDefaultText': "It's now the default model.",
+  'configUi.savedBecameDefault': "{{saved}} It's now the default model.",
   'configUi.saveWithoutTestingLabel': 'Save without testing',
   'configUi.savedWithoutTestText': 'Saved without a connection test.',
   'configUi.applyLabel': 'Apply',
@@ -87,7 +89,8 @@ export default {
     'Tests on this target run on this device unless a suite or test picks another.',
   'configUi.targetAppRefNote':
     'The app a remote device installs. Set it in agent-qa.config.yaml; this page shows it read-only.',
-  'configUi.targetAppSummaryPrefix': 'App',
+  'configUi.targetAppSummary': 'App: {{path}}',
+  'configUi.targetAppRefLabel': '{{name}} App reference',
   'configUi.targetNameRequiredError': 'Add a name for the target.',
   'configUi.targetNameFormatError':
     'Use lowercase letters, digits and hyphens, starting with a letter and ending with a letter or digit.',

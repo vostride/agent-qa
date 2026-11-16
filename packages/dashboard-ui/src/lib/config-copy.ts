@@ -38,6 +38,7 @@ export const REVISION_POLL_MS = 2_000
 export const STATUS_SEPARATOR = ' · '
 
 export const CONFIG_PAGE_TITLE = () => t('configUi.configPageTitle')
+export const VERSION_UNAVAILABLE_TEXT = () => t('configUi.versionUnavailableText')
 
 export const CONFIG_TAB_LABELS = textTable({
   models: () => t('config.tabs.models'),
@@ -401,6 +402,11 @@ export function connectedSavedText(name: string): string {
 }
 
 export const BECAME_DEFAULT_TEXT = () => t('configUi.becameDefaultText')
+
+export function savedBecameDefaultText(saved: string): string {
+  return t('configUi.savedBecameDefault', { saved })
+}
+
 /** A sign-in choice whose auth plugin is not registered; the CLI names the same package. */
 export function signInPluginMissingText(choiceLabel: string): string {
   return t('config.signInPluginMissing', { choice: choiceLabel })
@@ -807,8 +813,13 @@ export function targetDeviceUnlistedChoice(name: string): string {
   return t('config.targetDeviceUnlistedChoice', { name })
 }
 
-/** Before an app file in a mobile target's summary. */
-export const TARGET_APP_SUMMARY_PREFIX = () => t('configUi.targetAppSummaryPrefix')
+export function targetAppSummary(path: string): string {
+  return t('configUi.targetAppSummary', { path })
+}
+
+export function targetAppRefLabel(name: string): string {
+  return t('configUi.targetAppRefLabel', { name })
+}
 
 export const TARGET_NAME_REQUIRED_ERROR = () => t('configUi.targetNameRequiredError')
 export const TARGET_NAME_FORMAT_ERROR = () => t('configUi.targetNameFormatError')

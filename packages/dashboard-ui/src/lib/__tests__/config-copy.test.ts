@@ -51,6 +51,7 @@ function functionOutputs(): string[] {
     copy.connectedSavedText('gpt'),
     copy.savedBecameDefaultText(copy.connectedSavedText('gpt')),
     copy.targetAppSummary('apps/app.apk'),
+    copy.targetAppRefLabel('staging'),
     copy.applyActionName('knowledge folder'),
     copy.keepPathName('knowledge folder'),
     copy.replaceValueName('Authorization'),
@@ -303,6 +304,10 @@ describe('The Config lines that hold a value', () => {
     expect(copy.targetAppSummary('apps/app.apk')).toBe('App: apps/app.apk')
   })
 
+  it('the app reference of a target is named after the target', () => {
+    expect(copy.targetAppRefLabel('staging')).toBe('staging App reference')
+  })
+
   it('the version line says the version is unavailable', () => {
     expect(copy.VERSION_UNAVAILABLE_TEXT()).toBe('agent-qa version unavailable')
   })
@@ -328,6 +333,17 @@ describe('The Config sentences in another language', () => {
     await i18n.changeLanguage('en')
     expect(copy.savedBecameDefaultText('Saved.')).toBe("Saved. It's now the default model.")
     expect(copy.targetAppSummary('apps/app.apk')).toBe('App: apps/app.apk')
+  })
+
+  it('the app reference label puts the target name where the language writes it', async () => {
+    i18n.addResourceBundle('fr', 'translation', {
+      'configUi.targetAppRefLabel': 'Référence de l’app de {{name}}',
+    })
+    await i18n.changeLanguage('fr')
+    expect(copy.targetAppRefLabel('staging')).toBe('Référence de l’app de staging')
+
+    await i18n.changeLanguage('en')
+    expect(copy.targetAppRefLabel('staging')).toBe('staging App reference')
   })
 
   it('a label reads its word in the current language each time it is called', async () => {
