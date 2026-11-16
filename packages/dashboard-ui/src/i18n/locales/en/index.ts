@@ -2,6 +2,7 @@ import action from './action'
 import common from './common'
 import config from './config'
 import configUi from './configUi'
+import insights from './insights'
 import language from './language'
 import nav from './nav'
 import runs from './runs'
@@ -20,4 +21,5 @@ export default {
   ...configUi,
   ...status,
   ...runs,
+  ...insights,
 } as const

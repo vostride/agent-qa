@@ -6,22 +6,12 @@ import {
 } from "@/components/ui/chart"
 import { formatTokens } from "@/lib/format"
 import { cn } from "@/lib/utils"
+import { useTranslation } from "@/i18n"
 
 interface TokenUsageChartProps {
   data: { date: string; model: string; promptTokens: number; completionTokens: number }[]
   className?: string
 }
-
-const chartConfig = {
-  promptTokens: {
-    label: "Input",
-    color: "var(--chart-1)",
-  },
-  completionTokens: {
-    label: "Output",
-    color: "var(--chart-2)",
-  },
-} satisfies ChartConfig
 
 function aggregateByModel(data: TokenUsageChartProps["data"]) {
   const byModel = new Map<string, { model: string; promptTokens: number; completionTokens: number }>()
@@ -54,6 +44,7 @@ function CustomTooltip({
   payload?: Array<{ dataKey: string; value: number }>
   label?: string
 }) {
+  const { t } = useTranslation()
   if (!active || !payload?.length) return null
 
   const promptTokens = payload.find((entry) => entry.dataKey === "promptTokens")?.value ?? 0
@@ -65,11 +56,26 @@ function CustomTooltip({
       <p className="mb-1 font-medium">{label ?? ""}</p>
       <div className="grid gap-1">
         {[
-          { label: "Input", value: promptTokens, color: "var(--chart-1)" },
-          { label: "Output", value: completionTokens, color: "var(--chart-2)" },
-          { label: "Total", value: totalTokens, color: "var(--muted-foreground)" },
+          {
+            key: "input",
+            label: t("insights.tokens.input"),
+            value: promptTokens,
+            color: "var(--chart-1)",
+          },
+          {
+            key: "output",
+            label: t("insights.tokens.output"),
+            value: completionTokens,
+            color: "var(--chart-2)",
+          },
+          {
+            key: "total",
+            label: t("insights.tokens.tooltipTotal"),
+            value: totalTokens,
+            color: "var(--muted-foreground)",
+          },
         ].map((entry) => (
-          <div key={entry.label} className="flex items-center justify-between gap-4">
+          <div key={entry.key} className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-1.5">
               <div className="h-2.5 w-2.5 shrink-0 rounded-[2px]" style={{ backgroundColor: entry.color }} />
               <span className="text-muted-foreground">{entry.label}</span>
@@ -83,7 +89,18 @@ function CustomTooltip({
 }
 
 export function TokenUsageChart({ data, className }: TokenUsageChartProps) {
+  const { t } = useTranslation()
   const chartData = aggregateByModel(data)
+  const chartConfig = {
+    promptTokens: {
+      label: t("insights.tokens.input"),
+      color: "var(--chart-1)",
+    },
+    completionTokens: {
+      label: t("insights.tokens.output"),
+      color: "var(--chart-2)",
+    },
+  } satisfies ChartConfig
 
   return (
     <ChartContainer config={chartConfig} className={cn("h-[220px] w-full aspect-auto", className)}>

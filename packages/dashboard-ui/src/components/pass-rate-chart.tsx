@@ -7,13 +7,7 @@ import {
 } from "@/components/ui/chart"
 import { formatDateTime, formatPercent } from "@/lib/format"
 import { cn } from "@/lib/utils"
-
-const chartConfig = {
-  passRate: {
-    label: "Pass Rate",
-    color: "var(--chart-1)",
-  },
-} satisfies ChartConfig
+import { useTranslation } from "@/i18n"
 
 interface PassRateChartProps {
   data: { date: string; passRate: number }[]
@@ -25,6 +19,14 @@ function formatDate(value: string) {
 }
 
 export function PassRateChart({ data, className }: PassRateChartProps) {
+  const { t } = useTranslation()
+  const chartConfig = {
+    passRate: {
+      label: t("insights.chart.passRate"),
+      color: "var(--chart-1)",
+    },
+  } satisfies ChartConfig
+
   return (
     <ChartContainer config={chartConfig} className={cn("h-[300px] w-full aspect-auto", className)}>
       <LineChart data={data} accessibilityLayer>

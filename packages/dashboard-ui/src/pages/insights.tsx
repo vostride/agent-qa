@@ -33,19 +33,24 @@ import {
 import { Button } from "@/components/ui/button"
 import { formatPercent, formatRegionalNumber } from "@/lib/format"
 import { cn, formatDuration } from "@/lib/utils"
+import { useTranslation } from "@/i18n"
 
-const WINDOW_OPTIONS: Array<{ value: InsightsTimeWindow; label: string }> = [
-  { value: "1d", label: "1D" },
-  { value: "7d", label: "7D" },
-  { value: "30d", label: "30D" },
-  { value: "all", label: "All Time" },
-]
+const WINDOW_OPTIONS = [
+  { value: "1d", label: "insights.window.oneDay" },
+  { value: "7d", label: "insights.window.sevenDays" },
+  { value: "30d", label: "insights.window.thirtyDays" },
+  { value: "all", label: "insights.window.all" },
+] as const satisfies ReadonlyArray<{ value: InsightsTimeWindow; label: string }>
 
-const BREAKDOWN_OPTIONS: Array<{ value: InsightsBreakdownDimension; label: string; title: string }> = [
-  { value: "test", label: "Test", title: "Test Breakdown" },
-  { value: "suite", label: "Suite", title: "Suite Breakdown" },
-  { value: "platform", label: "Platform", title: "Platform Breakdown" },
-]
+const BREAKDOWN_OPTIONS = [
+  { value: "test", label: "insights.breakdown.test", title: "insights.breakdown.testTitle" },
+  { value: "suite", label: "insights.breakdown.suite", title: "insights.breakdown.suiteTitle" },
+  {
+    value: "platform",
+    label: "insights.breakdown.platform",
+    title: "insights.breakdown.platformTitle",
+  },
+] as const satisfies ReadonlyArray<{ value: InsightsBreakdownDimension; label: string; title: string }>
 
 type InsightsScopeMode = "scoped" | "all"
 
@@ -68,7 +73,8 @@ function getWindowFrom(timeWindow: InsightsTimeWindow) {
 }
 
 export default function InsightsPage() {
-  usePageTitle("Insights")
+  const { t } = useTranslation()
+  usePageTitle(t("insights.title"))
 
   const navigate = useNavigate()
   const { window: timeWindow, breakdown, setWindow, setBreakdown } = useInsightsSearchParams()
@@ -195,7 +201,7 @@ export default function InsightsPage() {
   const breakdownCopy = BREAKDOWN_OPTIONS.find((option) => option.value === breakdown) ?? BREAKDOWN_OPTIONS[0]
   const avgRunsPerDay = stats && stats.runs.length > 0 ? Math.round(stats.totalRuns / stats.runs.length) : 0
   const showFatalError = hasWindowError && !stats
-  const selectedRangeLabel = timeWindow === "all" ? "selected range" : "selected window"
+  const isRange = timeWindow === "all"
   const scopeConfigured = stats?.scope?.configured ?? false
   const scopeActive = scopeMode === "scoped" && scopeConfigured
 
@@ -203,17 +209,14 @@ export default function InsightsPage() {
     <div data-insights-page-root className="h-full min-h-0 overflow-y-auto p-4 md:p-6 space-y-6">
       <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="space-y-1.5">
-          <h1 className="text-3xl font-semibold tracking-tight">Insights</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">
-            Window-wide reliability, cost, and curator signals with a separate comparison section for tests,
-            suites, and platforms.
-          </p>
+          <h1 className="text-3xl font-semibold tracking-tight">{t("insights.title")}</h1>
+          <p className="max-w-2xl text-sm text-muted-foreground">{t("insights.description")}</p>
         </div>
 
         <div className="flex flex-col gap-2 md:items-end">
           <div className="flex flex-wrap items-center gap-2 md:justify-end">
             {scopeConfigured ? (
-              <div className="inline-flex rounded border border-border p-0.5" aria-label="Run scope">
+              <div className="inline-flex rounded border border-border p-0.5" aria-label={t("insights.scope.label")}>
                 {(["scoped", "all"] as const).map((value) => (
                   <Button
                     key={value}
@@ -224,13 +227,13 @@ export default function InsightsPage() {
                     className="h-7 rounded-[2px] px-2 text-xs"
                     onClick={() => setScopeMode(value)}
                   >
-                    {value === "scoped" ? "Scoped" : "All runs"}
+                    {value === "scoped" ? t("insights.scope.scoped") : t("insights.scope.all")}
                   </Button>
                 ))}
               </div>
             ) : null}
 
-            <div className="inline-flex rounded border border-border p-0.5" aria-label="Time window">
+            <div className="inline-flex rounded border border-border p-0.5" aria-label={t("insights.window.label")}>
               {WINDOW_OPTIONS.map((option) => (
                 <Button
                   key={option.value}
@@ -241,7 +244,7 @@ export default function InsightsPage() {
                   className="h-7 rounded-[2px] px-2 text-xs"
                   onClick={() => startTransition(() => setWindow(option.value))}
                 >
-                  {option.label}
+                  {t(option.label)}
                 </Button>
               ))}
             </div>
@@ -249,7 +252,7 @@ export default function InsightsPage() {
           {isWindowRefreshing ? (
             <div className="flex items-center gap-2 text-xs text-muted-foreground md:justify-end">
               <LoaderCircle className="size-3 animate-spin" />
-              <span>Refreshing selected range</span>
+              <span>{t("insights.refreshing")}</span>
             </div>
           ) : null}
         </div>
@@ -258,20 +261,20 @@ export default function InsightsPage() {
       {showFatalError ? (
         <InsightsLineGrid className="mt-6">
           <InsightsLineNotice
-            title="Insights unavailable"
-            description="Refresh the page. If the problem continues, change the time window and verify analytics data is available."
+            title={t("insights.unavailable.title")}
+            description={t("insights.unavailable.description")}
           />
         </InsightsLineGrid>
       ) : !hasRuns || !stats ? (
         <InsightsLineGrid className="mt-6 min-h-[50vh]">
           <InsightsLineCell className="flex min-h-[50vh] flex-col items-center justify-center text-center">
             <BarChart3 className="mb-4 h-8 w-8 text-muted-foreground" />
-            <h3 className="text-lg font-semibold">No runs in this window</h3>
+            <h3 className="text-lg font-semibold">{t("insights.empty.title")}</h3>
             <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-              Run or rerun tests to populate insights. If you expect older data, switch to 30D or All Time.
+              {t("insights.empty.description")}
             </p>
             <Button className="mt-6" onClick={() => navigate(routes.runs)}>
-              Open Runs
+              {t("insights.empty.action")}
             </Button>
           </InsightsLineCell>
         </InsightsLineGrid>
@@ -279,7 +282,9 @@ export default function InsightsPage() {
         <div className="mt-6 space-y-6">
           {hasWindowError ? (
             <InsightsLineGrid className="border-amber-500/30">
-              <InsightsLineNotice description={`The latest refresh failed. Showing the previous ${selectedRangeLabel} instead.`} />
+              <InsightsLineNotice
+                description={isRange ? t("insights.refreshFailed.range") : t("insights.refreshFailed.window")}
+              />
             </InsightsLineGrid>
           ) : null}
 
@@ -289,34 +294,46 @@ export default function InsightsPage() {
                 <div className="grid h-full auto-rows-fr gap-0 sm:grid-cols-2">
                   <InsightsMetricCell
                     className="border-b border-border sm:border-r"
-                    label="Total Runs"
+                    label={t("insights.metric.totalRuns")}
                     value={formatRegionalNumber(stats.totalRuns)}
-                    description={`${avgRunsPerDay} ${scopeActive ? "scoped " : ""}runs per active day in this ${timeWindow === "all" ? "range" : "window"}.`}
+                    description={
+                      scopeActive
+                        ? isRange
+                          ? t("insights.metric.scopedRunsPerDay.range", { count: avgRunsPerDay })
+                          : t("insights.metric.scopedRunsPerDay.window", { count: avgRunsPerDay })
+                        : isRange
+                          ? t("insights.metric.runsPerDay.range", { count: avgRunsPerDay })
+                          : t("insights.metric.runsPerDay.window", { count: avgRunsPerDay })
+                    }
                   />
                   <InsightsMetricCell
                     className="border-b border-border"
-                    label="Pass Rate"
+                    label={t("insights.metric.passRate")}
                     value={passRate === null ? "\u2014" : formatPercent(passRate)}
-                    description={`${stats.passed} successful ${scopeActive ? "scoped " : ""}runs out of ${decidedRuns} that passed or failed.`}
+                    description={
+                      scopeActive
+                        ? t("insights.metric.scopedPassedOutOf", { count: stats.passed, decided: decidedRuns })
+                        : t("insights.metric.passedOutOf", { count: stats.passed, decided: decidedRuns })
+                    }
                   />
                   <InsightsMetricCell
                     className="border-b border-border sm:border-b-0 sm:border-r"
-                    label="Avg Duration"
+                    label={t("insights.metric.avgDuration")}
                     value={formatDuration(stats.avgDuration)}
-                    description="Average runtime for completed runs in the selected range."
+                    description={t("insights.metric.avgDurationDescription")}
                   />
                   <InsightsMetricCell
-                    label="Flake Rate"
+                    label={t("insights.metric.flakeRate")}
                     value={formatRate(stats.flakeRate)}
-                    description={`${stats.failed} failed runs with healed/flaky behavior tracked separately.`}
+                    description={t("insights.metric.flakeRateDescription", { count: stats.failed })}
                   />
                 </div>
               </InsightsLineCell>
 
               <InsightsLineCell className="h-full">
                 <div className="space-y-1">
-                  <h2 className="text-base font-semibold">Pass Rate</h2>
-                  <p className="text-sm text-muted-foreground">Trend for successful outcomes across the selected window.</p>
+                  <h2 className="text-base font-semibold">{t("insights.passRate.title")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("insights.passRate.description")}</p>
                 </div>
                 <PassRateChart
                   data={stats.runs
@@ -331,8 +348,8 @@ export default function InsightsPage() {
 
               <InsightsLineCell className="h-full">
                 <div className="space-y-1">
-                  <h2 className="text-base font-semibold">Duration</h2>
-                  <p className="text-sm text-muted-foreground">Average run duration by day for the selected window.</p>
+                  <h2 className="text-base font-semibold">{t("insights.duration.title")}</h2>
+                  <p className="text-sm text-muted-foreground">{t("insights.duration.description")}</p>
                 </div>
                 <DurationChart
                   data={stats.runs.map((run) => ({ date: run.date, duration: run.duration }))}
@@ -353,24 +370,22 @@ export default function InsightsPage() {
               className="divide-y-0 lg:grid-cols-[minmax(0,1fr)_auto]"
             >
               <InsightsLineCell className="space-y-1">
-                <h2 className="text-lg font-semibold">{breakdownCopy.title}</h2>
-                <p className="text-sm text-muted-foreground">
-                  Compare reliability in a focused lower section so the overall window summary stays stable.
-                </p>
+                <h2 className="text-lg font-semibold">{t(breakdownCopy.title)}</h2>
+                <p className="text-sm text-muted-foreground">{t("insights.breakdown.description")}</p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   {isBreakdownRefreshing ? <LoaderCircle className="size-3 animate-spin" /> : null}
                   <span>
                     {hasBreakdownError
-                      ? "Unable to refresh comparison. Showing previous results."
+                      ? t("insights.breakdown.refreshFailed")
                       : isBreakdownRefreshing
-                        ? "Updating comparison"
-                        : `${breakdownCopy.label} comparison`}
+                        ? t("insights.breakdown.updating")
+                        : t("insights.breakdown.comparison", { label: t(breakdownCopy.label) })}
                   </span>
                 </div>
               </InsightsLineCell>
 
               <InsightsLineCell className="space-y-2 lg:text-right">
-                <p className="text-xs text-muted-foreground">Break down by</p>
+                <p className="text-xs text-muted-foreground">{t("insights.breakdown.breakDownBy")}</p>
                 <div className="flex flex-wrap gap-2 lg:justify-end">
                   {BREAKDOWN_OPTIONS.map((option) => (
                     <Button
@@ -379,7 +394,7 @@ export default function InsightsPage() {
                       size="sm"
                       onClick={() => startTransition(() => setBreakdown(option.value))}
                     >
-                      {option.label}
+                      {t(option.label)}
                     </Button>
                   ))}
                 </div>
@@ -388,9 +403,9 @@ export default function InsightsPage() {
 
             {hasBreakdownError && breakdownRows.length === 0 ? (
               <InsightsLineGrid>
-                <InsightsLineNotice title="Breakdown unavailable">
+                <InsightsLineNotice title={t("insights.breakdown.unavailable.title")}>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Refresh the page or pick another window to reload the selected comparison.
+                    {t("insights.breakdown.unavailable.description")}
                   </p>
                 </InsightsLineNotice>
               </InsightsLineGrid>

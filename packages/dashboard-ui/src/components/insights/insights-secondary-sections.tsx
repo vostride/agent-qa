@@ -9,6 +9,7 @@ import {
   InsightsLineGrid,
   InsightsLineNotice,
 } from "@/components/insights/insights-line-grid"
+import { useTranslation } from "@/i18n"
 
 function QuietSectionEmpty({
   title,
@@ -33,32 +34,20 @@ function hasTokenUsage(tokenStats: TokenEventStats | null) {
 }
 
 const CHANGE_KINDS = {
-  added: { label: "Added", color: "bg-[var(--chart-1)]" },
-  confirmed: { label: "Confirmed", color: "bg-[var(--chart-2)]" },
-  promoted: { label: "Promoted", color: "bg-[var(--chart-3)]" },
-  superseded: { label: "Superseded", color: "bg-[var(--chart-4)]" },
-  deprecated: { label: "Deprecated", color: "bg-[var(--chart-5)]" },
+  added: { label: "insights.memory.kind.added", color: "bg-[var(--chart-1)]" },
+  confirmed: { label: "insights.memory.kind.confirmed", color: "bg-[var(--chart-2)]" },
+  promoted: { label: "insights.memory.kind.promoted", color: "bg-[var(--chart-3)]" },
+  superseded: { label: "insights.memory.kind.superseded", color: "bg-[var(--chart-4)]" },
+  deprecated: { label: "insights.memory.kind.deprecated", color: "bg-[var(--chart-5)]" },
 } as const satisfies Record<LearnedChangeKind, { label: string; color: string }>
 
-function plural(count: number, noun: string) {
-  return `${count} ${noun}${count === 1 ? "" : "s"}`
-}
-
-function unavailableSentence(reason: string) {
-  if (reason === "agent_host_unavailable") {
-    return "Curation changes could not be read: this dashboard was started without an agent host."
-  }
-  return "Curation changes could not be read for this window. Refresh the page to try again."
-}
-
 function MemoryCell({ children }: { children: ReactNode }) {
+  const { t } = useTranslation()
   return (
     <InsightsLineCell data-insights-memory className="flex h-full flex-col p-0">
       <div className="border-b border-border px-5 py-5">
-        <h2 className="text-base font-semibold">Memory Curator</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Knowledge changes curation recorded for the runs in the selected window.
-        </p>
+        <h2 className="text-base font-semibold">{t("insights.memory.title")}</h2>
+        <p className="mt-1 text-sm text-muted-foreground">{t("insights.memory.description")}</p>
       </div>
       <div className="flex h-full flex-col">{children}</div>
     </InsightsLineCell>
@@ -66,10 +55,11 @@ function MemoryCell({ children }: { children: ReactNode }) {
 }
 
 function MemorySection({ knowledgeChanges }: { knowledgeChanges: InsightsKnowledgeChanges | null }) {
+  const { t } = useTranslation()
   if (knowledgeChanges === null) {
     return (
       <MemoryCell>
-        <p className="px-5 py-4 text-sm text-muted-foreground">Reading curation changes for this window.</p>
+        <p className="px-5 py-4 text-sm text-muted-foreground">{t("insights.memory.reading")}</p>
       </MemoryCell>
     )
   }
@@ -77,7 +67,11 @@ function MemorySection({ knowledgeChanges }: { knowledgeChanges: InsightsKnowled
   if (knowledgeChanges.status === "unavailable") {
     return (
       <MemoryCell>
-        <p className="px-5 py-4 text-sm text-muted-foreground">{unavailableSentence(knowledgeChanges.reason)}</p>
+        <p className="px-5 py-4 text-sm text-muted-foreground">
+          {knowledgeChanges.reason === "agent_host_unavailable"
+            ? t("insights.memory.noAgentHost")
+            : t("insights.memory.unreadable")}
+        </p>
       </MemoryCell>
     )
   }
@@ -110,31 +104,30 @@ function MemorySection({ knowledgeChanges }: { knowledgeChanges: InsightsKnowled
   ) {
     return (
       <QuietSectionEmpty
-        title="No memory-curator activity in this window"
-        description="Memory metrics appear after runs create or confirm observations."
+        title={t("insights.memory.empty.title")}
+        description={t("insights.memory.empty.description")}
       />
     )
   }
 
   const notes = [
     truncated
-      ? `Counted the latest ${truncated.read} of ${truncated.total} runs in this window; older runs were not read.`
+      ? t("insights.memory.truncated", { read: truncated.read, count: truncated.total })
       : undefined,
     runsUnreadable > 0
-      ? `Could not read curation for ${runsUnreadable} of ${plural(runsAttempted, "run")}; their changes are not counted.`
+      ? t("insights.memory.runsUnreadable", { affected: runsUnreadable, count: runsAttempted })
       : undefined,
     runsCurationFailed > 0
-      ? `Curation failed for ${runsCurationFailed} of ${plural(runsAttempted, "run")}; their changes are not counted.`
+      ? t("insights.memory.curationFailed", { affected: runsCurationFailed, count: runsAttempted })
       : undefined,
     runsCurationUnfinished > 0
-      ? `Curation has not finished for ${runsCurationUnfinished} of ${plural(runsAttempted, "run")}; their changes are not counted yet.`
+      ? t("insights.memory.curationUnfinished", {
+          affected: runsCurationUnfinished,
+          count: runsAttempted,
+        })
       : undefined,
-    runsInFlight > 0
-      ? runsInFlight === 1
-        ? "1 run in this window has not finished yet and is not counted."
-        : `${runsInFlight} runs in this window have not finished yet and are not counted.`
-      : undefined,
-  ].filter((note): note is string => note !== undefined)
+    runsInFlight > 0 ? t("insights.memory.inFlight", { count: runsInFlight }) : undefined,
+  ].filter((note) => note !== undefined)
 
   return (
     <MemoryCell>
@@ -142,16 +135,18 @@ function MemorySection({ knowledgeChanges }: { knowledgeChanges: InsightsKnowled
         <>
           <div className="grid gap-0 divide-y divide-border border-b border-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
             <div className="px-4 py-3">
-              <p className="text-xs text-muted-foreground">Changes</p>
+              <p className="text-xs text-muted-foreground">{t("insights.memory.changes")}</p>
               <p className="mt-1 text-xl font-semibold">{totalChanges}</p>
             </div>
             <div className="px-4 py-3">
-              <p className="text-xs text-muted-foreground">Runs Read</p>
-              <p className="mt-1 text-xl font-semibold">{runsRead} of {runsAttempted}</p>
+              <p className="text-xs text-muted-foreground">{t("insights.memory.runsRead")}</p>
+              <p className="mt-1 text-xl font-semibold">
+                {t("insights.memory.runsReadValue", { read: runsRead, total: runsAttempted })}
+              </p>
             </div>
           </div>
           <div className="px-4 py-4">
-            <p className="text-sm font-medium">Change Mix</p>
+            <p className="text-sm font-medium">{t("insights.memory.changeMix")}</p>
             <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-muted">
               {rows.map((row) => (
                 <div key={row.kind} className={row.color} style={{ width: `${(row.value / totalChanges) * 100}%` }} />
@@ -162,7 +157,7 @@ function MemorySection({ knowledgeChanges }: { knowledgeChanges: InsightsKnowled
                 <div key={row.kind} data-change-kind={row.kind} className="flex items-center justify-between gap-3 text-sm">
                   <div className="flex items-center gap-2">
                     <span className={`size-2 rounded-full ${row.color}`} />
-                    <span className="text-muted-foreground">{row.label}</span>
+                    <span className="text-muted-foreground">{t(row.label)}</span>
                   </div>
                   <span data-change-count className="font-mono tabular-nums">{row.value}</span>
                 </div>
@@ -173,8 +168,8 @@ function MemorySection({ knowledgeChanges }: { knowledgeChanges: InsightsKnowled
       ) : (
         <p className="px-5 pt-4 text-sm text-muted-foreground">
           {runsRead > 0
-            ? `No changes found in the ${plural(runsRead, "run")} whose curation finished.`
-            : "No run in this window has a finished curation to count."}
+            ? t("insights.memory.noChanges", { count: runsRead })
+            : t("insights.memory.noFinishedCuration")}
         </p>
       )}
       {notes.length > 0 ? (
@@ -219,6 +214,7 @@ export function InsightsSecondarySections({
   tokenStats: TokenEventStats | null
   knowledgeChanges: InsightsKnowledgeChanges | null
 }) {
+  const { t } = useTranslation()
   const showTokenUsage = hasTokenUsage(tokenStats)
   const modelTotals = getModelTotals(tokenStats)
   const totalTokens = (tokenStats?.totals.promptTokens ?? 0) + (tokenStats?.totals.completionTokens ?? 0)
@@ -228,7 +224,7 @@ export function InsightsSecondarySections({
   const testRunTokens = runSource
     ? formatTokens(runSource.promptTokens + runSource.completionTokens)
     : unmeasuredSteps > 0
-      ? "Not recorded"
+      ? t("insights.tokens.notRecorded")
       : formatTokens(0)
 
   return (
@@ -236,32 +232,30 @@ export function InsightsSecondarySections({
       {showTokenUsage && tokenStats ? (
         <InsightsLineCell data-insights-token-usage className="flex h-full flex-col p-0">
           <div className="border-b border-border px-5 py-5">
-            <h2 className="text-base font-semibold">Token Usage</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Window-wide model activity, independent of the breakdown selector.
-            </p>
+            <h2 className="text-base font-semibold">{t("insights.tokens.title")}</h2>
+            <p className="mt-1 text-sm text-muted-foreground">{t("insights.tokens.description")}</p>
           </div>
           <div className="flex h-full flex-col">
             <div className="grid gap-0 divide-y divide-border border-b border-border sm:grid-cols-3 sm:divide-x sm:divide-y-0">
               <div className="px-4 py-3">
-                <p className="text-xs text-muted-foreground">Total Tokens</p>
+                <p className="text-xs text-muted-foreground">{t("insights.tokens.total")}</p>
                 <p className="mt-1 text-xl font-semibold">{formatTokens(totalTokens)}</p>
               </div>
               <div className="px-4 py-3">
-                <p className="text-xs text-muted-foreground">Input</p>
+                <p className="text-xs text-muted-foreground">{t("insights.tokens.input")}</p>
                 <p className="mt-1 text-xl font-semibold">{formatTokens(tokenStats.totals.promptTokens)}</p>
               </div>
               <div className="px-4 py-3">
-                <p className="text-xs text-muted-foreground">Output</p>
+                <p className="text-xs text-muted-foreground">{t("insights.tokens.output")}</p>
                 <p className="mt-1 text-xl font-semibold">{formatTokens(tokenStats.totals.completionTokens)}</p>
               </div>
             </div>
 
             <div className="space-y-2 border-b border-border px-5 py-5">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-sm font-medium">By model</p>
+                <p className="text-sm font-medium">{t("insights.tokens.byModel")}</p>
                 <p className="text-xs text-muted-foreground">
-                  Input vs output across {modelTotals.length} active {modelTotals.length === 1 ? "model" : "models"}
+                  {t("insights.tokens.activeModels", { count: modelTotals.length })}
                 </p>
               </div>
               <TokenUsageChart data={tokenStats.byModel} className="h-[200px]" />
@@ -269,11 +263,11 @@ export function InsightsSecondarySections({
 
             <div className="grid gap-0 divide-y divide-border sm:grid-cols-2 sm:divide-x sm:divide-y-0">
               <div className="px-4 py-3">
-                <p className="text-xs text-muted-foreground">Test Runs</p>
+                <p className="text-xs text-muted-foreground">{t("insights.tokens.testRuns")}</p>
                 <p className="mt-1 text-xl font-semibold">{testRunTokens}</p>
               </div>
               <div className="px-4 py-3">
-                <p className="text-xs text-muted-foreground">Live Editor</p>
+                <p className="text-xs text-muted-foreground">{t("insights.tokens.liveEditor")}</p>
                 <p className="mt-1 text-xl font-semibold">
                   {formatTokens((liveSource?.promptTokens ?? 0) + (liveSource?.completionTokens ?? 0))}
                 </p>
@@ -281,15 +275,15 @@ export function InsightsSecondarySections({
             </div>
             {unmeasuredSteps > 0 ? (
               <p className="border-t border-border px-4 py-3 text-sm text-muted-foreground">
-                {plural(unmeasuredSteps, "test-run step")} recorded no token usage and {unmeasuredSteps === 1 ? "is" : "are"} not counted.
+                {t("insights.tokens.unmeasuredSteps", { count: unmeasuredSteps })}
               </p>
             ) : null}
           </div>
         </InsightsLineCell>
       ) : (
         <QuietSectionEmpty
-          title="No token usage in this window"
-          description="Token metrics appear after runs or live sessions use model calls."
+          title={t("insights.tokens.empty.title")}
+          description={t("insights.tokens.empty.description")}
         />
       )}
 
