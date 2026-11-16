@@ -1,3 +1,5 @@
+import { t } from '@/i18n'
+
 export type NormalizedRunStatus =
   | 'passed'
   | 'failed'
@@ -36,7 +38,7 @@ function canonicalizeStatus(status: string | null | undefined): string {
 
 function titleCaseStatus(status: string): string {
   const clean = status.trim().replace(/[_-]+/g, ' ')
-  if (!clean) return 'Unknown'
+  if (!clean) return t('status.unknown')
   return clean.replace(/\b\w/g, (char) => char.toUpperCase())
 }
 
@@ -80,23 +82,23 @@ export function getRunStatusDescriptor(status: string | null | undefined): RunSt
 
   switch (normalized) {
     case 'passed':
-      return { raw, normalized, label: 'Passed', tone: 'success', terminal: true }
+      return { raw, normalized, label: t('status.passed'), tone: 'success', terminal: true }
     case 'failed':
-      return { raw, normalized, label: 'Failed', tone: 'danger', terminal: true }
+      return { raw, normalized, label: t('status.failed'), tone: 'danger', terminal: true }
     case 'timeout':
-      return { raw, normalized, label: 'Timed out', tone: 'danger', terminal: true }
+      return { raw, normalized, label: t('status.timedOut'), tone: 'danger', terminal: true }
     case 'cancelled':
-      return { raw, normalized, label: 'Cancelled', tone: 'muted', terminal: true }
+      return { raw, normalized, label: t('status.cancelled'), tone: 'muted', terminal: true }
     case 'healed':
-      return { raw, normalized, label: 'Healed', tone: 'warning', terminal: true }
+      return { raw, normalized, label: t('status.healed'), tone: 'warning', terminal: true }
     case 'skipped':
-      return { raw, normalized, label: 'Skipped', tone: 'muted', terminal: true }
+      return { raw, normalized, label: t('status.skipped'), tone: 'muted', terminal: true }
     case 'running':
-      return { raw, normalized, label: 'Running', tone: 'info', terminal: false }
+      return { raw, normalized, label: t('status.running'), tone: 'info', terminal: false }
     case 'pending':
-      return { raw, normalized, label: 'Pending', tone: 'outline', terminal: false }
+      return { raw, normalized, label: t('status.pending'), tone: 'outline', terminal: false }
     case 'queued':
-      return { raw, normalized, label: 'Queued', tone: 'outline', terminal: false }
+      return { raw, normalized, label: t('status.queued'), tone: 'outline', terminal: false }
     case 'unknown':
       return {
         raw,
@@ -235,23 +237,23 @@ export interface StatusBadgeLook {
 export function statusBadgeLook(status: string): StatusBadgeLook {
   switch (status) {
     case 'passed':
-      return { label: 'Passed', className: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/20' }
+      return { label: t('status.passed'), className: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/20' }
     case 'failed':
-      return { label: 'Failed', variant: 'destructive' }
+      return { label: t('status.failed'), variant: 'destructive' }
     case 'healed':
-      return { label: 'Healed', className: 'bg-amber-500/15 text-amber-500 border-amber-500/20' }
+      return { label: t('status.healed'), className: 'bg-amber-500/15 text-amber-500 border-amber-500/20' }
     case 'flaky':
-      return { label: 'Flaky', className: 'bg-amber-500/15 text-amber-500 border-amber-500/20' }
+      return { label: t('status.flaky'), className: 'bg-amber-500/15 text-amber-500 border-amber-500/20' }
     case 'skipped':
-      return { label: 'Skipped', variant: 'secondary' }
+      return { label: t('status.skipped'), variant: 'secondary' }
     case 'cancelled':
-      return { label: 'Cancelled', className: 'bg-muted text-muted-foreground border-border' }
+      return { label: t('status.cancelled'), className: 'bg-muted text-muted-foreground border-border' }
     case 'timeout':
-      return { label: 'Timed out', variant: 'destructive' }
+      return { label: t('status.timedOut'), variant: 'destructive' }
     case 'running':
-      return { label: 'Running', className: 'bg-blue-500/15 text-blue-500 border-blue-500/20 animate-pulse' }
+      return { label: t('status.running'), className: 'bg-blue-500/15 text-blue-500 border-blue-500/20 animate-pulse' }
     case 'pending':
-      return { label: 'Pending', variant: 'outline' }
+      return { label: t('status.pending'), variant: 'outline' }
     default:
       return { label: status, variant: 'outline' }
   }

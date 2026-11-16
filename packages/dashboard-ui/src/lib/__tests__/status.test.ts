@@ -1,6 +1,7 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'vitest'
 
 import { getRunFaviconState } from '@/hooks/use-run-status-favicon'
+import i18n from '@/i18n'
 import {
   finalStepStatusForRun,
   getRunStatusDescriptor,
@@ -119,5 +120,23 @@ describe('the timeout status badge', () => {
     expect(getRunFaviconState('flaky')).toBe('default')
     expect(normalizeStepStatus('flaky')).toBe('flaky')
     expect(statusBadgeLook('flaky').label).toBe('Flaky')
+  })
+})
+
+describe('status words in another language', () => {
+  afterEach(async () => {
+    await i18n.changeLanguage('en')
+    i18n.removeResourceBundle('fr', 'translation')
+  })
+
+  it('reads a known status word in the current language and shows an unknown status as sent', async () => {
+    i18n.addResourceBundle('fr', 'translation', { 'status.passed': 'Réussi' })
+    await i18n.changeLanguage('fr')
+    expect(statusBadgeLook('passed').label).toBe('Réussi')
+    expect(getRunStatusDescriptor('passed').label).toBe('Réussi')
+    expect(statusBadgeLook('some-new-status').label).toBe('some-new-status')
+
+    await i18n.changeLanguage('en')
+    expect(statusBadgeLook('passed').label).toBe('Passed')
   })
 })

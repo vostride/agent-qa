@@ -4,6 +4,8 @@ import config from './config'
 import configUi from './configUi'
 import language from './language'
 import nav from './nav'
+import runs from './runs'
+import status from './status'
 import time from './time'
 import tour from './tour'
 
@@ -16,4 +18,6 @@ export default {
   ...tour,
   ...config,
   ...configUi,
+  ...status,
+  ...runs,
 } as const

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Separator } from "@/components/ui/separator"
+import { useTranslation } from "@/i18n"
 
 interface TestRunOptionsPopoverProps {
   selectedCount: number
@@ -25,6 +26,7 @@ export function TestRunOptionsPopover({
   onRun,
   disabled = false,
 }: TestRunOptionsPopoverProps) {
+  const { t } = useTranslation()
   const handleRun = () => {
     if (disabled) return
     onRun()
@@ -35,7 +37,7 @@ export function TestRunOptionsPopover({
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
         <Button size="sm" disabled={disabled}>
-          Run
+          {t("common.run")}
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -44,17 +46,19 @@ export function TestRunOptionsPopover({
         className="w-[280px] max-w-[calc(100vw-2rem)] space-y-4"
       >
         <div className="space-y-1">
-          <p className="text-sm font-medium">{selectedCount} selected</p>
+          <p className="text-sm font-medium">
+            {t("common.selection.selected", { count: selectedCount })}
+          </p>
           {hiddenCount > 0 ? (
             <p className="text-xs text-muted-foreground">
-              {hiddenCount} hidden by filters
+              {t("runs.hiddenByFilters", { count: hiddenCount })}
             </p>
           ) : null}
         </div>
         <Separator />
         <div className="space-y-3">
           <label className="flex items-center justify-between gap-3 text-sm">
-            <span>Use cache</span>
+            <span>{t("runs.options.useCache")}</span>
             <Checkbox
               checked={useCache}
               onCheckedChange={(checked) => onUseCacheChange(checked === true)}
@@ -65,7 +69,7 @@ export function TestRunOptionsPopover({
         <Separator />
         <Button size="sm" className="w-full" disabled={disabled} onClick={handleRun}>
           <Play className="size-4" />
-          Run
+          {t("common.run")}
         </Button>
       </PopoverContent>
     </Popover>

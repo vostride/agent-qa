@@ -52,6 +52,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import { useTranslation } from "@/i18n"
 import {
   fetchRunAttributeKeys,
   fetchRunAttributeValues,
@@ -142,11 +143,12 @@ function AttributeSummary({
   attributes: Record<string, string> | null | undefined
   activeKeys: readonly string[]
 }) {
+  const { t } = useTranslation()
   const entries = sortAttributeEntries(attributes, activeKeys).filter(
     ([key]) => key !== GATE_RUN_ATTRIBUTE,
   )
   if (entries.length === 0) {
-    return <span className="text-[12px] text-muted-foreground">No attributes</span>
+    return <span className="text-[12px] text-muted-foreground">{t("runs.table.noAttributes")}</span>
   }
 
   const visibleLimit = entries.length > 2 ? 1 : 2
@@ -165,7 +167,9 @@ function AttributeSummary({
             </div>
           ))}
           {hiddenCount > 0 ? (
-            <div className="font-mono text-[11px] text-muted-foreground">+{hiddenCount} more</div>
+            <div className="font-mono text-[11px] text-muted-foreground">
+              {t("runs.table.moreAttributes", { count: hiddenCount })}
+            </div>
           ) : null}
         </div>
       </TooltipTrigger>
@@ -197,12 +201,6 @@ function TargetSummary({ run, className }: { run: RunRow; className: string }) {
   )
 }
 
-function predicateText(predicate: AttributePredicate) {
-  return predicate.mode === "regex"
-    ? `${predicate.key} matches ${predicate.value}`
-    : `${predicate.key} = ${predicate.value}`
-}
-
 function AttributeFilterControl({
   predicates,
   onChange,
@@ -210,6 +208,7 @@ function AttributeFilterControl({
   predicates: AttributePredicate[]
   onChange?: (predicates: AttributePredicate[]) => void
 }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [keyInput, setKeyInput] = useState("")
   const [valueInput, setValueInput] = useState("")
@@ -255,14 +254,14 @@ function AttributeFilterControl({
     const key = keyInput.trim()
     const value = valueInput.trim()
     if (!key || !value) {
-      setError("Enter an attribute key and value, or remove this filter.")
+      setError(t("runs.filter.missingKeyOrValue"))
       return
     }
     if (mode === "regex") {
       try {
         new RegExp(value)
       } catch {
-        setError("Enter a valid regular expression.")
+        setError(t("runs.filter.invalidRegex"))
         return
       }
     }
@@ -273,6 +272,12 @@ function AttributeFilterControl({
     setKeyInput("")
     setValueInput("")
     setMode("exact")
+  }
+
+  function predicateText(predicate: AttributePredicate) {
+    return predicate.mode === "regex"
+      ? t("runs.filter.matches", { key: predicate.key, value: predicate.value })
+      : `${predicate.key} = ${predicate.value}`
   }
 
   function removeFilter(index: number) {
@@ -286,23 +291,25 @@ function AttributeFilterControl({
           type="button"
           variant={predicates.length > 0 ? "secondary" : "outline"}
           size="sm"
-          aria-label="Filter by attributes"
+          aria-label={t("runs.filter.title")}
           className="h-9 gap-2"
         >
           <SlidersHorizontal className="size-4" />
-          Attributes{predicates.length > 0 ? ` (${predicates.length})` : ""}
+          {predicates.length > 0
+            ? t("runs.filter.attributesCount", { count: predicates.length })
+            : t("runs.filter.attributes")}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" className="w-[380px] p-0">
         <div className="border-b px-3 py-2">
-          <h3 className="text-sm font-medium">Filter by attributes</h3>
+          <h3 className="text-sm font-medium">{t("runs.filter.title")}</h3>
         </div>
 
         <div className="space-y-3 p-3">
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1">
               <label className="text-[11px] font-medium text-muted-foreground" htmlFor="run-attribute-key">
-                Key
+                {t("runs.filter.key")}
               </label>
               <Input
                 id="run-attribute-key"
@@ -325,14 +332,14 @@ function AttributeFilterControl({
                     <span className="text-muted-foreground tabular-nums">{suggestion.count}</span>
                   </button>
                 )) : (
-                  <div className="px-2 py-2 text-xs text-muted-foreground">No attributes found</div>
+                  <div className="px-2 py-2 text-xs text-muted-foreground">{t("runs.filter.noKeys")}</div>
                 )}
               </div>
             </div>
 
             <div className="space-y-1">
               <label className="text-[11px] font-medium text-muted-foreground" htmlFor="run-attribute-value">
-                Value
+                {t("runs.filter.value")}
               </label>
               <Input
                 id="run-attribute-value"
@@ -356,7 +363,9 @@ function AttributeFilterControl({
                     <span className="text-muted-foreground tabular-nums">{suggestion.count}</span>
                   </button>
                 )) : (
-                  <div className="px-2 py-2 text-xs text-muted-foreground">No values found for this key</div>
+                  <div className="px-2 py-2 text-xs text-muted-foreground">
+                    {t("runs.filter.noValues")}
+                  </div>
                 )}
               </div>
             </div>
@@ -369,7 +378,7 @@ function AttributeFilterControl({
               aria-pressed={mode === "exact"}
               onClick={() => setMode("exact")}
             >
-              Exact match
+              {t("runs.filter.exact")}
             </button>
             <button
               type="button"
@@ -377,7 +386,7 @@ function AttributeFilterControl({
               aria-pressed={mode === "regex"}
               onClick={() => setMode("regex")}
             >
-              Regex
+              {t("runs.filter.regex")}
             </button>
           </div>
 
@@ -388,10 +397,10 @@ function AttributeFilterControl({
           <div className="flex items-center gap-2">
             <Button type="button" size="sm" onClick={applyFilter}>
               <Plus className="size-4" />
-              Apply filter
+              {t("runs.filter.apply")}
             </Button>
             <Button type="button" size="sm" variant="outline" onClick={() => onChange?.([])} disabled={predicates.length === 0}>
-              Clear attributes
+              {t("runs.filter.clear")}
             </Button>
           </div>
 
@@ -404,7 +413,7 @@ function AttributeFilterControl({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`Remove ${predicate.key} filter`}
+                    aria-label={t("runs.filter.remove", { key: predicate.key })}
                     onClick={() => removeFilter(index)}
                   >
                     <Trash className="size-3.5" />
@@ -457,62 +466,6 @@ function CompactSortableHeader({
     </div>
   )
 }
-
-const columns: ColumnDef<typeof runsTableFeatures, RunRow>[] = [
-  {
-    accessorKey: "status",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        className="-ml-2"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Status
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-  },
-  {
-    accessorKey: "name",
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        className="-ml-2"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Test Name
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-  },
-  {
-    id: "target",
-    accessorFn: (row) => targetSortText(row),
-    header: ({ column }) => (
-      <Button
-        variant="ghost"
-        className="-ml-2"
-        onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
-      >
-        Target
-        <ArrowUpDown className="ml-2 h-4 w-4" />
-      </Button>
-    ),
-  },
-  {
-    id: "attributes",
-    accessorFn: (row) => Object.entries(row.attributes ?? {}).map(([key, value]) => `${key}=${value}`).join(" "),
-    header: "Attributes",
-  },
-  {
-    accessorKey: "duration",
-    header: ({ column }) => <CompactSortableHeader column={column} label="Duration" />,
-  },
-  {
-    accessorKey: "createdAt",
-    header: ({ column }) => <CompactSortableHeader column={column} label="Started" />,
-  },
-]
 
 function stopRowClick(event: MouseEvent | KeyboardEvent) {
   event.stopPropagation()
@@ -683,21 +636,81 @@ export function RunsTable({
   const sorting = sortingProp ?? localSorting
   const handleSortingChange = onSortingChangeProp ?? setLocalSorting
 
+  const { t } = useTranslation()
+  const columns = useMemo<ColumnDef<typeof runsTableFeatures, RunRow>[]>(
+    () => [
+      {
+        accessorKey: "status",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            className="-ml-2"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            {t("runs.table.status")}
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+      },
+      {
+        accessorKey: "name",
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            className="-ml-2"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            {t("runs.table.testName")}
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+      },
+      {
+        id: "target",
+        accessorFn: (row) => targetSortText(row),
+        header: ({ column }) => (
+          <Button
+            variant="ghost"
+            className="-ml-2"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            {t("runs.table.target")}
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        ),
+      },
+      {
+        id: "attributes",
+        accessorFn: (row) => Object.entries(row.attributes ?? {}).map(([key, value]) => `${key}=${value}`).join(" "),
+        header: t("runs.table.attributes"),
+      },
+      {
+        accessorKey: "duration",
+        header: ({ column }) => <CompactSortableHeader column={column} label={t("runs.table.duration")} />,
+      },
+      {
+        accessorKey: "createdAt",
+        header: ({ column }) => <CompactSortableHeader column={column} label={t("runs.table.started")} />,
+      },
+    ],
+    [t],
+  )
+
   const selectColumn: ColumnDef<typeof runsTableFeatures, RunRow> = {
     id: "select",
-    header: ({ table: t }) => (
+    header: ({ table: headerTable }) => (
       <div className="flex items-center justify-center">
         <Checkbox
           checked={getSelectAllState(
-            t.getRowModel().rows.map((row) => row.original.id),
+            headerTable.getRowModel().rows.map((row) => row.original.id),
             selectedRunIds,
           )}
           onCheckedChange={(value) => onToggleVisibleSelection?.(
-            t.getRowModel().rows.map((row) => row.original),
+            headerTable.getRowModel().rows.map((row) => row.original),
             value === true,
           )}
           onClick={(event) => event.stopPropagation()}
-          aria-label="Select all"
+          aria-label={t("runs.table.selectAll")}
         />
       </div>
     ),
@@ -778,7 +791,7 @@ export function RunsTable({
       )
     }
     if (run.status === "running") {
-      return <span className="text-sm text-blue-500">Starting...</span>
+      return <span className="text-sm text-blue-500">{t("runs.table.starting")}</span>
     }
     return <span className="text-sm text-muted-foreground">{formatDuration(run.duration)}</span>
   }
@@ -804,7 +817,7 @@ export function RunsTable({
           {topSlot}
           <div className="flex flex-wrap items-center gap-2">
             <Input
-              placeholder="Search runs..."
+              placeholder={t("runs.search")}
               value={searchValue}
               onChange={(event) => onSearchChange(event.target.value)}
               className="max-w-[220px]"
@@ -815,10 +828,10 @@ export function RunsTable({
                 onValueChange={(value) => onPlatformChange(value === "all" ? "" : value)}
               >
                 <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="All platforms" />
+                  <SelectValue placeholder={t("runs.filter.allPlatforms")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All platforms</SelectItem>
+                  <SelectItem value="all">{t("runs.filter.allPlatforms")}</SelectItem>
                   <SelectItem value="web">Web</SelectItem>
                   <SelectItem value="android">Android</SelectItem>
                   <SelectItem value="ios">iOS</SelectItem>
@@ -831,10 +844,10 @@ export function RunsTable({
                 onValueChange={(value) => onTargetChange(value === "all" ? "" : value)}
               >
                 <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="All targets" />
+                  <SelectValue placeholder={t("runs.filter.allTargets")} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All targets</SelectItem>
+                  <SelectItem value="all">{t("runs.filter.allTargets")}</SelectItem>
                   {availableTargets.map((option) => (
                     <SelectItem key={option} value={option}>
                       {option}
@@ -852,7 +865,7 @@ export function RunsTable({
             <div className="flex-1" />
             <div className="flex items-center gap-2">
               {isLoading && (
-                <span className="text-sm text-muted-foreground">Loading...</span>
+                <span className="text-sm text-muted-foreground">{t("runs.loading")}</span>
               )}
               {headerActions}
             </div>
@@ -925,7 +938,7 @@ export function RunsTable({
                               <Checkbox
                                 checked={selectedRunIds.has(run.id)}
                                 onCheckedChange={(value) => onToggleRunSelection?.(run, value === true)}
-                                aria-label="Select row"
+                                aria-label={t("common.selection.selectRow")}
                               />
                             </div>
                           </TableCell>
@@ -975,11 +988,11 @@ export function RunsTable({
                                     className="mt-0.5"
                                     onKeyDown={stopRowKeys}
                                   >
-                                    Verify run
+                                    {t("runs.table.verifyRun")}
                                   </Badge>
                                 </TooltipTrigger>
                                 <TooltipContent side="top">
-                                  Started by authoring verify. Not used for learning.
+                                  {t("runs.table.verifyRunHint")}
                                 </TooltipContent>
                               </Tooltip>
                             )}
@@ -1076,7 +1089,7 @@ export function RunsTable({
               ) : (
                 <TableRow>
                   <TableCell colSpan={visibleColumnIds.length} className="h-24 text-center">
-                    No results.
+                    {t("runs.table.noResults")}
                   </TableCell>
                 </TableRow>
               )}
@@ -1087,7 +1100,7 @@ export function RunsTable({
 
         <div className="flex items-center justify-between px-1">
           <p className="text-sm text-muted-foreground">
-            {total > 0 ? `Showing ${start}-${end} of ${total}` : "No runs found"}
+            {total > 0 ? t("runs.table.showing", { start, end, total }) : t("runs.table.noRuns")}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -1096,7 +1109,7 @@ export function RunsTable({
               onClick={() => onPageChange(page - 1)}
               disabled={page === 0}
             >
-              Previous
+              {t("runs.table.previous")}
             </Button>
             <Button
               variant="outline"
@@ -1104,7 +1117,7 @@ export function RunsTable({
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages - 1 || totalPages === 0}
             >
-              Next
+              {t("common.next")}
             </Button>
           </div>
         </div>

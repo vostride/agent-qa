@@ -30,6 +30,7 @@ import { useRunsSearchParams } from "@/hooks/use-runs-search-params"
 import { usePageTitle } from "@/hooks/use-page-title"
 import { useSelectionQueue } from "@/hooks/use-selection-queue"
 import { ShortcutLegend } from "@/components/shortcut-hints"
+import { useTranslation } from "@/i18n"
 
 const NO_STATUSES: readonly string[] = []
 
@@ -58,7 +59,8 @@ function matchesSyntheticRunSearch(
 }
 
 export default function RunsPage() {
-  usePageTitle("Runs")
+  const { t } = useTranslation()
+  usePageTitle(t("runs.title"))
   const navigate = useNavigate()
   const [runs, setRuns] = useState<RunRow[]>([])
   const [total, setTotal] = useState(0)
@@ -113,7 +115,7 @@ export default function RunsPage() {
         .filter(e => matchesSyntheticRunSearch(searchValue, e))
         .map(e => ({
           id: e.runId,
-          name: e.testName ?? `Running test...`,
+          name: e.testName ?? t("runs.runningTest"),
           filePath: null,
           status: "running",
           duration: e.duration,
@@ -141,7 +143,7 @@ export default function RunsPage() {
       setRuns(dbRuns)
       setTotal(dbTotal)
     }
-  }, [])
+  }, [t])
 
   const buildFilter = useCallback((opts: {
     name: string
@@ -180,12 +182,12 @@ export default function RunsPage() {
       setTargetOptions(data.targets ?? [])
       await mergeActiveExecutions(data.runs, data.total, opts.statuses, opts.name)
     } catch {
-      toast.error("Failed to load runs")
+      toast.error(t("runs.loadFailed"))
     } finally {
       setIsLoading(false)
       setHasLoadedOnce(true)
     }
-  }, [mergeActiveExecutions, buildFilter])
+  }, [mergeActiveExecutions, buildFilter, t])
 
   const refreshRuns = useCallback(async (opts: {
     page: number
@@ -262,7 +264,7 @@ export default function RunsPage() {
     if (selectedRuns.length === 0) return
     const runnablePaths = selectedRuns.flatMap((run) => run.filePath ? [run.filePath] : [])
     if (runnablePaths.length === 0) {
-      toast.error("No selected runs can be rerun")
+      toast.error(t("runs.noRerunnable"))
       return
     }
 
@@ -277,27 +279,27 @@ export default function RunsPage() {
       const succeeded = results.filter((r) => r.status === "fulfilled").length
       const failed = results.length - succeeded
       if (failed > 0) {
-        toast.error(`${succeeded} runs queued, ${failed} failed`)
+        toast.error(t("runs.queuedWithFailures", { count: succeeded, failed }))
       } else {
-        toast.success(`${succeeded} runs queued`)
+        toast.success(t("runs.queued", { count: succeeded }))
       }
       setRunOptionsOpen(false)
     } finally {
       setBatchLoading(false)
     }
-  }, [selectedRuns, useCache])
+  }, [selectedRuns, useCache, t])
 
   const handlePurgeAllCachedPlans = useCallback(async () => {
     setBatchLoading(true)
     try {
       const { purged } = await purgeCache()
-      toast.success(`Purged ${purged} cached plan${purged !== 1 ? "s" : ""}`)
+      toast.success(t("runs.purged", { count: purged }))
     } catch (err) {
-      toast.error(`Cache purge failed: ${err instanceof Error ? err.message : String(err)}`)
+      toast.error(t("runs.purgeFailed", { message: err instanceof Error ? err.message : String(err) }))
     } finally {
       setBatchLoading(false)
     }
-  }, [])
+  }, [t])
 
   const handleBatchDelete = useCallback(async () => {
     if (selectedRuns.length === 0) return
@@ -324,14 +326,14 @@ export default function RunsPage() {
       }
 
       if (failedCount > 0) {
-        toast.error(`Deleted ${deletedRuns.length} run${deletedRuns.length !== 1 ? "s" : ""}, ${failedCount} failed`)
+        toast.error(t("runs.deletedWithFailures", { count: deletedRuns.length, failed: failedCount }))
       } else {
-        toast.success(`Deleted ${deletedRuns.length} run${deletedRuns.length !== 1 ? "s" : ""}`)
+        toast.success(t("runs.deleted", { count: deletedRuns.length }))
       }
     } finally {
       setBatchLoading(false)
     }
-  }, [selectedRuns, selectionQueue])
+  }, [selectedRuns, selectionQueue, t])
 
   const handleToggleSuite = useCallback((suiteId: string) => {
     setExpandedSuites((current) => {
@@ -416,9 +418,9 @@ export default function RunsPage() {
       <div data-tour-id="tour-runs-table">
         <EmptyState
           icon={Play}
-          title="No test runs yet"
-          description="Run your first test to see results here"
-          actionLabel="View Tests"
+          title={t("runs.empty.title")}
+          description={t("runs.empty.description")}
+          actionLabel={t("runs.empty.action")}
           onAction={() => navigate(routes.tests)}
         />
       </div>
@@ -429,9 +431,9 @@ export default function RunsPage() {
     <Tabs value={tab} onValueChange={setTab}>
       <div className="flex items-center gap-2">
         <TabsList variant="line">
-          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="all">{t("runs.tab.all")}</TabsTrigger>
           <TabsTrigger value="running">
-            Running
+            {t("runs.tab.running")}
             {runningCount > 0 && (
               <Badge variant="secondary" className="ml-1 px-1.5 text-xs">
                 {runningCount}
@@ -439,19 +441,19 @@ export default function RunsPage() {
             )}
           </TabsTrigger>
           <TabsTrigger value="queued">
-            Queued
+            {t("runs.tab.queued")}
             {pendingCount > 0 && (
               <Badge variant="secondary" className="ml-1 px-1.5 text-xs">
                 {pendingCount}
               </Badge>
             )}
           </TabsTrigger>
-          <TabsTrigger value="completed">Completed</TabsTrigger>
-          <TabsTrigger value="failed">Failed</TabsTrigger>
+          <TabsTrigger value="completed">{t("runs.tab.completed")}</TabsTrigger>
+          <TabsTrigger value="failed">{t("runs.tab.failed")}</TabsTrigger>
         </TabsList>
         {showConcurrency && queueStatus && (
           <Badge variant="outline" className="text-xs">
-            {queueStatus.activeSlots}/{queueStatus.concurrency} slots
+            {t("runs.slots", { active: queueStatus.activeSlots, count: queueStatus.concurrency })}
           </Badge>
         )}
       </div>
@@ -461,21 +463,21 @@ export default function RunsPage() {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4 overflow-hidden">
       <div className="flex shrink-0 items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Runs</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{t("runs.title")}</h1>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="Keyboard shortcuts">
+              <Button variant="ghost" size="icon-sm" aria-label={t("runs.shortcuts.label")}>
                 <Keyboard className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
             <TooltipContent side="bottom" className="p-3">
               <ShortcutLegend
                 hints={[
-                  { key: "J / ↓", label: "Next row" },
-                  { key: "K / ↑", label: "Previous row" },
-                  { key: "Enter", label: "Open run" },
-                  { key: "⌘+Enter", label: "Open in new tab" },
+                  { key: "J / ↓", label: t("runs.shortcuts.nextRow") },
+                  { key: "K / ↑", label: t("runs.shortcuts.previousRow") },
+                  { key: "Enter", label: t("runs.shortcuts.openRun") },
+                  { key: "⌘+Enter", label: t("runs.shortcuts.openInNewTab") },
                 ]}
               />
             </TooltipContent>
@@ -513,9 +515,9 @@ export default function RunsPage() {
       />
       <BatchActionBar
         selectedCount={selectedIds.length}
-        summaryMeta={selectionQueue.hiddenCount > 0 ? `${selectionQueue.hiddenCount} hidden by filters` : undefined}
+        summaryMeta={selectionQueue.hiddenCount > 0 ? t("runs.hiddenByFilters", { count: selectionQueue.hiddenCount }) : undefined}
         secondaryIcon={<X className="size-4" />}
-        secondaryAriaLabel="Clear queue"
+        secondaryAriaLabel={t("runs.clearQueue")}
         onDelete={handleBatchDelete}
         actionSlot={(
           <div className="flex items-center gap-2">
@@ -535,7 +537,7 @@ export default function RunsPage() {
               onClick={handlePurgeAllCachedPlans}
               disabled={batchLoading}
             >
-              Purge all cached plans
+              {t("common.run.purgeCache")}
             </Button>
           </div>
         )}

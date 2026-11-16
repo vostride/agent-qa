@@ -14,6 +14,7 @@ import {
   type StepStatus,
 } from "@/lib/run-stream-reducer"
 import { getRunStatusDescriptor } from "@/lib/status"
+import { useTranslation } from "@/i18n"
 
 // Folds the same envelopes as `pages/live-run.tsx`; a finished run is served by replay, not a read.
 
@@ -33,6 +34,7 @@ interface RunResultsPanelProps {
 }
 
 export function RunResultsPanel({ runId, onClose }: RunResultsPanelProps) {
+  const { t } = useTranslation()
   const [state, setState] = useState<RunStreamState>(createInitialRunStreamState)
   const [runStatus, setRunStatus] = useState<
     "connecting" | "running" | "complete" | "error"
@@ -91,10 +93,10 @@ export function RunResultsPanel({ runId, onClose }: RunResultsPanelProps) {
     : runStatus
 
   const headerLabel = posture === "connecting"
-    ? "Connecting..."
+    ? t("runs.results.connecting")
     : posture === "running"
-    ? "Running"
-    : terminalDescriptor?.label ?? (posture === "complete" ? "Passed" : "Failed")
+    ? t("status.running")
+    : terminalDescriptor?.label ?? (posture === "complete" ? t("status.passed") : t("status.failed"))
 
   return (
     <div className="flex flex-col h-full">
@@ -117,7 +119,7 @@ export function RunResultsPanel({ runId, onClose }: RunResultsPanelProps) {
         )}
         {rows.length === 0 && (posture === "connecting" || posture === "running") && (
           <div className="text-sm text-muted-foreground text-center py-8">
-            Waiting for events...
+            {t("runs.results.waiting")}
           </div>
         )}
       </ScrollArea>
