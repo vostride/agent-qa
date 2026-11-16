@@ -31,28 +31,61 @@ const CAPTURE_DIR_ENV = 'AGENT_QA_CAPTURE_DIR'
 const DESKTOP = { width: 1280, height: 800 }
 const NARROW = { width: 400, height: 800 }
 
-/** A published sentence, read out of the dashboard-ui source that publishes it. */
-function publishedSentence(relativePath: string, name: string): string {
-  const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
-  const match = new RegExp(`${name}\\s*=\\s*'([^']+)'`, 'u').exec(source)
-  if (match === null) throw new Error(`${name} is no longer an exported single-quoted literal in ${relativePath}`)
-  return match[1] as string
+/**
+ * One source-level string body as the runtime would see it.
+ *
+ * `run-detail-failure-dom.test.ts`'s helper, carried here for its reason: a text that contains its
+ * own quote would otherwise come back carrying the backslash the source needed, and nothing on the
+ * page would ever match it.
+ */
+function unescapeStringBody(body: string): string {
+  const named: Record<string, string> = {
+    n: '\n', t: '\t', r: '\r', b: '\b', f: '\f', v: '\v', '0': '\0',
+  }
+  let out = ''
+  let index = 0
+  while (index < body.length) {
+    const char = body[index] as string
+    if (char !== '\\' || index + 1 >= body.length) {
+      out += char
+      index += 1
+      continue
+    }
+    const next = body[index + 1] as string
+    const braced = next === 'u' ? /^u\{([0-9a-fA-F]+)\}/u.exec(body.slice(index + 1)) : null
+    const quad = next === 'u' ? /^u([0-9a-fA-F]{4})/u.exec(body.slice(index + 1)) : null
+    const hex = next === 'x' ? /^x([0-9a-fA-F]{2})/u.exec(body.slice(index + 1)) : null
+    const escape = braced ?? quad ?? hex
+    if (escape !== null) {
+      out += String.fromCodePoint(Number.parseInt(escape[1] as string, 16))
+      index += 1 + escape[0].length
+      continue
+    }
+    out += named[next] ?? next
+    index += 2
+  }
+  return out
 }
 
-/** One member of a published `{ key: '...' }` table, read the same way. */
-function publishedMember(relativePath: string, table: string, key: string): string {
+// The English text of one catalog key, in either quote style, on the key's line or the next.
+function publishedText(area: string, key: string): string {
+  const relativePath = join('i18n', 'locales', 'en', `${area}.ts`)
   const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
-  const body = new RegExp(`${table}\\s*=\\s*\\{([^}]*)\\}`, 'u').exec(source)
-  if (body === null) throw new Error(`${table} is no longer an exported object literal in ${relativePath}`)
-  const match = new RegExp(`(?:^|[\\s,{])'?${key}'?\\s*:\\s*'([^']+)'`, 'u').exec(body[1] as string)
-  if (match === null) throw new Error(`${table}.${key} is no longer a single-quoted literal in ${relativePath}`)
-  return match[1] as string
+  const quotedKey = key.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  const entry = new RegExp(
+    `(['"])${quotedKey}\\1:[ \\t]*(?:\\n[ \\t]*)?(['"])((?:\\\\.|[^\\\\])*?)\\2`,
+    'u',
+  ).exec(source)
+  if (entry === null) {
+    throw new Error(`${key} is not a quoted entry of ${relativePath}`)
+  }
+  return unescapeStringBody(entry[3] as string)
 }
 
-const PREVIEW_DELAYED_TEXT = publishedSentence('lib/live-preview.ts', 'PREVIEW_DELAYED_TEXT')
-const GREEN_NAME = publishedMember('lib/live-preview.ts', 'LIVE_DOT_NAMES', 'green')
-const GREEN_MEANING = publishedMember('lib/live-preview.ts', 'LIVE_DOT_MEANINGS', 'green')
-const AMBER_NAME = publishedMember('lib/live-preview.ts', 'LIVE_DOT_NAMES', 'amber')
+const PREVIEW_DELAYED_TEXT = publishedText('live', 'live.preview.delayed')
+const GREEN_NAME = publishedText('live', 'live.preview.dotName.green')
+const GREEN_MEANING = publishedText('live', 'live.preview.dotMeaning.green')
+const AMBER_NAME = publishedText('live', 'live.preview.dotName.amber')
 
 /** The freshness window (5 s) plus the corner's 1 s clock and one 500 ms report, with margin. */
 const STALL_TO_AMBER_BUDGET_MS = 7_000

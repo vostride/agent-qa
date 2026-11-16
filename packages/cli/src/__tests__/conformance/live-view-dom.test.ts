@@ -46,7 +46,58 @@ function publishedSentence(relativePath: string, name: string): string {
   return match[1] as string
 }
 
-const NO_STREAM_TEXT = publishedSentence('lib/live-preview.ts', 'NO_STREAM_TEXT')
+/**
+ * One source-level string body as the runtime would see it.
+ *
+ * `run-detail-failure-dom.test.ts`'s helper, carried here for its reason: a text that contains its
+ * own quote would otherwise come back carrying the backslash the source needed, and nothing on the
+ * page would ever match it.
+ */
+function unescapeStringBody(body: string): string {
+  const named: Record<string, string> = {
+    n: '\n', t: '\t', r: '\r', b: '\b', f: '\f', v: '\v', '0': '\0',
+  }
+  let out = ''
+  let index = 0
+  while (index < body.length) {
+    const char = body[index] as string
+    if (char !== '\\' || index + 1 >= body.length) {
+      out += char
+      index += 1
+      continue
+    }
+    const next = body[index + 1] as string
+    const braced = next === 'u' ? /^u\{([0-9a-fA-F]+)\}/u.exec(body.slice(index + 1)) : null
+    const quad = next === 'u' ? /^u([0-9a-fA-F]{4})/u.exec(body.slice(index + 1)) : null
+    const hex = next === 'x' ? /^x([0-9a-fA-F]{2})/u.exec(body.slice(index + 1)) : null
+    const escape = braced ?? quad ?? hex
+    if (escape !== null) {
+      out += String.fromCodePoint(Number.parseInt(escape[1] as string, 16))
+      index += 1 + escape[0].length
+      continue
+    }
+    out += named[next] ?? next
+    index += 2
+  }
+  return out
+}
+
+// The English text of one catalog key, in either quote style, on the key's line or the next.
+function publishedText(area: string, key: string): string {
+  const relativePath = join('i18n', 'locales', 'en', `${area}.ts`)
+  const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
+  const quotedKey = key.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  const entry = new RegExp(
+    `(['"])${quotedKey}\\1:[ \\t]*(?:\\n[ \\t]*)?(['"])((?:\\\\.|[^\\\\])*?)\\2`,
+    'u',
+  ).exec(source)
+  if (entry === null) {
+    throw new Error(`${key} is not a quoted entry of ${relativePath}`)
+  }
+  return unescapeStringBody(entry[3] as string)
+}
+
+const NO_STREAM_TEXT = publishedText('live', 'live.preview.noStream')
 /**
  * Long enough to cover more than one not-yet retry period, so "the sentence did not flicker" is a
  * claim about a window the poll would have fired in twice rather than one lucky sample.

@@ -1,6 +1,9 @@
-// Words are single-quoted literals with no apostrophe, so conformance files can read them by path.
+// Protocol words are single-quoted literals with no apostrophe, so conformance files can read them
+// by path. The text a person reads comes from the catalog.
 
 import type { LiveStreamDeclaration, LiveStreamKind } from '@vostride/agent-qa-schema'
+import { t } from '@/i18n'
+import { textTable } from '@/i18n/text-table'
 
 export type LivePreviewStateName =
   | 'loading'
@@ -117,42 +120,42 @@ export const LIVE_EDITOR_SESSION_GONE_CLOSE_CODE = 4404
 /** The server's close code for an editor control socket a newer one replaced; the page does not reconnect. */
 export const LIVE_EDITOR_SUPERSEDED_CLOSE_CODE = 4409
 
-export const PREVIEW_LOADING_TEXT = 'Connecting to the preview…'
-export const PREVIEW_DELAYED_TEXT = 'Preview delayed'
-export const PREVIEW_RECONNECTING_TEXT = 'Reconnecting…'
-export const PREVIEW_DISCONNECTED_TEXT = 'Disconnected'
-export const PREVIEW_EXPIRED_TEXT = 'Link expired'
-export const PREVIEW_SESSION_ENDED_TEXT = 'Session ended'
-export const PREVIEW_RUN_ENDED_TEXT = 'Run ended'
-export const PREVIEW_MEMBER_ENDED_TEXT = 'This test finished while the run goes on'
-export const PREVIEW_UNAVAILABLE_TEXT = 'Live preview is not available here'
+export const PREVIEW_LOADING_TEXT = () => t('live.preview.loading')
+export const PREVIEW_DELAYED_TEXT = () => t('live.preview.delayed')
+export const PREVIEW_RECONNECTING_TEXT = () => t('live.preview.reconnecting')
+export const PREVIEW_DISCONNECTED_TEXT = () => t('live.preview.disconnected')
+export const PREVIEW_EXPIRED_TEXT = () => t('live.preview.expired')
+export const PREVIEW_SESSION_ENDED_TEXT = () => t('live.preview.sessionEnded')
+export const PREVIEW_RUN_ENDED_TEXT = () => t('live.preview.runEnded')
+export const PREVIEW_MEMBER_ENDED_TEXT = () => t('live.preview.memberEnded')
+export const PREVIEW_UNAVAILABLE_TEXT = () => t('live.preview.unavailable')
 
 /** What a target that declared no live stream renders; the step list is named by role, never by position. */
-export const NO_STREAM_TEXT = 'no live preview for this target — the step list keeps advancing'
+export const NO_STREAM_TEXT = () => t('live.preview.noStream')
 
 /** What the preview observed when its bounded wait expired, claiming nothing about whether the target has a preview. */
-export const WAITING_GAVE_UP_TEXT = 'waited for the live view, but nothing arrived — the step list keeps advancing'
+export const WAITING_GAVE_UP_TEXT = () => t('live.preview.waitingGaveUp')
 
 /** The badge beside the gave-up sentence, never part of it. */
-export const WAITING_GAVE_UP_LABEL = 'gave up'
+export const WAITING_GAVE_UP_LABEL = () => t('live.preview.waitingGaveUpLabel')
 
-export const LIVE_PREVIEW_ACTION_LABELS = {
-  reconnect: 'Reconnect',
-  refresh: 'Refresh',
-  'start-fresh': 'Start fresh',
-} as const satisfies Record<LivePreviewAction, string>
+export const LIVE_PREVIEW_ACTION_LABELS = textTable({
+  reconnect: () => t('live.preview.action.reconnect'),
+  refresh: () => t('live.preview.action.refresh'),
+  'start-fresh': () => t('live.preview.action.startFresh'),
+}) satisfies Record<LivePreviewAction, string>
 
-export const LIVE_DOT_NAMES = {
-  green: 'Live preview healthy',
-  amber: 'Live preview delayed',
-  red: 'Live preview stopped',
-} as const satisfies Record<LiveDotState, string>
+export const LIVE_DOT_NAMES = textTable({
+  green: () => t('live.preview.dotName.green'),
+  amber: () => t('live.preview.dotName.amber'),
+  red: () => t('live.preview.dotName.red'),
+}) satisfies Record<LiveDotState, string>
 
-export const LIVE_DOT_MEANINGS = {
-  green: 'Frames are arriving from the browser.',
-  amber: 'The newest frame is late, or the preview is reconnecting.',
-  red: 'The preview stopped receiving frames.',
-} as const satisfies Record<LiveDotState, string>
+export const LIVE_DOT_MEANINGS = textTable({
+  green: () => t('live.preview.dotMeaning.green'),
+  amber: () => t('live.preview.dotMeaning.amber'),
+  red: () => t('live.preview.dotMeaning.red'),
+}) satisfies Record<LiveDotState, string>
 
 export type EmbedReport =
   | { event: 'ready'; kind: LiveStreamKind | 'none' }
@@ -377,41 +380,41 @@ function view(state: LivePreviewMachine, fields: LivePreviewView): LivePreviewVi
 export function deriveLivePreview(state: LivePreviewMachine, now: number): LivePreviewView {
   switch (state.phase) {
     case 'minting':
-      return view(state, { state: 'loading', words: PREVIEW_LOADING_TEXT })
+      return view(state, { state: 'loading', words: PREVIEW_LOADING_TEXT() })
     case 'waiting':
-      return view(state, { state: 'waiting', words: PREVIEW_LOADING_TEXT })
+      return view(state, { state: 'waiting', words: PREVIEW_LOADING_TEXT() })
     case 'embedded': {
       const frame = state.frame
-      if (frame === undefined) return view(state, { state: 'loading', words: PREVIEW_LOADING_TEXT })
+      if (frame === undefined) return view(state, { state: 'loading', words: PREVIEW_LOADING_TEXT() })
       const age = now - (frame.ts + (state.skew ?? 0))
       return age < LIVE_FRESHNESS_WINDOW_MS
         ? view(state, { state: 'live', dot: 'green' })
-        : view(state, { state: 'delayed', dot: 'amber', words: PREVIEW_DELAYED_TEXT })
+        : view(state, { state: 'delayed', dot: 'amber', words: PREVIEW_DELAYED_TEXT() })
     }
     case 'reconnecting': {
       const attempt = Math.min(Math.max(state.reconnectAttempts ?? 1, 1), LIVE_RECONNECT_BACKOFF_MS.length)
       return view(state, {
         state: 'reconnecting',
         dot: 'amber',
-        words: PREVIEW_RECONNECTING_TEXT,
+        words: PREVIEW_RECONNECTING_TEXT(),
         retryInMs: LIVE_RECONNECT_BACKOFF_MS[attempt - 1],
       })
     }
     case 'disconnected':
-      return view(state, { state: 'disconnected', dot: 'red', words: PREVIEW_DISCONNECTED_TEXT, action: 'reconnect' })
+      return view(state, { state: 'disconnected', dot: 'red', words: PREVIEW_DISCONNECTED_TEXT(), action: 'reconnect' })
     case 'expired':
-      return view(state, { state: 'expired', dot: 'red', words: PREVIEW_EXPIRED_TEXT, action: 'refresh' })
+      return view(state, { state: 'expired', dot: 'red', words: PREVIEW_EXPIRED_TEXT(), action: 'refresh' })
     case 'session-ended':
-      return view(state, { state: 'session-ended', dot: 'red', words: PREVIEW_SESSION_ENDED_TEXT, action: 'start-fresh' })
+      return view(state, { state: 'session-ended', dot: 'red', words: PREVIEW_SESSION_ENDED_TEXT(), action: 'start-fresh' })
     case 'run-ended':
-      return view(state, { state: 'run-ended', words: PREVIEW_RUN_ENDED_TEXT })
+      return view(state, { state: 'run-ended', words: PREVIEW_RUN_ENDED_TEXT() })
     case 'member-ended':
-      return view(state, { state: 'member-ended', words: PREVIEW_MEMBER_ENDED_TEXT })
+      return view(state, { state: 'member-ended', words: PREVIEW_MEMBER_ENDED_TEXT() })
     case 'no-stream':
       return state.gaveUp === true
-        ? view(state, { state: 'no-stream', words: WAITING_GAVE_UP_TEXT, label: WAITING_GAVE_UP_LABEL })
-        : view(state, { state: 'no-stream', words: NO_STREAM_TEXT })
+        ? view(state, { state: 'no-stream', words: WAITING_GAVE_UP_TEXT(), label: WAITING_GAVE_UP_LABEL() })
+        : view(state, { state: 'no-stream', words: NO_STREAM_TEXT() })
     case 'unavailable':
-      return view(state, { state: 'unavailable', words: PREVIEW_UNAVAILABLE_TEXT })
+      return view(state, { state: 'unavailable', words: PREVIEW_UNAVAILABLE_TEXT() })
   }
 }

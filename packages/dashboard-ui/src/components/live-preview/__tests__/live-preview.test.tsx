@@ -231,7 +231,7 @@ describe('renew in place, reconnect by remount', () => {
       dot: q('[data-live-dot]')?.getAttribute('data-live-dot'),
       words: q('[data-preview-words]')?.textContent,
       action: q('[data-preview-action]')?.getAttribute('data-preview-action'),
-    }).toEqual({ state: 'expired', dot: 'red', words: PREVIEW_EXPIRED_TEXT, action: 'refresh' })
+    }).toEqual({ state: 'expired', dot: 'red', words: PREVIEW_EXPIRED_TEXT(), action: 'refresh' })
   })
 
   it('RECONNECT-REMOUNTS: a lost report, the first backoff, a fresh mint, and a different iframe node', async () => {
@@ -298,7 +298,7 @@ describe('the corner dot', () => {
       state: previewState(),
       dot: q('[data-live-dot]')?.getAttribute('data-live-dot'),
       words: q('[data-preview-chrome] [data-preview-corner] [data-preview-words]')?.textContent,
-    }).toEqual({ state: 'delayed', dot: 'amber', words: PREVIEW_DELAYED_TEXT })
+    }).toEqual({ state: 'delayed', dot: 'amber', words: PREVIEW_DELAYED_TEXT() })
   })
 
   it('RED-ACTION: four lost reports through their backoffs turn red with a Reconnect that mints again', async () => {
@@ -323,7 +323,7 @@ describe('the corner dot', () => {
     }).toEqual({
       state: 'disconnected',
       dot: 'red',
-      words: PREVIEW_DISCONNECTED_TEXT,
+      words: PREVIEW_DISCONNECTED_TEXT(),
       action: 'reconnect',
       label: LIVE_PREVIEW_ACTION_LABELS.reconnect,
       calls: 1 + LIVE_RECONNECT_BACKOFF_MS.length,
@@ -421,7 +421,7 @@ describe('the dot floats top-right, outside the chrome', () => {
       dotInChrome: q('[data-preview-chrome] [data-live-dot]'),
       words: status?.querySelector('[data-preview-words]')?.textContent ?? null,
       action: status?.querySelector('[data-preview-action]')?.getAttribute('data-preview-action') ?? null,
-    }).toEqual({ state: 'disconnected', dot: 'red', dotInChrome: null, words: PREVIEW_DISCONNECTED_TEXT, action: 'reconnect' })
+    }).toEqual({ state: 'disconnected', dot: 'red', dotInChrome: null, words: PREVIEW_DISCONNECTED_TEXT(), action: 'reconnect' })
     expect(pictureStatus()).toEqual(bare)
   })
 })

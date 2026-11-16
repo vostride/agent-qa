@@ -1032,7 +1032,7 @@ describe('the preview is one embed or an honest sentence', () => {
     }).toEqual({
       at0: 'waiting',
       after: 'no-stream',
-      text: NO_STREAM_TEXT,
+      text: NO_STREAM_TEXT(),
       reason: 'declared',
       label: null,
       memberNote: true,
@@ -1064,7 +1064,7 @@ describe('the preview is one embed or an honest sentence', () => {
 
     await emit(testStarted(1, 'the live member', 1))
 
-    expect(WAITING_GAVE_UP_TEXT).not.toBe(NO_STREAM_TEXT)
+    expect(WAITING_GAVE_UP_TEXT()).not.toBe(NO_STREAM_TEXT())
     expect({
       at0,
       afterCap,
@@ -1078,9 +1078,9 @@ describe('the preview is one embed or an honest sentence', () => {
     }).toEqual({
       at0: 'waiting',
       afterCap: 'no-stream',
-      textAfterCap: WAITING_GAVE_UP_TEXT,
+      textAfterCap: WAITING_GAVE_UP_TEXT(),
       reasonAfterCap: 'gave-up',
-      labelAfterCap: WAITING_GAVE_UP_LABEL,
+      labelAfterCap: WAITING_GAVE_UP_LABEL(),
       callsAfterCap: WAITING_ATTEMPT_LIMIT,
       afterSwitch: 'waiting',
       callsAfterSwitch: WAITING_ATTEMPT_LIMIT + 1,
@@ -1100,7 +1100,7 @@ describe('the preview is one embed or an honest sentence', () => {
     text: q('[data-preview-state] p')?.textContent,
     calls: fetchLiveUrlMock.mock.calls.length,
   })
-  const gaveUp = { state: 'no-stream', text: WAITING_GAVE_UP_TEXT, calls: WAITING_ATTEMPT_LIMIT }
+  const gaveUp = { state: 'no-stream', text: WAITING_GAVE_UP_TEXT(), calls: WAITING_ATTEMPT_LIMIT }
 
   it('(A) after the cap, a tab returning to view re-mints NOTHING — twice', async () => {
     fetchLiveUrlMock.mockImplementation(async () => noneAnswer())
@@ -1216,8 +1216,8 @@ describe('the preview is one embed or an honest sentence', () => {
     const afterAnswer = { ...settled(), iframes: qa('iframe').length }
 
     expect({ whileSlow, atNextTick, afterAnswer }).toEqual({
-      whileSlow: { state: 'waiting', text: PREVIEW_LOADING_TEXT, calls: 2 },
-      atNextTick: { state: 'waiting', text: PREVIEW_LOADING_TEXT, calls: 2 },
+      whileSlow: { state: 'waiting', text: PREVIEW_LOADING_TEXT(), calls: 2 },
+      atNextTick: { state: 'waiting', text: PREVIEW_LOADING_TEXT(), calls: 2 },
       afterAnswer: { state: 'loading', text: undefined, calls: 2, iframes: 1 },
     })
   })
@@ -1234,7 +1234,7 @@ describe('the preview is one embed or an honest sentence', () => {
     await emit(runStarted([0]), testStarted(0, 'the member', 1))
 
     expect(previewState()).toBe('waiting')
-    expect(q('[data-live-pane="preview"]')?.textContent).not.toContain(NO_STREAM_TEXT)
+    expect(q('[data-live-pane="preview"]')?.textContent).not.toContain(NO_STREAM_TEXT())
     expect(q('iframe')).toBeNull()
     expect(fetchLiveUrlMock).toHaveBeenCalledTimes(1)
 
@@ -1263,12 +1263,12 @@ describe('the preview is one embed or an honest sentence', () => {
     await advance(NO_STREAM_RETRY_MS)
 
     expect(previewState()).toBe('no-stream')
-    expect(q('[data-live-pane="preview"]')?.textContent).toContain(NO_STREAM_TEXT)
+    expect(q('[data-live-pane="preview"]')?.textContent).toContain(NO_STREAM_TEXT())
     expect(q('[data-preview-reason]')?.getAttribute('data-preview-reason')).toBe('declared')
-    expect(NO_STREAM_TEXT).toContain('step list')
-    expect(WAITING_GAVE_UP_TEXT).toContain('step list')
-    expect(NO_STREAM_TEXT).not.toMatch(DIRECTION_WORDS)
-    expect(WAITING_GAVE_UP_TEXT).not.toMatch(DIRECTION_WORDS)
+    expect(NO_STREAM_TEXT()).toContain('step list')
+    expect(WAITING_GAVE_UP_TEXT()).toContain('step list')
+    expect(NO_STREAM_TEXT()).not.toMatch(DIRECTION_WORDS)
+    expect(WAITING_GAVE_UP_TEXT()).not.toMatch(DIRECTION_WORDS)
     expect(q('iframe')).toBeNull()
 
     // The sentence is terminal: no retry fires from `no-stream`.

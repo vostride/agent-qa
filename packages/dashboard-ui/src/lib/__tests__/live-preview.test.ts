@@ -95,18 +95,18 @@ describe('the preview vocabulary', () => {
     expect(WAITING_ATTEMPT_LIMIT).toBe(24)
     expect(LIVE_PREVIEW_HOST_QUERY).toBe('?host=dashboard')
     expect(LIVE_EDITOR_SESSION_GONE_CLOSE_CODE).toBe(4404)
-    expect(PREVIEW_LOADING_TEXT).toBe('Connecting to the preview…')
-    expect(PREVIEW_DELAYED_TEXT).toBe('Preview delayed')
-    expect(PREVIEW_RECONNECTING_TEXT).toBe('Reconnecting…')
-    expect(PREVIEW_DISCONNECTED_TEXT).toBe('Disconnected')
-    expect(PREVIEW_EXPIRED_TEXT).toBe('Link expired')
-    expect(PREVIEW_SESSION_ENDED_TEXT).toBe('Session ended')
-    expect(PREVIEW_RUN_ENDED_TEXT).toBe('Run ended')
-    expect(PREVIEW_MEMBER_ENDED_TEXT).toBe('This test finished while the run goes on')
-    expect(PREVIEW_UNAVAILABLE_TEXT).toBe('Live preview is not available here')
-    expect(NO_STREAM_TEXT).toBe('no live preview for this target — the step list keeps advancing')
-    expect(WAITING_GAVE_UP_TEXT).toBe('waited for the live view, but nothing arrived — the step list keeps advancing')
-    expect(WAITING_GAVE_UP_LABEL).toBe('gave up')
+    expect(PREVIEW_LOADING_TEXT()).toBe('Connecting to the preview…')
+    expect(PREVIEW_DELAYED_TEXT()).toBe('Preview delayed')
+    expect(PREVIEW_RECONNECTING_TEXT()).toBe('Reconnecting…')
+    expect(PREVIEW_DISCONNECTED_TEXT()).toBe('Disconnected')
+    expect(PREVIEW_EXPIRED_TEXT()).toBe('Link expired')
+    expect(PREVIEW_SESSION_ENDED_TEXT()).toBe('Session ended')
+    expect(PREVIEW_RUN_ENDED_TEXT()).toBe('Run ended')
+    expect(PREVIEW_MEMBER_ENDED_TEXT()).toBe('This test finished while the run goes on')
+    expect(PREVIEW_UNAVAILABLE_TEXT()).toBe('Live preview is not available here')
+    expect(NO_STREAM_TEXT()).toBe('no live preview for this target — the step list keeps advancing')
+    expect(WAITING_GAVE_UP_TEXT()).toBe('waited for the live view, but nothing arrived — the step list keeps advancing')
+    expect(WAITING_GAVE_UP_LABEL()).toBe('gave up')
     expect(LIVE_PREVIEW_ACTION_LABELS).toEqual({ reconnect: 'Reconnect', refresh: 'Refresh', 'start-fresh': 'Start fresh' })
     expect(LIVE_DOT_NAMES).toEqual({
       green: 'Live preview healthy',
@@ -244,21 +244,21 @@ describe('one machine for both entry points', () => {
     it('ONE-MACHINE-BOTH-ENTRY-POINTS: the same event script derives the same corner, step by step', () => {
       const trace = oneMachineScript(memberAnswered)
       expect(trace).toEqual([
-        { state: 'loading', words: PREVIEW_LOADING_TEXT },
-        { state: 'loading', words: PREVIEW_LOADING_TEXT },
-        { state: 'loading', words: PREVIEW_LOADING_TEXT },
+        { state: 'loading', words: PREVIEW_LOADING_TEXT() },
+        { state: 'loading', words: PREVIEW_LOADING_TEXT() },
+        { state: 'loading', words: PREVIEW_LOADING_TEXT() },
         { state: 'live', dot: 'green', frameSize: size },
-        { state: 'delayed', dot: 'amber', words: PREVIEW_DELAYED_TEXT, frameSize: size },
+        { state: 'delayed', dot: 'amber', words: PREVIEW_DELAYED_TEXT(), frameSize: size },
         { state: 'live', dot: 'green', frameSize: size },
-        { state: 'reconnecting', dot: 'amber', words: PREVIEW_RECONNECTING_TEXT, retryInMs: 1_000, frameSize: size },
-        { state: 'reconnecting', dot: 'amber', words: PREVIEW_RECONNECTING_TEXT, retryInMs: 2_000, frameSize: size },
-        { state: 'reconnecting', dot: 'amber', words: PREVIEW_RECONNECTING_TEXT, retryInMs: 4_000, frameSize: size },
-        { state: 'disconnected', dot: 'red', words: PREVIEW_DISCONNECTED_TEXT, action: 'reconnect', frameSize: size },
-        { state: 'loading', words: PREVIEW_LOADING_TEXT },
-        { state: 'loading', words: PREVIEW_LOADING_TEXT },
+        { state: 'reconnecting', dot: 'amber', words: PREVIEW_RECONNECTING_TEXT(), retryInMs: 1_000, frameSize: size },
+        { state: 'reconnecting', dot: 'amber', words: PREVIEW_RECONNECTING_TEXT(), retryInMs: 2_000, frameSize: size },
+        { state: 'reconnecting', dot: 'amber', words: PREVIEW_RECONNECTING_TEXT(), retryInMs: 4_000, frameSize: size },
+        { state: 'disconnected', dot: 'red', words: PREVIEW_DISCONNECTED_TEXT(), action: 'reconnect', frameSize: size },
+        { state: 'loading', words: PREVIEW_LOADING_TEXT() },
+        { state: 'loading', words: PREVIEW_LOADING_TEXT() },
         { state: 'live', dot: 'green', frameSize: size },
-        { state: 'expired', dot: 'red', words: PREVIEW_EXPIRED_TEXT, action: 'refresh', frameSize: size },
-        { state: 'loading', words: PREVIEW_LOADING_TEXT },
+        { state: 'expired', dot: 'red', words: PREVIEW_EXPIRED_TEXT(), action: 'refresh', frameSize: size },
+        { state: 'loading', words: PREVIEW_LOADING_TEXT() },
       ])
       expect(trace, 'the other entry point, same script').toEqual(oneMachineScript(ENTRY_POINTS[0].memberAnswered))
     })
@@ -267,7 +267,7 @@ describe('one machine for both entry points', () => {
       const view = deriveLivePreview(embedded(T), T + 60_000)
       expect(view.state).toBe('loading')
       expect(view.dot).toBeUndefined()
-      expect(view.words).toBe(PREVIEW_LOADING_TEXT)
+      expect(view.words).toBe(PREVIEW_LOADING_TEXT())
       expect(deriveLivePreview(createInitialLivePreview(), T)).toEqual(view)
     })
   })
@@ -278,7 +278,7 @@ describe('one machine for both entry points', () => {
     const late = deriveLivePreview(state, T + LIVE_FRESHNESS_WINDOW_MS)
     expect(late.dot).toBe('amber')
     expect(late.state).toBe('delayed')
-    expect(late.words).toBe(PREVIEW_DELAYED_TEXT)
+    expect(late.words).toBe(PREVIEW_DELAYED_TEXT())
   })
 
   it('STALL-TURNS-AMBER: frames every 200 ms, then none; green until 5 s after the last, then amber', () => {
@@ -333,14 +333,14 @@ describe('one machine for both entry points', () => {
       expect(deriveLivePreview(state, T + attempt)).toMatchObject({
         state: 'reconnecting',
         dot: 'amber',
-        words: PREVIEW_RECONNECTING_TEXT,
+        words: PREVIEW_RECONNECTING_TEXT(),
         retryInMs: LIVE_RECONNECT_BACKOFF_MS[attempt - 1],
       })
       expect(deriveLivePreview(state, T + attempt).action).toBeUndefined()
     }
     state = reduceLivePreview(state, lost, T + 10)
     const fourth = deriveLivePreview(state, T + 10)
-    expect(fourth).toMatchObject({ state: 'disconnected', dot: 'red', words: PREVIEW_DISCONNECTED_TEXT, action: 'reconnect' })
+    expect(fourth).toMatchObject({ state: 'disconnected', dot: 'red', words: PREVIEW_DISCONNECTED_TEXT(), action: 'reconnect' })
     expect(fourth.retryInMs).toBeUndefined()
 
     let again = play(liveAt(T), [
@@ -364,7 +364,7 @@ describe('one machine for both entry points', () => {
       expect(deriveLivePreview(reduceLivePreview(liveAt(T), event, T + 1), T + 1)).toEqual({
         state: 'expired',
         dot: 'red',
-        words: PREVIEW_EXPIRED_TEXT,
+        words: PREVIEW_EXPIRED_TEXT(),
         action: 'refresh',
         frameSize: size,
       })
@@ -393,7 +393,7 @@ describe('one machine for both entry points', () => {
       expect(deriveLivePreview(state, T + 2)).toMatchObject({
         state: 'session-ended',
         dot: 'red',
-        words: PREVIEW_SESSION_ENDED_TEXT,
+        words: PREVIEW_SESSION_ENDED_TEXT(),
         action: 'start-fresh',
       })
     }
@@ -401,11 +401,11 @@ describe('one machine for both entry points', () => {
 
   it('ENDINGS-HAVE-NO-ALARM: run-ended, member-ended, no-stream and unavailable say their sentence with no dot', () => {
     const cases: Array<[LivePreviewMachine, LivePreviewView['state'], string]> = [
-      [reduceLivePreview(liveAt(T), embed({ event: 'ended', reason: 'runFinished' }), T + 1), 'run-ended', PREVIEW_RUN_ENDED_TEXT],
-      [reduceLivePreview(liveAt(T), { type: 'subject-over', reason: 'run-ended' }, T + 1), 'run-ended', PREVIEW_RUN_ENDED_TEXT],
-      [reduceLivePreview(liveAt(T), embed({ event: 'ended', reason: 'handleFinished' }), T + 1), 'member-ended', PREVIEW_MEMBER_ENDED_TEXT],
-      [reduceLivePreview(createInitialLivePreview(), minted('none', true), T), 'no-stream', NO_STREAM_TEXT],
-      [reduceLivePreview(createInitialLivePreview(), { type: 'mint-refused', word: 'live_view_unavailable' }, T), 'unavailable', PREVIEW_UNAVAILABLE_TEXT],
+      [reduceLivePreview(liveAt(T), embed({ event: 'ended', reason: 'runFinished' }), T + 1), 'run-ended', PREVIEW_RUN_ENDED_TEXT()],
+      [reduceLivePreview(liveAt(T), { type: 'subject-over', reason: 'run-ended' }, T + 1), 'run-ended', PREVIEW_RUN_ENDED_TEXT()],
+      [reduceLivePreview(liveAt(T), embed({ event: 'ended', reason: 'handleFinished' }), T + 1), 'member-ended', PREVIEW_MEMBER_ENDED_TEXT()],
+      [reduceLivePreview(createInitialLivePreview(), minted('none', true), T), 'no-stream', NO_STREAM_TEXT()],
+      [reduceLivePreview(createInitialLivePreview(), { type: 'mint-refused', word: 'live_view_unavailable' }, T), 'unavailable', PREVIEW_UNAVAILABLE_TEXT()],
     ]
     for (const [state, name, words] of cases) {
       const view = deriveLivePreview(state, T + 2)
@@ -422,7 +422,7 @@ describe('one machine for both entry points', () => {
 
   it('NOT-YET-VS-NO: a none before the member starts is waiting, after it is no-stream', () => {
     const notYet = reduceLivePreview(createInitialLivePreview(), minted('none', false), T)
-    expect(deriveLivePreview(notYet, T)).toEqual({ state: 'waiting', words: PREVIEW_LOADING_TEXT })
+    expect(deriveLivePreview(notYet, T)).toEqual({ state: 'waiting', words: PREVIEW_LOADING_TEXT() })
 
     const unknownRun = reduceLivePreview(createInitialLivePreview(), { type: 'mint-refused', word: 'unknown_run' }, T)
     expect(deriveLivePreview(unknownRun, T).state).toBe('waiting')
@@ -442,8 +442,8 @@ describe('one machine for both entry points', () => {
     state = reduceLivePreview(state, minted('none', false), T + 100_000)
     const gaveUp = {
       state: 'no-stream',
-      words: WAITING_GAVE_UP_TEXT,
-      label: WAITING_GAVE_UP_LABEL,
+      words: WAITING_GAVE_UP_TEXT(),
+      label: WAITING_GAVE_UP_LABEL(),
     }
     expect(deriveLivePreview(state, T + 100_000)).toEqual(gaveUp)
     state = reduceLivePreview(state, minted('none', false), T + 110_000)
@@ -461,7 +461,7 @@ describe('one machine for both entry points', () => {
       expect(deriveLivePreview(state, T).state, `attempt ${attempt}`).toBe('waiting')
     }
     state = reduceLivePreview(state, { type: 'wait-unanswered' }, T + 100_000)
-    expect(deriveLivePreview(state, T + 100_000)).toMatchObject({ state: 'no-stream', label: WAITING_GAVE_UP_LABEL })
+    expect(deriveLivePreview(state, T + 100_000)).toMatchObject({ state: 'no-stream', label: WAITING_GAVE_UP_LABEL() })
     expect(
       reduceLivePreview(state, minted('cdp-screencast', false), T + 110_000),
       'an answer landing after the bound does not reopen it',

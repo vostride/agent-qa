@@ -9,6 +9,7 @@ import hooks from './hooks'
 import insights from './insights'
 import knowledge from './knowledge'
 import language from './language'
+import live from './live'
 import nav from './nav'
 import player from './player'
 import runDetail from './runDetail'
@@ -40,4 +41,5 @@ export default {
   ...editor,
   ...suites,
   ...hooks,
+  ...live,
 } as const

@@ -35,7 +35,7 @@ describe("the live preview machine's failure, refusal and empty-stream states", 
   it('DEFINITE-REFUSAL-UNAVAILABLE: only a host that will not serve a live view says unavailable', () => {
     for (const word of ['live_view_unavailable', 'invalid_handle', 'cross_site_refused']) {
       const state = reduceLivePreview(createInitialLivePreview(), { type: 'mint-refused', word }, T)
-      expect(deriveLivePreview(state, T), word).toMatchObject({ state: 'unavailable', words: PREVIEW_UNAVAILABLE_TEXT })
+      expect(deriveLivePreview(state, T), word).toMatchObject({ state: 'unavailable', words: PREVIEW_UNAVAILABLE_TEXT() })
     }
   })
 
@@ -48,7 +48,7 @@ describe("the live preview machine's failure, refusal and empty-stream states", 
     const reconnecting = reduceLivePreview(embedded, { type: 'embed', report: { event: 'lost' } }, T + 1)
     for (const [name, state] of [['embedded', embedded], ['reconnecting', reconnecting]] as const) {
       const next = reduceLivePreview(state, { type: 'embed', report: { event: 'ready', kind: 'none' } }, T + 2)
-      expect(deriveLivePreview(next, T + 3), name).toMatchObject({ state: 'no-stream', words: NO_STREAM_TEXT })
+      expect(deriveLivePreview(next, T + 3), name).toMatchObject({ state: 'no-stream', words: NO_STREAM_TEXT() })
     }
 
     const ready = reduceLivePreview(embedded, { type: 'embed', report: { event: 'ready', kind: 'cdp-screencast' } }, T + 2)
