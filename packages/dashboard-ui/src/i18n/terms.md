@@ -469,9 +469,9 @@ transferência`.
 | drag | arrastar | `Arrastou {{target}}` |
 | navigate | navegar | `Navegou até {{target}}` |
 | verify | verificar | `Verificou {{target}}` |
-| extract | extrair | `Extraiu informações {{target}}` |
+| extract | extrair | `Extraiu informações de {{target}}` |
 | wait | aguardar | `Aguardou {{target}}` |
-| open | abrir | `Abriu {{target}}` |
+| open | abrir | `Abriu um aplicativo em {{target}}` |
 | set | definir | `Definiu {{target}} como {{value}}` |
 
 ## Deutsch (de)

@@ -53,7 +53,8 @@ export default {
   'nav.palette.kind.suite': 'suíte',
   'nav.palette.kind.config': 'configuração',
   'nav.update.available': 'Atualização disponível',
-  'nav.update.versions': 'O agent-qa v{{latest}} está disponível. Você está usando a v{{installed}}.',
+  'nav.update.versions':
+    'O agent-qa v{{latest}} está disponível. Você está usando a v{{installed}}.',
   'nav.update.viewReleases': 'Ver versões',
   'nav.update.runInProject': 'Execute neste projeto:',
   'nav.update.copyCommand': 'Copiar {{command}}',
