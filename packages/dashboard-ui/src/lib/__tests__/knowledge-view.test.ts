@@ -947,7 +947,7 @@ describe('the Learned half mirrors the curation word and NEVER renders blank', (
     const view = learnedFrom({ curation: { status: 'complete' } })
     expect(view.state).toBe('counts-absent')
     expect(view.sentence).toBe(COUNTS_NOT_RECORDED_SENTENCE)
-    expect(view.countLine).toBe(COUNTS_NOT_RECORDED_TEXT)
+    expect(view.countLine).toBe(COUNTS_NOT_RECORDED_TEXT())
     expect(view.countNote).toBeUndefined()
     expect(JSON.stringify(view)).not.toContain('0')
   })
@@ -964,7 +964,7 @@ describe('a settled curation says what it changed, in the chip\'s own words', ()
     const view = learnedFrom({ curation: { status: 'complete', counts: { curated: 0, deprecated: 0 } } })
     expect(view.state).toBe('complete')
     expect(view.countLine).toBe(legacyCurationPairText(0, 0))
-    expect(view.countNote).toBe(BREAKDOWN_NOT_RECORDED_TEXT)
+    expect(view.countNote).toBe(BREAKDOWN_NOT_RECORDED_TEXT())
     expect(view.sentence).toBe(NO_MEMORY_CHANGES_SENTENCE)
     expect(view.rows).toEqual([])
   })
@@ -1028,7 +1028,7 @@ describe('a settled curation says what it changed, in the chip\'s own words', ()
       learned: { changes: [], canaryAttributions: [], curationSnapshot: snapshotOf() },
     })
 
-    expect(view.countLine).toBe(NO_MEMORY_CHANGES_TEXT)
+    expect(view.countLine).toBe(NO_MEMORY_CHANGES_TEXT())
     expect(view.countNote).toBeUndefined()
     expect(view.sentence).toBe(NO_MEMORY_CHANGES_SENTENCE)
   })
@@ -1039,13 +1039,13 @@ describe('a settled curation says what it changed, in the chip\'s own words', ()
 
     expect(view.countLine).toBe(legacyCurationPairText(2, 0))
     expect(view.countLine).toBe('2 curated · 0 deprecated')
-    expect(view.countNote).toBe(BREAKDOWN_NOT_RECORDED_TEXT)
+    expect(view.countNote).toBe(BREAKDOWN_NOT_RECORDED_TEXT())
   })
 
   it('LEARNED-LEGACY-NOTE: a settled row with no counts at all keeps its own fragment and no note', () => {
     const view = learnedFrom({ curation: { status: 'complete' } })
 
-    expect(view.countLine).toBe(COUNTS_NOT_RECORDED_TEXT)
+    expect(view.countLine).toBe(COUNTS_NOT_RECORDED_TEXT())
     expect(view.countNote).toBeUndefined()
   })
 
@@ -1059,7 +1059,7 @@ describe('a settled curation says what it changed, in the chip\'s own words', ()
       },
     })
 
-    expect(view.countLine).toBe(COUNTS_NOT_RECORDED_TEXT)
+    expect(view.countLine).toBe(COUNTS_NOT_RECORDED_TEXT())
     expect(view.countNote).toBe(BREAKDOWN_WITHHELD_TEXT['masking-unavailable'])
   })
 
@@ -1321,7 +1321,7 @@ describe('a curated NEW fact is what the run learned', () => {
     })
 
     expect(view.state).toBe('counts-absent')
-    expect(view.countLine).toBe(COUNTS_NOT_RECORDED_TEXT)
+    expect(view.countLine).toBe(COUNTS_NOT_RECORDED_TEXT())
     expect(view.rows.length).toBe(1)
     expect(view.sentence).toBeUndefined()
   })
@@ -1616,7 +1616,7 @@ describe('a partial read decorates the answer, it never replaces it', () => {
     })
 
     expect(view.state).toBe('counts-absent')
-    expect(view.countLine).toBe(COUNTS_NOT_RECORDED_TEXT)
+    expect(view.countLine).toBe(COUNTS_NOT_RECORDED_TEXT())
     expect(view.rows.length).toBe(1)
     expect(view.sentence).toBeUndefined()
     expect(view.scanIncomplete).toBe(true)

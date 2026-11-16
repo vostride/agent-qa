@@ -378,7 +378,7 @@ describe("run detail owns the chip client, and hands the navbar its projection",
     })
     expect(lastNavbarView()).toMatchObject({
       kind: "chips",
-      analysis: { state: "complete", card: { outcome: ANALYSIS_COMPLETE_NO_ISSUES_TEXT } },
+      analysis: { state: "complete", card: { outcome: ANALYSIS_COMPLETE_NO_ISSUES_TEXT() } },
     })
   })
 

@@ -274,7 +274,7 @@ describe("a settled curation with no counts says so — never a zero", () => {
   it("carries the counts-absent word, the sentence and the fragment, with no digit anywhere", () => {
     const host = render({
       state: "counts-absent",
-      countLine: COUNTS_NOT_RECORDED_TEXT,
+      countLine: COUNTS_NOT_RECORDED_TEXT(),
       sentence: COUNTS_NOT_RECORDED_SENTENCE,
       rows: [],
     })
@@ -282,7 +282,7 @@ describe("a settled curation with no counts says so — never a zero", () => {
     expect(stateOf(host)).toBe("counts-absent")
     expect(host.textContent).toContain(COUNTS_NOT_RECORDED_SENTENCE)
     expect(host.querySelector("[data-learned-count-line]")?.textContent)
-      .toBe(COUNTS_NOT_RECORDED_TEXT)
+      .toBe(COUNTS_NOT_RECORDED_TEXT())
     expect(host.textContent).not.toContain("0")
   })
 })
@@ -332,13 +332,13 @@ describe("the heading spells one number one way, and labels a coarser one", () =
     const host = render({
       state: "complete",
       countLine: legacyCurationPairText(2, 0),
-      countNote: BREAKDOWN_NOT_RECORDED_TEXT,
+      countNote: BREAKDOWN_NOT_RECORDED_TEXT(),
       rows: [],
     })
 
     const note = host.querySelector("[data-learned-count-note]")
     expect(note?.tagName).toBe("P")
-    expect(note?.textContent).toBe(BREAKDOWN_NOT_RECORDED_TEXT)
+    expect(note?.textContent).toBe(BREAKDOWN_NOT_RECORDED_TEXT())
     expect(note?.className).toContain("text-xs")
     expect(note?.className).toContain("text-muted-foreground")
     expect(host.querySelector("[data-learned-count-line]")?.textContent).toBe("2 curated · 0 deprecated")

@@ -10,20 +10,22 @@ import type {
   RunDetailProjection,
 } from '@vostride/agent-qa-schema'
 
+import { t } from '@/i18n'
+
 export type OnMark = (testIndex: number, stepIndex: number | undefined, kind: Mark, note?: string) => Promise<'refreshed' | 'retained' | 'stale'>
 export interface MarkDenial { reason: string }
 
 /** The provenance chip when the model authored this verdict. */
-export const LLM_VERDICT_LABEL = 'LLM verdict'
+export const LLM_VERDICT_LABEL = () => t('runDetail.analysis.llmVerdict')
 
 /** The provenance chip when nothing but the deterministic classifier spoke. */
-export const DETERMINISTIC_FALLBACK_LABEL = 'deterministic fallback'
+export const DETERMINISTIC_FALLBACK_LABEL = () => t('runDetail.analysis.deterministicFallback')
 
 /** The marker beside a sentence the chain may still upgrade. */
-export const ANALYSIS_PROVISIONAL_TEXT = 'analysis running — this may upgrade'
+export const ANALYSIS_PROVISIONAL_TEXT = () => t('runDetail.analysis.provisional')
 
 /** The marker beside a sentence the chain will never upgrade, because it failed. */
-export const ANALYSIS_FAILED_FALLBACK_TEXT = 'analysis failed — showing deterministic fallback'
+export const ANALYSIS_FAILED_FALLBACK_TEXT = () => t('runDetail.analysis.failedFallback')
 
 /**
  * The analysis chip's word, or nothing when the post-processing read has not answered yet.
@@ -93,8 +95,8 @@ export function provenanceLabel(
   confidence: number,
 ): string {
   return producer === 'analyze-run'
-    ? `${LLM_VERDICT_LABEL} · ${confidence.toFixed(2)}`
-    : DETERMINISTIC_FALLBACK_LABEL
+    ? t('runDetail.analysis.llmVerdictConfidence', { confidence: confidence.toFixed(2) })
+    : DETERMINISTIC_FALLBACK_LABEL()
 }
 
 // A complete chain and an unread one get no marker, or a finished verdict would read running.
@@ -114,20 +116,20 @@ export function markerFor(chip: AnalysisChipWord): MemberVerdictMarker | undefin
 /** The marker's own sentence, so the word and the copy cannot drift apart. */
 function markerTextFor(marker: MemberVerdictMarker | undefined): string | undefined {
   if (marker === undefined) return undefined
-  return marker === 'provisional' ? ANALYSIS_PROVISIONAL_TEXT : ANALYSIS_FAILED_FALLBACK_TEXT
+  return marker === 'provisional' ? ANALYSIS_PROVISIONAL_TEXT() : ANALYSIS_FAILED_FALLBACK_TEXT()
 }
 
 // Counts from zero like the sentence and the `?step=` link, not like the tree's display ordinal.
 export function citedStepLabel(stepIndex: number): string {
-  return `step ${String(stepIndex)}`
+  return t('runDetail.analysis.citedStep', { step: String(stepIndex) })
 }
 
 // The sha rides on `data-cited-artifact`; the label names the drawer tab the click opens.
-export const CITED_ARTIFACT_LABEL = 'screenshot'
+export const CITED_ARTIFACT_LABEL = () => t('runDetail.analysis.citedArtifact')
 
 // Counts siblings only, so `other` is literally true.
 export function siblingLine(count: number): string {
-  return `same failure as ${String(count)} other ${count === 1 ? 'test' : 'tests'}`
+  return t('runDetail.analysis.sameFailure', { count })
 }
 
 /** One record the run's own briefs put on this member's failing path, as declared. */
@@ -140,12 +142,12 @@ export interface MemberMemoryOnPathView {
 }
 
 /** The author declared NO records. */
-export const MEMORY_ON_PATH_NONE_TEXT = 'memory on path: none declared'
+export const MEMORY_ON_PATH_NONE_TEXT = () => t('runDetail.analysis.memoryOnPathNone')
 
-export const MEMORY_ON_PATH_RECORDS_LABEL = 'All records on path'
+export const MEMORY_ON_PATH_RECORDS_LABEL = () => t('runDetail.analysis.memoryOnPathRecordsLabel')
 
 export function memoryOnPathLine(count: number): string {
-  return `memory on path: ${String(count)} ${count === 1 ? 'record' : 'records'}`
+  return t('runDetail.analysis.memoryOnPath', { count })
 }
 
 function readMemoryOnPath(
@@ -154,15 +156,17 @@ function readMemoryOnPath(
   return {
     onPath: memoryOnPath,
     onPathText: memoryOnPath.length === 0
-      ? MEMORY_ON_PATH_NONE_TEXT
+      ? MEMORY_ON_PATH_NONE_TEXT()
       : memoryOnPathLine(memoryOnPath.length),
   }
 }
 
 // The plural keys on the total, because the noun is the cited set, not the missing subset.
 export function missingEvidenceLine(count: MemberVerdictMissingEvidence): string {
-  const noun = count.total === 1 ? 'cited artifact' : 'cited artifacts'
-  return `${String(count.missing)} of ${String(count.total)} ${noun} unavailable`
+  return t('runDetail.analysis.missingEvidence', {
+    count: count.total,
+    missing: String(count.missing),
+  })
 }
 
 // Total over every input the page holds; a member with no entry renders no block.

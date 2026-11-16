@@ -1801,12 +1801,12 @@ export function learnedView(
       ? curationBreakdownLine(breakdown)
       : counts !== undefined
         ? legacyCurationPairText(counts.curated, counts.deprecated)
-        : COUNTS_NOT_RECORDED_TEXT
+        : COUNTS_NOT_RECORDED_TEXT()
   const countNote =
     breakdown !== undefined
       ? {}
       : counts !== undefined
-        ? { countNote: BREAKDOWN_NOT_RECORDED_TEXT }
+        ? { countNote: BREAKDOWN_NOT_RECORDED_TEXT() }
         : withheld !== undefined
           ? { countNote: BREAKDOWN_WITHHELD_TEXT[withheld.reason] }
           : {}

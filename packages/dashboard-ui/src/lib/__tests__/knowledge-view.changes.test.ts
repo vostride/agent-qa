@@ -173,7 +173,7 @@ describe('Memory changes are one row per affected record, in the curation bucket
     expect(view.rows.map(row => row.bucket)).not.toContain('proposed')
     expect(view.rows[2]?.primary).toBe('summary rec-d')
     expect(view.rows[2]?.was?.primary).toBe('summary rec-c')
-    expect(view.countNote).toBe(BREAKDOWN_NOT_RECORDED_TEXT)
+    expect(view.countNote).toBe(BREAKDOWN_NOT_RECORDED_TEXT())
     expect(view.curationSnapshot).toBeUndefined()
   })
 
@@ -277,7 +277,7 @@ describe('every bucket word explains itself, and the section speaks of memory ch
       schemaVersion: CURATION_SNAPSHOT_SCHEMA_VERSION, rows: [], breakdown: { added: 0, confirmed: 0, superseded: 0, deprecated: 0, proposed: 0 },
     })
     const nothing = learnedView(projection('complete', { curationSnapshot: zero, sinceThen: { changes: [], count: 0 } }))
-    expect(nothing.countLine).toBe(NO_MEMORY_CHANGES_TEXT)
+    expect(nothing.countLine).toBe(NO_MEMORY_CHANGES_TEXT())
     expect(nothing.sentence).toBe(NO_MEMORY_CHANGES_SENTENCE)
     expect(nothing.rows).toEqual([])
   })

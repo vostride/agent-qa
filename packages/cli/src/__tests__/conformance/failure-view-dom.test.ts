@@ -110,21 +110,6 @@ function unescapeStringBody(body: string): string {
   return out
 }
 
-// Read from the shipped source: an import drags in a renderer, and a hardcoded label goes stale.
-function publishedConstant(relativePath: string, name: string): string {
-  const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
-  const entry = new RegExp(
-    `export const ${name}(?::\\s*string)?\\s*=\\s*(['"])((?:\\\\.|[^\\\\])*?)\\1`,
-    'u',
-  ).exec(source)
-  if (entry === null) {
-    throw new Error(
-      `${name} is no longer a single- or double-quoted top-level constant in ${relativePath}`,
-    )
-  }
-  return unescapeStringBody(entry[2] as string)
-}
-
 // The English text of one catalog key, in either quote style, on the key's line or the next.
 function publishedText(area: string, key: string): string {
   const relativePath = join('i18n', 'locales', 'en', `${area}.ts`)
@@ -141,7 +126,7 @@ function publishedText(area: string, key: string): string {
 }
 
 /** The provenance chip's first half when the model authored the verdict. */
-const LLM_VERDICT_LABEL = publishedConstant('lib/analysis-view.ts', 'LLM_VERDICT_LABEL')
+const LLM_VERDICT_LABEL = publishedText('runDetail', 'runDetail.analysis.llmVerdict')
 
 /** The word BOTH `evidence-incomplete` variants wear. */
 const EVIDENCE_INCOMPLETE_LABEL = publishedText('runDetail', 'runDetail.evidence.incomplete')
@@ -151,8 +136,8 @@ const EVIDENCE_INCOMPLETE_LABEL = publishedText('runDetail', 'runDetail.evidence
  *
  * `provenanceLabel` is a function, not a constant, so it cannot be read the way a label can. The
  * formula is therefore restated here — `${LLM_VERDICT_LABEL} · ${confidence.toFixed(2)}` — over the
- * label read by constant and the confidence the stub scripts, which is what keeps a copy change in
- * `analysis-view.ts` from being invisible to this cell while still not hardcoding the sentence.
+ * label read from the English catalog and the confidence the stub scripts, which is what keeps a
+ * copy change in the catalog from being invisible to this cell while still not hardcoding it.
  */
 function expectedProvenance(confidence: number): string {
   return `${LLM_VERDICT_LABEL} · ${confidence.toFixed(2)}`
@@ -1029,7 +1014,7 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
     expect(
       page.provenances,
       'the provenance line is not the LLM-verdict reading. It is composed here from the label read '
-      + 'out of `lib/analysis-view.ts` and `confidence.toFixed(2)` — the product\'s own formula — so '
+      + 'out of the English catalog and `confidence.toFixed(2)` — the product\'s own formula — so '
       + 'a red is either a copy change, a producer that is not `analyze-run`, or a confidence the '
       + `stub did not script.${context()}`,
     ).toEqual([expectedProvenance(AUTHORED_CONFIDENCE)])

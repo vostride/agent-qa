@@ -307,7 +307,7 @@ describe("a failed member's group carries the op's sentence and its provenance",
     expect(block?.getAttribute("data-verdict-producer")).toBe("deterministic-classifier")
     expect(block?.getAttribute("data-verdict-confidence")).toBe("0")
     expect(block?.querySelector("[data-verdict-provenance]")?.textContent)
-      .toBe(DETERMINISTIC_FALLBACK_LABEL)
+      .toBe(DETERMINISTIC_FALLBACK_LABEL())
   })
 
   it("renders NO block on a member the analysis had no verdict for (a passed member)", async () => {
@@ -366,7 +366,7 @@ describe("the sentence's lifecycle is painted from the chip word", () => {
     await push(CHIP_RUNNING)
     const marker = view.querySelector("[data-verdict-marker]")
     expect(marker?.getAttribute("data-verdict-marker")).toBe("provisional")
-    expect(marker?.textContent).toBe(ANALYSIS_PROVISIONAL_TEXT)
+    expect(marker?.textContent).toBe(ANALYSIS_PROVISIONAL_TEXT())
     expect(view.querySelector("[data-verdict-block]")?.getAttribute("data-verdict-producer"))
       .toBe("deterministic-classifier")
 
@@ -395,13 +395,13 @@ describe("the sentence's lifecycle is painted from the chip word", () => {
 
     const marker = view.querySelector("[data-verdict-marker]")
     expect(marker?.getAttribute("data-verdict-marker")).toBe("failed")
-    expect(marker?.textContent).toBe(ANALYSIS_FAILED_FALLBACK_TEXT)
+    expect(marker?.textContent).toBe(ANALYSIS_FAILED_FALLBACK_TEXT())
     expect(
       view.querySelector("[data-verdict-block]")?.getAttribute("data-verdict-producer"),
       "the floor verdict stands as it was authored",
     ).toBe("deterministic-classifier")
     expect(view.querySelector("[data-verdict-provenance]")?.textContent)
-      .toBe(DETERMINISTIC_FALLBACK_LABEL)
+      .toBe(DETERMINISTIC_FALLBACK_LABEL())
   })
 })
 
@@ -760,6 +760,6 @@ describe("the records on the failing path reach the visible member and no other"
     expect(view.querySelector('[data-member="1"] [data-verdict-sentence]')?.textContent)
       .toBe('observed (step 0): "Login timed out"')
     expect(view.querySelector('[data-member="1"] [data-verdict-provenance]')?.textContent)
-      .toBe(DETERMINISTIC_FALLBACK_LABEL)
+      .toBe(DETERMINISTIC_FALLBACK_LABEL())
   })
 })

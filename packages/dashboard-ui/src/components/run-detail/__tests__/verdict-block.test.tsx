@@ -159,19 +159,19 @@ describe('member mark control', () => {
 
 describe("the sentence's lifecycle is a marker, and the marker is the view's", () => {
   it("paints the provisional marker with its exported sentence while the chain may still upgrade", () => {
-    const block = render({ marker: "provisional", markerText: ANALYSIS_PROVISIONAL_TEXT })
+    const block = render({ marker: "provisional", markerText: ANALYSIS_PROVISIONAL_TEXT() })
 
     const marker = block.querySelector("[data-verdict-marker]")
     expect(marker?.getAttribute("data-verdict-marker"), "the raw word, not the copy").toBe("provisional")
-    expect(marker?.textContent).toBe(ANALYSIS_PROVISIONAL_TEXT)
+    expect(marker?.textContent).toBe(ANALYSIS_PROVISIONAL_TEXT())
   })
 
   it("paints the failed marker when the chain fell back permanently", () => {
-    const block = render({ marker: "failed", markerText: ANALYSIS_FAILED_FALLBACK_TEXT })
+    const block = render({ marker: "failed", markerText: ANALYSIS_FAILED_FALLBACK_TEXT() })
 
     const marker = block.querySelector("[data-verdict-marker]")
     expect(marker?.getAttribute("data-verdict-marker")).toBe("failed")
-    expect(marker?.textContent).toBe(ANALYSIS_FAILED_FALLBACK_TEXT)
+    expect(marker?.textContent).toBe(ANALYSIS_FAILED_FALLBACK_TEXT())
   })
 
   it("renders NO marker element at all on a terminal chain — not an empty one", () => {
@@ -179,8 +179,8 @@ describe("the sentence's lifecycle is a marker, and the marker is the view's", (
     const block = render()
 
     expect(block.querySelector("[data-verdict-marker]")).toBeNull()
-    expect(block.textContent).not.toContain(ANALYSIS_PROVISIONAL_TEXT)
-    expect(block.textContent).not.toContain(ANALYSIS_FAILED_FALLBACK_TEXT)
+    expect(block.textContent).not.toContain(ANALYSIS_PROVISIONAL_TEXT())
+    expect(block.textContent).not.toContain(ANALYSIS_FAILED_FALLBACK_TEXT())
   })
 })
 
@@ -281,7 +281,7 @@ describe("a cited artifact is one click from the drawer", () => {
     expect(link?.getAttribute("data-cited-artifact"), "the sha VERBATIM — the content address itself")
       .toBe(SHA_PRESENT)
     expect(link?.tagName, "an affordance, not a label").toBe("BUTTON")
-    expect(link?.textContent).toBe(CITED_ARTIFACT_LABEL)
+    expect(link?.textContent).toBe(CITED_ARTIFACT_LABEL())
 
     act(() => {
       ;(link as HTMLButtonElement).click()
@@ -410,7 +410,7 @@ describe('the records on the failing path in the block', () => {
     expect(container.querySelector('[data-misdirection-exposed]')?.getAttribute('data-misdirection-exposed'))
       .toBe('2')
     expect(container.querySelector('[data-misdirection-exposed] dt')?.textContent)
-      .toBe(MEMORY_ON_PATH_RECORDS_LABEL)
+      .toBe(MEMORY_ON_PATH_RECORDS_LABEL())
     expect(attr('[data-misdirection-on-path-record]', 'data-misdirection-on-path-record'))
       .toEqual([CANDIDATE, CANARY])
     expect(attr('[data-misdirection-trust]', 'data-misdirection-trust'))
@@ -418,9 +418,9 @@ describe('the records on the failing path in the block', () => {
   })
 
   it('shows the none-declared line and no list for an empty declaration', () => {
-    render({ memoryOnPath: { onPath: [], onPathText: MEMORY_ON_PATH_NONE_TEXT } })
+    render({ memoryOnPath: { onPath: [], onPathText: MEMORY_ON_PATH_NONE_TEXT() } })
     expect(container.querySelector('[data-misdirection-on-path]')?.textContent)
-      .toBe(MEMORY_ON_PATH_NONE_TEXT)
+      .toBe(MEMORY_ON_PATH_NONE_TEXT())
     expect(container.querySelector('[data-misdirection-exposed]')).toBeNull()
   })
 

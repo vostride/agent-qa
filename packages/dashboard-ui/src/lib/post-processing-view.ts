@@ -11,6 +11,9 @@ import type {
   VerdictClass,
 } from '@vostride/agent-qa-schema'
 
+import { t } from '@/i18n'
+import { textTable } from '@/i18n/text-table'
+
 import type { PostProcessingRead } from './api'
 import { formatRegionalDateTime } from './format'
 import { formatDuration, normalizeTimestamp } from './utils'
@@ -47,72 +50,73 @@ export const STAGE_INDICATOR_WORDS: Record<
   PostProcessingStage,
   Record<Exclude<StagePresentationState, 'unavailable'>, string>
 > = {
-  analysis: {
-    complete: 'Analysis',
-    running: 'Analysis running',
-    pending: 'Analysis pending',
-    failed: 'Analysis failed',
-    skipped: 'Analysis skipped',
-  },
-  curation: {
-    complete: 'Curation',
-    running: 'Curation running',
-    pending: 'Curation pending',
-    failed: 'Curation failed',
-    skipped: 'Curation skipped',
-  },
+  analysis: textTable({
+    complete: () => t('runDetail.postProcessing.analysis.word'),
+    running: () => t('runDetail.postProcessing.analysis.running'),
+    pending: () => t('runDetail.postProcessing.analysis.pending'),
+    failed: () => t('runDetail.postProcessing.analysis.failed'),
+    skipped: () => t('runDetail.postProcessing.analysis.skipped'),
+  }),
+  curation: textTable({
+    complete: () => t('runDetail.postProcessing.curation.word'),
+    running: () => t('runDetail.postProcessing.curation.running'),
+    pending: () => t('runDetail.postProcessing.curation.pending'),
+    failed: () => t('runDetail.postProcessing.curation.failed'),
+    skipped: () => t('runDetail.postProcessing.curation.skipped'),
+  }),
 }
 
 // One root for both stages, because an unreadable store says nothing about either one.
-export const POST_PROCESSING_UNAVAILABLE_WORD = 'Post-processing unavailable'
+export const POST_PROCESSING_UNAVAILABLE_WORD = () => t('runDetail.postProcessing.unavailableWord')
 
 // Announced, because `…` is nothing to a screen reader and differs from `pending`.
-export const POST_PROCESSING_LOADING_LABEL = 'Post-processing status loading'
+export const POST_PROCESSING_LOADING_LABEL = () => t('runDetail.postProcessing.loading')
 
 // The em dash splits the state from its clause, as the accessible name does.
-export const ANALYSIS_COMPLETE_NO_ISSUES_TEXT = 'Analysis complete — no issues found'
+export const ANALYSIS_COMPLETE_NO_ISSUES_TEXT = () =>
+  t('runDetail.postProcessing.analysis.noIssues')
 
 // Neutral, not a failure; total over the reasons, so a new reason fails to compile here.
 export const STAGE_SKIPPED_TEXT: Record<
   PostProcessingSkipReason,
   Record<PostProcessingStage, string>
 > = {
-  'gate-run': {
-    analysis: 'Analysis skipped — gate runs are not analysed',
-    curation: 'Curation skipped — gate runs are not curated',
-  },
-  'outcome-excluded': {
-    analysis: 'Analysis skipped — runs excluded from outcomes are not analysed',
-    curation: 'Curation skipped — runs excluded from outcomes are not curated',
-  },
-  'no-verdict': {
-    analysis: 'Analysis skipped — the run ended before it reached a verdict',
-    curation: 'Curation skipped — the run ended before it reached a verdict',
-  },
+  'gate-run': textTable({
+    analysis: () => t('runDetail.postProcessing.skipped.gateRun.analysis'),
+    curation: () => t('runDetail.postProcessing.skipped.gateRun.curation'),
+  }),
+  'outcome-excluded': textTable({
+    analysis: () => t('runDetail.postProcessing.skipped.outcomeExcluded.analysis'),
+    curation: () => t('runDetail.postProcessing.skipped.outcomeExcluded.curation'),
+  }),
+  'no-verdict': textTable({
+    analysis: () => t('runDetail.postProcessing.skipped.noVerdict.analysis'),
+    curation: () => t('runDetail.postProcessing.skipped.noVerdict.curation'),
+  }),
 }
 
 /** A stage that is still moving says so, and says nothing else. */
-export const ANALYSIS_RUNNING_TEXT = 'Analysis running'
-export const CURATION_RUNNING_TEXT = 'Curation running'
+export const ANALYSIS_RUNNING_TEXT = () => t('runDetail.postProcessing.analysis.running')
+export const CURATION_RUNNING_TEXT = () => t('runDetail.postProcessing.curation.running')
 
 /** Whether the chain intends to try that stage again — its own line, never a parenthetical. */
-export const WILL_RETRY_TEXT = 'Will retry'
+export const WILL_RETRY_TEXT = () => t('runDetail.postProcessing.willRetry')
 
 // The door lines are plain muted text, because the indicator itself is the control.
-export const OPEN_KNOWLEDGE_TAB_TEXT = 'Open Knowledge tab'
-export const OPEN_VERDICT_TEXT = 'Open verdict'
+export const OPEN_KNOWLEDGE_TAB_TEXT = () => t('runDetail.postProcessing.openKnowledgeTab')
+export const OPEN_VERDICT_TEXT = () => t('runDetail.postProcessing.openVerdict')
 
 // A curation pass that touched nothing, named as the outcome rather than as zeros.
-export const NO_MEMORY_CHANGES_TEXT = 'no memory changes'
+export const NO_MEMORY_CHANGES_TEXT = () => t('runDetail.postProcessing.noMemoryChanges')
 
 // A legacy pair is a coarser measurement, so five buckets are never synthesized from it.
-export const BREAKDOWN_NOT_RECORDED_TEXT = 'Breakdown not recorded for this run'
+export const BREAKDOWN_NOT_RECORDED_TEXT = () => t('runDetail.postProcessing.breakdownNotRecorded')
 
 // Why a recorded snapshot is withheld: the category, never a guess at counts.
-export const BREAKDOWN_WITHHELD_TEXT: Record<CurationSnapshotWithheldReason, string> = {
-  'masking-unavailable': 'Breakdown not available for this run — masking unavailable',
-  'projection-refused': 'Breakdown not available for this run — projection refused',
-}
+export const BREAKDOWN_WITHHELD_TEXT: Record<CurationSnapshotWithheldReason, string> = textTable({
+  'masking-unavailable': () => t('runDetail.postProcessing.breakdownWithheld.maskingUnavailable'),
+  'projection-refused': () => t('runDetail.postProcessing.breakdownWithheld.projectionRefused'),
+})
 
 /**
  * One stage's explanation card. Line 1 is mandatory: a card that could be empty is a hover that
@@ -129,16 +133,25 @@ export interface StageCardView {
 /** Where activating an indicator goes. Absent → the indicator is not a control. */
 export type StageIndicatorDoor = 'knowledge' | 'verdict'
 
-const DOOR_CLAUSE: Record<StageIndicatorDoor, string> = {
-  knowledge: ' — open Knowledge tab',
-  verdict: ' — open verdict',
-}
+const DOOR_CLAUSE: Record<StageIndicatorDoor, string> = textTable({
+  knowledge: () => t('runDetail.postProcessing.doorClause.knowledge'),
+  verdict: () => t('runDetail.postProcessing.doorClause.verdict'),
+})
 
 /** The card line that closes a door indicator, keyed the same way as the spoken clause. */
-export const DOOR_LINE_TEXT: Record<StageIndicatorDoor, string> = {
-  knowledge: OPEN_KNOWLEDGE_TAB_TEXT,
-  verdict: OPEN_VERDICT_TEXT,
-}
+export const DOOR_LINE_TEXT: Record<StageIndicatorDoor, string> = textTable({
+  knowledge: () => OPEN_KNOWLEDGE_TAB_TEXT(),
+  verdict: () => OPEN_VERDICT_TEXT(),
+})
+
+// The state as the accessible name says it, beside the stage's own word.
+const STATE_WORDS: Record<StageIndicatorState, string> = textTable({
+  complete: () => t('runDetail.postProcessing.state.complete'),
+  running: () => t('runDetail.postProcessing.state.running'),
+  pending: () => t('runDetail.postProcessing.state.pending'),
+  failed: () => t('runDetail.postProcessing.state.failed'),
+  skipped: () => t('runDetail.postProcessing.state.skipped'),
+})
 
 /**
  * The clause an outcome sentence carries after its em dash, or nothing when it is one clause.
@@ -160,11 +173,19 @@ export function stageIndicatorAccessibleName(
   door?: StageIndicatorDoor,
 ): string {
   const clause = outcome === undefined ? undefined : outcomeClause(outcome)
-  return [
-    `${STAGE_INDICATOR_WORDS[stage].complete}: ${state}`,
-    clause === undefined ? '' : `, ${clause}`,
-    door === undefined ? '' : DOOR_CLAUSE[door],
-  ].join('')
+  const name = { stage: STAGE_INDICATOR_WORDS[stage].complete, state: STATE_WORDS[state] }
+  if (door === undefined) {
+    return clause === undefined
+      ? t('runDetail.postProcessing.accessibleName', name)
+      : t('runDetail.postProcessing.accessibleNameClause', { ...name, clause })
+  }
+  return clause === undefined
+    ? t('runDetail.postProcessing.accessibleNameDoor', { ...name, door: DOOR_CLAUSE[door] })
+    : t('runDetail.postProcessing.accessibleNameClauseDoor', {
+        ...name,
+        clause,
+        door: DOOR_CLAUSE[door],
+      })
 }
 
 /**
@@ -196,27 +217,28 @@ export type PostProcessingView =
   | { readonly kind: 'unavailable'; readonly error: string; readonly reason?: string }
 
 // The word is chip state; the parenthetical is the disposition, so `detached` says who moves it.
-export const PENDING_POSTURE_TEXT: Record<PostProcessingDisposition, string> = {
-  handedOff: 'daemon draining',
-  drained: 'draining',
-  detached: 'not queued for drain — the next CLI run or agent-qa daemon drains it',
-}
+export const PENDING_POSTURE_TEXT: Record<PostProcessingDisposition, string> = textTable({
+  handedOff: () => t('runDetail.postProcessing.pendingPosture.handedOff'),
+  drained: () => t('runDetail.postProcessing.pendingPosture.drained'),
+  detached: () => t('runDetail.postProcessing.pendingPosture.detached'),
+})
 
 // A daemon or later drain records no failure reason, so the text names the posture instead.
-export const FAILED_REASON_ABSENT_TEXT: Record<PostProcessingDisposition | 'unknown', string> = {
-  handedOff: 'reason not recorded — drained by the daemon',
-  detached: 'reason not recorded — drained by a later process',
-  drained: 'reason not recorded',
-  unknown: 'reason not recorded',
-}
+export const FAILED_REASON_ABSENT_TEXT: Record<PostProcessingDisposition | 'unknown', string> =
+  textTable({
+    handedOff: () => t('runDetail.postProcessing.failedReasonAbsent.handedOff'),
+    detached: () => t('runDetail.postProcessing.failedReasonAbsent.detached'),
+    drained: () => t('runDetail.postProcessing.failedReasonAbsent.drained'),
+    unknown: () => t('runDetail.postProcessing.failedReasonAbsent.unknown'),
+  })
 
 /** The chip area's heading when chip truth could not be read at all. */
-export const CHIPS_UNAVAILABLE_TEXT = 'post-processing status unavailable'
+export const CHIPS_UNAVAILABLE_TEXT = () => t('runDetail.postProcessing.chipsUnavailable')
 
 type ReadBody = PostProcessingReadBody
 
 // Never a zero: a stage that never committed reports status only, which differs from no changes.
-export const COUNTS_NOT_RECORDED_TEXT = 'counts not recorded for this run'
+export const COUNTS_NOT_RECORDED_TEXT = () => t('runDetail.postProcessing.countsNotRecorded')
 
 // A thin call into the one name function, so the header and the Knowledge tab cannot drift.
 export function curationChipAccessibleName(chip: PostProcessingChipView): string {
@@ -227,13 +249,18 @@ export function curationChipAccessibleName(chip: PostProcessingChipView): string
 export function curationBreakdownLine(breakdown: CurationBreakdown): string {
   const parts = CURATION_BREAKDOWN_BUCKETS
     .filter(bucket => breakdown[bucket] > 0)
-    .map(bucket => `${String(breakdown[bucket])} ${bucket}`)
-  return parts.length === 0 ? NO_MEMORY_CHANGES_TEXT : parts.join(' · ')
+    .map(bucket =>
+      t(`runDetail.postProcessing.bucket.${bucket}`, { number: String(breakdown[bucket]) }),
+    )
+  return parts.length === 0 ? NO_MEMORY_CHANGES_TEXT() : parts.join(' · ')
 }
 
 // An older row's pair, rendered as two coarse counts, not a breakdown.
 export function legacyCurationPairText(curated: number, deprecated: number): string {
-  return `${String(curated)} curated · ${String(deprecated)} deprecated`
+  return t('runDetail.postProcessing.legacyPair', {
+    curated: String(curated),
+    deprecated: String(deprecated),
+  })
 }
 
 // `h23`, so a 24-hour reader never sees `12:41:02 AM` where the log says `00:41:02`.
@@ -287,12 +314,20 @@ export function stageTimingLine(
   const finishedIn = settled ? spanText(started, updated) : undefined
 
   const clauses = [
-    ...(queuedAt === undefined ? [] : [`Queued ${queuedAt}`]),
-    ...(startedAfter === undefined ? [] : [`started after ${startedAfter}`]),
-    ...(state === 'running' ? ['running'] : finishedIn === undefined ? [] : [`finished in ${finishedIn}`]),
+    ...(queuedAt === undefined
+      ? []
+      : [t('runDetail.postProcessing.timing.queued', { time: queuedAt })]),
+    ...(startedAfter === undefined
+      ? []
+      : [t('runDetail.postProcessing.timing.startedAfter', { duration: startedAfter })]),
+    ...(state === 'running'
+      ? [t('runDetail.postProcessing.timing.running')]
+      : finishedIn === undefined
+        ? []
+        : [t('runDetail.postProcessing.timing.finishedIn', { duration: finishedIn })]),
     // Attempts show only past one, because `1 attempts` on every stage is noise.
     ...(detail.attempts !== undefined && detail.attempts > 1
-      ? [`${String(detail.attempts)} attempts`]
+      ? [t('runDetail.postProcessing.timing.attempts', { count: detail.attempts })]
       : []),
   ]
 
@@ -306,11 +341,12 @@ export function verdictClassLabel(cls: VerdictClass): string {
 
 /** `Analysis complete — root cause: {class} ({n} verdict|verdicts)`, or the classless form. */
 export function analysisCompleteWithVerdictsText(cls: VerdictClass | undefined, n: number): string {
-  const complete = `${STAGE_INDICATOR_WORDS.analysis.complete} complete`
-  const counted = `${String(n)} ${n === 1 ? 'verdict' : 'verdicts'}`
   return cls === undefined
-    ? `${complete} — ${counted}`
-    : `${complete} — root cause: ${verdictClassLabel(cls)} (${counted})`
+    ? t('runDetail.postProcessing.analysis.verdicts', { count: n })
+    : t('runDetail.postProcessing.analysis.rootCause', {
+        count: n,
+        verdictClass: verdictClassLabel(cls),
+      })
 }
 
 // `byClass` omits absent classes, so a zero never names a root cause; ties use schema order.
@@ -329,38 +365,49 @@ function dominantVerdictClass(byClass: Partial<Record<VerdictClass, number>>): V
 
 /** `{Stage} queued`, plus who is going to move it when the run recorded a disposition. */
 export function stageQueuedText(stage: PostProcessingStage, posture?: string): string {
-  const queued = `${STAGE_INDICATOR_WORDS[stage].complete} queued`
-  return posture === undefined ? queued : `${queued} — ${posture}`
+  return posture === undefined
+    ? t(`runDetail.postProcessing.${stage}.queued`)
+    : t(`runDetail.postProcessing.${stage}.queuedPosture`, { posture })
 }
 
 /** `{Stage} failed — {reason}`. The reason is the producer's, masked and unsliced. */
 export function stageFailedText(stage: PostProcessingStage, reason: string): string {
-  return `${STAGE_INDICATOR_WORDS[stage].complete} failed — ${reason}`
+  return t(`runDetail.postProcessing.${stage}.failedReason`, { reason })
 }
 
 // The snapshot outranks the legacy pair, and a row with only one of the pair says nothing.
 export function curationCompleteText(read: ReadBody): StageCardView | undefined {
-  const complete = `${STAGE_INDICATOR_WORDS.curation.complete} complete`
   const { notification, curationSnapshot, curationSnapshotWithheld } = read.status
 
   if (curationSnapshot !== undefined) {
-    return { outcome: `${complete} — ${curationBreakdownLine(curationSnapshot.breakdown)}` }
+    return {
+      outcome: t('runDetail.postProcessing.curation.completeCounts', {
+        counts: curationBreakdownLine(curationSnapshot.breakdown),
+      }),
+    }
   }
 
   const legacy = notification?.stages.curation
   if (legacy?.curated !== undefined && legacy.deprecated !== undefined) {
     return {
-      outcome: `${complete} — ${legacyCurationPairText(legacy.curated, legacy.deprecated)}`,
-      note: BREAKDOWN_NOT_RECORDED_TEXT,
+      outcome: t('runDetail.postProcessing.curation.completeCounts', {
+        counts: legacyCurationPairText(legacy.curated, legacy.deprecated),
+      }),
+      note: BREAKDOWN_NOT_RECORDED_TEXT(),
     }
   }
 
   if (curationSnapshotWithheld !== undefined) {
-    return { outcome: complete, note: BREAKDOWN_WITHHELD_TEXT[curationSnapshotWithheld.reason] }
+    return {
+      outcome: t('runDetail.postProcessing.curation.complete'),
+      note: BREAKDOWN_WITHHELD_TEXT[curationSnapshotWithheld.reason],
+    }
   }
 
   // A settled row that committed no counts says so, as a recorded absence.
-  if (notification !== undefined) return { outcome: `${complete} — ${COUNTS_NOT_RECORDED_TEXT}` }
+  if (notification !== undefined) {
+    return { outcome: t('runDetail.postProcessing.curation.completeCountsNotRecorded') }
+  }
 
   // No terminal row at all: the chip word came from `chips.curation` with nothing behind it. The
   // chain contract makes that unreachable, but the type permits it, and inventing a sentence about
@@ -385,10 +432,10 @@ export function stagePresentationState(
   }
 }
 
-const STAGE_RUNNING_TEXT: Record<PostProcessingStage, string> = {
-  analysis: ANALYSIS_RUNNING_TEXT,
-  curation: CURATION_RUNNING_TEXT,
-}
+const STAGE_RUNNING_TEXT: Record<PostProcessingStage, string> = textTable({
+  analysis: () => ANALYSIS_RUNNING_TEXT(),
+  curation: () => CURATION_RUNNING_TEXT(),
+})
 
 function stageCard(
   stage: PostProcessingStage,
@@ -409,7 +456,7 @@ function stageCard(
     const reason = failure?.error ?? FAILED_REASON_ABSENT_TEXT[read.disposition ?? 'unknown']
     return {
       outcome: stageFailedText(stage, reason),
-      ...(failure?.willRetry === true ? { retry: WILL_RETRY_TEXT } : {}),
+      ...(failure?.willRetry === true ? { retry: WILL_RETRY_TEXT() } : {}),
     }
   }
 
@@ -422,7 +469,7 @@ function stageCard(
     return {
       outcome:
         summary.total === 0
-          ? ANALYSIS_COMPLETE_NO_ISSUES_TEXT
+          ? ANALYSIS_COMPLETE_NO_ISSUES_TEXT()
           : analysisCompleteWithVerdictsText(dominantVerdictClass(summary.byClass), summary.total),
     }
   }

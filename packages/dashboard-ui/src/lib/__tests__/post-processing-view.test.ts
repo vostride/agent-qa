@@ -98,8 +98,8 @@ describe('a refusal is its own state, never a pending chip', () => {
   })
 
   it('publishes the unavailable sentence as an exported constant, not as prose in a component', () => {
-    expect(CHIPS_UNAVAILABLE_TEXT.length).toBeGreaterThan(0)
-    expect(CHIPS_UNAVAILABLE_TEXT).toContain('unavailable')
+    expect(CHIPS_UNAVAILABLE_TEXT().length).toBeGreaterThan(0)
+    expect(CHIPS_UNAVAILABLE_TEXT()).toContain('unavailable')
   })
 })
 
@@ -141,13 +141,13 @@ describe('a running chip says one word and nothing else', () => {
       status: 'running',
       state: 'running',
       word: STAGE_INDICATOR_WORDS.analysis.running,
-      card: { outcome: ANALYSIS_RUNNING_TEXT },
+      card: { outcome: ANALYSIS_RUNNING_TEXT() },
     })
     expect(view.curation).toEqual({
       status: 'running',
       state: 'running',
       word: STAGE_INDICATOR_WORDS.curation.running,
-      card: { outcome: CURATION_RUNNING_TEXT },
+      card: { outcome: CURATION_RUNNING_TEXT() },
     })
   })
 })
@@ -168,15 +168,15 @@ describe('a terminal curation card says what it committed, in its wording of rec
     const view = chips(projectPostProcessingView(read({
       status: status('complete', 'complete', notification({ status: 'complete' })),
     })))
-    expect(view.curation.card?.outcome).toBe(`Curation complete — ${COUNTS_NOT_RECORDED_TEXT}`)
-    expect(COUNTS_NOT_RECORDED_TEXT).toBe('counts not recorded for this run')
+    expect(view.curation.card?.outcome).toBe(`Curation complete — ${COUNTS_NOT_RECORDED_TEXT()}`)
+    expect(COUNTS_NOT_RECORDED_TEXT()).toBe('counts not recorded for this run')
   })
 
   it('says the counts-absent line when only ONE of the pair was recorded — half a pair is no pair', () => {
     const view = chips(projectPostProcessingView(read({
       status: status('complete', 'complete', notification({ status: 'complete', curated: 4 })),
     })))
-    expect(view.curation.card?.outcome).toBe(`Curation complete — ${COUNTS_NOT_RECORDED_TEXT}`)
+    expect(view.curation.card?.outcome).toBe(`Curation complete — ${COUNTS_NOT_RECORDED_TEXT()}`)
   })
 
   it('keeps a bare `complete` when there is no notification row at all — nothing to say counts about', () => {
@@ -191,7 +191,7 @@ describe('a terminal curation card says what it committed, in its wording of rec
         curationSnapshot: { schemaVersion: CURATION_SNAPSHOT_SCHEMA_VERSION, rows: [], breakdown: breakdown() },
       }),
     })))
-    expect(view.curation.card?.outcome).toBe(`Curation complete — ${NO_MEMORY_CHANGES_TEXT}`)
+    expect(view.curation.card?.outcome).toBe(`Curation complete — ${NO_MEMORY_CHANGES_TEXT()}`)
   })
 
   it('never invents a card for the analysis chip from curation counts', () => {
@@ -220,8 +220,8 @@ describe('the curation breakdown is one function, and legacy rows say what they 
     }))).toBe('1 added · 1 confirmed · 1 superseded · 1 deprecated · 1 proposed')
     expect(curationBreakdownLine(breakdown({ added: 1, superseded: 1, proposed: 2 })))
       .toBe('1 added · 1 superseded · 2 proposed')
-    expect(curationBreakdownLine(breakdown())).toBe(NO_MEMORY_CHANGES_TEXT)
-    expect(NO_MEMORY_CHANGES_TEXT).toBe('no memory changes')
+    expect(curationBreakdownLine(breakdown())).toBe(NO_MEMORY_CHANGES_TEXT())
+    expect(NO_MEMORY_CHANGES_TEXT()).toBe('no memory changes')
   })
 
   it('renders a legacy pair verbatim and labels it as the absence of a breakdown', () => {
@@ -230,8 +230,8 @@ describe('the curation breakdown is one function, and legacy rows say what they 
       status: status('complete', 'complete', notification({ status: 'complete', curated: 2, deprecated: 0 })),
     })))
     expect(view.curation.card?.outcome).toBe('Curation complete — 2 curated · 0 deprecated')
-    expect(view.curation.card?.note).toBe(BREAKDOWN_NOT_RECORDED_TEXT)
-    expect(BREAKDOWN_NOT_RECORDED_TEXT).toBe('Breakdown not recorded for this run')
+    expect(view.curation.card?.note).toBe(BREAKDOWN_NOT_RECORDED_TEXT())
+    expect(BREAKDOWN_NOT_RECORDED_TEXT()).toBe('Breakdown not recorded for this run')
   })
 
   it('names the withheld category rather than inventing counts for it', () => {
@@ -265,10 +265,10 @@ describe('the curation breakdown is one function, and legacy rows say what they 
 describe('running, queued and failed stages each read their own sentence', () => {
   it('names a running stage in its own words', () => {
     const view = chips(projectPostProcessingView(read({ status: status('running', 'running') })))
-    expect(view.analysis.card?.outcome).toBe(ANALYSIS_RUNNING_TEXT)
-    expect(view.curation.card?.outcome).toBe(CURATION_RUNNING_TEXT)
-    expect(ANALYSIS_RUNNING_TEXT).toBe('Analysis running')
-    expect(CURATION_RUNNING_TEXT).toBe('Curation running')
+    expect(view.analysis.card?.outcome).toBe(ANALYSIS_RUNNING_TEXT())
+    expect(view.curation.card?.outcome).toBe(CURATION_RUNNING_TEXT())
+    expect(ANALYSIS_RUNNING_TEXT()).toBe('Analysis running')
+    expect(CURATION_RUNNING_TEXT()).toBe('Curation running')
   })
 
   it('puts the drain posture in the CARD, and says the bare word when no posture was recorded', () => {
@@ -293,8 +293,8 @@ describe('running, queued and failed stages each read their own sentence', () =>
       .toBe(stageFailedText('analysis', 'analysis stage blew up on step 3'))
     expect(withReason.analysis.card?.outcome)
       .toBe('Analysis failed — analysis stage blew up on step 3')
-    expect(withReason.analysis.card?.retry).toBe(WILL_RETRY_TEXT)
-    expect(WILL_RETRY_TEXT).toBe('Will retry')
+    expect(withReason.analysis.card?.retry).toBe(WILL_RETRY_TEXT())
+    expect(WILL_RETRY_TEXT()).toBe('Will retry')
 
     const noReason = chips(projectPostProcessingView(read({
       status: status('failed', 'pending'),
@@ -370,15 +370,15 @@ describe('the count line is the wording of record, in one place', () => {
     expect(curationChipAccessibleName(settled)).toBe('Curation: complete — open Knowledge tab')
     expect(curationChipAccessibleName({ ...settled, card: { outcome: 'Curation complete — 2 added' } }))
       .toBe('Curation: complete, 2 added — open Knowledge tab')
-    expect(OPEN_KNOWLEDGE_TAB_TEXT).toBe('Open Knowledge tab')
-    expect(OPEN_VERDICT_TEXT).toBe('Open verdict')
+    expect(OPEN_KNOWLEDGE_TAB_TEXT()).toBe('Open Knowledge tab')
+    expect(OPEN_VERDICT_TEXT()).toBe('Open verdict')
   })
 })
 
 // The passing run's sentence is a constant, so the card, accessible name and cell cannot drift.
 describe('a settled analysis with nothing to report says so in one sentence', () => {
   it('ANALYSIS-COMPLETE-COPY: publishes the sentence and projects it onto a no-verdict pass', () => {
-    expect(ANALYSIS_COMPLETE_NO_ISSUES_TEXT).toBe('Analysis complete — no issues found')
+    expect(ANALYSIS_COMPLETE_NO_ISSUES_TEXT()).toBe('Analysis complete — no issues found')
 
     const view = chips(projectPostProcessingView(read({
       status: status('complete', 'complete', notification({ status: 'complete' }, { total: 0, byClass: {} })),
@@ -387,8 +387,8 @@ describe('a settled analysis with nothing to report says so in one sentence', ()
 
     expect(view.analysis.state).toBe('complete')
     expect(view.analysis.word).toBe(STAGE_INDICATOR_WORDS.analysis.complete)
-    expect(view.analysis.card?.outcome).toBe(ANALYSIS_COMPLETE_NO_ISSUES_TEXT)
-    expect(stageIndicatorAccessibleName('analysis', 'complete', ANALYSIS_COMPLETE_NO_ISSUES_TEXT))
+    expect(view.analysis.card?.outcome).toBe(ANALYSIS_COMPLETE_NO_ISSUES_TEXT())
+    expect(stageIndicatorAccessibleName('analysis', 'complete', ANALYSIS_COMPLETE_NO_ISSUES_TEXT()))
       .toBe('Analysis: complete, no issues found')
   })
 })
@@ -420,8 +420,8 @@ describe('an indicator says the stage, and says the state when it needs attentio
       failed: 'Curation failed',
       skipped: 'Curation skipped',
     })
-    expect(POST_PROCESSING_UNAVAILABLE_WORD).toBe('Post-processing unavailable')
-    expect(POST_PROCESSING_LOADING_LABEL).toBe('Post-processing status loading')
+    expect(POST_PROCESSING_UNAVAILABLE_WORD()).toBe('Post-processing unavailable')
+    expect(POST_PROCESSING_LOADING_LABEL()).toBe('Post-processing status loading')
   })
 })
 
@@ -708,7 +708,7 @@ describe('a settled analysis with verdicts names its root cause from the summary
     expect(outcomeFor({ total: 1, byClass: { app_bug: 1 } }))
       .toBe('Analysis complete — root cause: app bug (1 verdict)')
     expect(outcomeFor({ total: 3, byClass: {} })).toBe('Analysis complete — 3 verdicts')
-    expect(outcomeFor({ total: 0, byClass: {} })).toBe(ANALYSIS_COMPLETE_NO_ISSUES_TEXT)
+    expect(outcomeFor({ total: 0, byClass: {} })).toBe(ANALYSIS_COMPLETE_NO_ISSUES_TEXT())
   })
 
   it('ANALYSIS-ROOT-CAUSE-FROM-SUMMARY: breaks a tie by the schema class order, not by insertion order', () => {

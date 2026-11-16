@@ -95,7 +95,7 @@ export function VerdictBlock({
                 onClick={() => { onCitedArtifact(ref.sha) }}
                 className={AFFORDANCE_CLASS}
               >
-                {CITED_ARTIFACT_LABEL}
+                {CITED_ARTIFACT_LABEL()}
               </button>
             ),
           )}
@@ -122,7 +122,7 @@ export function VerdictBlock({
           {view.memoryOnPath.onPath.length === 0 ? null : (
           <dl className="mt-2 space-y-2 text-xs text-muted-foreground">
             <div data-misdirection-exposed={String(view.memoryOnPath.onPath.length)}>
-              <dt className="mb-1">{MEMORY_ON_PATH_RECORDS_LABEL}</dt>
+              <dt className="mb-1">{MEMORY_ON_PATH_RECORDS_LABEL()}</dt>
               <dd>
                 <ul className="flex flex-wrap items-start gap-1">
                   {view.memoryOnPath.onPath.map((entry) => (

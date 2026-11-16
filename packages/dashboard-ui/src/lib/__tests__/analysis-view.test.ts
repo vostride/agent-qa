@@ -97,16 +97,16 @@ describe('projectAnalysisView joins verdicts to members by perTest', () => {
 
     expect([...view.keys()]).toEqual([0])
     expect(view.get(0)?.sentence, 'empty, never invented').toBe('')
-    expect(view.get(0)?.provenance).toBe(DETERMINISTIC_FALLBACK_LABEL)
+    expect(view.get(0)?.provenance).toBe(DETERMINISTIC_FALLBACK_LABEL())
     expect(view.get(4), 'a sentence nobody graded is not a block').toBeUndefined()
   })
 
   it("reads provenance from the verdict's own producer and confidence", () => {
-    expect(provenanceLabel('analyze-run', 0.86)).toBe(`${LLM_VERDICT_LABEL} · 0.86`)
-    expect(provenanceLabel('analyze-run', 1)).toBe(`${LLM_VERDICT_LABEL} · 1.00`)
+    expect(provenanceLabel('analyze-run', 0.86)).toBe(`${LLM_VERDICT_LABEL()} · 0.86`)
+    expect(provenanceLabel('analyze-run', 1)).toBe(`${LLM_VERDICT_LABEL()} · 1.00`)
     // The classifier's confidence is 0 by construction on the floor, and printing "· 0.00" beside
     // "deterministic fallback" would offer a number that means nothing to compare.
-    expect(provenanceLabel('deterministic-classifier', 0)).toBe(DETERMINISTIC_FALLBACK_LABEL)
+    expect(provenanceLabel('deterministic-classifier', 0)).toBe(DETERMINISTIC_FALLBACK_LABEL())
 
     const view = projectAnalysisView(
       analysis({
@@ -115,7 +115,7 @@ describe('projectAnalysisView joins verdicts to members by perTest', () => {
       }),
       'running',
     )
-    expect(view.get(0)?.provenance).toBe(DETERMINISTIC_FALLBACK_LABEL)
+    expect(view.get(0)?.provenance).toBe(DETERMINISTIC_FALLBACK_LABEL())
   })
 })
 
@@ -135,10 +135,10 @@ describe('the marker is the chip word and nothing else', () => {
     })
 
     expect(projectAnalysisView(bytes, 'running').get(0)?.marker).toBe('provisional')
-    expect(projectAnalysisView(bytes, 'running').get(0)?.markerText).toBe(ANALYSIS_PROVISIONAL_TEXT)
-    expect(projectAnalysisView(bytes, 'pending').get(0)?.markerText).toBe(ANALYSIS_PROVISIONAL_TEXT)
+    expect(projectAnalysisView(bytes, 'running').get(0)?.markerText).toBe(ANALYSIS_PROVISIONAL_TEXT())
+    expect(projectAnalysisView(bytes, 'pending').get(0)?.markerText).toBe(ANALYSIS_PROVISIONAL_TEXT())
     expect(projectAnalysisView(bytes, 'failed').get(0)?.marker).toBe('failed')
-    expect(projectAnalysisView(bytes, 'failed').get(0)?.markerText).toBe(ANALYSIS_FAILED_FALLBACK_TEXT)
+    expect(projectAnalysisView(bytes, 'failed').get(0)?.markerText).toBe(ANALYSIS_FAILED_FALLBACK_TEXT())
     expect(projectAnalysisView(bytes, 'complete').get(0)?.marker).toBeUndefined()
     expect(projectAnalysisView(bytes, 'complete').get(0)?.markerText).toBeUndefined()
   })
@@ -344,7 +344,7 @@ describe('the projection lists the records a verdict declared on its failing pat
     const view = withMemoryOnPath([])
 
     expect(view?.onPath).toEqual([])
-    expect(view?.onPathText).toBe(MEMORY_ON_PATH_NONE_TEXT)
+    expect(view?.onPathText).toBe(MEMORY_ON_PATH_NONE_TEXT())
   })
 
   it('projects a verdict that declared nothing to no member at all', () => {
