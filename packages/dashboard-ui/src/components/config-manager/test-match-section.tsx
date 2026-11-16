@@ -15,15 +15,15 @@ function discoveryField(leaf: DiscoveryLeaf): ConfigFieldTarget {
 }
 
 // The schema needs at least one pattern, so an emptied list stays a draft instead of writing.
-function requiredList(error: string) {
+function requiredList(error: () => string) {
   return (raw: string): ConfigFieldParse => {
     const items = textToList(raw)
-    return items.length === 0 ? { valid: false, error } : { valid: true, value: items }
+    return items.length === 0 ? { valid: false, error: error() } : { valid: true, value: items }
   }
 }
 
-const parseTestMatch = requiredList(TEST_MATCH_REQUIRED_ERROR())
-const parseSuiteMatch = requiredList(SUITE_MATCH_REQUIRED_ERROR())
+const parseTestMatch = requiredList(() => TEST_MATCH_REQUIRED_ERROR())
+const parseSuiteMatch = requiredList(() => SUITE_MATCH_REQUIRED_ERROR())
 
 export function TestMatchSection() {
   return (
