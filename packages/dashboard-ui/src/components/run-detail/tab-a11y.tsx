@@ -5,6 +5,7 @@ import type { DisplayStep } from '@/lib/display-step'
 import { resolveEvidenceView } from '@/lib/evidence-state-view'
 import { cn } from '@/lib/utils'
 import { EvidenceState, EvidenceLoading } from './evidence-state'
+import { useTranslation } from '@/i18n'
 
 function impactColor(impact: string): string {
   switch (impact) {
@@ -17,6 +18,7 @@ function impactColor(impact: string): string {
 }
 
 function Violations({ records }: { records: Extract<EvidenceDocument, { kind: 'a11y' }>['records'] }) {
+  const { t } = useTranslation()
   return (
     <div className="p-3">
       {(['critical', 'serious', 'moderate', 'minor'] as const).map(impact => {
@@ -34,7 +36,7 @@ function Violations({ records }: { records: Extract<EvidenceDocument, { kind: 'a
             {v.nodes.length > 0 && <div className="space-y-1 mt-1">
               {v.nodes.map((node, j) => <pre key={j} className="text-[10px] font-mono bg-muted/30 rounded p-1.5 overflow-x-auto whitespace-pre-wrap break-words">{node.html}</pre>)}
             </div>}
-            <a href={v.helpUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline">Learn more</a>
+            <a href={v.helpUrl} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-500 hover:underline">{t('runDetail.a11y.learnMore')}</a>
           </div>)}
         </section>
       })}

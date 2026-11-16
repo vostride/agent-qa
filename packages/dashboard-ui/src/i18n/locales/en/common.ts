@@ -29,6 +29,7 @@ export default {
   'common.screenshot.disableMagnifier': 'Disable magnifier',
   'common.screenshot.viewFullSize': 'View full size',
   'common.untitledStep': 'Untitled step',
+  'common.variableName': 'variable: {{name}}',
   'common.api.error': 'API error {{status}}: {{statusText}}',
   'common.api.errorStatus': 'API error {{status}}',
   'common.api.invalidAuthState': 'Invalid auth state response',

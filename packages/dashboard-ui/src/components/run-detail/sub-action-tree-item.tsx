@@ -3,6 +3,7 @@ import { readIdempotentNoopMeta, type RunDetailSubAction } from '@vostride/agent
 import { ActionSentence } from './action-sentence'
 import { CacheStatusIconWrapper } from './cache-status-marker'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/i18n'
 
 interface SubActionTreeItemProps {
   sub: RunDetailSubAction
@@ -22,6 +23,7 @@ function resultWord(sub: RunDetailSubAction): 'success' | 'failure' | 'no-input'
 }
 
 export function SubActionTreeItem({ sub, stepId, cached, isSelected, isPlayheadRow = false, onSelect }: SubActionTreeItemProps) {
+  const { t } = useTranslation()
   const result = resultWord(sub)
   return (
     <li
@@ -50,7 +52,7 @@ export function SubActionTreeItem({ sub, stepId, cached, isSelected, isPlayheadR
               marker='sub-action-status'
               state='cached'
               tone='primary'
-              label='Cached action'
+              label={t('runDetail.steps.cachedAction')}
             >
               {icon}
             </CacheStatusIconWrapper>

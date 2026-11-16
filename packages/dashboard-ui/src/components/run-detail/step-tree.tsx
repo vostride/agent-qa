@@ -13,6 +13,7 @@ import type { MemberVerdictView } from "@/lib/analysis-view"
 import { hasStepId, type Selection } from "@/lib/selection"
 import { feedbackAddress } from "@/lib/feedback-view"
 import type { Playhead } from '@/lib/playhead'
+import { useTranslation } from '@/i18n'
 
 /** The step door's wiring: the page's composer, which address it is open on, and how to open it. */
 export interface StepTreeFeedback {
@@ -127,6 +128,7 @@ export function StepTree({
   inlineLogs = [],
   feedback,
 }: StepTreeProps) {
+  const { t } = useTranslation()
   const displayGroups = useMemo<DisplayGroup[]>(() => {
     const flat = displayStepsForGroups(groups)
     let cursor = 0
@@ -135,7 +137,7 @@ export function StepTree({
       cursor += group.steps.length
       return { group, steps }
     })
-  }, [groups])
+  }, [groups, t])
 
   const logsByStep = useMemo(() => {
     const map = new Map<string, ExecutionLogEntry[]>()
@@ -161,8 +163,8 @@ export function StepTree({
       return (
         <ScrollArea className="flex-1">
           <div>
-            <HookSection title="Setup" hooks={setupHooks} selection={selection} onSelect={onSelect} />
-            <HookSection title="Teardown" hooks={teardownHooks} selection={selection} onSelect={onSelect} />
+            <HookSection title={t('runDetail.steps.setup')} hooks={setupHooks} selection={selection} onSelect={onSelect} />
+            <HookSection title={t('runDetail.steps.teardown')} hooks={teardownHooks} selection={selection} onSelect={onSelect} />
           </div>
         </ScrollArea>
       )
@@ -170,7 +172,7 @@ export function StepTree({
 
     return (
       <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
-        No steps were executed.
+        {t('runDetail.steps.none')}
       </div>
     )
   }
@@ -178,10 +180,10 @@ export function StepTree({
   return (
     <ScrollArea className="flex-1">
       <div>
-        <HookSection title="Setup" hooks={setupHooks} selection={selection} onSelect={onSelect} />
+        <HookSection title={t('runDetail.steps.setup')} hooks={setupHooks} selection={selection} onSelect={onSelect} />
 
-        <SectionHeading title="Steps" />
-        <ul role="tree" aria-label="Test steps" className="py-1">
+        <SectionHeading title={t('runDetail.steps.heading')} />
+        <ul role="tree" aria-label={t('runDetail.steps.treeLabel')} className="py-1">
           {displayGroups.map(({ group, steps }) => (
             <MemberGroup
               key={group.member.testIndex}
@@ -216,7 +218,7 @@ export function StepTree({
           ))}
         </ul>
 
-        <HookSection title="Teardown" hooks={teardownHooks} selection={selection} onSelect={onSelect} />
+        <HookSection title={t('runDetail.steps.teardown')} hooks={teardownHooks} selection={selection} onSelect={onSelect} />
       </div>
     </ScrollArea>
   )

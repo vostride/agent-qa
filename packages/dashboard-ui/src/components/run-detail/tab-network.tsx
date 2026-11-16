@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { useEvidenceRecords } from '@/hooks/use-evidence-records'
 import { EVIDENCE_COPY, resolveEvidenceView } from '@/lib/evidence-state-view'
 import { EvidenceLoading, EvidenceState } from './evidence-state'
+import { useTranslation } from '@/i18n'
 
 export function formatRelativeTime(offsetMs: number): string {
   if (offsetMs >= 1000) {
@@ -52,9 +53,10 @@ function statusColor(status: number) {
 }
 
 function HeadersTable({ headers }: { headers: Record<string, string> }) {
+  const { t } = useTranslation()
   const entries = Object.entries(headers)
   if (entries.length === 0) {
-    return <span className="text-xs text-muted-foreground italic">None</span>
+    return <span className="text-xs text-muted-foreground italic">{t('runDetail.network.none')}</span>
   }
   return (
     <div className="space-y-0.5">
@@ -106,6 +108,7 @@ function ResponseBody({ body, contentType }: { body: string; contentType: string
 }
 
 function ExpandedDetail({ entry }: { entry: NetworkEntry }) {
+  const { t } = useTranslation()
   const isPost = entry.method === "POST" || entry.method === "PUT" || entry.method === "PATCH"
 
   return (
@@ -113,34 +116,34 @@ function ExpandedDetail({ entry }: { entry: NetworkEntry }) {
       <td colSpan={6} className="px-0 py-0">
         <div className="bg-muted/20 border-b border-border/50 px-4 py-3 space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <DetailSection label="Request Headers">
+            <DetailSection label={t('runDetail.network.requestHeaders')}>
               <HeadersTable headers={entry.requestHeaders ?? {}} />
             </DetailSection>
 
-            <DetailSection label="Response Headers">
+            <DetailSection label={t('runDetail.network.responseHeaders')}>
               <HeadersTable headers={entry.responseHeaders ?? {}} />
             </DetailSection>
           </div>
 
           {isPost && (
-            <DetailSection label="Request Body">
+            <DetailSection label={t('runDetail.network.requestBody')}>
               {entry.requestBody ? (
                 <pre className="text-xs font-mono bg-background/60 rounded-sm px-3 py-2 overflow-x-auto max-h-48 whitespace-pre-wrap break-all">{entry.requestBody}</pre>
               ) : (
-                <span className="text-xs text-muted-foreground italic">No request body</span>
+                <span className="text-xs text-muted-foreground italic">{t('runDetail.network.noRequestBody')}</span>
               )}
             </DetailSection>
           )}
 
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
-              <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">Response Body</h4>
+              <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium">{t('runDetail.network.responseBody')}</h4>
               {entry.body && <CopyButton text={entry.body} />}
             </div>
             {entry.body ? (
               <ResponseBody body={entry.body} contentType={(entry.responseHeaders?.['content-type'] ?? '')} />
             ) : (
-              <span className="text-xs text-muted-foreground italic">Not captured</span>
+              <span className="text-xs text-muted-foreground italic">{t('runDetail.network.notCaptured')}</span>
             )}
           </div>
 
@@ -148,7 +151,7 @@ function ExpandedDetail({ entry }: { entry: NetworkEntry }) {
             const validTimings = filterTimingEntries(entry.timing)
             if (validTimings.length === 0) return null
             return (
-              <DetailSection label="Timing">
+              <DetailSection label={t('runDetail.network.timing')}>
                 <div className="flex flex-wrap gap-3">
                   {validTimings.map(([phase, ms]) => (
                     <div key={phase} className="text-xs font-mono">
@@ -202,6 +205,7 @@ export function TabNetwork({ step, allSteps, platform, runId, selection = step ?
 }
 
 function NetworkRecords({ step, allSteps, platform }: Omit<TabNetworkProps, 'step'> & { step: NonNullable<TabNetworkProps['step']> }) {
+  const { t } = useTranslation()
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set())
 
   const accumulatedLogs = useMemo(() => {
@@ -260,13 +264,16 @@ function NetworkRecords({ step, allSteps, platform }: Omit<TabNetworkProps, 'ste
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Filter..."
+          placeholder={t('runDetail.network.filter')}
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
         />
         {query && (
           <>
             <span className="text-xs text-muted-foreground shrink-0">
-              {filteredLogs.length} of {accumulatedLogs.length}
+              {t('runDetail.network.filterCount', {
+                shown: filteredLogs.length,
+                total: accumulatedLogs.length,
+              })}
             </span>
             <button onClick={() => setQuery("")} className="text-muted-foreground hover:text-foreground">
               <X className="h-3.5 w-3.5" />
@@ -279,11 +286,11 @@ function NetworkRecords({ step, allSteps, platform }: Omit<TabNetworkProps, 'ste
           <thead>
             <tr className="border-b">
               <th className="w-6" />
-              <th className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground w-16">Method</th>
-              <th className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground">URL</th>
-              <th className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground w-16">Status</th>
-              <th className="text-right py-1.5 px-2 text-xs font-medium text-muted-foreground w-20">Time</th>
-              <th className="text-right py-1.5 px-2 text-xs font-medium text-muted-foreground w-20">Duration</th>
+              <th className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground w-16">{t('runDetail.network.method')}</th>
+              <th className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground">{t('runDetail.network.url')}</th>
+              <th className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground w-16">{t('runDetail.network.status')}</th>
+              <th className="text-right py-1.5 px-2 text-xs font-medium text-muted-foreground w-20">{t('runDetail.network.time')}</th>
+              <th className="text-right py-1.5 px-2 text-xs font-medium text-muted-foreground w-20">{t('runDetail.network.duration')}</th>
             </tr>
           </thead>
           <tbody>

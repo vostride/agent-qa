@@ -1,6 +1,7 @@
 import { Webhook, Code, CheckCircle2, XCircle } from 'lucide-react'
 import { cn, formatDuration } from '@/lib/utils'
 import type { ExecutionLogEntry } from '@/lib/api'
+import { useTranslation } from '@/i18n'
 
 interface ExecutionTreeItemProps {
   log: ExecutionLogEntry
@@ -9,6 +10,7 @@ interface ExecutionTreeItemProps {
 }
 
 export function ExecutionTreeItem({ log, isSelected, onSelect }: ExecutionTreeItemProps) {
+  const { t } = useTranslation()
   const TypeIcon = log.type === 'runjs' ? Code : Webhook
   const statusDot = (
     <span className={cn(
@@ -33,7 +35,7 @@ export function ExecutionTreeItem({ log, isSelected, onSelect }: ExecutionTreeIt
         <TypeIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         {log.phase === 'inline' && (
           <span className="text-[9px] px-1 py-0 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20 font-medium shrink-0">
-            pre
+            {t('runDetail.steps.inlinePhase')}
           </span>
         )}
         <span className="flex-1 min-w-0 text-xs break-all text-muted-foreground">{log.name}</span>

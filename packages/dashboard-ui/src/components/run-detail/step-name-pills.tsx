@@ -3,19 +3,21 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { cn } from "@/lib/utils"
 import type { DisplayStep } from "@/lib/display-step"
+import { t, useTranslation } from "@/i18n"
+import { textTable } from "@/i18n/text-table"
 
-export const SOURCE_LABELS: Record<string, string> = {
-  env: 'env (.env file)',
-  inline: 'inline (test config)',
-  suite: 'suite (suite config)',
-  cli: 'cli (--var flag)',
-  capture: 'capture (captured from screen)',
-  hook: 'hook (hook output)',
-  step: 'step (set by agent)',
-  runJS: 'runJS (inline JavaScript)',
-  runHook: 'runHook uses the stable hook ID from the configured hooks file',
-  secret: 'secret (runtime only)',
-}
+export const SOURCE_LABELS: Readonly<Record<string, string>> = textTable({
+  env: () => t('runDetail.pills.source.env'),
+  inline: () => t('runDetail.pills.source.inline'),
+  suite: () => t('runDetail.pills.source.suite'),
+  cli: () => t('runDetail.pills.source.cli'),
+  capture: () => t('runDetail.pills.source.capture'),
+  hook: () => t('runDetail.pills.source.hook'),
+  step: () => t('runDetail.pills.source.step'),
+  runJS: () => t('runDetail.pills.source.runJS'),
+  runHook: () => t('runDetail.pills.source.runHook'),
+  secret: () => t('runDetail.pills.source.secret'),
+})
 
 export function pillBgColor(source: string | undefined): string {
   switch (source) {
@@ -229,6 +231,7 @@ export function parseSegments(
 }
 
 export function StepNameWithPills({ step }: { step: DisplayStep }) {
+  useTranslation()
   const segments = step.originalStepName
     ? parseSegments(step.originalStepName, step.name, step.variableSnapshot ?? null)
     : parseRedactedSecretSegments(step.name)
@@ -246,7 +249,7 @@ export function StepNameWithPills({ step }: { step: DisplayStep }) {
             <TooltipTrigger asChild>
               <span
                 className={cn("rounded-sm px-1 py-px cursor-default", pillBgColor(snapshot?.source ?? seg.namespace))}
-                aria-label={`variable: ${seg.varName}`}
+                aria-label={t('common.variableName', { name: seg.varName })}
               >
                 {seg.resolvedValue}
               </span>

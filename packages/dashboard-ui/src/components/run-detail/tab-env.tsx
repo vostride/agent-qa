@@ -7,6 +7,7 @@ import type { DisplayStep } from "@/lib/display-step"
 import { useEvidenceRecords } from '@/hooks/use-evidence-records'
 import { EVIDENCE_COPY, resolveEvidenceView } from '@/lib/evidence-state-view'
 import { EvidenceLoading, EvidenceState } from './evidence-state'
+import { useTranslation } from '@/i18n'
 
 interface TabEnvProps {
   step: Pick<DisplayStep, 'variableSnapshot' | 'testIndex' | 'stepIndex' | 'evidence'> | null
@@ -81,6 +82,7 @@ export function TabEnv({ step, executionLogs = [], runId, selection = step ? 'st
 }
 
 function Variables({ step, executionLogs = [] }: { step: Pick<DisplayStep, 'variableSnapshot'>; executionLogs?: Array<ExecutionLogEntry | LiveExecutionLogEntry> }) {
+  const { t } = useTranslation()
   const snapshot = step.variableSnapshot
   const envEntries = snapshot ? Object.entries(snapshot) : []
 
@@ -89,7 +91,7 @@ function Variables({ step, executionLogs = [] }: { step: Pick<DisplayStep, 'vari
 
   return (
     <div className="py-1">
-      <SectionHeader title="Env" count={envEntries.length} defaultOpen={envEntries.length > 0}>
+      <SectionHeader title={t('runDetail.env.env')} count={envEntries.length} defaultOpen={envEntries.length > 0}>
         {envEntries.length === 0 ? (
           <EvidenceState kind="variables" state="empty" {...EVIDENCE_COPY.variables.empty} />
         ) : (
@@ -97,9 +99,9 @@ function Variables({ step, executionLogs = [] }: { step: Pick<DisplayStep, 'vari
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground">Variable</th>
-                  <th className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground">Value</th>
-                  <th className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground">Source</th>
+                  <th className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground">{t('runDetail.env.variable')}</th>
+                  <th className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground">{t('runDetail.env.value')}</th>
+                  <th className="text-left py-1.5 px-2 text-xs font-medium text-muted-foreground">{t('runDetail.env.source')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -122,7 +124,7 @@ function Variables({ step, executionLogs = [] }: { step: Pick<DisplayStep, 'vari
 
       <SectionHeader title="runJS" count={runjsLogs.length} defaultOpen={runjsLogs.length > 0}>
         {runjsLogs.length === 0 ? (
-          <EmptySection message="No runJS executions for this step" />
+          <EmptySection message={t('runDetail.env.noRunJs')} />
         ) : (
           <div className="px-3 pb-2 space-y-2">
             {runjsLogs.map((log) => (
@@ -141,7 +143,7 @@ function Variables({ step, executionLogs = [] }: { step: Pick<DisplayStep, 'vari
                 )}
                 {log.returnData != null && (
                   <div className="mt-1 p-1.5 rounded bg-muted/50">
-                    <span className="text-muted-foreground">Return: </span>
+                    <span className="text-muted-foreground">{t('runDetail.env.return')} </span>
                     <span className="font-mono text-[11px]">{typeof log.returnData === 'string' ? log.returnData : JSON.stringify(log.returnData)}</span>
                   </div>
                 )}
@@ -151,9 +153,9 @@ function Variables({ step, executionLogs = [] }: { step: Pick<DisplayStep, 'vari
         )}
       </SectionHeader>
 
-      <SectionHeader title="Hooks" count={hookLogs.length} defaultOpen={hookLogs.length > 0}>
+      <SectionHeader title={t('runDetail.env.hooks')} count={hookLogs.length} defaultOpen={hookLogs.length > 0}>
         {hookLogs.length === 0 ? (
-          <EmptySection message="No hooks ran for this step" />
+          <EmptySection message={t('runDetail.env.noHooks')} />
         ) : (
           <div className="px-3 pb-2 space-y-2">
             {hookLogs.map((log) => (
@@ -169,7 +171,7 @@ function Variables({ step, executionLogs = [] }: { step: Pick<DisplayStep, 'vari
                 </div>
                 {log.variables && Object.keys(log.variables).length > 0 && (
                   <div className="mt-1.5 space-y-0.5">
-                    <span className="text-muted-foreground text-[10px]">Emitted variables:</span>
+                    <span className="text-muted-foreground text-[10px]">{t('runDetail.env.emittedVariables')}</span>
                     {Object.entries(log.variables).map(([k, v]) => (
                       <div key={k} className="flex gap-2 pl-2 font-mono text-[11px]">
                         <span className="text-muted-foreground">{k}:</span>

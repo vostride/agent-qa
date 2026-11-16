@@ -11,6 +11,7 @@ import type { DisplayStep } from "@/lib/display-step"
 import type { Selection } from "@/lib/selection"
 import type { Playhead } from '@/lib/playhead'
 import { cn, formatDuration } from "@/lib/utils"
+import { useTranslation } from "@/i18n"
 
 function StepStatusIcon({ status }: { status: string }) {
   switch (status) {
@@ -42,6 +43,7 @@ interface StepTreeItemProps {
 }
 
 export function StepTreeItem({ step, isSelected, isExpanded, selection, playhead, onSelect, inlineLogs = [], embedded = false, marks, onOpenFeedback, feedbackExpanded = false, composerId = '' }: StepTreeItemProps) {
+  const { t } = useTranslation()
   const mark = marks?.find(entry => entry.stepIndex === step.stepIndex)
   const address = step.testIndex === undefined || step.stepIndex === undefined
     ? undefined
@@ -66,7 +68,7 @@ export function StepTreeItem({ step, isSelected, isExpanded, selection, playhead
       marker="step-status"
       state="all"
       tone="primary"
-      label="All actions cached"
+      label={t("runDetail.steps.allCached")}
     >
       {stepStatusIcon}
     </CacheStatusIconWrapper>
@@ -102,7 +104,10 @@ export function StepTreeItem({ step, isSelected, isExpanded, selection, playhead
         <div className="min-w-0 flex-1">
           {step.displayStepTotal ? (
             <div className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground/70">
-              Step {step.displayStepOrder} of {step.displayStepTotal}
+              {t("runDetail.steps.position", {
+                order: step.displayStepOrder,
+                total: step.displayStepTotal,
+              })}
             </div>
           ) : null}
           <StepNameWithPills step={step} />

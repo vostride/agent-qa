@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils"
 import { useEvidenceRecords } from '@/hooks/use-evidence-records'
 import { EVIDENCE_COPY, resolveEvidenceView } from '@/lib/evidence-state-view'
 import { EvidenceLoading, EvidenceState } from './evidence-state'
+import { useTranslation } from '@/i18n'
 
 // The fields of a bare `toLocaleTimeString()`, in the dashboard's language and browser's region.
 const CONSOLE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
@@ -87,6 +88,7 @@ export function TabConsole({ step, allSteps, executionLogs, isHookStep, runId, s
 }
 
 function ConsoleRecords({ step, allSteps, executionLogs, isHookStep }: Omit<TabConsoleProps, 'step'> & { step: NonNullable<TabConsoleProps['step']> }) {
+  const { t } = useTranslation()
   const accumulatedLogs = useMemo(() => {
     const currentOrder = step.displayStepOrder ?? step.stepOrder
     const logs: Array<{ level: string; text: string; location?: { url: string; lineNumber: number; columnNumber: number }; timestamp: number; isCurrent: boolean }> = []
@@ -141,12 +143,15 @@ function ConsoleRecords({ step, allSteps, executionLogs, isHookStep }: Omit<TabC
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Filter..."
+            placeholder={t('runDetail.console.filter')}
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           />
           {query && (
             <span className="text-xs text-muted-foreground shrink-0">
-              {filteredLogs.length} of {accumulatedLogs.length}
+              {t('runDetail.console.filterCount', {
+                shown: filteredLogs.length,
+                total: accumulatedLogs.length,
+              })}
             </span>
           )}
           <div className="h-3 w-px bg-border/50 shrink-0" />
@@ -155,12 +160,12 @@ function ConsoleRecords({ step, allSteps, executionLogs, isHookStep }: Omit<TabC
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="rounded-sm">
-              <SelectItem value="all" className="text-xs">All levels</SelectItem>
-              <SelectItem value="error" className="text-xs">Errors</SelectItem>
-              <SelectItem value="warn" className="text-xs">Warnings</SelectItem>
-              <SelectItem value="info" className="text-xs">Info</SelectItem>
-              <SelectItem value="log" className="text-xs">Log</SelectItem>
-              <SelectItem value="debug" className="text-xs">Debug</SelectItem>
+              <SelectItem value="all" className="text-xs">{t('runDetail.console.allLevels')}</SelectItem>
+              <SelectItem value="error" className="text-xs">{t('runDetail.console.errors')}</SelectItem>
+              <SelectItem value="warn" className="text-xs">{t('runDetail.console.warnings')}</SelectItem>
+              <SelectItem value="info" className="text-xs">{t('runDetail.console.info')}</SelectItem>
+              <SelectItem value="log" className="text-xs">{t('runDetail.console.log')}</SelectItem>
+              <SelectItem value="debug" className="text-xs">{t('runDetail.console.debug')}</SelectItem>
             </SelectContent>
           </Select>
           {query && (
@@ -203,7 +208,7 @@ function ConsoleRecords({ step, allSteps, executionLogs, isHookStep }: Omit<TabC
 
         {hasHookOutput && hasConsoleLogs && (
           <div className="border-t border-border/30 pt-2 mb-1">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Browser Console</span>
+            <span className="text-[10px] text-muted-foreground uppercase tracking-wider">{t('runDetail.console.browserConsole')}</span>
           </div>
         )}
 
