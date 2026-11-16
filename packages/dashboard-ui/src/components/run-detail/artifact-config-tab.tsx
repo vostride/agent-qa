@@ -1,5 +1,6 @@
 import type { RunArtifactResponse } from "@/lib/api"
 import { DRAWER_COPY } from "@/lib/drawer-view"
+import { useTranslation } from "@/i18n"
 import { InspectorSection, isArtifactArray, isArtifactRecord, KeyValueTree, RawBlock } from "./artifact-renderers"
 
 function valueAt(record: Record<string, unknown> | null, key: string): unknown {
@@ -30,6 +31,7 @@ function terminalErrorMessage(error: unknown): string | null {
 }
 
 export function ArtifactConfigTab({ response }: { response: RunArtifactResponse }) {
+  const { t } = useTranslation()
   const payload = response.artifact?.payload
   const payloadRecord = isArtifactRecord(payload) ? payload : null
   const config = response.missingSections.includes("config") ? null : recordAt(payloadRecord, "config")
@@ -45,7 +47,7 @@ export function ArtifactConfigTab({ response }: { response: RunArtifactResponse 
         {effectiveConfig == null ? DRAWER_COPY.notCaptured : <KeyValueTree label="effectiveConfig" value={effectiveConfig} />}
       </InspectorSection>
       <InspectorSection title={DRAWER_COPY.globalConfigAsWritten} data-drawer-section="global-config">
-        {rawConfig ? <RawBlock label="Raw global config" content={rawConfig} /> : DRAWER_COPY.notCaptured}
+        {rawConfig ? <RawBlock label={t("evidence.artifact.rawGlobalConfig")} content={rawConfig} /> : DRAWER_COPY.notCaptured}
       </InspectorSection>
       <InspectorSection title={DRAWER_COPY.model} data-drawer-section="model">
         {model == null ? DRAWER_COPY.notCaptured : <KeyValueTree label="model" value={model} />}

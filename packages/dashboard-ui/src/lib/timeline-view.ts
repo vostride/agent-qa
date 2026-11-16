@@ -22,7 +22,7 @@ export function timelineValueText(marker: TimelineMarker, total: number): string
   const time = formatOffset(marker.recordingOffsetMs)
   const values = {
     step: marker.stepIndex + 1,
-    ordinal: marker.ordinal,
+    index: marker.ordinal,
     total,
     sentence: actionSentenceText(buildActionSentence(marker.subAction)),
     result: RESULT_WORDS[marker.result],
@@ -38,6 +38,6 @@ export function timelineReadout(model: TimelineModel, marker: TimelineMarker | u
   if (short) return `#${ordinal}/${total}`
   const offset = model.axis === 'time' ? formatOffset(position === undefined ? marker?.recordingOffsetMs : position * model.extent) : undefined
   return offset === undefined
-    ? t('player.timeline.readout', { ordinal, total })
-    : t('player.timeline.readoutAt', { ordinal, total, offset, extent: formatOffset(model.extent) ?? '' })
+    ? t('player.timeline.readout', { index: ordinal, total })
+    : t('player.timeline.readoutAt', { index: ordinal, total, offset, extent: formatOffset(model.extent) ?? '' })
 }

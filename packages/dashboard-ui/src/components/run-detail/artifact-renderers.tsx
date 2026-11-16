@@ -3,6 +3,7 @@ import type { ReactNode } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { cn } from "@/lib/utils"
+import { t, useTranslation } from "@/i18n"
 
 type ArtifactRecord = Record<string, unknown>
 
@@ -14,21 +15,22 @@ export function isArtifactArray(value: unknown): value is unknown[] {
   return Array.isArray(value)
 }
 
-export function formatArtifactValue(value: unknown, missingLabel = "Not captured"): string {
+export function formatArtifactValue(value: unknown, missingLabel = t("evidence.drawer.notCaptured")): string {
   if (value === undefined) return missingLabel
-  if (value === null) return "None"
+  if (value === null) return t("evidence.artifact.none")
   if (typeof value === "boolean") return value ? "true" : "false"
-  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "None"
-  if (typeof value === "string") return value.length > 0 ? value : "None"
-  if (Array.isArray(value)) return `${value.length} ${value.length === 1 ? "item" : "items"}`
-  if (isArtifactRecord(value)) return `${Object.keys(value).length} ${Object.keys(value).length === 1 ? "field" : "fields"}`
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : t("evidence.artifact.none")
+  if (typeof value === "string") return value.length > 0 ? value : t("evidence.artifact.none")
+  if (Array.isArray(value)) return t("evidence.artifact.items", { count: value.length })
+  if (isArtifactRecord(value)) return t("evidence.artifact.fields", { count: Object.keys(value).length })
   return String(value)
 }
 
 export function MissingSection({ section }: { section: string }) {
+  const { t } = useTranslation()
   return (
     <div className="rounded-[2px] border border-border px-4 py-4 text-sm text-muted-foreground">
-      {section} was not captured for this run.
+      {t("evidence.artifact.sectionNotCaptured", { section })}
     </div>
   )
 }
@@ -112,6 +114,7 @@ export function KeyValueTree({
   label?: string
   level?: number
 }) {
+  const { t } = useTranslation()
   if (isArtifactArray(value)) {
     return (
       <Collapsible>
@@ -119,13 +122,13 @@ export function KeyValueTree({
           <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
           <span className="min-w-0 truncate font-medium text-muted-foreground">{label}</span>
           <span className="font-mono text-[11px] text-foreground">
-            {value.length} {value.length === 1 ? "item" : "items"}
+            {t("evidence.artifact.items", { count: value.length })}
           </span>
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="ml-3 border-l border-border pl-3">
             {value.length === 0 ? (
-              <div className="py-1.5 text-xs text-muted-foreground">None</div>
+              <div className="py-1.5 text-xs text-muted-foreground">{t("evidence.artifact.none")}</div>
             ) : (
               value.map((item, index) => (
                 <KeyValueTree key={`${label}-${index}`} label={`${index}`} value={item} level={level + 1} />
@@ -145,13 +148,13 @@ export function KeyValueTree({
           <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground transition-transform group-data-[state=open]:rotate-90" />
           <span className="min-w-0 truncate font-medium text-muted-foreground">{label}</span>
           <span className="font-mono text-[11px] text-foreground">
-            {entries.length} {entries.length === 1 ? "field" : "fields"}
+            {t("evidence.artifact.fields", { count: entries.length })}
           </span>
         </CollapsibleTrigger>
         <CollapsibleContent>
           <div className="ml-3 border-l border-border pl-3">
             {entries.length === 0 ? (
-              <div className="py-1.5 text-xs text-muted-foreground">None</div>
+              <div className="py-1.5 text-xs text-muted-foreground">{t("evidence.artifact.none")}</div>
             ) : (
               entries.map(([key, child]) => (
                 <KeyValueTree key={key} label={key} value={child} level={level + 1} />

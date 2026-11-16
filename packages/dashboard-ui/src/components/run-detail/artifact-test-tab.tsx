@@ -16,6 +16,7 @@ import {
   type SessionLink,
 } from "@/lib/drawer-view"
 import { routes } from "@/lib/routes"
+import { useTranslation } from "@/i18n"
 import { ArtifactAttributeRows } from "./artifact-attribute-rows"
 import { formatArtifactValue, InspectorSection, isArtifactArray, isArtifactRecord, KeyValueRows, KeyValueTree, RawBlock } from "./artifact-renderers"
 
@@ -175,6 +176,7 @@ function SuiteMembers({
   source: Record<string, unknown>
   kind: "suite" | "tests"
 }) {
+  const { t } = useTranslation()
   const members = arrayAt(source, "members")
     .filter(isArtifactRecord)
     .sort((a, b) => {
@@ -207,7 +209,7 @@ function SuiteMembers({
               <div className="flex min-w-0 flex-wrap items-center gap-2">
                 <Badge variant="outline" className="text-[10px]">#{index + 1}</Badge>
                 <span className="min-w-0 flex-1 break-words text-sm font-medium">
-                  {textAt(member, "name") ?? textAt(ref, "test") ?? "Unnamed member"}
+                  {textAt(member, "name") ?? textAt(ref, "test") ?? t("evidence.artifact.unnamedMember")}
                 </span>
                 <Badge variant="outline" className="text-[10px]">
                   {formatArtifactValue(textAt(member, "loadStatus"))}
@@ -215,31 +217,31 @@ function SuiteMembers({
               </div>
               <KeyValueRows
                 rows={[
-                  { label: "Test ID", value: formatArtifactValue(textAt(member, "testId")), mono: true },
-                  { label: "Ref", value: formatArtifactValue(textAt(ref, "test")), mono: true },
-                  { label: "Ref ID", value: formatArtifactValue(textAt(ref, "id")), mono: true },
-                  { label: "Path", value: formatArtifactValue(textAt(member, "filePath")), mono: true },
-                  { label: "Target", value: formatArtifactValue(textAt(member, "target")) },
+                  { label: t("evidence.artifact.testId"), value: formatArtifactValue(textAt(member, "testId")), mono: true },
+                  { label: t("evidence.artifact.ref"), value: formatArtifactValue(textAt(ref, "test")), mono: true },
+                  { label: t("evidence.artifact.refId"), value: formatArtifactValue(textAt(ref, "id")), mono: true },
+                  { label: t("evidence.artifact.path"), value: formatArtifactValue(textAt(member, "filePath")), mono: true },
+                  { label: t("evidence.artifact.target"), value: formatArtifactValue(textAt(member, "target")) },
                   {
-                    label: "Child run",
+                    label: t("evidence.artifact.childRun"),
                     value: childRunId ? (
                       <a className="break-all text-primary hover:underline" href={routes.runDetail(childRunId)}>
                         {childRunId}
                       </a>
-                    ) : "Not captured",
+                    ) : DRAWER_COPY.notCaptured,
                     mono: Boolean(childRunId),
                   },
-                  { label: "Error", value: error ?? "None" },
-                  ...(config ? [{ label: "Ran against", value: ranAgainst || DRAWER_COPY.notCaptured }] : []),
+                  { label: t("evidence.artifact.error"), value: error ?? t("evidence.artifact.none") },
+                  ...(config ? [{ label: t("evidence.artifact.ranAgainst"), value: ranAgainst || DRAWER_COPY.notCaptured }] : []),
                 ]}
               />
               <Collapsible>
                 <CollapsibleTrigger className="group mt-2 flex w-full items-center gap-1.5 text-left text-xs font-medium text-muted-foreground hover:text-foreground">
                   <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
-                  Member snapshots
+                  {t("evidence.artifact.memberSnapshots")}
                 </CollapsibleTrigger>
                 <CollapsibleContent className="mt-2 space-y-2">
-                  <RawBlock label={kind === "tests" ? "Raw test YAML" : "Raw member YAML"} content={textAt(member, "rawYaml")} />
+                  <RawBlock label={kind === "tests" ? t("evidence.artifact.rawTestYaml") : t("evidence.artifact.rawMemberYaml")} content={textAt(member, "rawYaml")} />
                   {valueAt(member, "resolvedDefinition") !== undefined ? (
                     <KeyValueTree label="resolvedDefinition" value={valueAt(member, "resolvedDefinition")} />
                   ) : null}
@@ -255,6 +257,7 @@ function SuiteMembers({
 }
 
 export function ArtifactTestTab({ response }: { response: RunArtifactResponse }) {
+  const { t } = useTranslation()
   const payload = response.artifact?.payload
   const payloadRecord = isArtifactRecord(payload) ? payload : null
   const source = recordAt(payloadRecord, "source")
@@ -281,7 +284,7 @@ export function ArtifactTestTab({ response }: { response: RunArtifactResponse })
       {kind === "tests" ? null : (
         <>
           <InspectorSection title={DRAWER_COPY.testAsWritten} data-drawer-section="test-as-written">
-            {rawYaml ? <RawBlock label={kind === "suite" ? "Raw suite YAML" : "Raw test YAML"} content={rawYaml} /> : DRAWER_COPY.notCaptured}
+            {rawYaml ? <RawBlock label={kind === "suite" ? t("evidence.artifact.rawSuiteYaml") : t("evidence.artifact.rawTestYaml")} content={rawYaml} /> : DRAWER_COPY.notCaptured}
           </InspectorSection>
           <InspectorSection title={DRAWER_COPY.resolvedDefinition} data-drawer-section="resolved-definition">
             {definition == null ? DRAWER_COPY.notCaptured : <KeyValueTree label="resolvedDefinition" value={definition} />}

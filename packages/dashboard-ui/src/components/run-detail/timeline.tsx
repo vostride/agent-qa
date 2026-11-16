@@ -6,6 +6,7 @@ import type { SuiteTimelineModel } from '@/lib/suite-timeline'
 import { ActionSentence } from './action-sentence'
 import { nearestMarker, snapToMarker, type Playhead, type PlayerSource, type TimelineMarker, type TimelineModel } from '@/lib/playhead'
 import { TIMELINE_COPY, timelineValueText } from '@/lib/timeline-view'
+import { useTranslation } from '@/i18n'
 
 export interface TimelineProps {
   model: TimelineModel
@@ -21,6 +22,7 @@ export interface TimelineProps {
 
 /** One compact scrubber; action details and evidence counts live in their respective panes. */
 export function Timeline({ model, playhead, source, memberLabel, seekFraction, observedPosition, mediaDurationsReady, onPlayheadChange, onSeekFraction }: TimelineProps) {
+  const { t } = useTranslation()
   const track = useRef<HTMLDivElement>(null)
   const [width, setWidth] = useState(320)
   const [openGroup, setOpenGroup] = useState<number | null>(null)
@@ -108,7 +110,8 @@ export function Timeline({ model, playhead, source, memberLabel, seekFraction, o
   const alignedCluster = clusters.find(cluster => Math.abs(cluster[0]!.position - playheadPosition) * width <= 10)
   const context = (marker: TimelineMarker) => {
     const member = members?.find(entry => entry.model.testIndex === marker.testIndex)
-    return `${member ? `${member.label}, ` : ''}Step ${marker.stepIndex + 1}`
+    const step = marker.stepIndex + 1
+    return member ? t('player.timeline.memberStep', { member: member.label, step }) : t('player.timeline.step', { step })
   }
   const activate = (marker: TimelineMarker) => {
     select(marker)
@@ -137,10 +140,10 @@ export function Timeline({ model, playhead, source, memberLabel, seekFraction, o
           <div aria-hidden='true' className='absolute left-0 top-3 h-1 rounded-full bg-primary/50'
             style={{ width: `${playheadPosition * 100}%` }} />
           <span ref={slider} data-timeline-playhead role='slider' tabIndex={0}
-            aria-label={memberLabel ? `${TIMELINE_COPY.slider}: ${memberLabel}` : TIMELINE_COPY.slider}
+            aria-label={memberLabel ? t('player.timeline.memberSlider', { member: memberLabel }) : TIMELINE_COPY.slider}
             aria-orientation='horizontal' onKeyDown={navigate}
             aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((position ?? 0) * 100)}
-            aria-valuetext={current ? timelineValueText(current, model.markers.length) : 'No actions recorded for this test'}
+            aria-valuetext={current ? timelineValueText(current, model.markers.length) : t('player.timeline.noActions')}
             style={{ left: `${playheadPosition * 100}%` }}
             data-playhead-circle={alignedCluster ? true : undefined}
             className={`pointer-events-none absolute z-10 -translate-x-1/2 rounded-full ${alignedCluster ? 'top-1 h-5 w-5 bg-transparent' : 'top-[5px] h-[18px] w-1.5 bg-primary'} focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring`} />
@@ -154,15 +157,15 @@ export function Timeline({ model, playhead, source, memberLabel, seekFraction, o
           const classes = 'absolute top-0 flex h-7 w-7 -translate-x-1/2 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-ring'
           const circle = `flex h-5 w-5 items-center justify-center rounded-full border ${active ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/30 bg-background text-muted-foreground hover:bg-muted'}`
           return cluster.length === 1 ? <button key={marker.ordinal} type='button' data-timeline-marker={marker.ordinal} data-timeline-active={active || undefined} aria-current={active ? 'step' : undefined} style={style} className={classes}
-              aria-label={`${context(marker)}: ${timelineValueText(marker, model.markers.length)}`}
+              aria-label={t('player.timeline.markerLabel', { place: context(marker), action: timelineValueText(marker, model.markers.length) })}
               onPointerDown={event => beginDrag(event, marker)} onClick={event => { if (event.detail === 0) activate(marker) }}><span data-timeline-circle className={circle}><Icon aria-hidden='true' className='h-3 w-3' /></span></button>
             : <Popover key={marker.ordinal} open={openGroup === marker.ordinal} onOpenChange={open => setOpenGroup(open ? marker.ordinal : null)}>
             <PopoverTrigger asChild><button type='button' data-timeline-marker-group data-timeline-active={active || undefined} aria-current={active ? 'step' : undefined} style={style} className={classes}
-              aria-label={`Choose from ${cluster.length} nearby actions`} onPointerDown={event => beginDrag(event, undefined, marker.ordinal)}
+              aria-label={t('player.timeline.chooseNearby', { count: cluster.length })} onPointerDown={event => beginDrag(event, undefined, marker.ordinal)}
               onClick={event => { if (event.detail > 0) event.preventDefault() }}><span data-timeline-circle className={circle}><Layers aria-hidden='true' className='h-3 w-3' /></span></button></PopoverTrigger>
             {/* Radix hands focus back to the trigger a tick after the list unmounts. By then another
                 group's list can hold focus, and taking it away would dismiss that list. */}
-            <PopoverContent className='max-h-64 w-80 overflow-y-auto p-1' aria-label='Nearby actions'
+            <PopoverContent className='max-h-64 w-80 overflow-y-auto p-1' aria-label={t('player.timeline.nearbyActions')}
               onPointerDown={event => event.stopPropagation()}
               onCloseAutoFocus={event => { if (document.activeElement !== document.body) event.preventDefault() }}>
               {cluster.map(entry => <button key={entry.ordinal} type='button' data-timeline-marker={entry.ordinal} className='block w-full rounded p-2 text-left hover:bg-muted'
@@ -171,7 +174,7 @@ export function Timeline({ model, playhead, source, memberLabel, seekFraction, o
           </Popover>
         })}
         {members?.filter(member => member.model.markers.length === 0).map(member => <button key={`empty-${member.model.testIndex}`} type='button' data-timeline-empty-member={member.model.testIndex}
-            aria-label={`${member.label}: No actions recorded`}
+            aria-label={t('player.timeline.memberNoActions', { member: member.label })}
             className='absolute top-0 flex h-7 w-7 -translate-x-1/2 items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-ring'
             style={{ left: `${(member.start + member.end) * 50}%` }}
             onPointerDown={event => beginDrag(event)} onClick={event => { if (event.detail === 0) onSeekFraction((member.start + member.end) / 2) }}>

@@ -11,6 +11,7 @@ import { EVIDENCE_COPY, resolveEvidenceView } from '@/lib/evidence-state-view'
 import { formatOffset, frameUsable, type PlayerSource, type Playhead, type TimelineModel, type UsableFrame } from '@/lib/playhead'
 import { captionModel, DEFAULT_PLAYBACK_SPEED, mediaErrorView, PLAYER_COPY, PLAYBACK_SPEEDS, storePlayerSource, VIDEO_UNTIMED_NOTE } from '@/lib/player-view'
 import { routes } from '@/lib/routes'
+import { useTranslation } from '@/i18n'
 import { probeMediaError } from '@/lib/media-error-probe'
 import { frameAnnotation, videoActionOffset, videoActionCue } from '@/lib/frame-annotation'
 import { MediaViewport } from '@/components/media-viewport'
@@ -21,6 +22,8 @@ import type { SuiteClock } from '@/lib/suite-timeline'
 import { ActionSentence } from './action-sentence'
 import { EvidenceState } from './evidence-state'
 
+type MediaError = Parameters<typeof mediaErrorView>[1]
+
 export function PlayerFrame({ runId, frame, annotation, wholeStep = false, embedded }: {
   runId: string
   frame?: RunDetailArtifactRef
@@ -28,14 +31,15 @@ export function PlayerFrame({ runId, frame, annotation, wholeStep = false, embed
   wholeStep?: boolean
   embedded?: { magnifier: boolean; annotationsVisible: boolean; fullscreen: boolean; onAvailability?: (available: boolean) => void }
 }) {
-  const [error, setError] = useState<ReturnType<typeof mediaErrorView>>()
+  useTranslation()
+  const [error, setError] = useState<MediaError>()
   const [attempt, setAttempt] = useState(0)
   const request = useRef<AbortController | null>(null)
   const url = frame ? routes.runArtifact(runId, frame.sha) : undefined
   useEffect(() => () => request.current?.abort(), [url])
   if (error || (frame && !frameUsable(frame))) return (
     <div data-artifact-state='unavailable' className='p-3'>
-      <EvidenceState kind='frame' {...(error ?? mediaErrorView('frame', { blobAbsent: true }))}
+      <EvidenceState kind='frame' {...mediaErrorView('frame', error ?? { blobAbsent: true })}
         onAction={() => { setError(undefined); setAttempt(value => value + 1) }} />
     </div>
   )
@@ -51,7 +55,7 @@ export function PlayerFrame({ runId, frame, annotation, wholeStep = false, embed
         const controller = new AbortController()
         request.current = controller
         void probeMediaError(url!, controller.signal).then(result => {
-          if (!controller.signal.aborted) setError(mediaErrorView('frame', result))
+          if (!controller.signal.aborted) setError(result)
         })
       }} />
     </div>
@@ -113,6 +117,7 @@ function PlayerVideo({ model, playhead, recording, runId, media, seekFraction, s
   setSpeed: (speed: number) => void
   view: { magnifier: boolean; annotationsVisible: boolean; fullscreen: boolean; onAvailability?: (available: boolean) => void }
 }) {
+  const { t } = useTranslation()
   const element = useRef<HTMLVideoElement>(null)
   const active = useRef<MediaFacade | null>(null)
   const latest = useRef({ model, playhead, onPlayheadChange, onPlayheadObserved, onProgress, onRecordingEnded })
@@ -126,7 +131,7 @@ function PlayerVideo({ model, playhead, recording, runId, media, seekFraction, s
   const [playing, setPlaying] = useState(false)
   const [time, setTime] = useState(0)
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 })
-  const [error, setError] = useState<ReturnType<typeof mediaErrorView>>()
+  const [error, setError] = useState<MediaError>()
   const [attempt, setAttempt] = useState(0)
   const url = routes.runArtifact(runId, recording.ref.sha)
   const marker = model.markers.find(candidate => addressKey(candidate) === addressKey(playhead))
@@ -192,7 +197,7 @@ function PlayerVideo({ model, playhead, recording, runId, media, seekFraction, s
       facade.pause()
       view.onAvailability?.(false)
       void probeMediaError(url, controller.signal).then(result => {
-        if (!controller.signal.aborted) { setError(mediaErrorView('video', result)); setReady(false) }
+        if (!controller.signal.aborted) { setError(result); setReady(false) }
       })
     }
     const onPlay = () => { setPlaying(true); stopAnimation(); animation = requestAnimationFrame(tick) }
@@ -258,14 +263,14 @@ function PlayerVideo({ model, playhead, recording, runId, media, seekFraction, s
 
   useEffect(() => {
     if (ready && autoPlay) void active.current?.play().catch(() => {
-      setError(mediaErrorView('video', {})); setReady(false); view.onAvailability?.(false)
+      setError({}); setReady(false); view.onAvailability?.(false)
     })
   }, [ready, autoPlay])
 
   function togglePlayback() {
     const facade = active.current
     if (!ready || !facade) return false
-    if (facade.paused) void facade.play().catch(() => { setError(mediaErrorView('video', {})); setReady(false); view.onAvailability?.(false) })
+    if (facade.paused) void facade.play().catch(() => { setError({}); setReady(false); view.onAvailability?.(false) })
     else facade.pause()
   }
 
@@ -278,10 +283,10 @@ function PlayerVideo({ model, playhead, recording, runId, media, seekFraction, s
 
   return <>
     <div data-player-preview className='relative px-3 pt-3' data-artifact-state={error ? 'unavailable' : 'available'}>
-      {error ? <EvidenceState {...error} kind='video' onAction={() => {
+      {error ? <EvidenceState {...mediaErrorView('video', error)} kind='video' onAction={() => {
         setError(undefined); setReady(false); setPlaying(false); followed.current = ''; setAttempt(value => value + 1)
       }} /> : <MediaViewport {...dimensions} magnifier={view.magnifier} fullscreen={view.fullscreen} mediaKey={`${url}:${attempt}`}
-        annotation={cue?.annotation} annotationLabel={cue?.recent ? 'Last recorded action' : undefined}>
+        annotation={cue?.annotation} annotationLabel={cue?.recent ? t('player.lastRecordedAction') : undefined}>
         <video key={attempt} ref={element} src={url} preload='metadata' muted playsInline className='h-full w-full object-contain' />
       </MediaViewport>}
       {toolbar}
@@ -307,8 +312,9 @@ function PlayerVideo({ model, playhead, recording, runId, media, seekFraction, s
 }
 
 function PlayerTime({ elapsedMs, totalMs }: { elapsedMs?: number; totalMs?: number }) {
+  const { t } = useTranslation()
   return <span data-player-time data-player-elapsed-ms={elapsedMs} data-player-total-ms={totalMs}
-    title={totalMs === undefined ? 'Full playback time is unavailable because a recording duration is missing or still loading.' : undefined}
+    title={totalMs === undefined ? t('player.totalTimeUnavailable') : undefined}
     className='mt-2.5 min-w-0 font-mono text-xs leading-4 tabular-nums'>
     <span data-player-timestamp className='inline-block max-w-full [overflow-wrap:anywhere]'>{formatOffset(elapsedMs) ?? '—'}</span>
     {' / '}<span data-player-timestamp className='inline-block max-w-full [overflow-wrap:anywhere]'>{formatOffset(totalMs) ?? '—'}</span>
@@ -316,6 +322,7 @@ function PlayerTime({ elapsedMs, totalMs }: { elapsedMs?: number; totalMs?: numb
 }
 
 export function Player(props: PlayerProps) {
+  const { t } = useTranslation()
   const [speed, setSpeed] = useState(DEFAULT_PLAYBACK_SPEED)
   const [magnifier, setMagnifier] = useState(false)
   const [annotationsVisible, setAnnotationsVisible] = useState(true)
@@ -358,13 +365,13 @@ export function Player(props: PlayerProps) {
   const caption = marker ? captionModel(marker, frame) : undefined
   const videoView = resolveEvidenceView({ kind: 'video', selection: 'sub-action', entry: recording, read: 'idle' })
   const absent = videoView.kind === 'state'
-  const videoName = absent ? `${PLAYER_COPY.video} — ${videoView.title}` : PLAYER_COPY.video
+  const videoName = absent ? t('player.videoAbsent', { title: videoView.title }) : PLAYER_COPY.video
   const available = mediaAvailable && (source === 'frames' ? frameUsable(selectedFrame) : !absent)
   const hasAnnotations = source === 'frames' ? !!frameAnnotation(frameOwner?.subAction)
     : model.markers.some(candidate => candidate.subAction.result.annotation && validRecordedAnnotation(candidate.subAction.result.annotation))
   const annotationTitle = source === 'video' && !hasAnnotations
-    ? 'This recording has no saved timing to place action highlights on the video. Open Frames to see any saved action highlights.'
-    : annotationsVisible ? 'Hide annotations' : 'Show annotations'
+    ? t('player.noAnnotationTiming')
+    : annotationsVisible ? t('player.hideAnnotations') : t('player.showAnnotations')
   const toggle = <ToggleGroup type='single' value={source} aria-label={PLAYER_COPY.source} onValueChange={value => {
           if (value === 'frames' || value === 'video') { storePlayerSource(value); onSourceChange(value) }
         }}>
@@ -372,13 +379,13 @@ export function Player(props: PlayerProps) {
           <ToggleGroupItem value='video' aria-label={videoName} title={videoName} className={`text-xs${absent ? ' opacity-60' : ''}`}>{PLAYER_COPY.video}</ToggleGroupItem>
         </ToggleGroup>
   const toolbar = <div data-player-preview-toolbar className='absolute bottom-2 right-5 z-20 flex flex-col rounded-md border bg-background/90 p-0.5 text-muted-foreground shadow-sm'>
-    <Button size='icon-sm' variant='ghost' className={`h-7 w-7${magnifier ? ' bg-primary/15 text-primary ring-1 ring-inset ring-primary/40' : ''}`} aria-label={magnifier ? 'Disable magnifier' : 'Enable magnifier'} aria-pressed={magnifier}
+    <Button size='icon-sm' variant='ghost' className={`h-7 w-7${magnifier ? ' bg-primary/15 text-primary ring-1 ring-inset ring-primary/40' : ''}`} aria-label={magnifier ? t('player.disableMagnifier') : t('player.enableMagnifier')} aria-pressed={magnifier}
       disabled={!available} onClick={() => setMagnifier(value => !value)}><Search className='h-3.5 w-3.5' /></Button>
     <span title={annotationTitle} tabIndex={!hasAnnotations ? 0 : undefined} aria-label={!hasAnnotations ? annotationTitle : undefined}>
-      <Button size='icon-sm' variant='ghost' className='h-7 w-7' aria-label={annotationsVisible ? 'Hide annotations' : 'Show annotations'} aria-pressed={annotationsVisible}
+      <Button size='icon-sm' variant='ghost' className='h-7 w-7' aria-label={annotationsVisible ? t('player.hideAnnotations') : t('player.showAnnotations')} aria-pressed={annotationsVisible}
         disabled={!available || !hasAnnotations} onClick={() => setAnnotationsVisible(value => !value)}><Crosshair className='h-3.5 w-3.5' /></Button>
     </span>
-    <Button ref={fullscreenButton} size='icon-sm' variant='ghost' className='h-7 w-7' aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'} disabled={!available && !fullscreen}
+    <Button ref={fullscreenButton} size='icon-sm' variant='ghost' className='h-7 w-7' aria-label={fullscreen ? t('player.exitFullscreen') : t('player.enterFullscreen')} disabled={!available && !fullscreen}
       onClick={() => setFullscreen(value => !value)}>{fullscreen ? <Minimize2 className='h-3.5 w-3.5' /> : <Maximize2 className='h-3.5 w-3.5' />}</Button>
   </div>
   const view = { magnifier, annotationsVisible, fullscreen, onAvailability: setMediaAvailable }
@@ -389,7 +396,7 @@ export function Player(props: PlayerProps) {
       </div>
   return (
     <section ref={section} data-player data-player-source={source} role={fullscreen ? 'dialog' : undefined}
-      aria-modal={fullscreen ? true : undefined} aria-label={fullscreen ? 'Evidence media fullscreen' : undefined}
+      aria-modal={fullscreen ? true : undefined} aria-label={fullscreen ? t('player.fullscreenDialog') : undefined}
       className={fullscreen ? 'fixed inset-0 z-50 overflow-auto bg-background p-4' : undefined}>
       {source === 'video' && recording?.state === 'present' && !absent
         ? <PlayerVideo key={`${runId}:${model.testIndex}:${recording.ref.sha}`} {...props} speed={speed} setSpeed={setSpeed} recording={recording} readoutHost={readoutHost} transportHost={transportHost} toolbar={toolbar} view={view} />

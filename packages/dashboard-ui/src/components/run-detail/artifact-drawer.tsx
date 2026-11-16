@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import type { RunArtifactResponse, RunRow } from "@/lib/api"
 import { captureStateOf, DRAWER_COPY, DRAWER_TITLE_FALLBACK, ranAgainstParts } from "@/lib/drawer-view"
+import { useTranslation } from "@/i18n"
 import { ArtifactTestTab } from "./artifact-test-tab"
 import { ArtifactConfigTab } from "./artifact-config-tab"
 import { ArtifactTechnicalDetails } from "./artifact-technical-details"
@@ -31,9 +32,10 @@ interface ArtifactDrawerProps {
 }
 
 function LoadingState() {
+  const { t } = useTranslation()
   return (
-    <div className="space-y-4" aria-label="Loading artifact data">
-      <p className="text-sm text-muted-foreground">Loading artifact data...</p>
+    <div className="space-y-4" aria-label={t("evidence.artifact.loadingLabel")}>
+      <p className="text-sm text-muted-foreground">{t("evidence.artifact.loading")}</p>
       {[0, 1, 2].map((index) => (
         <div key={index} className="rounded-[2px] border border-border p-4">
           <Skeleton className="h-4 w-40" />
@@ -49,15 +51,14 @@ function LoadingState() {
 }
 
 function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) {
+  const { t } = useTranslation()
   return (
     <div className="rounded-[2px] border border-red-500/20 bg-red-500/5 p-4">
       <div className="flex items-start gap-3">
         <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-500" />
         <div className="min-w-0 flex-1">
-          <h3 className="text-sm font-medium text-foreground">Could not load artifact data</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Retry the request. If it continues, verify the dashboard server can read run artifacts.
-          </p>
+          <h3 className="text-sm font-medium text-foreground">{t("evidence.artifact.loadFailed")}</h3>
+          <p className="mt-1 text-sm text-muted-foreground">{t("evidence.artifact.loadFailedHelp")}</p>
           <p className="mt-2 break-words font-mono text-xs text-red-500">{error}</p>
           <Button className="mt-3" size="sm" variant="outline" onClick={onRetry}>
             {DRAWER_COPY.retry}
@@ -69,14 +70,11 @@ function ErrorState({ error, onRetry }: { error: string; onRetry: () => void }) 
 }
 
 function MissingArtifactState() {
+  const { t } = useTranslation()
   return (
     <div className="rounded-[2px] border border-border p-4">
-      <h3 className="text-sm font-medium text-foreground">
-        Artifact data is not available for this run
-      </h3>
-      <p className="mt-1 text-sm text-muted-foreground">
-        This run does not have a persisted artifact record.
-      </p>
+      <h3 className="text-sm font-medium text-foreground">{t("evidence.artifact.missing")}</h3>
+      <p className="mt-1 text-sm text-muted-foreground">{t("evidence.artifact.missingHelp")}</p>
     </div>
   )
 }
@@ -120,6 +118,7 @@ export function ArtifactDrawer({
   onTabChange,
   onRetry,
 }: ArtifactDrawerProps) {
+  useTranslation()
   const artifact = response?.artifact ?? null
   const title = run.name || DRAWER_TITLE_FALLBACK(run.id)
   const parts = ranAgainstParts(artifact?.payload.config)
