@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach, type MockInstance } from 'vitest'
 import i18n from '@/i18n'
 import {
+  formatDateTime,
   formatLocale,
   formatNumber,
   formatPercent,
@@ -128,6 +129,34 @@ describe('German', () => {
     expect(formatPercent(50)).not.toBe('50%')
     const seconds = formatUnit(1234.5, 'second', { minimumFractionDigits: 1 })
     expect(seconds).toContain('1234,5')
+  })
+
+  it('writes a date in German, with or without a region in the browser list', async () => {
+    const date = new Date(2026, 0, 15, 14, 5)
+    const options: Intl.DateTimeFormatOptions = { month: 'long', day: 'numeric', hour: 'numeric' }
+    const english = formatDateTime(date, options)
+    await i18n.changeLanguage('de')
+    const german = new Intl.DateTimeFormat('de', options).format(date)
+    expect(german).not.toBe(english)
+    expect(formatDateTime(date, options)).toBe(german)
+    // Austria names January differently, so a format that followed the region would show it.
+    browserLists(['en-IN', 'de-AT'])
+    expect(new Intl.DateTimeFormat('de-AT', options).format(date)).not.toBe(german)
+    expect(formatDateTime(date, options)).toBe(german)
+  })
+
+  it('takes the Swiss variant of German where a place follows the browser region', async () => {
+    await i18n.changeLanguage('de')
+    browserLists(['en-IN', 'de-CH'])
+    const swiss = new Intl.NumberFormat('de-CH').format(1234567)
+    expect(swiss).not.toBe('1.234.567')
+    expect(formatRegionalNumber(1234567)).toBe(swiss)
+    expect(formatNumber(1234567)).toBe('1.234.567')
+    const date = new Date(2026, 2, 15, 14, 5)
+    const options: Intl.DateTimeFormatOptions = { dateStyle: 'short' }
+    expect(formatRegionalDateTime(date, options)).toBe(
+      new Intl.DateTimeFormat('de-CH', options).format(date),
+    )
   })
 
   it('formats in the new language on the next call after a switch', async () => {

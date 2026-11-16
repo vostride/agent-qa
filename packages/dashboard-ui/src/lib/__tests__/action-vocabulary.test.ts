@@ -223,6 +223,15 @@ describe('an action sentence written from catalog templates', () => {
     expect(tap.parts.at(-1)).toEqual({ kind: 'masked', text: 'on' })
   })
 
+  it('shows a recorded value and a recorded name that look like slots as they were recorded', () => {
+    const { buildActionSentence, actionSentenceText } = vocabulary()
+    const fill = { type: 'fill', text: '{{target}}' }
+    const model = buildActionSentence(sub(fill, true, { name: '{{value}}' }))
+    expect(actionSentenceText(model)).toBe("Filled '{{value}}' with {{target}}")
+    expect(model.parts).toContainEqual({ kind: 'masked', text: '{{target}}' })
+    expect(model.parts).toContainEqual({ kind: 'masked', text: '{{value}}' })
+  })
+
   it('leaves no stray space, quote or joiner when there is no target and no value', () => {
     const bare = [
       [{ type: 'fill' }, 'Filled'],
