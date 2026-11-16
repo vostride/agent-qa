@@ -166,7 +166,7 @@ export default {
   'runDetail.analysis.missingEvidence_one': '{{missing}} de {{count}} artefato citado indisponível',
   'runDetail.analysis.missingEvidence_other':
     '{{missing}} de {{count}} artefatos citados indisponíveis',
-  'runDetail.page.title': 'Execução - {{name}}',
+  'runDetail.page.title': 'Execução: {{name}}',
   'runDetail.page.titleEmpty': 'Execução',
   'runDetail.page.mark.noAddress': 'Este membro não tem um endereço de marcação único.',
   'runDetail.page.mark.receiptStale':

@@ -188,7 +188,7 @@ export default {
   'knowledge.retrieval.banner': '{{statement}} {{pointer}}',
   'knowledge.page.noStoreHeading': 'Nenhuma base de conhecimento configurada para este projeto',
   'knowledge.page.noStoreBody':
-    'As execuções deste projeto rodam sem briefing. Adicione uma pasta de conhecimento à sua configuração para começar a fornecer um.',
+    'As execuções deste projeto são feitas sem briefing. Adicione uma pasta de conhecimento à sua configuração para começar a fornecer um.',
   'knowledge.page.readFailedHeading': 'Não foi possível ler o conhecimento',
   'knowledge.used.noBriefServed':
     'Esta execução não usou conhecimento armazenado: nenhuma etapa pediu um briefing.',
@@ -228,7 +228,7 @@ export default {
     'As mudanças na memória aparecem quando o processamento pós-execução termina.',
   'knowledge.changes.curationFailed': 'A curadoria falhou: nada foi aprendido com esta execução.',
   'knowledge.changes.curationFailedPartial':
-    'A curadoria falhou: estes registros foram gravados antes de ela parar.',
+    'A curadoria falhou: estes registros foram salvos antes de ela parar.',
   'knowledge.changes.countsNotRecorded': 'Contagens não registradas para esta execução.',
   'knowledge.changes.notAvailable':
     'Os registros de mudança desta execução ainda não estão disponíveis.',

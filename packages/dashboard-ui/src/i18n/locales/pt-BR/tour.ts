@@ -15,9 +15,9 @@ export default {
   'tour.suites.title': 'As suítes agrupam fluxos repetíveis',
   'tour.suites.body':
     'As suítes agrupam verificações relacionadas em fluxos repetíveis quando um único teste não basta.',
-  'tour.hooks.title': 'Os hooks rodam em volta das etapas e entre elas',
+  'tour.hooks.title': 'Os hooks são executados em volta das etapas e entre elas',
   'tour.hooks.body':
-    'Os hooks podem preparar o ambiente, rodar entre as etapas e cuidar da limpeza antes e depois de um teste ou de uma suíte.',
+    'Os hooks podem preparar o ambiente, ser executados entre as etapas e cuidar da limpeza antes e depois de um teste ou de uma suíte.',
   'tour.config.title': 'A configuração controla o ambiente local',
   'tour.config.body':
     'A configuração controla o modelo, o destino, o ambiente de execução e o painel que o agent-qa usa localmente.',

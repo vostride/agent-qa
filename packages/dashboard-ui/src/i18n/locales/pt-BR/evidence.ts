@@ -22,16 +22,16 @@ export default {
     'Nenhuma variável estava definida quando esta etapa foi executada.',
   'evidence.variables.notCaptured.title': 'Variáveis não registradas para esta etapa',
   'evidence.variables.notCaptured.explanation':
-    'Nenhum snapshot das variáveis foi salvo para esta etapa.',
+    'Nenhum instantâneo das variáveis foi salvo para esta etapa.',
   'evidence.variables.unsupported.title': 'As variáveis não são registradas nesta plataforma',
   'evidence.variables.unsupported.explanation':
-    'A plataforma desta execução não permite salvar um snapshot das variáveis.',
+    'A plataforma desta execução não permite salvar um instantâneo das variáveis.',
   'evidence.variables.unavailable.title': 'Variáveis indisponíveis para esta execução',
   'evidence.variables.unavailable.explanation':
     'As variáveis não eram registradas quando esta execução aconteceu, então não há nada para mostrar.',
   'evidence.variables.failed.capture.title': 'Falha ao capturar as variáveis',
   'evidence.variables.failed.capture.explanation':
-    'Não foi possível salvar o snapshot das variáveis durante a execução. Não há nada para tentar novamente.',
+    'Não foi possível salvar o instantâneo das variáveis durante a execução. Não há nada para tentar novamente.',
   'evidence.variables.failed.load.title': 'Não foi possível carregar as variáveis',
   'evidence.variables.failed.load.explanation':
     'As variáveis foram registradas, mas não carregaram.',
@@ -253,7 +253,7 @@ export default {
   'evidence.artifact.childRun': 'Execução filha',
   'evidence.artifact.error': 'Erro',
   'evidence.artifact.ranAgainst': 'Executado em',
-  'evidence.artifact.memberSnapshots': 'Snapshots dos membros',
+  'evidence.artifact.memberSnapshots': 'Instantâneos dos membros',
   'evidence.artifact.rawTestYaml': 'YAML bruto do teste',
   'evidence.artifact.rawMemberYaml': 'YAML bruto do membro',
   'evidence.artifact.rawSuiteYaml': 'YAML bruto da suíte',
