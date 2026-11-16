@@ -642,7 +642,7 @@ async function readEverything(): Promise<void> {
 async function observePages(): Promise<void> {
   pageDashboard = await spawnDashboard(project.root, project.configPath, 60_000, populatedRunSpawnEnv())
   if (!pageDashboard.ready) throw new Error(`the spawned dashboard never said it was listening: ${pageDashboard.stderr()}`)
-  browser = await chromium.launch({ headless: true })
+  browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
   const context = await browser.newContext()
   for (const record of records) {
     if (record.runId === undefined) continue

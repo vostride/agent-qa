@@ -285,7 +285,7 @@ async function drive(): Promise<void> {
   if (!dashboard.stdout().includes('Dashboard running at')) {
     throw new Error(`the spawned dashboard never said it was listening: ${dashboard.stderr()}`)
   }
-  browser = await chromium.launch({ headless: true })
+  browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
   const captureDir = process.env.AGENT_QA_CAPTURE_DIR?.trim() || undefined
   if (captureDir !== undefined) mkdirSync(captureDir, { recursive: true })
   for (const width of VIEWPORTS) scene.views.set(width, await observe(width, captureDir))

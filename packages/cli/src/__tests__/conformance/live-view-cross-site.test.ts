@@ -524,7 +524,7 @@ describe('the live-url mint door refuses a cross-site browser request', () => {
 
     if (browser === undefined) {
       try {
-        browser = await chromium.launch({ headless: true })
+        browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
       } catch (error) {
         throw new Error(
           `${BROWSER_INSTALL_INSTRUCTION} underlying error: `
@@ -1189,7 +1189,7 @@ describe('the live-editor surface refuses a cross-site caller', () => {
 
     if (browser === undefined) {
       try {
-        browser = await chromium.launch({ headless: true })
+        browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
       } catch (error) {
         throw new Error(
           `${BROWSER_INSTALL_INSTRUCTION} underlying error: `

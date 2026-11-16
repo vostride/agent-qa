@@ -44,7 +44,7 @@ export async function recordingFixture(label: string, recordingOff = false, layo
     cleanup.length = 0
   }
   try {
-    const browser = await chromium.launch({ headless: true })
+    const browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
     cleanup.push(() => browser.close())
     const target = await startTargetPageServer()
     cleanup.push(() => target.close())

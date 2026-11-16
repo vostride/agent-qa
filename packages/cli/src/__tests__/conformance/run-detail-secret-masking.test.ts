@@ -226,7 +226,7 @@ describe('rendered run-detail sinks', () => {
       name: STORED_NAME,
       attributes: { [KEY]: VALUE, nested: NESTED, normal: 'Readable normal value', auth: AUTH_STATE },
     })
-    browser = await chromium.launch({ headless: true })
+    browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
     page = await browser.newPage()
     // Observe what the actual button writes without depending on desktop clipboard permissions.
     await page.addInitScript(() => {
@@ -343,7 +343,7 @@ describe('run-detail review pointers', () => {
 
   beforeAll(async () => {
     fixture = await startFixture({ name: 'Review pointer fixture', attributes: {} }, reviewDeps)
-    browser = await chromium.launch({ headless: true })
+    browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
     page = await browser.newPage()
     await page.addInitScript(() => {
       Object.defineProperty(navigator, 'clipboard', {

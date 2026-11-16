@@ -321,7 +321,7 @@ beforeAll(async () => {
   // have pointed it at an empty fixture directory, and this cell needs a real chromium.
   if (BROWSERS_PATH_AT_LOAD === undefined) delete process.env.PLAYWRIGHT_BROWSERS_PATH
   else process.env.PLAYWRIGHT_BROWSERS_PATH = BROWSERS_PATH_AT_LOAD
-  browser = await chromium.launch()
+  browser = await chromium.launch({ args: ['--lang=en-US'] })
 }, 120_000)
 
 afterAll(async () => {

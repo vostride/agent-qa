@@ -380,7 +380,7 @@ beforeAll(async () => {
 
   let browser: Browser
   try {
-    browser = await chromium.launch({ headless: true })
+    browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
   } catch (error) {
     started.close()
     await new Promise<void>((closed) => mcpServer.close(() => closed()))

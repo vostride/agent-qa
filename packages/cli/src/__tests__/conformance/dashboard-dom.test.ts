@@ -79,7 +79,7 @@ beforeAll(async () => {
 
   let browser: Browser
   try {
-    browser = await chromium.launch({ headless: true })
+    browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
   } catch (error) {
     await dashboard.stop()
     throw new Error(

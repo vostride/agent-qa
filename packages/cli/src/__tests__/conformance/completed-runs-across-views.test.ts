@@ -238,7 +238,7 @@ async function readCompletedTab(project: PopulatedRunProject, runIds: readonly s
   const spawned = await spawnDashboard(project.root, project.configPath, 60_000, populatedRunSpawnEnv())
   dashboard = spawned
   if (!spawned.ready) throw new Error(`the spawned dashboard never said it was listening: ${spawned.stderr()}`)
-  browser = await chromium.launch({ headless: true })
+  browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
   const page = await browser.newPage()
   let firstList: string | undefined
   page.on('response', (response) => {

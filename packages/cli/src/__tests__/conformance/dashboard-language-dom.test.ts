@@ -62,7 +62,7 @@ describe('the shipped dashboard follows the browser language and the Config page
     expect(spawned.ready, `the built dashboard never listened. stdout: ${spawned.stdout().slice(-1200)} stderr: ${spawned.stderr().slice(-1200)}`).toBe(true)
     dashboard = spawned
     try {
-      browser = await chromium.launch({ headless: true })
+      browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
     } catch (error) {
       await spawned.stop()
       throw new Error(`${BROWSER_INSTALL_INSTRUCTION} underlying error: ${error instanceof Error ? error.message : String(error)}`)

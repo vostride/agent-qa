@@ -45,7 +45,7 @@ let browser: Browser
 beforeAll(async () => {
   expect(buildFreshness(DASHBOARD_ANCHORED_BUILDS), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
   expect(existsSync(chromium.executablePath()), 'chromium present: false').toBe(true)
-  browser = await chromium.launch({ headless: true })
+  browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
 }, 30_000)
 afterEach(async () => { for (const close of closers.splice(0).reverse()) await close() })
 afterAll(async () => { await browser?.close(); rmSync(scratchHome, { recursive: true, force: true }) })

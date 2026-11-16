@@ -1795,7 +1795,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     }
 
     try {
-      browser = await chromium.launch({ headless: true })
+      browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
     } catch (error) {
       const why = `${BROWSER_INSTALL_INSTRUCTION} underlying error: `
         + `${error instanceof Error ? error.message : String(error)}`

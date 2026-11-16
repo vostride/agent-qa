@@ -173,7 +173,7 @@ function realAuthFingerprint(): string {
 
 async function launchBrowser(dashboard: SpawnedDashboard): Promise<Browser> {
   try {
-    return await chromium.launch({ headless: true })
+    return await chromium.launch({ headless: true, args: ['--lang=en-US'] })
   } catch (error) {
     await dashboard.stop()
     throw new Error(`${BROWSER_INSTALL_INSTRUCTION} underlying error: ${error instanceof Error ? error.message : String(error)}`)

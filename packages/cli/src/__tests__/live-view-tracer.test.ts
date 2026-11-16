@@ -218,7 +218,7 @@ beforeAll(async () => {
 
   let browser: Browser
   try {
-    browser = await chromium.launch({ headless: true })
+    browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
   } catch (error) {
     started.close()
     throw new Error(`${BROWSER_INSTALL_INSTRUCTION} underlying error: ${error instanceof Error ? error.message : String(error)}`)

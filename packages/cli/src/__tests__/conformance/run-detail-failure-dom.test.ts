@@ -590,7 +590,7 @@ describe('the shipped dashboard paints a FAILED run\'s summary as stored text', 
     }
 
     try {
-      browser = await chromium.launch({ headless: true })
+      browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
     } catch (error) {
       recorded.failure =
         `${BROWSER_INSTALL_INSTRUCTION} underlying error: `

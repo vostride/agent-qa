@@ -118,7 +118,7 @@ async function serveWrapper(mints: readonly AppWrapperMint[], permanentLink: str
 
 beforeAll(async () => {
   try {
-    browser = await chromium.launch({ headless: true })
+    browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
   } catch (error) {
     throw new Error(
       `${BROWSER_INSTALL_INSTRUCTION} underlying error: ${
