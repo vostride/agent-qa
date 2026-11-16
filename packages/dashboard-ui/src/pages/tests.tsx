@@ -59,6 +59,8 @@ import { deleteTestFile, fetchTestFiles, fetchTestSummaries, purgeCache, trigger
 import { memberStatus, runStatusClass } from "@/lib/status"
 import { formatPercent } from "@/lib/format"
 import { cn, formatDate } from "@/lib/utils"
+import { useTranslation } from "@/i18n"
+import type { TFunction } from "i18next"
 
 interface TestRow {
   path: string
@@ -136,7 +138,7 @@ const testsTableFeatures = tableFeatures({
   sortFns: { alphanumeric: sortFn_alphanumeric, text: sortFn_text },
 })
 
-const columns: ColumnDef<typeof testsTableFeatures, TestRow>[] = [
+const buildColumns = (t: TFunction): ColumnDef<typeof testsTableFeatures, TestRow>[] => [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -145,7 +147,7 @@ const columns: ColumnDef<typeof testsTableFeatures, TestRow>[] = [
         className="-ml-4"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Test Name
+        {t("tests.list.column.testName")}
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
@@ -168,13 +170,13 @@ const columns: ColumnDef<typeof testsTableFeatures, TestRow>[] = [
         className="-ml-4"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Target
+        {t("tests.list.column.target")}
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
     cell: ({ row }) => (
       <span className="block whitespace-normal break-words text-sm leading-snug text-muted-foreground">
-        {row.original.targetName ?? "No target"}
+        {row.original.targetName ?? t("tests.list.noTarget")}
       </span>
     ),
   },
@@ -186,7 +188,7 @@ const columns: ColumnDef<typeof testsTableFeatures, TestRow>[] = [
         className="-ml-4"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Platform
+        {t("tests.list.column.platform")}
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
@@ -204,7 +206,7 @@ const columns: ColumnDef<typeof testsTableFeatures, TestRow>[] = [
         className="-ml-4"
         onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
       >
-        Pass rate
+        {t("tests.list.column.passRate")}
         <ArrowUpDown className="ml-2 h-4 w-4" />
       </Button>
     ),
@@ -214,7 +216,7 @@ const columns: ColumnDef<typeof testsTableFeatures, TestRow>[] = [
         return (
           <div className="space-y-0.5 text-right">
             <div className="text-sm font-medium text-foreground">{"\u2014"}</div>
-            <div className="text-xs tabular-nums text-muted-foreground">0 completed</div>
+            <div className="text-xs tabular-nums text-muted-foreground">{t("tests.list.completed", { count: 0 })}</div>
           </div>
         )
       }
@@ -240,7 +242,7 @@ const columns: ColumnDef<typeof testsTableFeatures, TestRow>[] = [
           className="h-auto justify-end px-0 text-[13px] font-medium text-foreground/90 hover:bg-transparent"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Last run
+          {t("tests.list.column.lastRun")}
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       </div>
@@ -248,7 +250,7 @@ const columns: ColumnDef<typeof testsTableFeatures, TestRow>[] = [
     cell: ({ row }) => {
       if (!row.original.historyKnown) return null
       if (!row.original.lastRun) {
-        return <span className="block text-sm text-muted-foreground">No runs</span>
+        return <span className="block text-sm text-muted-foreground">{t("tests.list.noRuns")}</span>
       }
 
       return (
@@ -271,7 +273,9 @@ const columns: ColumnDef<typeof testsTableFeatures, TestRow>[] = [
 ]
 
 export default function TestsPage() {
-  usePageTitle("Tests")
+  const { t } = useTranslation()
+  usePageTitle(t("tests.list.title"))
+  const columns = useMemo(() => buildColumns(t), [t])
   const [files, setFiles] = useState<TestFileInfo[]>([])
   const [summaries, setSummaries] = useState<Map<string, TestSummary> | null>(null)
   const [targetOptions, setTargetOptions] = useState<string[]>([])
@@ -296,11 +300,11 @@ export default function TestsPage() {
           setSummaries(summaryRows === null
             ? null
             : new Map(summaryRows.map((summary) => [normalizeTestPath(summary.path), summary])))
-          if (summaryRows === null) toast.error("Failed to load run history")
+          if (summaryRows === null) toast.error(t("tests.list.loadHistoryFailed"))
         }
       })
       .catch(() => {
-        if (!cancelled) toast.error("Failed to load test files")
+        if (!cancelled) toast.error(t("tests.list.loadFilesFailed"))
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
@@ -391,17 +395,17 @@ export default function TestsPage() {
 
   const selectColumn: ColumnDef<typeof testsTableFeatures, TestRow> = {
     id: "select",
-    header: ({ table: t }) => (
+    header: ({ table: headerTable }) => (
       <div className="flex items-center justify-center">
         <SelectionCheckboxCell
           checked={selectionQueue.getVisibleSelectionState(
-            t.getRowModel().rows.map((row) => row.original.path),
+            headerTable.getRowModel().rows.map((row) => row.original.path),
           )}
           onCheckedChange={(checked) => selectionQueue.setItemsSelected(
-            t.getRowModel().rows.map((row) => row.original),
+            headerTable.getRowModel().rows.map((row) => row.original),
             checked,
           )}
-          ariaLabel="Select all"
+          ariaLabel={t("tests.list.selectAll")}
         />
       </div>
     ),
@@ -436,27 +440,27 @@ export default function TestsPage() {
       const succeeded = results.filter((r) => r.status === "fulfilled").length
       const failed = results.length - succeeded
       if (failed > 0) {
-        toast.error(`${succeeded} runs queued, ${failed} failed`)
+        toast.error(t("tests.list.queuedWithFailures", { count: succeeded, failed }))
       } else {
-        toast.success(`${succeeded} runs queued`)
+        toast.success(t("tests.list.queued", { count: succeeded }))
       }
       setRunOptionsOpen(false)
     } finally {
       setBatchLoading(false)
     }
-  }, [selectedPaths, useCache])
+  }, [selectedPaths, useCache, t])
 
   const handlePurgeAllCachedPlans = useCallback(async () => {
     setBatchLoading(true)
     try {
       const { purged } = await purgeCache()
-      toast.success(`Purged ${purged} cached plan${purged !== 1 ? "s" : ""}`)
+      toast.success(t("tests.list.purged", { count: purged }))
     } catch (err) {
-      toast.error(`Cache purge failed: ${err instanceof Error ? err.message : String(err)}`)
+      toast.error(t("tests.list.purgeFailed", { message: err instanceof Error ? err.message : String(err) }))
     } finally {
       setBatchLoading(false)
     }
-  }, [])
+  }, [t])
 
   const handleBatchDelete = useCallback(async () => {
     if (selectedTests.length === 0) return
@@ -483,14 +487,14 @@ export default function TestsPage() {
       }
 
       if (failedCount > 0) {
-        toast.error(`Deleted ${deletedTests.length} test${deletedTests.length !== 1 ? "s" : ""}, ${failedCount} failed`)
+        toast.error(t("tests.list.deletedWithFailures", { count: deletedTests.length, failed: failedCount }))
       } else {
-        toast.success(`Deleted ${deletedTests.length} test${deletedTests.length !== 1 ? "s" : ""}`)
+        toast.success(t("tests.list.deleted", { count: deletedTests.length }))
       }
     } finally {
       setBatchLoading(false)
     }
-  }, [selectedTests, selectionQueue])
+  }, [selectedTests, selectionQueue, t])
 
   const table = useTable({
     features: testsTableFeatures,
@@ -564,9 +568,9 @@ export default function TestsPage() {
       <div data-tour-id="tour-tests-table">
         <EmptyState
           icon={FileText}
-          title="No tests found"
-          description="Create your first test file to get started"
-          actionLabel="Create Test"
+          title={t("tests.list.empty.title")}
+          description={t("tests.list.empty.description")}
+          actionLabel={t("tests.list.empty.action")}
           onAction={() => navigate(routes.testNew)}
         />
       </div>
@@ -583,56 +587,56 @@ export default function TestsPage() {
     <TooltipProvider>
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Tests</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("tests.list.title")}</h1>
           <div className="flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="Keyboard shortcuts">
+                <Button variant="ghost" size="icon-sm" aria-label={t("tests.list.shortcuts.label")}>
                   <Keyboard className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="p-3">
                 <ShortcutLegend
                   hints={[
-                    { key: "J / ↓", label: "Next row" },
-                    { key: "K / ↑", label: "Previous row" },
-                    { key: "Enter", label: "Open test" },
-                    { key: "⌘+Enter", label: "Open in new tab" },
+                    { key: "J / ↓", label: t("tests.list.shortcuts.nextRow") },
+                    { key: "K / ↑", label: t("tests.list.shortcuts.previousRow") },
+                    { key: "Enter", label: t("tests.list.shortcuts.openTest") },
+                    { key: "⌘+Enter", label: t("tests.list.shortcuts.openInNewTab") },
                   ]}
                 />
               </TooltipContent>
             </Tooltip>
             <Button size="sm" data-tour-id="tour-tests-new" onClick={() => navigate(routes.testNew)}>
               <Plus className="size-4" />
-              New Test
+              {t("tests.list.newTest")}
             </Button>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Input
-            placeholder="Search tests..."
+            placeholder={t("tests.list.search")}
             value={searchValue}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="max-w-[220px]"
           />
           <Select value={status || "all"} onValueChange={(v) => { setStatus(v === "all" ? "" : v); setSelectedIndex(-1) }}>
             <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="All statuses" />
+              <SelectValue placeholder={t("tests.list.filter.allStatuses")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="passed">Passed</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-              <SelectItem value="running">Running</SelectItem>
-              <SelectItem value="no-runs">No runs</SelectItem>
+              <SelectItem value="all">{t("tests.list.filter.allStatuses")}</SelectItem>
+              <SelectItem value="passed">{t("status.passed")}</SelectItem>
+              <SelectItem value="failed">{t("status.failed")}</SelectItem>
+              <SelectItem value="running">{t("status.running")}</SelectItem>
+              <SelectItem value="no-runs">{t("tests.list.filter.noRuns")}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={platform || "all"} onValueChange={(v) => { setPlatform(v === "all" ? "" : v); setSelectedIndex(-1) }}>
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All platforms" />
+              <SelectValue placeholder={t("tests.list.filter.allPlatforms")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All platforms</SelectItem>
+              <SelectItem value="all">{t("tests.list.filter.allPlatforms")}</SelectItem>
               <SelectItem value="web">Web</SelectItem>
               <SelectItem value="android">Android</SelectItem>
               <SelectItem value="ios">iOS</SelectItem>
@@ -640,10 +644,10 @@ export default function TestsPage() {
           </Select>
           <Select value={target || "all"} onValueChange={(v) => { setTarget(v === "all" ? "" : v); setSelectedIndex(-1) }}>
             <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="All targets" />
+              <SelectValue placeholder={t("tests.list.filter.allTargets")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All targets</SelectItem>
+              <SelectItem value="all">{t("tests.list.filter.allTargets")}</SelectItem>
               {availableTargets.map((option) => (
                 <SelectItem key={option} value={option}>
                   {option}
@@ -733,7 +737,7 @@ export default function TestsPage() {
                     colSpan={columns.length + 1}
                     className="h-24 text-center"
                   >
-                    No tests match the current search or filters.
+                    {t("tests.list.noMatches")}
                   </TableCell>
                 </TableRow>
               )}
@@ -744,9 +748,11 @@ export default function TestsPage() {
 
         <div className="flex items-center justify-between px-2">
           <p className="text-sm text-muted-foreground">
-            {filteredCount > 0
-              ? `Showing ${start}-${end} of ${filteredCount}${searchValue || status || platform || target ? ` (${data.length} total)` : ""}`
-              : "No tests found"}
+            {filteredCount === 0
+              ? t("tests.list.empty.title")
+              : searchValue || status || platform || target
+                ? t("tests.list.showingFiltered", { start, end, shown: filteredCount, total: data.length })
+                : t("tests.list.showing", { start, end, shown: filteredCount })}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -755,7 +761,7 @@ export default function TestsPage() {
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
-              Previous
+              {t("tests.list.previous")}
             </Button>
             <Button
               variant="outline"
@@ -763,16 +769,16 @@ export default function TestsPage() {
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >
-              Next
+              {t("common.next")}
             </Button>
           </div>
         </div>
 
         <BatchActionBar
           selectedCount={selectionQueue.selectedCount}
-          summaryMeta={hiddenCount > 0 ? `${hiddenCount} hidden by filters` : undefined}
+          summaryMeta={hiddenCount > 0 ? t("tests.list.hiddenByFilters", { count: hiddenCount }) : undefined}
           secondaryIcon={<X className="size-4" />}
-          secondaryAriaLabel="Clear queue"
+          secondaryAriaLabel={t("tests.list.clearQueue")}
           onDelete={handleBatchDelete}
           actionSlot={(
             <div className="flex items-center gap-2">
@@ -792,7 +798,7 @@ export default function TestsPage() {
                 onClick={handlePurgeAllCachedPlans}
                 disabled={batchLoading}
               >
-                Purge all cached plans
+                {t("common.run.purgeCache")}
               </Button>
             </div>
           )}
