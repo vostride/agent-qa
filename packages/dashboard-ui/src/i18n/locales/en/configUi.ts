@@ -111,4 +111,12 @@ export default {
   'configUi.discardSettingLabel': 'Discard setting',
   'configUi.tourLlmSetupBody':
     "A run needs a model. Add one: choose how you connect, and it's tested and saved as soon as it works.",
+  'configUi.number.integerRange': '{{label}} must be an integer between {{min}} and {{max}}',
+  'configUi.number.integerMin': '{{label}} must be an integer greater than or equal to {{min}}',
+  'configUi.number.integerMax': '{{label}} must be an integer less than or equal to {{max}}',
+  'configUi.number.integer': '{{label}} must be an integer',
+  'configUi.number.numberRange': '{{label}} must be a number between {{min}} and {{max}}',
+  'configUi.number.numberMin': '{{label}} must be a number greater than or equal to {{min}}',
+  'configUi.number.numberMax': '{{label}} must be a number less than or equal to {{max}}',
+  'configUi.number.number': '{{label}} must be a number',
 } as const

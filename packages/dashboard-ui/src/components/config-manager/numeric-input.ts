@@ -1,3 +1,5 @@
+import { t } from '@/i18n'
+
 interface ConfigNumberInputOptions {
   label: string
   min?: number
@@ -42,15 +44,23 @@ export function parseConfigNumberInput(
 }
 
 function describeNumberInput(options: ConfigNumberInputOptions): string {
-  const kind = options.integer ? "an integer" : "a number"
-  if (options.min !== undefined && options.max !== undefined) {
-    return `${options.label} must be ${kind} between ${options.min} and ${options.max}`
+  const { label, min, max, integer } = options
+  // Bounds are config values, shown as the digits the file holds rather than a grouped number.
+  const values = { label, min: String(min), max: String(max) }
+  if (min !== undefined && max !== undefined) {
+    return integer
+      ? t('configUi.number.integerRange', values)
+      : t('configUi.number.numberRange', values)
   }
-  if (options.min !== undefined) {
-    return `${options.label} must be ${kind} greater than or equal to ${options.min}`
+  if (min !== undefined) {
+    return integer
+      ? t('configUi.number.integerMin', values)
+      : t('configUi.number.numberMin', values)
   }
-  if (options.max !== undefined) {
-    return `${options.label} must be ${kind} less than or equal to ${options.max}`
+  if (max !== undefined) {
+    return integer
+      ? t('configUi.number.integerMax', values)
+      : t('configUi.number.numberMax', values)
   }
-  return `${options.label} must be ${kind}`
+  return integer ? t('configUi.number.integer', values) : t('configUi.number.number', values)
 }
