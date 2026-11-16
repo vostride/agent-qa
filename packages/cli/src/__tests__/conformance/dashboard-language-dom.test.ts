@@ -3,12 +3,16 @@
 // Config page's language block switches the dashboard in place and in every open tab.
 
 import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 
+import { DashboardDatabase, resolveDashboardDbPath } from '@vostride/agent-qa-dashboard'
+import { generateRunId } from '@vostride/agent-qa-ids'
 import { chromium, type Browser, type BrowserContext, type Page } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import {
   DASHBOARD_ANCHORED_BUILDS,
+  PACKAGES_ROOT,
   REBUILD_INSTRUCTION,
   buildFreshness,
   cleanupTempRoots,
@@ -35,6 +39,61 @@ const LANGUAGE_SELECT = '[data-language-select]'
 const LANGUAGE_LABEL = '[data-language-block] label'
 const STORAGE_KEY = 'agent-qa.language'
 const READ_METHODS = new Set(['GET', 'HEAD'])
+const RUN_ROW = '[data-runs-row-surface]'
+const HEADER_CELLS = 'thead th'
+const NAV_INSIGHTS = 'a[href="/insights"]'
+const INSIGHTS_TITLE = '[data-insights-page-root] h1'
+
+// Each language's own browser tag and the code the dashboard sets as `<html lang>` for it.
+const LANGUAGE_TAGS = [
+  ['zh-CN', 'zh-Hans'],
+  ['zh-TW', 'zh-Hant'],
+  ['ja-JP', 'ja'],
+  ['ko-KR', 'ko'],
+  ['es-ES', 'es'],
+  ['pt-BR', 'pt-BR'],
+  ['de-DE', 'de'],
+  ['fr-FR', 'fr'],
+  ['ru-RU', 'ru'],
+] as const
+
+// A catalog value as the bundle shows it, read from the language's area file by key.
+function catalogText(language: string, area: string, key: string): string {
+  const relativePath = join('i18n', 'locales', language, `${area}.ts`)
+  const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
+  const quotedKey = key.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  const entry = new RegExp(
+    `(['"])${quotedKey}\\1:[ \\t]*(?:\\n[ \\t]*)?(['"])((?:\\\\.|[^\\\\])*?)\\2`,
+    'u',
+  ).exec(source)
+  if (entry === null) throw new Error(`${key} is not a quoted entry of ${relativePath}`)
+  return (entry[3] as string).replace(/\\(.)/gu, '$1')
+}
+
+function seedRuns(root: string) {
+  const db = new DashboardDatabase({ dbPath: resolveDashboardDbPath({ configDir: root }) })
+  const at = (minutes: number) => new Date(Date.UTC(2026, 10, 15, 9, minutes)).toISOString()
+  try {
+    const runs = [
+      { name: 'Checkout flow', status: 'passed' },
+      { name: 'Sign in with a saved card', status: 'failed' },
+      { name: 'Search finds the product', status: 'passed' },
+    ]
+    for (const [index, { name, status }] of runs.entries()) {
+      db.insertRun({
+        id: generateRunId(),
+        name,
+        status,
+        duration: 4_200,
+        startedAt: at(index),
+        endedAt: at(index + 1),
+        platform: 'web',
+      })
+    }
+  } finally {
+    db.close()
+  }
+}
 
 interface FirstVisit {
   readonly page: Page
@@ -58,6 +117,7 @@ describe('the shipped dashboard follows the browser language and the Config page
 
     const project = dashboardFixtureProject('language')
     configPath = project.configPath
+    seedRuns(project.root)
     const spawned = await spawnDashboard(project.root, project.configPath)
     expect(spawned.ready, `the built dashboard never listened. stdout: ${spawned.stdout().slice(-1200)} stderr: ${spawned.stderr().slice(-1200)}`).toBe(true)
     dashboard = spawned
@@ -136,9 +196,9 @@ describe('the shipped dashboard follows the browser language and the Config page
     return page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)
   }
 
-  async function firstVisit(options: Locale): Promise<FirstVisit> {
+  async function firstVisit(options: Locale, label: string = options.locale): Promise<FirstVisit> {
     const context = await newContext(options)
-    const page = await newPage(context, options.locale)
+    const page = await newPage(context, label)
     await openRuns(page)
     return {
       page,
@@ -156,10 +216,25 @@ describe('the shipped dashboard follows the browser language and the Config page
     expect(visit.lang).toBe('de')
   }, 60_000)
 
-  it('picks Traditional Chinese for a browser set to Chinese in Taiwan', async () => {
+  it('shows the navigation in Traditional Chinese for a browser set to Chinese in Taiwan', async () => {
     const visit = await firstVisit({ locale: 'zh-TW' })
+    expect(visit.config).toBe('設定')
     expect(visit.lang).toBe('zh-Hant')
   }, 60_000)
+
+  it('opens in each of the nine languages from a browser set to it, with no page error', async () => {
+    const opened: { tag: string; lang: string; errors: string[] }[] = []
+    let germanConfig = ''
+    for (const [tag] of LANGUAGE_TAGS) {
+      const label = `opens in ${tag}`
+      const visit = await firstVisit({ locale: tag }, label)
+      opened.push({ tag, lang: visit.lang, errors: pageErrors.filter((error) => error.startsWith(`${label}:`)) })
+      if (tag === 'de-DE') germanConfig = visit.config
+    }
+
+    expect(opened).toEqual(LANGUAGE_TAGS.map(([tag, lang]) => ({ tag, lang, errors: [] })))
+    expect(germanConfig).toBe('Konfiguration')
+  }, 240_000)
 
   it('shows the navigation in English for a browser set to Italian', async () => {
     const visit = await firstVisit({ locale: 'it-IT' })
@@ -180,6 +255,41 @@ describe('the shipped dashboard follows the browser language and the Config page
 
     expect(await text(page, NAV_CONFIG)).toBe('Konfiguration')
     expect(await text(page, LANGUAGE_LABEL)).toBe('Sprache')
+    expect(await marked(page)).toBe(true)
+  }, 60_000)
+
+  it('switches a runs table header and the Insights title at once without reloading', async () => {
+    const english = {
+      header: catalogText('en', 'runs', 'runs.table.testName'),
+      title: catalogText('en', 'insights', 'insights.title'),
+    }
+    const german = {
+      header: catalogText('de', 'runs', 'runs.table.testName'),
+      title: catalogText('de', 'insights', 'insights.title'),
+    }
+    expect(german).not.toEqual(english)
+    const context = await newContext({ locale: 'en-US' })
+    const page = await newPage(context, 'table and insights')
+    await openRuns(page)
+    await page.locator(RUN_ROW).first().waitFor({ timeout: 30_000 })
+    const headers = await page.locator(HEADER_CELLS).allTextContents()
+    const column = headers.findIndex((header) => header.trim() === english.header)
+    expect(column, `no column header reads ${english.header}: ${headers.join(' | ')}`).toBeGreaterThanOrEqual(0)
+    const header = page.locator(HEADER_CELLS).nth(column)
+    await page.locator(NAV_INSIGHTS).click()
+    expect(await text(page, INSIGHTS_TITLE)).toBe(english.title)
+    await mark(page)
+
+    await page.locator(NAV_CONFIG).click()
+    await page.locator(CONFIG_READY).waitFor({ timeout: 30_000 })
+    await chooseLanguage(page, 'Deutsch')
+    await langBecomes(page, 'de')
+
+    await page.locator(NAV_RUNS).click()
+    await page.locator(RUN_ROW).first().waitFor({ timeout: 30_000 })
+    expect((await header.textContent())?.trim()).toBe(german.header)
+    await page.locator(NAV_INSIGHTS).click()
+    expect(await text(page, INSIGHTS_TITLE)).toBe(german.title)
     expect(await marked(page)).toBe(true)
   }, 60_000)
 
