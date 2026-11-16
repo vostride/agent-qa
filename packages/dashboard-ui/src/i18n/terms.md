@@ -903,19 +903,19 @@ polite past: `{{target}}을(를) 클릭했습니다`, `{{target}}을(를) 클릭
 | Screenshot | 스크린샷 | |
 | click | 클릭 | `{{target}}을(를) 클릭했습니다` |
 | tap | 탭 | `{{target}}을(를) 탭했습니다` |
-| fill | 입력 | `{{target}}에 {{value}}을(를) 입력했습니다` |
-| select | 선택 | `{{target}}에서 {{value}}을(를) 선택했습니다` |
-| paste | 붙여넣기 | `{{target}}에 {{value}}을(를) 붙여넣었습니다` |
-| press | 누르기 | `{{keys}}을(를) 눌렀습니다` |
+| fill | 입력 | `{{target}}에 {{value}} 텍스트를 입력했습니다` |
+| select | 선택 | `{{target}}에서 {{value}} 옵션을 선택했습니다` |
+| paste | 붙여넣기 | `{{target}}에 {{value}} 텍스트를 붙여넣었습니다` |
+| press | 누르기 | `{{keys}} 키를 눌렀습니다` |
 | scroll | 스크롤 | `{{target}}을(를) 스크롤했습니다` |
 | swipe | 스와이프 | `{{target}}을(를) 스와이프했습니다` |
 | drag | 드래그 | `{{target}}을(를) 드래그했습니다` |
-| navigate | 이동 | `{{target}}(으)로 이동했습니다` |
+| navigate | 이동 | `{{target}} 페이지로 이동했습니다` |
 | verify | 검증 | `{{target}}을(를) 검증했습니다` |
 | extract | 추출 | `{{target}}에서 정보를 추출했습니다` |
 | wait | 대기 | `{{target}}을(를) 기다렸습니다` |
-| open | 열기 | `{{target}}을(를) 열었습니다` |
-| set | 설정 | `{{target}}을(를) {{value}}(으)로 설정했습니다` |
+| open | 열기 | `{{target}}에서 앱을 열었습니다` |
+| set | 설정 | `변수 {{target}}에 {{value}} 값을 설정했습니다` |
 
 ## 简体中文 (zh-Hans)
 
