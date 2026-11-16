@@ -579,6 +579,7 @@ async function driveLayout(browser: Browser, url: string) {
   writeFileSync(join(extension, 'background.js'), 'chrome.runtime.onInstalled.addListener(() => {})')
   zoomContext = await chromium.launchPersistentContext(join(zoomRoot, 'profile'), {
     channel: 'chromium', headless: true, viewport: DESKTOP,
+    locale: 'en-US',
     args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
   })
   const worker = zoomContext.serviceWorkers()[0] ?? await zoomContext.waitForEvent('serviceworker')

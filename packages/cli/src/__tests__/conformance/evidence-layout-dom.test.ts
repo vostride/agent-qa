@@ -133,6 +133,7 @@ describe('evidence layout backstops on the shipped bundle', () => {
       writeFileSync(join(extension, 'background.js'), 'chrome.runtime.onInstalled.addListener(() => {})')
       zoomContext = await chromium.launchPersistentContext(join(zoomRoot, 'profile'), {
         channel: 'chromium', headless: true, viewport: { width: 1280, height: 800 },
+        locale: 'en-US',
         args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
       })
       const worker = zoomContext.serviceWorkers()[0] ?? await zoomContext.waitForEvent('serviceworker')

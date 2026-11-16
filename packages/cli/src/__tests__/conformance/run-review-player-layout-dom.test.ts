@@ -264,6 +264,7 @@ it('REVIEW-VIDEO-CONTROLS: timed and ordinal long-duration controls fit at 400px
   writeFileSync(join(extension, 'background.js'), 'chrome.runtime.onInstalled.addListener(() => {})')
   const zoomContext = await chromium.launchPersistentContext(join(zoomRoot, 'profile'), {
     channel: 'chromium', headless: true, viewport: { width: 1280, height: 800 },
+    locale: 'en-US',
     args: [`--disable-extensions-except=${extension}`, `--load-extension=${extension}`],
   })
   try {
