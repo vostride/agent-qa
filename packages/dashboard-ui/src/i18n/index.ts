@@ -59,5 +59,5 @@ export async function startLanguage(): Promise<void> {
 
 export const t = i18n.t.bind(i18n)
 
-export { useTranslation } from 'react-i18next'
+export { Trans, useTranslation } from 'react-i18next'
 export default i18n

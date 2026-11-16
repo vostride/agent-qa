@@ -39,6 +39,7 @@ import {
   type TestFormState,
 } from '@/lib/test-yaml-serializer'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/i18n'
 
 interface VisualBuilderProps {
   content: string
@@ -92,6 +93,7 @@ function LiveHookSection({
   canRunHook?: boolean
   onRunHook?: (phase: 'setup' | 'teardown', hookId: string) => void
 }) {
+  const { t } = useTranslation()
   if (hooks.length === 0) return null
 
   return (
@@ -123,12 +125,12 @@ function LiveHookSection({
                 </div>
                 <div className="text-[11px] text-muted-foreground">
                   {hook.status === 'pending'
-                    ? 'Waiting for session lifecycle'
+                    ? t('editor.steps.hook.waiting')
                     : hook.status === 'running'
-                      ? 'Running hook'
+                      ? t('editor.steps.hook.running')
                       : hook.status === 'passed'
-                        ? 'Completed'
-                        : (hook.error ?? 'Hook failed')}
+                        ? t('editor.steps.hook.completed')
+                        : (hook.error ?? t('editor.steps.hook.failed'))}
                 </div>
               </div>
             </button>
@@ -147,7 +149,7 @@ function LiveHookSection({
                 disabled={hook.status === 'running' || !onRunHook}
               >
                 <Play className="size-3" />
-                Run
+                {t('common.run')}
               </Button>
             )}
           </div>
@@ -178,6 +180,7 @@ export function VisualBuilder({
   onSelect,
   variableSuggestions,
 }: VisualBuilderProps) {
+  const { t } = useTranslation()
   const lastValidRef = useRef<TestFormState | null>(null)
   const { hooks, warningCopy } = useTestHookCatalog()
   const hookLabels = useMemo(
@@ -273,7 +276,7 @@ export function VisualBuilder({
         {yamlError && (
           <div className="flex items-center gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-sm text-destructive">
             <AlertCircle className="size-4 shrink-0" />
-            <span>YAML has errors — builder shows last valid state</span>
+            <span>{t('editor.steps.yamlErrors')}</span>
           </div>
         )}
 
@@ -293,11 +296,11 @@ export function VisualBuilder({
               <div className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-2">
                   <Webhook className="size-4 text-muted-foreground" />
-                  <span className="text-xs font-medium text-muted-foreground">Hooks</span>
+                  <span className="text-xs font-medium text-muted-foreground">{t('editor.steps.hooks')}</span>
                 </div>
 
                 <span className="text-[10px] text-muted-foreground/50">
-                  {display.setup.length + display.teardown.length} {display.setup.length + display.teardown.length === 1 ? 'hook' : 'hooks'}
+                  {t('editor.forms.hookCount', { count: display.setup.length + display.teardown.length })}
                 </span>
               </div>
 
@@ -313,25 +316,25 @@ export function VisualBuilder({
 
               <div className="space-y-3">
                 <p className="text-[11px] text-muted-foreground">
-                  Search hook names or paste an h_ ID. Saved as stable ID in YAML. Inline runHook uses the stable hook ID.
+                  {t('editor.steps.hookHelp')}
                 </p>
                 <TestHookListField
                   phase="setup"
-                  label="Setup"
+                  label={t('editor.steps.setup')}
                   values={display.setup}
                   suggestions={hooks}
                   disabled={disabled || yamlError}
-                  placeholder="Search hook names or paste an h_ ID"
+                  placeholder={t('editor.forms.hook.search')}
                   onChange={(values) => handleMetadataChange('setup', values)}
                 />
 
                 <TestHookListField
                   phase="teardown"
-                  label="Teardown"
+                  label={t('editor.steps.teardown')}
                   values={display.teardown}
                   suggestions={hooks}
                   disabled={disabled || yamlError}
-                  placeholder="Search hook names or paste an h_ ID"
+                  placeholder={t('editor.forms.hook.search')}
                   onChange={(values) => handleMetadataChange('teardown', values)}
                 />
               </div>
@@ -341,7 +344,7 @@ export function VisualBuilder({
               {showLiveStepActions && (
                 <LiveHookSection
                   phase="setup"
-                  title="Setup Run Status"
+                  title={t('editor.steps.setupRunStatus')}
                   hooks={liveSetupHooks ?? []}
                   selection={selection ?? null}
                   onSelect={onSelect}
@@ -352,18 +355,18 @@ export function VisualBuilder({
 
               <div className="flex items-center justify-between">
                 <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                  Steps
+                  {t('editor.steps.title')}
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Info className="h-3 w-3 text-muted-foreground/40 hover:text-muted-foreground/70 transition-colors cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-[250px] text-[13px]">
-                      Plain-English instructions the AI agent executes in order. Each step is interpreted and acted upon independently.
+                      {t('editor.steps.help')}
                     </TooltipContent>
                   </Tooltip>
                 </span>
                 <span className="text-[10px] text-muted-foreground/50">
-                  {display.steps.length} {display.steps.length === 1 ? 'step' : 'steps'}
+                  {t('editor.steps.count', { count: display.steps.length })}
                 </span>
               </div>
 
@@ -439,13 +442,13 @@ export function VisualBuilder({
                 disabled={disabled || yamlError}
               >
                 <Plus className="size-3.5" />
-                Add Step
+                {t('editor.steps.add')}
               </Button>
 
               {showLiveStepActions && (
                 <LiveHookSection
                   phase="teardown"
-                  title="Teardown Run Status"
+                  title={t('editor.steps.teardownRunStatus')}
                   hooks={liveTeardownHooks ?? []}
                   selection={selection ?? null}
                   onSelect={onSelect}
@@ -457,7 +460,7 @@ export function VisualBuilder({
           </>
         ) : (
           <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
-            Enter valid YAML to use the visual builder
+            {t('editor.steps.invalidYaml')}
           </div>
         )}
       </div>

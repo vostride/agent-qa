@@ -9,6 +9,7 @@ import { cn, formatDuration } from '@/lib/utils'
 import type { DisplayStep } from '@/lib/display-step'
 import type { EditorStep } from '@/hooks/use-live-editor'
 import type { Selection } from '@/lib/selection'
+import { useTranslation } from '@/i18n'
 
 interface EditableStepWrapperProps {
   step: DisplayStep
@@ -93,6 +94,7 @@ export function EditableStepWrapper({
   onCancel,
   runningStepId,
 }: EditableStepWrapperProps) {
+  const { t } = useTranslation()
   const isThisStepRunning = editorStep.id === runningStepId
   const isThisStepCancelling = editorStep.status === 'cancelling'
   const isLocked = isThisStepRunning || isThisStepCancelling
@@ -175,7 +177,7 @@ export function EditableStepWrapper({
                   type="button"
                   onClick={() => onCancel()}
                   className="shrink-0 flex items-center justify-center size-7 rounded-sm text-destructive hover:bg-destructive/10 transition-colors"
-                  aria-label="Cancel running step"
+                  aria-label={t('editor.detail.cancelRunning')}
                 >
                   <Square className="size-3.5 fill-current" />
                 </button>
@@ -183,7 +185,7 @@ export function EditableStepWrapper({
               {isCancelling && (
                 <div className="flex items-center gap-1.5 shrink-0 mr-1">
                   <Loader2 className="size-3.5 text-muted-foreground animate-spin" />
-                  <span className="text-xs text-muted-foreground">Cancelling...</span>
+                  <span className="text-xs text-muted-foreground">{t('editor.detail.cancelling')}</span>
                 </div>
               )}
             </div>
@@ -222,7 +224,7 @@ export function EditableStepWrapper({
                   ref={textareaRef}
                   value={editorStep.instruction}
                   onChange={(e) => { onInstructionChange(index, e.target.value); autoResize() }}
-                  placeholder="Describe what this step should do..."
+                  placeholder={t('editor.steps.placeholder')}
                   rows={1}
                   className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground/40 outline-none border-none p-0 min-w-0 resize-none overflow-hidden mt-0.5"
                 />
@@ -245,7 +247,7 @@ export function EditableStepWrapper({
                   ? 'text-muted-foreground/30 cursor-default'
                   : 'text-muted-foreground hover:text-foreground hover:bg-muted',
               )}
-              aria-label={isComplete ? `Re-run step ${index + 1}` : `Run step ${index + 1}`}
+              aria-label={isComplete ? t('editor.detail.rerunStep', { number: index + 1 }) : t('editor.detail.runStep', { number: index + 1 })}
             >
               <Play className="size-3.5" />
             </button>
@@ -254,7 +256,7 @@ export function EditableStepWrapper({
               type="button"
               onClick={() => onDelete(index)}
               className="shrink-0 text-muted-foreground hover:text-destructive transition-colors p-0.5 rounded"
-              aria-label={`Delete step ${index + 1}`}
+              aria-label={t('editor.steps.delete', { number: index + 1 })}
             >
               <X className="size-3.5" />
             </button>
@@ -269,7 +271,7 @@ export function EditableStepWrapper({
               className="flex items-center gap-1 px-3 py-1 text-xs text-muted-foreground hover:text-foreground transition-colors w-full border-t border-border/40"
             >
               <ChevronRight className={cn('size-3 transition-transform', subActionsExpanded && 'rotate-90')} />
-              {step.liveSubActions!.length} sub-action{step.liveSubActions!.length !== 1 ? 's' : ''}
+              {t('editor.detail.subActionCount', { count: step.liveSubActions!.length })}
             </button>
             {subActionsExpanded && (
               <ul role="group" className="border-t border-border/40">

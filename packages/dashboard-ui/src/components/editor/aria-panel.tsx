@@ -1,5 +1,6 @@
 import { RefreshCw } from 'lucide-react'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { useTranslation } from '@/i18n'
 
 interface EditorAriaPanelProps {
   ariaTree: string | null
@@ -8,10 +9,11 @@ interface EditorAriaPanelProps {
 }
 
 export function EditorAriaPanel({ ariaTree, onRefresh, isExecuting }: EditorAriaPanelProps) {
+  const { t } = useTranslation()
   if (!ariaTree) {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-2 text-sm text-muted-foreground">
-        <span>Run a step or click Fetch to capture the accessibility tree</span>
+        <span>{t('editor.detail.aria.empty')}</span>
         {onRefresh && (
           <button
             type="button"
@@ -20,7 +22,7 @@ export function EditorAriaPanel({ ariaTree, onRefresh, isExecuting }: EditorAria
             className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded border border-border hover:bg-muted transition-colors disabled:opacity-50"
           >
             <RefreshCw className="size-3" />
-            Fetch
+            {t('editor.detail.aria.fetch')}
           </button>
         )}
       </div>
@@ -36,10 +38,10 @@ export function EditorAriaPanel({ ariaTree, onRefresh, isExecuting }: EditorAria
             onClick={onRefresh}
             disabled={isExecuting}
             className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
-            aria-label="Refresh ARIA tree"
+            aria-label={t('editor.detail.aria.refreshLabel')}
           >
             <RefreshCw className="size-3" />
-            Refresh
+            {t('editor.detail.aria.refresh')}
           </button>
         )}
       </div>

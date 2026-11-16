@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import type { HookCatalogEntry, HookCatalogResponse } from '@/lib/api'
 import { fetchHookCatalog } from '@/lib/api'
+import { useTranslation } from '@/i18n'
 
 interface WarningCopy {
   title: string
@@ -21,8 +22,9 @@ const EMPTY_CATALOG: HookCatalogResponse = {
 }
 
 export function useTestHookCatalog(): UseTestHookCatalogResult {
+  const { t } = useTranslation()
   const [catalog, setCatalog] = useState<HookCatalogResponse>(EMPTY_CATALOG)
-  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadError, setLoadError] = useState<{ message?: string } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -36,7 +38,7 @@ export function useTestHookCatalog(): UseTestHookCatalogResult {
       .catch((error: unknown) => {
         if (cancelled) return
         setCatalog(EMPTY_CATALOG)
-        setLoadError(error instanceof Error ? error.message : 'Failed to load hooks')
+        setLoadError(error instanceof Error ? { message: error.message } : {})
       })
 
     return () => {
@@ -44,7 +46,7 @@ export function useTestHookCatalog(): UseTestHookCatalogResult {
     }
   }, [])
 
-  const hookFileLabel = catalog.filePath ?? 'configured hooks file'
+  const hookFileLabel = catalog.filePath ?? t('editor.forms.hooks.configuredFile')
   const hooks = useMemo(
     () => [...catalog.hooks].sort((left, right) => left.name.localeCompare(right.name)),
     [catalog.hooks],
@@ -53,27 +55,29 @@ export function useTestHookCatalog(): UseTestHookCatalogResult {
   const warningCopy = useMemo(() => {
     if (loadError) {
       return {
-        title: 'Hooks could not be loaded',
-        body: `${loadError}. You can still paste canonical h_ IDs, but validate before running.`,
+        title: t('editor.forms.hooks.notLoadedTitle'),
+        body: t('editor.forms.hooks.notLoadedBody', {
+          reason: loadError.message ?? t('editor.forms.hooks.loadFailed'),
+        }),
       }
     }
 
     if (catalog.missing) {
       return {
-        title: `${hookFileLabel} not found`,
-        body: 'You can still paste canonical h_ IDs. Setup runs before the live session starts; teardown runs after it ends.',
+        title: t('editor.forms.hooks.missingTitle', { file: hookFileLabel }),
+        body: t('editor.forms.hooks.missingBody'),
       }
     }
 
     if (catalog.errors.length > 0) {
       return {
-        title: `Hooks could not be loaded from ${hookFileLabel}`,
-        body: `${catalog.errors[0]}. You can still paste canonical h_ IDs, but validate before running.`,
+        title: t('editor.forms.hooks.notLoadedFromTitle', { file: hookFileLabel }),
+        body: t('editor.forms.hooks.notLoadedBody', { reason: catalog.errors[0] }),
       }
     }
 
     return null
-  }, [catalog.errors, catalog.missing, hookFileLabel, loadError])
+  }, [catalog.errors, catalog.missing, hookFileLabel, loadError, t])
 
   return {
     hooks,

@@ -20,6 +20,7 @@ import { GripVertical, Plus, X } from 'lucide-react'
 
 import type { HookCatalogEntry } from '@/lib/api'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/i18n'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 
@@ -53,10 +54,6 @@ function splitHookValues(raw: string): string[] {
     .filter(Boolean)
 }
 
-function getEmptyStateLabel(phase: HookPhase): string {
-  return phase === 'setup' ? 'No setup hooks' : 'No teardown hooks'
-}
-
 function buildHookId(phase: HookPhase, value: string): string {
   return `${phase}:${value}`
 }
@@ -69,6 +66,7 @@ function SortableHookRow({
   disabled,
   onRemove,
 }: SortableHookRowProps) {
+  const { t } = useTranslation()
   const {
     attributes,
     listeners,
@@ -104,7 +102,7 @@ function SortableHookRow({
       <button
         type="button"
         className="mt-0.5 flex shrink-0 items-center p-0.5 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing touch-none disabled:cursor-not-allowed"
-        aria-label={`Reorder ${displayName}`}
+        aria-label={t('editor.forms.hook.reorder', { name: displayName })}
         disabled={disabled}
         {...attributes}
         {...listeners}
@@ -133,7 +131,7 @@ function SortableHookRow({
               : 'text-amber-700 dark:text-amber-300',
           )}
         >
-          {isKnown ? 'Saved as stable ID' : 'Saved as stable ID - Not found in configured hooks file'}
+          {isKnown ? t('editor.forms.hook.savedAsId') : t('editor.forms.hook.savedAsIdUnknown')}
         </div>
       </div>
 
@@ -145,7 +143,7 @@ function SortableHookRow({
           className="text-muted-foreground"
           onClick={onRemove}
           disabled={disabled}
-          aria-label={`Remove ${displayName}`}
+          aria-label={t('editor.forms.hook.remove', { name: displayName })}
         >
           <X className="size-3.5" />
         </Button>
@@ -161,13 +159,14 @@ export function TestHookListField({
   suggestions,
   onChange,
   disabled = false,
-  placeholder = 'Search hook names or paste an h_ ID',
+  placeholder,
 }: TestHookListFieldProps) {
+  const { t } = useTranslation()
   const inputRef = useRef<HTMLInputElement | null>(null)
   const [inputValue, setInputValue] = useState('')
   const [isComposerOpen, setIsComposerOpen] = useState(false)
   const [highlightedIndex, setHighlightedIndex] = useState(0)
-  const [composerError, setComposerError] = useState<string | null>(null)
+  const [composerError, setComposerError] = useState(false)
 
   const suggestionsById = useMemo(
     () => new Map(suggestions.map((suggestion) => [suggestion.id, suggestion])),
@@ -222,7 +221,7 @@ export function TestHookListField({
     setInputValue('')
     setIsComposerOpen(false)
     setHighlightedIndex(0)
-    setComposerError(null)
+    setComposerError(false)
   }
 
   function resolveHookToken(token: string): string | null {
@@ -248,7 +247,7 @@ export function TestHookListField({
     )
 
     if (resolvedTokens.some((token) => token === null)) {
-      setComposerError('Search hook names or paste an h_ ID')
+      setComposerError(true)
       return
     }
 
@@ -261,7 +260,7 @@ export function TestHookListField({
 
     if (additions.length === 0) {
       setInputValue('')
-      setComposerError(null)
+      setComposerError(false)
       return
     }
 
@@ -297,7 +296,7 @@ export function TestHookListField({
         <Label className="text-xs font-medium text-muted-foreground">{label}</Label>
         <div className="flex items-center gap-2">
           <span className="text-[10px] text-muted-foreground/50">
-            {values.length} {values.length === 1 ? 'hook' : 'hooks'}
+            {t('editor.forms.hookCount', { count: values.length })}
           </span>
           <Button
             type="button"
@@ -307,14 +306,14 @@ export function TestHookListField({
             disabled={disabled}
           >
             <Plus className="size-3" />
-            Add Hook
+            {t('editor.forms.hook.add')}
           </Button>
         </div>
       </div>
 
       {values.length === 0 && !isComposerOpen ? (
         <div className="rounded-md border border-dashed bg-background/50 px-3 py-3 text-xs text-muted-foreground">
-          {getEmptyStateLabel(phase)}
+          {phase === 'setup' ? t('editor.forms.hook.noSetup') : t('editor.forms.hook.noTeardown')}
         </div>
       ) : null}
 
@@ -326,7 +325,7 @@ export function TestHookListField({
               value={inputValue}
               onChange={(event) => {
                 setInputValue(event.target.value)
-                if (composerError) setComposerError(null)
+                if (composerError) setComposerError(false)
               }}
               onKeyDown={(event) => {
                 if (event.key === 'ArrowDown') {
@@ -357,7 +356,7 @@ export function TestHookListField({
                   closeComposer()
                 }
               }}
-              placeholder={placeholder}
+              placeholder={placeholder ?? t('editor.forms.hook.search')}
               disabled={disabled}
               className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground/60 disabled:cursor-not-allowed"
             />
@@ -373,13 +372,13 @@ export function TestHookListField({
               disabled={disabled || (inputValue.trim().length === 0 && filteredSuggestions.length === 0)}
             >
               <Plus className="size-3.5" />
-              Add Hook
+              {t('editor.forms.hook.add')}
             </Button>
           </div>
 
           {composerError && (
             <div className="mt-2 text-xs text-amber-700 dark:text-amber-300">
-              {composerError}
+              {t('editor.forms.hook.search')}
             </div>
           )}
 
@@ -414,8 +413,8 @@ export function TestHookListField({
             ) : (
               <div className="px-3 py-2 text-xs text-muted-foreground">
                 {inputValue.trim()
-                  ? 'Search hook names or paste an h_ ID'
-                  : 'No matching hooks.'}
+                  ? t('editor.forms.hook.search')
+                  : t('editor.forms.hook.noMatches')}
               </div>
             )}
           </div>

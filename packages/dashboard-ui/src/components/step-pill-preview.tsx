@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { pillBgColor, SOURCE_LABELS } from '@/components/run-detail/step-name-pills'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/i18n'
 
 interface AuthoringSegment {
   type: 'text' | 'pill'
@@ -60,6 +61,7 @@ interface StepPillPreviewProps {
 }
 
 export function StepPillPreview({ text, envValues, hookLabels }: StepPillPreviewProps) {
+  const { t } = useTranslation()
   const segments = useMemo(() => parseAuthoringSegments(text), [text])
 
   if (segments.length === 0 || segments.every((s) => s.type === 'text')) return null
@@ -83,7 +85,7 @@ export function StepPillPreview({ text, envValues, hookLabels }: StepPillPreview
               <TooltipTrigger asChild>
                 <span
                   className={cn('rounded-sm px-1 py-px cursor-default text-foreground', pillBgColor(seg.namespace))}
-                  aria-label={`variable: ${displayValue}`}
+                  aria-label={t('common.variableName', { name: displayValue })}
                 >
                   {displayValue}
                 </span>

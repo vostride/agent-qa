@@ -35,6 +35,8 @@ import type { LiveSubAction } from '@/hooks/use-live-editor'
 import { RESULT_WORDS } from '@/lib/action-vocabulary'
 import type { StepOverrides } from '@/lib/test-yaml-serializer'
 import { cn } from '@/lib/utils'
+import { useTranslation } from '@/i18n'
+import type { TFunction } from 'i18next'
 
 export type StepCardLiveStatus =
   | 'idle'
@@ -70,37 +72,44 @@ interface StepCardEditorProps {
   hookLabels?: Record<string, string>
 }
 
-const LIVE_STATUS_META: Record<Exclude<StepCardLiveStatus, 'idle'>, { label: string; badgeClass: string; cardClass: string }> = {
+type LiveStatusLabelKey =
+  | 'status.running'
+  | 'editor.steps.cancelling'
+  | 'status.passed'
+  | 'status.failed'
+  | 'status.cancelled'
+
+const LIVE_STATUS_META: Record<Exclude<StepCardLiveStatus, 'idle'>, { labelKey: LiveStatusLabelKey; badgeClass: string; cardClass: string }> = {
   running: {
-    label: 'Running',
+    labelKey: 'status.running',
     badgeClass: 'border-primary/30 bg-primary/10 text-primary',
     cardClass: 'live-running-surface border-border/60 bg-primary/5',
   },
   cancelling: {
-    label: 'Cancelling',
+    labelKey: 'editor.steps.cancelling',
     badgeClass: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
     cardClass: 'border-amber-500/30 bg-amber-500/5',
   },
   passed: {
-    label: 'Passed',
+    labelKey: 'status.passed',
     badgeClass: 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     cardClass: 'border-emerald-500/25 bg-emerald-500/[0.03]',
   },
   failed: {
-    label: 'Failed',
+    labelKey: 'status.failed',
     badgeClass: 'border-destructive/30 bg-destructive/10 text-destructive',
     cardClass: 'border-destructive/25 bg-destructive/[0.03]',
   },
   cancelled: {
-    label: 'Cancelled',
+    labelKey: 'status.cancelled',
     badgeClass: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
     cardClass: 'border-amber-500/25 bg-amber-500/[0.03]',
   },
 }
 
-function formatOverrideSummary(overrides: StepOverrides): string | null {
+function formatOverrideSummary(t: TFunction, overrides: StepOverrides): string | null {
   const parts: string[] = []
-  if (overrides.timeout) parts.push(`TIMEOUT: ${overrides.timeout.toUpperCase()}`)
+  if (overrides.timeout) parts.push(t('editor.steps.timeoutSummary', { timeout: overrides.timeout.toUpperCase() }))
   return parts.length > 0 ? parts.join(' · ') : null
 }
 
@@ -141,8 +150,8 @@ function LiveStatusIcon({ status }: { status: Exclude<StepCardLiveStatus, 'idle'
   }
 }
 
-function formatSubActionLabel(subAction: LiveSubAction): string {
-  if (!subAction.plannedAction) return `Sub-action ${subAction.index + 1}`
+function formatSubActionLabel(t: TFunction, subAction: LiveSubAction): string {
+  if (!subAction.plannedAction) return t('editor.steps.subAction', { number: subAction.index + 1 })
 
   try {
     const parsed = typeof subAction.plannedAction === 'string'
@@ -161,7 +170,7 @@ function formatSubActionLabel(subAction: LiveSubAction): string {
     }
   }
 
-  return `Sub-action ${subAction.index + 1}`
+  return t('editor.steps.subAction', { number: subAction.index + 1 })
 }
 
 export function StepCardEditor({
@@ -189,6 +198,7 @@ export function StepCardEditor({
   suggestions = [],
   hookLabels = {},
 }: StepCardEditorProps) {
+  const { t } = useTranslation()
   const isExecutingLiveStep = liveStatus === 'running' || liveStatus === 'cancelling'
   const {
     attributes,
@@ -236,7 +246,7 @@ export function StepCardEditor({
     [hookLabels, suggestionHookLabels],
   )
 
-  const summary = formatOverrideSummary(overrides)
+  const summary = formatOverrideSummary(t, overrides)
   const hasOverrides = summary !== null
   const liveMeta = liveStatus === 'idle' ? null : LIVE_STATUS_META[liveStatus]
   const utilityActionsVisible = isSelected || isSettingsOpen || isExecutingLiveStep
@@ -288,7 +298,7 @@ export function StepCardEditor({
         <button
           type="button"
           className="mt-0.5 flex shrink-0 items-center p-0.5 text-muted-foreground/40 hover:text-muted-foreground cursor-grab active:cursor-grabbing touch-none disabled:cursor-not-allowed"
-          aria-label={`Reorder step ${index + 1}`}
+          aria-label={t('editor.steps.reorder', { number: index + 1 })}
           disabled={disabled || isExecutingLiveStep}
           {...attributes}
           {...listeners}
@@ -304,7 +314,7 @@ export function StepCardEditor({
           {liveStatus !== 'idle' && liveMeta && (
             <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <LiveStatusIcon status={liveStatus} />
-              <span className="font-medium">{liveMeta.label}</span>
+              <span className="font-medium">{t(liveMeta.labelKey)}</span>
             </div>
           )}
           <div className="relative">
@@ -320,7 +330,7 @@ export function StepCardEditor({
                 if (autocomplete.handleKeyDown(event)) return
               }}
               onBlur={() => { setTimeout(() => autocomplete.setVisible(false), 150) }}
-              placeholder="Describe what this step should do..."
+              placeholder={t('editor.steps.placeholder')}
               disabled={disabled || isExecutingLiveStep}
               rows={1}
               className="min-w-0 w-full resize-none overflow-hidden border-none bg-transparent p-0 text-sm text-foreground outline-none placeholder:text-muted-foreground/40"
@@ -335,7 +345,7 @@ export function StepCardEditor({
             <div className="flex min-w-0 items-center gap-1 text-muted-foreground/70">
               <SlidersHorizontal className="size-3 shrink-0" />
               <span className="truncate text-[11px] font-mono uppercase tracking-wide">
-                {summary ?? 'Step settings open'}
+                {summary ?? t('editor.steps.settingsOpen')}
               </span>
             </div>
           )}
@@ -364,7 +374,7 @@ export function StepCardEditor({
                   ) : (
                     <Square className="size-3" />
                   )}
-                  Cancel
+                  {t('common.cancel')}
                 </Button>
               ) : (
                 <Button
@@ -375,7 +385,7 @@ export function StepCardEditor({
                   disabled={disabled || !canRunLiveStep || !onRunLiveStep}
                 >
                   <Play className="size-3" />
-                  Run
+                  {t('common.run')}
                 </Button>
               )
             )}
@@ -389,8 +399,8 @@ export function StepCardEditor({
                 "shrink-0 text-muted-foreground/70 hover:text-foreground",
                 isSettingsOpen && "bg-muted/60 text-foreground",
               )}
-              aria-label={`Open settings for step ${index + 1}`}
-              title="Step settings"
+              aria-label={t('editor.steps.openSettings', { number: index + 1 })}
+              title={t('editor.steps.settings')}
             >
               <SlidersHorizontal className="size-3.5" />
             </Button>
@@ -402,8 +412,8 @@ export function StepCardEditor({
                   variant="ghost"
                   size="icon-sm"
                   disabled={disabled || isExecutingLiveStep}
-                  aria-label={`Delete step ${index + 1}`}
-                  title="Delete step"
+                  aria-label={t('editor.steps.delete', { number: index + 1 })}
+                  title={t('editor.steps.deleteTitle')}
                   className="text-muted-foreground/70 hover:text-destructive"
                 >
                   <X className="size-3.5" />
@@ -411,15 +421,15 @@ export function StepCardEditor({
               </AlertDialogTrigger>
               <AlertDialogContent size="sm">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete step?</AlertDialogTitle>
+                  <AlertDialogTitle>{t('editor.steps.deleteConfirmTitle')}</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Step #{index + 1} will be removed. This cannot be undone.
+                    {t('editor.steps.deleteConfirmDescription', { number: index + 1 })}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
                   <AlertDialogAction variant="destructive" onClick={() => onDelete(index)}>
-                    Delete
+                    {t('common.delete')}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -433,13 +443,13 @@ export function StepCardEditor({
           <div className="grid grid-cols-1 gap-3">
             <div className="space-y-1">
               <Label htmlFor={`step-${index}-timeout`} className="text-[11px] text-muted-foreground">
-                Timeout
+                {t('editor.steps.timeout')}
               </Label>
               <Input
                 id={`step-${index}-timeout`}
                 value={overrides.timeout ?? ''}
                 onChange={(event) => onOverrideChange(index, 'timeout', event.target.value || undefined)}
-                placeholder="e.g. 30s"
+                placeholder={t('editor.steps.timeoutPlaceholder')}
                 disabled={disabled}
                 className="h-8 text-xs"
               />
@@ -452,7 +462,7 @@ export function StepCardEditor({
         <div className="border-t px-3 py-2">
           <div className="mb-2 flex items-center justify-between gap-2">
             <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-              Sub-actions
+              {t('editor.steps.subActions')}
             </span>
             <Badge variant="outline" className="text-[10px]">
               {subActions.length}
@@ -476,7 +486,7 @@ export function StepCardEditor({
                   #{subIndex + 1}
                 </span>
                 <span className="min-w-0 flex-1 truncate">
-                  {formatSubActionLabel(subAction)}
+                  {formatSubActionLabel(t, subAction)}
                 </span>
               </button>
             ))}
@@ -486,7 +496,7 @@ export function StepCardEditor({
 
       {liveStatus === 'failed' && (
         <div className="border-t px-3 py-2 text-xs text-destructive">
-          {stepError || 'Step failed. Select the step to inspect reasoning, env, network, or console output.'}
+          {stepError || t('editor.steps.failed')}
         </div>
       )}
     </div>

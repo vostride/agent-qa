@@ -19,6 +19,7 @@ import {
 import { generateTestId } from '@/lib/generate-test-id'
 import { useTargets } from '@/hooks/use-targets'
 import { useTargetDetails } from '@/hooks/use-target-details'
+import { Trans, useTranslation } from '@/i18n'
 
 function InfoTip({ text }: { text: string }) {
   return (
@@ -52,6 +53,7 @@ export function TestMetadataForm({
   onChange,
   disabled = false,
 }: TestMetadataFormProps) {
+  const { t } = useTranslation()
   const { targets, isLoading: isLoadingTargets } = useTargets()
   const { targets: targetDetails } = useTargetDetails()
   const selectedDetail = target ? targetDetails[target] : undefined
@@ -60,20 +62,20 @@ export function TestMetadataForm({
     <div className="space-y-3">
       <div className="space-y-1.5">
         <Label htmlFor="test-name" className="text-xs">
-          Test Name <span className="text-destructive">*</span>
+          {t('editor.forms.testName')} <span className="text-destructive">*</span>
         </Label>
         <Input
           id="test-name"
           value={name}
           onChange={(e) => onChange('name', e.target.value)}
-          placeholder="My Test"
+          placeholder={t('editor.forms.testNamePlaceholder')}
           disabled={disabled}
           className="h-8 text-sm"
         />
       </div>
 
       <div className="space-y-1.5">
-        <Label htmlFor="test-id" className="text-xs flex items-center gap-1">Test ID <InfoTip text="Unique identifier used for memory and analytics. Changing this breaks the association with past runs and observations." /></Label>
+        <Label htmlFor="test-id" className="text-xs flex items-center gap-1">{t('editor.forms.testId')} <InfoTip text={t('editor.forms.testIdHelp')} /></Label>
         {isCreateMode ? (
           <div className="flex items-center gap-2">
             <Input
@@ -88,28 +90,34 @@ export function TestMetadataForm({
               variant="ghost"
               size="icon-sm"
               onClick={() => onChange('test-id', generateTestId())}
-              aria-label="Generate new ID"
+              aria-label={t('editor.forms.generateId')}
               disabled={disabled}
             >
               <RefreshCw className="size-3.5" />
             </Button>
           </div>
         ) : (
-          <p className="text-[13px] font-mono text-muted-foreground">{testId || 'No ID assigned'}</p>
+          <p className="text-[13px] font-mono text-muted-foreground">{testId || t('editor.forms.noId')}</p>
         )}
       </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="test-target" className="text-xs flex items-center gap-1">
-          Target <span className="text-destructive">*</span> <InfoTip text="A registered app target from your workspace config. Defines where the test runs (web URL or mobile app)." />
+          {t('editor.forms.target')} <span className="text-destructive">*</span> <InfoTip text={t('editor.forms.targetHelp')} />
         </Label>
         {!isLoadingTargets && targets.length === 0 ? (
           <p className="text-[13px] text-muted-foreground">
-            No targets configured.{' '}
-            <Link to="/config" className="text-primary underline underline-offset-4 hover:text-primary/80">
-              Add targets in Settings
-            </Link>
-            .
+            <Trans
+              i18nKey="editor.forms.noTargets"
+              components={{
+                link: (
+                  <Link
+                    to="/config"
+                    className="text-primary underline underline-offset-4 hover:text-primary/80"
+                  />
+                ),
+              }}
+            />
           </p>
         ) : (
           <Select
@@ -118,11 +126,11 @@ export function TestMetadataForm({
             disabled={disabled || isLoadingTargets}
           >
             <SelectTrigger className="w-full h-8 text-sm">
-              <SelectValue placeholder="Select a target" />
+              <SelectValue placeholder={t('editor.forms.selectTarget')} />
             </SelectTrigger>
             <SelectContent>
-              {targets.map((t) => (
-                <SelectItem key={t} value={t}>{t}</SelectItem>
+              {targets.map((name) => (
+                <SelectItem key={name} value={name}>{name}</SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -145,13 +153,13 @@ export function TestMetadataForm({
 
       <div className="space-y-1.5">
         <Label htmlFor="test-context" className="text-xs flex items-center gap-1">
-          Context <InfoTip text="Additional instructions the AI agent receives before executing steps. Use this for login credentials, test-specific rules, or environment details." />
+          {t('editor.forms.context')} <InfoTip text={t('editor.forms.contextHelp')} />
         </Label>
         <Textarea
           id="test-context"
           value={context}
           onChange={(e) => onChange('context', e.target.value)}
-          placeholder="Additional instructions for the AI agent..."
+          placeholder={t('editor.forms.contextPlaceholder')}
           disabled={disabled}
           className="min-h-[60px] resize-none text-sm"
           rows={2}

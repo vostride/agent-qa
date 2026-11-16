@@ -5,6 +5,8 @@ import { ConfidenceBadge } from '@/components/confidence-badge'
 import type { LiveSubAction } from '@/hooks/use-live-editor'
 import type { DisplayStep } from '@/lib/display-step'
 import { RESULT_WORDS } from '@/lib/action-vocabulary'
+import { useTranslation } from '@/i18n'
+import type { TFunction } from 'i18next'
 
 interface EditorStepDetailProps {
   step: DisplayStep
@@ -20,13 +22,13 @@ function resultColour(sub: LiveSubAction): string {
   return sub.result === 'success' ? 'text-emerald-500' : 'text-red-500'
 }
 
-function buildSubActionSections(sub: LiveSubAction): SectionDef[] {
+function buildSubActionSections(t: TFunction, sub: LiveSubAction): SectionDef[] {
   const sections: SectionDef[] = []
 
   if (sub.observation) {
     sections.push({
       key: 'observation',
-      label: 'Observation',
+      label: t('editor.detail.observation'),
       icon: Eye,
       content: sub.observation,
       duration: sub.phaseDurations?.observe ?? null,
@@ -36,7 +38,7 @@ function buildSubActionSections(sub: LiveSubAction): SectionDef[] {
   if (sub.reasoning) {
     sections.push({
       key: 'reasoning',
-      label: 'Reasoning',
+      label: t('editor.detail.reasoning'),
       icon: Brain,
       content: sub.reasoning,
       duration: sub.phaseDurations?.plan ?? null,
@@ -46,7 +48,7 @@ function buildSubActionSections(sub: LiveSubAction): SectionDef[] {
   if (sub.plannedAction != null) {
     sections.push({
       key: 'plannedAction',
-      label: 'Planned Action',
+      label: t('editor.detail.plannedAction'),
       icon: Play,
       content: null,
       duration: sub.phaseDurations?.execute ?? null,
@@ -63,7 +65,7 @@ function buildSubActionSections(sub: LiveSubAction): SectionDef[] {
   if (sub.verifierReasoning) {
     sections.push({
       key: 'verifier',
-      label: 'Verifier',
+      label: t('editor.detail.verifier'),
       icon: ShieldCheck,
       content: sub.verifierReasoning,
       duration: sub.phaseDurations?.verify ?? null,
@@ -73,13 +75,13 @@ function buildSubActionSections(sub: LiveSubAction): SectionDef[] {
   return sections
 }
 
-function buildStepSections(step: DisplayStep): SectionDef[] {
+function buildStepSections(t: TFunction, step: DisplayStep): SectionDef[] {
   const sections: SectionDef[] = []
 
   if (step.observation) {
     sections.push({
       key: 'observation',
-      label: 'Observation',
+      label: t('editor.detail.observation'),
       icon: Eye,
       content: step.observation,
       duration: null,
@@ -89,7 +91,7 @@ function buildStepSections(step: DisplayStep): SectionDef[] {
   if (step.reasoning) {
     sections.push({
       key: 'reasoning',
-      label: 'Reasoning',
+      label: t('editor.detail.reasoning'),
       icon: Brain,
       content: step.reasoning,
       duration: null,
@@ -99,7 +101,7 @@ function buildStepSections(step: DisplayStep): SectionDef[] {
   if (step.plannedAction != null) {
     sections.push({
       key: 'plannedAction',
-      label: 'Planned Action',
+      label: t('editor.detail.plannedAction'),
       icon: Play,
       content: null,
       duration: null,
@@ -117,12 +119,13 @@ function buildStepSections(step: DisplayStep): SectionDef[] {
 }
 
 export function EditorStepDetail({ step, subAction }: EditorStepDetailProps) {
+  const { t } = useTranslation()
   if (subAction) {
-    const sections = buildSubActionSections(subAction)
+    const sections = buildSubActionSections(t, subAction)
     return (
       <div className="p-3 space-y-3 min-w-0">
         <div className="flex items-center gap-2 text-sm">
-          <span className="font-medium">Sub-action #{subAction.index + 1}</span>
+          <span className="font-medium">{t('editor.detail.subAction', { number: subAction.index + 1 })}</span>
           <span className={`text-xs font-medium ${resultColour(subAction)}`}>
             {resultWord(subAction)}
           </span>
@@ -142,11 +145,11 @@ export function EditorStepDetail({ step, subAction }: EditorStepDetailProps) {
     )
   }
 
-  const sections = buildStepSections(step)
+  const sections = buildStepSections(t, step)
   return (
     <div className="p-3 space-y-3 min-w-0">
       <div className="flex items-center gap-2 text-sm">
-        <span className="font-medium">Step #{step.stepOrder + 1}</span>
+        <span className="font-medium">{t('editor.detail.step', { number: step.stepOrder + 1 })}</span>
         {step.confidence != null && (
           <ConfidenceBadge confidence={step.confidence} />
         )}
@@ -155,7 +158,7 @@ export function EditorStepDetail({ step, subAction }: EditorStepDetailProps) {
       {sections.length > 0 ? (
         <ReasoningPipeline mode="static" sections={sections} />
       ) : (
-        <p className="text-sm text-muted-foreground">No reasoning data yet.</p>
+        <p className="text-sm text-muted-foreground">{t('editor.detail.noReasoning')}</p>
       )}
 
       {step.error && (
