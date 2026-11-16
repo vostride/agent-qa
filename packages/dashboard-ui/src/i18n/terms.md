@@ -575,7 +575,8 @@ narrow no-break space inside each (`« {{name}} »`). Use the French ellipsis `�
 Status labels use the masculine form as a neutral label. Action sentences are noun phrases, which
 French logs use and which need no subject: `Clic sur {{target}}`, `Tentative de clic sur
 {{target}}`, `Pas de clic sur {{target}}`; `_bare` is `Clic`, `Tentative de clic`, `Pas de clic`.
-`action.target.name` is `« {{name}} »` and `action.target.role` is `un élément {{role}}`.
+`action.target.name` is `« {{name}} »` and `action.target.role` is `l’élément {{role}}`: several
+action sentences put `de` before the target, and `de un élément` is not French.
 
 ### Terms
 
