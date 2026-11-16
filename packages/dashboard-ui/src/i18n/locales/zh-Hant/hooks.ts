@@ -49,7 +49,7 @@ export default {
   'hooks.list.empty.description':
     '建立掛鉤，為此工作區加入可重複使用的 setup、teardown 或內嵌自動化作業。',
   'hooks.list.noMatches.title': '沒有符合篩選條件的掛鉤',
-  'hooks.list.noMatches.description': '調整搜尋內容或篩選條件，即可看到更多掛鉤紀錄。',
+  'hooks.list.noMatches.description': '調整搜尋內容或篩選條件，即可看到更多掛鉤記錄。',
   'hooks.list.column.hook': '掛鉤',
   'hooks.list.column.runtime': '執行環境',
   'hooks.list.column.timeoutNetwork': '逾時時間／網路',
@@ -63,7 +63,7 @@ export default {
   'hooks.viewer.couldNotLoad.description': '目前無法載入此掛鉤。',
   'hooks.viewer.loadFailedNotice': '無法載入掛鉤',
   'hooks.viewer.authoringIssues': '掛鉤有可修正的撰寫問題',
-  'hooks.viewer.noSource': '找不到此紀錄的掛鉤原始碼。',
+  'hooks.viewer.noSource': '找不到此記錄的掛鉤原始碼。',
   'hooks.viewer.noSourceHint': '請在編輯模式中更新路徑或重新建立檔案。',
   'hooks.navbar.hooks': '掛鉤',
   'hooks.navbar.newHook': '新增掛鉤',
@@ -78,7 +78,7 @@ export default {
   'hooks.delete.title': '要刪除掛鉤嗎？',
   'hooks.delete.titleBlocked': '掛鉤仍在使用中',
   'hooks.delete.description':
-    '這會從儀表板移除掛鉤紀錄。如果掛鉤仍被參照，會先在這裡列出這些參照，才允許強制刪除。',
+    '這會從儀表板移除掛鉤記錄。如果掛鉤仍被參照，會先在這裡列出這些參照，才允許強制刪除。',
   'hooks.delete.descriptionBlocked': '如果強制刪除此掛鉤，這些參照將會失效。',
   'hooks.delete.forceWarning': '只有在您會立即修正這些參照時，才進行強制刪除。',
   'hooks.delete.forceHint': '可以的話，請先移除或取代這些掛鉤用法。',
