@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { ShortcutKey, ShortcutLegend } from "@/components/shortcut-hints"
+import { useTranslation } from "@/i18n"
 
 interface TestNavbarProps {
   testName: string
@@ -68,6 +69,7 @@ export function TestNavbar({
   onSettingsOpen,
   onToggleShortcuts,
 }: TestNavbarProps) {
+  const { t } = useTranslation()
   const isViewMode = mode === 'view' && !isCreateMode
   const showLiveAction = !!onLiveConnect || !!onLiveEnd || hasLiveSession || liveConnectionState === "connecting"
   const showDivider = !isCreateMode || showLiveAction
@@ -76,7 +78,7 @@ export function TestNavbar({
     && hasLiveSession
     && typeof liveSessionNumber === "number"
     && (liveConnectionState === "connected" || liveConnectionState === "executing")
-  const liveHelpText = "Start a disposable live session for this test. Setup hooks run on connect, teardown hooks run when the session ends, and changes are not saved automatically."
+  const liveHelpText = t("tests.navbar.liveHelp")
 
   return (
     <div className="flex h-14 shrink-0 items-center justify-between border-b px-4 min-w-0">
@@ -85,11 +87,11 @@ export function TestNavbar({
           to="/tests"
           className="text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
         >
-          Tests
+          {t("tests.navbar.tests")}
         </Link>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         {isCreateMode ? (
-          <span className="text-sm font-medium truncate">New Test</span>
+          <span className="text-sm font-medium truncate">{t("tests.navbar.newTest")}</span>
         ) : testHref && !isViewMode ? (
           <Link to={testHref} className="truncate text-sm font-medium hover:text-primary transition-colors">
             {testName}
@@ -100,12 +102,12 @@ export function TestNavbar({
         {showEditCrumb && (
           <>
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="text-sm font-medium truncate">Edit</span>
+            <span className="text-sm font-medium truncate">{t("common.edit")}</span>
           </>
         )}
         {unsaved && (
           <Badge variant="outline" className="text-xs">
-            Unsaved
+            {t("tests.navbar.unsaved")}
           </Badge>
         )}
         {!isViewMode && !isCreateMode && testId && showTestId && <IdBadge label="T" value={testId} />}
@@ -117,13 +119,13 @@ export function TestNavbar({
             {testHref ? (
               <Button variant="outline" size="sm" asChild>
                 <Link to={testHref}>
-                  Edit
+                  {t("common.edit")}
                   <ShortcutKey shortcut="E" />
                 </Link>
               </Button>
             ) : (
               <Button variant="outline" size="sm" disabled>
-                Edit
+                {t("common.edit")}
                 <ShortcutKey shortcut="E" />
               </Button>
             )}
@@ -131,7 +133,7 @@ export function TestNavbar({
             <SplitButton
               onRun={onRun}
               disabled={isRunning || runDisabled}
-              label={isRunning ? "Running..." : "Run"}
+              label={isRunning ? t("tests.navbar.running") : t("tests.navbar.run")}
               shortcutKey="R"
               size="sm"
               runButtonTourId={runButtonTourId}
@@ -150,7 +152,7 @@ export function TestNavbar({
                     ) : (
                       <PlayCircle className="h-3.5 w-3.5" />
                     )}
-                    {liveConnectionState === "connecting" ? "Connecting..." : "Connect Live Session"}
+                    {liveConnectionState === "connecting" ? t("tests.navbar.connecting") : t("tests.navbar.connectLive")}
                     <ShortcutKey
                       shortcut="L"
                       className="border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground"
@@ -168,21 +170,21 @@ export function TestNavbar({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon-sm" onClick={onToggleShortcuts} aria-label="Shortcuts">
+                      <Button variant="ghost" size="icon-sm" onClick={onToggleShortcuts} aria-label={t("tests.navbar.shortcuts")}>
                         <Keyboard className="h-3.5 w-3.5" />
                       </Button>
                     </PopoverTrigger>
                   </TooltipTrigger>
-                  <TooltipContent>Shortcuts</TooltipContent>
+                  <TooltipContent>{t("tests.navbar.shortcuts")}</TooltipContent>
                 </Tooltip>
                 <PopoverContent align="end" sideOffset={8} className="w-72 p-4">
                   <div className="space-y-3">
                     <div>
-                      <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Actions</h4>
+                      <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">{t("tests.navbar.actions")}</h4>
                       <ShortcutLegend hints={[
-                        { key: "E", label: "Edit" },
-                        { key: "R", label: "Run" },
-                        { key: "L", label: "Connect Live Session" },
+                        { key: "E", label: t("common.edit") },
+                        { key: "R", label: t("tests.navbar.run") },
+                        { key: "L", label: t("tests.navbar.connectLive") },
                       ]} />
                     </div>
                   </div>
@@ -194,17 +196,17 @@ export function TestNavbar({
           <>
             <Button variant="ghost" size="sm" onClick={onValidate} disabled={isValidating || hasInvalidFilename}>
               <CheckCircle2 className="h-3.5 w-3.5" />
-              {isValidating ? "Validating..." : "Validate"}
+              {isValidating ? t("tests.navbar.validating") : t("tests.navbar.validate")}
             </Button>
 
             <Button variant="ghost" size="sm" onClick={onSave} disabled={isSaving || hasInvalidFilename}>
               <Save className="h-3.5 w-3.5" />
-              {isSaving ? "Saving..." : "Save"}
+              {isSaving ? t("tests.navbar.saving") : t("tests.navbar.save")}
             </Button>
 
             <Button variant="ghost" size="sm" onClick={onSettingsOpen}>
               <Settings className="h-3.5 w-3.5" />
-              Settings
+              {t("tests.navbar.settings")}
             </Button>
 
             {showDivider && <div className="h-4 w-px bg-border" />}
@@ -214,7 +216,7 @@ export function TestNavbar({
                 <SplitButton
                   onRun={onRun}
                   disabled={isRunning || runDisabled}
-                  label={isRunning ? "Running..." : "Run"}
+                  label={isRunning ? t("tests.navbar.running") : t("tests.navbar.run")}
                   size="sm"
                   runButtonTourId={runButtonTourId}
                 />
@@ -230,7 +232,7 @@ export function TestNavbar({
                   disabled={!onLiveEnd}
                 >
                   <Square className="h-3.5 w-3.5" />
-                  End Live Session
+                  {t("tests.navbar.endLive")}
                 </Button>
               ) : (
                 <Tooltip>
@@ -245,7 +247,7 @@ export function TestNavbar({
                       ) : (
                         <PlayCircle className="h-3.5 w-3.5" />
                       )}
-                      {liveConnectionState === "connecting" ? "Connecting..." : "Connect Live Session"}
+                      {liveConnectionState === "connecting" ? t("tests.navbar.connecting") : t("tests.navbar.connectLive")}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-sm text-[13px]">
@@ -261,7 +263,7 @@ export function TestNavbar({
                 aria-live="polite"
                 className="text-[10px] tracking-wider font-medium text-muted-foreground bg-muted/50 border-border/50"
               >
-                Session #{liveSessionNumber}
+                {t("tests.navbar.session", { number: liveSessionNumber })}
               </Badge>
             )}
 
@@ -270,21 +272,21 @@ export function TestNavbar({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <PopoverTrigger asChild>
-                    <Button variant="ghost" size="icon-sm" onClick={onToggleShortcuts} aria-label="Shortcuts">
+                    <Button variant="ghost" size="icon-sm" onClick={onToggleShortcuts} aria-label={t("tests.navbar.shortcuts")}>
                       <Keyboard className="h-3.5 w-3.5" />
                     </Button>
                   </PopoverTrigger>
                 </TooltipTrigger>
-                <TooltipContent>Shortcuts</TooltipContent>
+                <TooltipContent>{t("tests.navbar.shortcuts")}</TooltipContent>
               </Tooltip>
               <PopoverContent align="end" sideOffset={8} className="w-72 p-4">
                 <div className="space-y-3">
                   <div>
-                    <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Actions</h4>
+                    <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">{t("tests.navbar.actions")}</h4>
                     <ShortcutLegend hints={[
-                      { key: "R", label: "Run test" },
-                      { key: "Cmd+S", label: "Save" },
-                      { key: "Esc", label: "Close results panel" },
+                      { key: "R", label: t("tests.navbar.hint.runTest") },
+                      { key: "Cmd+S", label: t("tests.navbar.save") },
+                      { key: "Esc", label: t("tests.navbar.hint.closeResults") },
                     ]} />
                   </div>
                 </div>
