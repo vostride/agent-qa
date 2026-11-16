@@ -527,7 +527,7 @@ describe("evidence the durable read found MISSING is said so, and changes nothin
     const chip = view.querySelector('[data-member="0"] [data-cited-artifact-state="unavailable"]')
     expect(chip?.getAttribute("data-cited-artifact-sha"), "the ref keeps its place").toBe(SHA_GONE)
     expect(chip?.querySelector('[data-evidence-state="unavailable"][data-evidence-incomplete]')).not.toBeNull()
-    expect(chip?.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL)
+    expect(chip?.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL())
     expect(
       view.querySelector(`[data-member="0"] [data-cited-artifact="${SHA_PRESENT}"]`),
       "the artifact that IS there is still one click from the sentence",

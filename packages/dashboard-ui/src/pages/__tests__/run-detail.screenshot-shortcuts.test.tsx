@@ -376,7 +376,7 @@ describe("RunDetailPage decision screenshot", () => {
     expect(
       view.querySelector('[data-artifact-state="unavailable"] [data-evidence-state="unavailable"][data-evidence-incomplete]'),
     ).not.toBeNull()
-    expect(view.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL)
+    expect(view.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL())
   })
 
   it("shows no image at all for a turn that recorded no screenshot", async () => {
@@ -387,7 +387,7 @@ describe("RunDetailPage decision screenshot", () => {
     expect(view.querySelector("img")).toBeNull()
     expect(view.querySelector('[data-artifact-state="available"]')).toBeNull()
     expect(view.querySelector('[data-evidence-state="unavailable"][data-evidence-incomplete]')).toBeNull()
-    expect(view.textContent).not.toContain(EVIDENCE_INCOMPLETE_LABEL)
+    expect(view.textContent).not.toContain(EVIDENCE_INCOMPLETE_LABEL())
   })
 
   // A retired key must be GONE, not silently rebound. A page that still answered `a` would be

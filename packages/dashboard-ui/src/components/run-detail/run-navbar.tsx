@@ -147,7 +147,7 @@ export function RunNavbar({
               >
                 <Cpu className="h-3.5 w-3.5" />
                 {tokenPairLine(tokens)}
-                <span className="sr-only">{TOKEN_USAGE_TRIGGER_LABEL}</span>
+                <span className="sr-only">{TOKEN_USAGE_TRIGGER_LABEL()}</span>
               </span>
             </TooltipTrigger>
             <RunUsageCard tokens={tokens} models={models} />

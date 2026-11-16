@@ -142,10 +142,10 @@ describe("an unmeasured run still says what it knows", () => {
 
     // No coverage line: a run nobody measured has no total to be an undercount of.
     expect(lines(card)).toEqual([
-      ["totals", TOKENS_NOT_MEASURED_LABEL],
+      ["totals", TOKENS_NOT_MEASURED_LABEL()],
       ["model", "Model gpt-5.6-terra (openai)"],
     ])
-    expect(usageTotalsLine({ measuredSteps: 0, unmeasuredSteps: 3 })).toBe(TOKENS_NOT_MEASURED_LABEL)
+    expect(usageTotalsLine({ measuredSteps: 0, unmeasuredSteps: 3 })).toBe(TOKENS_NOT_MEASURED_LABEL())
   })
 
   it("USAGE-CARD-UNMEASURED: a run with no measured step renders the label and no model line at all", async () => {
@@ -181,7 +181,7 @@ describe("who answered this run, for no, one or many models", () => {
 
     expect(lines(card)).toEqual([
       ["totals", "103,530 total · 103,074 in · 456 out"],
-      ["heading", MODELS_HEADING],
+      ["heading", MODELS_HEADING()],
       ["models", "gpt-5.6-terra (openai) × 2 steps"],
       ["models", "claude-opus-5 (anthropic) × 1 steps"],
     ])

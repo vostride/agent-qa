@@ -124,7 +124,7 @@ describe('the lightbox opens what the verdict cited', () => {
     const lightbox = mountLightbox()
     await act(async () => { lightbox.querySelector('img')!.dispatchEvent(new Event('error')) })
     expect(lightbox.querySelector('[data-evidence-kind="frame"][data-evidence-state="unavailable"][data-evidence-incomplete]')).not.toBeNull()
-    expect(lightbox.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL)
+    expect(lightbox.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL())
     expect(lightbox.querySelector('img')).toBeNull()
   })
 

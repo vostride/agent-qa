@@ -13,7 +13,7 @@ export function EvidenceIncomplete({ variant }: { variant: EvidenceIncompleteVar
       state="unavailable"
       incomplete
       variant={variant}
-      title={variant === 'inline' ? EVIDENCE_INCOMPLETE_LABEL : EVIDENCE_COPY.frame.unavailable.title}
+      title={variant === 'inline' ? EVIDENCE_INCOMPLETE_LABEL() : EVIDENCE_COPY.frame.unavailable.title}
       explanation={EVIDENCE_INCOMPLETE_EXPLANATION()}
     />
   )

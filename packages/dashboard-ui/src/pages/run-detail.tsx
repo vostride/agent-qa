@@ -1063,7 +1063,7 @@ export default function RunDetailPage() {
                   data-run-detail-error
                   className="flex-1 flex items-center justify-center px-4 text-center text-sm text-muted-foreground"
                 >
-                  {RUN_DETAIL_UNAVAILABLE_LABEL}
+                  {RUN_DETAIL_UNAVAILABLE_LABEL()}
                 </div>
               ) : (
                 <StepTree
@@ -1091,7 +1091,7 @@ export default function RunDetailPage() {
             <div className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
               {detail === null ? (
                 <div data-run-detail-error className='flex flex-1 items-center justify-center px-4 text-center text-sm text-muted-foreground'>
-                  {RUN_DETAIL_UNAVAILABLE_LABEL}
+                  {RUN_DETAIL_UNAVAILABLE_LABEL()}
                 </div>
               ) : <>
                 <div className='flex min-h-0 flex-1 flex-col'>

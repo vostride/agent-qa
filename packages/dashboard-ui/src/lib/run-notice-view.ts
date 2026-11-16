@@ -1,9 +1,12 @@
 import type { RunDetailProjection } from '@vostride/agent-qa-schema'
 
-export const RUN_NOTICE_COPY = {
-  message: 'This run was recorded before evidence was saved. Variables, network, console, ARIA, accessibility and video were not recorded.',
-  dismiss: 'Dismiss notice',
-} as const
+import { t } from '@/i18n'
+import { textTable } from '@/i18n/text-table'
+
+export const RUN_NOTICE_COPY = textTable({
+  message: () => t('runDetail.notice.message'),
+  dismiss: () => t('runDetail.notice.dismiss'),
+})
 
 export function runNoticeDismissKey(runId: string): string {
   return `agent-qa.run-detail.notice-dismissed:${runId}`

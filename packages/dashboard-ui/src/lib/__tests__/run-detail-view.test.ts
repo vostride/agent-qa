@@ -149,10 +149,10 @@ describe('member copy', () => {
       projection({ members: [member(0), member(1)], steps: [step(0, 0)] }),
     )
 
-    expect(memberNote(thin!.member, thin!)).toBe(DID_NOT_RUN_LABEL)
+    expect(memberNote(thin!.member, thin!)).toBe(DID_NOT_RUN_LABEL())
     expect(memberNote(ran!.member, ran!)).toBeUndefined()
     // The live surface and the durable surface must agree word for word.
-    expect(DID_NOT_RUN_LABEL).toBe(DID_NOT_RUN_NOTE)
+    expect(DID_NOT_RUN_LABEL()).toBe(DID_NOT_RUN_NOTE)
   })
 
   it('counts RE-RUNS, not attempts, and stays silent on the first attempt', () => {
@@ -179,17 +179,17 @@ describe('the header token pair', () => {
 
   it('TOKEN-PAIR-LINE: never says "0 in" for a run nobody measured', () => {
     const line = tokenPairLine({ measuredSteps: 0, unmeasuredSteps: 3 })
-    expect(line).toBe(TOKENS_NOT_MEASURED_LABEL)
+    expect(line).toBe(TOKENS_NOT_MEASURED_LABEL())
     expect(line).not.toContain('0')
   })
 
   it('TOKEN-PAIR-LINE: refuses to invent a sum that the projection omitted', () => {
     // measuredSteps > 0 with no sums cannot happen on the shipped op — and if it ever did,
     // the honest answer is still "not measured", never a fabricated zero.
-    expect(tokenPairLine({ measuredSteps: 2, unmeasuredSteps: 0 })).toBe(TOKENS_NOT_MEASURED_LABEL)
+    expect(tokenPairLine({ measuredSteps: 2, unmeasuredSteps: 0 })).toBe(TOKENS_NOT_MEASURED_LABEL())
     expect(
       tokenPairLine({ measuredSteps: 2, unmeasuredSteps: 0, promptTokens: 900 }),
-    ).toBe(TOKENS_NOT_MEASURED_LABEL)
+    ).toBe(TOKENS_NOT_MEASURED_LABEL())
   })
 
   it('TOKEN-PAIR-LINE: reports a genuinely measured zero as a measurement', () => {
@@ -231,8 +231,8 @@ describe('the card totals line', () => {
   })
 
   it('USAGE-TOTALS-FULL-DIGITS: an unmeasured run reads the label, in the card too', () => {
-    expect(usageTotalsLine({ measuredSteps: 0, unmeasuredSteps: 2 })).toBe(TOKENS_NOT_MEASURED_LABEL)
-    expect(usageTotalsLine({ measuredSteps: 2, unmeasuredSteps: 0 })).toBe(TOKENS_NOT_MEASURED_LABEL)
+    expect(usageTotalsLine({ measuredSteps: 0, unmeasuredSteps: 2 })).toBe(TOKENS_NOT_MEASURED_LABEL())
+    expect(usageTotalsLine({ measuredSteps: 2, unmeasuredSteps: 0 })).toBe(TOKENS_NOT_MEASURED_LABEL())
   })
 })
 
@@ -276,7 +276,7 @@ describe('measurement coverage', () => {
     ).toBeUndefined()
 
     // The composition the card reads: the not-measured label is the whole of what it claims.
-    expect(usageTotalsLine(unmeasured), failure).toBe(TOKENS_NOT_MEASURED_LABEL)
+    expect(usageTotalsLine(unmeasured), failure).toBe(TOKENS_NOT_MEASURED_LABEL())
     expect(cachedInputLine(unmeasured), failure).toBeUndefined()
   })
 })
@@ -371,7 +371,7 @@ describe('model identity in the card', () => {
         ],
       }),
     ).toEqual([
-      { kind: 'heading', text: MODELS_HEADING },
+      { kind: 'heading', text: MODELS_HEADING() },
       { kind: 'models', text: 'gpt-5.6-terra (openai) × 2 steps' },
       { kind: 'models', text: 'claude-opus-5 (anthropic) × 1 steps' },
       { kind: 'responded', text: 'responded as claude-opus-5-20260901 × 1 steps' },
@@ -382,7 +382,7 @@ describe('model identity in the card', () => {
     expect(
       usageModelLines({ responding: [{ modelId: 'gpt-5.6-terra', stepCount: 4 }] }),
     ).toEqual([
-      { kind: 'heading', text: MODELS_HEADING },
+      { kind: 'heading', text: MODELS_HEADING() },
       { kind: 'responded', text: 'responded as gpt-5.6-terra × 4 steps' },
     ])
   })
@@ -408,13 +408,13 @@ describe('screen context', () => {
   })
 
   it('reads the pair, not the presence of the field', () => {
-    expect(screenStateChangeLabel(subAction(0, 0, 0))).toBe(SCREEN_STATE_UNCHANGED_LABEL)
+    expect(screenStateChangeLabel(subAction(0, 0, 0))).toBe(SCREEN_STATE_UNCHANGED_LABEL())
     expect(
       screenStateChangeLabel(subAction(0, 0, 0, { screenStateHashAfter: HASH })),
-    ).toBe(SCREEN_STATE_UNCHANGED_LABEL)
+    ).toBe(SCREEN_STATE_UNCHANGED_LABEL())
     expect(
       screenStateChangeLabel(subAction(0, 0, 0, { screenStateHashAfter: 'f'.repeat(64) })),
-    ).toBe(SCREEN_STATE_CHANGED_LABEL)
+    ).toBe(SCREEN_STATE_CHANGED_LABEL())
   })
 })
 
@@ -431,7 +431,9 @@ describe('the copy inventory', () => {
     const labels = Object.entries(view).filter(([name]) => name.endsWith('_LABEL'))
 
     expect(labels.length).toBeGreaterThanOrEqual(6)
-    for (const [name, value] of labels) {
+    for (const [name, read] of labels) {
+      expect(typeof read, name).toBe('function')
+      const value = (read as () => unknown)()
       expect(typeof value, name).toBe('string')
       expect((value as string).length, name).toBeGreaterThan(0)
       // Text nodes only — nothing here is ever handed to a markup parser.

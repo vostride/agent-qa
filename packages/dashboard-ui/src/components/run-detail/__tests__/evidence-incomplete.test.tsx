@@ -99,7 +99,7 @@ describe('EvidenceIncomplete', () => {
     expect(node?.hasAttribute('data-evidence-incomplete')).toBe(true)
     expect(node?.getAttribute('data-evidence-kind')).toBe('frame')
     expect(node?.getAttribute('data-evidence-tone')).toBe('neutral')
-    expect(node?.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL)
+    expect(node?.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL())
   })
 
   it('paints the pane variant under the one attribute and the one label', () => {
@@ -107,7 +107,7 @@ describe('EvidenceIncomplete', () => {
 
     const node = view.querySelector('[data-evidence-state="unavailable"][data-evidence-incomplete]')
     expect(node).not.toBeNull()
-    expect(node?.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL)
+    expect(node?.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL())
   })
 
   it('keeps the pane out of the other two absence vocabularies', () => {
@@ -123,7 +123,7 @@ describe('EvidenceIncomplete', () => {
     const node = view.querySelector('[data-evidence-state="unavailable"][data-evidence-incomplete]')
     expect(node).not.toBeNull()
     expect(node?.tagName).toBe('SPAN')
-    expect(node?.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL)
+    expect(node?.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL())
     expect(view.querySelector('button')).toBeNull()
     expect(view.querySelector('[href]')).toBeNull()
     expect(view.querySelector('[data-masked]')).toBeNull()
@@ -132,7 +132,7 @@ describe('EvidenceIncomplete', () => {
 
   // The old name stays an alias, pinned so a respelling of either has to be deliberate.
   it('keeps the screenshot-unavailable name as an alias of the evidence-incomplete label', () => {
-    expect(SCREENSHOT_UNAVAILABLE_LABEL).toBe(EVIDENCE_INCOMPLETE_LABEL)
+    expect(SCREENSHOT_UNAVAILABLE_LABEL()).toBe(EVIDENCE_INCOMPLETE_LABEL())
   })
 })
 
@@ -145,7 +145,7 @@ describe('the overview decision screenshot reads presence', () => {
       view.querySelector('[data-artifact-state="unavailable"] [data-evidence-state="unavailable"][data-evidence-incomplete]'),
     ).not.toBeNull()
     expect(view.querySelector('img')).toBeNull()
-    expect(view.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL)
+    expect(view.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL())
   })
 
   it('renders the same state for a ref the producer already flagged incomplete', async () => {

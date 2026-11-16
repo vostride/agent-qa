@@ -71,23 +71,57 @@ const USAGE_CARD_OPEN_BUDGET_MS = 5_000
 const ARTIFACT_ROUTE_RE = new RegExp('/api/runs/[^/]+/artifacts/[0-9a-f]{64}$', 'u')
 
 /**
- * A published constant, read out of the module that publishes it.
+ * One source-level string body as the runtime would see it.
  *
- * `post-processing-dom.test.ts`'s `publishedRecordSentence`, narrowed to a top-level `export const`.
- * Extracted rather than imported for that file's own reason: importing a `dashboard-ui` module into
- * a Node test would drag a renderer in. Either way the cell fails when the sentence moves, which is
- * the point — a hardcoded copy would go on passing against a page that says something else.
+ * `run-detail-failure-dom.test.ts`'s helper, carried here for its reason: a constant whose text
+ * contains its own quote would otherwise come back carrying the backslash the source needed, and
+ * nothing on the page would ever match it.
  */
-function publishedConstant(relativePath: string, name: string): string {
-  const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
-  const entry = new RegExp(`export const ${name}(?::\\s*string)?\\s*=\\s*'([^']*)'`, 'u').exec(source)
-  if (entry === null) {
-    throw new Error(`${name} is no longer a single-quoted top-level constant in ${relativePath}`)
+function unescapeStringBody(body: string): string {
+  const named: Record<string, string> = {
+    n: '\n', t: '\t', r: '\r', b: '\b', f: '\f', v: '\v', '0': '\0',
   }
-  return entry[1] as string
+  let out = ''
+  let index = 0
+  while (index < body.length) {
+    const char = body[index] as string
+    if (char !== '\\' || index + 1 >= body.length) {
+      out += char
+      index += 1
+      continue
+    }
+    const next = body[index + 1] as string
+    const braced = next === 'u' ? /^u\{([0-9a-fA-F]+)\}/u.exec(body.slice(index + 1)) : null
+    const quad = next === 'u' ? /^u([0-9a-fA-F]{4})/u.exec(body.slice(index + 1)) : null
+    const hex = next === 'x' ? /^x([0-9a-fA-F]{2})/u.exec(body.slice(index + 1)) : null
+    const escape = braced ?? quad ?? hex
+    if (escape !== null) {
+      out += String.fromCodePoint(Number.parseInt(escape[1] as string, 16))
+      index += 1 + escape[0].length
+      continue
+    }
+    out += named[next] ?? next
+    index += 2
+  }
+  return out
 }
 
-const TOKENS_NOT_MEASURED_LABEL = publishedConstant('lib/run-detail-view.ts', 'TOKENS_NOT_MEASURED_LABEL')
+// The English text of one catalog key, in either quote style, on the key's line or the next.
+function publishedText(area: string, key: string): string {
+  const relativePath = join('i18n', 'locales', 'en', `${area}.ts`)
+  const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
+  const quotedKey = key.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  const entry = new RegExp(
+    `(['"])${quotedKey}\\1:[ \\t]*(?:\\n[ \\t]*)?(['"])((?:\\\\.|[^\\\\])*?)\\2`,
+    'u',
+  ).exec(source)
+  if (entry === null) {
+    throw new Error(`${key} is not a quoted entry of ${relativePath}`)
+  }
+  return unescapeStringBody(entry[3] as string)
+}
+
+const TOKENS_NOT_MEASURED_LABEL = publishedText('runDetail', 'runDetail.usage.tokensNotMeasured')
 
 /**
  * The accessible name of one overview reasoning section, read out of the panel that names it.

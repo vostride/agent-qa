@@ -23,7 +23,7 @@ afterEach(() => {
 
 test('STATE-INLINE-VARIANT', () => {
   const onAction = vi.fn()
-  const element = mount(<component.EvidenceState kind="frame" state="unavailable" incomplete variant="inline" title={EVIDENCE_INCOMPLETE_LABEL} explanation={view.EVIDENCE_INCOMPLETE_EXPLANATION()} actionLabel="Unused" onAction={onAction} />)
+  const element = mount(<component.EvidenceState kind="frame" state="unavailable" incomplete variant="inline" title={EVIDENCE_INCOMPLETE_LABEL()} explanation={view.EVIDENCE_INCOMPLETE_EXPLANATION()} actionLabel="Unused" onAction={onAction} />)
   const badge = element.querySelector('[data-evidence-state="unavailable"]')
   expect(badge?.tagName).toBe('SPAN')
   expect(badge?.getAttribute('data-slot')).toBe('badge')
@@ -31,7 +31,7 @@ test('STATE-INLINE-VARIANT', () => {
   expect(badge?.getAttribute('data-evidence-kind')).toBe('frame')
   expect(badge?.getAttribute('data-evidence-tone')).toBe('neutral')
   expect(badge?.getAttribute('data-evidence-incomplete')).toBe('true')
-  expect(badge?.textContent).toBe(EVIDENCE_INCOMPLETE_LABEL)
+  expect(badge?.textContent).toBe(EVIDENCE_INCOMPLETE_LABEL())
   expect(badge?.querySelector('svg')?.getAttribute('class')).toContain('h-3 w-3')
   expect(element.querySelector('button, a, [href], [data-masked], [data-run-detail-error]')).toBeNull()
   expect(onAction).not.toHaveBeenCalled()

@@ -190,7 +190,7 @@ describe("run detail cache markers", () => {
     expect(text).toContain("Login")
     expect(text).toContain("First child step")
     expect(text).toContain("Checkout")
-    expect(text).toContain(DID_NOT_RUN_LABEL)
+    expect(text).toContain(DID_NOT_RUN_LABEL())
     expect(text).toContain("Suite teardown")
     expect(text.indexOf("Suite setup")).toBeLessThan(text.indexOf("Login"))
     expect(text.indexOf("Login")).toBeLessThan(text.indexOf("Checkout"))

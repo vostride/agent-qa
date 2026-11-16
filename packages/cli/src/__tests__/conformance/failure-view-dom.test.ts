@@ -125,11 +125,26 @@ function publishedConstant(relativePath: string, name: string): string {
   return unescapeStringBody(entry[2] as string)
 }
 
+// The English text of one catalog key, in either quote style, on the key's line or the next.
+function publishedText(area: string, key: string): string {
+  const relativePath = join('i18n', 'locales', 'en', `${area}.ts`)
+  const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
+  const quotedKey = key.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  const entry = new RegExp(
+    `(['"])${quotedKey}\\1:[ \\t]*(?:\\n[ \\t]*)?(['"])((?:\\\\.|[^\\\\])*?)\\2`,
+    'u',
+  ).exec(source)
+  if (entry === null) {
+    throw new Error(`${key} is not a quoted entry of ${relativePath}`)
+  }
+  return unescapeStringBody(entry[3] as string)
+}
+
 /** The provenance chip's first half when the model authored the verdict. */
 const LLM_VERDICT_LABEL = publishedConstant('lib/analysis-view.ts', 'LLM_VERDICT_LABEL')
 
 /** The word BOTH `evidence-incomplete` variants wear. */
-const EVIDENCE_INCOMPLETE_LABEL = publishedConstant('lib/run-detail-view.ts', 'EVIDENCE_INCOMPLETE_LABEL')
+const EVIDENCE_INCOMPLETE_LABEL = publishedText('runDetail', 'runDetail.evidence.incomplete')
 
 /**
  * The provenance line the block must read, composed from the SAME formula the product uses.

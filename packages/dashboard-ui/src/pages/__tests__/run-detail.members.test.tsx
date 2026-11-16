@@ -340,7 +340,7 @@ describe("a member that never ran renders honestly", () => {
 
     const view = await renderAt("/runs/run-1")
 
-    expect(view.textContent).toContain(DID_NOT_RUN_LABEL)
+    expect(view.textContent).toContain(DID_NOT_RUN_LABEL())
     expect(view.textContent).toContain("skipped by fail-fast")
     expect(view.querySelector('[data-member-outcome="skipped"]')).toBeTruthy()
   })
@@ -352,7 +352,7 @@ describe("a detail read that FAILED is not an empty run", () => {
 
     const view = await renderAt("/runs/run-1")
 
-    expect(view.textContent).toContain(RUN_DETAIL_UNAVAILABLE_LABEL)
+    expect(view.textContent).toContain(RUN_DETAIL_UNAVAILABLE_LABEL())
     expect(view.textContent).not.toContain("No steps were executed.")
     expect(view.querySelector('[data-testid="run-navbar"]')).toBeTruthy()
     expect(view.querySelector('[data-testid="location"]')?.getAttribute("data-search")).toBe("")
@@ -364,7 +364,7 @@ describe("a detail read that FAILED is not an empty run", () => {
     const view = await renderAt("/runs/run-1")
 
     expect(view.textContent).toContain("No steps were executed.")
-    expect(view.textContent).not.toContain(RUN_DETAIL_UNAVAILABLE_LABEL)
+    expect(view.textContent).not.toContain(RUN_DETAIL_UNAVAILABLE_LABEL())
   })
 })
 

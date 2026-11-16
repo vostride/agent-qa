@@ -7,6 +7,7 @@ import insights from './insights'
 import language from './language'
 import nav from './nav'
 import player from './player'
+import runDetail from './runDetail'
 import runs from './runs'
 import status from './status'
 import time from './time'
@@ -26,4 +27,5 @@ export default {
   ...insights,
   ...evidence,
   ...player,
+  ...runDetail,
 } as const

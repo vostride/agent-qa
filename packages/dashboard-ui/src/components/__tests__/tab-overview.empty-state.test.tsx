@@ -114,7 +114,7 @@ describe("TabOverview screenshot states", () => {
 
     expect(view.textContent).toContain(EVIDENCE_COPY.frame["not-captured"]["sub-action"].title)
     expect(view.textContent).not.toContain(EVIDENCE_COPY.frame["not-captured"].step.title)
-    expect(view.textContent).not.toContain(EVIDENCE_INCOMPLETE_LABEL)
+    expect(view.textContent).not.toContain(EVIDENCE_INCOMPLETE_LABEL())
     expect(view.querySelector('[data-evidence-state="unavailable"][data-evidence-incomplete]')).toBeNull()
     expect(view.querySelector("img")).toBeNull()
   })
@@ -138,7 +138,7 @@ describe("TabOverview screenshot states", () => {
     expect(
       view.querySelector('[data-artifact-state="unavailable"] [data-evidence-state="unavailable"][data-evidence-incomplete]'),
     ).not.toBeNull()
-    expect(view.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL)
+    expect(view.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL())
     expect(view.querySelector("img")).toBeNull()
   })
 
@@ -159,7 +159,7 @@ describe("TabOverview screenshot states", () => {
     expect(
       view.querySelector('[data-artifact-state="unavailable"] [data-evidence-state="unavailable"][data-evidence-incomplete]'),
     ).not.toBeNull()
-    expect(view.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL)
+    expect(view.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL())
   })
 
   // An `artifactRefs` list is open — the producer may attach other evidence to the same turn — so

@@ -261,7 +261,7 @@ describe("RunNavbar", () => {
     )
 
     const line = container.querySelector('[data-run-token-summary]')
-    expect(line?.textContent).toContain(TOKENS_NOT_MEASURED_LABEL)
+    expect(line?.textContent).toContain(TOKENS_NOT_MEASURED_LABEL())
   })
 
   // Coverage lives in the card; the tooltip mock passes through, so card lines render inline.
@@ -286,7 +286,7 @@ describe("RunNavbar", () => {
     expect(line).not.toBeNull()
     expect(visibleTextOf(line!)).toBe(tokenPairLine(tokens))
     expect(line!.textContent).not.toMatch(/of \d+ steps/)
-    expect(line!.textContent).not.toContain(TOKENS_NOT_MEASURED_LABEL)
+    expect(line!.textContent).not.toContain(TOKENS_NOT_MEASURED_LABEL())
 
     expect(container.querySelector('[data-usage-line="coverage"]')?.textContent).toBe(
       usageCoverageLine(tokens),
@@ -314,7 +314,7 @@ describe("RunNavbar", () => {
     const line = container.querySelector("[data-run-token-summary]") as HTMLElement | null
     expect(line?.tagName).toBe("SPAN")
     expect(line?.getAttribute("tabindex")).toBe("0")
-    expect(line?.querySelector(".sr-only")?.textContent).toBe(TOKEN_USAGE_TRIGGER_LABEL)
+    expect(line?.querySelector(".sr-only")?.textContent).toBe(TOKEN_USAGE_TRIGGER_LABEL())
     expect(container.querySelector("button[data-run-token-summary]")).toBeNull()
 
     expect(container.querySelector('[data-usage-line="totals"]')?.textContent).toBe(

@@ -100,21 +100,6 @@ function unescapeStringBody(body: string): string {
   return out
 }
 
-// Either quote style, matched to the closing quote across escapes; a template literal is refused.
-function publishedConstant(relativePath: string, name: string): string {
-  const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
-  const entry = new RegExp(
-    `export const ${name}(?::\\s*string)?\\s*=\\s*(['"])((?:\\\\.|[^\\\\])*?)\\1`,
-    'u',
-  ).exec(source)
-  if (entry === null) {
-    throw new Error(
-      `${name} is no longer a single- or double-quoted top-level constant in ${relativePath}`,
-    )
-  }
-  return unescapeStringBody(entry[2] as string)
-}
-
 // The English text of one catalog key, in either quote style, on the key's line or the next.
 function publishedText(area: string, key: string): string {
   const relativePath = join('i18n', 'locales', 'en', `${area}.ts`)
@@ -131,7 +116,7 @@ function publishedText(area: string, key: string): string {
 }
 
 // Outside the drive's `describe`, so the helper's cell needs no binary, browser or run.
-describe('published text reads a catalog entry or a constant whatever quotes it carries', () => {
+describe('published text reads a catalog entry whatever quotes it carries', () => {
   it('publishedText reads a DOUBLE-quoted catalog entry with its apostrophe intact', () => {
     const title = publishedText('configUi', 'configUi.configLoadFailedTitle')
     expect(title).toBe("Couldn't load the config")
@@ -145,14 +130,8 @@ describe('published text reads a catalog entry or a constant whatever quotes it 
     )
   })
 
-  it('publishedConstant still reads a SINGLE-quoted constant, unchanged', () => {
-    expect(publishedConstant('lib/run-detail-view.ts', 'TOKEN_USAGE_TRIGGER_LABEL'))
-      .toBe('Token usage — details')
-  })
-
-  it('publishedConstant refuses a name it cannot find rather than answering an empty string', () => {
-    expect(() => publishedConstant('lib/run-detail-view.ts', 'NOT_A_PUBLISHED_CONSTANT'))
-      .toThrow(/single- or double-quoted/u)
+  it('publishedText reads a SINGLE-quoted catalog entry with its dash intact', () => {
+    expect(publishedText('runDetail', 'runDetail.usage.triggerLabel')).toBe('Token usage — details')
   })
 })
 

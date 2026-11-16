@@ -253,7 +253,7 @@ describe("run detail renders the durable projection's five facts", () => {
     expect(
       view.querySelector('[data-artifact-state="unavailable"] [data-evidence-state="unavailable"][data-evidence-incomplete]'),
     ).not.toBeNull()
-    expect(view.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL)
+    expect(view.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL())
     expect(view.querySelector("img")).toBeNull()
   })
 
@@ -274,7 +274,7 @@ describe("run detail renders the durable projection's five facts", () => {
     const view = await renderAt()
 
     expect(view.querySelector('[data-evidence-state="unavailable"][data-evidence-incomplete]')).not.toBeNull()
-    expect(view.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL)
+    expect(view.textContent).toContain(EVIDENCE_INCOMPLETE_LABEL())
     expect(view.querySelector("img")).toBeNull()
     expect(view.querySelector("[data-masked]")).toBeNull()
     expect(view.querySelector("[data-run-detail-error]")).toBeNull()
@@ -329,6 +329,6 @@ describe("run detail renders the durable projection's five facts", () => {
     const view = await renderAt()
 
     expect(view.querySelector("[data-token-summary]")).toBeNull()
-    expect(view.querySelector("[data-run-token-summary]")?.textContent).toContain(TOKENS_NOT_MEASURED_LABEL)
+    expect(view.querySelector("[data-run-token-summary]")?.textContent).toContain(TOKENS_NOT_MEASURED_LABEL())
   })
 })

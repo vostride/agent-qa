@@ -255,10 +255,10 @@ describe("a member that never ran renders honestly, never as an empty tree", () 
       true,
     )
 
-    expect(view.textContent).toContain(DID_NOT_RUN_LABEL)
+    expect(view.textContent).toContain(DID_NOT_RUN_LABEL())
     // Both, because the badge must not take the note from the one place the outcome word appeared.
     expect(view.querySelector('[data-member-outcome="skipped"]')).toBeTruthy()
-    expect(view.querySelector("[data-member-note]")?.textContent).toBe(DID_NOT_RUN_LABEL)
+    expect(view.querySelector("[data-member-note]")?.textContent).toBe(DID_NOT_RUN_LABEL())
     expect(view.textContent).toContain("skipped by fail-fast")
   })
 
@@ -302,7 +302,7 @@ describe("a member that never ran renders honestly, never as an empty tree", () 
       </ul>,
     )
 
-    expect(view.textContent).toContain(DID_NOT_RUN_LABEL)
+    expect(view.textContent).toContain(DID_NOT_RUN_LABEL())
     expect(view.querySelector("[data-member]")).toBeNull()
   })
 })
