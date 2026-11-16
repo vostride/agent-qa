@@ -90,7 +90,7 @@ export function unsentDraftLabel(place: FeedbackPlace): string {
   return t('feedback.composer.unsentDraft', { place: placeText(place) })
 }
 
-export const NOTE_LABEL = 'Note (optional)'
+export const NOTE_LABEL = () => t('feedback.composer.noteLabel')
 /** UTF-16 code units, the textarea's own maxLength rule. */
 export const NOTE_MAX_LENGTH = 2000
 export const NOTE_COUNTER_FROM = 1800
@@ -127,7 +127,7 @@ export const FEEDBACK_CHOICE_ORDER = {
   ],
 } as const satisfies Record<FeedbackOutcomeClass, readonly [Mark, Mark, Mark]>
 
-export const CHOICE_LEGEND = 'Which is true?'
+export const CHOICE_LEGEND = () => t('feedback.composer.choiceLegend')
 
 export const CHOICE_MEANINGS = {
   failed: textTable({
@@ -192,18 +192,21 @@ type NamePartsKey =
   | 'feedback.scope.oneStepInTest'
   | 'feedback.history.targetStep'
   | 'feedback.history.targetTest'
+  | 'feedback.preview.cliEscape'
+  | 'feedback.history.quoted'
 
 // The sentence is split before its slots are filled, so a step or test name is never read for slots.
 function nameParts(
   key: NamePartsKey,
-  values: Readonly<Record<string, string>> & { name: string },
+  values: Readonly<Record<string, string>>,
+  slot = 'name',
 ): FeedbackTextParts {
   const pieces = String(t(key, { skipInterpolation: true } as never)).split(/\{\{\s*(\w+)\s*\}\}/u)
   let prefix = ''
   let suffix = ''
   let named = false
   pieces.forEach((piece, index) => {
-    if (index % 2 === 1 && piece === 'name') {
+    if (index % 2 === 1 && piece === slot) {
       named = true
       return
     }
@@ -213,7 +216,7 @@ function nameParts(
   })
   return {
     prefix,
-    ...(named ? { name: values.name } : {}),
+    ...(named ? { name: values[slot] ?? '' } : {}),
     ...(suffix === '' ? {} : { suffix }),
   }
 }
@@ -357,8 +360,8 @@ export function resolveHeaderFeedbackTarget({
   return chosen === undefined ? undefined : { testIndex: chosen.testIndex }
 }
 
-export const TEST_SWITCHER_LABEL = 'Test'
-export const NO_UNIQUE_ADDRESS_TEXT = "This test has no unique address in this run, so feedback can't be recorded for it."
+export const TEST_SWITCHER_LABEL = () => t('feedback.composer.testSwitcherLabel')
+export const NO_UNIQUE_ADDRESS_TEXT = () => t('feedback.composer.noUniqueAddress')
 
 // The wire addresses a suite member by `testId`, so it needs a truthy one no other member holds.
 export function hasUniqueAddress(detail: Pick<RunDetailProjection, 'members'> | null | undefined, testIndex: number): boolean {
@@ -469,13 +472,13 @@ export function previewRequestKey(input: PreviewRequest): string {
 
 const PREVIEW_REFUSAL_KINDS: ReadonlySet<string> = new Set(MARK_PREVIEW_REFUSALS)
 
-export const SUBMIT_REASON_NO_UNIQUE_ADDRESS = "This test can't be marked from the dashboard."
-export const SUBMIT_REASON_NO_CHOICE = 'Choose one of the three options.'
-export const SUBMIT_REASON_CHECKING = 'Checking what this will do…'
-export const SUBMIT_REASON_PREVIEW_FAILED = "Consequences couldn't be checked — retry above."
-export const SUBMIT_REASON_REFUSED = "This mark can't be recorded — see above."
-export const SUBMIT_REASON_ALREADY_MARKED = "You already said this — there's nothing new to record."
-export const SUBMIT_REASON_SENDING = 'Sending…'
+export const SUBMIT_REASON_NO_UNIQUE_ADDRESS = () => t('feedback.composer.submitReason.noUniqueAddress')
+export const SUBMIT_REASON_NO_CHOICE = () => t('feedback.composer.submitReason.noChoice')
+export const SUBMIT_REASON_CHECKING = () => t('feedback.composer.submitReason.checking')
+export const SUBMIT_REASON_PREVIEW_FAILED = () => t('feedback.composer.submitReason.previewFailed')
+export const SUBMIT_REASON_REFUSED = () => t('feedback.composer.submitReason.refused')
+export const SUBMIT_REASON_ALREADY_MARKED = () => t('feedback.composer.submitReason.alreadyMarked')
+export const SUBMIT_REASON_SENDING = () => t('feedback.composer.submitReason.sending')
 
 export interface SubmitBlockInput {
   kind: Mark | undefined
@@ -488,24 +491,24 @@ export interface SubmitBlockInput {
 
 // First match wins and `''` means sendable; only a current consequences or quarantined read passes.
 export function submitBlockedReason(input: SubmitBlockInput): string {
-  if (input.noUniqueAddress === true) return SUBMIT_REASON_NO_UNIQUE_ADDRESS
-  if (input.kind === undefined) return SUBMIT_REASON_NO_CHOICE
+  if (input.noUniqueAddress === true) return SUBMIT_REASON_NO_UNIQUE_ADDRESS()
+  if (input.kind === undefined) return SUBMIT_REASON_NO_CHOICE()
   const outcome = input.landedOutcome
-  if (outcome === undefined || input.landedKey !== input.currentKey) return SUBMIT_REASON_CHECKING
-  if (outcome === 'failed') return SUBMIT_REASON_PREVIEW_FAILED
-  if (PREVIEW_REFUSAL_KINDS.has(outcome)) return SUBMIT_REASON_REFUSED
-  if (outcome !== 'consequences' && outcome !== 'quarantined') return SUBMIT_REASON_ALREADY_MARKED
-  if (input.inFlight) return SUBMIT_REASON_SENDING
+  if (outcome === undefined || input.landedKey !== input.currentKey) return SUBMIT_REASON_CHECKING()
+  if (outcome === 'failed') return SUBMIT_REASON_PREVIEW_FAILED()
+  if (PREVIEW_REFUSAL_KINDS.has(outcome)) return SUBMIT_REASON_REFUSED()
+  if (outcome !== 'consequences' && outcome !== 'quarantined') return SUBMIT_REASON_ALREADY_MARKED()
+  if (input.inFlight) return SUBMIT_REASON_SENDING()
   return ''
 }
 
-export const SEND_FEEDBACK_LABEL = 'Send feedback'
-export const PREVIEW_TITLE = 'What this will do'
-export const SENDING_STATUS = 'Sending feedback…'
-export const FEEDBACK_ENTRY_TEST_LABEL = 'Give feedback on this test'
-export const CLOSE_FEEDBACK_LABEL = 'Close feedback'
-export const CLOSE_FEEDBACK_TOOLTIP = 'Close (Esc)'
-export const DRAFT_KEPT_STATUS = 'Draft kept. Check the message above before sending again.'
+export const SEND_FEEDBACK_LABEL = () => t('feedback.composer.send')
+export const PREVIEW_TITLE = () => t('feedback.preview.title')
+export const SENDING_STATUS = () => t('feedback.composer.sendingStatus')
+export const FEEDBACK_ENTRY_TEST_LABEL = () => t('feedback.entry.test')
+export const CLOSE_FEEDBACK_LABEL = () => t('feedback.composer.close')
+export const CLOSE_FEEDBACK_TOOLTIP = () => t('feedback.composer.closeTooltip')
+export const DRAFT_KEPT_STATUS = () => t('feedback.composer.draftKeptStatus')
 
 export type FeedbackEntryScope = 'test' | 'step'
 
@@ -515,8 +518,8 @@ export const FEEDBACK_ENTRY_SCOPES = [
   'step',
 ] as const satisfies readonly FeedbackEntryScope[]
 
-export const FEEDBACK_ENTRY_TOOLTIP = 'Give feedback'
-export const FEEDBACK_ENTRY_MARKED_TOOLTIP = 'Already marked — review or change'
+export const FEEDBACK_ENTRY_TOOLTIP = () => t('feedback.entry.tooltip')
+export const FEEDBACK_ENTRY_MARKED_TOOLTIP = () => t('feedback.entry.markedTooltip')
 
 export interface FeedbackEntryLabelInput {
   scope: FeedbackEntryScope
@@ -536,7 +539,7 @@ export function feedbackEntryLabel({ scope, stepNumber, memberName, handle, mark
   }
   if (handle === undefined) {
     return markedChoice === undefined
-      ? FEEDBACK_ENTRY_TEST_LABEL
+      ? FEEDBACK_ENTRY_TEST_LABEL()
       : t('feedback.entry.testMarked', { choice: CHOICE_LABELS[markedChoice] })
   }
   const name = memberName ?? ''
@@ -669,8 +672,8 @@ export function feedbackPreviewState({ kind, landed }: FeedbackPreviewStateInput
   return arm === 'consequences' || arm === 'quarantined' ? arm : 'already-marked'
 }
 
-export const PREVIEW_UPDATING_TEXT = 'Updating…'
-export const PREVIEW_IDLE_TEXT = 'Choose an option above to see what this will do.'
+export const PREVIEW_UPDATING_TEXT = () => t('feedback.preview.updating')
+export const PREVIEW_IDLE_TEXT = () => t('feedback.preview.idle')
 
 export const PREVIEW_LINE_LABELS = textTable({
   knowledge: () => t('feedback.preview.lineLabel.knowledge'),
@@ -704,11 +707,11 @@ export const RECORD_EFFECT_TEXT = textTable({
   overturn: () => t('feedback.preview.effect.overturn'),
 }) satisfies Record<MarkPreviewEvidenceEffect['direction'], string>
 
-export const UNREADABLE_RECORD_TEXT = "This record can't be read — it keeps its place, and nothing is applied to it."
+export const UNREADABLE_RECORD_TEXT = () => t('feedback.preview.unreadableRecord')
 
 /** The muted line under a reached record: its planned effects, or why none can apply. */
 export function recordEffectLine(record: MarkPreviewKnowledgeRecord): string {
-  if (record.evidence.kind === 'unreadable') return UNREADABLE_RECORD_TEXT
+  if (record.evidence.kind === 'unreadable') return UNREADABLE_RECORD_TEXT()
   const { effects } = record.evidence
   const overturns = effects.filter((effect) => effect.direction === 'overturn').length
   const confirms = effects.some((effect) => effect.direction === 'confirm')
@@ -760,7 +763,7 @@ export function previewFixText(draft: MarkPreviewDraft): string {
 }
 
 /** The preview never calls the model, so the fix is named but its wording is not shown. */
-export const DRAFT_WORDING_NOT_SHOWN_TEXT = "The exact wording isn't shown here — it's written when you send."
+export const DRAFT_WORDING_NOT_SHOWN_TEXT = () => t('feedback.preview.draftWordingNotShown')
 
 export function draftHasWording(draft: MarkPreviewDraft): boolean {
   return draft.kind === 'knowledge' || draft.kind === 'test-edit'
@@ -876,22 +879,24 @@ export function PREVIEW_READ_FAILED_TEXT(reason: string): string {
   return t('feedback.preview.readFailed', { reason })
 }
 
+const cliEscapeParts = () => nameParts('feedback.preview.cliEscape', { name: 'agent-qa runs mark' })
+
 /** The command is its own part so it paints in mono without splitting the sentence. */
-export const CLI_ESCAPE_PARTS = {
-  prefix: 'You can still record feedback from the CLI (',
-  name: 'agent-qa runs mark',
-  suffix: ') or over MCP.',
-} as const satisfies Required<FeedbackTextParts>
+export const CLI_ESCAPE_PARTS = textTable({
+  prefix: () => cliEscapeParts().prefix,
+  name: () => cliEscapeParts().name ?? '',
+  suffix: () => cliEscapeParts().suffix ?? '',
+}) satisfies Required<FeedbackTextParts>
 
-export const CLI_ESCAPE_TEXT = feedbackPartsText(CLI_ESCAPE_PARTS)
+export const CLI_ESCAPE_TEXT = () => feedbackPartsText(CLI_ESCAPE_PARTS)
 
-export const RETRY_LABEL = 'Retry'
+export const RETRY_LABEL = () => t('feedback.retry')
 /** Label-in-name: the accessible name starts with the visible word and says what it retries. */
-export const PREVIEW_RETRY_ACCESSIBLE_NAME = `${RETRY_LABEL} checking what this will do`
+export const PREVIEW_RETRY_ACCESSIBLE_NAME = () => t('feedback.preview.retryName')
 
 // The one place the internal mark words and the ids appear as text.
 
-export const TECHNICAL_DETAILS_LABEL = 'Technical details'
+export const TECHNICAL_DETAILS_LABEL = () => t('feedback.details.label')
 
 export const TECHNICAL_DETAILS_ROW_LABELS = textTable({
   kind: () => t('feedback.details.row.kind'),
@@ -957,7 +962,7 @@ export function runHistoryLabel(count: number): string {
   return t('feedback.history.runLabel', { number: String(count) })
 }
 
-export const ACTIVE_TEXT = 'Active'
+export const ACTIVE_TEXT = () => t('feedback.history.active')
 
 /** The time is the superseding entry's own; without it the clause drops rather than guessing. */
 export function replacedByText(time?: string): string {
@@ -966,7 +971,7 @@ export function replacedByText(time?: string): string {
     : t('feedback.history.replacedByAt', { time })
 }
 
-export const REPLACEMENT_EXPLANATION = 'Only your latest mark on a test or step counts.'
+export const REPLACEMENT_EXPLANATION = () => t('feedback.history.replacementExplanation')
 
 /** What one history line shows about an applied fix: the changed record content, or the written file. */
 export type AppliedChangeView =
@@ -975,10 +980,15 @@ export type AppliedChangeView =
   /** An older drafted receipt: its change is not recorded, and none is invented. */
   | { kind: 'unavailable' }
 
-export const APPLIED_UNAVAILABLE_TEXT = 'What this mark changed was not recorded.'
+export const APPLIED_UNAVAILABLE_TEXT = () => t('feedback.history.appliedUnavailable')
 
 export function appliedRecordUnavailableText(recordId: string): string {
   return t('feedback.history.recordUnavailable', { recordId })
+}
+
+/** A quoted producer text, such as a note or a record's content, with the quote marks as parts. */
+export function quotedParts(content: string): FeedbackTextParts {
+  return nameParts('feedback.history.quoted', { content }, 'content')
 }
 
 function appliedRecordsText(records: readonly { recordId: string; content?: string }[]): string {
@@ -986,7 +996,7 @@ function appliedRecordsText(records: readonly { recordId: string; content?: stri
     .map((record) =>
       record.content === undefined
         ? appliedRecordUnavailableText(record.recordId)
-        : t('feedback.history.quoted', { content: record.content }),
+        : feedbackPartsText(quotedParts(record.content)),
     )
     .join('; ')
 }
@@ -1019,41 +1029,72 @@ export function appliedChangeText(view: AppliedChangeView): string {
     case 'test-file':
       return t('feedback.history.appliedTestFile', { file: view.filePath })
     case 'unavailable':
-      return APPLIED_UNAVAILABLE_TEXT
+      return APPLIED_UNAVAILABLE_TEXT()
     default:
       return view satisfies never
   }
 }
 
-/** How an applied or drafted entry's one line ends when its change was not recorded. */
-export const APPLIED_CONTENT_NOT_RECORDED_TEXT = 'its content was not recorded.'
-export const DRAFTED_CHANGE_NOT_RECORDED_TEXT = 'what it changed was not recorded.'
+export type HistoryChangeSlot = 'disposition' | 'records' | 'file'
+export type HistoryChangePiece = string | { slot: HistoryChangeSlot }
 
-// One line per entry: what the mark did, then what an applied fix changed, so it cannot contradict.
-export function historyChangeText(entry: Pick<MarkHistoryEntry, 'disposition' | 'changedRecords'>): string {
-  const disposition = dispositionText(entry.disposition)
-  const view = appliedChangeView(entry)
-  if (view === undefined) return disposition
+type HistoryChangeKey =
+  | 'feedback.history.change.records'
+  | 'feedback.history.change.file'
+  | 'feedback.history.change.draftedNotRecorded'
+  | 'feedback.history.change.contentNotRecorded'
+
+function historyChangeKey(
+  entry: Pick<MarkHistoryEntry, 'disposition'>,
+  view: AppliedChangeView,
+): HistoryChangeKey {
   switch (view.kind) {
     case 'knowledge':
-      return t('feedback.history.change.records', {
-        disposition,
-        records: appliedRecordsText(view.records),
-      })
+      return 'feedback.history.change.records'
     case 'test-file':
-      return t('feedback.history.change.file', { disposition, file: view.filePath })
+      return 'feedback.history.change.file'
     case 'unavailable':
       return entry.disposition.kind === 'drafted'
-        ? t('feedback.history.change.draftedNotRecorded', { disposition })
-        : t('feedback.history.change.contentNotRecorded', { disposition })
+        ? 'feedback.history.change.draftedNotRecorded'
+        : 'feedback.history.change.contentNotRecorded'
     default:
       return view satisfies never
   }
+}
+
+const isHistoryChangeSlot = (slot: string): slot is HistoryChangeSlot =>
+  slot === 'disposition' || slot === 'records' || slot === 'file'
+
+/**
+ * One line per entry: what the mark did, then what an applied fix changed, so it cannot contradict.
+ * The sentence is split at its slots before anything fills them, so producer text is never read.
+ */
+export function historyChangePieces(
+  entry: Pick<MarkHistoryEntry, 'disposition'>,
+  view: AppliedChangeView | undefined,
+): readonly HistoryChangePiece[] {
+  if (view === undefined) return [{ slot: 'disposition' }]
+  const sentence = String(t(historyChangeKey(entry, view), { skipInterpolation: true } as never))
+  return sentence.split(/\{\{\s*(\w+)\s*\}\}/u).flatMap((piece, index): HistoryChangePiece[] => {
+    if (index % 2 === 1) return isHistoryChangeSlot(piece) ? [{ slot: piece }] : []
+    return piece === '' ? [] : [piece]
+  })
+}
+
+export function historyChangeText(entry: Pick<MarkHistoryEntry, 'disposition' | 'changedRecords'>): string {
+  const view = appliedChangeView(entry)
+  const slots: Record<HistoryChangeSlot, string> = {
+    disposition: dispositionText(entry.disposition),
+    records: view?.kind === 'knowledge' ? appliedRecordsText(view.records) : '',
+    file: view?.kind === 'test-file' ? view.filePath : '',
+  }
+  return historyChangePieces(entry, view)
+    .map((piece) => (typeof piece === 'string' ? piece : slots[piece.slot]))
+    .join('')
 }
 
 // Marking again replaces the mark, not the fix, so the pointer says how to correct a change.
-export const APPLIED_CORRECTION_TEXT
-  = 'A fix stays when you mark again: correct knowledge with new feedback or by forgetting it, and revert a test edit with git.'
+export const APPLIED_CORRECTION_TEXT = () => t('feedback.history.appliedCorrection')
 
 export const HISTORY_EMPTY_TEXT = textTable({
   step: () => t('feedback.history.empty.step'),
@@ -1078,7 +1119,7 @@ export function HISTORY_READ_FAILED_TEXT(reason: string): string {
   return t('feedback.history.readFailed', { reason })
 }
 
-export const HISTORY_RETRY_ACCESSIBLE_NAME = `${RETRY_LABEL} loading feedback history`
+export const HISTORY_RETRY_ACCESSIBLE_NAME = () => t('feedback.history.retryName')
 
 const MARK_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
   month: 'short',

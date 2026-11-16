@@ -173,7 +173,7 @@ describe('the target list and the run list', () => {
     const time = newer.querySelector('time')!
     expect(time.getAttribute('dateTime')).toBe(new Date(T(3)).toISOString())
     expect(time.textContent).toBe(formatMarkTime(T(3)))
-    expect(newer.textContent).toContain(ACTIVE_TEXT)
+    expect(newer.textContent).toContain(ACTIVE_TEXT())
     expect(newer.textContent).toContain('“The coupon should have been refused”')
     // The disposition and what the fix changed are one line.
     expect(newer.querySelector('[data-history-disposition]')?.textContent)
@@ -183,7 +183,7 @@ describe('the target list and the run list', () => {
     const older = entryOf(target, markId(1))!
     expect(older.getAttribute('data-history-active')).toBe('false')
     expect(older.textContent).toContain(replacedByText(formatMarkTime(T(3))))
-    expect(older.textContent).not.toContain(ACTIVE_TEXT)
+    expect(older.textContent).not.toContain(ACTIVE_TEXT())
     expect(older.className).toContain('text-muted-foreground')
     expect(older.querySelector('[data-history-disposition]')?.textContent).toBe(dispositionText(NO_FIX))
     expect(older.textContent).not.toContain('“')
@@ -207,7 +207,7 @@ describe('latest-mark-wins is explained once', () => {
     mount()
     const notes = container.querySelectorAll('[data-feedback-replaced-note]')
     expect(notes).toHaveLength(1)
-    expect(notes[0]!.textContent).toBe(REPLACEMENT_EXPLANATION)
+    expect(notes[0]!.textContent).toBe(REPLACEMENT_EXPLANATION())
     const target = q('[data-feedback-history="target"]')!
     expect(notes[0]!.compareDocumentPosition(target) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     openRunList()
@@ -307,7 +307,7 @@ describe('each way the history can be absent renders as itself', () => {
       expect(retry).toBeNull()
       return
     }
-    expect(retry?.getAttribute('aria-label')).toBe(HISTORY_RETRY_ACCESSIBLE_NAME)
+    expect(retry?.getAttribute('aria-label')).toBe(HISTORY_RETRY_ACCESSIBLE_NAME())
     act(() => retry!.click())
     expect(onRetry).toHaveBeenCalledTimes(1)
   })

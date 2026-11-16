@@ -172,7 +172,7 @@ describe("the header's test-level feedback entry", () => {
     expect(entry.hasAttribute("title")).toBe(false)
     expect(openTooltipText()).toBe("")
     await act(async () => { entry.focus() })
-    expect(openTooltipText()).toContain(FEEDBACK_ENTRY_TOOLTIP)
+    expect(openTooltipText()).toContain(FEEDBACK_ENTRY_TOOLTIP())
     act(() => { root.unmount() })
     container.remove()
 
@@ -180,6 +180,6 @@ describe("the header's test-level feedback entry", () => {
     const marked = entries()[0]!
     expect(marked.getAttribute("aria-expanded")).toBe("false")
     await act(async () => { marked.focus() })
-    expect(openTooltipText()).toContain(FEEDBACK_ENTRY_MARKED_TOOLTIP)
+    expect(openTooltipText()).toContain(FEEDBACK_ENTRY_MARKED_TOOLTIP())
   })
 })

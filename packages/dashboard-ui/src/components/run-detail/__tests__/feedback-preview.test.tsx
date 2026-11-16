@@ -148,7 +148,7 @@ describe('the What this will do section', () => {
     render({ state: 'consequences', current: true, read })
 
     const title = document.getElementById(section().getAttribute('aria-labelledby')!)
-    expect(title?.textContent).toBe(PREVIEW_TITLE)
+    expect(title?.textContent).toBe(PREVIEW_TITLE())
     expect(title?.className).toContain('text-sm')
     expect(section().getAttribute('data-preview-state')).toBe('consequences')
     expect(section().getAttribute('data-preview-current')).toBe('true')
@@ -168,7 +168,7 @@ describe('the What this will do section', () => {
 
     expect(line('knowledge')!.textContent).toContain(knowledgeLine(read.knowledge.evidence, 1))
     expect(line('knowledge')!.textContent).toContain(showRecordsLabel(1))
-    expect(line('change')!.textContent).toBe(previewFixText(read.draft) + DRAFT_WORDING_NOT_SHOWN_TEXT)
+    expect(line('change')!.textContent).toBe(previewFixText(read.draft) + DRAFT_WORDING_NOT_SHOWN_TEXT())
 
     await openRecords()
     for (const secret of ['rec-served-alpha', 'rec-target-beta', PRIOR_MARK_ID, TEST_ID, RUN_ID]) {
@@ -207,7 +207,7 @@ describe('the What this will do section', () => {
     expect(last.textContent).toContain(RECORD_EFFECT_TEXT.overturn)
     expect(container.querySelector('li[data-preview-record] ul, li[data-preview-record] [class*="overflow-y"]')).toBeNull()
 
-    expect(line('change')!.textContent).toBe(previewFixText(read.draft) + DRAFT_WORDING_NOT_SHOWN_TEXT)
+    expect(line('change')!.textContent).toBe(previewFixText(read.draft) + DRAFT_WORDING_NOT_SHOWN_TEXT())
   })
 
   it('PREVIEW-UNREADABLE-RECORD: an unreadable record keeps its li, reads its absence and the unreadable sentence', async () => {
@@ -216,7 +216,7 @@ describe('the What this will do section', () => {
     await openRecords()
     const unreadable = container.querySelector<HTMLElement>('li[data-preview-record="unreadable"]')
     expect(unreadable, 'the unreadable record lost its li').not.toBeNull()
-    expect(unreadable!.textContent).toBe(CONTENT_ABSENCE_TEXT['scan-incomplete'] + UNREADABLE_RECORD_TEXT)
+    expect(unreadable!.textContent).toBe(CONTENT_ABSENCE_TEXT['scan-incomplete'] + UNREADABLE_RECORD_TEXT())
   })
 
   it('PREVIEW-REPLACES-LINE: a superseding mark reads the replaced ordinal, the time when given, and that its change stays', () => {
@@ -251,7 +251,7 @@ describe('the What this will do section', () => {
 
   it('PREVIEW-NO-FLASH: the first load is four reduced-motion skeletons; a re-fetch keeps the lines, dimmed and busy', () => {
     render({ state: 'idle', current: false })
-    expect(section().textContent).toContain(PREVIEW_IDLE_TEXT)
+    expect(section().textContent).toContain(PREVIEW_IDLE_TEXT())
     expect(section().getAttribute('aria-busy')).toBe('false')
 
     render({ state: 'loading', current: false })
@@ -268,13 +268,13 @@ describe('the What this will do section', () => {
     expect(section().querySelector('dl')).not.toBeNull()
     expect(section().querySelectorAll('[data-slot="skeleton"]')).toHaveLength(0)
     expect(section().querySelector('.opacity-60')?.contains(section().querySelector('dl'))).toBe(true)
-    expect(section().textContent).toContain(PREVIEW_UPDATING_TEXT)
+    expect(section().textContent).toContain(PREVIEW_UPDATING_TEXT())
     expect(section().getAttribute('aria-busy')).toBe('true')
     expect(section().getAttribute('data-preview-current')).toBe('false')
 
     render({ state: 'consequences', current: true, read: falseFail() })
     expect(section().querySelector('.opacity-60')).toBeNull()
-    expect(section().textContent).not.toContain(PREVIEW_UPDATING_TEXT)
+    expect(section().textContent).not.toContain(PREVIEW_UPDATING_TEXT())
     expect(section().getAttribute('aria-busy')).toBe('false')
   })
 })
@@ -361,12 +361,12 @@ describe('the special arms, the refusals and the failed read', () => {
     const retry = container.querySelector<HTMLButtonElement>('[data-feedback-preview-retry]')
     expect(retry, 'no Retry button').not.toBeNull()
     expect(retry!.tagName).toBe('BUTTON')
-    expect(retry!.textContent).toBe(RETRY_LABEL)
-    expect(retry!.getAttribute('aria-label')).toBe(PREVIEW_RETRY_ACCESSIBLE_NAME)
+    expect(retry!.textContent).toBe(RETRY_LABEL())
+    expect(retry!.getAttribute('aria-label')).toBe(PREVIEW_RETRY_ACCESSIBLE_NAME())
     expect(retry!.getAttribute('aria-label')!.startsWith(retry!.textContent!)).toBe(true)
     expect(denial!.compareDocumentPosition(retry!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
-    const escape = [...section().querySelectorAll('p')].find((p) => p.textContent === CLI_ESCAPE_TEXT)
+    const escape = [...section().querySelectorAll('p')].find((p) => p.textContent === CLI_ESCAPE_TEXT())
     expect(escape, 'no CLI escape line').toBeDefined()
     expect(retry!.compareDocumentPosition(escape!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(escape!.querySelector('.font-mono')?.textContent).toBe(CLI_ESCAPE_PARTS.name)

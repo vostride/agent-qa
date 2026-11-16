@@ -1,17 +1,16 @@
-import { useId } from 'react'
+import { Fragment, useId } from 'react'
 import { ChevronRight } from 'lucide-react'
 import type { MarkHistoryEntry, RunDetailProjection } from '@vostride/agent-qa-schema'
 import { markAddressKey } from '@vostride/agent-qa-schema'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useTranslation } from '@/i18n'
 import type { MarksHistoryRead } from '@/lib/api'
 import {
   ACTIVE_TEXT,
-  APPLIED_CONTENT_NOT_RECORDED_TEXT,
   APPLIED_CORRECTION_TEXT,
   CHOICE_LABELS,
-  DRAFTED_CHANGE_NOT_RECORDED_TEXT,
   HISTORY_EMPTY_TEXT,
   HISTORY_READ_FAILED_TEXT,
   HISTORY_RETRY_ACCESSIBLE_NAME,
@@ -24,13 +23,17 @@ import {
   feedbackHistoryState,
   feedbackReadFailureReason,
   formatMarkTime,
+  historyChangePieces,
   historyStateText,
   historyTargetLabel,
   historyTitle,
+  quotedParts,
   replacedByText,
   runHistoryLabel,
+  type AppliedChangeView,
   type FeedbackEntryScope,
   type FeedbackTextParts,
+  type HistoryChangeSlot,
 } from '@/lib/feedback-view'
 import { cn } from '@/lib/utils'
 
@@ -58,6 +61,7 @@ function TextParts({ parts }: { parts: FeedbackTextParts }) {
 
 // Every absence of the read is named as itself, never as an empty list; the page owns the read.
 export function FeedbackHistory({ scope, address, read, detail, newMarkId, onRetry }: FeedbackHistoryProps) {
+  useTranslation()
   const titleId = useId()
   const state = feedbackHistoryState(read)
   const entries: readonly MarkHistoryEntry[] = read?.kind === 'read' && read.result.kind === 'history' ? read.result.entries : []
@@ -74,12 +78,12 @@ export function FeedbackHistory({ scope, address, read, detail, newMarkId, onRet
     <div className="space-y-3">
       {replaced ? (
         <p data-feedback-replaced-note className="text-xs text-muted-foreground">
-          {REPLACEMENT_EXPLANATION}
+          {REPLACEMENT_EXPLANATION()}
         </p>
       ) : null}
       {appliedAny ? (
         <p data-feedback-correction-note className="text-xs text-muted-foreground">
-          {APPLIED_CORRECTION_TEXT}
+          {APPLIED_CORRECTION_TEXT()}
         </p>
       ) : null}
       <section data-feedback-history="target" data-history-state={targetState} aria-labelledby={titleId} className="space-y-2">
@@ -156,10 +160,10 @@ function AbsentHistory({ read, onRetry }: { read: MarksHistoryRead | undefined; 
           variant="outline"
           size="sm"
           data-feedback-history-retry
-          aria-label={HISTORY_RETRY_ACCESSIBLE_NAME}
+          aria-label={HISTORY_RETRY_ACCESSIBLE_NAME()}
           onClick={() => onRetry?.()}
         >
-          {RETRY_LABEL}
+          {RETRY_LABEL()}
         </Button>
       ) : null}
     </div>
@@ -207,56 +211,55 @@ function HistoryEntry({
         )}
       </div>
       <p className={entry.active ? 'font-medium text-foreground' : undefined}>
-        {entry.active ? ACTIVE_TEXT : replacedByText(replacedAt)}
+        {entry.active ? ACTIVE_TEXT() : replacedByText(replacedAt)}
       </p>
       {entry.note === undefined ? null : (
         <p className="break-words">
-          {'“'}
-          {entry.note}
-          {'”'}
+          <TextParts parts={quotedParts(entry.note)} />
         </p>
       )}
       <p data-history-disposition data-history-applied={applied?.kind} className="break-words">
-        <span data-history-disposition-lead>{dispositionText(entry.disposition)}</span>
-        {applied === undefined ? null : <AppliedTail applied={applied} drafted={entry.disposition.kind === 'drafted'} />}
+        {historyChangePieces(entry, applied).map((piece, index) =>
+          typeof piece === 'string' ? (
+            <Fragment key={index}>{piece}</Fragment>
+          ) : (
+            <ChangeSlot key={index} slot={piece.slot} entry={entry} applied={applied} />
+          ),
+        )}
       </p>
     </li>
   )
 }
 
-// The tail of the entry's one line, equal to `historyChangeText`; producer text stays text.
-function AppliedTail({ applied, drafted }: { applied: NonNullable<ReturnType<typeof appliedChangeView>>; drafted: boolean }) {
-  switch (applied.kind) {
-    case 'knowledge':
-      return (
-        <>
-          {': '}
-          {applied.records.map((record, index) => (
+// One slot of the entry's line, equal to `historyChangeText`; producer text stays text.
+function ChangeSlot({
+  slot,
+  entry,
+  applied,
+}: {
+  slot: HistoryChangeSlot
+  entry: MarkHistoryEntry
+  applied: AppliedChangeView | undefined
+}) {
+  switch (slot) {
+    case 'disposition':
+      return <span data-history-disposition-lead>{dispositionText(entry.disposition)}</span>
+    case 'records':
+      return applied?.kind !== 'knowledge'
+        ? null
+        : applied.records.map((record, index) => (
             <span key={record.recordId} data-history-applied-record={record.recordId}>
               {index === 0 ? null : '; '}
               {record.content === undefined ? (
                 appliedRecordUnavailableText(record.recordId)
               ) : (
-                <>
-                  {'“'}
-                  {record.content}
-                  {'”'}
-                </>
+                <TextParts parts={quotedParts(record.content)} />
               )}
             </span>
-          ))}
-        </>
-      )
-    case 'test-file':
-      return (
-        <>
-          {': '}
-          <code className="font-mono">{applied.filePath}</code>
-        </>
-      )
-    case 'unavailable':
-      return <>{`; ${drafted ? DRAFTED_CHANGE_NOT_RECORDED_TEXT : APPLIED_CONTENT_NOT_RECORDED_TEXT}`}</>
+          ))
+    case 'file':
+      return applied?.kind !== 'test-file' ? null : <code className="font-mono">{applied.filePath}</code>
     default:
-      return applied satisfies never
+      return slot satisfies never
   }
 }

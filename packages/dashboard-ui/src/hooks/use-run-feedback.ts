@@ -55,13 +55,12 @@ interface UseRunFeedbackInput {
   beforeOpen?: () => void
 }
 
-// The local announcement, kept per address so re-targeting shows each address its own.
+// Kept per address so re-targeting shows each address its own announcement, read when drawn.
 interface AddressOutcome {
   state: FeedbackComposerState
-  status: string
 }
 
-const COMPOSING: AddressOutcome = { state: 'composing', status: '' }
+const COMPOSING: AddressOutcome = { state: 'composing' }
 
 function targetOfAddress(address: string): FeedbackTarget {
   const [testIndex, stepIndex] = address.split(':')
@@ -157,7 +156,7 @@ export function useRunFeedback({
 
   const address = target === null ? undefined : feedbackAddress(target)
   const draft = (address === undefined ? undefined : drafts.get(address)) ?? EMPTY_DRAFT
-  const { state, status } = (address === undefined ? undefined : outcomes.get(address)) ?? COMPOSING
+  const { state } = (address === undefined ? undefined : outcomes.get(address)) ?? COMPOSING
   // While the mark is in flight the draft it sends stays as sent.
   const busy = state === 'submitting'
   const setOutcome = (key: string, next: AddressOutcome) => setOutcomes((previous) => new Map(previous).set(key, next))
@@ -289,7 +288,7 @@ export function useRunFeedback({
     const request = {}
     const submitted = target
     submission.current = request
-    setOutcome(address, { state: 'submitting', status: SENDING_STATUS })
+    setOutcome(address, { state: 'submitting' })
     setDenials((previous) => {
       const next = new Map(previous)
       next.delete(address)
@@ -305,10 +304,10 @@ export function useRunFeedback({
           return next
         })
         setLanded(undefined)
-        setOutcome(address, { state: 'recorded', status: '' })
+        setOutcome(address, { state: 'recorded' })
         readHistory()
       } else if (result === 'retained') {
-        setOutcome(address, { state: 'retained', status: DRAFT_KEPT_STATUS })
+        setOutcome(address, { state: 'retained' })
       } else {
         setOutcome(address, COMPOSING)
       }
@@ -322,7 +321,16 @@ export function useRunFeedback({
     ? undefined
     : detail?.members.find((entry) => entry.testIndex === target.testIndex)
       ?.marks?.find((entry) => entry.stepIndex === target.stepIndex)
-  const statusText = state === 'recorded' ? (recordedMark === undefined ? '' : feedbackRecordedText(recordedMark.disposition)) : status
+  const statusText =
+    state === 'recorded'
+      ? recordedMark === undefined
+        ? ''
+        : feedbackRecordedText(recordedMark.disposition)
+      : state === 'submitting'
+        ? SENDING_STATUS()
+        : state === 'retained'
+          ? DRAFT_KEPT_STATUS()
+          : ''
 
   // An earlier mark's time is its history entry's own, absent until history holds it.
   const historyEntries = history?.kind === 'read' && history.result.kind === 'history' ? history.result.entries : []

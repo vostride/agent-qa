@@ -2,6 +2,7 @@ import { Fragment, type ReactNode } from 'react'
 import { ChevronRight } from 'lucide-react'
 import type { Mark, MarkPreviewBasis } from '@vostride/agent-qa-schema'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { useTranslation } from '@/i18n'
 import {
   TECHNICAL_DETAILS_LABEL,
   TECHNICAL_DETAILS_ROW_LABELS,
@@ -19,6 +20,7 @@ export interface FeedbackTechnicalDetailsProps {
 
 // The only component that renders a raw mark word or an id as text; absent facts get no row.
 export function FeedbackTechnicalDetails({ kind, address, testId, recordIds = [], basis }: FeedbackTechnicalDetailsProps) {
+  useTranslation()
   const rows: [TechnicalDetailsRow, ReactNode][] = []
   if (kind !== undefined) rows.push(['kind', kind])
   rows.push(['address', address])
@@ -29,7 +31,7 @@ export function FeedbackTechnicalDetails({ kind, address, testId, recordIds = []
     <Collapsible className="mt-6">
       <CollapsibleTrigger className="group flex w-full items-center gap-1.5 text-left text-xs font-medium text-muted-foreground hover:text-foreground">
         <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
-        {TECHNICAL_DETAILS_LABEL}
+        {TECHNICAL_DETAILS_LABEL()}
       </CollapsibleTrigger>
       <CollapsibleContent>
         <div data-feedback-technical className="mt-2 rounded-md bg-muted/40 px-3 py-2">

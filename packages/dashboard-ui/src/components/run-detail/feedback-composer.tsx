@@ -14,6 +14,7 @@ import { DenialBlock } from '@/components/run-detail/denial-block'
 import { FeedbackHistory, type FeedbackHistoryProps } from '@/components/run-detail/feedback-history'
 import { FeedbackPreview } from '@/components/run-detail/feedback-preview'
 import { FeedbackTechnicalDetails } from '@/components/run-detail/feedback-technical-details'
+import { useTranslation } from '@/i18n'
 import {
   CHOICE_LABELS,
   CHOICE_LEGEND,
@@ -156,6 +157,7 @@ export function FeedbackComposer({
   onClose,
   layout = 'docked',
 }: FeedbackComposerProps) {
+  useTranslation()
   const baseId = useId()
   const reasonId = `${baseId}-submit-reason`
   const switcherId = `${baseId}-test-switcher`
@@ -210,11 +212,11 @@ export function FeedbackComposer({
           </h2>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon-sm" data-feedback-close aria-label={CLOSE_FEEDBACK_LABEL} onClick={onClose}>
+              <Button variant="ghost" size="icon-sm" data-feedback-close aria-label={CLOSE_FEEDBACK_LABEL()} onClick={onClose}>
                 <X className="h-3.5 w-3.5" aria-hidden="true" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="bottom">{CLOSE_FEEDBACK_TOOLTIP}</TooltipContent>
+            <TooltipContent side="bottom">{CLOSE_FEEDBACK_TOOLTIP()}</TooltipContent>
           </Tooltip>
         </div>
         <p data-feedback-scope-line className="break-words text-xs text-muted-foreground">
@@ -223,7 +225,7 @@ export function FeedbackComposer({
         {testSwitcher === undefined ? null : (
           <div className="space-y-1 pt-1">
             <Label htmlFor={switcherId} className="text-xs font-medium">
-              {TEST_SWITCHER_LABEL}
+              {TEST_SWITCHER_LABEL()}
             </Label>
             <Select
               value={String(testSwitcher.value)}
@@ -274,11 +276,11 @@ export function FeedbackComposer({
         )}
         {noUniqueAddress ? (
           <div data-feedback-no-address>
-            <DenialBlock neutralReason={NO_UNIQUE_ADDRESS_TEXT} />
+            <DenialBlock neutralReason={NO_UNIQUE_ADDRESS_TEXT()} />
           </div>
         ) : null}
         <fieldset className="space-y-2">
-          <legend className="text-xs font-medium text-muted-foreground">{CHOICE_LEGEND}</legend>
+          <legend className="text-xs font-medium text-muted-foreground">{CHOICE_LEGEND()}</legend>
           <RadioGroup
             className="gap-2"
             data-feedback-choices
@@ -325,7 +327,7 @@ export function FeedbackComposer({
 
         <div className="space-y-1">
           <Label htmlFor={noteId} className="text-xs font-medium">
-            {NOTE_LABEL}
+            {NOTE_LABEL()}
           </Label>
           <Textarea
             id={noteId}
@@ -386,7 +388,7 @@ export function FeedbackComposer({
               if (!blocked) onSubmit()
             }}
           >
-            {SEND_FEEDBACK_LABEL}
+            {SEND_FEEDBACK_LABEL()}
           </Button>
           <p id={reasonId} data-feedback-submit-reason className="text-xs text-muted-foreground">
             {submitReason}

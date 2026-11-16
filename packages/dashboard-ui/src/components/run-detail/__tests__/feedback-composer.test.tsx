@@ -70,7 +70,7 @@ function props(detail: Detail, target: FeedbackTarget, overrides: Partial<Feedba
     onChoose: vi.fn(),
     previewState: 'idle',
     previewCurrent: false,
-    submitReason: SUBMIT_REASON_NO_CHOICE,
+    submitReason: SUBMIT_REASON_NO_CHOICE(),
     onSubmit: vi.fn(),
     status: '',
     onClose: vi.fn(),
@@ -118,7 +118,7 @@ describe('feedback composer', () => {
         const next = props(singleFailed, target, { state })
         render(next)
         expect(rows()).toHaveLength(3)
-        expect(container.querySelector('fieldset legend')?.textContent).toBe(CHOICE_LEGEND)
+        expect(container.querySelector('fieldset legend')?.textContent).toBe(CHOICE_LEGEND())
         for (const radio of radios()) {
           expect(radio.hasAttribute('disabled')).toBe(false)
           expect(radio.hasAttribute('data-disabled')).toBe(false)
@@ -198,7 +198,7 @@ function consequencesFor(kind: Mark, over: Record<string, unknown> = {}): RunsMa
 }
 
 function technicalTrigger() {
-  return [...container.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent === TECHNICAL_DETAILS_LABEL)
+  return [...container.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent === TECHNICAL_DETAILS_LABEL())
 }
 function openTechnical() {
   const trigger = technicalTrigger()

@@ -2,6 +2,7 @@ import { MessageSquare, MessageSquarePlus } from 'lucide-react'
 import type { Mark } from '@vostride/agent-qa-schema'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { useTranslation } from '@/i18n'
 import {
   FEEDBACK_ENTRY_MARKED_TOOLTIP,
   FEEDBACK_ENTRY_TOOLTIP,
@@ -23,6 +24,7 @@ export interface FeedbackEntryButtonProps {
 
 // Opens the composer and never records a mark itself; the tooltip opens on focus as well as hover.
 export function FeedbackEntryButton({ scope, label, target, marked, expanded, controls, onOpen, tooltip }: FeedbackEntryButtonProps) {
+  useTranslation()
   const Glyph = marked ? MessageSquare : MessageSquarePlus
   return (
     <Tooltip>
@@ -43,7 +45,7 @@ export function FeedbackEntryButton({ scope, label, target, marked, expanded, co
         </Button>
       </TooltipTrigger>
       <TooltipContent side={scope === 'step' ? 'left' : 'bottom'}>
-        {tooltip ?? (marked ? FEEDBACK_ENTRY_MARKED_TOOLTIP : FEEDBACK_ENTRY_TOOLTIP)}
+        {tooltip ?? (marked ? FEEDBACK_ENTRY_MARKED_TOOLTIP() : FEEDBACK_ENTRY_TOOLTIP())}
       </TooltipContent>
     </Tooltip>
   )
@@ -57,6 +59,7 @@ export interface MarkGlyphProps {
 
 /** The passive trace of a recorded mark: named, never interactive, never a second door. */
 export function MarkGlyph({ scope, target, kind }: MarkGlyphProps) {
+  useTranslation()
   return (
     <span
       role="img"

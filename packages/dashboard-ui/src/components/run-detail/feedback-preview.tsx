@@ -5,6 +5,7 @@ import { DenialBlock } from '@/components/run-detail/denial-block'
 import { Button } from '@/components/ui/button'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Skeleton } from '@/components/ui/skeleton'
+import { useTranslation } from '@/i18n'
 import type { FeedbackReadFailure } from '@/lib/api'
 import {
   CLI_ESCAPE_PARTS,
@@ -67,6 +68,7 @@ export function FeedbackPreview({
   failure,
   onRetry,
 }: FeedbackPreviewProps) {
+  useTranslation()
   const titleId = useId()
   return (
     <section
@@ -79,12 +81,12 @@ export function FeedbackPreview({
     >
       <div className="flex flex-wrap items-baseline gap-2">
         <h3 id={titleId} className="text-sm font-medium">
-          {PREVIEW_TITLE}
+          {PREVIEW_TITLE()}
         </h3>
-        {updating ? <span className="text-xs text-muted-foreground">{PREVIEW_UPDATING_TEXT}</span> : null}
+        {updating ? <span className="text-xs text-muted-foreground">{PREVIEW_UPDATING_TEXT()}</span> : null}
       </div>
       {state === 'idle' ? (
-        <p className="text-xs text-muted-foreground">{PREVIEW_IDLE_TEXT}</p>
+        <p className="text-xs text-muted-foreground">{PREVIEW_IDLE_TEXT()}</p>
       ) : state === 'loading' ? (
         <div className="space-y-2">
           {SKELETON_WIDTHS.map((width) => (
@@ -129,10 +131,10 @@ function FailedRead({ failure, onRetry }: { failure: FeedbackReadFailure; onRetr
         variant="outline"
         size="sm"
         data-feedback-preview-retry
-        aria-label={PREVIEW_RETRY_ACCESSIBLE_NAME}
+        aria-label={PREVIEW_RETRY_ACCESSIBLE_NAME()}
         onClick={() => onRetry?.()}
       >
-        {RETRY_LABEL}
+        {RETRY_LABEL()}
       </Button>
       <p className="text-xs text-muted-foreground">
         {CLI_ESCAPE_PARTS.prefix}
@@ -171,7 +173,7 @@ function ConsequenceLines({ read, replacesTime }: { read: Consequences; replaces
         <dt className="font-medium text-muted-foreground">{PREVIEW_LINE_LABELS.change}</dt>
         <dd data-preview-line="change" className="space-y-1 break-words text-foreground">
           <p>{previewFixText(draft)}</p>
-          {draftHasWording(draft) ? <p className="text-muted-foreground">{DRAFT_WORDING_NOT_SHOWN_TEXT}</p> : null}
+          {draftHasWording(draft) ? <p className="text-muted-foreground">{DRAFT_WORDING_NOT_SHOWN_TEXT()}</p> : null}
         </dd>
       </dl>
       {latest.kind === 'supersedes' ? (
