@@ -3,6 +3,7 @@
 import { ChevronRight } from "lucide-react"
 
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { useTranslation } from "@/i18n"
 import { KnowledgeBriefLine, NESTED_TRIGGER_CLASS } from "./knowledge-brief-line"
 import { RecordIdCopy } from "./record-id-copy"
 import {
@@ -23,10 +24,9 @@ const CHANNEL_LIST_CLASS = "pl-5 space-y-2"
 /** A record id or a cut-candidate line: mono, `tabular-nums` so a column of scores lines up. */
 const MONO_CLASS = "font-mono text-xs text-muted-foreground tabular-nums"
 
-/** The cut ledger's own eyebrow. */
-const CUT_EYEBROW = "CUT CANDIDATES"
-
 export function KnowledgeStepDetail({ detail }: { detail: StepDetailView }) {
+  const { t } = useTranslation()
+
   return (
     <div className="space-y-4">
       {detail.channel1.length > 0 ? <Channel1 lines={detail.channel1} /> : null}
@@ -80,15 +80,19 @@ export function KnowledgeStepDetail({ detail }: { detail: StepDetailView }) {
               {detail.cut.label}
             </CollapsibleTrigger>
             <CollapsibleContent className="mt-2 space-y-1">
-              <p className={EYEBROW_CLASS}>{CUT_EYEBROW}</p>
+              <p className={EYEBROW_CLASS}>{t("knowledge.stepDetail.cutEyebrow")}</p>
               <ul className={CHANNEL_LIST_CLASS}>
-                {/* Only the LEADING token of this sentence is unbroken — the record id — but that
-                    is enough to set the line's min-content width, so it gets the same treatment at
-                    the same use site. The spaced leg/rank/score remainder is unaffected. */}
+                {/* Only the record id in this sentence is unbroken, but that is enough to set the
+                    line's min-content width, so it gets the same treatment at the same use site.
+                    The spaced leg/rank/score remainder is unaffected. */}
                 {detail.cut.lines.map(candidate => (
                   <li key={candidate.recordId} className={`${MONO_CLASS} wrap-anywhere`}>
-                    {candidate.recordId} · leg {candidate.leg} · rank {String(candidate.rank)} · score{" "}
-                    {candidate.score.toFixed(3)}
+                    {t("knowledge.stepDetail.cutLine", {
+                      recordId: candidate.recordId,
+                      leg: candidate.leg,
+                      rank: String(candidate.rank),
+                      score: candidate.score.toFixed(3),
+                    })}
                   </li>
                 ))}
               </ul>

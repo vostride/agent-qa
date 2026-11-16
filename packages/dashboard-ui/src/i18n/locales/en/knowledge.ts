@@ -106,6 +106,8 @@ export default {
   'knowledge.trace.channel3': 'CHANNEL 3 · CAUTIONS',
   'knowledge.trace.line': 'leg {{leg}} · rank {{rank}} · score {{score}}',
   'knowledge.trace.cutCandidates': 'Cut candidates ({{cut}} of top {{top}})',
+  'knowledge.stepDetail.cutEyebrow': 'CUT CANDIDATES',
+  'knowledge.stepDetail.cutLine': '{{recordId}} · leg {{leg}} · rank {{rank}} · score {{score}}',
   'knowledge.trace.attribution.confirmed': 'attribution: confirmed',
   'knowledge.trace.attribution.contradicted': 'attribution: contradicted',
   'knowledge.trace.attribution.helpful': 'attribution: helpful',

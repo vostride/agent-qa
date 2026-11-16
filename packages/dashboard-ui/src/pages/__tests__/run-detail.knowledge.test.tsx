@@ -13,6 +13,7 @@ import {
   RETRIEVAL_TRACE_SCHEMA_VERSION,
 } from "@vostride/agent-qa-schema"
 
+import i18n from "@/i18n"
 import RunDetailPage from "@/pages/run-detail"
 import {
   ATTRIBUTION_UNKNOWN_TEXT,
@@ -816,5 +817,34 @@ describe("a step reference in Knowledge used takes the reader to that step", () 
     const plain = [...(uses?.querySelectorAll("span.tabular-nums") ?? [])].filter(span => span.textContent === "6")
     expect(plain).toHaveLength(1)
     expect(plain[0]?.hasAttribute("data-step-ref")).toBe(false)
+  })
+})
+
+describe("the Knowledge tab of a mounted run page after a language change", () => {
+  afterEach(async () => {
+    await act(async () => {
+      await i18n.changeLanguage("en")
+    })
+    i18n.removeResourceBundle("fr", "translation")
+  })
+
+  it("shows the Knowledge used heading in the new language in the same section, then English again", async () => {
+    const view = await renderAt(`/runs/${RUN_ID}?tab=knowledge`)
+    const section = view.querySelector('[data-knowledge-section="used"]')
+    const heading = () => section?.querySelector("h4")?.textContent
+    expect(knowledgeState(view)).toBe("ready")
+    expect(heading()).toBe("Knowledge used")
+
+    i18n.addResourceBundle("fr", "translation", { "knowledge.used.heading": "Connaissances utilisées" })
+    await act(async () => {
+      await i18n.changeLanguage("fr")
+    })
+    expect(view.querySelector('[data-knowledge-section="used"]'), "not remounted").toBe(section)
+    expect(heading()).toBe("Connaissances utilisées")
+
+    await act(async () => {
+      await i18n.changeLanguage("en")
+    })
+    expect(heading()).toBe("Knowledge used")
   })
 })
