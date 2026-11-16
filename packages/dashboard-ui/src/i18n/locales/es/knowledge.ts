@@ -1,0 +1,267 @@
+import type en from '../en'
+import type { Translation } from '../../translation'
+
+export default {
+  'knowledge.page.readFailedBody':
+    '{{error}}. Intenta recargar la página; si el problema continúa, ejecuta `agent-qa doctor`.',
+  'knowledge.used.briefLines_one': '{{count}} línea del resumen',
+  'knowledge.used.briefLines_other': '{{count}} líneas del resumen',
+  'knowledge.used.canary_one': '{{count}} canario',
+  'knowledge.used.canary_other': '{{count}} canarios',
+  'knowledge.used.stepRowTitle': 'Paso {{step}}: {{text}}',
+  'knowledge.used.summary.stepsBriefed_one': '{{count}} paso con resumen',
+  'knowledge.used.summary.stepsBriefed_other': '{{count}} pasos con resumen',
+  'knowledge.used.summary.canaryLines_one': '{{count}} línea canario entregada',
+  'knowledge.used.summary.canaryLines_other': '{{count}} líneas canario entregadas',
+  'knowledge.used.summary.replays_one': '{{count}} reproducción de procedimiento',
+  'knowledge.used.summary.replays_other': '{{count}} reproducciones de procedimientos',
+  'knowledge.used.summary.hints_one': '{{count}} pista',
+  'knowledge.used.summary.hints_other': '{{count}} pistas',
+  'knowledge.used.summary.replaysAndHints': '{{replays}}, {{hints}}',
+  'knowledge.used.verb.given.lead': 'Dado en',
+  'knowledge.used.verb.given.follow': 'dado en',
+  'knowledge.used.verb.opened.lead': 'Abierto por el agente en',
+  'knowledge.used.verb.opened.follow': 'abierto en',
+  'knowledge.used.verb.caution.lead': 'Dado como advertencia en',
+  'knowledge.used.verb.caution.follow': 'dado como advertencia en',
+  'knowledge.used.verb.replayed.lead': 'Reproducido en',
+  'knowledge.used.verb.replayed.follow': 'reproducido en',
+  'knowledge.used.verb.hint.lead': 'Usado como pista en',
+  'knowledge.used.verb.hint.follow': 'usado como pista en',
+  'knowledge.used.records_one': '{{count}} registro',
+  'knowledge.used.records_other': '{{count}} registros',
+  'knowledge.stepRefs.goTo': 'Ir al paso {{step}} · {{text}}',
+  'knowledge.stepRefs.goToInTest': 'Ir a {{test}} · paso {{step}} · {{text}}',
+  'knowledge.stepRefs.test': 'Prueba {{number}}',
+  'knowledge.stepRefs.member': '{{test}} · {{steps}}',
+  'knowledge.stepRefs.members': '{{list}}; {{item}}',
+  'knowledge.stepRefs.lead_one': 'el paso {{steps}}',
+  'knowledge.stepRefs.lead_other': 'los pasos {{steps}}',
+  'knowledge.stepRefs.next': '{{list}}, {{item}}',
+  'knowledge.stepRefs.last': '{{list}} y {{item}}',
+  'knowledge.stepRefs.range': '{{from}}–{{to}}',
+  'knowledge.record.kind.fact': 'Dato',
+  'knowledge.record.kind.caution': 'Advertencia',
+  'knowledge.record.kind.procedure': 'Procedimiento',
+  'knowledge.record.kind.policy': 'Política',
+  'knowledge.record.kind.unknown': 'Pregunta abierta',
+  'knowledge.record.absence.notFound': 'Ya no está en el almacén de conocimiento.',
+  'knowledge.record.absence.scanIncomplete': 'No se pudo leer todo el almacén de conocimiento.',
+  'knowledge.record.absence.notBound':
+    'Este panel no tiene un lector de registros para este proyecto.',
+  'knowledge.record.showAll_one': 'Mostrar {{count}} registro',
+  'knowledge.record.showAll_other': 'Mostrar los {{count}} registros',
+  'knowledge.record.appliesTo': 'Se aplica a {{place}}',
+  'knowledge.record.anchor.page': 'página {{route}}',
+  'knowledge.record.anchor.flow': 'flujo {{name}}',
+  'knowledge.record.anchor.element': 'elemento {{role}} “{{name}}”',
+  'knowledge.record.anchor.elementNumbered': 'elemento {{role}} “{{name}}” n.º {{position}}',
+  'knowledge.record.anchor.selector': 'selector',
+  'knowledge.record.anchor.error': 'error “{{message}}”',
+  'knowledge.status.since.active': 'demostrado después',
+  'knowledge.status.since.candidate': 'de nuevo a prueba después',
+  'knowledge.status.since.superseded': 'sustituido después',
+  'knowledge.status.since.deprecated': 'retirado después',
+  'knowledge.status.word.active': 'en uso',
+  'knowledge.status.word.candidate': 'a prueba',
+  'knowledge.status.word.superseded': 'sustituido',
+  'knowledge.status.word.deprecated': 'retirado',
+  'knowledge.status.current.active': 'Estado actual: en uso',
+  'knowledge.status.current.candidate': 'Estado actual: a prueba',
+  'knowledge.status.current.superseded': 'Estado actual: sustituido',
+  'knowledge.status.current.deprecated': 'Estado actual: retirado',
+  'knowledge.status.times_one': 'una vez',
+  'knowledge.status.times_other': '{{count}} veces',
+  'knowledge.status.trustCounts': 'Confirmado {{confirmed}} · contradicho {{contradicted}}',
+  'knowledge.effect.contradicted': 'No se sostuvo en {{steps}}: la ejecución vio algo distinto',
+  'knowledge.effect.harmful': 'Confundió al agente en {{steps}}',
+  'knowledge.effect.confirmed': 'Se sostuvo en {{steps}}: la ejecución vio lo mismo',
+  'knowledge.effect.helpful': 'Ayudó en {{steps}}',
+  'knowledge.effect.pending':
+    'A prueba en {{steps}}: a la espera del procesamiento posterior a la ejecución',
+  'knowledge.effect.unknown':
+    'No se pudo comprobar en {{steps}}: no se pudo leer parte del almacén de conocimiento',
+  'knowledge.effect.stopCause.descriptorAmbiguous': 'coincidió más de un elemento',
+  'knowledge.effect.stopCause.descriptorMissing': 'no se encontró el elemento',
+  'knowledge.effect.stopCause.pageAnchorMismatch': 'la página no coincidía',
+  'knowledge.effect.stopCause.gateRefused': 'una comprobación de seguridad rechazó la acción',
+  'knowledge.effect.stopCause.parameterUnbound': 'no se proporcionó un valor que necesitaba',
+  'knowledge.effect.stopCause.nonReplayableAction': 'esa acción no se puede reproducir',
+  'knowledge.effect.stopCause.executionFailure': 'la acción no se pudo ejecutar',
+  'knowledge.effect.stopCause.verifierRejection': 'el resultado no superó la verificación',
+  'knowledge.effect.replayed':
+    'Se reprodujo en {{steps}}: se aceptaron todas las acciones reproducidas',
+  'knowledge.effect.replayedAll_one': 'Reprodujo su único paso en {{steps}}',
+  'knowledge.effect.replayedAll_other': 'Reprodujo sus {{count}} pasos en {{steps}}',
+  'knowledge.effect.replayedSome_one': 'Reprodujo {{replayed}} de su único paso en {{steps}}',
+  'knowledge.effect.replayedSome_other':
+    'Reprodujo {{replayed}} de sus {{count}} pasos en {{steps}}',
+  'knowledge.effect.stoppedAtOnly':
+    'La reproducción se detuvo en su único paso, en {{steps}}: {{cause}}',
+  'knowledge.effect.stoppedAtOf':
+    'La reproducción se detuvo en su paso {{step}} de {{length}}, en {{steps}}: {{cause}}',
+  'knowledge.effect.stoppedAt':
+    'La reproducción se detuvo en su paso {{step}}, en {{steps}}: {{cause}}',
+  'knowledge.effect.uncounted_one':
+    '{{count}} registro a prueba no se contó ni a favor ni en contra en esta ejecución',
+  'knowledge.effect.uncounted_other':
+    '{{count}} registros a prueba no se contaron ni a favor ni en contra en esta ejecución',
+  'knowledge.effect.unmeasured_one': '{{count}} registro más no tiene ningún efecto medido.',
+  'knowledge.effect.unmeasured_other': '{{count}} registros más no tienen ningún efecto medido.',
+  'knowledge.trace.channel1': 'CANAL 1 · RESUMEN',
+  'knowledge.trace.channel2': 'CANAL 2 · RASTROS DE LECTURA',
+  'knowledge.trace.channel3': 'CANAL 3 · ADVERTENCIAS',
+  'knowledge.trace.line': 'vía {{leg}} · posición {{rank}} · puntuación {{score}}',
+  'knowledge.trace.cutCandidates': 'Candidatos descartados ({{cut}} de los {{top}} primeros)',
+  'knowledge.stepDetail.cutEyebrow': 'CANDIDATOS DESCARTADOS',
+  'knowledge.stepDetail.cutLine':
+    '{{recordId}} · vía {{leg}} · posición {{rank}} · puntuación {{score}}',
+  'knowledge.trace.attribution.confirmed': 'atribución: confirmada',
+  'knowledge.trace.attribution.contradicted': 'atribución: contradicha',
+  'knowledge.trace.attribution.helpful': 'atribución: útil',
+  'knowledge.trace.attribution.harmful': 'atribución: perjudicial',
+  'knowledge.trace.trustMeta': 'confianza {{trust}} · nivel {{tier}} · estado {{status}}',
+  'knowledge.trace.copyRecordId': 'Copiar el ID del registro {{id}}',
+  'knowledge.trace.copyRecordIdFailed': 'No se pudo copiar. Selecciona el ID para copiarlo: {{id}}',
+  'knowledge.trace.rungLine': 'Nivel de recuperación: {{level}}',
+  'knowledge.trace.rungLineWithCause': 'Nivel de recuperación: {{level}} ({{cause}})',
+  'knowledge.trace.replayed': 'reproducido {{passed}}/{{total}}',
+  'knowledge.trace.brokeCause.miss': 'sin coincidencia',
+  'knowledge.trace.brokeCause.executionFailure': 'fallo del adaptador',
+  'knowledge.trace.brokeCause.verifierRejection': 'rechazo del verificador',
+  'knowledge.trace.brokeAt': 'se interrumpió en el paso {{step}}: {{cause}}',
+  'knowledge.trace.showAllLines_one': 'Mostrar {{count}} línea',
+  'knowledge.trace.showAllLines_other': 'Mostrar las {{count}} líneas',
+  'knowledge.changes.reconciliation_one': '{{count}} cambio contado · mostrados: {{shown}}',
+  'knowledge.changes.reconciliation_other': '{{count}} cambios contados · mostrados: {{shown}}',
+  'knowledge.changes.bucket.added': 'Añadido',
+  'knowledge.changes.bucket.confirmed': 'Confirmado',
+  'knowledge.changes.bucket.superseded': 'Sustituido',
+  'knowledge.changes.bucket.deprecated': 'Obsoleto',
+  'knowledge.changes.bucket.proposed': 'Propuesto',
+  'knowledge.changes.bucketMeaning.added':
+    'Conocimiento nuevo registrado a partir de esta ejecución.',
+  'knowledge.changes.bucketMeaning.confirmed':
+    'Conocimiento existente que esta ejecución respaldó, incluido el conocimiento promovido a de confianza.',
+  'knowledge.changes.bucketMeaning.superseded':
+    'Sustituido por una versión más reciente; los agentes reciben la nueva.',
+  'knowledge.changes.bucketMeaning.deprecated': 'Retirado; los agentes ya no lo reciben.',
+  'knowledge.changes.bucketMeaning.proposed':
+    'Registrado, pero no aplicado: los agentes no lo reciben.',
+  'knowledge.changes.ledgerRow.bucket': 'Grupo',
+  'knowledge.changes.ledgerRow.record': 'Registro',
+  'knowledge.changes.ledgerRow.events': 'Eventos',
+  'knowledge.changes.ledgerRow.promotion': 'Ruta de promoción',
+  'knowledge.changes.ledgerRow.receipt': 'Hash del recibo',
+  'knowledge.changes.ledgerRow.evidence': 'Evidencias',
+  'knowledge.changes.ledgerRow.observation': 'Observación',
+  'knowledge.changes.ledgerRow.sourceRun': 'Ejecución de origen',
+  'knowledge.changes.ledgerRow.validity': 'Validez',
+  'knowledge.changes.ledgerRow.link': 'Referencia',
+  'knowledge.changes.validityOpen': 'abierto @ {{opened}}',
+  'knowledge.changes.validityClosed': 'abierto @ {{opened}} · cerrado @ {{closed}}',
+  'knowledge.learned.sinceThisRun_one': 'Desde esta ejecución · {{count}} cambio',
+  'knowledge.learned.sinceThisRun_other': 'Desde esta ejecución · {{count}} cambios',
+  'knowledge.learned.sinceThen.added': 'añadido después',
+  'knowledge.learned.sinceThen.confirmed': 'confirmado de nuevo, después',
+  'knowledge.learned.sinceThen.promoted': 'promovido a de confianza, después',
+  'knowledge.learned.sinceThen.superseded': 'sustituido después',
+  'knowledge.learned.sinceThen.deprecated': 'retirado después',
+  'knowledge.retrieval.rung.bundleScan': 'exploración de paquetes',
+  'knowledge.retrieval.rung.staticFloor': 'embeddings del nivel mínimo estático',
+  'knowledge.retrieval.rung.lexicalOnly': 'recuperación solo léxica',
+  'knowledge.retrieval.statement.freshIndex':
+    'El índice de conocimiento aún no se había creado, así que esta ejecución leyó el conocimiento directamente de los paquetes. No se perdió nada. El índice se crea cuando termina la ejecución, y las ejecuciones posteriores lo usan.',
+  'knowledge.retrieval.statement.causeNotRecorded':
+    'Esta ejecución usó un nivel de recuperación reducido en lugar de la recuperación completa de conocimiento: {{level}}. El motivo no se registró en esta ejecución.',
+  'knowledge.retrieval.statement.indexProblem':
+    'Esta ejecución no pudo usar el índice de conocimiento, así que leyó el conocimiento directamente de los paquetes: {{cause}}.',
+  'knowledge.retrieval.statement.staticFloor':
+    'La recuperación de conocimiento de esta ejecución usó los embeddings ligeros del nivel mínimo estático en lugar del modelo completo: {{cause}}.',
+  'knowledge.retrieval.statement.noSemanticSearch':
+    'La recuperación de conocimiento de esta ejecución se hizo sin búsqueda semántica, solo con coincidencias de palabras clave y de anclas: {{cause}}.',
+  'knowledge.retrieval.statement.configuredStaticFloor':
+    'La recuperación de conocimiento de esta ejecución usó los embeddings del nivel mínimo estático, como indica la configuración de este proyecto.',
+  'knowledge.retrieval.statement.configuredLexical':
+    'La recuperación de conocimiento de esta ejecución usó solo coincidencias de palabras clave y de anclas, como indica la configuración de este proyecto.',
+  'knowledge.retrieval.banner': '{{statement}} {{pointer}}',
+  'knowledge.page.noStoreHeading':
+    'No hay ningún almacén de conocimiento configurado en este proyecto',
+  'knowledge.page.noStoreBody':
+    'Las ejecuciones de este proyecto se hacen sin resumen. Añade una raíz de conocimiento a la configuración para empezar a entregar uno.',
+  'knowledge.page.readFailedHeading': 'No se pudo leer el conocimiento',
+  'knowledge.used.noBriefServed':
+    'Esta ejecución no usó conocimiento guardado: ningún paso pidió un resumen.',
+  'knowledge.used.heading': 'Conocimiento usado',
+  'knowledge.used.noBriefLines':
+    'Esta ejecución no usó conocimiento guardado: la recuperación se hizo y no encontró nada aplicable.',
+  'knowledge.used.stepNoBrief': 'no se entregó ningún resumen',
+  'knowledge.used.replayFact': 'reproducción',
+  'knowledge.used.hintFact': 'pista',
+  'knowledge.used.recordUnreadable': 'Un registro que ya no se puede leer',
+  'knowledge.used.procedureContentNotRecorded':
+    'Un procedimiento cuyo contenido no forma parte del registro de esta ejecución',
+  'knowledge.used.onTrialTag': 'a prueba',
+  'knowledge.used.onTrialTooltip':
+    'El conocimiento nuevo que aún no está demostrado se da al agente a prueba, para que una ejecución muestre si se sostiene. El resultado de esta ejecución cuenta a favor o en contra.',
+  'knowledge.record.showFull': 'Mostrar el registro completo',
+  'knowledge.record.evidenceNote': 'Nota del curador: la escribió el curador y no está verificada',
+  'knowledge.effect.heading': 'Efecto en esta ejecución',
+  'knowledge.effect.nothingMeasured':
+    'No se midió nada en esta ejecución. Solo se mide el conocimiento a prueba y las reproducciones de procedimientos.',
+  'knowledge.effect.nothingUsed':
+    'No hay nada que medir: esta ejecución no usó conocimiento guardado.',
+  'knowledge.effect.uncountedTrialsTooltip':
+    'El procesamiento posterior a la ejecución terminó sin contar el resultado de esta ejecución.',
+  'knowledge.trace.preTrace': 'no se registró ningún rastro en esta ejecución',
+  'knowledge.trace.stepNotFound': 'no hay evidencias registradas de este paso',
+  'knowledge.trace.ledgerOnTrial': 'a prueba (canario)',
+  'knowledge.trace.recordIdCopied': 'ID del registro copiado al portapapeles',
+  'knowledge.trace.attributionPending': 'atribución pendiente',
+  'knowledge.trace.attributionSkipped': 'atribución omitida',
+  'knowledge.trace.notAttributed': 'sin atribuir',
+  'knowledge.trace.attributionUnknown': 'atribución desconocida',
+  'knowledge.trace.procedureHint': 'pista de procedimiento',
+  'knowledge.trace.procedureHintDemoted': 'pista de procedimiento (rebajada desde reproducción)',
+  'knowledge.changes.heading': 'Cambios en la memoria',
+  'knowledge.changes.pending':
+    'Los cambios en la memoria aparecen cuando termina el procesamiento posterior a la ejecución.',
+  'knowledge.changes.curationFailed': 'La curación falló: no se aprendió nada de esta ejecución.',
+  'knowledge.changes.curationFailedPartial':
+    'La curación falló: estos registros se confirmaron antes de que se detuviera.',
+  'knowledge.changes.countsNotRecorded': 'No se registraron recuentos en esta ejecución.',
+  'knowledge.changes.notAvailable':
+    'Los registros de cambios de esta ejecución aún no están disponibles.',
+  'knowledge.changes.unreadable':
+    'No se pudieron leer los registros de cambios del almacén de conocimiento. Ejecuta `agent-qa doctor`.',
+  'knowledge.changes.storeReadIncomplete':
+    'No se pudo leer todo el almacén de conocimiento. Ejecuta `agent-qa doctor`.',
+  'knowledge.changes.noMemoryChanges':
+    'El procesamiento posterior a la ejecución terminó y no cambió nada en la memoria.',
+  'knowledge.changes.reconciliationUnattributed':
+    'La diferencia no se pudo atribuir a las filas de esta ejecución.',
+  'knowledge.learned.proposedNote': 'registrado, no aplicado',
+  'knowledge.learned.openQuestionNote': 'pregunta abierta registrada',
+  'knowledge.learned.recordContentNotRecorded':
+    'Un registro cuyo contenido no forma parte del registro de esta ejecución',
+  'knowledge.learned.was': 'Antes: {{record}}',
+  'knowledge.retrieval.detailsLabel': 'Detalles de la recuperación',
+  'knowledge.retrieval.doctorPointer':
+    'Para comprobar ahora el estado del almacén, ejecuta agent-qa doctor. Informa del estado actual y no cambia lo que registró esta ejecución.',
+  'knowledge.rungCause.native-runtime-unavailable':
+    'entorno de ejecución nativo de ONNX no disponible',
+  'knowledge.rungCause.profile-unresolved':
+    'perfil del generador de embeddings sin resolver (aplazado)',
+  'knowledge.rungCause.model-not-downloaded': 'modelo de embeddings no descargado',
+  'knowledge.rungCause.embedder-load-failed': 'no se pudo cargar el generador de embeddings',
+  'knowledge.rungCause.index-unavailable':
+    'índice de conocimiento no disponible (causa no registrada); se exploran los paquetes',
+  'knowledge.rungCause.floor-disabled': 'nivel mínimo estático desactivado',
+  'knowledge.rungCause.profile-static-configured': 'perfil estático configurado',
+  'knowledge.rungCause.index-not-built':
+    'índice de conocimiento aún no creado; se exploran los paquetes',
+  'knowledge.rungCause.index-locked':
+    'índice de conocimiento bloqueado por otro proceso; se exploran los paquetes',
+  'knowledge.rungCause.index-corrupt':
+    'índice de conocimiento dañado; se pidió reconstruirlo y se exploran los paquetes',
+} satisfies Translation<typeof en>
