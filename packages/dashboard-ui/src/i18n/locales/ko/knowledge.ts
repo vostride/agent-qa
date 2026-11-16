@@ -163,7 +163,7 @@ export default {
   'knowledge.retrieval.statement.configuredLexical':
     '이 프로젝트 설정에 따라 이 실행의 지식 검색은 키워드와 앵커 일치만 사용했습니다.',
   'knowledge.retrieval.banner': '{{statement}} {{pointer}}',
-  'knowledge.page.noStoreHeading': '이 프로젝트에 구성된 지식 저장소가 없습니다',
+  'knowledge.page.noStoreHeading': '이 프로젝트에 설정된 지식 저장소가 없습니다',
   'knowledge.page.noStoreBody':
     '이 프로젝트의 실행은 브리프 없이 진행됩니다. 브리프를 제공하려면 설정에 지식 루트를 추가하세요.',
   'knowledge.page.readFailedHeading': '지식을 읽을 수 없습니다',

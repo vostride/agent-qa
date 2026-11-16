@@ -174,7 +174,7 @@ export default {
   'runDetail.navbar.heading.navigation': '탐색',
   'runDetail.navbar.heading.tabs': '탭',
   'runDetail.navbar.heading.phases': '단계 구분',
-  'runDetail.navbar.heading.actions': '동작',
+  'runDetail.navbar.heading.actions': '작업',
   'runDetail.navbar.hint.previousNextAction': '이전 / 다음 동작',
   'runDetail.navbar.hint.playPause': '재생 / 일시 정지',
   'runDetail.navbar.hint.framesVideo': '프레임 / 동영상',
