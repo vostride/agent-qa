@@ -29,41 +29,79 @@ const { foldRetrievalRung } = LOCAL_KNOWLEDGE_PROBES
 const HERE = dirname(fileURLToPath(import.meta.url))
 /** `packages/cli/src/__tests__` → the agent-qa root. */
 const REPO_ROOT = resolve(HERE, '..', '..', '..', '..')
-const KNOWLEDGE_VIEW_PATH = join(REPO_ROOT, 'packages/dashboard-ui/src/lib/knowledge-view.ts')
+const DASHBOARD_UI_SRC = join(REPO_ROOT, 'packages/dashboard-ui/src')
+const KNOWLEDGE_AREA_PATH = join('i18n', 'locales', 'en', 'knowledge.ts')
+const RUNG_CAUSE_KEY_PREFIX = 'knowledge.rungCause.'
 
-/**
- * The dashboard's copy of the table, extracted from the module that publishes it.
- *
- * A PARSE THAT REFUSES RATHER THAN RETURNING NOTHING. An empty map would make cells 2 and 3 pass
- * vacuously the day the table is renamed or restyled, which is precisely the drift this file is
- * here to catch — so a table that cannot be found, or that yields no members, throws with a
- * sentence naming what moved.
- */
-function dashboardCauseLabels(): Record<string, string> {
-  const source = readFileSync(KNOWLEDGE_VIEW_PATH, 'utf8')
-  const block = /export const RUNG_CAUSE_LABELS[^=]*=\s*\{([\s\S]*?)\n\}/u.exec(source)
-  if (block === null) {
-    throw new Error(
-      'RUNG_CAUSE_LABELS is no longer an exported object literal in '
-      + 'packages/dashboard-ui/src/lib/knowledge-view.ts — the parity cell cannot read the '
-      + 'dashboard half of the table.',
-    )
+// A catalog value's source body as the runtime reads it, so an escaped quote compares as itself.
+function unescapeStringBody(body: string): string {
+  const named: Record<string, string> = {
+    n: '\n', t: '\t', r: '\r', b: '\b', f: '\f', v: '\v', '0': '\0',
   }
-  const table: Record<string, string> = {}
-  for (const line of (block[1] as string).split('\n')) {
-    const entry = /^\s*'([^']+)':\s*'([^']*)',?\s*$/u.exec(line)
-    if (entry !== null) table[entry[1] as string] = entry[2] as string
+  let out = ''
+  let index = 0
+  while (index < body.length) {
+    const char = body[index] as string
+    if (char !== '\\' || index + 1 >= body.length) {
+      out += char
+      index += 1
+      continue
+    }
+    const next = body[index + 1] as string
+    const braced = next === 'u' ? /^u\{([0-9a-fA-F]+)\}/u.exec(body.slice(index + 1)) : null
+    const quad = next === 'u' ? /^u([0-9a-fA-F]{4})/u.exec(body.slice(index + 1)) : null
+    const hex = next === 'x' ? /^x([0-9a-fA-F]{2})/u.exec(body.slice(index + 1)) : null
+    const escape = braced ?? quad ?? hex
+    if (escape !== null) {
+      out += String.fromCodePoint(Number.parseInt(escape[1] as string, 16))
+      index += 1 + escape[0].length
+      continue
+    }
+    out += named[next] ?? next
+    index += 2
   }
-  if (Object.keys(table).length === 0) {
-    throw new Error(
-      'RUNG_CAUSE_LABELS in packages/dashboard-ui/src/lib/knowledge-view.ts carries no '
-      + "single-quoted '{key}': '{label}' members — the extraction has gone blind.",
-    )
-  }
-  return table
+  return out
 }
 
-const DASHBOARD_CAUSE_LABELS = dashboardCauseLabels()
+// The English text of one catalog key, in either quote style, on the key's line or the next.
+function publishedText(area: string, key: string): string {
+  const relativePath = join('i18n', 'locales', 'en', `${area}.ts`)
+  const source = readFileSync(join(DASHBOARD_UI_SRC, relativePath), 'utf8')
+  const quotedKey = key.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  const entry = new RegExp(
+    `(['"])${quotedKey}\\1:[ \\t]*(?:\\n[ \\t]*)?(['"])((?:\\\\.|[^\\\\])*?)\\2`,
+    'u',
+  ).exec(source)
+  if (entry === null) {
+    throw new Error(`${key} is not a quoted entry of ${relativePath}`)
+  }
+  return unescapeStringBody(entry[3] as string)
+}
+
+/**
+ * The dashboard's labels, one per `knowledge.rungCause.*` key of the English catalog, keyed by
+ * the reason that ends the key.
+ *
+ * A READ THAT REFUSES RATHER THAN RETURNING NOTHING. An empty map would make cells 2 and 3 pass
+ * vacuously the day the keys move, which is precisely the drift this file is here to catch.
+ */
+function publishedCauseLabels(): Record<string, string> {
+  const source = readFileSync(join(DASHBOARD_UI_SRC, KNOWLEDGE_AREA_PATH), 'utf8')
+  const keys = [...source.matchAll(/(['"])(knowledge\.rungCause\.[^'"]+)\1:/gu)].map(
+    (match) => match[2] as string,
+  )
+  if (keys.length === 0) {
+    throw new Error(
+      `${KNOWLEDGE_AREA_PATH} in packages/dashboard-ui/src carries no ${RUNG_CAUSE_KEY_PREFIX}* `
+      + 'keys — the parity cell cannot read the dashboard half of the table.',
+    )
+  }
+  return Object.fromEntries(
+    keys.map((key) => [key.slice(RUNG_CAUSE_KEY_PREFIX.length), publishedText('knowledge', key)]),
+  )
+}
+
+const DASHBOARD_CAUSE_LABELS = publishedCauseLabels()
 
 /** Every reason the recorded enum admits, sorted — the ONE denominator both tables answer to. */
 const RECORDED_REASONS = [...RETRIEVAL_RUNG_REASONS].sort()
@@ -207,8 +245,9 @@ describe('the retrieval-rung cause labels are one wording on two doors', () => {
   it('the dashboard table names exactly the same recorded reasons', () => {
     expect(
       Object.keys(DASHBOARD_CAUSE_LABELS).sort(),
-      'the dashboard\'s `RUNG_CAUSE_LABELS` no longer keys exactly `RETRIEVAL_RUNG_REASONS`, so '
-      + 'the banner has a reason it cannot name — or names one the recorder cannot produce.',
+      'the dashboard\'s `knowledge.rungCause.*` keys no longer name exactly '
+      + '`RETRIEVAL_RUNG_REASONS`, so the banner has a reason it cannot name — or names one the '
+      + 'recorder cannot produce.',
     ).toEqual(RECORDED_REASONS)
     expect(
       Object.values(DASHBOARD_CAUSE_LABELS).filter((label) => label.trim() === ''),

@@ -1028,7 +1028,7 @@ export function ledgerRungLine(rung: Exclude<RetrievalRung, 'memidex'>, reason?:
   const level = RUNG_LABELS[rung]
   return reason === undefined
     ? t('knowledge.trace.rungLine', { level })
-    : t('knowledge.trace.rungLineWithCause', { level, cause: RUNG_CAUSE_LABELS[reason] })
+    : t('knowledge.trace.rungLineWithCause', { level, cause: rungCauseLabel(reason) })
 }
 
 // Not deciding yet differs from attributing nothing, so a pending canary line says so.
@@ -1118,7 +1118,7 @@ export const RECONCILIATION_UNATTRIBUTED_TEXT =
 
 // The noun agrees with the count and the second number is bare, as in the breakdown line.
 export function reconciliationCountText(counted: number, shown: number): string {
-  return `${String(counted)} ${counted === 1 ? 'change' : 'changes'} counted · ${String(shown)} shown`
+  return t('knowledge.changes.reconciliation', { count: counted, shown: String(shown) })
 }
 
 // `added` is what the run taught the store; `purged` is store maintenance, so it stays out.
@@ -1141,24 +1141,26 @@ function isLearnedChangeKind(kind: RecordChange['change']): kind is LearnedChang
   return LEARNED_CHANGE_KIND_SET.has(kind)
 }
 
-// Lower-cased, each label is the key `curationBreakdownLine` prints, so rows and heading agree.
-export const BUCKET_LABELS = {
-  added: 'Added',
-  confirmed: 'Confirmed',
-  superseded: 'Superseded',
-  deprecated: 'Deprecated',
-  proposed: 'Proposed',
-} as const satisfies Record<CurationBucket, string>
+// Each label is the bucket word `curationBreakdownLine` counts with, in its own catalog keys
+// (`runDetail.postProcessing.bucket.*`); a translation uses one word in both, so rows and
+// heading agree.
+export const BUCKET_LABELS = textTable({
+  added: () => t('knowledge.changes.bucket.added'),
+  confirmed: () => t('knowledge.changes.bucket.confirmed'),
+  superseded: () => t('knowledge.changes.bucket.superseded'),
+  deprecated: () => t('knowledge.changes.bucket.deprecated'),
+  proposed: () => t('knowledge.changes.bucket.proposed'),
+}) satisfies Record<CurationBucket, string>
 
 // What each bucket word means, as its label's tooltip and sr-only text.
-export const BUCKET_MEANINGS = {
-  added: 'New knowledge recorded from this run.',
-  confirmed: 'Existing knowledge this run backed up, including knowledge promoted to trusted.',
-  superseded: 'Replaced by a newer version; agents are given the new one.',
-  deprecated: 'Retired; agents are no longer given it.',
+export const BUCKET_MEANINGS = textTable({
+  added: () => t('knowledge.changes.bucketMeaning.added'),
+  confirmed: () => t('knowledge.changes.bucketMeaning.confirmed'),
+  superseded: () => t('knowledge.changes.bucketMeaning.superseded'),
+  deprecated: () => t('knowledge.changes.bucketMeaning.deprecated'),
   // Nothing reviews a proposed record; it stays proposed in CI or where validation refused it.
-  proposed: 'Recorded, but not applied: agents are not given it.',
-} as const satisfies Record<CurationBucket, string>
+  proposed: () => t('knowledge.changes.bucketMeaning.proposed'),
+}) satisfies Record<CurationBucket, string>
 
 // A change seen without a snapshot maps onto the same words; Proposed is never synthesized.
 const CHANGE_BUCKETS = {
@@ -1178,16 +1180,16 @@ export const WAS_PREFIX = 'Was:'
 export const RECORD_CONTENT_NOT_RECORDED_LEAD = "A record whose content isn't part of this run's record"
 
 export function sinceThisRunHeading(count: number): string {
-  return `Since this run · ${String(count)} ${count === 1 ? 'change' : 'changes'}`
+  return t('knowledge.learned.sinceThisRun', { count })
 }
 
-export const SINCE_THEN_DETAILS = {
-  added: 'added later',
-  confirmed: 'confirmed again, later',
-  promoted: 'promoted to trusted, later',
-  superseded: 'superseded later',
-  deprecated: 'retired later',
-} as const satisfies Record<LearnedChangeKind, string>
+export const SINCE_THEN_DETAILS = textTable({
+  added: () => t('knowledge.learned.sinceThen.added'),
+  confirmed: () => t('knowledge.learned.sinceThen.confirmed'),
+  promoted: () => t('knowledge.learned.sinceThen.promoted'),
+  superseded: () => t('knowledge.learned.sinceThen.superseded'),
+  deprecated: () => t('knowledge.learned.sinceThen.deprecated'),
+}) satisfies Record<LearnedChangeKind, string>
 
 export function sinceThenDetail(change: LearnedChangeKind): string {
   return SINCE_THEN_DETAILS[change]
@@ -1206,18 +1208,18 @@ export type LedgerRow =
   | 'validity'
   | 'link'
 
-export const LEDGER_ROW_LABELS = {
-  bucket: 'Bucket',
-  record: 'Record',
-  events: 'Events',
-  promotion: 'Promotion path',
-  receipt: 'Receipt digest',
-  evidence: 'Evidence',
-  observation: 'Observation',
-  sourceRun: 'Source run',
-  validity: 'Validity',
-  link: 'Reference',
-} as const satisfies Record<LedgerRow, string>
+export const LEDGER_ROW_LABELS = textTable({
+  bucket: () => t('knowledge.changes.ledgerRow.bucket'),
+  record: () => t('knowledge.changes.ledgerRow.record'),
+  events: () => t('knowledge.changes.ledgerRow.events'),
+  promotion: () => t('knowledge.changes.ledgerRow.promotion'),
+  receipt: () => t('knowledge.changes.ledgerRow.receipt'),
+  evidence: () => t('knowledge.changes.ledgerRow.evidence'),
+  observation: () => t('knowledge.changes.ledgerRow.observation'),
+  sourceRun: () => t('knowledge.changes.ledgerRow.sourceRun'),
+  validity: () => t('knowledge.changes.ledgerRow.validity'),
+  link: () => t('knowledge.changes.ledgerRow.link'),
+}) satisfies Record<LedgerRow, string>
 
 export interface LedgerEvent {
   readonly change: RecordChange['change']
@@ -1234,8 +1236,10 @@ export interface LedgerValidity {
 }
 
 export function ledgerValidityText(validity: LedgerValidity): string {
-  const opened = `opened @ ${String(validity.openedAtOrdinal)}`
-  return validity.closedAtOrdinal === undefined ? opened : `${opened} · closed @ ${String(validity.closedAtOrdinal)}`
+  const opened = String(validity.openedAtOrdinal)
+  return validity.closedAtOrdinal === undefined
+    ? t('knowledge.changes.validityOpen', { opened })
+    : t('knowledge.changes.validityClosed', { opened, closed: String(validity.closedAtOrdinal) })
 }
 
 /** Every technical fact behind one Memory changes row; rendered only inside Retrieval details. */
@@ -2010,24 +2014,30 @@ function rungView(recorded: RecordedRetrievalRung): RungView {
  * rung would put an amber strip across every healthy run's header. `Exclude` makes "there is no
  * label for memidex" a compile error at the call site instead of a judgement call.
  */
-export const RUNG_LABELS: Record<Exclude<RetrievalRung, 'memidex'>, string> = {
-  'bundle-scan': 'bundle scan',
-  'static-floor': 'static-floor embeddings',
-  'lexical-only': 'lexical-only retrieval',
-}
+export const RUNG_LABELS: Readonly<Record<Exclude<RetrievalRung, 'memidex'>, string>> = textTable({
+  'bundle-scan': () => t('knowledge.retrieval.rung.bundleScan'),
+  'static-floor': () => t('knowledge.retrieval.rung.staticFloor'),
+  'lexical-only': () => t('knowledge.retrieval.rung.lexicalOnly'),
+})
 
-// Spelled here and in `doctor-knowledge-checks.ts`, because the CLI cannot import this package.
-export const RUNG_CAUSE_LABELS: Record<RetrievalRungReason, string> = {
-  'native-runtime-unavailable': 'native ONNX runtime unavailable',
-  'profile-unresolved': 'embedder profile unresolved (deferred)',
-  'model-not-downloaded': 'embedding model not downloaded',
-  'embedder-load-failed': 'embedder failed to load',
-  'index-unavailable': 'knowledge index unavailable (cause not recorded), scanning bundles',
-  'floor-disabled': 'static floor disabled',
-  'profile-static-configured': 'static profile configured',
-  'index-not-built': 'knowledge index not built yet, scanning bundles',
-  'index-locked': 'knowledge index locked by another process, scanning bundles',
-  'index-corrupt': 'knowledge index corrupt, rebuild requested, scanning bundles',
+// Spelled in the English catalog and in `doctor-knowledge-checks.ts`, because the CLI cannot
+// import this package.
+export const RUNG_CAUSE_LABELS: Readonly<Record<RetrievalRungReason, string>> = textTable({
+  'native-runtime-unavailable': () => t('knowledge.rungCause.native-runtime-unavailable'),
+  'profile-unresolved': () => t('knowledge.rungCause.profile-unresolved'),
+  'model-not-downloaded': () => t('knowledge.rungCause.model-not-downloaded'),
+  'embedder-load-failed': () => t('knowledge.rungCause.embedder-load-failed'),
+  'index-unavailable': () => t('knowledge.rungCause.index-unavailable'),
+  'floor-disabled': () => t('knowledge.rungCause.floor-disabled'),
+  'profile-static-configured': () => t('knowledge.rungCause.profile-static-configured'),
+  'index-not-built': () => t('knowledge.rungCause.index-not-built'),
+  'index-locked': () => t('knowledge.rungCause.index-locked'),
+  'index-corrupt': () => t('knowledge.rungCause.index-corrupt'),
+})
+
+// A reason this build has no label for is shown as recorded.
+function rungCauseLabel(reason: RetrievalRungReason): string {
+  return (RUNG_CAUSE_LABELS as Partial<Record<string, string>>)[reason] ?? reason
 }
 
 // `doctor` reads the host as it is, so the banner points there rather than probing itself.
@@ -2094,19 +2104,19 @@ export function retrievalStatement(rung: Exclude<RetrievalRung, 'memidex'>, reas
   const retrievalClass = classOfReason(reason)
   switch (retrievalClass) {
     case 'fresh-index':
-      return "The knowledge index hadn't been built yet, so this run read knowledge straight from the bundles. Nothing was missed. The index is built after the run finishes, and later runs use it."
+      return t('knowledge.retrieval.statement.freshIndex')
     case 'cause-not-recorded':
-      return `This run used ${RUNG_LABELS[rung]} instead of full knowledge retrieval. The reason wasn't recorded for this run.`
+      return t('knowledge.retrieval.statement.causeNotRecorded', { level: RUNG_LABELS[rung] })
     case 'index-problem':
-      return `This run couldn't use the knowledge index, so it read knowledge straight from the bundles — ${causeLabel(reason)}.`
+      return t('knowledge.retrieval.statement.indexProblem', { cause: causeLabel(reason) })
     case 'semantic-search-unavailable':
       return rung === 'static-floor'
-        ? `This run's knowledge retrieval used the lightweight static-floor embeddings instead of the full model — ${causeLabel(reason)}.`
-        : `This run's knowledge retrieval ran without semantic search, on keyword and anchor matching only — ${causeLabel(reason)}.`
+        ? t('knowledge.retrieval.statement.staticFloor', { cause: causeLabel(reason) })
+        : t('knowledge.retrieval.statement.noSemanticSearch', { cause: causeLabel(reason) })
     case 'by-configuration':
       return reason === 'profile-static-configured'
-        ? "This run's knowledge retrieval used the static-floor embeddings, as this project is configured to."
-        : "This run's knowledge retrieval used keyword and anchor matching only, as this project is configured to."
+        ? t('knowledge.retrieval.statement.configuredStaticFloor')
+        : t('knowledge.retrieval.statement.configuredLexical')
     default: {
       const unreachable: never = retrievalClass
       return unreachable
@@ -2115,7 +2125,7 @@ export function retrievalStatement(rung: Exclude<RetrievalRung, 'memidex'>, reas
 }
 
 function causeLabel(reason: RetrievalRungReason | undefined): string {
-  return reason === undefined ? '' : RUNG_CAUSE_LABELS[reason]
+  return reason === undefined ? '' : rungCauseLabel(reason)
 }
 
 // The tab's retrieval statement; `pointer` is present on the warning classes only.
@@ -2146,7 +2156,10 @@ export function retrievalStatementView(rung: RungView | undefined): RetrievalSta
 export function rungBannerText(rung: RungView | undefined): string | undefined {
   const statement = retrievalStatementView(rung)
   if (statement?.pointer === undefined) return undefined
-  return `${statement.sentence} ${statement.pointer}`
+  return t('knowledge.retrieval.banner', {
+    statement: statement.sentence,
+    pointer: statement.pointer,
+  })
 }
 
 // Never probes: the rung is the one recorded at serve time, so a host fix rewrites no past header.

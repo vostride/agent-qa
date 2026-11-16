@@ -122,4 +122,67 @@ export default {
   'knowledge.trace.brokeAt': 'broke at step {{step}}: {{cause}}',
   'knowledge.trace.showAllLines_one': 'Show all {{count}} lines',
   'knowledge.trace.showAllLines_other': 'Show all {{count}} lines',
+  'knowledge.changes.reconciliation_one': '{{count}} change counted · {{shown}} shown',
+  'knowledge.changes.reconciliation_other': '{{count}} changes counted · {{shown}} shown',
+  'knowledge.changes.bucket.added': 'Added',
+  'knowledge.changes.bucket.confirmed': 'Confirmed',
+  'knowledge.changes.bucket.superseded': 'Superseded',
+  'knowledge.changes.bucket.deprecated': 'Deprecated',
+  'knowledge.changes.bucket.proposed': 'Proposed',
+  'knowledge.changes.bucketMeaning.added': 'New knowledge recorded from this run.',
+  'knowledge.changes.bucketMeaning.confirmed':
+    'Existing knowledge this run backed up, including knowledge promoted to trusted.',
+  'knowledge.changes.bucketMeaning.superseded':
+    'Replaced by a newer version; agents are given the new one.',
+  'knowledge.changes.bucketMeaning.deprecated': 'Retired; agents are no longer given it.',
+  'knowledge.changes.bucketMeaning.proposed': 'Recorded, but not applied: agents are not given it.',
+  'knowledge.changes.ledgerRow.bucket': 'Bucket',
+  'knowledge.changes.ledgerRow.record': 'Record',
+  'knowledge.changes.ledgerRow.events': 'Events',
+  'knowledge.changes.ledgerRow.promotion': 'Promotion path',
+  'knowledge.changes.ledgerRow.receipt': 'Receipt digest',
+  'knowledge.changes.ledgerRow.evidence': 'Evidence',
+  'knowledge.changes.ledgerRow.observation': 'Observation',
+  'knowledge.changes.ledgerRow.sourceRun': 'Source run',
+  'knowledge.changes.ledgerRow.validity': 'Validity',
+  'knowledge.changes.ledgerRow.link': 'Reference',
+  'knowledge.changes.validityOpen': 'opened @ {{opened}}',
+  'knowledge.changes.validityClosed': 'opened @ {{opened}} · closed @ {{closed}}',
+  'knowledge.learned.sinceThisRun_one': 'Since this run · {{count}} change',
+  'knowledge.learned.sinceThisRun_other': 'Since this run · {{count}} changes',
+  'knowledge.learned.sinceThen.added': 'added later',
+  'knowledge.learned.sinceThen.confirmed': 'confirmed again, later',
+  'knowledge.learned.sinceThen.promoted': 'promoted to trusted, later',
+  'knowledge.learned.sinceThen.superseded': 'superseded later',
+  'knowledge.learned.sinceThen.deprecated': 'retired later',
+  'knowledge.retrieval.rung.bundleScan': 'bundle scan',
+  'knowledge.retrieval.rung.staticFloor': 'static-floor embeddings',
+  'knowledge.retrieval.rung.lexicalOnly': 'lexical-only retrieval',
+  'knowledge.retrieval.statement.freshIndex':
+    "The knowledge index hadn't been built yet, so this run read knowledge straight from the bundles. Nothing was missed. The index is built after the run finishes, and later runs use it.",
+  'knowledge.retrieval.statement.causeNotRecorded':
+    "This run used {{level}} instead of full knowledge retrieval. The reason wasn't recorded for this run.",
+  'knowledge.retrieval.statement.indexProblem':
+    "This run couldn't use the knowledge index, so it read knowledge straight from the bundles — {{cause}}.",
+  'knowledge.retrieval.statement.staticFloor':
+    "This run's knowledge retrieval used the lightweight static-floor embeddings instead of the full model — {{cause}}.",
+  'knowledge.retrieval.statement.noSemanticSearch':
+    "This run's knowledge retrieval ran without semantic search, on keyword and anchor matching only — {{cause}}.",
+  'knowledge.retrieval.statement.configuredStaticFloor':
+    "This run's knowledge retrieval used the static-floor embeddings, as this project is configured to.",
+  'knowledge.retrieval.statement.configuredLexical':
+    "This run's knowledge retrieval used keyword and anchor matching only, as this project is configured to.",
+  'knowledge.retrieval.banner': '{{statement}} {{pointer}}',
+  'knowledge.rungCause.native-runtime-unavailable': 'native ONNX runtime unavailable',
+  'knowledge.rungCause.profile-unresolved': 'embedder profile unresolved (deferred)',
+  'knowledge.rungCause.model-not-downloaded': 'embedding model not downloaded',
+  'knowledge.rungCause.embedder-load-failed': 'embedder failed to load',
+  'knowledge.rungCause.index-unavailable':
+    'knowledge index unavailable (cause not recorded), scanning bundles',
+  'knowledge.rungCause.floor-disabled': 'static floor disabled',
+  'knowledge.rungCause.profile-static-configured': 'static profile configured',
+  'knowledge.rungCause.index-not-built': 'knowledge index not built yet, scanning bundles',
+  'knowledge.rungCause.index-locked': 'knowledge index locked by another process, scanning bundles',
+  'knowledge.rungCause.index-corrupt':
+    'knowledge index corrupt, rebuild requested, scanning bundles',
 } as const
