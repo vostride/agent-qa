@@ -57,6 +57,8 @@ import { FileCode, Info } from "lucide-react"
 import { getWorkspaceFilenameError } from "@/lib/filename-validation"
 import { generateTestId } from "@/lib/generate-test-id"
 import { updateYamlField, yamlToFormState } from "@/lib/test-yaml-serializer"
+import { useTranslation } from "@/i18n"
+import type { TFunction } from "i18next"
 
 const DEFAULT_TEMPLATE = `name: My Test
 test-id: ""
@@ -80,9 +82,9 @@ function InfoTip({ text }: { text: string }) {
   )
 }
 
-function formatValidationErrors(errors: TestValidationResult["errors"]): string {
+function formatValidationErrors(t: TFunction, errors: TestValidationResult["errors"]): string {
   return errors
-    .map((e) => (e.line ? `Line ${e.line}: ${e.message}` : e.message))
+    .map((e) => (e.line ? t("editor.page.validationLine", { line: e.line, message: e.message }) : e.message))
     .join("\n")
 }
 
@@ -101,12 +103,13 @@ function isAbortError(error: unknown): boolean {
 }
 
 function getLiveTargetLabel(
+  t: TFunction,
   target: TargetDetail | undefined,
   platform: "web" | "android" | "ios",
   currentUrl: string | null,
 ): string {
   if (platform === "web") {
-    return currentUrl || target?.url || "Configured start URL"
+    return currentUrl || target?.url || t("editor.page.target.startUrl")
   }
 
   const device = target?.device
@@ -121,7 +124,7 @@ function getLiveTargetLabel(
     || target?.product
     || target?.bundleId
     || target?.appPackage
-    || (platform === "android" ? "Android device" : "iOS device")
+    || (platform === "android" ? t("editor.page.target.androidDevice") : t("editor.page.target.iosDevice"))
   )
 }
 
@@ -198,6 +201,7 @@ function useStableDraftSteps(steps: Array<{ text: string; overrides: unknown }>)
 type LiveTerminalReason = "ended" | "disconnected"
 
 export default function TestEditorPage() {
+  const { t } = useTranslation()
   const { t_id } = useParams<{ t_id: string }>()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -262,7 +266,7 @@ export default function TestEditorPage() {
       .catch(() => {
         if (cancelled) return
         setNotFound(true)
-        toast.error("Failed to load test file")
+        toast.error(t("editor.page.loadFailed"))
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
@@ -271,6 +275,7 @@ export default function TestEditorPage() {
     return () => {
       cancelled = true
     }
+    // The load runs once per test; a language change must not reload the file over unsaved edits.
   }, [testId, isCreateMode])
 
   useEffect(() => {
@@ -335,8 +340,8 @@ export default function TestEditorPage() {
     ? liveEditor.platform
     : selectedTarget?.platform ?? "web"
   const liveTargetLabel = useMemo(
-    () => getLiveTargetLabel(selectedTarget, livePlatform, liveEditor.currentUrl),
-    [selectedTarget, livePlatform, liveEditor.currentUrl],
+    () => getLiveTargetLabel(t, selectedTarget, livePlatform, liveEditor.currentUrl),
+    [t, selectedTarget, livePlatform, liveEditor.currentUrl],
   )
   const liveDraftState = formState === null
     ? "invalid"
@@ -360,31 +365,31 @@ export default function TestEditorPage() {
 
   const pageTitle = useMemo(() => {
     if (hasLiveSession && liveSessionNumber !== null) {
-      const name = displayFormState?.name?.trim() || testId || "Test"
-      return `Live #${liveSessionNumber} — ${name}`
+      const name = displayFormState?.name?.trim() || testId || t("editor.page.title.fallback")
+      return t("editor.page.title.live", { number: liveSessionNumber, name })
     }
-    return isCreateMode ? "New Test" : "Edit Test"
-  }, [hasLiveSession, liveSessionNumber, displayFormState?.name, testId, isCreateMode])
+    return isCreateMode ? t("editor.page.title.new") : t("editor.page.title.edit")
+  }, [hasLiveSession, liveSessionNumber, displayFormState?.name, testId, isCreateMode, t])
   usePageTitle(pageTitle)
   const liveTerminalState = useMemo(() => {
     if (liveTerminalReason === "ended") {
       return {
         reason: "ended" as const,
-        title: "Live session ended",
-        description: "The current draft is unchanged. Close live mode or start a fresh disposable session from this target.",
+        title: t("editor.page.live.endedTitle"),
+        description: t("editor.page.live.endedDescription"),
       }
     }
 
     if (liveTerminalReason === "disconnected") {
       return {
         reason: "disconnected" as const,
-        title: "Live session disconnected",
-        description: "The connection dropped and could not be restored. Start a fresh session to continue.",
+        title: t("editor.page.live.disconnectedTitle"),
+        description: t("editor.page.live.disconnectedDescription"),
       }
     }
 
     return null
-  }, [liveTerminalReason])
+  }, [liveTerminalReason, t])
   const canRunAllLiveSteps = hasLiveSession
     && liveConnectionState === "connected"
     && formState !== null
@@ -404,9 +409,9 @@ export default function TestEditorPage() {
   const refuseInvalidContent = useCallback(async (): Promise<boolean> => {
     const result = await validateTestContent(content, filePath || filename.trim())
     if (result.valid) return false
-    toast.error(formatValidationErrors(result.errors))
+    toast.error(formatValidationErrors(t, result.errors))
     return true
-  }, [content, filePath, filename])
+  }, [content, filePath, filename, t])
 
   const openCreatedTest = useCallback(() => {
     const createdTestId = formState?.testId?.trim()
@@ -424,25 +429,25 @@ export default function TestEditorPage() {
         }
         if (await refuseInvalidContent()) return
         await createTestFile(filename.trim(), content)
-        toast.success("Test file created")
+        toast.success(t("editor.page.created"))
         openCreatedTest()
       } else {
         if (await refuseInvalidContent()) return
         await updateTestFile(testId, content)
         setSavedContent(content)
-        toast.success("Saved")
+        toast.success(t("editor.page.saved"))
       }
     } catch (err) {
       const refused = readRefusedSaveErrors(err)
       toast.error(
         refused
-          ? formatValidationErrors(refused)
-          : `Failed to save: ${err instanceof Error ? err.message : String(err)}`
+          ? formatValidationErrors(t, refused)
+          : t("editor.page.saveFailed", { message: err instanceof Error ? err.message : String(err) })
       )
     } finally {
       setIsSaving(false)
     }
-  }, [isCreateMode, filename, testMatchPatterns, content, testId, refuseInvalidContent, openCreatedTest])
+  }, [isCreateMode, filename, testMatchPatterns, content, testId, refuseInvalidContent, openCreatedTest, t])
 
   const closeLiveMode = useCallback(() => {
     logLiveDebug("page", "closing live mode", {
@@ -487,7 +492,7 @@ export default function TestEditorPage() {
   ) => {
     const targetName = nextFormState.target.trim()
     if (!targetName) {
-      toast.error("Select a target before starting live mode")
+      toast.error(t("editor.page.live.selectTarget"))
       return
     }
 
@@ -551,7 +556,7 @@ export default function TestEditorPage() {
         toast.error(
           err instanceof Error
             ? err.message
-            : "Failed to start live session",
+            : t("editor.page.live.startFailed"),
         )
       }
       if (!options?.replaceCurrentSession) {
@@ -563,26 +568,26 @@ export default function TestEditorPage() {
       }
       setIsLaunchingLive(false)
     }
-  }, [content, globalUse, liveSessionId, targets, terminateLiveSession])
+  }, [content, globalUse, liveSessionId, targets, terminateLiveSession, t])
 
   const handleConnectLiveSession = useCallback(async () => {
     if (liveConnectDisabled) return
     if (!formState) {
-      toast.error("Fix YAML errors before starting live mode")
+      toast.error(t("editor.page.live.fixBeforeStart"))
       return
     }
     await launchLiveSession(formState)
-  }, [formState, launchLiveSession, liveConnectDisabled])
+  }, [formState, launchLiveSession, liveConnectDisabled, t])
 
   const handleRestartLiveSession = useCallback(async () => {
     if (!hasLiveSession) return
     if (!formState) {
-      toast.error("Fix YAML errors before restarting live mode")
+      toast.error(t("editor.page.live.fixBeforeRestart"))
       return
     }
 
     await launchLiveSession(formState, { replaceCurrentSession: true })
-  }, [formState, hasLiveSession, launchLiveSession])
+  }, [formState, hasLiveSession, launchLiveSession, t])
 
   const refreshAuthStates = useCallback(async () => {
     if (!activeAuthStateTargetName) {
@@ -603,21 +608,27 @@ export default function TestEditorPage() {
 
   const handleSaveLiveAuthState = useCallback(async (input: { name: string; replace: boolean }) => {
     if (!liveSessionId || !activeAuthStateTargetName) {
-      throw new Error(`Could not save auth state "${input.name}" for target "${activeAuthStateTargetName ?? "selected target"}".`)
+      throw new Error(t("editor.page.authState.saveFailed", {
+        name: input.name,
+        target: activeAuthStateTargetName ?? t("editor.page.authState.selectedTarget"),
+      }))
     }
 
-    const failureMessage = `Could not save auth state "${input.name}" for target "${activeAuthStateTargetName}".`
+    const failureMessage = t("editor.page.authState.saveFailed", {
+      name: input.name,
+      target: activeAuthStateTargetName,
+    })
     setIsSavingAuthState(true)
     try {
       await saveLiveAuthState(liveSessionId, { name: input.name, replace: input.replace })
-      toast.success(`Saved auth state "${input.name}" for target "${activeAuthStateTargetName}".`)
+      toast.success(t("editor.page.authState.saved", { name: input.name, target: activeAuthStateTargetName }))
       await refreshAuthStates()
     } catch {
       throw new Error(failureMessage)
     } finally {
       setIsSavingAuthState(false)
     }
-  }, [activeAuthStateTargetName, liveSessionId, refreshAuthStates])
+  }, [activeAuthStateTargetName, liveSessionId, refreshAuthStates, t])
 
   const handleLiveModeOpenChange = useCallback((open: boolean) => {
     if (open) {
@@ -632,13 +643,13 @@ export default function TestEditorPage() {
     try {
       const result = await validateTestContent(content, filePath || filename.trim())
       if (result.valid) {
-        toast.success("Valid YAML")
+        toast.success(t("editor.page.valid"))
       } else {
-        toast.error(formatValidationErrors(result.errors))
+        toast.error(formatValidationErrors(t, result.errors))
       }
     } catch (err) {
       toast.error(
-        `Validation error: ${err instanceof Error ? err.message : String(err)}`
+        t("editor.page.validationError", { message: err instanceof Error ? err.message : String(err) })
       )
     } finally {
       setIsValidating(false)
@@ -670,8 +681,8 @@ export default function TestEditorPage() {
       const refused = readRefusedSaveErrors(err)
       toast.error(
         refused
-          ? formatValidationErrors(refused)
-          : `Failed to save before run: ${err instanceof Error ? err.message : String(err)}`
+          ? formatValidationErrors(t, refused)
+          : t("editor.page.saveBeforeRunFailed", { message: err instanceof Error ? err.message : String(err) })
       )
       return
     }
@@ -680,14 +691,14 @@ export default function TestEditorPage() {
     try {
       const result = await triggerRun({ file: filePath })
       setRunId(result.runId)
-      toast.success("Run started")
+      toast.success(t("editor.page.runStarted"))
     } catch (err) {
       toast.error(
-        `Failed to start run: ${err instanceof Error ? err.message : String(err)}`
+        t("editor.page.runFailed", { message: err instanceof Error ? err.message : String(err) })
       )
       setIsRunning(false)
     }
-  }, [isRunning, isCreateMode, filename, testMatchPatterns, content, unsaved, testId, filePath, refuseInvalidContent, openCreatedTest])
+  }, [isRunning, isCreateMode, filename, testMatchPatterns, content, unsaved, testId, filePath, refuseInvalidContent, openCreatedTest, t])
 
   const handleRunClose = useCallback(() => {
     setRunId(null)
@@ -697,7 +708,7 @@ export default function TestEditorPage() {
   const handleRunLiveStep = useCallback((index: number) => {
     if (!hasLiveSession) return
     if (!currentLiveDraft) {
-      toast.error("Fix YAML errors before running live steps. Live mode uses the current valid draft, not the last valid snapshot.")
+      toast.error(t("editor.page.live.fixBeforeSteps"))
       return
     }
     const stepId = liveEditor.steps[index]?.id
@@ -706,7 +717,7 @@ export default function TestEditorPage() {
     }
     setLiveDevtoolsTab("reasoning")
     void liveEditor.executeStepByIndex(index, currentLiveDraft)
-  }, [currentLiveDraft, hasLiveSession, liveEditor])
+  }, [currentLiveDraft, hasLiveSession, liveEditor, t])
 
   const handleCancelLiveStep = useCallback((index: number) => {
     if (liveEditor.runningStepIndex !== index) return
@@ -717,7 +728,7 @@ export default function TestEditorPage() {
   const handleRunLiveHook = useCallback((phase: 'setup' | 'teardown', hookId: string) => {
     if (!hasLiveSession) return
     if (phase === 'setup') {
-      toast.error("Setup hooks only run when a live session starts")
+      toast.error(t("editor.page.live.setupHooksAtStart"))
       return
     }
     const allHooks = liveEditor.teardownHooks
@@ -727,7 +738,7 @@ export default function TestEditorPage() {
     }
     setLiveDevtoolsTab("reasoning")
     void liveEditor.executeHookById(phase, hookId)
-  }, [hasLiveSession, liveEditor])
+  }, [hasLiveSession, liveEditor, t])
 
   useEffect(() => {
     return () => {
@@ -838,9 +849,9 @@ export default function TestEditorPage() {
     return (
       <EmptyState
         icon={FileCode}
-        title="Test not found"
-        description="This test file doesn't exist"
-        actionLabel="View All Tests"
+        title={t("editor.page.notFound.title")}
+        description={t("editor.page.notFound.description")}
+        actionLabel={t("editor.page.notFound.action")}
         onAction={() => navigate(routes.tests)}
       />
     )
@@ -882,7 +893,7 @@ export default function TestEditorPage() {
   const editorTabs = (
     <Tabs defaultValue="builder" className="flex-1 flex min-h-0 flex-col">
       <TabsList variant="line" className="px-4">
-        <TabsTrigger value="builder">Builder</TabsTrigger>
+        <TabsTrigger value="builder">{t("editor.page.tab.builder")}</TabsTrigger>
         <TabsTrigger value="yaml">YAML</TabsTrigger>
       </TabsList>
       <TabsContent value="builder" className="mt-2 flex-1 overflow-auto">
@@ -901,10 +912,10 @@ export default function TestEditorPage() {
           <div className="rounded-md border bg-muted/15 px-3 py-2">
             <div className="flex flex-wrap items-center gap-2">
               <Label className="flex items-center gap-1 text-xs font-medium">
-                File Path <InfoTip text="Path is relative to your workspace root. Must match your workspace's testMatch pattern. Directories are created automatically on save." />
+                {t("editor.page.filePath")} <InfoTip text={t("editor.page.filePathHelp")} />
               </Label>
               <span className="text-[11px] text-muted-foreground">
-                Created only when you save
+                {t("editor.page.filePathNote")}
               </span>
             </div>
             <Input
@@ -927,7 +938,7 @@ export default function TestEditorPage() {
     <LiveSessionPane
       connectionState={liveEditor.connectionState}
       isLaunching={isLaunchingLive}
-      targetName={selectedTargetName || "Selected Target"}
+      targetName={selectedTargetName || t("editor.page.target.selected")}
       targetLabel={liveTargetLabel}
       liveSessionNumber={liveSessionNumber}
       platform={livePlatform}
@@ -952,7 +963,7 @@ export default function TestEditorPage() {
       onDevtoolsTabChange={setLiveDevtoolsTab}
       onRunAll={() => {
         if (!currentLiveDraft) {
-          toast.error("Fix YAML errors before running live steps. Live mode uses the current valid draft, not the last valid snapshot.")
+          toast.error(t("editor.page.live.fixBeforeSteps"))
           return
         }
         void liveEditor.runAll(currentLiveDraft)
@@ -983,7 +994,7 @@ export default function TestEditorPage() {
   return (
     <div className="flex h-full min-h-0 flex-col">
       <TestNavbar
-        testName={isCreateMode ? "New Test" : displayFormState?.name ?? testId}
+        testName={isCreateMode ? t("editor.page.title.new") : displayFormState?.name ?? testId}
         testId={displayFormState?.testId ?? ''}
         unsaved={unsaved}
         isCreateMode={isCreateMode}
@@ -1049,8 +1060,8 @@ export default function TestEditorPage() {
       <Sheet open={settingsOpen} onOpenChange={setSettingsOpen}>
         <SheetContent side="right" className="sm:max-w-[400px] overflow-y-auto p-0">
           <SheetHeader className="px-4 pt-4 pb-2">
-            <SheetTitle>Test Settings</SheetTitle>
-            <SheetDescription>Advanced configuration for this test</SheetDescription>
+            <SheetTitle>{t("editor.page.settings.title")}</SheetTitle>
+            <SheetDescription>{t("editor.page.settings.description")}</SheetDescription>
           </SheetHeader>
           <div className="px-4 pb-4">
             <TestSettingsPanel content={content} onChange={setContent} selectedTarget={displayFormState?.target} />
@@ -1066,8 +1077,8 @@ export default function TestEditorPage() {
             className="h-[100dvh] max-h-[100dvh] rounded-none p-0"
           >
             <SheetHeader className="sr-only">
-              <SheetTitle>Live Session</SheetTitle>
-              <SheetDescription>Live execution workspace for the current draft.</SheetDescription>
+              <SheetTitle>{t("editor.page.live.sheetTitle")}</SheetTitle>
+              <SheetDescription>{t("editor.page.live.sheetDescription")}</SheetDescription>
             </SheetHeader>
             {livePane}
           </SheetContent>

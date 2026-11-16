@@ -1,7 +1,9 @@
 import { DEFAULT_PLANNER_LIMITS } from '@vostride/agent-qa-schema'
 import { useYamlDocument } from '@/hooks/use-yaml-document'
 import { useTargetDetails } from '@/hooks/use-target-details'
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
+import type { TFunction } from 'i18next'
+import { useTranslation } from '@/i18n'
 import { parseConfigNumberInput } from '@/components/config-manager/numeric-input'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -33,15 +35,24 @@ const BROWSERS = [
   { value: 'webkit', label: 'WebKit' },
 ]
 
-function ih(value: unknown): string {
+function ih(t: TFunction, value: unknown): string {
   if (value === undefined || value === null) return ''
-  return `${value} (inherited)`
+  return t('editor.settings.inherited', { value: String(value) })
 }
 
-function ihBool(value: unknown): string {
-  if (value === true) return '(inherited: on)'
-  if (value === false) return '(inherited: off)'
-  return '(inherited)'
+// The remote's name is an element, so the sentence is split at its slot and the name put between.
+function inheritedParts(t: TFunction, value: ReactNode): ReactNode[] {
+  const sentence = String(t('editor.settings.inherited', { skipInterpolation: true } as never))
+  return sentence.split(/\{\{\s*value\s*\}\}/).flatMap((piece, index) => {
+    const before = index > 0 ? [value] : []
+    return piece ? [...before, piece] : before
+  })
+}
+
+function ihBool(t: TFunction, value: unknown): string {
+  if (value === true) return t('editor.settings.inheritedOn')
+  if (value === false) return t('editor.settings.inheritedOff')
+  return t('editor.settings.inheritedUnset')
 }
 
 type MobileAppState = 'preserve' | 'reset'
@@ -57,10 +68,10 @@ interface ParsedAuthStateUse {
   capture: boolean
 }
 
-function inheritedAppStateLabel(value: MobileAppState | undefined): string {
-  if (value === 'preserve') return 'Preserve app data (inherited)'
-  if (value === 'reset') return 'Reset app data (inherited)'
-  return 'Select app state'
+function inheritedAppStateLabel(t: TFunction, value: MobileAppState | undefined): string {
+  if (value === 'preserve') return ih(t, t('editor.settings.mobile.preserve'))
+  if (value === 'reset') return ih(t, t('editor.settings.mobile.reset'))
+  return t('editor.settings.mobile.selectAppState')
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -165,6 +176,7 @@ function PlannerLimitInput({ label, value, placeholder, onCommit }: PlannerLimit
 }
 
 export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta = true }: TestSettingsPanelProps) {
+  const { t } = useTranslation()
   const { doc, getIn, setIn, deleteIn } = useYamlDocument(content)
 
   function handleSet(path: string[], value: unknown) {
@@ -221,11 +233,9 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
   const gRemote = g?.browser?.remote
   const inheritedPlace =
     gRemote === undefined || gRemote === 'local' ? (
-      ih(REMOTES_COPY.thisMachine)
+      ih(t, REMOTES_COPY.thisMachine)
     ) : (
-      <>
-        <RemoteName name={gRemote} /> (inherited)
-      </>
+      <>{inheritedParts(t, <RemoteName key="name" name={gRemote} />)}</>
     )
   const unlistedRemote =
     remote !== undefined && remote !== '' && remote !== 'local' && !remotes.some(({ name }) => name === remote)
@@ -236,8 +246,8 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
   const gParallel = g?.parallel
   const gAppState = g?.mobile?.appState
   const mobileDevicePlaceholder = showMeta
-    ? 'Select a device for this mobile test.'
-    : 'Select a device for this mobile suite.'
+    ? t('editor.settings.mobile.devicePlaceholderTest')
+    : t('editor.settings.mobile.devicePlaceholderSuite')
   const authStateName = draftAuthStateName.trim()
   const authStateNameInvalid = authStateName.length > 0 && !isValidAuthStateName(authStateName)
   const authStateControlsEnabled = authStateName.length > 0 && !authStateNameInvalid
@@ -287,15 +297,15 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
       {!isMobile ? (
         <>
           <div className="space-y-2">
-            <span className="text-sm font-semibold text-foreground tracking-tight">Browser</span>
+            <span className="text-sm font-semibold text-foreground tracking-tight">{t('editor.settings.browser')}</span>
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground">Engine</Label>
+              <Label className="text-[11px] text-muted-foreground">{t('editor.settings.engine')}</Label>
               <Select
                 value={browser ?? ''}
                 onValueChange={(val) => handleSet(['use', 'browser', 'name'], val || undefined)}
               >
                 <SelectTrigger className="w-full h-7 text-xs">
-                  <SelectValue placeholder={ih(g?.browser?.name ?? 'chromium')} />
+                  <SelectValue placeholder={ih(t, g?.browser?.name ?? 'chromium')} />
                 </SelectTrigger>
                 <SelectContent>
                   {BROWSERS.map((b) => (
@@ -336,7 +346,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
               )}
             </div>
             <div className="flex items-center justify-between">
-              <Label className="text-[11px] text-muted-foreground">Headless {headless === undefined && <span className="text-muted-foreground/50">{ihBool(gHeadless)}</span>}</Label>
+              <Label className="text-[11px] text-muted-foreground">{t('editor.settings.headless')} {headless === undefined && <span className="text-muted-foreground/50">{ihBool(t, gHeadless)}</span>}</Label>
               <Switch
                 checked={headless ?? gHeadless ?? true}
                 onCheckedChange={(checked) => handleBoolSet(['use', 'browser', 'headless'], checked, gHeadless)}
@@ -344,22 +354,22 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-0.5">
-                <Label className="text-[11px] text-muted-foreground">Viewport W</Label>
+                <Label className="text-[11px] text-muted-foreground">{t('editor.settings.viewportWidth')}</Label>
                 <Input
                   type="number"
                   value={viewportWidth ?? ''}
                   onChange={(e) => handleSet(['use', 'browser', 'viewport', 'width'], e.target.value ? Number(e.target.value) : undefined)}
-                  placeholder={ih(g?.browser?.viewport?.width ?? 1280)}
+                  placeholder={ih(t, g?.browser?.viewport?.width ?? 1280)}
                   className="h-7 text-xs"
                 />
               </div>
               <div className="space-y-0.5">
-                <Label className="text-[11px] text-muted-foreground">Viewport H</Label>
+                <Label className="text-[11px] text-muted-foreground">{t('editor.settings.viewportHeight')}</Label>
                 <Input
                   type="number"
                   value={viewportHeight ?? ''}
                   onChange={(e) => handleSet(['use', 'browser', 'viewport', 'height'], e.target.value ? Number(e.target.value) : undefined)}
-                  placeholder={ih(g?.browser?.viewport?.height ?? 720)}
+                  placeholder={ih(t, g?.browser?.viewport?.height ?? 720)}
                   className="h-7 text-xs"
                 />
               </div>
@@ -370,8 +380,8 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
       ) : (
         <>
           <div className="space-y-1 opacity-50">
-            <span className="text-sm font-semibold text-foreground tracking-tight">Browser</span>
-            <p className="text-[11px] text-muted-foreground">Not applicable to mobile targets</p>
+            <span className="text-sm font-semibold text-foreground tracking-tight">{t('editor.settings.browser')}</span>
+            <p className="text-[11px] text-muted-foreground">{t('editor.settings.notForMobile')}</p>
           </div>
           <Separator />
         </>
@@ -380,9 +390,9 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
       {!isMobile ? (
         <>
           <div className="space-y-2">
-            <span className="text-sm font-semibold text-foreground tracking-tight">Auth State</span>
+            <span className="text-sm font-semibold text-foreground tracking-tight">{t('editor.settings.authState.title')}</span>
             <div className="space-y-0.5">
-              <Label htmlFor="auth-state-name" className="text-[11px] text-muted-foreground">Auth state name</Label>
+              <Label htmlFor="auth-state-name" className="text-[11px] text-muted-foreground">{t('editor.settings.authState.name')}</Label>
               <Input
                 id="auth-state-name"
                 value={draftAuthStateName}
@@ -391,11 +401,11 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
                 className="h-7 text-xs font-mono"
               />
               {authStateNameInvalid ? (
-                <p className="text-[11px] text-destructive">Auth state name must be a lowercase slug.</p>
+                <p className="text-[11px] text-destructive">{t('editor.settings.authState.nameInvalid')}</p>
               ) : null}
             </div>
             <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="auth-state-load" className="text-[11px] text-muted-foreground">Load before run</Label>
+              <Label htmlFor="auth-state-load" className="text-[11px] text-muted-foreground">{t('editor.settings.authState.load')}</Label>
               <Switch
                 id="auth-state-load"
                 checked={authStateControlsEnabled ? authStateLoad : true}
@@ -404,7 +414,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
               />
             </div>
             <div className="flex items-center justify-between gap-2">
-              <Label htmlFor="auth-state-capture" className="text-[11px] text-muted-foreground">Capture after success</Label>
+              <Label htmlFor="auth-state-capture" className="text-[11px] text-muted-foreground">{t('editor.settings.authState.capture')}</Label>
               <Switch
                 id="auth-state-capture"
                 checked={authStateControlsEnabled ? authStateCapture : false}
@@ -416,11 +426,11 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
               <>
                 <p className="text-[11px] text-muted-foreground">
                   {authStateLoad
-                    ? 'Loads this state first, then replaces it after a successful run.'
-                    : 'Starts without saved auth state, then saves this name after a successful run.'}
+                    ? t('editor.settings.authState.loadThenReplace')
+                    : t('editor.settings.authState.startThenSave')}
                 </p>
                 <p className="rounded border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-700 dark:text-amber-300">
-                  Capture creates or replaces the saved state after the run succeeds.
+                  {t('editor.settings.authState.captureWarning')}
                 </p>
               </>
             ) : null}
@@ -430,9 +440,9 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
       ) : parsedAuthState.present ? (
         <>
           <div className="space-y-1 opacity-70">
-            <span className="text-sm font-semibold text-foreground tracking-tight">Auth State</span>
+            <span className="text-sm font-semibold text-foreground tracking-tight">{t('editor.settings.authState.title')}</span>
             <p className="text-[11px] text-muted-foreground">
-              Web auth state is not available for mobile targets. Use Mobile / App state to preserve app data.
+              {t('editor.settings.authState.notForMobile')}
             </p>
           </div>
           <Separator />
@@ -442,9 +452,9 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
       {isMobile ? (
         <>
           <div className="space-y-2">
-            <span className="text-sm font-semibold text-foreground tracking-tight">Mobile</span>
+            <span className="text-sm font-semibold text-foreground tracking-tight">{t('editor.settings.mobile.title')}</span>
             <div className="space-y-0.5">
-              <Label className="text-[11px] text-muted-foreground">Device</Label>
+              <Label className="text-[11px] text-muted-foreground">{t('editor.settings.mobile.device')}</Label>
               <Input
                 value={device ?? ''}
                 onChange={(e) => handleSet(['use', 'device'], e.target.value || undefined)}
@@ -453,17 +463,17 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
               />
             </div>
             <div className="space-y-0.5">
-              <Label className="text-[11px] text-muted-foreground">App state</Label>
+              <Label className="text-[11px] text-muted-foreground">{t('editor.settings.mobile.appState')}</Label>
               <Select
                 value={appState ?? ''}
                 onValueChange={(val) => handleAppStateSet(val as MobileAppState)}
               >
                 <SelectTrigger className="w-full h-7 text-xs">
-                  <SelectValue placeholder={inheritedAppStateLabel(gAppState)} />
+                  <SelectValue placeholder={inheritedAppStateLabel(t, gAppState)} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="preserve">Preserve app data</SelectItem>
-                  <SelectItem value="reset">Reset app data</SelectItem>
+                  <SelectItem value="preserve">{t('editor.settings.mobile.preserve')}</SelectItem>
+                  <SelectItem value="reset">{t('editor.settings.mobile.reset')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -474,32 +484,32 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
 
       {/* Timeouts */}
       <div className="space-y-2">
-        <span className="text-sm font-semibold text-foreground tracking-tight">Timeouts</span>
+        <span className="text-sm font-semibold text-foreground tracking-tight">{t('editor.settings.timeouts')}</span>
         <div className="grid grid-cols-3 gap-2">
           <div className="space-y-0.5">
-            <Label className="text-[11px] text-muted-foreground">Step</Label>
+            <Label className="text-[11px] text-muted-foreground">{t('editor.settings.timeout.step')}</Label>
             <Input
               value={stepTimeout ?? ''}
               onChange={(e) => handleSet(['use', 'timeout', 'step'], e.target.value || undefined)}
-              placeholder={ih(g?.timeout?.step ?? '30s')}
+              placeholder={ih(t, g?.timeout?.step ?? '30s')}
               className="h-7 text-xs"
             />
           </div>
           <div className="space-y-0.5">
-            <Label className="text-[11px] text-muted-foreground">Test</Label>
+            <Label className="text-[11px] text-muted-foreground">{t('editor.settings.timeout.test')}</Label>
             <Input
               value={testTimeout ?? ''}
               onChange={(e) => handleSet(['use', 'timeout', 'test'], e.target.value || undefined)}
-              placeholder={ih(g?.timeout?.test ?? '5m')}
+              placeholder={ih(t, g?.timeout?.test ?? '5m')}
               className="h-7 text-xs"
             />
           </div>
           <div className="space-y-0.5">
-            <Label className="text-[11px] text-muted-foreground">Navigation</Label>
+            <Label className="text-[11px] text-muted-foreground">{t('editor.settings.timeout.navigation')}</Label>
             <Input
               value={navTimeout ?? ''}
               onChange={(e) => handleSet(['use', 'timeout', 'navigation'], e.target.value || undefined)}
-              placeholder={ih(g?.timeout?.navigation ?? '2m')}
+              placeholder={ih(t, g?.timeout?.navigation ?? '2m')}
               className="h-7 text-xs"
             />
           </div>
@@ -510,28 +520,28 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
 
       {/* Agent */}
       <div className="space-y-2">
-        <span className="text-sm font-semibold text-foreground tracking-tight">Agent</span>
+        <span className="text-sm font-semibold text-foreground tracking-tight">{t('editor.settings.agent')}</span>
         <div className="grid grid-cols-3 gap-2">
           <PlannerLimitInput
-            label="Max Actions"
+            label={t('editor.settings.maxActions')}
             value={plannerMaxActions}
             onCommit={(value) => handleSet(['use', 'planner', 'maxActions'], value)}
-            placeholder={ih(g?.planner?.maxActions ?? DEFAULT_PLANNER_LIMITS.maxActions)}
+            placeholder={ih(t, g?.planner?.maxActions ?? DEFAULT_PLANNER_LIMITS.maxActions)}
           />
           <PlannerLimitInput
-            label="Planner Calls"
+            label={t('editor.settings.plannerCalls')}
             value={plannerMaxPlanningTurns}
             onCommit={(value) => handleSet(['use', 'planner', 'maxPlanningTurns'], value)}
-            placeholder={ih(g?.planner?.maxPlanningTurns ?? DEFAULT_PLANNER_LIMITS.maxPlanningTurns)}
+            placeholder={ih(t, g?.planner?.maxPlanningTurns ?? DEFAULT_PLANNER_LIMITS.maxPlanningTurns)}
           />
           <div className="space-y-0.5">
-            <Label className="text-[11px] text-muted-foreground">Prev Steps</Label>
+            <Label className="text-[11px] text-muted-foreground">{t('editor.settings.prevSteps')}</Label>
             <Input
               type="number"
               min={0}
               value={plannerPrevStepCount ?? ''}
               onChange={(e) => handleSet(['use', 'planner', 'previousStepCount'], e.target.value ? Number(e.target.value) : undefined)}
-              placeholder={ih(g?.planner?.previousStepCount ?? 3)}
+              placeholder={ih(t, g?.planner?.previousStepCount ?? 3)}
               className="h-7 text-xs"
             />
           </div>
@@ -542,16 +552,16 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
 
       {/* Log Capture */}
       <div className="space-y-2">
-        <span className="text-sm font-semibold text-foreground tracking-tight">Log Capture</span>
+        <span className="text-sm font-semibold text-foreground tracking-tight">{t('editor.settings.logCapture')}</span>
         <div className="flex items-center justify-between">
-          <Label className="text-[11px] text-muted-foreground">Console {logConsole === undefined && <span className="text-muted-foreground/50">{ihBool(gLogConsole)}</span>}</Label>
+          <Label className="text-[11px] text-muted-foreground">{t('editor.settings.console')} {logConsole === undefined && <span className="text-muted-foreground/50">{ihBool(t, gLogConsole)}</span>}</Label>
           <Switch
             checked={logConsole ?? gLogConsole ?? false}
             onCheckedChange={(checked) => handleBoolSet(['use', 'logCapture', 'console'], checked, gLogConsole)}
           />
         </div>
         <div className="flex items-center justify-between">
-          <Label className="text-[11px] text-muted-foreground">Network {logNetwork === undefined && <span className="text-muted-foreground/50">{ihBool(gLogNetwork)}</span>}</Label>
+          <Label className="text-[11px] text-muted-foreground">{t('editor.settings.network')} {logNetwork === undefined && <span className="text-muted-foreground/50">{ihBool(t, gLogNetwork)}</span>}</Label>
           <Switch
             checked={logNetwork ?? gLogNetwork ?? false}
             onCheckedChange={(checked) => handleBoolSet(['use', 'logCapture', 'network'], checked, gLogNetwork)}
@@ -565,11 +575,11 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
       <div className="space-y-2">
         <span className="text-sm font-semibold text-foreground tracking-tight">LLM</span>
         <div className="space-y-0.5">
-          <Label className="text-[11px] text-muted-foreground">LLM Config</Label>
+          <Label className="text-[11px] text-muted-foreground">{t('editor.settings.llmConfig')}</Label>
           <Input
             value={llm ?? ''}
             onChange={(e) => handleSet(['use', 'llm'], e.target.value || undefined)}
-            placeholder={ih(g?.llm ?? 'default')}
+            placeholder={ih(t, g?.llm ?? 'default')}
             className="h-7 text-xs"
           />
         </div>
@@ -579,9 +589,9 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
 
       {/* Execution & Meta */}
       <div className="space-y-2">
-        <span className="text-sm font-semibold text-foreground tracking-tight">Execution</span>
+        <span className="text-sm font-semibold text-foreground tracking-tight">{t('editor.settings.execution')}</span>
         <div className="flex items-center justify-between">
-          <Label className="text-[11px] text-muted-foreground">Parallel {parallel === undefined && <span className="text-muted-foreground/50">{ihBool(gParallel)}</span>}</Label>
+          <Label className="text-[11px] text-muted-foreground">{t('editor.settings.parallel')} {parallel === undefined && <span className="text-muted-foreground/50">{ihBool(t, gParallel)}</span>}</Label>
           <Switch
             checked={parallel ?? gParallel ?? false}
             onCheckedChange={(checked) => handleBoolSet(['use', 'parallel'], checked, gParallel)}
@@ -590,18 +600,18 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
         {showMeta && (
           <div className="grid grid-cols-2 gap-2">
             <div className="space-y-0.5">
-              <Label className="text-[11px] text-muted-foreground">Retries</Label>
+              <Label className="text-[11px] text-muted-foreground">{t('editor.settings.retries')}</Label>
               <Input
                 type="number"
                 min={0}
                 value={retries ?? ''}
                 onChange={(e) => handleSet(['meta', 'retries'], e.target.value ? Number(e.target.value) : undefined)}
-                placeholder="0 (inherited)"
+                placeholder={ih(t, 0)}
                 className="h-7 text-xs"
               />
             </div>
             <div className="space-y-0.5">
-              <Label className="text-[11px] text-muted-foreground">Record {record === undefined && <span className="text-muted-foreground/50">(inherited: off)</span>}</Label>
+              <Label className="text-[11px] text-muted-foreground">{t('editor.settings.record')} {record === undefined && <span className="text-muted-foreground/50">{ihBool(t, false)}</span>}</Label>
               <div className="flex items-center h-7">
                 <Switch
                   checked={record ?? false}
