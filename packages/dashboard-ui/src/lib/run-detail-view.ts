@@ -189,7 +189,7 @@ export function usageCoverageLine(tokens: RunTokenTotals): string | undefined {
   // With nothing measured there is no total to undercount; the totals line has said so.
   if (unmeasuredSteps === 0 || measuredSteps === 0) return undefined
   const allSteps = measuredSteps + unmeasuredSteps
-  return t('runDetail.usage.coverage', { measured: String(measuredSteps), steps: String(allSteps) })
+  return t('runDetail.usage.coverage', { measured: String(measuredSteps), count: allSteps })
 }
 
 // Only provider `cachedInputTokens`, over `cachedInputMeasuredTokens` if it covers fewer steps.
@@ -208,7 +208,7 @@ export function cachedInputLine(tokens: RunTokenTotals): string | undefined {
     cached,
     measuredTokens: formatNumber(cachedInputMeasuredTokens),
     cachedSteps: String(cachedMeasuredSteps),
-    measuredSteps: String(measuredSteps),
+    count: measuredSteps,
   })
 }
 

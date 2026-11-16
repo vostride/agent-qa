@@ -261,7 +261,7 @@ export function curationBreakdownLine(breakdown: CurationBreakdown): string {
   const parts = CURATION_BREAKDOWN_BUCKETS
     .filter(bucket => breakdown[bucket] > 0)
     .map(bucket =>
-      t(`runDetail.postProcessing.bucket.${bucket}`, { number: String(breakdown[bucket]) }),
+      t(`runDetail.postProcessing.bucket.${bucket}`, { count: breakdown[bucket] }),
     )
   return parts.length === 0 ? NO_MEMORY_CHANGES_TEXT() : parts.join(' · ')
 }

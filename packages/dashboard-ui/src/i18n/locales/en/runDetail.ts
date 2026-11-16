@@ -4,11 +4,15 @@ export default {
   'runDetail.usage.triggerLabel': 'Token usage — details',
   'runDetail.usage.tokenPair': '{{prompt}} in · {{completion}} out',
   'runDetail.usage.totals': '{{total}} total · {{prompt}} in · {{completion}} out',
-  'runDetail.usage.coverage':
-    'measured {{measured}} of {{steps}} steps — totals are an undercount',
+  'runDetail.usage.coverage_one':
+    'measured {{measured}} of {{count}} steps — totals are an undercount',
+  'runDetail.usage.coverage_other':
+    'measured {{measured}} of {{count}} steps — totals are an undercount',
   'runDetail.usage.cachedInput': 'cached input {{cached}} (provider-reported)',
-  'runDetail.usage.cachedInputPartial':
-    'cached input {{cached}} of {{measuredTokens}} (provider-reported) over {{cachedSteps}} of {{measuredSteps}} measured steps',
+  'runDetail.usage.cachedInputPartial_one':
+    'cached input {{cached}} of {{measuredTokens}} (provider-reported) over {{cachedSteps}} of {{count}} measured steps',
+  'runDetail.usage.cachedInputPartial_other':
+    'cached input {{cached}} of {{measuredTokens}} (provider-reported) over {{cachedSteps}} of {{count}} measured steps',
   'runDetail.usage.model': 'Model {{identity}}',
   'runDetail.usage.respondedAs': 'responded as {{model}}',
   'runDetail.usage.modelSteps_one': '{{identity}} × {{count}} steps',
@@ -126,11 +130,16 @@ export default {
   'runDetail.postProcessing.failedReasonAbsent.unknown': 'reason not recorded',
   'runDetail.postProcessing.chipsUnavailable': 'post-processing status unavailable',
   'runDetail.postProcessing.countsNotRecorded': 'counts not recorded for this run',
-  'runDetail.postProcessing.bucket.added': '{{number}} added',
-  'runDetail.postProcessing.bucket.confirmed': '{{number}} confirmed',
-  'runDetail.postProcessing.bucket.superseded': '{{number}} superseded',
-  'runDetail.postProcessing.bucket.deprecated': '{{number}} deprecated',
-  'runDetail.postProcessing.bucket.proposed': '{{number}} proposed',
+  'runDetail.postProcessing.bucket.added_one': '{{count}} added',
+  'runDetail.postProcessing.bucket.added_other': '{{count}} added',
+  'runDetail.postProcessing.bucket.confirmed_one': '{{count}} confirmed',
+  'runDetail.postProcessing.bucket.confirmed_other': '{{count}} confirmed',
+  'runDetail.postProcessing.bucket.superseded_one': '{{count}} superseded',
+  'runDetail.postProcessing.bucket.superseded_other': '{{count}} superseded',
+  'runDetail.postProcessing.bucket.deprecated_one': '{{count}} deprecated',
+  'runDetail.postProcessing.bucket.deprecated_other': '{{count}} deprecated',
+  'runDetail.postProcessing.bucket.proposed_one': '{{count}} proposed',
+  'runDetail.postProcessing.bucket.proposed_other': '{{count}} proposed',
   'runDetail.postProcessing.legacyPair': '{{curated}} curated · {{deprecated}} deprecated',
   'runDetail.postProcessing.timing.queued': 'Queued {{time}}',
   'runDetail.postProcessing.timing.startedAfter': 'started after {{duration}}',
