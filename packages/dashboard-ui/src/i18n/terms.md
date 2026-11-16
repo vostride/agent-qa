@@ -1024,7 +1024,12 @@ number or a slot (`執行 {{count}} 個測試`), and none next to full-width pun
 vocabulary: `檔案`, `預設`, `資料`, `伺服器`, `程式`, `影片`, `螢幕截圖`, `視窗`, `網路`. Action sentences
 are short, with `已` for done: `已點擊 {{target}}`, `嘗試點擊 {{target}}`, `未點擊 {{target}}`;
 `_bare` is `已點擊`, `嘗試點擊`, `未點擊`. `action.target.name` is `「{{name}}」` and
-`action.target.role` is `{{role}} 元素`. A plural key writes `_other` only.
+`action.target.role` is `{{role}} 元素`. Where `{{target}}` is what the verb acts on, it follows the
+verb (`已捲動 {{target}}`). Where the sentence has its own object or the target is only where the
+action happened, the target goes before the verb as a place: `已在 {{target}} 上按下返回鍵`,
+`已在 {{target}} 上開啟應用程式`. A key event takes `對` (`已對 {{target}} 傳送按鍵事件`) and an
+intent `於`, so `上` is never read with `傳` as 上傳; extract takes `從` and a file upload `透過`.
+A plural key writes `_other` only.
 
 ### Terms
 
@@ -1095,7 +1100,7 @@ are short, with `已` for done: `已點擊 {{target}}`, `嘗試點擊 {{target}}
 | drag | 拖曳 | `已拖曳 {{target}}` |
 | navigate | 前往 | `已前往 {{target}}` |
 | verify | 驗證 | `已驗證 {{target}}` |
-| extract | 擷取 | `已擷取資訊 {{target}}` |
+| extract | 擷取 | `已從 {{target}} 擷取資訊` |
 | wait | 等待 | `已等待 {{target}}` |
-| open | 開啟 | `已開啟 {{target}}` |
+| open | 開啟 | `已在 {{target}} 上開啟應用程式` |
 | set | 設定 | `已將 {{target}} 設定為 {{value}}` |
