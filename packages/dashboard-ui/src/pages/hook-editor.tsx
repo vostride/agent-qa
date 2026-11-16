@@ -25,6 +25,7 @@ import { Switch } from '@/components/ui/switch'
 import { useHookRunSession } from '@/hooks/use-hook-run-session'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { usePageTitle } from '@/hooks/use-page-title'
+import { useTranslation } from '@/i18n'
 import {
   ApiError,
   createHook,
@@ -130,6 +131,7 @@ function formatMonacoLanguageLabel(language: string): string {
 }
 
 export default function HookEditorPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const isMobile = useIsMobile()
@@ -167,7 +169,9 @@ export default function HookEditorPage() {
   const autoFileRef = useRef(defaultDraft.file)
   const autoSourceRef = useRef(defaultDraft.source)
 
-  const pageTitle = isCreateMode ? 'New Hook' : (name.trim() || 'Hook')
+  const pageTitle = isCreateMode
+    ? t('hooks.editor.newHook')
+    : name.trim() || t('hooks.fallbackName')
   usePageTitle(pageTitle)
 
   const unsaved = serializeHookDraft({ name, runtime, file, timeout, network, source }) !== initialSnapshot
@@ -175,15 +179,16 @@ export default function HookEditorPage() {
   const runSession = useHookRunSession({ hookId })
   const monacoLanguage = runtimeToLanguage(runtime)
   const monacoLanguageLabel = formatMonacoLanguageLabel(monacoLanguage)
+  const saveRequired = isCreateMode || !hookId || unsaved
   const runDisabledReason = useMemo(() => {
-    if (isCreateMode || !hookId || unsaved) {
-      return 'Save this hook to run the latest changes.'
+    if (saveRequired) {
+      return t('hooks.editor.saveToRun')
     }
     if (fieldErrors.length > 0) {
       return fieldErrors.map((error) => error.message).join(' ')
     }
     return null
-  }, [fieldErrors, hookId, isCreateMode, unsaved])
+  }, [fieldErrors, saveRequired, t])
 
   useEffect(() => {
     if (isCreateMode) {
@@ -232,7 +237,7 @@ export default function HookEditorPage() {
           setNotFound(true)
           return
         }
-        setSaveError(error instanceof Error ? error.message : 'Failed to load hook')
+        setSaveError(error instanceof Error ? error.message : t('hooks.loadFailed'))
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
@@ -241,6 +246,7 @@ export default function HookEditorPage() {
     return () => {
       cancelled = true
     }
+    // The load runs once per hook; a language change must not reload the file over unsaved edits.
   }, [isCreateMode, routeHookId])
 
   function handleRuntimeChange(nextRuntime: HookRuntime) {
@@ -332,12 +338,12 @@ export default function HookEditorPage() {
         const payloadFieldErrors = error.payload?.fieldErrors
         if (errorName === 'validation_failed' && isHookFieldErrorArray(payloadFieldErrors)) {
           setFieldErrors(payloadFieldErrors)
-          setSaveError("Couldn't save this hook. Fix the highlighted issues and try again.")
+          setSaveError(t('hooks.editor.validationFailed'))
         } else {
           setSaveError(error.message)
         }
       } else {
-        setSaveError(error instanceof Error ? error.message : 'Failed to save hook')
+        setSaveError(error instanceof Error ? error.message : t('hooks.editor.saveFailed'))
       }
     } finally {
       setIsSaving(false)
@@ -365,7 +371,7 @@ export default function HookEditorPage() {
 
         setDeleteError(error.message)
       } else {
-        setDeleteError(error instanceof Error ? error.message : 'Failed to delete hook')
+        setDeleteError(error instanceof Error ? error.message : t('hooks.delete.failed'))
       }
     } finally {
       setIsDeleting(false)
@@ -402,9 +408,9 @@ export default function HookEditorPage() {
     return (
       <EmptyState
         icon={AlertTriangle}
-        title="Hook not found"
-        description="This hook doesn't exist or could not be loaded."
-        actionLabel="View All Hooks"
+        title={t('hooks.notFound.title')}
+        description={t('hooks.notFound.description')}
+        actionLabel={t('hooks.notFound.action')}
         onAction={() => navigate(routes.hooks)}
       />
     )
@@ -424,24 +430,21 @@ export default function HookEditorPage() {
     >
       <div className="space-y-3 shrink-0">
         {saveError ? (
-          <InlineNotice title="Couldn't save this hook." body={saveError} tone="error" />
+          <InlineNotice title={t('hooks.editor.saveErrorTitle')} body={saveError} tone="error" />
         ) : null}
 
         {fileMissingWarning ? (
-          <InlineNotice
-            title="Hook file missing"
-            body="This hook is still registered, but its source file can't be found. Update the path or recreate the file, then save again."
-          />
+          <InlineNotice title={t('hooks.fileMissing.title')} body={t('hooks.fileMissing.body')} />
         ) : null}
 
         <section className="space-y-3">
           <div className="space-y-1.5">
-            <Label htmlFor="hook-name">Hook name</Label>
+            <Label htmlFor="hook-name">{t('hooks.editor.name')}</Label>
             <Input
               id="hook-name"
               value={name}
               onChange={(event) => handleNameChange(event.currentTarget.value)}
-              placeholder="Capture auth session"
+              placeholder={t('hooks.editor.namePlaceholder')}
               aria-invalid={Boolean(nameError)}
             />
             {nameError ? <p className="text-xs text-destructive">{nameError.message}</p> : null}
@@ -449,21 +452,21 @@ export default function HookEditorPage() {
 
           {isCreateMode ? (
             <div className="space-y-1.5">
-              <Label htmlFor="hook-id">Hook ID</Label>
+              <Label htmlFor="hook-id">{t('hooks.field.hookId')}</Label>
               <div className="flex items-center gap-2">
                 <Input
                   id="hook-id"
                   value={hookId}
                   readOnly
                   disabled
-                  aria-label="Hook ID"
+                  aria-label={t('hooks.field.hookId')}
                 />
                 <Button
                   type="button"
                   variant="ghost"
                   size="icon-sm"
                   onClick={handleRegenerateHookId}
-                  aria-label="Generate new hook ID"
+                  aria-label={t('hooks.editor.generateId')}
                 >
                   <RefreshCw className="size-3.5" />
                 </Button>
@@ -472,7 +475,7 @@ export default function HookEditorPage() {
           ) : null}
 
           <div className="space-y-1.5">
-            <Label htmlFor="hook-file">File path</Label>
+            <Label htmlFor="hook-file">{t('hooks.editor.filePath')}</Label>
             <Input
               id="hook-file"
               value={file}
@@ -485,10 +488,10 @@ export default function HookEditorPage() {
 
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,0.8fr)_minmax(0,0.8fr)]">
             <div className="space-y-1.5">
-              <Label htmlFor="hook-runtime">Runtime</Label>
+              <Label htmlFor="hook-runtime">{t('hooks.field.runtime')}</Label>
               <Select value={runtime} onValueChange={(value) => handleRuntimeChange(value as HookRuntime)}>
                 <SelectTrigger id="hook-runtime" aria-invalid={Boolean(runtimeError)}>
-                  <SelectValue placeholder="Runtime" />
+                  <SelectValue placeholder={t('hooks.field.runtime')} />
                 </SelectTrigger>
                 <SelectContent>
                   {HOOK_RUNTIME_OPTIONS.map((runtimeOption) => (
@@ -502,7 +505,7 @@ export default function HookEditorPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="hook-timeout">Timeout</Label>
+              <Label htmlFor="hook-timeout">{t('hooks.field.timeout')}</Label>
               <Input
                 id="hook-timeout"
                 value={timeout}
@@ -510,14 +513,16 @@ export default function HookEditorPage() {
                 placeholder="5s"
                 aria-invalid={Boolean(timeoutError)}
               />
-              <p className="text-xs text-muted-foreground">Examples: 5s, 10m, 250ms</p>
+              <p className="text-xs text-muted-foreground">{t('hooks.editor.timeoutExamples')}</p>
               {timeoutError ? <p className="text-xs text-destructive">{timeoutError.message}</p> : null}
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="hook-network">Network</Label>
+              <Label htmlFor="hook-network">{t('hooks.field.network')}</Label>
               <div className="flex h-10 items-center justify-between rounded-sm border bg-background/70 px-3">
-                <span className="text-sm text-foreground">{network ? 'Enabled' : 'Disabled'}</span>
+                <span className="text-sm text-foreground">
+                  {network ? t('hooks.network.enabled') : t('hooks.network.disabled')}
+                </span>
                 <Switch
                   id="hook-network"
                   checked={network}
@@ -538,7 +543,7 @@ export default function HookEditorPage() {
         )}
       >
         <div className="flex items-center gap-2">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Source</div>
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.field.source')}</div>
           <span className="rounded-sm border px-1.5 py-0.5 text-[11px] text-muted-foreground">
             {monacoLanguageLabel}
           </span>
@@ -572,6 +577,7 @@ export default function HookEditorPage() {
       selectedRunId={runSession.selectedRunId}
       isRunning={runSession.isRunning}
       runDisabledReason={runDisabledReason}
+      saveRequired={saveRequired}
       runError={runSession.runError}
       onAddOverride={() => runSession.addOverrideRow()}
       onUpdateOverride={runSession.updateOverrideRow}
@@ -585,7 +591,7 @@ export default function HookEditorPage() {
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <HookNavbar
-        hookName={name.trim() || 'New Hook'}
+        hookName={name.trim() || t('hooks.editor.newHook')}
         isCreateMode={isCreateMode}
         mode="edit"
         hookHref={!isCreateMode ? routes.hookView(hookId) : undefined}
@@ -613,7 +619,7 @@ export default function HookEditorPage() {
           onOpenChange={handleDeleteDialogChange}
           hook={{
             id: hookId,
-            name: name.trim() || 'Hook',
+            name: name.trim() || t('hooks.fallbackName'),
             runtime,
             file,
           }}

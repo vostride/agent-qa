@@ -4,6 +4,7 @@ import type { HookRunRecord } from '@/hooks/use-hook-run-session'
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useTranslation } from '@/i18n'
 import { getHookRuntimeMeta } from '@/lib/hook-runtime'
 import { formatRegionalDateTime, formatRelativeCompact } from '@/lib/format'
 import { formatDuration } from '@/lib/utils'
@@ -19,32 +20,35 @@ const EXECUTED_AT_OPTIONS: Intl.DateTimeFormatOptions = {
 }
 
 function StatusBadge({ status }: { status: 'passed' | 'failed' }) {
+  const { t } = useTranslation()
   if (status === 'passed') {
     return (
       <Badge className="border-emerald-500/20 bg-emerald-500/15 text-emerald-500">
-        Passed
+        {t('status.passed')}
       </Badge>
     )
   }
-  return <Badge variant="destructive">Failed</Badge>
+  return <Badge variant="destructive">{t('status.failed')}</Badge>
 }
 
 function EmptyResult() {
+  const { t } = useTranslation()
   return (
     <div className="flex h-full items-center justify-center px-6">
       <div className="max-w-sm text-center">
-        <div className="text-base font-semibold text-foreground">No run selected</div>
-        <div className="mt-2 text-sm text-muted-foreground">
-          Run this hook or pick a recent local result to inspect.
+        <div className="text-base font-semibold text-foreground">
+          {t('hooks.run.noRunSelected')}
         </div>
+        <div className="mt-2 text-sm text-muted-foreground">{t('hooks.run.noRunSelectedHint')}</div>
       </div>
     </div>
   )
 }
 
 function KeyValueTable({ rows }: { rows: Array<[string, string]> }) {
+  const { t } = useTranslation()
   if (rows.length === 0) {
-    return <div className="text-sm text-muted-foreground">None</div>
+    return <div className="text-sm text-muted-foreground">{t('hooks.run.none')}</div>
   }
 
   return (
@@ -64,6 +68,7 @@ function KeyValueTable({ rows }: { rows: Array<[string, string]> }) {
 }
 
 export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord | null }) {
+  const { t } = useTranslation()
   const [activeTab, setActiveTab] = useState<'overview' | 'output' | 'env' | 'sandbox' | 'network'>('overview')
   const previewResult = selectedRun?.result ?? null
   const networkLogs = previewResult?.sandbox.networkLogs ?? []
@@ -94,7 +99,7 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
         <div className="border-b px-4 py-3">
           <div className="flex flex-wrap items-center gap-3">
             <StatusBadge status={result.status} />
-            <div className="text-sm font-medium text-foreground">Latest hook result</div>
+            <div className="text-sm font-medium text-foreground">{t('hooks.run.latestResult')}</div>
             <div className="ml-auto flex items-center gap-3 text-xs text-muted-foreground">
               <span>{formatDuration(result.duration)}</span>
               <span>{formatRelativeCompact(result.executedAt)}</span>
@@ -104,12 +109,12 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
       ) : null}
 
       <TabsList variant="line" className="h-10 w-full justify-start rounded-none border-b px-4">
-        <TabsTrigger value="overview" className="flex-initial rounded-none text-xs">Overview</TabsTrigger>
-        <TabsTrigger value="output" className="flex-initial rounded-none text-xs">Output</TabsTrigger>
-        <TabsTrigger value="env" className="flex-initial rounded-none text-xs">Env</TabsTrigger>
-        <TabsTrigger value="sandbox" className="flex-initial rounded-none text-xs">Sandbox</TabsTrigger>
+        <TabsTrigger value="overview" className="flex-initial rounded-none text-xs">{t('hooks.run.tab.overview')}</TabsTrigger>
+        <TabsTrigger value="output" className="flex-initial rounded-none text-xs">{t('hooks.run.tab.output')}</TabsTrigger>
+        <TabsTrigger value="env" className="flex-initial rounded-none text-xs">{t('hooks.run.tab.env')}</TabsTrigger>
+        <TabsTrigger value="sandbox" className="flex-initial rounded-none text-xs">{t('hooks.run.tab.sandbox')}</TabsTrigger>
         {showNetworkTab ? (
-          <TabsTrigger value="network" className="flex-initial rounded-none text-xs">Network</TabsTrigger>
+          <TabsTrigger value="network" className="flex-initial rounded-none text-xs">{t('hooks.run.tab.network')}</TabsTrigger>
         ) : null}
       </TabsList>
 
@@ -118,28 +123,28 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
           <div className="space-y-4 p-4">
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-sm border px-3 py-2.5">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.run.status')}</div>
                 <div className="mt-2"><StatusBadge status={result.status} /></div>
               </div>
               <div className="rounded-sm border px-3 py-2.5">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Duration</div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.run.duration')}</div>
                 <div className="mt-2 text-sm text-foreground">{formatDuration(result.duration)}</div>
               </div>
               <div className="rounded-sm border px-3 py-2.5">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Executed</div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.run.executed')}</div>
                 <div className="mt-2 text-sm text-foreground">{formatRegionalDateTime(new Date(result.executedAt), EXECUTED_AT_OPTIONS)}</div>
               </div>
               <div className="rounded-sm border px-3 py-2.5">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Recency</div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.run.recency')}</div>
                 <div className="mt-2 text-sm text-foreground">{formatRelativeCompact(result.executedAt)}</div>
               </div>
             </div>
 
             {result.status === 'failed' ? (
               <div className="space-y-2">
-                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Failure summary</div>
+                <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.run.failureSummary')}</div>
                 <div className="rounded-sm border border-destructive/30 bg-destructive/10 px-3 py-2.5 text-sm text-foreground">
-                  {result.error ?? result.stderr ?? 'Hook run failed.'}
+                  {result.error ?? result.stderr ?? t('hooks.run.failedSummary')}
                 </div>
               </div>
             ) : null}
@@ -153,14 +158,14 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
             <section className="space-y-2">
               <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">stdout</div>
               <div className="rounded-sm border bg-muted/20 p-3 font-mono text-xs text-foreground whitespace-pre-wrap break-all">
-                {result.stdout || 'No stdout captured.'}
+                {result.stdout || t('hooks.run.noStdout')}
               </div>
             </section>
 
             <section className="space-y-2">
               <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">stderr</div>
               <div className="rounded-sm border bg-destructive/5 p-3 font-mono text-xs text-foreground whitespace-pre-wrap break-all">
-                {result.stderr || 'No stderr captured.'}
+                {result.stderr || t('hooks.run.noStderr')}
               </div>
             </section>
           </div>
@@ -171,12 +176,12 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
         <ScrollArea className="h-full">
           <div className="space-y-4 p-4">
             <section className="space-y-2">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Emitted variables</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.run.emittedVariables')}</div>
               <KeyValueTable rows={emittedVariables} />
             </section>
 
             <section className="space-y-2">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Applied override snapshot</div>
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.run.appliedOverrides')}</div>
               <KeyValueTable rows={appliedOverrides} />
             </section>
           </div>
@@ -190,21 +195,21 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
               <table className="w-full text-sm">
                 <tbody>
                   <tr className="border-b">
-                    <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Runtime</td>
+                    <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.field.runtime')}</td>
                     <td className="px-3 py-2 text-sm text-foreground">{getHookRuntimeMeta(result.sandbox.runtime).label}</td>
                   </tr>
                   <tr className="border-b">
-                    <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Image</td>
+                    <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.run.image')}</td>
                     <td className="px-3 py-2 font-mono text-xs text-foreground break-all">{result.sandbox.image}</td>
                   </tr>
                   <tr className="border-b">
-                    <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Docker version</td>
+                    <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.run.dockerVersion')}</td>
                     <td className="px-3 py-2 font-mono text-xs text-foreground break-all">
-                      {result.sandbox.dockerVersion ?? 'Not available'}
+                      {result.sandbox.dockerVersion ?? t('hooks.run.notAvailable')}
                     </td>
                   </tr>
                   <tr>
-                    <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Network</td>
+                    <td className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.field.network')}</td>
                     <td className="px-3 py-2 font-mono text-xs text-foreground">{result.sandbox.networkMode}</td>
                   </tr>
                 </tbody>
@@ -212,7 +217,7 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
             </div>
             {!showNetworkTab ? (
               <div className="rounded-sm border bg-muted/20 px-3 py-2.5 text-sm text-muted-foreground">
-                Network logs aren&apos;t available for this runtime yet.
+                {t('hooks.run.networkLogsUnavailable')}
               </div>
             ) : null}
           </div>
@@ -227,10 +232,10 @@ export function HookRunResultPanel({ selectedRun }: { selectedRun: HookRunRecord
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/30">
-                      <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Method</th>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.run.method')}</th>
                       <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">URL</th>
-                      <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Status</th>
-                      <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Duration</th>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.run.status')}</th>
+                      <th className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{t('hooks.run.duration')}</th>
                     </tr>
                   </thead>
                   <tbody>

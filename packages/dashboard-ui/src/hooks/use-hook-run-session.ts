@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { t } from '@/i18n'
 import {
   ApiError,
   fetchVariables,
@@ -75,7 +76,7 @@ export function useHookRunSession({ hookId }: HookRunSessionOptions) {
         if (cancelled) return
         setBaselineVariables([])
         setBaselineFilePath(null)
-        setBaselineInfo(error instanceof Error ? error.message : 'Failed to load workspace variables')
+        setBaselineInfo(error instanceof Error ? error.message : t('hooks.run.loadVariablesFailed'))
       })
       .finally(() => {
         if (!cancelled) {
@@ -154,7 +155,7 @@ export function useHookRunSession({ hookId }: HookRunSessionOptions) {
       if (error instanceof ApiError) {
         setRunError(error.message)
       } else {
-        setRunError(error instanceof Error ? error.message : 'Hook run failed')
+        setRunError(error instanceof Error ? error.message : t('hooks.run.failed'))
       }
       return null
     } finally {

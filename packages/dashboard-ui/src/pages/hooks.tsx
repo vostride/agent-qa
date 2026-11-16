@@ -483,7 +483,9 @@ export default function HooksPage() {
                           <div className="space-y-1">
                             <div className="text-sm text-foreground">{formatDuration(hook.timeout)}</div>
                             <div className="text-xs text-muted-foreground">
-                              {hook.network ? t("hooks.list.networkOn") : t("hooks.list.networkOff")}
+                              {hook.network
+                                ? t("hooks.list.networkOn")
+                                : t("hooks.list.networkOff")}
                             </div>
                           </div>
                         </TableCell>

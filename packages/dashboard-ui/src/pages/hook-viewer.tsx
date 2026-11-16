@@ -329,7 +329,10 @@ export default function HookViewerPage() {
                 </div>
               )}
             />
-            <RailField label={t('hooks.field.timeout')} value={formatDuration(detail.hook.timeout)} />
+            <RailField
+              label={t('hooks.field.timeout')}
+              value={formatDuration(detail.hook.timeout)}
+            />
             <RailField
               label={t('hooks.field.network')}
               value={detail.hook.network ? t('hooks.network.enabled') : t('hooks.network.disabled')}
@@ -373,7 +376,9 @@ export default function HookViewerPage() {
               <div className="mt-3 text-sm font-medium text-foreground">
                 {t('hooks.viewer.noSource')}
               </div>
-              <div className="mt-1 text-sm text-muted-foreground">{t('hooks.viewer.noSourceHint')}</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                {t('hooks.viewer.noSourceHint')}
+              </div>
             </div>
           </div>
         )}
