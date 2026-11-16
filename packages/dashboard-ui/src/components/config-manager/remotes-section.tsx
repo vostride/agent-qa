@@ -112,13 +112,7 @@ export function RemoteChoice({ name, protocol }: { name: string; protocol?: stri
 
 // A pick no listed name matches still shows in its select, marked, rather than as an empty box.
 export function RemoteUnlistedChoice({ name }: { name: string }) {
-  const [mark, rest] = remoteUnlistedChoiceParts(<RemoteName name={name} />)
-  return (
-    <>
-      {mark}
-      {rest}
-    </>
-  )
+  return <>{remoteUnlistedChoiceParts(<RemoteName key="name" name={name} />)}</>
 }
 
 function nameMark(name: string): ReactNode {

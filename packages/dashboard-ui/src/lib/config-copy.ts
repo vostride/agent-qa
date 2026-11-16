@@ -518,11 +518,11 @@ export const ATTRIBUTE_FIELD_LABELS = textTable({
 
 /** An attribute value's accessible label, so each eye and Replace value names its own attribute. */
 export function attributeValueLabel(key: string): string {
-  return `${key} value`
+  return t('config.attributeValue', { key })
 }
 
 export function removeAttributeName(key: string): string {
-  return `Remove attribute ${key}`
+  return t('config.removeAttribute', { key })
 }
 
 export const PRIVACY_FIELD_LABELS = textTable({
@@ -687,23 +687,34 @@ export const REMOTES_COPY = textTable({
 })
 
 export function pluginRemoteText(entry: string): string {
-  return `plugin ${entry}`
+  return t('config.pluginRemote', { entry })
+}
+
+type NameSentenceKey =
+  | 'config.remoteNotListed'
+  | 'config.remoteUnlistedChoice'
+  | 'config.remotePickNotListed'
+
+// The sentence is split before the name goes in, so a name is never read for slots.
+function nameSentenceParts<T>(key: NameSentenceKey, name: T): readonly (T | string)[] {
+  const sentence = String(t(key, { skipInterpolation: true } as never))
+  return sentence.split(/\{\{\s*name\s*\}\}/).flatMap((piece, index): (T | string)[] => {
+    const before = index > 0 ? [name] : []
+    return piece ? [...before, piece] : before
+  })
 }
 
 // The strict parse refuses this default, but the page still shows a config that fails to parse.
-export function remoteNotListedParts<T>(name: T): [T, string] {
-  return [
-    name,
-    ' is not listed under registry.remotes, so web tests that use this default cannot run. List it, or change use.browser.remote.',
-  ]
+export function remoteNotListedParts<T>(name: T): readonly (T | string)[] {
+  return nameSentenceParts('config.remoteNotListed', name)
 }
 
-export function remoteUnlistedChoiceParts<T>(name: T): [T, string] {
-  return [name, ' (not listed)']
+export function remoteUnlistedChoiceParts<T>(name: T): readonly (T | string)[] {
+  return nameSentenceParts('config.remoteUnlistedChoice', name)
 }
 
-export function remotePickNotListedParts<T>(name: T): [T, string] {
-  return [name, " is not listed under the config's remotes."]
+export function remotePickNotListedParts<T>(name: T): readonly (T | string)[] {
+  return nameSentenceParts('config.remotePickNotListed', name)
 }
 
 export function remoteChoiceParts<T>(name: T, protocol: string | undefined): [T, string] {
@@ -711,8 +722,10 @@ export function remoteChoiceParts<T>(name: T, protocol: string | undefined): [T,
 }
 
 export function remoteCredentialsLine(secretsFile: string | undefined): string {
-  const file = secretsFile ?? 'your secrets file (set workspace.secretsFile)'
-  return `Write credentials as {{secret:NAME}} references to names declared in ${file}.`
+  const reference = '{{secret:NAME}}'
+  return secretsFile === undefined
+    ? t('config.remoteCredentials.noFile', { reference })
+    : t('config.remoteCredentials.file', { reference, file: secretsFile })
 }
 export const NO_DEVICES_TEXT = 'No devices yet.'
 export const NO_LOGIN_STATES_TEXT = 'No saved login states yet. Save one from a web Live Mode session.'
@@ -793,7 +806,7 @@ export const TARGET_APP_REF_NOTE =
 
 /** A target's device that no device of the target's platform matches, kept in its select. */
 export function targetDeviceUnlistedChoice(name: string): string {
-  return `${name} (not listed for this platform)`
+  return t('config.targetDeviceUnlistedChoice', { name })
 }
 
 /** Before an app file in a mobile target's summary. */
@@ -808,7 +821,7 @@ export const TARGET_PRODUCT_ERROR = "A product name can't contain two dots in a 
 export const TARGET_APP_PATH_ERROR = 'Use a path inside the project, not a full path.'
 
 export function targetNameTakenError(name: string): string {
-  return `A target named ${name} already exists.`
+  return t('config.targetNameTaken', { name })
 }
 
 export const DEVICE_FIELD_LABELS = textTable({
@@ -823,7 +836,7 @@ export const DEVICE_FIELD_LABELS = textTable({
 export const DEVICE_NAME_REQUIRED_ERROR = 'Add a name for the device.'
 
 export function deviceNameTakenError(name: string): string {
-  return `A device named ${name} already exists.`
+  return t('config.deviceNameTaken', { name })
 }
 
 export const DEVICE_ID_HELP =
@@ -833,12 +846,12 @@ export const DEVICE_CAPABILITIES_NOTE =
 
 /** A capability's accessible label, so each value names its own device and key. */
 export function deviceCapabilityLabel(device: string, key: string): string {
-  return `${device} capability ${key}`
+  return t('config.deviceCapability', { device, key })
 }
 
 /** A device's remote, shown read-only: pointing a device at a server is a file edit. */
 export function deviceRemoteText(remote: string): string {
-  return `Runs on remote ${remote}`
+  return t('config.deviceRemote', { remote })
 }
 
 export const MCP_FIELD_LABELS = textTable({
@@ -865,15 +878,15 @@ export const SAVE_VALUE_LABEL = 'Save value'
 export const KEEP_CURRENT_VALUE_LABEL = 'Keep current value'
 
 export function replaceValueName(label: string): string {
-  return `${REPLACE_VALUE_LABEL} for ${label}`
+  return t('config.replaceValue', { label })
 }
 
 export function saveValueName(label: string): string {
-  return `${SAVE_VALUE_LABEL} for ${label}`
+  return t('config.saveValue', { label })
 }
 
 export function keepValueName(label: string): string {
-  return `${KEEP_CURRENT_VALUE_LABEL} for ${label}`
+  return t('config.keepValue', { label })
 }
 
 export const SAVE_SETTING_LABEL = 'Save setting'

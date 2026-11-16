@@ -307,4 +307,23 @@ export default {
     '{{choice}} needs the @vostride/agent-qa-subscription-auth plugin. Install it and add it to plugins as name: subscription in agent-qa.config.yaml.',
   'config.applyAction': 'Apply {{path}}',
   'config.keepPath': 'Keep current path for {{path}}',
+  'config.attributeValue': '{{key}} value',
+  'config.removeAttribute': 'Remove attribute {{key}}',
+  'config.pluginRemote': 'plugin {{entry}}',
+  'config.remoteNotListed':
+    '{{name}} is not listed under registry.remotes, so web tests that use this default cannot run. List it, or change use.browser.remote.',
+  'config.remoteUnlistedChoice': '{{name}} (not listed)',
+  'config.remotePickNotListed': "{{name}} is not listed under the config's remotes.",
+  'config.remoteCredentials.file':
+    'Write credentials as {{reference}} references to names declared in {{file}}.',
+  'config.remoteCredentials.noFile':
+    'Write credentials as {{reference}} references to names declared in your secrets file (set workspace.secretsFile).',
+  'config.targetDeviceUnlistedChoice': '{{name}} (not listed for this platform)',
+  'config.targetNameTaken': 'A target named {{name}} already exists.',
+  'config.deviceNameTaken': 'A device named {{name}} already exists.',
+  'config.deviceCapability': '{{device}} capability {{key}}',
+  'config.deviceRemote': 'Runs on remote {{remote}}',
+  'config.replaceValue': 'Replace value for {{label}}',
+  'config.saveValue': 'Save value for {{label}}',
+  'config.keepValue': 'Keep current value for {{label}}',
 } as const
