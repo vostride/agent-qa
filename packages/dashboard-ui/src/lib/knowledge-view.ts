@@ -30,6 +30,8 @@ import type {
   TraceLine,
 } from '@vostride/agent-qa-schema'
 
+import { t } from '@/i18n'
+import { textTable } from '@/i18n/text-table'
 import { entityRefRoute } from '@/lib/entity-routes'
 import {
   BREAKDOWN_NOT_RECORDED_TEXT,
@@ -58,7 +60,7 @@ export const READ_FAILED_HEADING = 'Knowledge could not be read'
 
 // The masked error is forwarded whole, because a truncated one leaves half a word to search for.
 export function readFailedBody(error: string): string {
-  return `${error}. Try reloading the page; if it persists, run \`agent-qa doctor\`.`
+  return t('knowledge.page.readFailedBody', { error })
 }
 
 /**
@@ -86,12 +88,12 @@ export const STEP_NO_BRIEF_TEXT = 'no brief served'
 
 /** The fact badge counting a row's served lines. */
 export function briefLinesFact(count: number): string {
-  return `${String(count)} brief ${count === 1 ? 'line' : 'lines'}`
+  return t('knowledge.used.briefLines', { count })
 }
 
-// `canary` names the marker being counted, so it reads `{k} canary` at every k.
+// `canary` names the marker being counted, so English reads `{k} canary` at every k.
 export function canaryFact(count: number): string {
-  return `${String(count)} canary`
+  return t('knowledge.used.canary', { count })
 }
 
 /** The fact badge on a step whose plan came from a replayed procedure. */
@@ -102,7 +104,7 @@ export const HINT_FACT = 'hint'
 
 /** One step row's title: the ONE-BASED ordinal a person counts by, then the step's own text. */
 export function stepRowTitle(stepIndex: number, stepText: string): string {
-  return `Step ${String(stepIndex + 1)} — ${stepText}`
+  return t('knowledge.used.stepRowTitle', { step: String(stepIndex + 1), text: stepText })
 }
 
 // The derived counts the summary line is folded from.
@@ -118,22 +120,23 @@ export function usedSummaryLine(counts: UsedCounts): string {
   const segments: string[] = []
 
   if (counts.stepsBriefed > 0) {
-    segments.push(`${String(counts.stepsBriefed)} ${counts.stepsBriefed === 1 ? 'step' : 'steps'} briefed`)
+    segments.push(t('knowledge.used.summary.stepsBriefed', { count: counts.stepsBriefed }))
   }
   if (counts.canaryLines > 0) {
-    segments.push(`${String(counts.canaryLines)} canary ${counts.canaryLines === 1 ? 'line' : 'lines'} served`)
+    segments.push(t('knowledge.used.summary.canaryLines', { count: counts.canaryLines }))
   }
 
-  // Replays and hints share ONE segment separated by a comma — the sentence of record reads
-  // `1 procedure replay, 2 hints`, so a run with both does not spend two middots on one subject.
-  const procedure: string[] = []
-  if (counts.replays > 0) {
-    procedure.push(`${String(counts.replays)} procedure ${counts.replays === 1 ? 'replay' : 'replays'}`)
-  }
-  if (counts.hints > 0) {
-    procedure.push(`${String(counts.hints)} ${counts.hints === 1 ? 'hint' : 'hints'}`)
-  }
-  if (procedure.length > 0) segments.push(procedure.join(', '))
+  // Replays and hints share ONE segment — the sentence of record reads `1 procedure replay,
+  // 2 hints`, so a run with both does not spend two middots on one subject.
+  const replays =
+    counts.replays > 0 ? t('knowledge.used.summary.replays', { count: counts.replays }) : undefined
+  const hints =
+    counts.hints > 0 ? t('knowledge.used.summary.hints', { count: counts.hints }) : undefined
+  const procedure =
+    replays !== undefined && hints !== undefined
+      ? t('knowledge.used.summary.replaysAndHints', { replays, hints })
+      : (replays ?? hints)
+  if (procedure !== undefined) segments.push(procedure)
 
   if (segments.length === 0) return NO_BRIEF_LINES_TEXT
   return segments.join(' · ')
@@ -163,11 +166,26 @@ export const USE_VERBS = [
 ] as const satisfies readonly UseVerb[]
 
 export const USE_VERB_PHRASES = {
-  given: { lead: 'Given in', follow: 'given in' },
-  opened: { lead: 'Opened by the agent in', follow: 'opened in' },
-  caution: { lead: 'Given as a caution in', follow: 'given as a caution in' },
-  replayed: { lead: 'Replayed in', follow: 'replayed in' },
-  hint: { lead: 'Used as a hint in', follow: 'used as a hint in' },
+  given: textTable({
+    lead: () => t('knowledge.used.verb.given.lead'),
+    follow: () => t('knowledge.used.verb.given.follow'),
+  }),
+  opened: textTable({
+    lead: () => t('knowledge.used.verb.opened.lead'),
+    follow: () => t('knowledge.used.verb.opened.follow'),
+  }),
+  caution: textTable({
+    lead: () => t('knowledge.used.verb.caution.lead'),
+    follow: () => t('knowledge.used.verb.caution.follow'),
+  }),
+  replayed: textTable({
+    lead: () => t('knowledge.used.verb.replayed.lead'),
+    follow: () => t('knowledge.used.verb.replayed.follow'),
+  }),
+  hint: textTable({
+    lead: () => t('knowledge.used.verb.hint.lead'),
+    follow: () => t('knowledge.used.verb.hint.follow'),
+  }),
 } satisfies Record<UseVerb, { readonly lead: string; readonly follow: string }>
 
 export const EFFECT_HEADING = 'Effect on this run'
@@ -179,7 +197,7 @@ export const EFFECT_NOTHING_MEASURED_TEXT = 'Nothing was measured on this run. O
 export const EFFECT_NOTHING_USED_TEXT = 'Nothing to measure: this run used no stored knowledge.'
 
 export function usedCountLine(count: number): string {
-  return count === 1 ? '1 record' : `${String(count)} records`
+  return t('knowledge.used.records', { count })
 }
 
 export interface StepAddress {
@@ -196,8 +214,10 @@ export interface StepRefContext {
 }
 
 export function stepRefAccessibleName(address: StepAddress, testName?: string): string {
-  const tail = `${String(address.stepIndex + 1)} · ${address.stepText}`
-  return testName === undefined ? `Go to step ${tail}` : `Go to ${testName} · step ${tail}`
+  const step = String(address.stepIndex + 1)
+  return testName === undefined
+    ? t('knowledge.stepRefs.goTo', { step, text: address.stepText })
+    : t('knowledge.stepRefs.goToInTest', { test: testName, step, text: address.stepText })
 }
 
 export type StepRefSegment =
@@ -210,6 +230,29 @@ function compareAddresses(a: StepAddress, b: StepAddress): number {
 
 function stepSegment(address: StepAddress): StepRefSegment {
   return { kind: 'step', address, label: String(address.stepIndex + 1) }
+}
+
+type StepRefSentenceKey =
+  | 'knowledge.stepRefs.member'
+  | 'knowledge.stepRefs.members'
+  | 'knowledge.stepRefs.lead'
+  | 'knowledge.stepRefs.next'
+  | 'knowledge.stepRefs.last'
+  | 'knowledge.stepRefs.range'
+
+// The sentence is split before its slots are filled, so a test name is never read for slots.
+function stepRefSentence(
+  key: StepRefSentenceKey,
+  slots: Readonly<Record<string, readonly StepRefSegment[]>>,
+  count?: number,
+): readonly StepRefSegment[] {
+  const options =
+    count === undefined ? { skipInterpolation: true } : { count, skipInterpolation: true }
+  const sentence = String(t(key, options as never))
+  return sentence.split(/\{\{\s*(\w+)\s*\}\}/u).flatMap((piece, index): StepRefSegment[] => {
+    if (index % 2 === 1) return [...(slots[piece] ?? [])]
+    return piece === '' ? [] : [{ kind: 'text', text: piece }]
+  })
 }
 
 // Every number is its own segment so a later plan can make it a control without re-parsing text.
@@ -227,12 +270,18 @@ export function formatStepRefs(
     if (group === undefined) byTest.set(address.testIndex, [address])
     else group.push(address)
   }
-  const segments: StepRefSegment[] = []
+  let segments: readonly StepRefSegment[] = []
   for (const [testIndex, group] of byTest) {
-    if (segments.length > 0) segments.push({ kind: 'text', text: '; ' })
-    segments.push({ kind: 'text', text: testNames.get(testIndex) ?? `Test ${String(testIndex + 1)}` })
-    segments.push({ kind: 'text', text: ' · ' })
-    segments.push(...formatStepList(group))
+    const test =
+      testNames.get(testIndex) ?? t('knowledge.stepRefs.test', { number: String(testIndex + 1) })
+    const member = stepRefSentence('knowledge.stepRefs.member', {
+      test: [{ kind: 'text', text: test }],
+      steps: formatStepList(group),
+    })
+    segments =
+      segments.length === 0
+        ? member
+        : stepRefSentence('knowledge.stepRefs.members', { list: segments, item: member })
   }
   return segments
 }
@@ -259,16 +308,22 @@ function formatStepList(addresses: readonly StepAddress[]): readonly StepRefSegm
   }
   const items = runs.flatMap(run => (run.length >= 3 ? [run] : run.map(address => [address])))
 
-  const segments: StepRefSegment[] = [{ kind: 'text', text: sorted.length === 1 ? 'step ' : 'steps ' }]
+  let list: readonly StepRefSegment[] = []
   items.forEach((item, index) => {
-    if (index > 0) segments.push({ kind: 'text', text: index === items.length - 1 ? ' and ' : ', ' })
-    segments.push(stepSegment(item[0]!))
-    if (item.length > 1) {
-      segments.push({ kind: 'text', text: '–' })
-      segments.push(stepSegment(item.at(-1)!))
+    const next =
+      item.length > 1
+        ? stepRefSentence('knowledge.stepRefs.range', {
+            from: [stepSegment(item[0]!)],
+            to: [stepSegment(item.at(-1)!)],
+          })
+        : [stepSegment(item[0]!)]
+    if (index === 0) list = next
+    else {
+      const key = index === items.length - 1 ? 'knowledge.stepRefs.last' : 'knowledge.stepRefs.next'
+      list = stepRefSentence(key, { list, item: next })
     }
   })
-  return segments
+  return stepRefSentence('knowledge.stepRefs.lead', { steps: list }, sorted.length)
 }
 
 export interface UseView {
@@ -279,13 +334,13 @@ export interface UseView {
 // The schema's record-kind enum, derived rather than re-spelled.
 export type RecordKind = InspectRecordView['kind']
 
-export const RECORD_KIND_LABELS = {
-  fact: 'Fact',
-  caution: 'Caution',
-  procedure: 'Procedure',
-  policy: 'Policy',
-  unknown: 'Open question',
-} as const satisfies Record<RecordKind, string>
+export const RECORD_KIND_LABELS = textTable({
+  fact: () => t('knowledge.record.kind.fact'),
+  caution: () => t('knowledge.record.kind.caution'),
+  procedure: () => t('knowledge.record.kind.procedure'),
+  policy: () => t('knowledge.record.kind.policy'),
+  unknown: () => t('knowledge.record.kind.unknown'),
+}) satisfies Record<RecordKind, string>
 
 const RECORD_KINDS: ReadonlySet<string> = new Set(Object.keys(RECORD_KIND_LABELS))
 
@@ -295,18 +350,18 @@ function isRecordKind(kind: string): kind is RecordKind {
 
 export const RECORD_UNREADABLE_LEAD = 'A record that can no longer be read'
 
-export const CONTENT_ABSENCE_REASON_TEXT = {
-  'not-found': 'It is no longer in the knowledge store.',
-  'scan-incomplete': 'The knowledge store could not be fully read.',
-  'not-bound': 'This dashboard has no record reader for this project.',
-} as const satisfies Record<RunKnowledgeContentAbsence['reason'], string>
+export const CONTENT_ABSENCE_REASON_TEXT = textTable({
+  'not-found': () => t('knowledge.record.absence.notFound'),
+  'scan-incomplete': () => t('knowledge.record.absence.scanIncomplete'),
+  'not-bound': () => t('knowledge.record.absence.notBound'),
+}) satisfies Record<RunKnowledgeContentAbsence['reason'], string>
 
 export const PROCEDURE_CONTENT_NOT_RECORDED_LEAD = "A procedure whose content isn't part of this run's record"
 
 export const USED_PAGE_SIZE = 50
 
 export function showAllRecordsLabel(total: number): string {
-  return `Show all ${String(total)} records`
+  return t('knowledge.record.showAll', { count: total })
 }
 
 export interface RecordJoin {
@@ -377,25 +432,37 @@ export interface ApplicabilityView {
   readonly phrases: readonly AnchorPhraseView[]
 }
 
-export const APPLIES_TO_PREFIX = 'Applies to'
-
 function anchorPhrase(anchor: ParsedAnchor): AnchorPhraseView {
   switch (anchor.t) {
     case 'platform':
       return { type: 'platform', text: anchor.platform }
     case 'page':
-      return { type: 'page', text: `page ${anchor.route}` }
+      return { type: 'page', text: t('knowledge.record.anchor.page', { route: anchor.route }) }
     case 'flow':
-      return { type: 'flow', text: `flow ${anchor.name}` }
+      return { type: 'flow', text: t('knowledge.record.anchor.flow', { name: anchor.name }) }
     case 'el':
       return {
         type: 'el',
-        text: `element ${anchor.role} "${anchor.name}"${anchor.ordinal === undefined ? '' : ` #${String(anchor.ordinal)}`}`,
+        text:
+          anchor.ordinal === undefined
+            ? t('knowledge.record.anchor.element', { role: anchor.role, name: anchor.name })
+            : t('knowledge.record.anchor.elementNumbered', {
+                role: anchor.role,
+                name: anchor.name,
+                position: String(anchor.ordinal),
+              }),
       }
     case 'selector':
-      return { type: 'selector', text: 'selector', literal: anchor.literal }
+      return {
+        type: 'selector',
+        text: t('knowledge.record.anchor.selector'),
+        literal: anchor.literal,
+      }
     case 'error':
-      return { type: 'error', text: `error "${anchor.message}"` }
+      return {
+        type: 'error',
+        text: t('knowledge.record.anchor.error', { message: anchor.message }),
+      }
     case 'unparsed':
       return { type: 'unparsed', text: anchor.raw }
   }
@@ -410,7 +477,7 @@ export function applicabilityView(applicability: RunKnowledgeRecordContent['appl
   const phrases = applicability.anchors
     .map(raw => anchorPhrase(parseAnchor(raw)))
     .sort((a, b) => rank(a.type) - rank(b.type))
-  return { lead: `${APPLIES_TO_PREFIX} ${place}`, phrases }
+  return { lead: t('knowledge.record.appliesTo', { place }), phrases }
 }
 
 export function applicabilityText(view: ApplicabilityView): string {
@@ -426,19 +493,19 @@ export const ON_TRIAL_TOOLTIP =
 // The schema's status enum, derived rather than re-spelled.
 export type BundleStatus = RunKnowledgeRecordContent['currentStatus']
 
-export const SINCE_STATUS_TAGS = {
-  active: 'since proven',
-  candidate: 'since put back on trial',
-  superseded: 'since superseded',
-  deprecated: 'since retired',
-} as const satisfies Record<BundleStatus, string>
+export const SINCE_STATUS_TAGS = textTable({
+  active: () => t('knowledge.status.since.active'),
+  candidate: () => t('knowledge.status.since.candidate'),
+  superseded: () => t('knowledge.status.since.superseded'),
+  deprecated: () => t('knowledge.status.since.deprecated'),
+}) satisfies Record<BundleStatus, string>
 
-export const CURRENT_STATUS_WORDS = {
-  active: 'in use',
-  candidate: 'on trial',
-  superseded: 'superseded',
-  deprecated: 'retired',
-} as const satisfies Record<BundleStatus, string>
+export const CURRENT_STATUS_WORDS = textTable({
+  active: () => t('knowledge.status.word.active'),
+  candidate: () => t('knowledge.status.word.candidate'),
+  superseded: () => t('knowledge.status.word.superseded'),
+  deprecated: () => t('knowledge.status.word.deprecated'),
+}) satisfies Record<BundleStatus, string>
 
 const BUNDLE_STATUSES: ReadonlySet<string> = new Set(Object.keys(CURRENT_STATUS_WORDS))
 
@@ -453,15 +520,18 @@ export function sinceStatusFor(served: string | undefined, current: BundleStatus
 }
 
 export function currentStatusLine(status: BundleStatus): string {
-  return `Current status: ${CURRENT_STATUS_WORDS[status]}`
+  return t(`knowledge.status.current.${status}`)
 }
 
 function timesText(count: number): string {
-  return count === 1 ? 'once' : `${String(count)} times`
+  return t('knowledge.status.times', { count })
 }
 
 export function trustCountsLine(confirmations: number, contradictions: number): string {
-  return `Confirmed ${timesText(confirmations)} · contradicted ${timesText(contradictions)}`
+  return t('knowledge.status.trustCounts', {
+    confirmed: timesText(confirmations),
+    contradicted: timesText(contradictions),
+  })
 }
 
 export const SHOW_FULL_RECORD_LABEL = 'Show full record'
@@ -634,15 +704,23 @@ export interface EffectSentenceParts {
 
 type TrialOutcome = Exclude<EffectOutcome, 'replay-stopped' | 'replay-complete'>
 
+const STEPS_MARK = ''
+
+// The page draws the steps between the lead and the tail, with a space after the lead.
+function aroundSteps(sentence: string): EffectSentenceParts {
+  const [lead = '', tail = ''] = sentence.split(STEPS_MARK)
+  return { lead: lead.trimEnd(), tail }
+}
+
 // Every entry names its steps, so pending and unknown carry them too.
-export const EFFECT_SENTENCES = {
-  contradicted: { lead: "Didn't hold up in", tail: ' — the run saw something different' },
-  harmful: { lead: 'Misled the agent in', tail: '' },
-  confirmed: { lead: 'Held up in', tail: ' — the run saw the same thing' },
-  helpful: { lead: 'Helped in', tail: '' },
-  pending: { lead: 'On trial in', tail: ' — waiting for post-run processing' },
-  unknown: { lead: "Couldn't be checked in", tail: " — part of the knowledge store couldn't be read" },
-} as const satisfies Record<TrialOutcome, EffectSentenceParts>
+export const EFFECT_SENTENCES = textTable({
+  contradicted: () => aroundSteps(t('knowledge.effect.contradicted', { steps: STEPS_MARK })),
+  harmful: () => aroundSteps(t('knowledge.effect.harmful', { steps: STEPS_MARK })),
+  confirmed: () => aroundSteps(t('knowledge.effect.confirmed', { steps: STEPS_MARK })),
+  helpful: () => aroundSteps(t('knowledge.effect.helpful', { steps: STEPS_MARK })),
+  pending: () => aroundSteps(t('knowledge.effect.pending', { steps: STEPS_MARK })),
+  unknown: () => aroundSteps(t('knowledge.effect.unknown', { steps: STEPS_MARK })),
+}) satisfies Record<TrialOutcome, EffectSentenceParts>
 
 type ReplayGuard = Extract<RunKnowledgePlanSource, { kind: 'procedure-replay' }>['guard']
 
@@ -650,36 +728,44 @@ type ReplayMissReason = NonNullable<ReplayGuard['miss']>['reason']
 
 export type ReplayStopCause = ReplayMissReason | 'execution-failure' | 'verifier-rejection'
 
-export const REPLAY_STOP_CAUSES = {
-  'descriptor-ambiguous': 'more than one element matched',
-  'descriptor-missing': "the element wasn't found",
-  'page-anchor-mismatch': "the page didn't match",
-  'gate-refused': 'a safety check refused the action',
-  'parameter-unbound': "a value it needed wasn't provided",
-  'non-replayable-action': "that action can't be replayed",
-  'execution-failure': 'the action failed to run',
-  'verifier-rejection': "the result didn't pass verification",
-} as const satisfies Record<ReplayStopCause, string>
+export const REPLAY_STOP_CAUSES = textTable({
+  'descriptor-ambiguous': () => t('knowledge.effect.stopCause.descriptorAmbiguous'),
+  'descriptor-missing': () => t('knowledge.effect.stopCause.descriptorMissing'),
+  'page-anchor-mismatch': () => t('knowledge.effect.stopCause.pageAnchorMismatch'),
+  'gate-refused': () => t('knowledge.effect.stopCause.gateRefused'),
+  'parameter-unbound': () => t('knowledge.effect.stopCause.parameterUnbound'),
+  'non-replayable-action': () => t('knowledge.effect.stopCause.nonReplayableAction'),
+  'execution-failure': () => t('knowledge.effect.stopCause.executionFailure'),
+  'verifier-rejection': () => t('knowledge.effect.stopCause.verifierRejection'),
+}) satisfies Record<ReplayStopCause, string>
 
 // `length` is the procedure's recorded size (flow.length); `replayed` counts its distinct body steps.
 export function replayCompleteParts(replayed: number | undefined, length: number | undefined): EffectSentenceParts {
   if (replayed === undefined || length === undefined || replayed === 0) {
-    return { lead: 'Replayed in', tail: ' — every replayed action was accepted' }
+    return aroundSteps(t('knowledge.effect.replayed', { steps: STEPS_MARK }))
   }
   if (replayed === length) {
-    return { lead: length === 1 ? 'Replayed its only step in' : `Replayed all ${String(length)} of its steps in`, tail: '' }
+    return aroundSteps(t('knowledge.effect.replayedAll', { count: length, steps: STEPS_MARK }))
   }
-  return { lead: `Replayed ${String(replayed)} of its ${String(length)} steps in`, tail: '' }
+  return aroundSteps(
+    t('knowledge.effect.replayedSome', {
+      count: length,
+      replayed: String(replayed),
+      steps: STEPS_MARK,
+    }),
+  )
 }
 
 // `step` is one-based: the procedure's own step a person counts by. `length` is flow.length.
 export function replayStoppedParts(step: number, length: number | undefined, cause: ReplayStopCause): EffectSentenceParts {
-  const tail = `: ${REPLAY_STOP_CAUSES[cause]}`
-  if (length === 1 && step === 1) return { lead: 'Replay stopped at its only step in', tail }
+  const values = { cause: REPLAY_STOP_CAUSES[cause], steps: STEPS_MARK }
+  if (length === 1 && step === 1) return aroundSteps(t('knowledge.effect.stoppedAtOnly', values))
   if (length !== undefined && step <= length) {
-    return { lead: `Replay stopped at its step ${String(step)} of ${String(length)} in`, tail }
+    return aroundSteps(
+      t('knowledge.effect.stoppedAtOf', { ...values, step: String(step), length: String(length) }),
+    )
   }
-  return { lead: `Replay stopped at its step ${String(step)} in`, tail }
+  return aroundSteps(t('knowledge.effect.stoppedAt', { ...values, step: String(step) }))
 }
 
 const BROKE_STOP_CAUSES = {
@@ -707,17 +793,13 @@ export function effectSentenceText(parts: EffectSentenceParts, stepsText: string
 }
 
 export function uncountedTrialsLine(count: number): string {
-  return count === 1
-    ? "1 record on trial wasn't counted for or against by this run"
-    : `${String(count)} records on trial weren't counted for or against by this run`
+  return t('knowledge.effect.uncounted', { count })
 }
 
 export const UNCOUNTED_TRIALS_TOOLTIP = "Post-run processing finished without counting this run's result toward it."
 
 export function unmeasuredRecordsLine(count: number): string {
-  return count === 1
-    ? '1 other record has no measured effect.'
-    : `${String(count)} other records have no measured effect.`
+  return t('knowledge.effect.unmeasured', { count })
 }
 
 export interface EffectEntryView {
@@ -884,20 +966,23 @@ export function effectSectionView(
 // Channel, trace and cut-ledger copy
 
 // The served channels, as the eyebrow captions inside an expanded step row.
-export const CHANNEL_EYEBROWS = {
-  1: 'CHANNEL 1 · BRIEF',
-  2: 'CHANNEL 2 · READ TRACES',
-  3: 'CHANNEL 3 · CAUTIONS',
-} as const
+export const CHANNEL_EYEBROWS = textTable({
+  1: () => t('knowledge.trace.channel1'),
+  2: () => t('knowledge.trace.channel2'),
+  3: () => t('knowledge.trace.channel3'),
+})
 
 // Three decimals separate adjacent candidates; `tabular-nums` keeps a column from jittering.
 export function traceLineText(leg: string, rank: number, score: number): string {
-  return `leg ${leg} · rank ${String(rank)} · score ${score.toFixed(3)}`
+  return t('knowledge.trace.line', { leg, rank: String(rank), score: score.toFixed(3) })
 }
 
 // The cap is the producer's `TRACE_TRUNCATION_TOP_K`, imported so it cannot drift.
 export function cutCandidatesLabel(count: number): string {
-  return `Cut candidates (${String(count)} of top ${String(TRACE_TRUNCATION_TOP_K)})`
+  return t('knowledge.trace.cutCandidates', {
+    cut: String(count),
+    top: String(TRACE_TRUNCATION_TOP_K),
+  })
 }
 
 /** The `pre-trace-run` no-trace arm, stated rather than dropped. */
@@ -917,17 +1002,17 @@ export type AttributedOutcomeWord = Extract<CanaryOutcomeWord, 'confirmed' | 'co
 
 /** The store's attribution word for a canary line, in plain text. */
 export function attributionWordText(outcome: AttributedOutcomeWord): string {
-  return `attribution: ${outcome}`
+  return t(`knowledge.trace.attribution.${outcome}`)
 }
 
 /** A served line's serve-time facts as one mono meta line. */
 export function trustMetaLine(trust: number, tier: string, status: string): string {
-  return `trust ${trust.toFixed(2)} · tier ${tier} · status ${status}`
+  return t('knowledge.trace.trustMeta', { trust: trust.toFixed(2), tier, status })
 }
 
 /** The accessible name of the copy button beside a record id in Retrieval details. */
 export function copyRecordIdLabel(id: string): string {
-  return `Copy record id ${id}`
+  return t('knowledge.trace.copyRecordId', { id })
 }
 
 /** Announced when a record id reached the clipboard. */
@@ -935,13 +1020,15 @@ export const RECORD_ID_COPIED_TEXT = 'Record id copied to the clipboard'
 
 /** Announced when it did not, with the id spelled out so it can still be selected. */
 export function recordIdCopyFailedText(id: string): string {
-  return `Could not copy — select the id to copy it: ${id}`
+  return t('knowledge.trace.copyRecordIdFailed', { id })
 }
 
 // Stated only below `memidex`, so a step whose rung differs from the run's says so on its row.
 export function ledgerRungLine(rung: Exclude<RetrievalRung, 'memidex'>, reason?: RetrievalRungReason): string {
-  const cause = reason === undefined ? '' : ` — ${RUNG_CAUSE_LABELS[reason]}`
-  return `Retrieval level: ${RUNG_LABELS[rung]}${cause}`
+  const level = RUNG_LABELS[rung]
+  return reason === undefined
+    ? t('knowledge.trace.rungLine', { level })
+    : t('knowledge.trace.rungLineWithCause', { level, cause: RUNG_CAUSE_LABELS[reason] })
 }
 
 // Not deciding yet differs from attributing nothing, so a pending canary line says so.
@@ -964,21 +1051,21 @@ export const PROCEDURE_HINT_DEMOTED_TEXT = 'procedure hint (demoted from replay)
 
 /** The replay sentence when the guard passed every check it had. */
 export function replayedText(checksPassed: number, total: number): string {
-  return `replayed ${String(checksPassed)}/${String(total)}`
+  return t('knowledge.trace.replayed', { passed: String(checksPassed), total: String(total) })
 }
 
 // `executionFailure` reads `adapter failure`, naming what a person can act on, not the layer.
-export const BROKE_CAUSE_LABELS = {
-  miss: 'miss',
-  executionFailure: 'adapter failure',
-  verifierRejection: 'verifier rejection',
-} as const
+export const BROKE_CAUSE_LABELS = textTable({
+  miss: () => t('knowledge.trace.brokeCause.miss'),
+  executionFailure: () => t('knowledge.trace.brokeCause.executionFailure'),
+  verifierRejection: () => t('knowledge.trace.brokeCause.verifierRejection'),
+})
 
 export type BrokeCause = keyof typeof BROKE_CAUSE_LABELS
 
 /** The replay sentence when the guard broke — `k` is ONE-BASED, the ordinal a person counts by. */
 export function brokeAtText(step: number, cause: BrokeCause): string {
-  return `broke at step ${String(step)}: ${BROKE_CAUSE_LABELS[cause]}`
+  return t('knowledge.trace.brokeAt', { step: String(step), cause: BROKE_CAUSE_LABELS[cause] })
 }
 
 /** How many lines of one channel render before the rest go behind a disclosure. */
@@ -992,7 +1079,7 @@ export const CHANNEL_PAGE_SIZE = 50
  * screen.
  */
 export function showAllLinesLabel(total: number): string {
-  return `Show all ${String(total)} lines`
+  return t('knowledge.trace.showAllLines', { count: total })
 }
 
 // The Memory changes section's heading, one `<h4>` at 16px/500.

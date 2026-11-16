@@ -4,6 +4,7 @@ import config from './config'
 import configUi from './configUi'
 import evidence from './evidence'
 import insights from './insights'
+import knowledge from './knowledge'
 import language from './language'
 import nav from './nav'
 import player from './player'
@@ -28,4 +29,5 @@ export default {
   ...evidence,
   ...player,
   ...runDetail,
+  ...knowledge,
 } as const
