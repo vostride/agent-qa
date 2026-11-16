@@ -500,7 +500,7 @@ describe('a pending row reads its real step text or is not drawn', () => {
     }
 
     expect({ beforeFirstStep, afterFirstStep, placeholders, neverStarted }).toEqual({
-      beforeFirstStep: { empty: STEPS_EMPTY_TEXT, rows: 0 },
+      beforeFirstStep: { empty: STEPS_EMPTY_TEXT(), rows: 0 },
       afterFirstStep: [['running', 'open the page']],
       placeholders: [],
       neverStarted: { note: DID_NOT_RUN_NOTE, rows: 0 },
@@ -896,14 +896,14 @@ describe('a stream that carried no step is never a blank pane', () => {
     await open()
     await emit(runStarted(), testStarted(0, 'the member'))
 
-    expect(q('[data-steps-empty]')?.textContent).toBe(STEPS_EMPTY_TEXT)
-    expect(STEPS_EMPTY_TEXT).toBe('waiting for the first step')
+    expect(q('[data-steps-empty]')?.textContent).toBe(STEPS_EMPTY_TEXT())
+    expect(STEPS_EMPTY_TEXT()).toBe('waiting for the first step')
 
     await emit(testFinished(0, 'failed'))
 
     expect(q('[data-steps-empty]')).toBeNull()
     expect(q('[data-member-note]')?.textContent).toBe(DID_NOT_RUN_NOTE)
-    expect(stepsPane().textContent).not.toContain(STEPS_EMPTY_TEXT)
+    expect(stepsPane().textContent).not.toContain(STEPS_EMPTY_TEXT())
   })
 })
 

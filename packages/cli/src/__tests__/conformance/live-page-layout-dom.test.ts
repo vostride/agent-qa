@@ -31,16 +31,58 @@ const CAPTURE_DIR_ENV = 'AGENT_QA_CAPTURE_DIR'
 const DESKTOP = { width: 1280, height: 800 }
 const NARROW = { width: 400, height: 800 }
 
-function publishedTable(relativePath: string, table: string): Record<string, string> {
-  const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
-  const body = new RegExp(`${table}\\s*=\\s*\\{([^}]*)\\}`, 'u').exec(source)
-  if (body === null) throw new Error(`${table} is no longer an exported object literal in ${relativePath}`)
-  const entries = [...(body[1] as string).matchAll(/'?([A-Za-z]+)'?\s*:\s*'([^']+)'/gu)]
-  if (entries.length === 0) throw new Error(`${table} has no single-quoted members in ${relativePath}`)
-  return Object.fromEntries(entries.map((entry) => [entry[1] as string, entry[2] as string]))
+// One source-level string body as the runtime would see it, so a text with its own quote matches.
+function unescapeStringBody(body: string): string {
+  const named: Record<string, string> = {
+    n: '\n', t: '\t', r: '\r', b: '\b', f: '\f', v: '\v', '0': '\0',
+  }
+  let out = ''
+  let index = 0
+  while (index < body.length) {
+    const char = body[index] as string
+    if (char !== '\\' || index + 1 >= body.length) {
+      out += char
+      index += 1
+      continue
+    }
+    const next = body[index + 1] as string
+    const braced = next === 'u' ? /^u\{([0-9a-fA-F]+)\}/u.exec(body.slice(index + 1)) : null
+    const quad = next === 'u' ? /^u([0-9a-fA-F]{4})/u.exec(body.slice(index + 1)) : null
+    const hex = next === 'x' ? /^x([0-9a-fA-F]{2})/u.exec(body.slice(index + 1)) : null
+    const escape = braced ?? quad ?? hex
+    if (escape !== null) {
+      out += String.fromCodePoint(Number.parseInt(escape[1] as string, 16))
+      index += 1 + escape[0].length
+      continue
+    }
+    out += named[next] ?? next
+    index += 2
+  }
+  return out
 }
 
-const STATUS_NAMES = publishedTable('lib/live-step-row.ts', 'LIVE_STEP_STATUS_NAMES')
+// The English text of one catalog key, in either quote style, on the key's line or the next.
+function publishedText(area: string, key: string): string {
+  const relativePath = join('i18n', 'locales', 'en', `${area}.ts`)
+  const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
+  const quotedKey = key.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  const entry = new RegExp(
+    `(['"])${quotedKey}\\1:[ \\t]*(?:\\n[ \\t]*)?(['"])((?:\\\\.|[^\\\\])*?)\\2`,
+    'u',
+  ).exec(source)
+  if (entry === null) {
+    throw new Error(`${key} is not a quoted entry of ${relativePath}`)
+  }
+  return unescapeStringBody(entry[3] as string)
+}
+
+// The step statuses the rows below are drawn in, each with its published name.
+const STATUS_NAMES: Record<string, string> = Object.fromEntries(
+  ['passed', 'running', 'pending'].map((status) => [
+    status,
+    publishedText('status', `status.name.${status}`),
+  ]),
+)
 
 /** How long a row is watched for a clock or a count to appear: three ticks of any 1 s clock. */
 const ROW_WATCH_MS = 3_000

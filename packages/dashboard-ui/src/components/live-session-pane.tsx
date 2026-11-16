@@ -37,6 +37,7 @@ import type { ConnectionState, EditorStep, EditorTest, LiveHookExecution, Pendin
 import { useTranslation } from "@/i18n"
 import { fromEditorStep, type DisplayStep } from "@/lib/display-step"
 import { formatUnit } from "@/lib/format"
+import { statusNameText } from "@/lib/live-step-row"
 import type { Selection } from "@/lib/selection"
 import { cn } from "@/lib/utils"
 
@@ -335,7 +336,9 @@ function SelectedTestSummary({
   const { t } = useTranslation()
   const displaySteps = test.liveSteps.map((stepDetail) => fromEditorStep(stepDetail, stepDetail.stepIndex))
   const hookList = (hooks: LiveHookExecution[]) =>
-    hooks.map((hook) => t("live.pane.hook.withStatus", { name: hook.name, status: hook.status })).join(", ")
+    hooks
+      .map((hook) => t("live.pane.hook.withStatus", { name: hook.name, status: statusNameText(hook.status) }))
+      .join(", ")
 
   return (
     <div className="space-y-4 p-4">
@@ -345,7 +348,7 @@ function SelectedTestSummary({
           <div className="text-xs text-muted-foreground">{test.path}</div>
         </div>
         <Badge variant="outline" className={cn("text-[10px] uppercase tracking-wide", statusTone(test.status))}>
-          {test.status}
+          {statusNameText(test.status)}
         </Badge>
         {typeof test.duration === "number" && (
           <span className="text-xs text-muted-foreground">
@@ -401,7 +404,7 @@ function SelectedTestSummary({
                       {t("live.pane.test.stepNumber", { number: step.stepOrder + 1 })}
                     </span>
                     <Badge variant="outline" className={cn("text-[10px] uppercase tracking-wide", stepStatusTone(step.status))}>
-                      {step.status}
+                      {statusNameText(step.status)}
                     </Badge>
                     <span className="min-w-0 flex-1 truncate text-sm text-foreground">
                       {step.name}

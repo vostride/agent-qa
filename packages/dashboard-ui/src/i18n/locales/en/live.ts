@@ -122,4 +122,6 @@ export default {
   'live.run.remoteProgress': 'Remote {{remote}}: {{message}}',
   'live.run.remoteProgressPercent': 'Remote {{remote}}: {{message}} {{percent}}',
   'live.run.testFallback': 'test {{number}}',
+  'live.steps.empty': 'waiting for the first step',
+  'live.steps.memberFallback': 'member {{number}}',
 } as const

@@ -1,5 +1,6 @@
 import { Ban, Check, Circle, CircleDashed, Minus, ShieldCheck, X, type LucideIcon } from 'lucide-react'
 
+import { useTranslation } from '@/i18n'
 import { LIVE_STEP_STATUS_NAMES, liveLabelText, liveRowShown } from '@/lib/live-step-row'
 import type { LiveStepRow, StepStatus } from '@/lib/run-stream-reducer'
 import { cn } from '@/lib/utils'
@@ -28,6 +29,8 @@ const STATUS_TONE: Record<StepStatus, string> = {
 }
 
 export function LiveStepRowView({ row }: { row: LiveStepRow }) {
+  // Subscribed so a mounted row's accessible name follows a language switch.
+  useTranslation()
   if (!liveRowShown(row)) return null
   const Glyph = LIVE_STEP_GLYPHS[row.status]
 

@@ -1,11 +1,12 @@
 import { LiveStepRowView } from '@/components/live-step-row'
-import { liveRowShown } from '@/lib/live-step-row'
-import type { MemberRow, LiveStepRow } from '@/lib/run-stream-reducer'
+import { t, useTranslation } from '@/i18n'
+import { liveRowShown, statusNameText } from '@/lib/live-step-row'
+import { DID_NOT_RUN_NOTE, type MemberRow, type LiveStepRow } from '@/lib/run-stream-reducer'
 
 // Status-only and inert: the props carry no field for reasoning, and only rows with text are drawn.
 
 /** The honest word for a live steps pane that has no row yet. */
-export const STEPS_EMPTY_TEXT = 'waiting for the first step'
+export const STEPS_EMPTY_TEXT = () => t('live.steps.empty')
 
 export interface StepListProps {
   members: readonly MemberRow[]
@@ -14,6 +15,10 @@ export interface StepListProps {
 }
 
 export function StepList({ members, steps, terminal }: StepListProps) {
+  const { t } = useTranslation()
+  // The reducer stores its own note as a code; any other note is shown as it arrived.
+  const noteText = (note: string) =>
+    note === DID_NOT_RUN_NOTE ? t('runDetail.member.didNotRun') : note
   const memberIndices = [...new Set([...members.map((m) => m.testIndex), ...steps.map((s) => s.testIndex)])].sort(
     (a, b) => a - b,
   )
@@ -31,7 +36,7 @@ export function StepList({ members, steps, terminal }: StepListProps) {
     return (
       <div className="flex h-full min-h-0 flex-col">
         <p data-steps-empty className="p-6 text-sm text-muted-foreground">
-          {STEPS_EMPTY_TEXT}
+          {STEPS_EMPTY_TEXT()}
         </p>
       </div>
     )
@@ -46,22 +51,24 @@ export function StepList({ members, steps, terminal }: StepListProps) {
           <div key={testIndex} data-member={String(testIndex)}>
             {showMemberHeaders ? (
               <h3 className="flex items-center gap-2 border-b bg-muted/30 px-3 py-1.5 text-xs font-medium">
-                <span className="min-w-0 truncate">{member?.name || `member ${String(testIndex)}`}</span>
+                <span className="min-w-0 truncate">
+                  {member?.name || t('live.steps.memberFallback', { number: testIndex })}
+                </span>
                 {member?.note !== undefined && (
                   <span data-member-note className="shrink-0 text-muted-foreground">
-                    {member.note}
+                    {noteText(member.note)}
                   </span>
                 )}
                 {member?.outcome !== undefined && (
                   <span data-member-outcome={member.outcome} className="shrink-0 text-muted-foreground">
-                    {member.outcome}
+                    {statusNameText(member.outcome)}
                   </span>
                 )}
               </h3>
             ) : (
               member?.note !== undefined && (
                 <p data-member-note className="px-3 py-2 text-sm text-muted-foreground">
-                  {member.note}
+                  {noteText(member.note)}
                 </p>
               )
             )}
