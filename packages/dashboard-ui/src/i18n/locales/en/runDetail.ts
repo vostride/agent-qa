@@ -87,12 +87,12 @@ export default {
   'runDetail.postProcessing.doorClause.verdict': 'open verdict',
   'runDetail.postProcessing.unavailableWord': 'Post-processing unavailable',
   'runDetail.postProcessing.loading': 'Post-processing status loading',
-  'runDetail.postProcessing.skipped.gateRun.analysis':
+  'runDetail.postProcessing.skipped.gate.analysis':
     'Analysis skipped — gate runs are not analysed',
-  'runDetail.postProcessing.skipped.gateRun.analysisClause': 'gate runs are not analysed',
-  'runDetail.postProcessing.skipped.gateRun.curation':
+  'runDetail.postProcessing.skipped.gate.analysisClause': 'gate runs are not analysed',
+  'runDetail.postProcessing.skipped.gate.curation':
     'Curation skipped — gate runs are not curated',
-  'runDetail.postProcessing.skipped.gateRun.curationClause': 'gate runs are not curated',
+  'runDetail.postProcessing.skipped.gate.curationClause': 'gate runs are not curated',
   'runDetail.postProcessing.skipped.outcomeExcluded.analysis':
     'Analysis skipped — runs excluded from outcomes are not analysed',
   'runDetail.postProcessing.skipped.outcomeExcluded.analysisClause':

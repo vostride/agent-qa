@@ -81,8 +81,8 @@ export const STAGE_SKIPPED_TEXT: Record<
   Record<PostProcessingStage, string>
 > = {
   'gate-run': textTable({
-    analysis: () => t('runDetail.postProcessing.skipped.gateRun.analysis'),
-    curation: () => t('runDetail.postProcessing.skipped.gateRun.curation'),
+    analysis: () => t('runDetail.postProcessing.skipped.gate.analysis'),
+    curation: () => t('runDetail.postProcessing.skipped.gate.curation'),
   }),
   'outcome-excluded': textTable({
     analysis: () => t('runDetail.postProcessing.skipped.outcomeExcluded.analysis'),
@@ -99,8 +99,8 @@ const STAGE_SKIPPED_CLAUSE: Record<
   Record<PostProcessingStage, string>
 > = {
   'gate-run': textTable({
-    analysis: () => t('runDetail.postProcessing.skipped.gateRun.analysisClause'),
-    curation: () => t('runDetail.postProcessing.skipped.gateRun.curationClause'),
+    analysis: () => t('runDetail.postProcessing.skipped.gate.analysisClause'),
+    curation: () => t('runDetail.postProcessing.skipped.gate.curationClause'),
   }),
   'outcome-excluded': textTable({
     analysis: () => t('runDetail.postProcessing.skipped.outcomeExcluded.analysisClause'),
