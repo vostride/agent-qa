@@ -32,12 +32,51 @@ const CATALOGS: Record<Translated, Catalog> = {
 
 const TRANSLATED = LANGUAGES.filter((language): language is Translated => language !== 'en')
 
-function problems(_english: string, _translation: string, _pluralForm?: string): string[] {
-  return []
+const PLACEHOLDER = /\{\{\s*([^\s,}]+)\s*(?:,[^}]*)?\}\}/g
+const TAG = /<(\/?)([^\s<>/]+)([^<>]*)>/g
+const PLURAL_FORM = /^(.+)_(zero|one|two|few|many|other)$/
+
+function slotCounts(text: string): Map<string, number> {
+  const counts = new Map<string, number>()
+  for (const [, name] of text.matchAll(PLACEHOLDER)) counts.set(name, (counts.get(name) ?? 0) + 1)
+  return counts
 }
 
-function englishFor(_key: string, _english: Catalog = ENGLISH): EnglishPair | undefined {
-  return undefined
+function tagNames(text: string): Set<string> {
+  return new Set([...text.matchAll(TAG)].map(([, , name]) => name))
+}
+
+function problems(english: string, translation: string, pluralForm?: string): string[] {
+  const found: string[] = []
+  const expected = slotCounts(english)
+  const actual = slotCounts(translation)
+  for (const name of new Set([...expected.keys(), ...actual.keys()])) {
+    const want = expected.get(name) ?? 0
+    const have = actual.get(name) ?? 0
+    // i18next always passes the count to a plural form, and a singular form may spell it out.
+    const isCount = pluralForm !== undefined && name === 'count'
+    if (have < want && !(isCount && pluralForm === 'one')) found.push(`missing {{${name}}}`)
+    if (have > want && !isCount) found.push(`added {{${name}}}`)
+  }
+  const englishTags = tagNames(english)
+  for (const [tag, closing, name, rest] of translation.matchAll(TAG)) {
+    const bare = rest === '' || (closing === '' && rest === '/')
+    if (!bare) found.push(`tag ${tag} is not bare`)
+    else if (!englishTags.has(name)) found.push(`tag ${tag} is not in the English text`)
+  }
+  const translatedTags = tagNames(translation)
+  for (const name of englishTags) {
+    if (!translatedTags.has(name)) found.push(`missing tag <${name}>`)
+  }
+  return found
+}
+
+function englishFor(key: string, english: Catalog = ENGLISH): EnglishPair | undefined {
+  const plural = PLURAL_FORM.exec(key)
+  const other = plural ? english[`${plural[1]}_other`] : undefined
+  const text = english[key] ?? other
+  if (text === undefined) return undefined
+  return plural && other !== undefined ? { text, pluralForm: plural[2] } : { text }
 }
 
 function issuesIn(catalog: Catalog, english: Catalog = ENGLISH): string[] {
@@ -53,7 +92,9 @@ function issuesIn(catalog: Catalog, english: Catalog = ENGLISH): string[] {
 
 describe('the slots of a translation', () => {
   it('passes the same slots in another order', () => {
-    expect(problems('Ran {{name}} {{count}} times', '{{count}} Mal {{name}} ausgeführt')).toEqual([])
+    expect(problems('Ran {{name}} {{count}} times', '{{count}} Mal {{name}} ausgeführt')).toEqual(
+      [],
+    )
   })
 
   it('reports a slot the translation leaves out', () => {
@@ -70,7 +111,9 @@ describe('the slots of a translation', () => {
   })
 
   it('reports a slot the English text does not have', () => {
-    expect(problems('Ran {{name}}', '{{name}} von {{user}} ausgeführt')).toEqual(['added {{user}}'])
+    expect(problems('Ran {{name}}', '{{name}} von {{user}} ausgeführt')).toEqual([
+      'added {{user}}',
+    ])
   })
 
   it('reads a slot with a format as the slot itself', () => {
@@ -122,9 +165,9 @@ describe('the tags of a translation', () => {
   })
 
   it('reports a tag of the English text the translation leaves out', () => {
-    expect(problems('No targets. <link>Add one.</link>', 'Keine Ziele. Eines hinzufügen.')).toEqual(
-      ['missing tag <link>'],
-    )
+    expect(problems('No targets. <link>Add one.</link>', 'Keine Ziele. Eines anlegen.')).toEqual([
+      'missing tag <link>',
+    ])
   })
 })
 
@@ -132,11 +175,17 @@ describe('pairing a translated key with its English text', () => {
   const english = { 'run.count_one': '{{count}} run', 'run.count_other': '{{count}} runs' }
 
   it('pairs a key with the same English key', () => {
-    expect(englishFor('run.count_one', english)).toEqual({ text: '{{count}} run', pluralForm: 'one' })
+    expect(englishFor('run.count_one', english)).toEqual({
+      text: '{{count}} run',
+      pluralForm: 'one',
+    })
   })
 
   it('pairs a plural form English does not write with the English other form', () => {
-    expect(englishFor('run.count_few', english)).toEqual({ text: '{{count}} runs', pluralForm: 'few' })
+    expect(englishFor('run.count_few', english)).toEqual({
+      text: '{{count}} runs',
+      pluralForm: 'few',
+    })
   })
 
   it('pairs a key that is not plural with its English text alone', () => {

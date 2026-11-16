@@ -90,6 +90,16 @@ The languages, with their codes and their own names: `zh-Hans` 简体中文, `zh
 - A list of search words may keep the English word beside the translated one where people commonly
   type the English term (`yaml`, `auth`, `hook`), because this is a tool for developers.
 
+### The check
+
+`src/i18n/__tests__/translations-keep-placeholders-and-tags.test.ts` runs under `pnpm test`. For
+every key a language has, it reports by key a slot that is missing, misspelled or added, a tag that
+carries anything after its name, a tag the English text does not have and a tag the translation
+drops. A plural form English does not write is compared with the English `_other` form; a `_one`
+form may leave `{{count}}` out, and any plural form may add it. A key a language leaves out is not
+looked at. Run it with
+`pnpm --filter @vostride/agent-qa-dashboard-ui exec vitest run src/i18n/__tests__/translations-keep-placeholders-and-tags.test.ts`.
+
 ## What stays in English
 
 These are written exactly as in English, in every language, also inside a translated sentence:
