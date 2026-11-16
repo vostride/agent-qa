@@ -49,6 +49,8 @@ function functionOutputs(): string[] {
     copy.signInFailedText('the page was closed'),
     copy.signInFailedText(undefined),
     copy.connectedSavedText('gpt'),
+    copy.savedBecameDefaultText(copy.connectedSavedText('gpt')),
+    copy.targetAppSummary('apps/app.apk'),
     copy.applyActionName('knowledge folder'),
     copy.keepPathName('knowledge folder'),
     copy.replaceValueName('Authorization'),
@@ -287,10 +289,45 @@ describe('The Config tables in another language', () => {
   })
 })
 
+describe('The Config lines that hold a value', () => {
+  it('the saved line of a model that became the default ends with the default sentence', () => {
+    expect(copy.savedBecameDefaultText('Connected. Saved as gpt.')).toBe(
+      "Connected. Saved as gpt. It's now the default model.",
+    )
+    expect(copy.savedBecameDefaultText(copy.SAVED_WITHOUT_TEST_TEXT())).toBe(
+      "Saved without a connection test. It's now the default model.",
+    )
+  })
+
+  it('a mobile target summary names its app file', () => {
+    expect(copy.targetAppSummary('apps/app.apk')).toBe('App: apps/app.apk')
+  })
+
+  it('the version line says the version is unavailable', () => {
+    expect(copy.VERSION_UNAVAILABLE_TEXT()).toBe('agent-qa version unavailable')
+  })
+})
+
 describe('The Config sentences in another language', () => {
   afterEach(async () => {
     await i18n.changeLanguage('en')
     i18n.removeResourceBundle('fr', 'translation')
+  })
+
+  it('the saved line and the app summary put their value where the language writes it', async () => {
+    i18n.addResourceBundle('fr', 'translation', {
+      'configUi.savedBecameDefault': 'C’est maintenant le modèle par défaut. {{saved}}',
+      'configUi.targetAppSummary': '{{path}} (application)',
+    })
+    await i18n.changeLanguage('fr')
+    expect(copy.savedBecameDefaultText('Enregistré.')).toBe(
+      'C’est maintenant le modèle par défaut. Enregistré.',
+    )
+    expect(copy.targetAppSummary('apps/app.apk')).toBe('apps/app.apk (application)')
+
+    await i18n.changeLanguage('en')
+    expect(copy.savedBecameDefaultText('Saved.')).toBe("Saved. It's now the default model.")
+    expect(copy.targetAppSummary('apps/app.apk')).toBe('App: apps/app.apk')
   })
 
   it('a label reads its word in the current language each time it is called', async () => {
