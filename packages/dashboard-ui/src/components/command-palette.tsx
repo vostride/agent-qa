@@ -15,6 +15,7 @@ import { configCommandLabel, CONFIG_SECTION_LABELS } from "@/lib/config-copy"
 import { CONFIG_SECTION_ALIASES, searchConfigSections } from "@/lib/config-tabs"
 import { useTranslation } from "@/i18n"
 import { routes } from "@/lib/routes"
+import { statusNameText } from "@/lib/live-step-row"
 import { runStatusClass } from "@/lib/status"
 import { useProductTour } from "@/components/product-tour"
 import {
@@ -262,7 +263,7 @@ export function CommandPalette() {
                   <Play />
                   <span className="truncate">{run.name}</span>
                   <span className={`ml-auto text-xs ${runStatusTextClass(run.status)}`}>
-                    {run.status}
+                    {statusNameText(run.status)}
                   </span>
                 </CommandItem>
               ))}

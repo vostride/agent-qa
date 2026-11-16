@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { ExecutionLogEntry, LiveExecutionLogEntry } from "@/lib/api"
 import type { DisplayStep } from "@/lib/display-step"
+import { statusNameText } from "@/lib/live-step-row"
 import { formatRegionalDateTime, formatUnit } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { useEvidenceRecords } from '@/hooks/use-evidence-records'
@@ -191,7 +192,7 @@ function ConsoleRecords({ step, allSteps, executionLogs, isHookStep }: Omit<TabC
                     "text-[10px] font-mono",
                     log.status === 'passed' ? 'text-emerald-500' : 'text-red-500'
                   )}>
-                    {log.status}
+                    {statusNameText(log.status)}
                   </span>
                   <span className="text-[10px] text-muted-foreground ml-auto">{formatUnit(log.duration, "millisecond")}</span>
                 </div>
