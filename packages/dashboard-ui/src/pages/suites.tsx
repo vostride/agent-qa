@@ -63,6 +63,7 @@ import { deleteSuiteFile, fetchSuiteFiles, fetchSuiteSummaries, triggerRun, type
 import { runStatusClass } from "@/lib/status"
 import { formatPercent } from "@/lib/format"
 import { formatDate } from "@/lib/utils"
+import { useTranslation } from "@/i18n"
 
 interface SuiteListRow {
   path: string
@@ -141,7 +142,8 @@ function getRowClassName({
 }
 
 export default function SuitesPage() {
-  usePageTitle("Suites")
+  const { t } = useTranslation()
+  usePageTitle(t("suites.list.title"))
   const [suiteFiles, setSuiteFiles] = useState<SuiteFileInfo[]>([])
   const [summaries, setSummaries] = useState<Map<string, SuiteSummary> | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -167,11 +169,11 @@ export default function SuitesPage() {
           setSummaries(summaryRows === null
             ? null
             : new Map(summaryRows.map((summary) => [normalizeSuitePath(summary.path), summary])))
-          if (summaryRows === null) toast.error("Failed to load run history")
+          if (summaryRows === null) toast.error(t("suites.list.loadHistoryFailed"))
         }
       })
       .catch(() => {
-        if (!cancelled) toast.error("Failed to load suites")
+        if (!cancelled) toast.error(t("suites.list.loadFailed"))
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
@@ -217,12 +219,12 @@ export default function SuitesPage() {
 
   const selectColumn: ColumnDef<typeof suitesTableFeatures, SuiteListRow> = {
     id: "select",
-    header: ({ table: t }) => (
+    header: ({ table: headerTable }) => (
       <div className="flex items-center justify-center">
         <SelectionCheckboxCell
-          checked={t.getIsAllPageRowsSelected() || (t.getIsSomePageRowsSelected() && "indeterminate")}
-          onCheckedChange={(checked) => t.toggleAllPageRowsSelected(checked)}
-          ariaLabel="Select all"
+          checked={headerTable.getIsAllPageRowsSelected() || (headerTable.getIsSomePageRowsSelected() && "indeterminate")}
+          onCheckedChange={(checked) => headerTable.toggleAllPageRowsSelected(checked)}
+          ariaLabel={t("suites.list.selectAll")}
         />
       </div>
     ),
@@ -244,7 +246,7 @@ export default function SuitesPage() {
           className="-ml-4"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Name
+          {t("suites.list.column.name")}
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
@@ -273,14 +275,14 @@ export default function SuitesPage() {
           className="-ml-4"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Target
+          {t("suites.list.column.target")}
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
       cell: ({ row }) => row.original.historyKnown
         ? (
           <span className="block whitespace-normal break-words text-sm leading-snug text-muted-foreground">
-            {row.original.targetName ?? "No target"}
+            {row.original.targetName ?? t("suites.list.noTarget")}
           </span>
         )
         : null,
@@ -293,7 +295,7 @@ export default function SuitesPage() {
           className="-ml-4"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Platform
+          {t("suites.list.column.platform")}
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
@@ -311,7 +313,7 @@ export default function SuitesPage() {
           className="-ml-4"
           onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
         >
-          Pass rate
+          {t("suites.list.column.passRate")}
           <ArrowUpDown className="ml-2 h-4 w-4" />
         </Button>
       ),
@@ -321,7 +323,7 @@ export default function SuitesPage() {
           return (
             <div className="space-y-0.5 text-right">
               <div className="text-sm font-medium text-foreground">{"\u2014"}</div>
-              <div className="text-xs tabular-nums text-muted-foreground">0 completed</div>
+              <div className="text-xs tabular-nums text-muted-foreground">{t("suites.list.completed", { count: 0 })}</div>
             </div>
           )
         }
@@ -348,7 +350,7 @@ export default function SuitesPage() {
             className="h-auto justify-end px-0 text-[13px] font-medium text-foreground/90 hover:bg-transparent"
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
           >
-            Last run
+            {t("suites.list.column.lastRun")}
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         </div>
@@ -356,7 +358,7 @@ export default function SuitesPage() {
       cell: ({ row }) => {
         if (!row.original.historyKnown) return null
         if (!row.original.lastRun) {
-          return <span className="block text-sm text-muted-foreground">No runs</span>
+          return <span className="block text-sm text-muted-foreground">{t("suites.list.noRuns")}</span>
         }
 
         return (
@@ -373,7 +375,7 @@ export default function SuitesPage() {
         )
       },
     },
-  ], [])
+  ], [t])
 
   const selectedPaths = useMemo(
     () => Object.keys(rowSelection).filter((k) => rowSelection[k]),
@@ -394,15 +396,15 @@ export default function SuitesPage() {
       const succeeded = results.filter((r) => r.status === "fulfilled").length
       const failed = results.length - succeeded
       if (failed > 0) {
-        toast.error(`${succeeded} runs queued, ${failed} failed`)
+        toast.error(t("suites.list.queuedWithFailures", { count: succeeded, failed }))
       } else {
-        toast.success(`${succeeded} runs queued`)
+        toast.success(t("suites.list.queued", { count: succeeded }))
       }
       setRowSelection({})
     } finally {
       setBatchLoading(false)
     }
-  }, [selectedSuites])
+  }, [selectedSuites, t])
 
   const handleBatchRunNoCache = useCallback(async () => {
     if (selectedSuites.length === 0) return
@@ -414,15 +416,15 @@ export default function SuitesPage() {
       const succeeded = results.filter((r) => r.status === "fulfilled").length
       const failed = results.length - succeeded
       if (failed > 0) {
-        toast.error(`${succeeded} runs queued (no cache), ${failed} failed`)
+        toast.error(t("suites.list.queuedNoCacheWithFailures", { count: succeeded, failed }))
       } else {
-        toast.success(`${succeeded} runs queued (no cache)`)
+        toast.success(t("suites.list.queuedNoCache", { count: succeeded }))
       }
       setRowSelection({})
     } finally {
       setBatchLoading(false)
     }
-  }, [selectedSuites])
+  }, [selectedSuites, t])
 
   const handleBatchDelete = useCallback(async () => {
     if (selectedSuites.length === 0) return
@@ -447,14 +449,14 @@ export default function SuitesPage() {
       }
 
       if (failedCount > 0) {
-        toast.error(`Deleted ${deletedSuites.length} suite${deletedSuites.length !== 1 ? "s" : ""}, ${failedCount} failed`)
+        toast.error(t("suites.list.deletedWithFailures", { count: deletedSuites.length, failed: failedCount }))
       } else {
-        toast.success(`Deleted ${deletedSuites.length} suite${deletedSuites.length !== 1 ? "s" : ""}`)
+        toast.success(t("suites.list.deleted", { count: deletedSuites.length }))
       }
     } finally {
       setBatchLoading(false)
     }
-  }, [selectedSuites])
+  }, [selectedSuites, t])
 
   const table = useTable({
     features: suitesTableFeatures,
@@ -527,9 +529,9 @@ export default function SuitesPage() {
       <div data-tour-id="tour-suites-table">
         <EmptyState
           icon={FolderOpen}
-          title="No suites found"
-          description="Create your first suite file"
-          actionLabel="New Suite"
+          title={t("suites.list.empty.title")}
+          description={t("suites.list.empty.description")}
+          actionLabel={t("suites.list.empty.action")}
           onAction={() => navigate(routes.suiteNew)}
         />
       </div>
@@ -546,56 +548,56 @@ export default function SuitesPage() {
     <TooltipProvider>
       <div className="space-y-4">
         <div className="flex items-center justify-between gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">Suites</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">{t("suites.list.title")}</h1>
           <div className="flex items-center gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon-sm" aria-label="Keyboard shortcuts">
+                <Button variant="ghost" size="icon-sm" aria-label={t("suites.list.shortcuts.label")}>
                   <Keyboard className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="p-3">
                 <ShortcutLegend
                   hints={[
-                    { key: "J / \u2193", label: "Next row" },
-                    { key: "K / \u2191", label: "Previous row" },
-                    { key: "Enter", label: "Open suite" },
-                    { key: "\u2318+Enter", label: "Open in new tab" },
+                    { key: "J / \u2193", label: t("suites.list.shortcuts.nextRow") },
+                    { key: "K / \u2191", label: t("suites.list.shortcuts.previousRow") },
+                    { key: "Enter", label: t("suites.list.shortcuts.openSuite") },
+                    { key: "\u2318+Enter", label: t("suites.list.shortcuts.openInNewTab") },
                   ]}
                 />
               </TooltipContent>
             </Tooltip>
             <Button size="sm" data-tour-id="tour-suites-new" onClick={() => navigate(routes.suiteNew)}>
               <Plus className="size-4" />
-              New Suite
+              {t("suites.list.newSuite")}
             </Button>
           </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Input
-            placeholder="Search suites..."
+            placeholder={t("suites.list.search")}
             value={searchValue}
             onChange={(e) => handleSearchChange(e.target.value)}
             className="max-w-[220px]"
           />
           <Select value={status || "all"} onValueChange={(v) => { setStatus(v === "all" ? "" : v); setSelectedIndex(-1); setRowSelection({}) }}>
             <SelectTrigger className="w-[150px]">
-              <SelectValue placeholder="All statuses" />
+              <SelectValue placeholder={t("suites.list.filter.allStatuses")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All statuses</SelectItem>
-              <SelectItem value="passed">Passed</SelectItem>
-              <SelectItem value="failed">Failed</SelectItem>
-              <SelectItem value="running">Running</SelectItem>
-              <SelectItem value="no-runs">No runs</SelectItem>
+              <SelectItem value="all">{t("suites.list.filter.allStatuses")}</SelectItem>
+              <SelectItem value="passed">{t("status.passed")}</SelectItem>
+              <SelectItem value="failed">{t("status.failed")}</SelectItem>
+              <SelectItem value="running">{t("status.running")}</SelectItem>
+              <SelectItem value="no-runs">{t("suites.list.filter.noRuns")}</SelectItem>
             </SelectContent>
           </Select>
           <Select value={platform || "all"} onValueChange={(v) => { setPlatform(v === "all" ? "" : v); setSelectedIndex(-1); setRowSelection({}) }}>
             <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="All platforms" />
+              <SelectValue placeholder={t("suites.list.filter.allPlatforms")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All platforms</SelectItem>
+              <SelectItem value="all">{t("suites.list.filter.allPlatforms")}</SelectItem>
               <SelectItem value="web">Web</SelectItem>
               <SelectItem value="android">Android</SelectItem>
               <SelectItem value="ios">iOS</SelectItem>
@@ -686,7 +688,7 @@ export default function SuitesPage() {
                     colSpan={columns.length + 1}
                     className="h-24 text-center"
                   >
-                    No results.
+                    {t("suites.list.noResults")}
                   </TableCell>
                 </TableRow>
               )}
@@ -698,8 +700,10 @@ export default function SuitesPage() {
         <div className="flex items-center justify-between px-2">
           <p className="text-sm text-muted-foreground">
             {filteredCount > 0
-              ? `Showing ${start}-${end} of ${filteredCount}${searchValue || status || platform ? ` (${data.length} total)` : ""}`
-              : "No suites found"}
+              ? searchValue || status || platform
+                ? t("suites.list.showingFiltered", { start, end, shown: filteredCount, total: data.length })
+                : t("suites.list.showing", { start, end, shown: filteredCount })
+              : t("suites.list.empty.title")}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -708,7 +712,7 @@ export default function SuitesPage() {
               onClick={() => table.previousPage()}
               disabled={!table.getCanPreviousPage()}
             >
-              Previous
+              {t("suites.list.previous")}
             </Button>
             <Button
               variant="outline"
@@ -716,7 +720,7 @@ export default function SuitesPage() {
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
             >
-              Next
+              {t("common.next")}
             </Button>
           </div>
         </div>

@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/tooltip"
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover"
 import { ShortcutKey, ShortcutLegend } from "@/components/shortcut-hints"
+import { useTranslation } from "@/i18n"
 
 interface SuiteNavbarProps {
   suiteName: string
@@ -67,11 +68,12 @@ export function SuiteNavbar({
   onSettingsOpen,
   onToggleShortcuts,
 }: SuiteNavbarProps) {
+  const { t } = useTranslation()
   const isViewMode = mode === 'view' && !isCreateMode
   const showLiveAction = !!onLiveConnect || !!onLiveEnd || hasLiveSession || liveConnectionState === "connecting"
   const showDivider = !isCreateMode || showLiveAction
   const showEditCrumb = !isCreateMode && !isViewMode && mode === 'edit'
-  const liveHelpText = "Start a disposable live session for this suite. Setup hooks run on connect, included tests run serially on a shared browser context, teardown hooks run when the session ends, and changes are not saved automatically."
+  const liveHelpText = t("suites.navbar.liveHelp")
   const showSessionBadge = !isViewMode
     && hasLiveSession
     && typeof liveSessionNumber === "number"
@@ -84,11 +86,11 @@ export function SuiteNavbar({
           to="/suites"
           className="text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
         >
-          Suites
+          {t("suites.navbar.suites")}
         </Link>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         {isCreateMode ? (
-          <span className="text-sm font-medium truncate">New Suite</span>
+          <span className="text-sm font-medium truncate">{t("suites.navbar.newSuite")}</span>
         ) : suiteHref && !isViewMode ? (
           <Link to={suiteHref} className="truncate text-sm font-medium hover:text-primary transition-colors">
             {suiteName}
@@ -99,12 +101,12 @@ export function SuiteNavbar({
         {showEditCrumb && (
           <>
             <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <span className="text-sm font-medium truncate">Edit</span>
+            <span className="text-sm font-medium truncate">{t("common.edit")}</span>
           </>
         )}
         {unsaved && (
           <Badge variant="outline" className="text-xs">
-            Unsaved
+            {t("suites.navbar.unsaved")}
           </Badge>
         )}
         {!isViewMode && !isCreateMode && suiteId && showSuiteId && <IdBadge label="S" value={suiteId} />}
@@ -116,13 +118,13 @@ export function SuiteNavbar({
             {suiteHref ? (
               <Button variant="outline" size="sm" asChild>
                 <Link to={suiteHref}>
-                  Edit
+                  {t("common.edit")}
                   <ShortcutKey shortcut="E" />
                 </Link>
               </Button>
             ) : (
               <Button variant="outline" size="sm" disabled>
-                Edit
+                {t("common.edit")}
                 <ShortcutKey shortcut="E" />
               </Button>
             )}
@@ -130,7 +132,7 @@ export function SuiteNavbar({
             <SplitButton
               onRun={onRun}
               disabled={isRunning || runDisabled}
-              label={isRunning ? "Running..." : "Run"}
+              label={isRunning ? t("suites.navbar.running") : t("suites.navbar.run")}
               shortcutKey="R"
               size="sm"
             />
@@ -148,7 +150,7 @@ export function SuiteNavbar({
                     ) : (
                       <PlayCircle className="h-3.5 w-3.5" />
                     )}
-                    {liveConnectionState === "connecting" ? "Connecting..." : "Connect Live Session"}
+                    {liveConnectionState === "connecting" ? t("suites.navbar.connecting") : t("suites.navbar.connectLive")}
                     <ShortcutKey
                       shortcut="L"
                       className="border-primary-foreground/20 bg-primary-foreground/10 text-primary-foreground"
@@ -166,21 +168,21 @@ export function SuiteNavbar({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <PopoverTrigger asChild>
-                      <Button variant="ghost" size="icon-sm" onClick={onToggleShortcuts} aria-label="Shortcuts">
+                      <Button variant="ghost" size="icon-sm" onClick={onToggleShortcuts} aria-label={t("suites.navbar.shortcuts")}>
                         <Keyboard className="h-3.5 w-3.5" />
                       </Button>
                     </PopoverTrigger>
                   </TooltipTrigger>
-                  <TooltipContent>Shortcuts</TooltipContent>
+                  <TooltipContent>{t("suites.navbar.shortcuts")}</TooltipContent>
                 </Tooltip>
                 <PopoverContent align="end" sideOffset={8} className="w-72 p-4">
                   <div className="space-y-3">
                     <div>
-                      <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Actions</h4>
+                      <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">{t("suites.navbar.actions")}</h4>
                       <ShortcutLegend hints={[
-                        { key: "E", label: "Edit" },
-                        { key: "R", label: "Run" },
-                        { key: "L", label: "Connect Live Session" },
+                        { key: "E", label: t("common.edit") },
+                        { key: "R", label: t("suites.navbar.run") },
+                        { key: "L", label: t("suites.navbar.connectLive") },
                       ]} />
                     </div>
                   </div>
@@ -192,17 +194,17 @@ export function SuiteNavbar({
           <>
             <Button variant="ghost" size="sm" onClick={onValidate} disabled={isValidating || hasInvalidFilename}>
               <CheckCircle2 className="h-3.5 w-3.5" />
-              {isValidating ? "Validating..." : "Validate"}
+              {isValidating ? t("suites.navbar.validating") : t("suites.navbar.validate")}
             </Button>
 
             <Button variant="ghost" size="sm" onClick={onSave} disabled={isSaving || hasInvalidFilename}>
               <Save className="h-3.5 w-3.5" />
-              {isSaving ? "Saving..." : "Save"}
+              {isSaving ? t("suites.navbar.saving") : t("suites.navbar.save")}
             </Button>
 
             <Button variant="ghost" size="sm" onClick={onSettingsOpen}>
               <Settings className="h-3.5 w-3.5" />
-              Settings
+              {t("suites.navbar.settings")}
             </Button>
 
             {showDivider && <div className="h-4 w-px bg-border" />}
@@ -214,13 +216,13 @@ export function SuiteNavbar({
                     <SplitButton
                       onRun={onRun}
                       disabled={isRunning || runDisabled || hasLiveSession}
-                      label={isRunning ? "Running..." : "Run Suite"}
+                      label={isRunning ? t("suites.navbar.running") : t("suites.navbar.runSuite")}
                       size="sm"
                     />
                   </span>
                 </TooltipTrigger>
                 {hasLiveSession && (
-                  <TooltipContent>End the live session to queue a new suite run.</TooltipContent>
+                  <TooltipContent>{t("suites.navbar.endLiveToRun")}</TooltipContent>
                 )}
               </Tooltip>
             )}
@@ -234,7 +236,7 @@ export function SuiteNavbar({
                   disabled={!onLiveEnd}
                 >
                   <Square className="h-3.5 w-3.5" />
-                  End Live Session
+                  {t("suites.navbar.endLive")}
                 </Button>
               ) : (
                 <Tooltip>
@@ -249,7 +251,7 @@ export function SuiteNavbar({
                       ) : (
                         <PlayCircle className="h-3.5 w-3.5" />
                       )}
-                      {liveConnectionState === "connecting" ? "Connecting..." : "Connect Live Session"}
+                      {liveConnectionState === "connecting" ? t("suites.navbar.connecting") : t("suites.navbar.connectLive")}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent className="max-w-sm text-[13px]">
@@ -265,7 +267,7 @@ export function SuiteNavbar({
                 aria-live="polite"
                 className="text-[10px] tracking-wider font-medium text-muted-foreground bg-muted/50 border-border/50"
               >
-                Session #{liveSessionNumber}
+                {t("suites.navbar.session", { number: liveSessionNumber })}
               </Badge>
             )}
 
@@ -279,16 +281,16 @@ export function SuiteNavbar({
                       </Button>
                     </PopoverTrigger>
                   </TooltipTrigger>
-                  <TooltipContent>Shortcuts</TooltipContent>
+                  <TooltipContent>{t("suites.navbar.shortcuts")}</TooltipContent>
                 </Tooltip>
                 <PopoverContent align="end" sideOffset={8} className="w-72 p-4">
                   <div className="space-y-3">
                     <div>
-                      <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Actions</h4>
+                      <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">{t("suites.navbar.actions")}</h4>
                       <ShortcutLegend hints={[
-                        { key: "R", label: "Run suite" },
-                        { key: "Cmd+S", label: "Save" },
-                        { key: "Esc", label: "Close results panel" },
+                        { key: "R", label: t("suites.navbar.hint.runSuite") },
+                        { key: "Cmd+S", label: t("suites.navbar.save") },
+                        { key: "Esc", label: t("suites.navbar.hint.closeResults") },
                       ]} />
                     </div>
                   </div>

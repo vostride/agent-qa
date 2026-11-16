@@ -13,6 +13,7 @@ import player from './player'
 import runDetail from './runDetail'
 import runs from './runs'
 import status from './status'
+import suites from './suites'
 import tests from './tests'
 import time from './time'
 import tour from './tour'
@@ -36,4 +37,5 @@ export default {
   ...feedback,
   ...tests,
   ...editor,
+  ...suites,
 } as const
