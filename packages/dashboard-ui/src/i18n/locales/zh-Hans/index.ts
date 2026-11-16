@@ -4,10 +4,15 @@ import action from './action'
 import common from './common'
 import config from './config'
 import configUi from './configUi'
+import evidence from './evidence'
+import feedback from './feedback'
 import hooks from './hooks'
 import insights from './insights'
+import knowledge from './knowledge'
 import language from './language'
 import nav from './nav'
+import player from './player'
+import runDetail from './runDetail'
 import runs from './runs'
 import status from './status'
 import time from './time'
@@ -25,5 +30,10 @@ export default {
   ...status,
   ...runs,
   ...insights,
+  ...evidence,
+  ...player,
+  ...runDetail,
+  ...knowledge,
+  ...feedback,
   ...hooks,
 } satisfies Translation<typeof en>
