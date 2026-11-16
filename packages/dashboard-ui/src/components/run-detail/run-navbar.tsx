@@ -19,6 +19,7 @@ import type { RunRow } from "@/lib/api"
 import { triggerRun } from "@/lib/api"
 import { TOKEN_USAGE_TRIGGER_LABEL, tokenPairLine } from "@/lib/run-detail-view"
 import { statusBadgeLook } from "@/lib/status"
+import { useTranslation } from "@/i18n"
 import { cn, formatDuration } from "@/lib/utils"
 import type { RecordedRetrievalRung, RunModelSummary, RunTokenTotals } from "@vostride/agent-qa-schema"
 
@@ -74,6 +75,7 @@ export function RunNavbar({
   retrievalRung,
   feedbackEntry,
 }: RunNavbarProps) {
+  const { t } = useTranslation()
   const navigate = useNavigate()
   const isSuiteParent = run.suiteId != null
   const sourceHref = isSuiteParent && run.suiteId
@@ -81,15 +83,15 @@ export function RunNavbar({
     : run.testId
       ? routes.testView(run.testId)
       : null
-  const sourceLabel = isSuiteParent && run.suiteId ? "Open suite" : "Open test"
+  const sourceLabel = isSuiteParent && run.suiteId ? t('runDetail.navbar.openSuite') : t('runDetail.navbar.openTest')
 
   const handleRerun = () => {
     triggerRun({ file: run.filePath ?? run.name })
       .then((result) => {
-        toast.success("Re-run started")
+        toast.success(t('runDetail.page.rerunStarted'))
         navigate(routes.runLive(result.runId))
       })
-      .catch(() => toast.error("Failed to start re-run"))
+      .catch(() => toast.error(t('runDetail.page.rerunFailed')))
   }
 
   return (
@@ -101,7 +103,7 @@ export function RunNavbar({
           onClick={() => navigate(routes.runs)}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors shrink-0"
         >
-          Runs
+          {t('runDetail.navbar.runs')}
         </button>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         {/* The one flexible item: it truncates first and keeps its full name in `title`. */}
@@ -164,8 +166,8 @@ export function RunNavbar({
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label="Open run artifacts"
-          title="Run details (I/C/M)"
+          aria-label={t('runDetail.navbar.openArtifacts')}
+          title={t('runDetail.navbar.artifactsTitle')}
           onClick={() => onOpenArtifacts?.("test")}
         >
           <PanelRightOpen className="h-3.5 w-3.5" />
@@ -175,9 +177,9 @@ export function RunNavbar({
           <Button
             variant="ghost"
             size="icon-sm"
-            aria-label="Keyboard shortcuts"
+            aria-label={t('runDetail.navbar.shortcuts')}
             aria-expanded={shortcutsOpen}
-            title="Shortcuts (Shift+?)"
+            title={t('runDetail.navbar.shortcutsTitle')}
             onClick={onToggleShortcuts}
           >
             <Keyboard className="h-3.5 w-3.5" />
@@ -185,52 +187,52 @@ export function RunNavbar({
           {shortcutsOpen ? (
             <div
               role="dialog"
-              aria-label="Keyboard shortcuts"
+              aria-label={t('runDetail.navbar.shortcuts')}
               className="absolute right-0 top-full z-50 mt-2 w-72 rounded-md border border-border bg-popover p-4 text-popover-foreground shadow-md"
             >
               <div className="space-y-3">
                 <div>
-                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Navigation</h4>
+                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">{t('runDetail.navbar.heading.navigation')}</h4>
                   <ShortcutLegend hints={[
-                    { key: '← →', label: 'Previous / next action' },
-                    { key: 'Space', label: 'Play / pause' },
-                    { key: 'V', label: 'Frames / Video' },
-                    { key: "\u2191 / K", label: "Previous item" },
-                    { key: "\u2193 / J", label: "Next item" },
-                    { key: "Shift+\u2191", label: "Previous step" },
-                    { key: "Shift+\u2193", label: "Next step" },
+                    { key: '← →', label: t('runDetail.navbar.hint.previousNextAction') },
+                    { key: 'Space', label: t('runDetail.navbar.hint.playPause') },
+                    { key: 'V', label: t('runDetail.navbar.hint.framesVideo') },
+                    { key: "\u2191 / K", label: t('runDetail.navbar.hint.previousItem') },
+                    { key: "\u2193 / J", label: t('runDetail.navbar.hint.nextItem') },
+                    { key: "Shift+\u2191", label: t('runDetail.navbar.hint.previousStep') },
+                    { key: "Shift+\u2193", label: t('runDetail.navbar.hint.nextStep') },
                   ]} />
                 </div>
                 <div>
-                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Tabs</h4>
+                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">{t('runDetail.navbar.heading.tabs')}</h4>
                   <ShortcutLegend hints={[
-                    { key: "1", label: "Overview" },
-                    { key: "2", label: "Env" },
-                    { key: "3", label: "Network" },
-                    { key: "4", label: "Console" },
-                    { key: "5", label: "ARIA" },
-                    { key: "6", label: "A11y" },
-                    { key: "7", label: "Knowledge" },
+                    { key: "1", label: t('runDetail.tabs.overview') },
+                    { key: "2", label: t('runDetail.navbar.hint.env') },
+                    { key: "3", label: t('runDetail.tabs.network') },
+                    { key: "4", label: t('runDetail.tabs.console') },
+                    { key: "5", label: t('runDetail.navbar.hint.aria') },
+                    { key: "6", label: t('runDetail.tabs.a11y') },
+                    { key: "7", label: t('runDetail.tabs.knowledge') },
                   ]} />
                 </div>
                 <div>
-                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Phases</h4>
+                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">{t('runDetail.navbar.heading.phases')}</h4>
                   <ShortcutLegend hints={[
-                    { key: "Shift+1", label: "Toggle Observe" },
-                    { key: "Shift+2", label: "Toggle Plan" },
-                    { key: "Shift+3", label: "Toggle Execute" },
-                    { key: "Shift+4", label: "Toggle Verify" },
+                    { key: "Shift+1", label: t('runDetail.navbar.hint.toggleObserve') },
+                    { key: "Shift+2", label: t('runDetail.navbar.hint.togglePlan') },
+                    { key: "Shift+3", label: t('runDetail.navbar.hint.toggleExecute') },
+                    { key: "Shift+4", label: t('runDetail.navbar.hint.toggleVerify') },
                   ]} />
                 </div>
                 <div>
-                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">Actions</h4>
+                  <h4 className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">{t('runDetail.navbar.heading.actions')}</h4>
                   <ShortcutLegend hints={[
-                    { key: "I", label: "Details: Attributes" },
-                    { key: "C", label: "Artifacts: Config" },
-                    { key: "M", label: "Knowledge tab" },
-                    { key: "R", label: "Re-run" },
-                    { key: "Shift+?", label: "Shortcuts" },
-                    { key: "Esc", label: "Close" },
+                    { key: "I", label: t('runDetail.navbar.hint.detailsAttributes') },
+                    { key: "C", label: t('runDetail.navbar.hint.artifactsConfig') },
+                    { key: "M", label: t('runDetail.navbar.hint.knowledgeTab') },
+                    { key: "R", label: t('runDetail.navbar.rerun') },
+                    { key: "Shift+?", label: t('runDetail.navbar.hint.shortcuts') },
+                    { key: "Esc", label: t('common.close') },
                   ]} />
                 </div>
               </div>
@@ -241,8 +243,8 @@ export function RunNavbar({
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label="Re-run"
-          title="Re-run (R)"
+          aria-label={t('runDetail.navbar.rerun')}
+          title={t('runDetail.navbar.rerunTitle')}
           onClick={handleRerun}
         >
           <RotateCcw className="h-3.5 w-3.5" />

@@ -5,6 +5,7 @@ import type { SectionDef, ReasoningPipelineHandle } from "@/components/reasoning
 import type { DisplayStep } from "@/lib/display-step"
 import { readIdempotentNoopMeta, type RunDetailSubAction } from "@vostride/agent-qa-schema"
 import { RESULT_WORDS, displayTargetName } from "@/lib/action-vocabulary"
+import { t, useTranslation } from "@/i18n"
 
 import { Player, type PlayerProps } from "./player"
 
@@ -37,7 +38,9 @@ interface TabOverviewProps extends OverviewPlayerProps {
 /** The three words a recorded result can be — raw, closed, and never a sentence. */
 function resultWord(sub: RunDetailSubAction): string {
   if (readIdempotentNoopMeta(sub.result)) return RESULT_WORDS["no-input"]
-  return sub.result.success ? "success" : "failure"
+  return sub.result.success
+    ? t("runDetail.overview.resultSuccess")
+    : t("runDetail.overview.resultFailure")
 }
 
 function resultColour(sub: RunDetailSubAction): string {
@@ -50,7 +53,7 @@ function buildSubActionSections(sub: RunDetailSubAction): SectionDef[] {
 
   sections.push({
     key: "reasoning",
-    label: "Reasoning",
+    label: t("runDetail.overview.reasoning"),
     icon: Brain,
     content: null,
     duration: null,
@@ -66,7 +69,7 @@ function buildSubActionSections(sub: RunDetailSubAction): SectionDef[] {
 
   sections.push({
     key: "plannedAction",
-    label: "Planned Action",
+    label: t("runDetail.overview.plannedAction"),
     icon: Play,
     content: null,
     duration: null,
@@ -82,7 +85,7 @@ function buildSubActionSections(sub: RunDetailSubAction): SectionDef[] {
 
   sections.push({
     key: "result",
-    label: "Result",
+    label: t("runDetail.overview.result"),
     icon: ShieldCheck,
     content: null,
     duration: null,
@@ -107,7 +110,7 @@ function buildSubActionSections(sub: RunDetailSubAction): SectionDef[] {
     if (descriptor !== "") {
       sections.push({
         key: "grounding",
-        label: "Grounding",
+        label: t("runDetail.overview.grounding"),
         icon: Target,
         content: null,
         duration: null,
@@ -131,6 +134,7 @@ export function TabOverview({
   onPlayerSourceChange = () => {}, onPlayheadChange = () => {}, seekFraction, isTimelineKeyIgnored,
   pipelineRef, timeline, clock, seekRevision, onProgress, onPlayheadObserved, onRecordingEnded, autoPlay,
 }: TabOverviewProps) {
+  useTranslation()
   return (
     <div data-overview>
       {model && runId && <Player timeline={timeline} model={model} playhead={playhead} recording={recording} frame={frame}
@@ -149,7 +153,7 @@ export function TabOverview({
 
           {step?.error ? (
             <div>
-              <p className="text-xs text-muted-foreground font-medium mb-0.5">Error</p>
+              <p className="text-xs text-muted-foreground font-medium mb-0.5">{t("runDetail.overview.error")}</p>
               <div
                 data-step-error
                 className="bg-destructive/10 text-destructive rounded-sm p-2 text-sm break-words [overflow-wrap:anywhere]"

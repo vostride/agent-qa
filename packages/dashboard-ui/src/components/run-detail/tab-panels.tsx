@@ -20,6 +20,7 @@ import type { EvidenceKind } from '@vostride/agent-qa-schema'
 import { absentTriggerName, countedTriggerName, PROBLEM_COUNT_TONES, tabCounts } from '@/lib/evidence-counts'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { EvidenceScopeLine, type EvidenceScope } from './evidence-scope-line'
+import { useTranslation } from '@/i18n'
 
 interface TabPanelsProps extends OverviewPlayerProps {
   activeTab: string
@@ -53,6 +54,7 @@ export function TabPanels({
   knowledgeStepRefs,
   onSelectStep,
 }: TabPanelsProps) {
+  const { t } = useTranslation()
   const hasExecutionLogs = executionLogs.length > 0
   const consoleScrollRef = useRef<HTMLDivElement>(null)
   const networkScrollRef = useRef<HTMLDivElement>(null)
@@ -126,16 +128,16 @@ export function TabPanels({
       className="flex h-full min-h-0 flex-col overflow-hidden gap-0"
     >
       <TabsList variant="line" className="w-full justify-start overflow-x-auto border-b px-3 h-9 shrink-0 rounded-none [&_[role=tab]]:shrink-0">
-        <TabsTrigger value="overview" className="text-xs rounded-none flex-initial">Overview</TabsTrigger>
-        {evidenceTrigger('variables', 'env', 'Variables')}
-        {evidenceTrigger('network', 'network', 'Network')}
-        {evidenceTrigger('console', 'console', hasExecutionLogs ? 'stdout' : 'Console')}
-        {evidenceTrigger('aria', 'aria', 'ARIA Tree')}
-        {evidenceTrigger('a11y', 'a11y', 'A11y')}
+        <TabsTrigger value="overview" className="text-xs rounded-none flex-initial">{t('runDetail.tabs.overview')}</TabsTrigger>
+        {evidenceTrigger('variables', 'env', t('runDetail.tabs.variables'))}
+        {evidenceTrigger('network', 'network', t('runDetail.tabs.network'))}
+        {evidenceTrigger('console', 'console', hasExecutionLogs ? 'stdout' : t('runDetail.tabs.console'))}
+        {evidenceTrigger('aria', 'aria', t('runDetail.tabs.ariaTree'))}
+        {evidenceTrigger('a11y', 'a11y', t('runDetail.tabs.a11y'))}
         {/*
           The trigger always renders; loading and error states live inside the tab's content.
         */}
-        <TabsTrigger value="knowledge" className="text-xs rounded-none flex-initial">Knowledge</TabsTrigger>
+        <TabsTrigger value="knowledge" className="text-xs rounded-none flex-initial">{t('runDetail.tabs.knowledge')}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="overview" className="flex-1 min-h-0">

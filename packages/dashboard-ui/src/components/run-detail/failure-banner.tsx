@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { AlertCircle, Check, ChevronRight, Copy } from "lucide-react"
 
+import { useTranslation } from "@/i18n"
 import { truncateText } from "@/lib/display-text"
 import { cn } from "@/lib/utils"
 
@@ -20,13 +21,13 @@ type CopyStatus = "idle" | "copied" | "failed"
  * name, and the outcome was a swapped icon inside a `polite`-less subtree. Sighted feedback and
  * announced feedback are the same fact in two media, so they are derived from the same state.
  */
-const COPY_ANNOUNCEMENT: Record<CopyStatus, string> = {
-  idle: "",
-  copied: "Failure summary copied to the clipboard",
-  failed: "Could not copy the failure summary to the clipboard",
-}
+const COPY_ANNOUNCEMENT = {
+  copied: "runDetail.banner.copied",
+  failed: "runDetail.banner.copyFailed",
+} as const
 
 export function FailureBanner({ summary }: { summary: string }) {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle")
   const preview = truncateText(summary, FAILURE_BANNER_PREVIEW_WORDS)
@@ -78,8 +79,8 @@ export function FailureBanner({ summary }: { summary: string }) {
           data-copy-status={copyStatus}
           onClick={handleCopy}
           className="shrink-0 mt-0.5 p-0.5 rounded-sm hover:bg-red-500/10 transition-colors"
-          aria-label="Copy failure summary"
-          title="Copy failure summary"
+          aria-label={t("runDetail.banner.copy")}
+          title={t("runDetail.banner.copy")}
         >
           {copyStatus === "copied"
             ? <Check className="h-3.5 w-3.5 text-emerald-400" aria-hidden="true" />
@@ -108,12 +109,12 @@ export function FailureBanner({ summary }: { summary: string }) {
           aria-live="polite"
           className="sr-only"
         >
-          {COPY_ANNOUNCEMENT[copyStatus]}
+          {copyStatus === "idle" ? "" : t(COPY_ANNOUNCEMENT[copyStatus])}
         </span>
         {preview.isTruncated && (
           <button
             data-failure-banner-toggle
-            aria-label={open ? "Show less" : "Show full failure summary"}
+            aria-label={open ? t("runDetail.banner.showLess") : t("runDetail.banner.showFull")}
             onClick={() => setOpen(o => !o)}
             className="shrink-0 mt-0.5 p-0.5 rounded-sm hover:bg-red-500/10 transition-colors"
           >

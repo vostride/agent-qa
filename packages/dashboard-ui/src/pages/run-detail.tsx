@@ -51,10 +51,16 @@ import { useKeyboardShortcuts } from "@/hooks/use-keyboard-shortcuts"
 import { RunNotice } from '@/components/run-detail/run-notice'
 import { isPreMilestoneRun } from '@/lib/run-notice-view'
 import { usePageTitle } from "@/hooks/use-page-title"
+import { useTranslation } from "@/i18n"
 import { getRunFaviconState, useRunStatusFavicon } from "@/hooks/use-run-status-favicon"
 import { hasStepId, isSubactionSelection, runDetailStepKey, type Selection } from "@/lib/selection"
 import { displayStepsForGroups, type DisplayStep } from "@/lib/display-step"
 import { buildTimelineModel, findMarkerBySha, latestUsableFrame, type PlayerSource, parkTargetForStep, playheadFromSelection, selectionFromPlayhead, type Playhead } from '@/lib/playhead'
+
+// Kept as a code so the composer's sentence is read in the language of the moment it is drawn.
+type MarkDenialCode =
+  | { code: 'noAddress' | 'receiptStale' | 'failed' }
+  | { code: 'refused'; refusal: string }
 
 const TAB_NAMES = ['overview', 'env', 'network', 'console', 'aria', 'a11y', 'knowledge'] as const
 
@@ -125,6 +131,7 @@ export function isTimelineKeyIgnored(event: KeyboardEvent): boolean {
 }
 
 export default function RunDetailPage() {
+  const { t } = useTranslation()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const location = useLocation()
@@ -135,12 +142,12 @@ export default function RunDetailPage() {
   const recordRunDetailStatus = productTour?.recordRunDetailStatus
 
   const [run, setRun] = useState<RunRow | null>(null)
-  const runTitle = run ? `Run - ${run.name}` : "Run"
+  const runTitle = run ? t('runDetail.page.title', { name: run.name }) : t('runDetail.page.titleEmpty')
   usePageTitle(runTitle)
   useRunStatusFavicon(getRunFaviconState(run?.status))
   // `undefined` is not asked yet and `null` a failed read; both differ from an empty projection.
   const [detail, setDetail] = useState<RunDetailProjection | null | undefined>(undefined)
-  const [markDenial, setMarkDenial] = useState<MarkDenial & { testIndex: number; stepIndex?: number }>()
+  const [markDenial, setMarkDenial] = useState<MarkDenialCode & { testIndex: number; stepIndex?: number }>()
   const [markPending, setMarkPending] = useState(false)
   const markingRef = useRef<object | undefined>(undefined)
   const markGeneration = useRef(0)
@@ -172,7 +179,7 @@ export default function RunDetailPage() {
     // The wire addresses members by testId. Never silently mark a different member when a
     // suite has no unique testId for the selected row.
     if (detail.members.length > 1 && (!member.testId || detail.members.filter(entry => entry.testId === member.testId).length !== 1)) {
-      setMarkDenial({ ...address, reason: 'This member has no unique mark address.' })
+      setMarkDenial({ ...address, code: 'noAddress' })
       return 'retained'
     }
     const request = {}
@@ -197,14 +204,14 @@ export default function RunDetailPage() {
             ?.marks?.find(entry => entry.stepIndex === stepIndex)
           : undefined
         if (addressed?.markId === outcome.receipt.markId && addressed.ordinal === outcome.receipt.ordinal && addressed.kind === outcome.receipt.kind && addressed.kind === kind) return 'refreshed'
-        setMarkDenial({ ...address, reason: 'The matching mark receipt could not be refreshed. Reload this run before trying again.' })
+        setMarkDenial({ ...address, code: 'receiptStale' })
       } else {
-        setMarkDenial({ ...address, reason: `Mark refused: ${outcome.kind}.` })
+        setMarkDenial({ ...address, code: 'refused', refusal: outcome.kind })
       }
       return 'retained'
     } catch (error) {
       if (!isCurrent()) return 'stale'
-      setMarkDenial({ ...address, reason: 'Could not complete the mark or refresh its receipt. Reload this run before trying again.' })
+      setMarkDenial({ ...address, code: 'failed' })
       return 'retained'
     } finally {
       if (isCurrent()) {
@@ -213,6 +220,14 @@ export default function RunDetailPage() {
       }
     }
   }, [id, detail, reloadDetail])
+  const shownMarkDenial = useMemo<(MarkDenial & { testIndex: number; stepIndex?: number }) | undefined>(() => {
+    if (markDenial === undefined) return undefined
+    const { testIndex, stepIndex } = markDenial
+    const reason = markDenial.code === 'refused'
+      ? t('runDetail.page.mark.refused', { refusal: markDenial.refusal })
+      : t(`runDetail.page.mark.${markDenial.code}`)
+    return { testIndex, ...(stepIndex === undefined ? {} : { stepIndex }), reason }
+  }, [markDenial, t])
 
   // The page's own width picks docked or stacked; an unmeasured page is docked.
   const [pageRoot, setPageRoot] = useState<HTMLDivElement | null>(null)
@@ -277,7 +292,8 @@ export default function RunDetailPage() {
   useEffect(() => { setLightboxSha(null) }, [id])
   const [artifactResponse, setArtifactResponse] = useState<RunArtifactResponse | null>(null)
   const [artifactLoading, setArtifactLoading] = useState(false)
-  const [artifactError, setArtifactError] = useState<string | null>(null)
+  // A failure without a message of its own keeps no text, and is drawn in the current language.
+  const [artifactError, setArtifactError] = useState<{ message?: string } | null>(null)
   const artifactLoadedRunIdRef = useRef<string | null>(null)
   const artifactRequestRef = useRef(0)
 
@@ -377,7 +393,7 @@ export default function RunDetailPage() {
           }
           setNotFound(true)
         } else {
-          toast.error("Failed to load run")
+          toast.error(t('runDetail.page.loadFailed'))
         }
       } finally {
         if (!cancelled) setIsLoading(false)
@@ -421,7 +437,7 @@ export default function RunDetailPage() {
 
   const knowledgeView = useMemo(
     () => (knowledgeRead === undefined ? undefined : projectKnowledgeView(knowledgeRead)),
-    [knowledgeRead],
+    [knowledgeRead, t],
   )
 
   useEffect(() => {
@@ -446,7 +462,7 @@ export default function RunDetailPage() {
       setArtifactResponse(response)
     } catch (err) {
       if (artifactRequestRef.current !== requestId) return
-      setArtifactError(err instanceof Error ? err.message : "Failed to load artifact data")
+      setArtifactError(err instanceof Error ? { message: err.message } : {})
     } finally {
       if (artifactRequestRef.current === requestId) {
         setArtifactLoading(false)
@@ -476,7 +492,7 @@ export default function RunDetailPage() {
   // The op's bytes and the chip word, joined to member handles. The page composes no sentence.
   const analysisView = useMemo(
     () => projectAnalysisView(analysis, analysisChip, detail),
-    [analysis, analysisChip, detail],
+    [analysis, analysisChip, detail, t],
   )
   // Moves scroll and focus only; `preventScroll` keeps focus from scrolling a second time.
   const openVerdict = useCallback(() => {
@@ -493,7 +509,7 @@ export default function RunDetailPage() {
 
   // Chrome keys on the run, not the filter, so a narrowed suite keeps its way back.
   const hasMemberChrome = detail ? showMemberChrome(detail) : false
-  const displaySteps = useMemo(() => displayStepsForGroups(visibleGroups), [visibleGroups])
+  const displaySteps = useMemo(() => displayStepsForGroups(visibleGroups), [visibleGroups, t])
 
   const selectedStep = useMemo(() => {
     if (!hasStepId(selection)) return null
@@ -511,7 +527,7 @@ export default function RunDetailPage() {
       ? { testIndex: selectedStep.testIndex, stepIndex: selectedStep.stepIndex }
       : null,
     memberFilter: memberFilter === MEMBER_FILTER_ALL ? undefined : memberFilter,
-    markDenial,
+    markDenial: shownMarkDenial,
     reloadDetail,
     setSelection,
   })
@@ -548,7 +564,7 @@ export default function RunDetailPage() {
   const timelineGroup = visibleGroups.find(group => group.member.testIndex === (timelineMemberIndex ?? playhead?.testIndex))
     ?? visibleGroups[0]
   const timelineModel = useMemo(() => timelineGroup ? buildTimelineModel(timelineGroup) : null, [timelineGroup])
-  const suiteModel = useMemo(() => buildSuiteTimeline(visibleGroups), [visibleGroups])
+  const suiteModel = useMemo(() => buildSuiteTimeline(visibleGroups), [visibleGroups, t])
   const recording = timelineGroup?.member.recording
   const [sourceChoice, setSourceChoice] = useState<{ member: string; source: PlayerSource }>()
   const playerMember = `${id}:${timelineGroup?.member.testIndex}:${recording?.state}`
@@ -785,10 +801,10 @@ export default function RunDetailPage() {
         if (!run) return
         triggerRun({ file: run.filePath ?? run.name })
           .then((result) => {
-            toast.success("Re-run started")
+            toast.success(t('runDetail.page.rerunStarted'))
             navigate(routes.runLive(result.runId))
           })
-          .catch(() => toast.error("Failed to start re-run"))
+          .catch(() => toast.error(t('runDetail.page.rerunFailed')))
       },
       escape: () => {
         if (lightboxSha) setLightboxSha(null)
@@ -803,7 +819,7 @@ export default function RunDetailPage() {
     }
     return map
   }, [navItems, currentNavIdx, selection, run, navigate, artifactDrawerOpen, pipelineRef, openArtifactDrawer,
-    visibleGroups, playhead, playerSource, playerMember, lightboxSha, displaySteps, expandedStepId])
+    visibleGroups, playhead, playerSource, playerMember, lightboxSha, displaySteps, expandedStepId, t])
 
   useKeyboardShortcuts(shortcuts)
 
@@ -950,7 +966,7 @@ export default function RunDetailPage() {
     testNames: groups.length > 1
       ? new Map(groups.map(({ member }) => [member.testIndex, memberDisplayName(member)]))
       : new Map(),
-  }), [groups, onKnowledgeStep])
+  }), [groups, onKnowledgeStep, t])
 
   // Writes `?member=`, the picker's own spelling, so the link and picker are one control.
   const onSelectMember = useCallback((testIndex: number) => {
@@ -975,9 +991,9 @@ export default function RunDetailPage() {
     return (
       <EmptyState
         icon={FileSearch}
-        title="Run not found"
-        description="This test run doesn't exist or has been deleted"
-        actionLabel="View All Runs"
+        title={t('runDetail.page.notFound')}
+        description={t('runDetail.page.notFoundDescription')}
+        actionLabel={t('runDetail.page.viewAllRuns')}
         onAction={() => navigate(routes.runs)}
       />
     )
@@ -1028,7 +1044,7 @@ export default function RunDetailPage() {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value={MEMBER_FILTER_ALL}>
-                        All tests ({groups.length})
+                        {t('runDetail.page.allTestsCount', { count: groups.length })}
                       </SelectItem>
                       {groups.map(({ member }) => (
                         <SelectItem key={member.testIndex} value={String(member.testIndex)}>
@@ -1048,7 +1064,7 @@ export default function RunDetailPage() {
                 <Collapsible className="mx-2 mt-1">
                   <CollapsibleTrigger className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors group w-full">
                     <ChevronRight className="h-3 w-3 transition-transform group-data-[state=open]:rotate-90" />
-                    <span>Error Details</span>
+                    <span>{t('runDetail.page.errorDetails')}</span>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <pre className="mt-1 text-xs font-mono bg-muted/30 border border-border/50 rounded-[2px] px-3 py-2 overflow-x-auto whitespace-pre-wrap max-h-60 overflow-y-auto text-foreground/70 select-text">
@@ -1101,7 +1117,7 @@ export default function RunDetailPage() {
                     mediaDurationsReady={mediaDurationsReady}
                     playhead={playhead}
                     source={playerSource}
-                    memberLabel={suiteModel.members.length > 1 ? 'All tests' : suiteModel.members[0]?.label}
+                    memberLabel={suiteModel.members.length > 1 ? t('runDetail.page.allTests') : suiteModel.members[0]?.label}
                     observedPosition={observedPosition}
                     onPlayheadChange={setPlayheadFrom}
                     onSeekFraction={seekSuite}
@@ -1155,7 +1171,7 @@ export default function RunDetailPage() {
             tab={artifactDrawerTab}
             response={artifactResponse}
             loading={artifactLoading}
-            error={artifactError}
+            error={artifactError === null ? null : artifactError.message ?? t('runDetail.page.artifactLoadFailed')}
             onOpenChange={setArtifactDrawerOpen}
             onTabChange={setArtifactDrawerTab}
             onRetry={loadArtifact}

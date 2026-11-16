@@ -12,6 +12,7 @@ import type {
   RunDetailStep,
 } from "@vostride/agent-qa-schema"
 
+import i18n from "@/i18n"
 import RunDetailPage from "@/pages/run-detail"
 import {
   ANALYSIS_FAILED_FALLBACK_TEXT,
@@ -761,5 +762,35 @@ describe("the records on the failing path reach the visible member and no other"
       .toBe('observed (step 0): "Login timed out"')
     expect(view.querySelector('[data-member="1"] [data-verdict-provenance]')?.textContent)
       .toBe(DETERMINISTIC_FALLBACK_LABEL())
+  })
+})
+
+describe("a mounted run page after a language change", () => {
+  afterEach(async () => {
+    await act(async () => {
+      await i18n.changeLanguage("en")
+    })
+    i18n.removeResourceBundle("fr", "translation")
+  })
+
+  it("shows the verdict's provenance word in the new language in the same block, then English again", async () => {
+    const view = await renderPage()
+    const block = view.querySelector('[data-member="0"] [data-verdict-block]')
+    const provenance = () => block?.querySelector("[data-verdict-provenance]")?.textContent
+    expect(provenance()).toBe("deterministic fallback")
+
+    i18n.addResourceBundle("fr", "translation", {
+      "runDetail.analysis.deterministicFallback": "repli déterministe",
+    })
+    await act(async () => {
+      await i18n.changeLanguage("fr")
+    })
+    expect(view.querySelector('[data-member="0"] [data-verdict-block]'), "not remounted").toBe(block)
+    expect(provenance()).toBe("repli déterministe")
+
+    await act(async () => {
+      await i18n.changeLanguage("en")
+    })
+    expect(provenance()).toBe("deterministic fallback")
   })
 })

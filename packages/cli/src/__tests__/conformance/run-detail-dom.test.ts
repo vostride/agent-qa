@@ -123,28 +123,8 @@ function publishedText(area: string, key: string): string {
 
 const TOKENS_NOT_MEASURED_LABEL = publishedText('runDetail', 'runDetail.usage.tokensNotMeasured')
 
-/**
- * The accessible name of one overview reasoning section, read out of the panel that names it.
- *
- * WHY A CELL NEEDS THIS AT ALL. The overview's reasoning sections are collapsibles that start
- * CLOSED, and the content is unmounted rather than hidden — so the plan is not in the document
- * until somebody opens it. That is the page as shipped and this cell does what a person does:
- * clicks the section by its name. Reading the name out of the panel keeps a copy rename from
- * turning into a mystery timeout here.
- */
-function publishedSectionLabel(key: string): string {
-  const source = readFileSync(
-    join(PACKAGES_ROOT, 'dashboard-ui', 'src', 'components', 'run-detail', 'tab-overview.tsx'),
-    'utf8',
-  )
-  const entry = new RegExp(`key:\\s*"${key}",\\s*\\n\\s*label:\\s*"([^"]+)"`, 'u').exec(source)
-  if (entry === null) {
-    throw new Error(`the overview no longer declares a section keyed \`${key}\` with a label`)
-  }
-  return entry[1] as string
-}
-
-const REASONING_SECTION_LABEL = publishedSectionLabel('reasoning')
+// The overview's reasoning sections start closed and unmounted, so a cell opens one by its name.
+const REASONING_SECTION_LABEL = publishedText('runDetail', 'runDetail.overview.reasoning')
 
 const DECLARED_SECRET_MARKER = `[secret:${POPULATED_SECRET_NAME}]`
 
