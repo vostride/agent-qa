@@ -241,10 +241,10 @@ export function ModelList(_props: ModelListProps) {
   if (shown.length === 0 && add === undefined) {
     return (
       <div data-models-empty className="col-span-full space-y-4 rounded-md border border-border px-4 py-8">
-        <p className="text-sm">{NO_MODELS_TEXT}</p>
+        <p className="text-sm">{NO_MODELS_TEXT()}</p>
         <Button ref={addButton} type="button" onClick={addModel}>
           <Plus className="size-3.5" aria-hidden="true" />
-          {ADD_MODEL_LABEL}
+          {ADD_MODEL_LABEL()}
         </Button>
       </div>
     )
@@ -264,7 +264,7 @@ export function ModelList(_props: ModelListProps) {
         onClick={addModel}
       >
         <Plus className="size-3.5" aria-hidden="true" />
-        {ADD_MODEL_LABEL}
+        {ADD_MODEL_LABEL()}
       </Button>
       {/* use.llm is edited here: each row's Default badge or Make default. */}
       <div data-field-path="use.llm" className="col-span-full space-y-4">
@@ -273,7 +273,7 @@ export function ModelList(_props: ModelListProps) {
             <span className="flex h-[1lh] shrink-0 items-center">
               <TriangleAlert className="size-3 text-amber-500" aria-hidden="true" />
             </span>
-            {NO_DEFAULT_TEXT}
+            {NO_DEFAULT_TEXT()}
           </p>
         )}
         <ul

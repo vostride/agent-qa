@@ -95,7 +95,7 @@ function line(n: number) {
 }
 
 function copyButton() {
-  return section().querySelector(`button[aria-label="${COPY_PATH_LABEL}"]`) as HTMLButtonElement | null
+  return section().querySelector(`button[aria-label="${COPY_PATH_LABEL()}"]`) as HTMLButtonElement | null
 }
 
 function copyStatus() {
@@ -143,7 +143,7 @@ describe('ConfigFileView', () => {
     expect(path?.textContent).toBe(CONFIG_PATH)
     expect(path?.className).toContain('font-mono')
     expect(path?.className).toContain('wrap-anywhere')
-    expect(section().textContent).toContain(CONFIG_FILE_NOTE)
+    expect(section().textContent).toContain(CONFIG_FILE_NOTE())
 
     const view = section().querySelector('[data-config-file-view]') as HTMLElement
     expect(view).not.toBeNull()

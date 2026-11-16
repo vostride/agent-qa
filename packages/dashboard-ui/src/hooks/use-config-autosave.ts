@@ -594,7 +594,7 @@ function createEngine(host: EngineHost) {
       if (compute !== undefined && isFieldChanged(error)) {
         // A second refusal in a row: say so, and show the file as it now is.
         revision = undefined
-        emit({ type: "write-failed", id, issues: [], message: FIELD_CHANGED_TEXT })
+        emit({ type: "write-failed", id, issues: [], message: FIELD_CHANGED_TEXT() })
         return false
       }
       const { issues, message } = issuesFrom(error, keys)

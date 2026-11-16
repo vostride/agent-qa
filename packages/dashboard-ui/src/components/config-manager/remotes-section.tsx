@@ -285,7 +285,7 @@ export function RemotesSection({ config }: RemotesSectionProps) {
                       <RemoteName name={remote.name} />
                       {remote.name === pick ? (
                         <Badge variant="outline" data-remote-default-badge>
-                          {DEFAULT_BADGE}
+                          {DEFAULT_BADGE()}
                         </Badge>
                       ) : null}
                     </span>

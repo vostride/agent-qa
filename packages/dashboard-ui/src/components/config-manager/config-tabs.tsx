@@ -91,7 +91,7 @@ export function ConfigTabBar({ tab, draftTabs, statusSlot }: ConfigTabBarProps) 
         className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         style={mask ? { maskImage: mask, WebkitMaskImage: mask } : undefined}
       >
-        <TabsList variant="line" data-tour-id="tour-config-nav" aria-label={CONFIG_TABS_ARIA_LABEL}>
+        <TabsList variant="line" data-tour-id="tour-config-nav" aria-label={CONFIG_TABS_ARIA_LABEL()}>
           {CONFIG_TABS.map((id) => {
             const hasDraft = draftTabs?.has(id) ?? false
             return (
@@ -100,7 +100,7 @@ export function ConfigTabBar({ tab, draftTabs, statusSlot }: ConfigTabBarProps) 
                 {hasDraft ? (
                   <>
                     <span data-tab-draft aria-hidden className="size-2 rounded-full bg-amber-500" />
-                    <span className="sr-only">{TAB_DRAFT_SR_SUFFIX}</span>
+                    <span className="sr-only">{TAB_DRAFT_SR_SUFFIX()}</span>
                   </>
                 ) : null}
               </TabsTrigger>

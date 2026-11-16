@@ -114,7 +114,7 @@ function prefersReducedMotion(): boolean {
 
 export default function ConfigPage() {
   useTranslation()
-  usePageTitle(CONFIG_PAGE_TITLE)
+  usePageTitle(CONFIG_PAGE_TITLE())
   const navigate = useNavigate()
   const { tab: tabParam } = useParams()
   const [searchParams] = useSearchParams()
@@ -247,29 +247,29 @@ export default function ConfigPage() {
 
   return (
     <div data-config-page data-config-state={state.kind} className="max-w-4xl">
-      <h1 className="text-2xl font-semibold tracking-tight">{CONFIG_PAGE_TITLE}</h1>
+      <h1 className="text-2xl font-semibold tracking-tight">{CONFIG_PAGE_TITLE()}</h1>
 
       <LanguageBlock />
 
       {showLegacyNotice ? (
         <ConfigLineNotice data-config-invalid-notice className="mt-6">
-          {LEGACY_LINK_NOT_FOUND_TEXT}
+          {LEGACY_LINK_NOT_FOUND_TEXT()}
         </ConfigLineNotice>
       ) : null}
 
       {state.kind === "error" ? (
         <ConfigLineNotice data-config-load-error className="mt-6 space-y-2">
-          <p className="text-sm font-medium text-foreground">{CONFIG_LOAD_FAILED_TITLE}</p>
+          <p className="text-sm font-medium text-foreground">{CONFIG_LOAD_FAILED_TITLE()}</p>
           <p className="text-xs">{configLoadFailedBody(state.reason)}</p>
           <Button type="button" variant="outline" size="sm" onClick={autosave.reload}>
-            {RELOAD_CONFIG_LABEL}
+            {RELOAD_CONFIG_LABEL()}
           </Button>
         </ConfigLineNotice>
       ) : (
         <ConfigAutosaveProvider value={autosave}>
           {state.answer.fileIssues?.[0] ? (
             <ConfigLineNotice data-config-file-issues className="mt-6 space-y-2">
-              <p className="text-sm font-medium text-foreground">{CONFIG_FILE_ISSUES_TITLE}</p>
+              <p className="text-sm font-medium text-foreground">{CONFIG_FILE_ISSUES_TITLE()}</p>
               <p className="text-xs">{configFileIssuesBody(issueReason(state.answer.fileIssues[0].message))}</p>
             </ConfigLineNotice>
           ) : null}

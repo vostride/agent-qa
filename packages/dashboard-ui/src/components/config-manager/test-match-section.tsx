@@ -22,8 +22,8 @@ function requiredList(error: string) {
   }
 }
 
-const parseTestMatch = requiredList(TEST_MATCH_REQUIRED_ERROR)
-const parseSuiteMatch = requiredList(SUITE_MATCH_REQUIRED_ERROR)
+const parseTestMatch = requiredList(TEST_MATCH_REQUIRED_ERROR())
+const parseSuiteMatch = requiredList(SUITE_MATCH_REQUIRED_ERROR())
 
 export function TestMatchSection() {
   return (

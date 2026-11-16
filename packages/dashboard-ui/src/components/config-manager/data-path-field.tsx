@@ -109,7 +109,7 @@ export function DataPathField({ field, label, explicitKind, help, placeholder }:
               disabled={saving}
               onClick={() => void apply()}
             >
-              {APPLY_LABEL}
+              {APPLY_LABEL()}
             </Button>
             <Button
               type="button"
@@ -119,7 +119,7 @@ export function DataPathField({ field, label, explicitKind, help, placeholder }:
               disabled={saving}
               onClick={keepCurrentPath}
             >
-              {KEEP_CURRENT_PATH_LABEL}
+              {KEEP_CURRENT_PATH_LABEL()}
             </Button>
           </>
         ) : null}

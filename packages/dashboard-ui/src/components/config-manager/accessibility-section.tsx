@@ -45,7 +45,7 @@ export function AccessibilitySection() {
         label={ACCESSIBILITY_FIELD_LABELS.standard}
         kind="select"
         options={standardOptions()}
-        placeholder={ACCESSIBILITY_ALL_RULES_TEXT}
+        placeholder={ACCESSIBILITY_ALL_RULES_TEXT()}
       />
       <ConfigField
         field={accessibilityField("runAfter")}

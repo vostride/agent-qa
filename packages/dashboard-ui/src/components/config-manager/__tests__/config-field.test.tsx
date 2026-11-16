@@ -255,7 +255,7 @@ describe('ConfigField', () => {
 
     expect(applyConfigChanges).not.toHaveBeenCalled()
     expect(row(step)?.getAttribute('data-field-state')).toBe('draft')
-    expect(row(step)?.querySelector('[data-field-error]')?.textContent).toBe(DURATION_INPUT_ERROR)
+    expect(row(step)?.querySelector('[data-field-error]')?.textContent).toBe(DURATION_INPUT_ERROR())
     expect(hook!.status.state).toBe('draft')
     expect(hook!.draftTabs.has('execution')).toBe(true)
 
@@ -271,7 +271,7 @@ describe('ConfigField', () => {
     await mount()
     expect(control(step)!.value).toBe('30 seconds')
     expect(row(step)?.getAttribute('data-field-state')).toBe('draft')
-    expect(row(step)?.querySelector('[data-field-error]')?.textContent).toBe(DURATION_INPUT_ERROR)
+    expect(row(step)?.querySelector('[data-field-error]')?.textContent).toBe(DURATION_INPUT_ERROR())
     expect(applyConfigChanges).not.toHaveBeenCalled()
   })
 

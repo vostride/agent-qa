@@ -247,7 +247,7 @@ function ReplaceKeyGroup({ onSave, onKeep }: { onSave: (secret: string) => Promi
 
   return (
     <div data-replace-key className="space-y-2">
-      <Label htmlFor={inputId}>{NEW_KEY_LABEL}</Label>
+      <Label htmlFor={inputId}>{NEW_KEY_LABEL()}</Label>
       <Input
         ref={input}
         id={inputId}
@@ -261,10 +261,10 @@ function ReplaceKeyGroup({ onSave, onKeep }: { onSave: (secret: string) => Promi
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" variant="outline" size="sm" disabled={typed === "" || saving} onClick={() => void save()}>
           {saving ? <LoaderCircle className="size-3.5 motion-safe:animate-spin" aria-hidden="true" /> : null}
-          {SAVE_KEY_AND_TEST_LABEL}
+          {SAVE_KEY_AND_TEST_LABEL()}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={keep}>
-          {KEEP_CURRENT_KEY_LABEL}
+          {KEEP_CURRENT_KEY_LABEL()}
         </Button>
       </div>
     </div>
@@ -319,7 +319,7 @@ function HeaderRow({ segments, header, masked, others }: HeaderRowProps) {
       setError(undefined)
       return
     }
-    if (next === "") return setError(HEADER_NAME_REQUIRED_ERROR)
+    if (next === "") return setError(HEADER_NAME_REQUIRED_ERROR())
     if (sameHeader(others, next)) return setError(headerNameTakenError(next))
     setError(undefined)
     void rename(next)
@@ -392,7 +392,7 @@ function HeaderDraft({
 
   async function save() {
     const next = name.trim()
-    if (next === "") return setError(HEADER_NAME_REQUIRED_ERROR)
+    if (next === "") return setError(HEADER_NAME_REQUIRED_ERROR())
     if (sameHeader(others, next)) return setError(headerNameTakenError(next))
     if (value === "" || saving) return
     setError(undefined)
@@ -447,10 +447,10 @@ function HeaderDraft({
           disabled={name.trim() === "" || value === "" || saving}
           onClick={() => void save()}
         >
-          {SAVE_HEADER_LABEL}
+          {SAVE_HEADER_LABEL()}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-          {DISCARD_HEADER_LABEL}
+          {DISCARD_HEADER_LABEL()}
         </Button>
       </div>
     </div>
@@ -500,7 +500,7 @@ function ModelHeaders({ model }: { model: SavedModel }) {
       ) : (
         <Button ref={addButton} type="button" variant="ghost" size="xs" onClick={() => setAdding(true)}>
           <Plus className="size-3" aria-hidden="true" />
-          {ADD_HEADER_LABEL}
+          {ADD_HEADER_LABEL()}
         </Button>
       )}
     </fieldset>
@@ -520,15 +520,15 @@ function ModelSettings({ model, facts }: { model: SavedModel; facts: ProviderFac
         field={target("model")}
         label={ADD_FLOW_FIELD_LABELS.model}
         kind="text"
-        parse={requiredText(MODEL_REQUIRED_ERROR)}
+        parse={requiredText(MODEL_REQUIRED_ERROR())}
       />
       {facts.needsBaseURL ? (
         <ConfigField
           field={target("baseURL")}
           label={ADD_FLOW_FIELD_LABELS.baseUrl}
-          help={BASE_URL_HELP}
+          help={BASE_URL_HELP()}
           kind="text"
-          parse={requiredText(BASE_URL_REQUIRED_ERROR)}
+          parse={requiredText(BASE_URL_REQUIRED_ERROR())}
         />
       ) : null}
       {facts.headers ? <ModelHeaders model={model} /> : null}
@@ -567,7 +567,7 @@ function LandingLine({
   isDefault: boolean
   onMakeDefault: () => void
 }) {
-  const saved = landing.withoutTest ? SAVED_WITHOUT_TEST_TEXT : connectedSavedText(name)
+  const saved = landing.withoutTest ? SAVED_WITHOUT_TEST_TEXT() : connectedSavedText(name)
   return (
     <div
       data-model-landing
@@ -584,11 +584,11 @@ function LandingLine({
       </span>
       <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
         <p className="break-words text-foreground">
-          {landing.becameDefault ? `${saved} ${BECAME_DEFAULT_TEXT}` : saved}
+          {landing.becameDefault ? `${saved} ${BECAME_DEFAULT_TEXT()}` : saved}
         </p>
         {landing.becameDefault || isDefault ? null : (
           <Button type="button" variant="outline" size="xs" onClick={onMakeDefault}>
-            {MAKE_DEFAULT_LABEL}
+            {MAKE_DEFAULT_LABEL()}
           </Button>
         )}
       </div>
@@ -713,7 +713,7 @@ function ModelPanel({
               }}
             >
               {testing ? <LoaderCircle className="size-3.5 motion-safe:animate-spin" aria-hidden="true" /> : null}
-              {TEST_CONNECTION_LABEL}
+              {TEST_CONNECTION_LABEL()}
             </Button>
             {isDefault ? null : (
               <Button
@@ -725,19 +725,19 @@ function ModelPanel({
                   header.current?.focus()
                 }}
               >
-                {MAKE_DEFAULT_LABEL}
+                {MAKE_DEFAULT_LABEL()}
               </Button>
             )}
             {facts.signIn || replacing ? null : (
               <Button ref={replaceButton} type="button" variant="outline" size="sm" onClick={() => setReplacing(true)}>
-                {REPLACE_KEY_LABEL}
+                {REPLACE_KEY_LABEL()}
               </Button>
             )}
             {signInOffered ? (
               <SignInButton
                 data-sign-in-again
                 flow={signInFlow}
-                label={SIGN_IN_AGAIN_LABEL}
+                label={SIGN_IN_AGAIN_LABEL()}
                 variant="outline"
                 size="sm"
                 onStart={() => void signInFlow.start(model.provider, model.name)}
@@ -745,13 +745,13 @@ function ModelPanel({
             ) : null}
             {keySaved ? (
               <Button type="button" variant="ghost" size="sm" onClick={() => void removeCredential("remove-key")}>
-                {REMOVE_KEY_LABEL}
+                {REMOVE_KEY_LABEL()}
               </Button>
             ) : null}
             {signedIn ? (
               <Button type="button" variant="ghost" size="sm" onClick={() => void removeCredential("sign-out")}>
                 <LogOut className="size-3.5" aria-hidden="true" />
-                {SIGN_OUT_LABEL}
+                {SIGN_OUT_LABEL()}
               </Button>
             ) : null}
           </div>
@@ -779,7 +779,7 @@ function ModelPanel({
         <div data-model-footer>
           {isDefault ? (
             <p data-model-default-line className="text-xs text-muted-foreground">
-              {DEFAULT_CANNOT_DELETE_LINE}
+              {DEFAULT_CANNOT_DELETE_LINE()}
             </p>
           ) : (
             <Button
@@ -790,7 +790,7 @@ function ModelPanel({
               onClick={() => void deleteModel()}
             >
               <Trash className="size-3.5" aria-hidden="true" />
-              {DELETE_MODEL_LABEL}
+              {DELETE_MODEL_LABEL()}
             </Button>
           )}
         </div>
@@ -856,7 +856,7 @@ export function ModelRow({
           </span>
           {isDefault ? (
             <Badge variant="outline" data-model-default-badge>
-              {DEFAULT_BADGE}
+              {DEFAULT_BADGE()}
             </Badge>
           ) : null}
         </span>

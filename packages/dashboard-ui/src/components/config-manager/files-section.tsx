@@ -23,8 +23,8 @@ function requiredText(error: string) {
   return (raw: string): ConfigFieldParse => (raw.trim() === "" ? { valid: false, error } : { valid: true, value: raw })
 }
 
-const parseHooksFile = requiredText(HOOKS_FILE_REQUIRED_ERROR)
-const parseEnvFile = requiredText(ENV_FILE_REQUIRED_ERROR)
+const parseHooksFile = requiredText(HOOKS_FILE_REQUIRED_ERROR())
+const parseEnvFile = requiredText(ENV_FILE_REQUIRED_ERROR())
 
 const SECRETS_FILE_LABEL_ID = "config-files-secrets-file-label"
 const SECRETS_FILE_HELP_ID = "config-files-secrets-file-help"

@@ -72,7 +72,7 @@ export const foundationProductTourSteps = [
       return t('tour.llmSetup.title')
     },
     get body() {
-      return TOUR_LLM_SETUP_BODY
+      return TOUR_LLM_SETUP_BODY()
     },
     route: routes.configTab('models'),
     targetId: 'tour-config-section',

@@ -9,7 +9,7 @@ export function DashboardSection() {
         field={{ segments: ["services", "dashboard", "port"], tab: "project", pattern: "services.dashboard.port" }}
         label={DASHBOARD_FIELD_LABELS.port}
         kind="number"
-        help={PORT_RESTART_HELP}
+        help={PORT_RESTART_HELP()}
         placeholder="3470"
         number={{ min: 1, max: 65535, integer: true }}
       />

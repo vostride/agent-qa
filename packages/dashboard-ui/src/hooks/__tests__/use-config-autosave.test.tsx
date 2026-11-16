@@ -818,7 +818,7 @@ describe("useConfigAutosave computed writes", () => {
     expect(landed).toBe(false)
     expect(writeCalls()).toHaveLength(2)
     expect(hook!.status.state).toBe("failed")
-    expect(hook!.status.message).toBe(FIELD_CHANGED_TEXT)
+    expect(hook!.status.message).toBe(FIELD_CHANGED_TEXT())
     expect(hook!.valueOf(patterns)).toEqual(["a", "b", "d"])
 
     vi.mocked(fetchConfig).mockResolvedValue(answer(withPatterns(["a", "b", "d", "e"]), "rev-7") as never)

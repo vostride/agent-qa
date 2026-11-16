@@ -137,7 +137,7 @@ export function SaveStatus({ status, onRetry, onUndo, onGoToDraft }: SaveStatusP
             variant="link"
             size="xs"
             className={`${LINK_CLASS} font-medium`}
-            aria-label={NOT_SAVED_ACTION_NAME}
+            aria-label={NOT_SAVED_ACTION_NAME()}
             onClick={onGoToDraft}
           >
             {SAVE_STATUS_WORDS.draft}
@@ -152,7 +152,7 @@ export function SaveStatus({ status, onRetry, onUndo, onGoToDraft }: SaveStatusP
           <span className="font-medium text-destructive">{SAVE_STATUS_WORDS.failed}</span>
           <Separator />
           <Button type="button" variant="link" size="xs" className={LINK_CLASS} onClick={onRetry}>
-            {RETRY_LABEL}
+            {RETRY_LABEL()}
           </Button>
         </>
       )
@@ -164,7 +164,7 @@ export function SaveStatus({ status, onRetry, onUndo, onGoToDraft }: SaveStatusP
             <UndoLine undo={status.undo} />
             <Separator />
             <Button type="button" variant="link" size="xs" className={LINK_CLASS} onClick={onUndo}>
-              {UNDO_LABEL}
+              {UNDO_LABEL()}
             </Button>
           </>
         )

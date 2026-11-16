@@ -27,7 +27,7 @@ export function signInActive(flow: SignInFlow): boolean {
 /** The connection line a sign-in that didn't finish leaves behind; the test's own line otherwise. */
 export function signInLine(flow: SignInFlow): { state: TestResult; sentence: string } | undefined {
   if (flow.state === "failed") return { state: "failed", sentence: signInFailedText(flow.reason) }
-  if (flow.state === "timed-out") return { state: "failed", sentence: SIGN_IN_TIMED_OUT_TEXT }
+  if (flow.state === "timed-out") return { state: "failed", sentence: SIGN_IN_TIMED_OUT_TEXT() }
   return undefined
 }
 
@@ -59,7 +59,7 @@ export function SignInButton({ flow, label, variant, size, onStart, ...rest }: S
       ) : (
         <ExternalLink className="size-3.5" aria-hidden="true" />
       )}
-      {waiting ? SIGN_IN_WAITING_LABEL : label}
+      {waiting ? SIGN_IN_WAITING_LABEL() : label}
     </Button>
   )
 }
@@ -74,7 +74,7 @@ function CancelLink({ flow }: { flow: SignInFlow }) {
       className="h-auto px-0 text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
       onClick={flow.cancel}
     >
-      {CANCEL_SIGN_IN_LABEL}
+      {CANCEL_SIGN_IN_LABEL()}
     </Button>
   )
 }
@@ -87,7 +87,7 @@ export function SignInProgress({ flow }: { flow: SignInFlow }) {
   if (flow.state === "waiting" && flow.mode !== "manual-code") {
     return (
       <p data-sign-in-waiting className="flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
-        <span>{SIGN_IN_WAITING_TEXT}</span>
+        <span>{SIGN_IN_WAITING_TEXT()}</span>
         <CancelLink flow={flow} />
       </p>
     )
@@ -129,7 +129,7 @@ export function SignInProgress({ flow }: { flow: SignInFlow }) {
           onClick={() => void submit()}
         >
           {flow.exchanging ? <LoaderCircle className="size-3.5 motion-safe:animate-spin" aria-hidden="true" /> : null}
-          {flow.exchanging ? CONNECTING_LABEL : CONNECT_LABEL}
+          {flow.exchanging ? CONNECTING_LABEL() : CONNECT_LABEL()}
         </Button>
       </div>
       <CancelLink flow={flow} />

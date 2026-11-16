@@ -76,7 +76,7 @@ const NAME_RULE = /^[a-z0-9][a-z0-9.-]*$/
 
 // The name rule, then a model already holding the name.
 export function validateModelName(name: string, existingNames: readonly string[]): string | undefined {
-  if (!NAME_RULE.test(name)) return NAME_RULE_ERROR
+  if (!NAME_RULE.test(name)) return NAME_RULE_ERROR()
   if (existingNames.includes(name)) return nameTakenError(name)
   return undefined
 }
@@ -443,11 +443,11 @@ export function AddModelRow({
     const value = (key: FieldName, fallback: string) => overrides[key] ?? fallback
     switch (field) {
       case "baseURL":
-        return needsBaseURL && value("baseURL", baseURL).trim() === "" ? BASE_URL_REQUIRED_ERROR : undefined
+        return needsBaseURL && value("baseURL", baseURL).trim() === "" ? BASE_URL_REQUIRED_ERROR() : undefined
       case "model":
-        return value("model", model).trim() === "" ? MODEL_REQUIRED_ERROR : undefined
+        return value("model", model).trim() === "" ? MODEL_REQUIRED_ERROR() : undefined
       case "key":
-        return keyMode && !keyOptional && !usingExistingKey && value("key", secret) === "" ? KEY_REQUIRED_ERROR : undefined
+        return keyMode && !keyOptional && !usingExistingKey && value("key", secret) === "" ? KEY_REQUIRED_ERROR() : undefined
       case "name": {
         const candidate = value("name", name)
         return validateModelName(candidate, existingNames) ?? credentialConflict(candidate)
@@ -563,13 +563,13 @@ export function AddModelRow({
       const refusal = refusalOf(error)
       if (refusal.code === "name_taken" || refusal.code === "name_invalid") {
         setLine(undefined)
-        showError("name", refusal.code === "name_taken" ? nameTakenError(name) : NAME_RULE_ERROR)
+        showError("name", refusal.code === "name_taken" ? nameTakenError(name) : NAME_RULE_ERROR())
         fieldRefs.current.get("name")?.focus()
         return
       }
       if (refusal.code === "credential_missing") {
         setLine(undefined)
-        showError("key", KEY_REQUIRED_ERROR)
+        showError("key", KEY_REQUIRED_ERROR())
         fieldRefs.current.get("key")?.focus()
         return
       }
@@ -683,16 +683,16 @@ export function AddModelRow({
           tabIndex={-1}
           className="col-start-2 rounded-sm text-sm font-medium outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
         >
-          {NEW_MODEL_ROW_TITLE}
+          {NEW_MODEL_ROW_TITLE()}
         </span>
         <Button type="button" variant="ghost" size="sm" data-discard-draft onClick={discard}>
-          {DISCARD_DRAFT_LABEL}
+          {DISCARD_DRAFT_LABEL()}
         </Button>
       </div>
       <div className="grid grid-cols-[0.75rem_minmax(0,1fr)] gap-x-2 bg-muted/40 px-4 py-4">
         <div className="col-start-2 min-w-0 space-y-4">
           <fieldset data-add-step="connect" className="space-y-2">
-            <legend className="text-sm font-medium">{CONNECT_FORM_LEGEND}</legend>
+            <legend className="text-sm font-medium">{CONNECT_FORM_LEGEND()}</legend>
             <RadioGroup className="gap-2" value={choice ?? ""} onValueChange={changeChoice} disabled={busy}>
               {CONNECTION_CHOICES.map((item) => {
                 const itemId = `${baseId}-${item}`
@@ -730,7 +730,7 @@ export function AddModelRow({
                     name="baseURL"
                     pattern="registry.llms[].baseURL"
                     label={ADD_FLOW_FIELD_LABELS.baseUrl}
-                    help={BASE_URL_HELP}
+                    help={BASE_URL_HELP()}
                     error={errors.baseURL}
                   >
                     {(aria) => (
@@ -823,7 +823,7 @@ export function AddModelRow({
                       className="h-auto px-0 text-xs"
                       onClick={replaceSavedKey}
                     >
-                      {REPLACE_KEY_LABEL}
+                      {REPLACE_KEY_LABEL()}
                     </Button>
                   </div>
                 ) : keyMode ? (
@@ -831,7 +831,7 @@ export function AddModelRow({
                     id={`${baseId}-key`}
                     name="key"
                     label={keyLabel}
-                    help={keyOptional ? KEY_OPTIONAL_HELP : undefined}
+                    help={keyOptional ? KEY_OPTIONAL_HELP() : undefined}
                     error={errors.key}
                   >
                     {(aria) => (
@@ -894,7 +894,7 @@ export function AddModelRow({
                           size="xs"
                           onClick={() => setHeaders((current) => current.filter((item) => item.id !== header.id))}
                         >
-                          {DISCARD_HEADER_LABEL}
+                          {DISCARD_HEADER_LABEL()}
                         </Button>
                       </div>
                     ))}
@@ -908,7 +908,7 @@ export function AddModelRow({
                       }}
                     >
                       <Plus className="size-3" aria-hidden="true" />
-                      {ADD_HEADER_LABEL}
+                      {ADD_HEADER_LABEL()}
                     </Button>
                   </fieldset>
                 ) : null}
@@ -960,7 +960,7 @@ export function AddModelRow({
                         onClick={() => void connect(false)}
                       >
                         {connecting ? <LoaderCircle className="size-3.5 motion-safe:animate-spin" aria-hidden="true" /> : null}
-                        {connecting ? CONNECTING_LABEL : CONNECT_LABEL}
+                        {connecting ? CONNECTING_LABEL() : CONNECT_LABEL()}
                       </Button>
                     </div>
                   </>
@@ -989,7 +989,7 @@ export function AddModelRow({
                     className={cn("h-auto px-0 text-muted-foreground")}
                     onClick={() => void connect(true)}
                   >
-                    {SAVE_WITHOUT_TESTING_LABEL}
+                    {SAVE_WITHOUT_TESTING_LABEL()}
                   </Button>
                 ) : null}
               </div>

@@ -115,13 +115,34 @@ function publishedConstant(relativePath: string, name: string): string {
   return unescapeStringBody(entry[2] as string)
 }
 
+// The English text of one catalog key, in either quote style, on the key's line or the next.
+function publishedText(area: string, key: string): string {
+  const relativePath = join('i18n', 'locales', 'en', `${area}.ts`)
+  const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
+  const quotedKey = key.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  const entry = new RegExp(
+    `(['"])${quotedKey}\\1:[ \\t]*(?:\\n[ \\t]*)?(['"])((?:\\\\.|[^\\\\])*?)\\2`,
+    'u',
+  ).exec(source)
+  if (entry === null) {
+    throw new Error(`${key} is not a quoted entry of ${relativePath}`)
+  }
+  return unescapeStringBody(entry[3] as string)
+}
+
 // Outside the drive's `describe`, so the helper's cell needs no binary, browser or run.
-describe('publishedConstant reads a constant whatever quotes it carries', () => {
-  it('publishedConstant reads a DOUBLE-quoted constant with its apostrophe intact', () => {
-    const title = publishedConstant('lib/config-copy.ts', 'CONFIG_LOAD_FAILED_TITLE')
+describe('published text reads a catalog entry or a constant whatever quotes it carries', () => {
+  it('publishedText reads a DOUBLE-quoted catalog entry with its apostrophe intact', () => {
+    const title = publishedText('configUi', 'configUi.configLoadFailedTitle')
     expect(title).toBe("Couldn't load the config")
     // The body is the RUNTIME string, not the source text: no backslash survives the read.
     expect(title).not.toContain('\\')
+  })
+
+  it('publishedText refuses a key the catalog does not hold', () => {
+    expect(() => publishedText('configUi', 'configUi.notAPublishedKey')).toThrow(
+      /configUi\.notAPublishedKey is not a quoted entry/u,
+    )
   })
 
   it('publishedConstant still reads a SINGLE-quoted constant, unchanged', () => {

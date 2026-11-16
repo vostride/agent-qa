@@ -15,6 +15,7 @@ import { CONFIG_SECTION_IDS, CONFIG_TABS, EXPLICIT_ACTION_KINDS, MODEL_STATUSES 
 
 function collectStrings(value: unknown, into: string[] = []): string[] {
   if (typeof value === 'string') into.push(value)
+  else if (typeof value === 'function' && value.length === 0) collectStrings(value(), into)
   else if (Array.isArray(value)) for (const item of value) collectStrings(item, into)
   else if (value !== null && typeof value === 'object') {
     for (const item of Object.values(value)) collectStrings(item, into)
@@ -119,14 +120,14 @@ describe('the Config strings of record', () => {
       'not-connected': 'Not connected',
       'sign-in-expired': 'Sign-in expired',
     })
-    expect(copy.RETRY_LABEL).toBe('Retry')
-    expect(copy.UNDO_LABEL).toBe('Undo')
-    expect(copy.APPLY_LABEL).toBe('Apply')
-    expect(copy.CONNECT_LABEL).toBe('Connect')
-    expect(copy.DEFAULT_BADGE).toBe('Default')
-    expect(copy.ADD_MODEL_LABEL).toBe('Add model')
-    expect(copy.CONNECT_FORM_LEGEND).toBe('How do you connect?')
-    expect(copy.SAVE_WITHOUT_TESTING_LABEL).toBe('Save without testing')
+    expect(copy.RETRY_LABEL()).toBe('Retry')
+    expect(copy.UNDO_LABEL()).toBe('Undo')
+    expect(copy.APPLY_LABEL()).toBe('Apply')
+    expect(copy.CONNECT_LABEL()).toBe('Connect')
+    expect(copy.DEFAULT_BADGE()).toBe('Default')
+    expect(copy.ADD_MODEL_LABEL()).toBe('Add model')
+    expect(copy.CONNECT_FORM_LEGEND()).toBe('How do you connect?')
+    expect(copy.SAVE_WITHOUT_TESTING_LABEL()).toBe('Save without testing')
     expect(Object.keys(copy.CONFIG_SECTION_LABELS)).toEqual([...CONFIG_SECTION_IDS])
   })
 
@@ -172,8 +173,8 @@ describe('the Config strings of record', () => {
 
   it('no button label is a bare generic word, and only four owner-locked words stand alone', () => {
     const labels = Object.entries(copy)
-      .filter(([name, value]) => name.endsWith('_LABEL') && typeof value === 'string')
-      .map(([, value]) => value as string)
+      .filter(([name, value]) => name.endsWith('_LABEL') && typeof value === 'function')
+      .map(([, value]) => (value as () => string)())
     expect(labels.length, 'the witness: the scan found the labels').toBeGreaterThan(20)
     for (const label of labels) {
       expect(GENERIC_BUTTON_WORDS, label).not.toContain(label)
@@ -206,7 +207,7 @@ describe('the Config strings of record', () => {
   })
 
   it('FIELD-CHANGED-COPY: a computed write the file keeps moving under says the page now shows the file', () => {
-    expect(copy.FIELD_CHANGED_TEXT).toBe("This changed in the file. The page now shows the file's value.")
+    expect(copy.FIELD_CHANGED_TEXT()).toBe("This changed in the file. The page now shows the file's value.")
   })
 
   it('the timing constants', () => {
@@ -242,8 +243,8 @@ describe('The Connect refusal sentences', () => {
       'Check the model and base URL: Invalid URL',
     )
     expect(copy.connectRefusalSentence('write_failed', [{ message: 'Ignored' }])).toBe(copy.CONNECT_REFUSAL_COPY.write_failed)
-    expect(copy.CONNECT_REFUSAL_COPY.name_invalid).toBe(copy.NAME_RULE_ERROR)
-    expect(copy.CONNECT_REFUSAL_COPY.credential_missing).toBe(copy.KEY_REQUIRED_ERROR)
+    expect(copy.CONNECT_REFUSAL_COPY.name_invalid).toBe(copy.NAME_RULE_ERROR())
+    expect(copy.CONNECT_REFUSAL_COPY.credential_missing).toBe(copy.KEY_REQUIRED_ERROR())
   })
 })
 
@@ -290,6 +291,17 @@ describe('The Config sentences in another language', () => {
   afterEach(async () => {
     await i18n.changeLanguage('en')
     i18n.removeResourceBundle('fr', 'translation')
+  })
+
+  it('a label reads its word in the current language each time it is called', async () => {
+    expect(copy.RETRY_LABEL()).toBe('Retry')
+
+    i18n.addResourceBundle('fr', 'translation', { 'configUi.retryLabel': 'Réessayer' })
+    await i18n.changeLanguage('fr')
+    expect(copy.RETRY_LABEL()).toBe('Réessayer')
+
+    await i18n.changeLanguage('en')
+    expect(copy.RETRY_LABEL()).toBe('Retry')
   })
 
   it('an undo line puts the name where the language writes it', async () => {

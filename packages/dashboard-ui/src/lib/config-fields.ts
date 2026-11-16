@@ -64,7 +64,7 @@ const DURATION_PATTERN = /^\d+(?:\.\d+)?(?:ms|s|m|h|d|w|y)$/
 
 export function parseDurationInput(raw: string): DurationInputParse {
   const value = raw.trim()
-  return DURATION_PATTERN.test(value) ? { valid: true, value } : { valid: false, error: DURATION_INPUT_ERROR }
+  return DURATION_PATTERN.test(value) ? { valid: true, value } : { valid: false, error: DURATION_INPUT_ERROR() }
 }
 
 export function listToText(value: unknown): string {

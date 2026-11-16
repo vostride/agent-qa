@@ -124,7 +124,7 @@ function deviceChoices(
     .filter(([, devicePlatform]) => devicePlatform === platform)
     .map(([name]) => name)
   const choices: ConfigFieldOption[] = [
-    { value: NO_DEVICE, label: TARGET_DEVICE_NONE },
+    { value: NO_DEVICE, label: TARGET_DEVICE_NONE() },
     ...names.map((name) => ({ value: name, label: <span className="font-mono">{name}</span> })),
   ]
   if (typeof current === "string" && current !== "" && current !== NO_DEVICE && !names.includes(current)) {
@@ -162,16 +162,16 @@ function parseOptional(raw: string): ConfigFieldParse {
 
 function parseProduct(raw: string): ConfigFieldParse {
   if (raw.trim() === "") return UNSET
-  return badProduct(raw.trim()) ? { valid: false, error: TARGET_PRODUCT_ERROR } : { valid: true, value: raw.trim() }
+  return badProduct(raw.trim()) ? { valid: false, error: TARGET_PRODUCT_ERROR() } : { valid: true, value: raw.trim() }
 }
 
 function parseAppPath(raw: string): ConfigFieldParse {
   if (raw.trim() === "") return UNSET
-  return isAbsolutePath(raw.trim()) ? { valid: false, error: TARGET_APP_PATH_ERROR } : { valid: true, value: raw.trim() }
+  return isAbsolutePath(raw.trim()) ? { valid: false, error: TARGET_APP_PATH_ERROR() } : { valid: true, value: raw.trim() }
 }
 
 function parseUrl(raw: string): ConfigFieldParse {
-  return raw.trim() === "" ? { valid: false, error: TARGET_URL_REQUIRED_ERROR } : { valid: true, value: raw.trim() }
+  return raw.trim() === "" ? { valid: false, error: TARGET_URL_REQUIRED_ERROR() } : { valid: true, value: raw.trim() }
 }
 
 export function summarizeTarget(target: TargetEntry): string {
@@ -186,7 +186,7 @@ export function summarizeTarget(target: TargetEntry): string {
     const app = [target.appPackage, target.appActivity].filter(Boolean).join(" / ")
     if (app) parts.push(app)
   }
-  if (target.app?.path) parts.push(`${TARGET_APP_SUMMARY_PREFIX}: ${target.app.path}`)
+  if (target.app?.path) parts.push(`${TARGET_APP_SUMMARY_PREFIX()}: ${target.app.path}`)
   return parts.join(" · ")
 }
 
@@ -247,10 +247,10 @@ export function TargetsSection({ config }: TargetsSectionProps) {
       ) : null}
       {adding ? null : (
         <div className="flex flex-wrap items-center gap-3">
-          {targets.length === 0 ? <p className="text-sm text-muted-foreground">{NO_TARGETS_TEXT}</p> : null}
+          {targets.length === 0 ? <p className="text-sm text-muted-foreground">{NO_TARGETS_TEXT()}</p> : null}
           <Button ref={addButton} type="button" variant="outline" size="sm" onClick={() => setAdding(true)}>
             <Plus className="size-3.5" aria-hidden="true" />
-            {ADD_TARGET_LABEL}
+            {ADD_TARGET_LABEL()}
           </Button>
         </div>
       )}
@@ -290,7 +290,7 @@ function TargetFields({ name, target, config }: TargetFieldsProps) {
         kind="select"
         options={platformOptions()}
         parse={(raw) =>
-          raw === "web" && !hasUrl ? { valid: false, error: TARGET_WEB_NEEDS_URL_ERROR } : { valid: true, value: raw }
+          raw === "web" && !hasUrl ? { valid: false, error: TARGET_WEB_NEEDS_URL_ERROR() } : { valid: true, value: raw }
         }
       />
       {platform === "web" ? (
@@ -334,9 +334,9 @@ function TargetFields({ name, target, config }: TargetFieldsProps) {
           <ConfigField
             field={{ ...deviceField, pattern: "registry.targets.*.device" }}
             label={TARGET_FIELD_LABELS.device}
-            help={TARGET_DEVICE_HELP}
+            help={TARGET_DEVICE_HELP()}
             kind="select"
-            placeholder={TARGET_DEVICE_NONE}
+            placeholder={TARGET_DEVICE_NONE()}
             options={deviceChoices(config, platform, autosave.valueOf(deviceField))}
             parse={parseDevice}
           />
@@ -356,7 +356,7 @@ function TargetFields({ name, target, config }: TargetFieldsProps) {
                 maskedText={appRef}
                 readOnly
               />
-              <p className="text-xs text-muted-foreground">{TARGET_APP_REF_NOTE}</p>
+              <p className="text-xs text-muted-foreground">{TARGET_APP_REF_NOTE()}</p>
             </div>
           )}
         </>
@@ -372,7 +372,7 @@ function TargetFields({ name, target, config }: TargetFieldsProps) {
         field={{ ...at("environment"), pattern: "registry.targets.*.environment" }}
         label={TARGET_FIELD_LABELS.environment}
         kind="select"
-        placeholder={TARGET_ENVIRONMENT_PLACEHOLDER}
+        placeholder={TARGET_ENVIRONMENT_PLACEHOLDER()}
         options={environmentOptions()}
       />
     </>
@@ -404,10 +404,10 @@ const EMPTY_DRAFT: TargetDraft = {
 function draftErrors(draft: TargetDraft, takenNames: ReadonlySet<string>): Partial<Record<DraftKey, string>> {
   const errors: Partial<Record<DraftKey, string>> = {}
   const name = draft.name.trim()
-  if (name === "") errors.name = TARGET_NAME_REQUIRED_ERROR
-  else if (!TARGET_NAME_PATTERN.test(name)) errors.name = TARGET_NAME_FORMAT_ERROR
+  if (name === "") errors.name = TARGET_NAME_REQUIRED_ERROR()
+  else if (!TARGET_NAME_PATTERN.test(name)) errors.name = TARGET_NAME_FORMAT_ERROR()
   else if (takenNames.has(name)) errors.name = targetNameTakenError(name)
-  if (draft.platform === "web" && draft.url.trim() === "") errors.url = TARGET_URL_REQUIRED_ERROR
+  if (draft.platform === "web" && draft.url.trim() === "") errors.url = TARGET_URL_REQUIRED_ERROR()
   return errors
 }
 
@@ -539,7 +539,7 @@ function AddTargetRow({ initial, takenNames, onHold, onDiscard, onAdded }: AddTa
         </RadioGroup>
       </fieldset>
       <Button type="button" variant="ghost" size="sm" onClick={onDiscard}>
-        {DISCARD_TARGET_LABEL}
+        {DISCARD_TARGET_LABEL()}
       </Button>
     </div>
   )

@@ -37,7 +37,7 @@ export const REVISION_POLL_MS = 2_000
 /** Between a status word and its action, as in "Couldn't save · Retry". */
 export const STATUS_SEPARATOR = ' · '
 
-export const CONFIG_PAGE_TITLE = 'Config'
+export const CONFIG_PAGE_TITLE = () => t('configUi.configPageTitle')
 
 export const CONFIG_TAB_LABELS = textTable({
   models: () => t('config.tabs.models'),
@@ -47,8 +47,8 @@ export const CONFIG_TAB_LABELS = textTable({
   advanced: () => t('config.tabs.advanced'),
 }) satisfies Record<ConfigTab, string>
 
-export const CONFIG_TABS_ARIA_LABEL = 'Config sections'
-export const TAB_DRAFT_SR_SUFFIX = ", has changes that aren't saved"
+export const CONFIG_TABS_ARIA_LABEL = () => t('configUi.configTabsAriaLabel')
+export const TAB_DRAFT_SR_SUFFIX = () => t('configUi.tabDraftSrSuffix')
 
 export const CONFIG_SECTION_LABELS = textTable({
   models: () => t('config.sections.models'),
@@ -83,18 +83,18 @@ export function configCommandLabel(tab: ConfigTab, section: ConfigSectionId): st
   })
 }
 
-export const LEGACY_LINK_NOT_FOUND_TEXT = 'That setting link is out of date, so Models is shown instead.'
+export const LEGACY_LINK_NOT_FOUND_TEXT = () => t('configUi.legacyLinkNotFoundText')
 
-export const CONFIG_LOAD_FAILED_TITLE = "Couldn't load the config"
+export const CONFIG_LOAD_FAILED_TITLE = () => t('configUi.configLoadFailedTitle')
 
 export function configLoadFailedBody(reason: string): string {
   return t('config.loadFailedBody', { reason })
 }
 
-export const RELOAD_CONFIG_LABEL = 'Reload config'
+export const RELOAD_CONFIG_LABEL = () => t('configUi.reloadConfigLabel')
 
 /** The file parses but fails whole-config validation: one notice above the tabs. */
-export const CONFIG_FILE_ISSUES_TITLE = 'The config file has a problem'
+export const CONFIG_FILE_ISSUES_TITLE = () => t('configUi.configFileIssuesTitle')
 
 export function configFileIssuesBody(reason: string): string {
   return t('config.fileIssuesBody', { reason })
@@ -107,11 +107,11 @@ export const SAVE_STATUS_WORDS = textTable({
   failed: () => t('config.saveStatus.failed'),
 }) satisfies Partial<Record<SaveState, string>>
 
-export const RETRY_LABEL = 'Retry'
-export const NOT_SAVED_ACTION_NAME = 'Not saved. Go to the first unsaved field.'
-export const UNDO_LABEL = 'Undo'
+export const RETRY_LABEL = () => t('configUi.retryLabel')
+export const NOT_SAVED_ACTION_NAME = () => t('configUi.notSavedActionName')
+export const UNDO_LABEL = () => t('configUi.undoLabel')
 /** A computed write the file changed under twice in a row; the page has re-read it. */
-export const FIELD_CHANGED_TEXT = "This changed in the file. The page now shows the file's value."
+export const FIELD_CHANGED_TEXT = () => t('configUi.fieldChangedText')
 
 /** The past-tense line an explicit action leaves in the status; the status appends " · Undo". */
 export function undoLine(kind: ExplicitActionKind, name: string): string {
@@ -149,9 +149,9 @@ export function deleteActionName(kind: DeleteActionKind, name: string): string {
   }
 }
 
-export const ADD_MODEL_LABEL = 'Add model'
-export const NEW_MODEL_ROW_TITLE = 'New model'
-export const DISCARD_DRAFT_LABEL = 'Discard draft'
+export const ADD_MODEL_LABEL = () => t('configUi.addModelLabel')
+export const NEW_MODEL_ROW_TITLE = () => t('configUi.newModelRowTitle')
+export const DISCARD_DRAFT_LABEL = () => t('configUi.discardDraftLabel')
 
 export const MODEL_STATUS_WORDS = textTable({
   'signed-in': () => t('config.modelStatus.signedIn'),
@@ -160,7 +160,7 @@ export const MODEL_STATUS_WORDS = textTable({
   'sign-in-expired': () => t('config.modelStatus.signInExpired'),
 }) satisfies Record<ModelStatus, string>
 
-export const DEFAULT_BADGE = 'Default'
+export const DEFAULT_BADGE = () => t('configUi.defaultBadge')
 
 /** Provider labels for when the provider list can't be read; a row never shows a provider id. */
 export const PROVIDER_FALLBACK_LABELS = textTable({
@@ -209,16 +209,16 @@ export function connectionSentence(
   }
 }
 
-export const TEST_CONNECTION_LABEL = 'Test connection'
-export const MAKE_DEFAULT_LABEL = 'Make default'
-export const REPLACE_KEY_LABEL = 'Replace key'
-export const REMOVE_KEY_LABEL = 'Remove key'
-export const SIGN_IN_AGAIN_LABEL = 'Sign in again'
-export const SIGN_OUT_LABEL = 'Sign out'
-export const DELETE_MODEL_LABEL = 'Delete model'
-export const SAVE_KEY_AND_TEST_LABEL = 'Save key and test'
-export const KEEP_CURRENT_KEY_LABEL = 'Keep current key'
-export const NEW_KEY_LABEL = 'New key'
+export const TEST_CONNECTION_LABEL = () => t('configUi.testConnectionLabel')
+export const MAKE_DEFAULT_LABEL = () => t('configUi.makeDefaultLabel')
+export const REPLACE_KEY_LABEL = () => t('configUi.replaceKeyLabel')
+export const REMOVE_KEY_LABEL = () => t('configUi.removeKeyLabel')
+export const SIGN_IN_AGAIN_LABEL = () => t('configUi.signInAgainLabel')
+export const SIGN_OUT_LABEL = () => t('configUi.signOutLabel')
+export const DELETE_MODEL_LABEL = () => t('configUi.deleteModelLabel')
+export const SAVE_KEY_AND_TEST_LABEL = () => t('configUi.saveKeyAndTestLabel')
+export const KEEP_CURRENT_KEY_LABEL = () => t('configUi.keepCurrentKeyLabel')
+export const NEW_KEY_LABEL = () => t('configUi.newKeyLabel')
 
 /** How a saved model connects, as the fixed-facts line names it; a plugin provider uses its label. */
 export const FIXED_CONNECTION_LABELS = textTable({
@@ -249,9 +249,9 @@ export const HEADER_FIELD_LABELS = textTable({
   value: () => t('config.headerField.value'),
 }) satisfies Record<string, string>
 
-export const SAVE_HEADER_LABEL = 'Save header'
-export const DISCARD_HEADER_LABEL = 'Discard header'
-export const HEADER_NAME_REQUIRED_ERROR = 'A header needs a name.'
+export const SAVE_HEADER_LABEL = () => t('configUi.saveHeaderLabel')
+export const DISCARD_HEADER_LABEL = () => t('configUi.discardHeaderLabel')
+export const HEADER_NAME_REQUIRED_ERROR = () => t('configUi.headerNameRequiredError')
 
 export function headerNameTakenError(name: string): string {
   return t('config.headerNameTaken', { name })
@@ -267,9 +267,9 @@ export function modelHeaderLabel(header: string): string {
   return t('config.modelHeader', { header })
 }
 
-export const DEFAULT_CANNOT_DELETE_LINE = 'This is the default model. Make another model the default first.'
-export const NO_MODELS_TEXT = 'Runs need a model. Add one to get started.'
-export const NO_DEFAULT_TEXT = 'No default model. Runs need one — make one of these the default.'
+export const DEFAULT_CANNOT_DELETE_LINE = () => t('configUi.defaultCannotDeleteLine')
+export const NO_MODELS_TEXT = () => t('configUi.noModelsText')
+export const NO_DEFAULT_TEXT = () => t('configUi.noDefaultText')
 
 /** A failed test shows providerErrorSentence instead, so `failed` has no entry here. */
 export const TEST_RESULT_TEXT = textTable({
@@ -278,9 +278,9 @@ export const TEST_RESULT_TEXT = textTable({
   'connected-without-key': () => t('config.testResult.connectedWithoutKey'),
 }) satisfies Partial<Record<TestResult, string>>
 
-export const CONNECT_LABEL = 'Connect'
-export const CONNECTING_LABEL = 'Connecting…'
-export const CONNECT_FORM_LEGEND = 'How do you connect?'
+export const CONNECT_LABEL = () => t('configUi.connectLabel')
+export const CONNECTING_LABEL = () => t('configUi.connectingLabel')
+export const CONNECT_FORM_LEGEND = () => t('configUi.connectFormLegend')
 
 export const CONNECTION_CHOICE_LABELS = textTable({
   'chatgpt-sign-in': () => t('config.connectionChoice.chatgptSignIn'),
@@ -310,7 +310,7 @@ export const ADD_FLOW_FIELD_LABELS = textTable({
   signInCode: () => t('config.addFlowField.signInCode'),
 }) satisfies Record<string, string>
 
-export const ADD_HEADER_LABEL = 'Add header'
+export const ADD_HEADER_LABEL = () => t('configUi.addHeaderLabel')
 
 export type CredentialKeyType = 'api-key' | 'bearer-token'
 
@@ -319,8 +319,8 @@ export const KEY_TYPE_LABELS = textTable({
   'bearer-token': () => t('config.keyType.bearerToken'),
 }) satisfies Record<CredentialKeyType, string>
 
-export const KEY_OPTIONAL_HELP = "Leave empty if your endpoint doesn't need a key."
-export const BASE_URL_HELP = "The exact base URL. agent-qa doesn't add paths to it."
+export const KEY_OPTIONAL_HELP = () => t('configUi.keyOptionalHelp')
+export const BASE_URL_HELP = () => t('configUi.baseUrlHelp')
 
 export function existingCredentialLine(kind: 'key' | 'sign-in', name: string): string {
   return kind === 'key'
@@ -328,7 +328,7 @@ export function existingCredentialLine(kind: 'key' | 'sign-in', name: string): s
     : t('config.existingCredential.signIn', { name })
 }
 
-export const NAME_RULE_ERROR = 'Use lowercase letters, digits, hyphens and dots, starting with a letter or digit.'
+export const NAME_RULE_ERROR = () => t('configUi.nameRuleError')
 
 export function nameTakenError(name: string): string {
   return t('config.nameTaken', { name })
@@ -338,32 +338,32 @@ export function nameCredentialConflictError(name: string, providerLabel: string)
   return t('config.nameCredentialConflict', { name, provider: providerLabel })
 }
 
-export const MODEL_REQUIRED_ERROR = 'Model is required.'
-export const KEY_REQUIRED_ERROR = 'API key is required.'
-export const BASE_URL_REQUIRED_ERROR = 'Base URL is required for compatible providers.'
+export const MODEL_REQUIRED_ERROR = () => t('configUi.modelRequiredError')
+export const KEY_REQUIRED_ERROR = () => t('configUi.keyRequiredError')
+export const BASE_URL_REQUIRED_ERROR = () => t('configUi.baseUrlRequiredError')
 
 /** Every code POST /api/llm/connect can refuse with, including the route's own two. */
 export type ConnectRefusalCode = LlmSetupRefusal | ConfigWriteRefusal | 'connect_failed' | 'cross_site_refused'
 
-const COULD_NOT_SAVE_MODEL = "Couldn't save the model. Try again."
+const COULD_NOT_SAVE_MODEL = () => t('configUi.couldNotSaveModel')
 
 export const CONNECT_REFUSAL_COPY = textTable({
   invalid_setup_input: () => t('config.connectRefusal.invalidSetupInput'),
-  name_invalid: () => NAME_RULE_ERROR,
+  name_invalid: () => NAME_RULE_ERROR(),
   name_taken: () => t('config.connectRefusal.nameTaken'),
   credential_provider_conflict: () => t('config.connectRefusal.credentialProviderConflict'),
   credential_not_accepted: () => t('config.connectRefusal.credentialNotAccepted'),
-  credential_missing: () => KEY_REQUIRED_ERROR,
+  credential_missing: () => KEY_REQUIRED_ERROR(),
   credential_exists: () => t('config.connectRefusal.credentialExists'),
   validation_failed: () => t('config.connectRefusal.validationFailed'),
   file_invalid: () => t('config.connectRefusal.fileInvalid'),
-  invalid_write_input: () => COULD_NOT_SAVE_MODEL,
-  path_not_found: () => COULD_NOT_SAVE_MODEL,
-  write_failed: () => COULD_NOT_SAVE_MODEL,
-  field_changed: () => COULD_NOT_SAVE_MODEL,
-  path_not_writable: () => COULD_NOT_SAVE_MODEL,
+  invalid_write_input: () => COULD_NOT_SAVE_MODEL(),
+  path_not_found: () => COULD_NOT_SAVE_MODEL(),
+  write_failed: () => COULD_NOT_SAVE_MODEL(),
+  field_changed: () => COULD_NOT_SAVE_MODEL(),
+  path_not_writable: () => COULD_NOT_SAVE_MODEL(),
   marker_written_back: () => MARKER_WRITTEN_BACK_SENTENCE,
-  connect_failed: () => COULD_NOT_SAVE_MODEL,
+  connect_failed: () => COULD_NOT_SAVE_MODEL(),
   cross_site_refused: () => t('config.connectRefusal.crossSiteRefused'),
 }) satisfies Record<ConnectRefusalCode, string>
 
@@ -387,10 +387,10 @@ export function connectRefusalSentence(
   return withIssue && first ? withIssue(first) : CONNECT_REFUSAL_COPY[code]
 }
 
-export const SIGN_IN_WAITING_TEXT = 'Finish signing in on the page that opened.'
-export const CANCEL_SIGN_IN_LABEL = 'Cancel sign-in'
-export const SIGN_IN_WAITING_LABEL = 'Waiting for sign-in…'
-export const SIGN_IN_TIMED_OUT_TEXT = 'Sign-in timed out. Try again.'
+export const SIGN_IN_WAITING_TEXT = () => t('configUi.signInWaitingText')
+export const CANCEL_SIGN_IN_LABEL = () => t('configUi.cancelSignInLabel')
+export const SIGN_IN_WAITING_LABEL = () => t('configUi.signInWaitingLabel')
+export const SIGN_IN_TIMED_OUT_TEXT = () => t('configUi.signInTimedOutText')
 
 export function signInFailedText(reason: string | undefined): string {
   return reason ? t('config.signInFailed.reason', { reason }) : t('config.signInFailed.noReason')
@@ -400,17 +400,17 @@ export function connectedSavedText(name: string): string {
   return t('config.connectedSaved', { name })
 }
 
-export const BECAME_DEFAULT_TEXT = "It's now the default model."
+export const BECAME_DEFAULT_TEXT = () => t('configUi.becameDefaultText')
 /** A sign-in choice whose auth plugin is not registered; the CLI names the same package. */
 export function signInPluginMissingText(choiceLabel: string): string {
   return t('config.signInPluginMissing', { choice: choiceLabel })
 }
 
-export const SAVE_WITHOUT_TESTING_LABEL = 'Save without testing'
-export const SAVED_WITHOUT_TEST_TEXT = 'Saved without a connection test.'
+export const SAVE_WITHOUT_TESTING_LABEL = () => t('configUi.saveWithoutTestingLabel')
+export const SAVED_WITHOUT_TEST_TEXT = () => t('configUi.savedWithoutTestText')
 
-export const APPLY_LABEL = 'Apply'
-export const KEEP_CURRENT_PATH_LABEL = 'Keep current path'
+export const APPLY_LABEL = () => t('configUi.applyLabel')
+export const KEEP_CURRENT_PATH_LABEL = () => t('configUi.keepCurrentPathLabel')
 
 /** The one-word Apply button's accessible name names the path it applies. */
 export function applyActionName(pathLabel: string): string {
@@ -431,7 +431,7 @@ export const APPLY_CONSEQUENCES = textTable({
   'services.dashboard.artifactsDir': () => t('config.applyConsequences.artifactsDir'),
 }) satisfies Record<DataPathKey, string>
 
-export const PORT_RESTART_HELP = 'Takes effect after the dashboard restarts.'
+export const PORT_RESTART_HELP = () => t('configUi.portRestartHelp')
 
 export const KNOWLEDGE_FIELD_LABELS = textTable({
   dir: () => t('config.knowledgeField.dir'),
@@ -468,8 +468,8 @@ export const TEST_DISCOVERY_FIELD_HELP = textTable({
   testPathIgnore: () => t('config.testDiscoveryFieldHelp.testPathIgnore'),
 })
 
-export const TEST_MATCH_REQUIRED_ERROR = 'Add at least one pattern for test files.'
-export const SUITE_MATCH_REQUIRED_ERROR = 'Add at least one pattern for suite files.'
+export const TEST_MATCH_REQUIRED_ERROR = () => t('configUi.testMatchRequiredError')
+export const SUITE_MATCH_REQUIRED_ERROR = () => t('configUi.suiteMatchRequiredError')
 
 export const FILES_FIELD_LABELS = textTable({
   hooksFile: () => t('config.filesField.hooksFile'),
@@ -483,8 +483,8 @@ export const FILES_FIELD_HELP = textTable({
   secretsFile: () => t('config.filesFieldHelp.secretsFile'),
 })
 
-export const HOOKS_FILE_REQUIRED_ERROR = 'Hooks file is required.'
-export const ENV_FILE_REQUIRED_ERROR = 'Environment file is required.'
+export const HOOKS_FILE_REQUIRED_ERROR = () => t('configUi.hooksFileRequiredError')
+export const ENV_FILE_REQUIRED_ERROR = () => t('configUi.envFileRequiredError')
 
 export const LOGGING_FIELD_LABELS = textTable({
   level: () => t('config.loggingField.level'),
@@ -503,13 +503,13 @@ export const LOGGING_LEVEL_LABELS = textTable({
   debug: () => t('config.loggingLevel.debug'),
 })
 
-export const PASS_RATE_SCOPE_HELP = 'Scoped pass rates count only runs whose attributes match every one of these.'
-export const NO_ATTRIBUTES_TEXT = 'No attributes yet.'
-export const ADD_ATTRIBUTE_LABEL = 'Add attribute'
-export const MATCH_AS_PATTERN_LABEL = 'Match as a pattern'
+export const PASS_RATE_SCOPE_HELP = () => t('configUi.passRateScopeHelp')
+export const NO_ATTRIBUTES_TEXT = () => t('configUi.noAttributesText')
+export const ADD_ATTRIBUTE_LABEL = () => t('configUi.addAttributeLabel')
+export const MATCH_AS_PATTERN_LABEL = () => t('configUi.matchAsPatternLabel')
 /** Beside an attribute's key when its value is matched as a pattern. */
-export const ATTRIBUTE_PATTERN_TAG = 'Pattern'
-export const INVALID_ATTRIBUTE_PATTERN_ERROR = 'Not a valid pattern.'
+export const ATTRIBUTE_PATTERN_TAG = () => t('configUi.attributePatternTag')
+export const INVALID_ATTRIBUTE_PATTERN_ERROR = () => t('configUi.invalidAttributePatternError')
 
 export const ATTRIBUTE_FIELD_LABELS = textTable({
   key: () => t('config.attributeField.key'),
@@ -534,7 +534,7 @@ export const PRIVACY_FIELD_HELP = textTable({
 })
 
 /** A duration field's draft error: the forms the field accepts. */
-export const DURATION_INPUT_ERROR = 'Use a duration like 30s, 5m or 1h.'
+export const DURATION_INPUT_ERROR = () => t('configUi.durationInputError')
 
 export const BROWSER_FIELD_LABELS = textTable({
   name: () => t('config.browserField.name'),
@@ -549,7 +549,7 @@ export const BROWSER_NAME_LABELS = textTable({
   webkit: () => 'WebKit',
 })
 
-export const HEADLESS_HELP = 'Run web browsers without a visible window.'
+export const HEADLESS_HELP = () => t('configUi.headlessHelp')
 
 export const VISION_FIELD_LABELS = textTable({
   screenshotSize: () => t('config.visionField.screenshotSize'),
@@ -635,7 +635,7 @@ export const ACCESSIBILITY_STANDARD_LABELS = textTable({
   wcag2aaa: () => 'WCAG 2.0 AAA',
 })
 
-export const ACCESSIBILITY_ALL_RULES_TEXT = 'All rules'
+export const ACCESSIBILITY_ALL_RULES_TEXT = () => t('configUi.accessibilityAllRulesText')
 
 export const ACCESSIBILITY_RUN_AFTER_LABELS = textTable({
   'every-step': () => t('config.accessibilityRunAfter.everyStep'),
@@ -647,7 +647,7 @@ export const LOG_CAPTURE_FIELD_LABELS = textTable({
   network: () => t('config.logCaptureField.network'),
 })
 
-export const NO_TARGETS_TEXT = 'No targets yet.'
+export const NO_TARGETS_TEXT = () => t('configUi.noTargetsText')
 
 export const REMOTES_COPY = textTable({
   defaultLabel: () => t('config.remotes.defaultLabel'),
@@ -727,11 +727,11 @@ export function remoteCredentialsLine(secretsFile: string | undefined): string {
     ? t('config.remoteCredentials.noFile', { reference })
     : t('config.remoteCredentials.file', { reference, file: secretsFile })
 }
-export const NO_DEVICES_TEXT = 'No devices yet.'
-export const NO_LOGIN_STATES_TEXT = 'No saved login states yet. Save one from a web Live Mode session.'
-export const LOGIN_STATES_LOADING_TEXT = 'Loading saved login states…'
-export const LOGIN_STATES_LOAD_FAILED_TEXT = "Couldn't load saved login states."
-export const RELOAD_LOGIN_STATES_LABEL = 'Reload login states'
+export const NO_DEVICES_TEXT = () => t('configUi.noDevicesText')
+export const NO_LOGIN_STATES_TEXT = () => t('configUi.noLoginStatesText')
+export const LOGIN_STATES_LOADING_TEXT = () => t('configUi.loginStatesLoadingText')
+export const LOGIN_STATES_LOAD_FAILED_TEXT = () => t('configUi.loginStatesLoadFailedText')
+export const RELOAD_LOGIN_STATES_LABEL = () => t('configUi.reloadLoginStatesLabel')
 
 export const LOGIN_STATE_COLUMN_LABELS = textTable({
   target: () => t('config.loginStateColumn.target'),
@@ -743,8 +743,8 @@ export const LOGIN_STATES_FIELD_LABELS = textTable({
   dir: () => t('config.loginStatesField.dir'),
 })
 
-export const LOGIN_STATES_DIR_PLACEHOLDER = '.agent-qa/auth-states'
-export const LOGIN_STATES_DIR_REQUIRED_ERROR = 'Add a folder for saved login states.'
+export const LOGIN_STATES_DIR_PLACEHOLDER = () => t('configUi.loginStatesDirPlaceholder')
+export const LOGIN_STATES_DIR_REQUIRED_ERROR = () => t('configUi.loginStatesDirRequiredError')
 
 export const MOBILE_FIELD_LABELS = textTable({
   appState: () => t('config.mobileField.appState'),
@@ -755,12 +755,12 @@ export const MOBILE_APP_STATE_LABELS = textTable({
   reset: () => t('config.mobileAppState.reset'),
 }) satisfies Record<'preserve' | 'reset', string>
 
-export const MOBILE_APP_STATE_HELP = 'Mobile runs need this choice.'
+export const MOBILE_APP_STATE_HELP = () => t('configUi.mobileAppStateHelp')
 
-export const ADD_TARGET_LABEL = 'Add target'
-export const DISCARD_TARGET_LABEL = 'Discard target'
-export const ADD_DEVICE_LABEL = 'Add device'
-export const DISCARD_DEVICE_LABEL = 'Discard device'
+export const ADD_TARGET_LABEL = () => t('configUi.addTargetLabel')
+export const DISCARD_TARGET_LABEL = () => t('configUi.discardTargetLabel')
+export const ADD_DEVICE_LABEL = () => t('configUi.addDeviceLabel')
+export const DISCARD_DEVICE_LABEL = () => t('configUi.discardDeviceLabel')
 
 export const TARGET_PLATFORM_LABELS = textTable({
   web: () => t('config.targetPlatform.web'),
@@ -774,7 +774,7 @@ export const TARGET_ENVIRONMENT_LABELS = textTable({
   production: () => t('config.targetEnvironment.production'),
 }) satisfies Record<'local' | 'shared' | 'production', string>
 
-export const TARGET_ENVIRONMENT_PLACEHOLDER = 'Undeclared'
+export const TARGET_ENVIRONMENT_PLACEHOLDER = () => t('configUi.targetEnvironmentPlaceholder')
 
 /** The add-target row's environment choices: undeclared first, then the declared classes. */
 export const TARGET_ENVIRONMENT_CHOICE_LABELS = textTable({
@@ -798,11 +798,9 @@ export const TARGET_FIELD_LABELS = textTable({
   environment: () => t('config.targetField.environment'),
 }) satisfies Record<string, string>
 
-export const TARGET_DEVICE_NONE = 'None'
-export const TARGET_DEVICE_HELP =
-  'Tests on this target run on this device unless a suite or test picks another.'
-export const TARGET_APP_REF_NOTE =
-  'The app a remote device installs. Set it in agent-qa.config.yaml; this page shows it read-only.'
+export const TARGET_DEVICE_NONE = () => t('configUi.targetDeviceNone')
+export const TARGET_DEVICE_HELP = () => t('configUi.targetDeviceHelp')
+export const TARGET_APP_REF_NOTE = () => t('configUi.targetAppRefNote')
 
 /** A target's device that no device of the target's platform matches, kept in its select. */
 export function targetDeviceUnlistedChoice(name: string): string {
@@ -810,15 +808,14 @@ export function targetDeviceUnlistedChoice(name: string): string {
 }
 
 /** Before an app file in a mobile target's summary. */
-export const TARGET_APP_SUMMARY_PREFIX = 'App'
+export const TARGET_APP_SUMMARY_PREFIX = () => t('configUi.targetAppSummaryPrefix')
 
-export const TARGET_NAME_REQUIRED_ERROR = 'Add a name for the target.'
-export const TARGET_NAME_FORMAT_ERROR =
-  'Use lowercase letters, digits and hyphens, starting with a letter and ending with a letter or digit.'
-export const TARGET_URL_REQUIRED_ERROR = 'Add the URL for a web target.'
-export const TARGET_WEB_NEEDS_URL_ERROR = 'Add a URL before making this a web target.'
-export const TARGET_PRODUCT_ERROR = "A product name can't contain two dots in a row, slashes or backslashes."
-export const TARGET_APP_PATH_ERROR = 'Use a path inside the project, not a full path.'
+export const TARGET_NAME_REQUIRED_ERROR = () => t('configUi.targetNameRequiredError')
+export const TARGET_NAME_FORMAT_ERROR = () => t('configUi.targetNameFormatError')
+export const TARGET_URL_REQUIRED_ERROR = () => t('configUi.targetUrlRequiredError')
+export const TARGET_WEB_NEEDS_URL_ERROR = () => t('configUi.targetWebNeedsUrlError')
+export const TARGET_PRODUCT_ERROR = () => t('configUi.targetProductError')
+export const TARGET_APP_PATH_ERROR = () => t('configUi.targetAppPathError')
 
 export function targetNameTakenError(name: string): string {
   return t('config.targetNameTaken', { name })
@@ -833,16 +830,14 @@ export const DEVICE_FIELD_LABELS = textTable({
   capabilities: () => t('config.deviceField.capabilities'),
 }) satisfies Record<string, string>
 
-export const DEVICE_NAME_REQUIRED_ERROR = 'Add a name for the device.'
+export const DEVICE_NAME_REQUIRED_ERROR = () => t('configUi.deviceNameRequiredError')
 
 export function deviceNameTakenError(name: string): string {
   return t('config.deviceNameTaken', { name })
 }
 
-export const DEVICE_ID_HELP =
-  'Needed only when two identical devices are attached at once: an Android serial or an iOS simulator udid.'
-export const DEVICE_CAPABILITIES_NOTE =
-  'Set capabilities in agent-qa.config.yaml; this page shows them read-only.'
+export const DEVICE_ID_HELP = () => t('configUi.deviceIdHelp')
+export const DEVICE_CAPABILITIES_NOTE = () => t('configUi.deviceCapabilitiesNote')
 
 /** A capability's accessible label, so each value names its own device and key. */
 export function deviceCapabilityLabel(device: string, key: string): string {
@@ -865,17 +860,17 @@ export const MCP_FIELD_HELP = textTable({
 
 // MCP and the run service are tokenless, so this copy has no token rows.
 
-export const CONFIG_FILE_NOTE = 'Read-only. Edit the file in your editor; changes show here by themselves.'
-export const COPY_PATH_LABEL = 'Copy config file path'
+export const CONFIG_FILE_NOTE = () => t('configUi.configFileNote')
+export const COPY_PATH_LABEL = () => t('configUi.copyPathLabel')
 
 export const COPY_STATUS_WORDS = textTable({
   copied: () => t('config.copyStatus.copied'),
   failed: () => t('config.copyStatus.failed'),
 }) satisfies Record<'copied' | 'failed', string>
 
-export const REPLACE_VALUE_LABEL = 'Replace value'
-export const SAVE_VALUE_LABEL = 'Save value'
-export const KEEP_CURRENT_VALUE_LABEL = 'Keep current value'
+export const REPLACE_VALUE_LABEL = () => t('configUi.replaceValueLabel')
+export const SAVE_VALUE_LABEL = () => t('configUi.saveValueLabel')
+export const KEEP_CURRENT_VALUE_LABEL = () => t('configUi.keepCurrentValueLabel')
 
 export function replaceValueName(label: string): string {
   return t('config.replaceValue', { label })
@@ -889,8 +884,7 @@ export function keepValueName(label: string): string {
   return t('config.keepValue', { label })
 }
 
-export const SAVE_SETTING_LABEL = 'Save setting'
-export const DISCARD_SETTING_LABEL = 'Discard setting'
+export const SAVE_SETTING_LABEL = () => t('configUi.saveSettingLabel')
+export const DISCARD_SETTING_LABEL = () => t('configUi.discardSettingLabel')
 
-export const TOUR_LLM_SETUP_BODY =
-  "A run needs a model. Add one: choose how you connect, and it's tested and saved as soon as it works."
+export const TOUR_LLM_SETUP_BODY = () => t('configUi.tourLlmSetupBody')

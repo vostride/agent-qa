@@ -22,7 +22,7 @@ describe('copy that describes the no-review model', () => {
   })
 
   it('the no-class choice has one name', () => {
-    expect(TARGET_ENVIRONMENT_PLACEHOLDER).toBe(TARGET_ENVIRONMENT_CHOICE_LABELS.undeclared)
+    expect(TARGET_ENVIRONMENT_PLACEHOLDER()).toBe(TARGET_ENVIRONMENT_CHOICE_LABELS.undeclared)
   })
 
   it('a historical drafted mark reads as an older mark', () => {

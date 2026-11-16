@@ -118,7 +118,7 @@ export function AnalyticsSection({ config }: AnalyticsSectionProps) {
   return (
     <>
       <div data-field-list="analytics.passRateScope.attributes" className="space-y-3">
-        <p className="text-xs text-muted-foreground break-words">{PASS_RATE_SCOPE_HELP}</p>
+        <p className="text-xs text-muted-foreground break-words">{PASS_RATE_SCOPE_HELP()}</p>
         {rows.length > 0 ? (
           <ul ref={listRef} className="space-y-2">
             {rows.map((row) => (
@@ -129,7 +129,7 @@ export function AnalyticsSection({ config }: AnalyticsSectionProps) {
               >
                 <div className="flex min-w-0 items-center gap-2">
                   <span className="min-w-0 font-mono text-xs wrap-anywhere">{row.key}</span>
-                  {row.pattern ? <span className="text-xs text-muted-foreground">{ATTRIBUTE_PATTERN_TAG}</span> : null}
+                  {row.pattern ? <span className="text-xs text-muted-foreground">{ATTRIBUTE_PATTERN_TAG()}</span> : null}
                 </div>
                 <SecretValue
                   field={{ segments: row.segments, pattern: row.pattern ? REGEX_PATTERN : VALUE_PATTERN }}
@@ -153,10 +153,10 @@ export function AnalyticsSection({ config }: AnalyticsSectionProps) {
         {adding ? <AddAttribute takenKeys={all.map((row) => row.key)} onClose={closeAdd} /> : null}
         {adding ? null : (
           <div className="flex flex-wrap items-center gap-3">
-            {rows.length === 0 ? <p className="text-sm text-muted-foreground">{NO_ATTRIBUTES_TEXT}</p> : null}
+            {rows.length === 0 ? <p className="text-sm text-muted-foreground">{NO_ATTRIBUTES_TEXT()}</p> : null}
             <Button ref={addButton} type="button" variant="outline" size="sm" onClick={() => setAdding(true)}>
               <Plus className="size-3.5" aria-hidden="true" />
-              {ADD_ATTRIBUTE_LABEL}
+              {ADD_ATTRIBUTE_LABEL()}
             </Button>
           </div>
         )}
@@ -236,19 +236,19 @@ function AddAttribute({ takenKeys, onClose }: { takenKeys: readonly string[]; on
       </div>
       <div className="flex items-center gap-2">
         <Switch id={patternId} checked={pattern} onCheckedChange={setPattern} />
-        <Label htmlFor={patternId}>{MATCH_AS_PATTERN_LABEL}</Label>
+        <Label htmlFor={patternId}>{MATCH_AS_PATTERN_LABEL()}</Label>
       </div>
       {invalidPattern ? (
         <p id={errorId} className="text-xs text-destructive">
-          {INVALID_ATTRIBUTE_PATTERN_ERROR}
+          {INVALID_ATTRIBUTE_PATTERN_ERROR()}
         </p>
       ) : null}
       <div className="flex flex-wrap items-center gap-1">
         <Button type="button" variant="outline" size="sm" disabled={!ready || saving} onClick={() => void save()}>
-          {SAVE_SETTING_LABEL}
+          {SAVE_SETTING_LABEL()}
         </Button>
         <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-          {DISCARD_SETTING_LABEL}
+          {DISCARD_SETTING_LABEL()}
         </Button>
       </div>
     </div>

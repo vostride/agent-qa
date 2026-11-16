@@ -29,7 +29,7 @@ export function BrowserSection() {
         field={browserField("headless")}
         label={BROWSER_FIELD_LABELS.headless}
         kind="switch"
-        help={HEADLESS_HELP}
+        help={HEADLESS_HELP()}
         defaultChecked={BROWSER_DEFAULTS.headless}
       />
       <ConfigField

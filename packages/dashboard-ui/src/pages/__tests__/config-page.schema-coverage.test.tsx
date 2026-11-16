@@ -321,7 +321,7 @@ const SURFACE_MARKERS: Record<string, { title: string; marker: string }> = {
   'services:recording': { title: 'Recording', marker: 'Record video of each test. Recordings stay on this machine.' },
   'services:accessibility': { title: 'Accessibility', marker: 'Run checks after' },
   'services:vision': { title: 'Screenshot size', marker: VISION_FIELD_LABELS.screenshotSize },
-  'registry:llms': { title: 'Models', marker: ADD_MODEL_LABEL },
+  'registry:llms': { title: 'Models', marker: ADD_MODEL_LABEL() },
   'registry:targets': { title: 'Targets', marker: 'Add target' },
   'registry:devices': { title: 'Devices', marker: 'Add device' },
   'use:browser': { title: 'Browser', marker: 'Viewport width' },
@@ -329,7 +329,7 @@ const SURFACE_MARKERS: Record<string, { title: string; marker: string }> = {
   'use:planner': { title: 'Planner limits', marker: PLANNER_FIELD_LABELS.maxActions },
   'use:log-capture': { title: 'Log capture', marker: 'Capture network logs' },
   'use:mobile': { title: 'Mobile', marker: 'App state' },
-  'use:execution-defaults': { title: 'Models', marker: DEFAULT_BADGE },
+  'use:execution-defaults': { title: 'Models', marker: DEFAULT_BADGE() },
   'analytics:pass-rate-scope': { title: 'Pass-rate scope', marker: 'Add attribute' },
 }
 
@@ -768,7 +768,7 @@ describe('ConfigPage schema coverage', () => {
     await renderAt('/config/models')
     const proxy = await openModelRow('anthropic-compatible')
     expect(proxy.querySelector('[data-model-headers] legend')?.textContent).toBe(ADD_FLOW_FIELD_LABELS.headers)
-    expect(buttonIn(proxy, ADD_HEADER_LABEL)).not.toBeNull()
+    expect(buttonIn(proxy, ADD_HEADER_LABEL())).not.toBeNull()
     for (const name of ['openai-compatible', 'gemini-fast', 'codex', 'claude-subscription']) {
       const panel = await openModelRow(name)
       expect(panel.querySelector('[data-model-headers]'), name).toBeNull()
@@ -802,13 +802,13 @@ describe('ConfigPage schema coverage', () => {
     try {
       await renderAt('/config/models')
       const panel = await openModelRow('anthropic-compatible')
-      await press(buttonIn(panel, REPLACE_KEY_LABEL))
+      await press(buttonIn(panel, REPLACE_KEY_LABEL()))
       const secretInput = modelRow('anthropic-compatible')!.querySelector('[data-replace-key] input[type="password"]') as HTMLInputElement | null
       expect(secretInput).not.toBeNull()
       await act(async () => {
         setInputValue(secretInput!, 'bearer-secret')
       })
-      await press(buttonIn(modelRow('anthropic-compatible'), SAVE_KEY_AND_TEST_LABEL))
+      await press(buttonIn(modelRow('anthropic-compatible'), SAVE_KEY_AND_TEST_LABEL()))
 
       expect(mockSaveCredential).toHaveBeenCalledWith(
         'anthropic-compatible',
@@ -845,7 +845,7 @@ describe('ConfigPage schema coverage', () => {
     try {
       await renderAt('/config/models')
       const panel = await openModelRow('anthropic-compatible')
-      await press(buttonIn(panel, REMOVE_KEY_LABEL))
+      await press(buttonIn(panel, REMOVE_KEY_LABEL()))
 
       expect(deleteAuthCredential).toHaveBeenCalledWith('anthropic-compatible')
       expect(document.body.querySelector('[role="dialog"], [role="alertdialog"]')).toBeNull()

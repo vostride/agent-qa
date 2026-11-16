@@ -26,7 +26,7 @@ export function MobileSection(_props: MobileSectionProps) {
       label={MOBILE_FIELD_LABELS.appState}
       kind="select"
       options={appStateOptions()}
-      help={unset ? MOBILE_APP_STATE_HELP : undefined}
+      help={unset ? MOBILE_APP_STATE_HELP() : undefined}
     />
   )
 }

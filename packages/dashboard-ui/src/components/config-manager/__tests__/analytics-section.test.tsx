@@ -177,8 +177,8 @@ describe('AnalyticsSection', () => {
       expect(secret?.querySelector('code')?.textContent).toBe(MASK)
       expect(secret?.querySelectorAll('button')).toHaveLength(1)
     }
-    expect(team!.textContent).toContain(ATTRIBUTE_PATTERN_TAG)
-    expect(branch!.textContent).not.toContain(ATTRIBUTE_PATTERN_TAG)
+    expect(team!.textContent).toContain(ATTRIBUTE_PATTERN_TAG())
+    expect(branch!.textContent).not.toContain(ATTRIBUTE_PATTERN_TAG())
     expect(buttonIn(branch, replaceValueName(attributeValueLabel('git.branch')))).not.toBeNull()
     expect(container!.querySelectorAll('input[type="text"], input[type="password"], textarea')).toHaveLength(0)
     expect(applyConfigChanges).not.toHaveBeenCalled()
@@ -187,7 +187,7 @@ describe('AnalyticsSection', () => {
   it('ADD-ATTRIBUTE-EXPLICIT: a typed key and value write nothing until Save setting, which writes one set, as a pattern when switched', async () => {
     await mount()
 
-    await click(buttonIn(container, ADD_ATTRIBUTE_LABEL))
+    await click(buttonIn(container, ADD_ATTRIBUTE_LABEL()))
     const key = inputLabelled(container, ATTRIBUTE_FIELD_LABELS.key)
     const value = inputLabelled(container, ATTRIBUTE_FIELD_LABELS.value)
     expect(key?.type).toBe('text')
@@ -202,7 +202,7 @@ describe('AnalyticsSection', () => {
     expect(applyConfigChanges).not.toHaveBeenCalled()
     expect(localStorage.length).toBe(0)
 
-    await click(buttonIn(container, SAVE_SETTING_LABEL))
+    await click(buttonIn(container, SAVE_SETTING_LABEL()))
     expect(vi.mocked(applyConfigChanges).mock.calls).toEqual([
       [[{ op: 'set', path: [...ATTRIBUTES, 'build.env'], value: TYPED }]],
     ])
@@ -211,25 +211,25 @@ describe('AnalyticsSection', () => {
     expect(inputLabelled(container, ATTRIBUTE_FIELD_LABELS.value)).toBeNull()
     expect(hook!.status.state).not.toBe('undo')
 
-    await click(buttonIn(container, ADD_ATTRIBUTE_LABEL))
+    await click(buttonIn(container, ADD_ATTRIBUTE_LABEL()))
     await type(inputLabelled(container, ATTRIBUTE_FIELD_LABELS.key), 'owner')
     await type(inputLabelled(container, ATTRIBUTE_FIELD_LABELS.value), '^qa-')
-    const pattern = switchLabelled(MATCH_AS_PATTERN_LABEL)
+    const pattern = switchLabelled(MATCH_AS_PATTERN_LABEL())
     expect(pattern?.getAttribute('role')).toBe('switch')
     await click(pattern)
     expect(applyConfigChanges).toHaveBeenCalledTimes(1)
-    await click(buttonIn(container, SAVE_SETTING_LABEL))
+    await click(buttonIn(container, SAVE_SETTING_LABEL()))
     expect(vi.mocked(applyConfigChanges).mock.calls.at(-1)).toEqual([
       [{ op: 'set', path: [...ATTRIBUTES, 'owner'], value: { regex: '^qa-' } }],
     ])
 
-    await click(buttonIn(container, ADD_ATTRIBUTE_LABEL))
+    await click(buttonIn(container, ADD_ATTRIBUTE_LABEL()))
     await type(inputLabelled(container, ATTRIBUTE_FIELD_LABELS.key), 'extra')
     await type(inputLabelled(container, ATTRIBUTE_FIELD_LABELS.value), 'discarded')
-    await click(buttonIn(container, DISCARD_SETTING_LABEL))
+    await click(buttonIn(container, DISCARD_SETTING_LABEL()))
     expect(applyConfigChanges).toHaveBeenCalledTimes(2)
     expect(inputLabelled(container, ATTRIBUTE_FIELD_LABELS.value)).toBeNull()
-    expect(document.activeElement).toBe(buttonIn(container, ADD_ATTRIBUTE_LABEL))
+    expect(document.activeElement).toBe(buttonIn(container, ADD_ATTRIBUTE_LABEL()))
   })
 
   it('REMOVE-ATTRIBUTE-AT-ONCE: the remove button takes the row away and writes one unset at once', async () => {

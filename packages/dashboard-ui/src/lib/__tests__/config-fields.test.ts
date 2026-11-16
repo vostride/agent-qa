@@ -138,9 +138,9 @@ describe('parseDurationInput', () => {
     expect(parseDurationInput('5m')).toEqual({ valid: true, value: '5m' })
     expect(parseDurationInput('1h')).toEqual({ valid: true, value: '1h' })
     expect(parseDurationInput(' 7d ')).toEqual({ valid: true, value: '7d' })
-    expect(parseDurationInput('30 seconds')).toEqual({ valid: false, error: DURATION_INPUT_ERROR })
-    expect(parseDurationInput('123')).toEqual({ valid: false, error: DURATION_INPUT_ERROR })
-    expect(parseDurationInput('-5s')).toEqual({ valid: false, error: DURATION_INPUT_ERROR })
+    expect(parseDurationInput('30 seconds')).toEqual({ valid: false, error: DURATION_INPUT_ERROR() })
+    expect(parseDurationInput('123')).toEqual({ valid: false, error: DURATION_INPUT_ERROR() })
+    expect(parseDurationInput('-5s')).toEqual({ valid: false, error: DURATION_INPUT_ERROR() })
   })
 })
 

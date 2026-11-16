@@ -308,7 +308,7 @@ describe('ModelRow explicit actions', () => {
     const panel = await openModel('router')
     const write = deferred<{ revision: string; undo: { token: string; expiresAt: number } }>()
     vi.mocked(applyConfigChanges).mockReturnValueOnce(write.promise as never)
-    await click(buttonNamed(panel, DELETE_MODEL_LABEL))
+    await click(buttonNamed(panel, DELETE_MODEL_LABEL()))
 
     expect(vi.mocked(applyConfigChanges).mock.calls).toEqual([
       [
@@ -343,7 +343,7 @@ describe('ModelRow explicit actions', () => {
     expect(panel?.querySelector('[data-model-judge]')).toBeNull()
     expect(panel?.textContent).not.toContain('judge')
 
-    await click(buttonNamed(row('router'), DELETE_MODEL_LABEL))
+    await click(buttonNamed(row('router'), DELETE_MODEL_LABEL()))
     expect(vi.mocked(applyConfigChanges).mock.calls).toEqual([
       [[{ op: 'unset', path: ['registry', 'llms', { name: 'router' }] }], { undoable: true }],
     ])
@@ -360,7 +360,7 @@ describe('ModelRow explicit actions', () => {
     vi.mocked(applyConfigChanges).mockRejectedValueOnce(
       new ApiError(409, 'Conflict', { error: 'field_changed', path: ['registry', 'llms'] }),
     )
-    await click(buttonNamed(row('flash'), DELETE_MODEL_LABEL))
+    await click(buttonNamed(row('flash'), DELETE_MODEL_LABEL()))
     await flush()
 
     const unsetFlash = { op: 'unset', path: ['registry', 'llms', { name: 'flash' }] }
@@ -379,40 +379,40 @@ describe('ModelRow explicit actions', () => {
     await mount()
 
     await openModel('gpt-5.6')
-    await click(buttonNamed(row('gpt-5.6'), DELETE_MODEL_LABEL))
+    await click(buttonNamed(row('gpt-5.6'), DELETE_MODEL_LABEL()))
     expect(document.activeElement).toBe(toggle(row('flash')))
 
     await openModel('sonnet')
-    await click(buttonNamed(row('sonnet'), DELETE_MODEL_LABEL))
+    await click(buttonNamed(row('sonnet'), DELETE_MODEL_LABEL()))
     expect(document.activeElement).toBe(toggle(row('router')))
     await unmount()
 
     vi.mocked(fetchConfig).mockResolvedValue(answer(modelsConfig([LLMS[2]], undefined)) as never)
     await mount()
     await openModel('router')
-    await click(buttonNamed(row('router'), DELETE_MODEL_LABEL))
+    await click(buttonNamed(row('router'), DELETE_MODEL_LABEL()))
     expect(rows()).toHaveLength(0)
-    expect((document.activeElement as HTMLElement | null)?.textContent?.trim()).toBe(ADD_MODEL_LABEL)
+    expect((document.activeElement as HTMLElement | null)?.textContent?.trim()).toBe(ADD_MODEL_LABEL())
   })
 
   it('DEFAULT-CANNOT-DELETE: the default row offers no Delete model, only the line, and the others offer both', async () => {
     await mount()
     const panel = await openModel('flash')
-    expect(panel?.textContent).toContain(DEFAULT_CANNOT_DELETE_LINE)
-    expect(buttonNamed(panel, DELETE_MODEL_LABEL)).toBeNull()
+    expect(panel?.textContent).toContain(DEFAULT_CANNOT_DELETE_LINE())
+    expect(buttonNamed(panel, DELETE_MODEL_LABEL())).toBeNull()
 
     const other = await openModel('router')
-    expect(other?.textContent).not.toContain(DEFAULT_CANNOT_DELETE_LINE)
-    expect(buttonNamed(other, DELETE_MODEL_LABEL)).not.toBeNull()
-    expect(buttonNamed(other, MAKE_DEFAULT_LABEL)).not.toBeNull()
+    expect(other?.textContent).not.toContain(DEFAULT_CANNOT_DELETE_LINE())
+    expect(buttonNamed(other, DELETE_MODEL_LABEL())).not.toBeNull()
+    expect(buttonNamed(other, MAKE_DEFAULT_LABEL())).not.toBeNull()
     await unmount()
 
     // One model, and it is the default.
     vi.mocked(fetchConfig).mockResolvedValue(answer(modelsConfig([LLMS[1]], 'flash')) as never)
     await mount()
     const only = await openModel('flash')
-    expect(only?.textContent).toContain(DEFAULT_CANNOT_DELETE_LINE)
-    expect(buttonNamed(only, DELETE_MODEL_LABEL)).toBeNull()
+    expect(only?.textContent).toContain(DEFAULT_CANNOT_DELETE_LINE())
+    expect(buttonNamed(only, DELETE_MODEL_LABEL())).toBeNull()
   })
 
   it('SIGN-OUT-UNDO: Sign out acts at once through the credential door, and Undo restores the sign-in server-side', async () => {
@@ -420,7 +420,7 @@ describe('ModelRow explicit actions', () => {
     const panel = await openModel('gpt-5.6')
     const answered = deferred<{ deleted: boolean; undo: { token: string; expiresAt: number } }>()
     vi.mocked(deleteAuthCredential).mockReturnValueOnce(answered.promise as never)
-    await click(buttonNamed(panel, SIGN_OUT_LABEL))
+    await click(buttonNamed(panel, SIGN_OUT_LABEL()))
 
     expect(deleteAuthCredential).toHaveBeenCalledWith('gpt-5.6')
     expect(status('gpt-5.6')).toBe('not-connected')
@@ -445,7 +445,7 @@ describe('ModelRow explicit actions', () => {
   it('REMOVE-KEY-UNDO: Remove key acts at once, says so, and Undo puts the key back server-side', async () => {
     await mount()
     const panel = await openModel('flash')
-    await click(buttonNamed(panel, REMOVE_KEY_LABEL))
+    await click(buttonNamed(panel, REMOVE_KEY_LABEL()))
 
     expect(deleteAuthCredential).toHaveBeenCalledWith('flash')
     expect(status('flash')).toBe('not-connected')
@@ -462,7 +462,7 @@ describe('ModelRow explicit actions', () => {
     await mount()
     await openModel('router')
     vi.mocked(applyConfigChanges).mockRejectedValueOnce(new Error('disk full'))
-    await click(buttonNamed(row('router'), DELETE_MODEL_LABEL))
+    await click(buttonNamed(row('router'), DELETE_MODEL_LABEL()))
     expect(row('router')).not.toBeNull()
     expect(hook!.status.state).toBe('failed')
     expect(hook!.status.message).toBe('disk full')
@@ -478,7 +478,7 @@ describe('ModelRow explicit actions', () => {
 
     await openModel('gpt-5.6')
     vi.mocked(deleteAuthCredential).mockRejectedValueOnce(new Error('auth store locked'))
-    await click(buttonNamed(row('gpt-5.6'), SIGN_OUT_LABEL))
+    await click(buttonNamed(row('gpt-5.6'), SIGN_OUT_LABEL()))
     expect(status('gpt-5.6')).toBe('signed-in')
     expect(hook!.status.state).toBe('failed')
     expect(hook!.status.message).toBe('auth store locked')
@@ -491,7 +491,7 @@ describe('ModelRow explicit actions', () => {
     expect(status('gpt-5.6')).toBe('signed-in')
     expect(hook!.status.state).toBe('idle')
 
-    await click(buttonNamed(row('gpt-5.6'), SIGN_OUT_LABEL))
+    await click(buttonNamed(row('gpt-5.6'), SIGN_OUT_LABEL()))
     expect(status('gpt-5.6')).toBe('not-connected')
     expect(hook!.status.state).toBe('undo')
 
@@ -505,14 +505,14 @@ describe('ModelRow explicit actions', () => {
 describe('ModelRow key and settings', () => {
   it('REPLACE-KEY-SAVES-THEN-TESTS: the new key saves server-side, then the test runs, and a failed test keeps the key', async () => {
     await mount()
-    expect(buttonNamed(await openModel('gpt-5.6'), REPLACE_KEY_LABEL)).toBeNull()
+    expect(buttonNamed(await openModel('gpt-5.6'), REPLACE_KEY_LABEL())).toBeNull()
 
     const panel = await openModel('flash')
-    await click(buttonNamed(panel, REPLACE_KEY_LABEL))
+    await click(buttonNamed(panel, REPLACE_KEY_LABEL()))
     const [input] = passwordInputs(row('flash'))
     expect(input).toBeDefined()
     expect(input.getAttribute('autocomplete')).toBe('off')
-    expect(document.querySelector(`label[for="${input.id}"]`)?.textContent).toBe(NEW_KEY_LABEL)
+    expect(document.querySelector(`label[for="${input.id}"]`)?.textContent).toBe(NEW_KEY_LABEL())
     expect(document.activeElement).toBe(input)
 
     await type(input, SECRET)
@@ -525,7 +525,7 @@ describe('ModelRow key and settings', () => {
     const saved = deferred<{ saved: boolean; created: boolean }>()
     vi.mocked(saveCredential).mockReturnValueOnce(saved.promise as never)
     vi.mocked(testLLMConnection).mockResolvedValueOnce({ success: false, message: 'The key was refused.' })
-    await click(buttonNamed(row('flash'), SAVE_KEY_AND_TEST_LABEL))
+    await click(buttonNamed(row('flash'), SAVE_KEY_AND_TEST_LABEL()))
     expect(saveCredential).toHaveBeenCalledWith('flash', 'gemini', 'api-key', SECRET)
     expect(testLLMConnection).not.toHaveBeenCalled()
 
@@ -543,23 +543,23 @@ describe('ModelRow key and settings', () => {
     expect(line?.textContent).toContain('The key was refused.')
     expect(deleteAuthCredential).not.toHaveBeenCalled()
     expect(status('flash')).toBe('key-saved')
-    expect(document.activeElement).toBe(buttonNamed(row('flash'), REPLACE_KEY_LABEL))
+    expect(document.activeElement).toBe(buttonNamed(row('flash'), REPLACE_KEY_LABEL()))
   })
 
   it('KEEP-CURRENT-KEY-RESTORES-FOCUS: Keep current key drops the typed key, saves nothing and focuses Replace key', async () => {
     await mount()
     const panel = await openModel('flash')
-    await click(buttonNamed(panel, REPLACE_KEY_LABEL))
+    await click(buttonNamed(panel, REPLACE_KEY_LABEL()))
     await type(passwordInputs(row('flash'))[0], SECRET)
 
-    await click(buttonNamed(row('flash'), KEEP_CURRENT_KEY_LABEL))
+    await click(buttonNamed(row('flash'), KEEP_CURRENT_KEY_LABEL()))
     expect(passwordInputs(row('flash'))).toHaveLength(0)
-    expect(document.activeElement).toBe(buttonNamed(row('flash'), REPLACE_KEY_LABEL))
+    expect(document.activeElement).toBe(buttonNamed(row('flash'), REPLACE_KEY_LABEL()))
     expect(saveCredential).not.toHaveBeenCalled()
     expect(testLLMConnection).not.toHaveBeenCalled()
     expect(container!.innerHTML).not.toContain(SECRET)
 
-    await click(buttonNamed(row('flash'), REPLACE_KEY_LABEL))
+    await click(buttonNamed(row('flash'), REPLACE_KEY_LABEL()))
     expect(passwordInputs(row('flash'))[0].value).toBe('')
   })
 
@@ -606,7 +606,7 @@ describe('ModelRow key and settings', () => {
     expect(container!.innerHTML).not.toContain(HEADER_SECRET)
     expect(Array.from(row('claude-proxy')!.querySelectorAll('[data-model-header]')).map((item) => item.getAttribute('data-model-header'))).toEqual(['X-Team'])
 
-    await click(buttonNamed(row('claude-proxy'), ADD_HEADER_LABEL))
+    await click(buttonNamed(row('claude-proxy'), ADD_HEADER_LABEL()))
     const draft = row('claude-proxy')!.querySelector('[data-header-draft]')
     const [draftName] = Array.from(draft?.querySelectorAll('input:not([type="password"])') ?? []) as HTMLInputElement[]
     const [draftValue] = passwordInputs(draft)
@@ -618,7 +618,7 @@ describe('ModelRow key and settings', () => {
     expect(JSON.stringify(localStorage)).not.toContain('trace-secret')
     expect(hook!.draftTabs.size).toBe(0)
 
-    await click(buttonNamed(row('claude-proxy'), SAVE_HEADER_LABEL))
+    await click(buttonNamed(row('claude-proxy'), SAVE_HEADER_LABEL()))
     expect(writes()[5]).toEqual([[{ op: 'set', path: [...headers, 'X-Trace'], value: 'trace-secret' }]])
     // The landed write is mirrored as written; the editor has no path-class mask.
     const traceValue = row('claude-proxy')!.querySelector('[data-model-header="X-Trace"] [data-secret-field] code')
@@ -693,11 +693,11 @@ describe('ModelRow Sign in again', () => {
     vi.spyOn(window, 'open').mockImplementation(() => null)
     await mount()
     const signedIn = await openModel('gpt-5.6')
-    expect(buttonNamed(signedIn, SIGN_IN_AGAIN_LABEL)).toBeNull()
+    expect(buttonNamed(signedIn, SIGN_IN_AGAIN_LABEL())).toBeNull()
 
     const panel = await openModel('sonnet')
     expect(status('sonnet')).toBe('sign-in-expired')
-    const again = buttonNamed(panel, SIGN_IN_AGAIN_LABEL)
+    const again = buttonNamed(panel, SIGN_IN_AGAIN_LABEL())
     expect(again).not.toBeNull()
     expect(again!.getAttribute('data-variant')).toBe('outline')
     expect(again!.getAttribute('data-size')).toBe('sm')
@@ -734,7 +734,7 @@ describe('ModelRow Sign in again', () => {
     vi.mocked(startPluginAuth).mockResolvedValueOnce({ authorizeUrl: 'https://auth.example/claude', sessionId: 'session-2', mode: 'browser-poll', created: true })
     vi.mocked(pollPluginAuthResult).mockResolvedValueOnce({ status: 'completed', saved: true })
     vi.mocked(testLLMConnection).mockClear()
-    await click(buttonNamed(notConnected, SIGN_IN_AGAIN_LABEL))
+    await click(buttonNamed(notConnected, SIGN_IN_AGAIN_LABEL()))
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2000)
     })
@@ -808,7 +808,7 @@ describe("The model modal's claims on a saved row", () => {
     vi.mocked(testLLMConnection).mockResolvedValueOnce({ success: false, error: 'invalid_request', message: sentence })
     await mount()
     const panel = await openModel('router')
-    await click(buttonNamed(panel, TEST_CONNECTION_LABEL))
+    await click(buttonNamed(panel, TEST_CONNECTION_LABEL()))
     expect(testLLMConnection).toHaveBeenCalledTimes(1)
     expect(row('router')!.querySelector('[data-test-result="failed"]')?.textContent).toBe(sentence)
     expect(container!.textContent).not.toContain('Connection failed.')
@@ -849,7 +849,7 @@ describe("The model modal's claims on a saved row", () => {
     vi.mocked(testLLMConnection).mockResolvedValueOnce({ success: true, responseTime: 123, provider: 'openai-compatible', model: 'openrouter/auto' })
     await mount()
     const panel = await openModel('router')
-    await click(buttonNamed(panel, TEST_CONNECTION_LABEL))
+    await click(buttonNamed(panel, TEST_CONNECTION_LABEL()))
     const line = row('router')!.querySelector('[data-test-result="connected"]')
     expect(line?.textContent).toBe(TEST_RESULT_TEXT.connected)
     expect(row('router')!.textContent).not.toContain('123')
@@ -865,7 +865,7 @@ describe('the model row and masked header values', () => {
     vi.mocked(fetchConfig).mockResolvedValue(answer(modelsConfig([...LLMS, proxy])) as never)
     await mount()
     const panel = await openModel('claude-proxy')
-    await click(buttonNamed(panel, TEST_CONNECTION_LABEL))
+    await click(buttonNamed(panel, TEST_CONNECTION_LABEL()))
 
     expect(testLLMConnection).toHaveBeenCalledTimes(1)
     const request = vi.mocked(testLLMConnection).mock.calls[0][0]

@@ -116,10 +116,10 @@ export function SecretValue({ field, label, maskedText, readOnly = false }: Secr
               disabled={typed === "" || saving}
               onClick={() => void save()}
             >
-              {SAVE_VALUE_LABEL}
+              {SAVE_VALUE_LABEL()}
             </Button>
             <Button type="button" variant="ghost" size="sm" aria-label={keepValueName(label)} onClick={closeReplace}>
-              {KEEP_CURRENT_VALUE_LABEL}
+              {KEEP_CURRENT_VALUE_LABEL()}
             </Button>
           </>
         ) : (
@@ -133,7 +133,7 @@ export function SecretValue({ field, label, maskedText, readOnly = false }: Secr
               aria-label={replaceValueName(label)}
               onClick={startReplace}
             >
-              {REPLACE_VALUE_LABEL}
+              {REPLACE_VALUE_LABEL()}
             </Button>
           </>
         )}

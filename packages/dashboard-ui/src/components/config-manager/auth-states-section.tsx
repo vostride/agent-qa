@@ -78,7 +78,7 @@ export function AuthStatesSection({ config }: AuthStatesSectionProps) {
   // The folder is required once the block exists, so emptying a set folder stays a draft.
   function parseDir(raw: string): ConfigFieldParse {
     if (raw.trim() !== "") return { valid: true, value: raw.trim() }
-    return dir === undefined ? { valid: true, unset: true } : { valid: false, error: LOGIN_STATES_DIR_REQUIRED_ERROR }
+    return dir === undefined ? { valid: true, unset: true } : { valid: false, error: LOGIN_STATES_DIR_REQUIRED_ERROR() }
   }
 
   return (
@@ -87,21 +87,21 @@ export function AuthStatesSection({ config }: AuthStatesSectionProps) {
         field={{ segments: ["services", "authState", "dir"], tab: "targets", pattern: "services.authState.dir" }}
         label={LOGIN_STATES_FIELD_LABELS.dir}
         kind="text"
-        placeholder={LOGIN_STATES_DIR_PLACEHOLDER}
+        placeholder={LOGIN_STATES_DIR_PLACEHOLDER()}
         parse={parseDir}
       />
       <div data-login-states={read.kind}>
         {read.kind === "loading" ? (
-          <p className="text-sm text-muted-foreground">{LOGIN_STATES_LOADING_TEXT}</p>
+          <p className="text-sm text-muted-foreground">{LOGIN_STATES_LOADING_TEXT()}</p>
         ) : read.kind === "error" ? (
           <div className="space-y-2">
-            <p className="text-sm text-destructive">{LOGIN_STATES_LOAD_FAILED_TEXT}</p>
+            <p className="text-sm text-destructive">{LOGIN_STATES_LOAD_FAILED_TEXT()}</p>
             <Button type="button" variant="outline" size="sm" onClick={() => setAttempt((count) => count + 1)}>
-              {RELOAD_LOGIN_STATES_LABEL}
+              {RELOAD_LOGIN_STATES_LABEL()}
             </Button>
           </div>
         ) : read.states.length === 0 ? (
-          <p className="text-sm text-muted-foreground">{NO_LOGIN_STATES_TEXT}</p>
+          <p className="text-sm text-muted-foreground">{NO_LOGIN_STATES_TEXT()}</p>
         ) : (
           <Table>
             <TableHeader>

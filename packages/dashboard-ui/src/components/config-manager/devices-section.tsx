@@ -142,10 +142,10 @@ export function DevicesSection({ config }: DevicesSectionProps) {
       ) : null}
       {adding ? null : (
         <div className="flex flex-wrap items-center gap-3">
-          {devices.length === 0 ? <p className="text-sm text-muted-foreground">{NO_DEVICES_TEXT}</p> : null}
+          {devices.length === 0 ? <p className="text-sm text-muted-foreground">{NO_DEVICES_TEXT()}</p> : null}
           <Button ref={addButton} type="button" variant="outline" size="sm" onClick={() => setAdding(true)}>
             <Plus className="size-3.5" aria-hidden="true" />
-            {ADD_DEVICE_LABEL}
+            {ADD_DEVICE_LABEL()}
           </Button>
         </div>
       )}
@@ -181,7 +181,7 @@ function DeviceFields({ name, device }: { name: string; device: DeviceEntry }) {
       <ConfigField
         field={{ ...at("id"), pattern: "registry.devices.*.id" }}
         label={DEVICE_FIELD_LABELS.id}
-        help={DEVICE_ID_HELP}
+        help={DEVICE_ID_HELP()}
         kind="text"
       />
       {isRecord(device.capabilities) && Object.keys(device.capabilities).length > 0 ? (
@@ -210,7 +210,7 @@ function DeviceCapabilities({ name, capabilities }: { name: string; capabilities
           </div>
         ))}
       </dl>
-      <p className="text-xs text-muted-foreground">{DEVICE_CAPABILITIES_NOTE}</p>
+      <p className="text-xs text-muted-foreground">{DEVICE_CAPABILITIES_NOTE()}</p>
     </div>
   )
 }
@@ -224,7 +224,7 @@ const EMPTY_DRAFT: DeviceDraft = { name: "", platform: "android" }
 
 function draftNameError(draft: DeviceDraft, takenNames: ReadonlySet<string>): string | undefined {
   const name = draft.name.trim()
-  if (name === "") return DEVICE_NAME_REQUIRED_ERROR
+  if (name === "") return DEVICE_NAME_REQUIRED_ERROR()
   if (takenNames.has(name)) return deviceNameTakenError(name)
   return undefined
 }
@@ -322,7 +322,7 @@ function AddDeviceRow({ initial, takenNames, onHold, onDiscard, onAdded }: AddDe
       />
       {select("platform", DEVICE_FIELD_LABELS.platform, devicePlatformOptions())}
       <Button type="button" variant="ghost" size="sm" onClick={onDiscard}>
-        {DISCARD_DEVICE_LABEL}
+        {DISCARD_DEVICE_LABEL()}
       </Button>
     </div>
   )

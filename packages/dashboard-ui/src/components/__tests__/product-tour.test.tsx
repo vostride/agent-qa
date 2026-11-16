@@ -835,7 +835,7 @@ describe('ProductTourProvider route-aware navigation and fallback rendering', ()
 
     expect(container?.querySelector('[data-testid="location"]')?.textContent).toBe('/config/models')
     expect(textContent()).toContain('Configure your LLM first')
-    expect(textContent()).toContain(TOUR_LLM_SETUP_BODY)
+    expect(textContent()).toContain(TOUR_LLM_SETUP_BODY())
     expect(textContent()).not.toContain('save the config')
     expect(resolveProductTourStepRoute(getProductTourStep('llm-setup')!)).toBe(routes.configTab('models'))
   })

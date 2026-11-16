@@ -39,7 +39,7 @@ function CopyPathButton({ path }: { path: string }) {
         type="button"
         variant="ghost"
         size="icon-xs"
-        aria-label={COPY_PATH_LABEL}
+        aria-label={COPY_PATH_LABEL()}
         data-copy-status={status}
         onClick={copy}
       >
@@ -71,7 +71,7 @@ export function ConfigFileView() {
           <CopyPathButton path={path} />
         </div>
       )}
-      <p className="text-xs text-muted-foreground">{CONFIG_FILE_NOTE}</p>
+      <p className="text-xs text-muted-foreground">{CONFIG_FILE_NOTE()}</p>
       <div data-config-file-view className="overflow-x-auto rounded-md border border-border bg-muted/40 p-4">
         <ol className="font-mono text-xs whitespace-pre">
           {lines.map((line) => (

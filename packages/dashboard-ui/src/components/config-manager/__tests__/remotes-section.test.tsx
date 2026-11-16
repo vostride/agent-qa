@@ -133,7 +133,7 @@ describe('the Remotes section', () => {
     expect(marked.map((badge) => badge.closest('[data-remote]')?.getAttribute('data-remote'))).toEqual([
       'lab',
     ])
-    expect(marked[0]?.textContent).toBe(DEFAULT_BADGE)
+    expect(marked[0]?.textContent).toBe(DEFAULT_BADGE())
     expect(show(TWO_REMOTES).querySelector('[data-remote-default-badge]')).toBeNull()
   })
 

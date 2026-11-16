@@ -346,8 +346,8 @@ describe('TargetsSection and DevicesSection', () => {
     vi.mocked(applyConfigChanges).mockReturnValueOnce(write.promise as never)
     await click(buttonIn(targetRow('alpha'), deleteActionName('delete-target', 'alpha')))
 
-    expect(section('targets')!.textContent).toContain(NO_TARGETS_TEXT)
-    expect(document.activeElement).toBe(buttonIn(section('targets'), ADD_TARGET_LABEL))
+    expect(section('targets')!.textContent).toContain(NO_TARGETS_TEXT())
+    expect(document.activeElement).toBe(buttonIn(section('targets'), ADD_TARGET_LABEL()))
     await act(async () => {
       write.resolve({ revision: 'rev-4' })
     })
@@ -356,8 +356,8 @@ describe('TargetsSection and DevicesSection', () => {
 
     await click(buttonIn(deviceRow('iosLocal'), deleteActionName('delete-device', 'iosLocal')))
     await click(buttonIn(deviceRow('pixel'), deleteActionName('delete-device', 'pixel')))
-    expect(section('devices')!.textContent).toContain(NO_DEVICES_TEXT)
-    expect(document.activeElement).toBe(buttonIn(section('devices'), ADD_DEVICE_LABEL))
+    expect(section('devices')!.textContent).toContain(NO_DEVICES_TEXT())
+    expect(document.activeElement).toBe(buttonIn(section('devices'), ADD_DEVICE_LABEL()))
   })
 
   it("a mobile target's default device is a select of that platform's devices, with none allowed", async () => {
@@ -366,7 +366,7 @@ describe('TargetsSection and DevicesSection', () => {
     await click(rowHeader(targetRow('gamma')))
     const trigger = fieldInput(['registry', 'targets', 'gamma', 'device'])
     expect(trigger?.getAttribute('role')).toBe('combobox')
-    expect(trigger?.textContent).toBe(TARGET_DEVICE_NONE)
+    expect(trigger?.textContent).toBe(TARGET_DEVICE_NONE())
     expect(targetRow('gamma')!.textContent).toContain(TARGET_FIELD_LABELS.device)
 
     await chooseOption(trigger, 'pixel')
@@ -375,7 +375,7 @@ describe('TargetsSection and DevicesSection', () => {
     ])
     expect(fieldInput(['registry', 'targets', 'gamma', 'device'])?.textContent).toBe('pixel')
 
-    await chooseOption(fieldInput(['registry', 'targets', 'gamma', 'device']), TARGET_DEVICE_NONE)
+    await chooseOption(fieldInput(['registry', 'targets', 'gamma', 'device']), TARGET_DEVICE_NONE())
     expect(vi.mocked(applyConfigChanges).mock.calls.at(-1)).toEqual([
       [{ op: 'unset', path: ['registry', 'targets', 'gamma', 'device'] }],
     ])
@@ -391,7 +391,7 @@ describe('TargetsSection and DevicesSection', () => {
       trigger!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }))
     })
     await flush()
-    expect(optionTexts()).toEqual([TARGET_DEVICE_NONE, 'pixel'])
+    expect(optionTexts()).toEqual([TARGET_DEVICE_NONE(), 'pixel'])
     await act(async () => {
       document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
     })
@@ -409,7 +409,7 @@ describe('TargetsSection and DevicesSection', () => {
     const ref = targetRow('gamma')!.querySelector('[data-target-app-ref]')
     expect(ref?.querySelector('[data-read-only-path="registry.targets.*.app.ref"] code')?.textContent).toBe('gamma-latest')
     expect(ref?.textContent).toContain(TARGET_FIELD_LABELS.appRef)
-    expect(ref?.textContent).toContain(TARGET_APP_REF_NOTE)
+    expect(ref?.textContent).toContain(TARGET_APP_REF_NOTE())
     expect(controlsIn(ref)).toHaveLength(0)
     expect(section('targets')!.querySelector('[data-field-path="registry.targets.*.app.ref"]')).toBeNull()
     expect(fieldInput(['registry', 'targets', 'gamma', 'app', 'path'])?.value).toBe('apps/gamma.apk')
@@ -423,7 +423,7 @@ describe('TargetsSection and DevicesSection', () => {
     const id = fieldInput(['registry', 'devices', 'pixel', 'id'])
     expect(id).not.toBeNull()
     expect(row.textContent).toContain(DEVICE_FIELD_LABELS.id)
-    expect(row.textContent).toContain(DEVICE_ID_HELP)
+    expect(row.textContent).toContain(DEVICE_ID_HELP())
 
     const capabilities = row.querySelector('[data-device-capabilities]')
     expect(Array.from(capabilities?.querySelectorAll('dt') ?? []).map((dt) => dt.textContent)).toEqual([
@@ -432,7 +432,7 @@ describe('TargetsSection and DevicesSection', () => {
     ])
     expect(Array.from(capabilities?.querySelectorAll('[data-read-only-path="registry.devices.*.capabilities.*"] code') ?? [])
       .map((code) => code.textContent)).toEqual(['Espresso', '{"accessKey":"[secret:FARM_KEY]"}'])
-    expect(capabilities?.textContent).toContain(DEVICE_CAPABILITIES_NOTE)
+    expect(capabilities?.textContent).toContain(DEVICE_CAPABILITIES_NOTE())
     expect(controlsIn(capabilities)).toHaveLength(0)
     expect(row.querySelector('[data-field-path^="registry.devices.*.capabilities"]')).toBeNull()
 
@@ -449,7 +449,7 @@ describe('TargetsSection and DevicesSection', () => {
   it('ADD-ROW-DRAFT-UNTIL-VALID: Add target opens an inline draft row that writes nothing until it is valid, then one set of the whole target', async () => {
     await mount()
 
-    await click(buttonIn(section('targets'), ADD_TARGET_LABEL))
+    await click(buttonIn(section('targets'), ADD_TARGET_LABEL()))
     const draft = section('targets')!.querySelector('[data-target-draft]') as HTMLElement | null
     expect(draft).not.toBeNull()
     expect(document.body.querySelector('[role="dialog"]')).toBeNull()
@@ -461,7 +461,7 @@ describe('TargetsSection and DevicesSection', () => {
     await waitPastSettle()
 
     expect(applyConfigChanges).not.toHaveBeenCalled()
-    expect(draft!.querySelector('[data-field-error]')?.textContent).toContain(TARGET_URL_REQUIRED_ERROR)
+    expect(draft!.querySelector('[data-field-error]')?.textContent).toContain(TARGET_URL_REQUIRED_ERROR())
     expect((draft!.querySelector('input[name="url"]') as HTMLInputElement).getAttribute('aria-invalid')).toBe('true')
     expect(hook!.status.state).toBe('draft')
     expect(hook!.draftTabs.has('targets')).toBe(true)
@@ -481,7 +481,7 @@ describe('TargetsSection and DevicesSection', () => {
   it('the add row offers Undeclared, Local, Shared and Production as plain choices, keeps typed labels, and saves the class', async () => {
     await mount()
 
-    await click(buttonIn(section('targets'), ADD_TARGET_LABEL))
+    await click(buttonIn(section('targets'), ADD_TARGET_LABEL()))
     const draft = section('targets')!.querySelector('[data-target-draft]') as HTMLElement
     const group = draft.querySelector('[data-target-environment]') as HTMLElement | null
     expect(group).not.toBeNull()
@@ -552,7 +552,7 @@ describe('TargetsSection and DevicesSection', () => {
   it('Undeclared saves no environment key, and the compact row wraps its choices', async () => {
     await mount()
 
-    await click(buttonIn(section('targets'), ADD_TARGET_LABEL))
+    await click(buttonIn(section('targets'), ADD_TARGET_LABEL()))
     const draft = section('targets')!.querySelector('[data-target-draft]') as HTMLElement
     const group = draft.querySelector('[data-target-environment] [role="radiogroup"]') as HTMLElement | null
     expect(group).not.toBeNull()
@@ -602,7 +602,7 @@ describe('TargetsSection and DevicesSection', () => {
   it('the chosen class is held with the draft, beside the typed name', async () => {
     await mount()
 
-    await click(buttonIn(section('targets'), ADD_TARGET_LABEL))
+    await click(buttonIn(section('targets'), ADD_TARGET_LABEL()))
     const draft = section('targets')!.querySelector('[data-target-draft]') as HTMLElement
     await click(draft.querySelector('[data-environment-choice="shared"] [role="radio"]') as HTMLElement)
     await type(draft.querySelector('input[name="name"]') as HTMLInputElement, 'phone')

@@ -240,7 +240,7 @@ describe('ModelList closed rows', () => {
 
     const badges = container!.querySelectorAll('[data-model-default-badge]')
     expect(badges).toHaveLength(1)
-    expect(badges[0].textContent).toBe(DEFAULT_BADGE)
+    expect(badges[0].textContent).toBe(DEFAULT_BADGE())
     expect(row('flash')!.contains(badges[0])).toBe(true)
     expect(row('flash')!.getAttribute('data-model-default')).toBe('true')
     expect(row('router')!.hasAttribute('data-model-default')).toBe(false)
@@ -296,7 +296,7 @@ describe('ModelList closed rows', () => {
     await mount()
 
     let line = container!.querySelector('[data-no-default]')
-    expect(line?.textContent).toBe(NO_DEFAULT_TEXT)
+    expect(line?.textContent).toBe(NO_DEFAULT_TEXT())
     expect(line?.querySelector('svg')?.getAttribute('class')).toContain('lucide-triangle-alert')
     expect(line?.querySelector('svg')?.getAttribute('class')).toContain('text-amber-500')
     expect(line?.compareDocumentPosition(container!.querySelector('[data-model-list]')!)).toBe(
@@ -308,7 +308,7 @@ describe('ModelList closed rows', () => {
     vi.mocked(fetchConfig).mockResolvedValueOnce(answer(modelsConfig(LLMS, 'retired')) as never)
     await mount()
     line = container!.querySelector('[data-no-default]')
-    expect(line?.textContent).toBe(NO_DEFAULT_TEXT)
+    expect(line?.textContent).toBe(NO_DEFAULT_TEXT())
     await unmount()
 
     await mount()
@@ -320,10 +320,10 @@ describe('ModelList closed rows', () => {
     await mount()
 
     const empty = container!.querySelector('[data-models-empty]')
-    expect(empty?.textContent).toContain(NO_MODELS_TEXT)
+    expect(empty?.textContent).toContain(NO_MODELS_TEXT())
     expect(container!.querySelector('[data-model-list]')).toBeNull()
     expect(container!.querySelector('[data-no-default]')).toBeNull()
-    const adds = buttonsNamed(container, ADD_MODEL_LABEL)
+    const adds = buttonsNamed(container, ADD_MODEL_LABEL())
     expect(adds).toHaveLength(1)
     expect(empty!.contains(adds[0])).toBe(true)
     expect(adds[0].getAttribute('data-variant')).toBe('default')
@@ -338,7 +338,7 @@ describe('ModelList closed rows', () => {
     localStorage.clear()
 
     await mount()
-    const headingAdds = buttonsNamed(container, ADD_MODEL_LABEL)
+    const headingAdds = buttonsNamed(container, ADD_MODEL_LABEL())
     expect(headingAdds).toHaveLength(1)
     expect(headingAdds[0].getAttribute('data-variant')).toBe('outline')
     expect(headingAdds[0].querySelector('svg')?.getAttribute('class')).toContain('lucide-plus')
@@ -375,11 +375,11 @@ function panelOf(name: string) {
 }
 
 function testButton(name: string) {
-  return buttonsNamed(panelOf(name), TEST_CONNECTION_LABEL)[0] ?? null
+  return buttonsNamed(panelOf(name), TEST_CONNECTION_LABEL())[0] ?? null
 }
 
 function makeDefaultButton(name: string) {
-  return buttonsNamed(panelOf(name), MAKE_DEFAULT_LABEL)[0] ?? null
+  return buttonsNamed(panelOf(name), MAKE_DEFAULT_LABEL())[0] ?? null
 }
 
 function testLine(name: string) {
