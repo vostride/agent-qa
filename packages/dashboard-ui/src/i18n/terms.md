@@ -729,8 +729,8 @@ Action sentences are a neuter short participle and a colon, which needs no subje
 | click | нажать | `Нажато: {{target}}` |
 | tap | коснуться | `Касание: {{target}}` |
 | fill | заполнить | `Заполнено: {{target}}, значение {{value}}` |
-| select | выбрать | `Выбрано: {{value}}, поле {{target}}` |
-| paste | вставить | `Вставлено: {{value}}, поле {{target}}` |
+| select | выбрать | `Выбрано: {{value}}, поле: {{target}}`; the colon keeps `элемент {{role}}` in the nominative |
+| paste | вставить | `Вставлено: {{value}}, поле: {{target}}` |
 | press | нажать | `Нажато: {{keys}}` |
 | scroll | прокрутить | `Прокручено: {{target}}` |
 | swipe | провести | `Свайп: {{target}}` |
