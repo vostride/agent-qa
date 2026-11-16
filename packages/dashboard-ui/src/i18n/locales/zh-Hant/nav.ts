@@ -43,7 +43,8 @@ export default {
   'nav.palette.createHook': '建立掛鉤',
   'nav.palette.createHookSearch':
     '建立掛鉤 建立 新增 掛鉤 hook hooks create add new setup teardown inline 內嵌',
-  'nav.palette.productTourSearch': '產品導覽 說明 導覽 入門 教學 help product tour onboarding agent-qa',
+  'nav.palette.productTourSearch':
+    '產品導覽 說明 導覽 入門 教學 help product tour onboarding agent-qa',
   'nav.palette.kind.page': '頁面',
   'nav.palette.kind.run': '執行',
   'nav.palette.kind.test': '測試',

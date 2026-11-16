@@ -80,7 +80,8 @@ export default {
   'insights.tokens.testRuns': '測試執行',
   'insights.tokens.liveEditor': '即時編輯器',
   'insights.tokens.notRecorded': '未記錄',
-  'insights.tokens.unmeasuredSteps_other': '有 {{count}} 個測試執行步驟沒有記錄 Token 用量，因此不列入計算。',
+  'insights.tokens.unmeasuredSteps_other':
+    '有 {{count}} 個測試執行步驟沒有記錄 Token 用量，因此不列入計算。',
   'insights.tokens.empty.title': '此時間範圍內沒有 Token 用量',
   'insights.tokens.empty.description': '執行或即時工作階段呼叫模型後，就會顯示 Token 指標。',
   'insights.memory.title': '記憶彙整器',

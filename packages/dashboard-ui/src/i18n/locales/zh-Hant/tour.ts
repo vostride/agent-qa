@@ -9,12 +9,12 @@ export default {
   'tour.runs.title': '執行會顯示結果',
   'tour.runs.body': '「執行」會顯示每一次 agent-qa 執行的結果、產出檔案與推理過程。',
   'tour.tests.title': '測試是以自然語言撰寫的檢查',
-  'tour.tests.body': '測試是以自然語言撰寫的檢查，agent-qa 可以針對您設定的網頁或行動裝置目標執行。',
+  'tour.tests.body':
+    '測試是以自然語言撰寫的檢查，agent-qa 可以針對您設定的網頁或行動裝置目標執行。',
   'tour.suites.title': '套件組合出可重複執行的工作流程',
   'tour.suites.body': '當一個測試不夠用時，套件可以把相關的檢查組合成可重複執行的工作流程。',
   'tour.hooks.title': '掛鉤在步驟前後與步驟之間執行',
-  'tour.hooks.body':
-    '掛鉤可以在測試或套件前後負責準備與清理工作，也可以在步驟之間以內嵌方式執行。',
+  'tour.hooks.body': '掛鉤可以在測試或套件前後負責準備與清理工作，也可以在步驟之間以內嵌方式執行。',
   'tour.config.title': '設定控制本機環境',
   'tour.config.body': '「設定」控制 agent-qa 在本機使用的模型、目標、執行環境與儀表板設定。',
   'tour.exampleTest.title': '執行預期會通過的範例測試',
@@ -33,7 +33,8 @@ export default {
   'tour.githubNudge.body': '如果 agent-qa 對您有幫助，歡迎在 GitHub 上為它加上星號。',
   'tour.githubNudge.actionLabel': '在 GitHub 上查看',
   'tour.runsFallback.title': '開啟最新的執行',
-  'tour.runsFallback.body': '如果這裡還沒有開啟任何執行，請使用「執行」頁面開啟最新的執行並檢查詳細資料檢視。',
+  'tour.runsFallback.body':
+    '如果這裡還沒有開啟任何執行，請使用「執行」頁面開啟最新的執行並檢查詳細資料檢視。',
   'tour.ui.progress': '導覽進度：第 {{current}} 步，共 {{total}} 步',
   'tour.ui.skip': '略過',
   'tour.ui.restart': '重新開始',
