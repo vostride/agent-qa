@@ -8,7 +8,7 @@ export default {
   'runDetail.usage.tokenPair': '入力{{prompt}}・出力{{completion}}',
   'runDetail.usage.totals': '合計{{total}}・入力{{prompt}}・出力{{completion}}',
   'runDetail.usage.coverage_other':
-    '{{count}}ステップ中{{measured}}ステップを計測。合計は実際より少なく表示されています',
+    '{{count}}ステップ中{{measured}}ステップを計測しました。合計は実際より少なく表示されています',
   'runDetail.usage.cachedInput': 'キャッシュされた入力{{cached}}（プロバイダーの報告値）',
   'runDetail.usage.cachedInputPartial_other':
     'キャッシュされた入力{{cached}}／{{measuredTokens}}（プロバイダーの報告値）、計測した{{count}}ステップ中{{cachedSteps}}ステップ分',
@@ -133,7 +133,7 @@ export default {
   'runDetail.analysis.llmVerdict': 'LLMの判定',
   'runDetail.analysis.llmVerdictConfidence': 'LLMの判定・{{confidence}}',
   'runDetail.analysis.deterministicFallback': '決定論的フォールバック',
-  'runDetail.analysis.provisional': '分析を実行中。結果が更新される可能性があります',
+  'runDetail.analysis.provisional': '分析を実行中です。結果が更新される可能性があります',
   'runDetail.analysis.failedFallback': '分析に失敗しました。決定論的フォールバックを表示しています',
   'runDetail.analysis.citedStep': 'ステップ{{step}}',
   'runDetail.analysis.citedArtifact': 'スクリーンショット',
@@ -184,7 +184,7 @@ export default {
   'runDetail.navbar.hint.env': '環境変数',
   'runDetail.navbar.hint.aria': 'ARIA',
   'runDetail.navbar.hint.toggleObserve': '観察の表示を切り替え',
-  'runDetail.navbar.hint.togglePlan': 'プランの表示を切り替え',
+  'runDetail.navbar.hint.togglePlan': '計画の表示を切り替え',
   'runDetail.navbar.hint.toggleExecute': '実行の表示を切り替え',
   'runDetail.navbar.hint.toggleVerify': '検証の表示を切り替え',
   'runDetail.navbar.hint.detailsAttributes': '詳細：属性',

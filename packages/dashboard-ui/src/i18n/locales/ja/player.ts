@@ -10,7 +10,7 @@ export default {
   'player.pause': '録画を一時停止',
   'player.speed': '再生速度',
   'player.substitution':
-    '#{{shown}}／{{total}}を表示中。スクリーンショットのある最新のサブアクションです',
+    '#{{shown}}／{{total}}を表示しています。スクリーンショットのある最新のサブアクションです',
   'player.lightboxTitle': '引用されたスクリーンショット',
   'player.lightboxClose': 'スクリーンショットを閉じる',
   'player.lightboxNote':
