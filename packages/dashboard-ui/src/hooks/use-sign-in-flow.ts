@@ -51,14 +51,17 @@ interface Snapshot {
   created?: boolean
 }
 
-const FALLBACK_REASON = "the sign-in could not be completed."
+interface Failure {
+  reason?: string
+  code?: string
+}
 
-function failureOf(error: unknown): { reason: string; code?: string } {
+function failureOf(error: unknown): Failure {
   const payload = (error as { payload?: Record<string, unknown> | null } | null)?.payload
   const code = payload && typeof payload.error === "string" ? payload.error : undefined
   const message = payload && typeof payload.message === "string" ? payload.message : undefined
-  const reason = message ?? (error instanceof Error && error.message !== "" ? error.message : FALLBACK_REASON)
-  return { reason, ...(code === undefined ? {} : { code }) }
+  const reason = message ?? (error instanceof Error && error.message !== "" ? error.message : undefined)
+  return { ...(reason === undefined ? {} : { reason }), ...(code === undefined ? {} : { code }) }
 }
 
 export function useSignInFlow(options: SignInFlowOptions = {}): SignInFlow {
@@ -103,7 +106,7 @@ export function useSignInFlow(options: SignInFlowOptions = {}): SignInFlow {
   )
 
   const fail = useCallback(
-    (failure: { reason: string; code?: string }) => {
+    (failure: Failure) => {
       clearTimers()
       session.current = undefined
       setSnapshot({ state: "failed", ...failure })
@@ -145,7 +148,7 @@ export function useSignInFlow(options: SignInFlowOptions = {}): SignInFlow {
             polling.current = false
             if (generation.current !== id) return
             if (result.status === "completed") complete(current)
-            else if (result.status === "error") fail({ reason: result.error ?? FALLBACK_REASON })
+            else if (result.status === "error") fail(result.error ? { reason: result.error } : {})
           },
           () => {
             // A poll that could not reach the server is retried on the next tick.

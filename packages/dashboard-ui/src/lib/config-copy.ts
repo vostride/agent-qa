@@ -77,7 +77,10 @@ export const CONFIG_SECTION_LABELS = textTable({
 }) satisfies Record<ConfigSectionId, string>
 
 export function configCommandLabel(tab: ConfigTab, section: ConfigSectionId): string {
-  return `Config: ${CONFIG_TAB_LABELS[tab]} / ${CONFIG_SECTION_LABELS[section]}`
+  return t('config.commandLabel', {
+    tab: CONFIG_TAB_LABELS[tab],
+    section: CONFIG_SECTION_LABELS[section],
+  })
 }
 
 export const LEGACY_LINK_NOT_FOUND_TEXT = 'That setting link is out of date, so Models is shown instead.'
@@ -85,7 +88,7 @@ export const LEGACY_LINK_NOT_FOUND_TEXT = 'That setting link is out of date, so 
 export const CONFIG_LOAD_FAILED_TITLE = "Couldn't load the config"
 
 export function configLoadFailedBody(reason: string): string {
-  return `${reason}. Reload it, or fix the file in your editor — this page picks up the change.`
+  return t('config.loadFailedBody', { reason })
 }
 
 export const RELOAD_CONFIG_LABEL = 'Reload config'
@@ -94,7 +97,7 @@ export const RELOAD_CONFIG_LABEL = 'Reload config'
 export const CONFIG_FILE_ISSUES_TITLE = 'The config file has a problem'
 
 export function configFileIssuesBody(reason: string): string {
-  return `${reason}. Fix it in your editor — this page picks up the change.`
+  return t('config.fileIssuesBody', { reason })
 }
 
 export const SAVE_STATUS_WORDS = textTable({
@@ -114,21 +117,21 @@ export const FIELD_CHANGED_TEXT = "This changed in the file. The page now shows 
 export function undoLine(kind: ExplicitActionKind, name: string): string {
   switch (kind) {
     case 'delete-model':
-      return `Deleted ${name}`
+      return t('config.undo.deleteModel', { name })
     case 'delete-target':
-      return `Deleted target ${name}`
+      return t('config.undo.deleteTarget', { name })
     case 'delete-device':
-      return `Deleted device ${name}`
+      return t('config.undo.deleteDevice', { name })
     case 'sign-out':
-      return `Signed out of ${name}`
+      return t('config.undo.signOut', { name })
     case 'remove-key':
-      return `Removed the key for ${name}`
+      return t('config.undo.removeKey', { name })
     case 'change-knowledge-dir':
-      return 'Changed the knowledge folder'
+      return t('config.undo.changeKnowledgeDir')
     case 'change-db-path':
-      return 'Changed the database'
+      return t('config.undo.changeDbPath')
     case 'change-artifacts-dir':
-      return 'Changed the artifacts folder'
+      return t('config.undo.changeArtifactsDir')
   }
 }
 
@@ -138,11 +141,11 @@ export type DeleteActionKind = Extract<ExplicitActionKind, `delete-${string}`>
 export function deleteActionName(kind: DeleteActionKind, name: string): string {
   switch (kind) {
     case 'delete-model':
-      return `Delete model ${name}`
+      return t('config.deleteAction.model', { name })
     case 'delete-target':
-      return `Delete target ${name}`
+      return t('config.deleteAction.target', { name })
     case 'delete-device':
-      return `Delete device ${name}`
+      return t('config.deleteAction.device', { name })
   }
 }
 
@@ -193,14 +196,16 @@ export function connectionSentence(
 ): string {
   switch (status) {
     case 'signed-in':
-      return `Signed in with your ${providerLabel} plan.`
+      return t('config.connection.signedIn', { provider: providerLabel })
     case 'key-saved':
-      return 'Key saved on this machine.'
+      return t('config.connection.keySaved')
     case 'not-connected':
-      if (opts.signIn) return 'Not signed in.'
-      return opts.keyOptional ? 'No key saved. This endpoint may not need one.' : 'No key saved.'
+      if (opts.signIn) return t('config.connection.notSignedIn')
+      return opts.keyOptional
+        ? t('config.connection.noKeyOptional')
+        : t('config.connection.noKey')
     case 'sign-in-expired':
-      return 'Sign-in expired. Sign in again to use this model.'
+      return t('config.connection.signInExpired')
   }
 }
 
@@ -225,7 +230,7 @@ export const FIXED_CONNECTION_LABELS = textTable({
 }) satisfies Record<string, string>
 
 export function fixedFactsLine(connectionLabel: string): string {
-  return `Connects with ${connectionLabel}. The name and connection are fixed; to change them, add a new model.`
+  return t('config.fixedFacts', { connection: connectionLabel })
 }
 
 /** A saved model's settings in its open row; Model and Base URL share the add flow's labels. */
@@ -249,17 +254,17 @@ export const DISCARD_HEADER_LABEL = 'Discard header'
 export const HEADER_NAME_REQUIRED_ERROR = 'A header needs a name.'
 
 export function headerNameTakenError(name: string): string {
-  return `A header named ${name} already exists.`
+  return t('config.headerNameTaken', { name })
 }
 
 /** The accessible name of a saved header's name field. */
 export function headerNameFieldName(header: string): string {
-  return `${HEADER_FIELD_LABELS.name} of the ${header} header`
+  return t('config.headerNameFieldName', { header })
 }
 
 /** A saved header's accessible label, so each name field, eye and Replace value names its header. */
 export function modelHeaderLabel(header: string): string {
-  return `${header} header`
+  return t('config.modelHeader', { header })
 }
 
 export const DEFAULT_CANNOT_DELETE_LINE = 'This is the default model. Make another model the default first.'
@@ -319,18 +324,18 @@ export const BASE_URL_HELP = "The exact base URL. agent-qa doesn't add paths to 
 
 export function existingCredentialLine(kind: 'key' | 'sign-in', name: string): string {
   return kind === 'key'
-    ? `A key for ${name} is already saved on this machine.`
-    : `Already signed in as ${name} on this machine.`
+    ? t('config.existingCredential.key', { name })
+    : t('config.existingCredential.signIn', { name })
 }
 
 export const NAME_RULE_ERROR = 'Use lowercase letters, digits, hyphens and dots, starting with a letter or digit.'
 
 export function nameTakenError(name: string): string {
-  return `A model named ${name} already exists.`
+  return t('config.nameTaken', { name })
 }
 
 export function nameCredentialConflictError(name: string, providerLabel: string): string {
-  return `${name} already has a saved sign-in or key for ${providerLabel}. Choose another name.`
+  return t('config.nameCredentialConflict', { name, provider: providerLabel })
 }
 
 export const MODEL_REQUIRED_ERROR = 'Model is required.'
@@ -362,7 +367,10 @@ export const CONNECT_REFUSAL_COPY = textTable({
   cross_site_refused: () => t('config.connectRefusal.crossSiteRefused'),
 }) satisfies Record<ConnectRefusalCode, string>
 
-const REFUSALS_WITH_ISSUES: ReadonlySet<string> = new Set<ConnectRefusalCode>(['validation_failed', 'invalid_setup_input'])
+const REFUSALS_WITH_ISSUES: Partial<Record<ConnectRefusalCode, (issue: string) => string>> = {
+  validation_failed: (issue) => t('config.connectRefusalIssue.validationFailed', { issue }),
+  invalid_setup_input: (issue) => t('config.connectRefusalIssue.invalidSetupInput', { issue }),
+}
 
 function isConnectRefusalCode(code: string): code is ConnectRefusalCode {
   return Object.prototype.hasOwnProperty.call(CONNECT_REFUSAL_COPY, code)
@@ -374,10 +382,9 @@ export function connectRefusalSentence(
   issues?: readonly { message: string }[],
 ): string {
   if (code === undefined || !isConnectRefusalCode(code)) return providerErrorSentence('network_error', '')
-  const sentence: string = CONNECT_REFUSAL_COPY[code]
   const first = issues?.[0]?.message
-  if (!REFUSALS_WITH_ISSUES.has(code) || !first) return sentence
-  return `${sentence.replace(/\.$/, '')}: ${first}`
+  const withIssue = REFUSALS_WITH_ISSUES[code]
+  return withIssue && first ? withIssue(first) : CONNECT_REFUSAL_COPY[code]
 }
 
 export const SIGN_IN_WAITING_TEXT = 'Finish signing in on the page that opened.'
@@ -385,18 +392,18 @@ export const CANCEL_SIGN_IN_LABEL = 'Cancel sign-in'
 export const SIGN_IN_WAITING_LABEL = 'Waiting for sign-in…'
 export const SIGN_IN_TIMED_OUT_TEXT = 'Sign-in timed out. Try again.'
 
-export function signInFailedText(reason: string): string {
-  return `Sign-in didn't finish: ${reason}`
+export function signInFailedText(reason: string | undefined): string {
+  return reason ? t('config.signInFailed.reason', { reason }) : t('config.signInFailed.noReason')
 }
 
 export function connectedSavedText(name: string): string {
-  return `Connected. Saved as ${name}.`
+  return t('config.connectedSaved', { name })
 }
 
 export const BECAME_DEFAULT_TEXT = "It's now the default model."
 /** A sign-in choice whose auth plugin is not registered; the CLI names the same package. */
 export function signInPluginMissingText(choiceLabel: string): string {
-  return `${choiceLabel} needs the @vostride/agent-qa-subscription-auth plugin. Install it and add it to plugins as name: subscription in agent-qa.config.yaml.`
+  return t('config.signInPluginMissing', { choice: choiceLabel })
 }
 
 export const SAVE_WITHOUT_TESTING_LABEL = 'Save without testing'
@@ -407,12 +414,12 @@ export const KEEP_CURRENT_PATH_LABEL = 'Keep current path'
 
 /** The one-word Apply button's accessible name names the path it applies. */
 export function applyActionName(pathLabel: string): string {
-  return `${APPLY_LABEL} ${pathLabel}`
+  return t('config.applyAction', { path: pathLabel })
 }
 
 /** Keep current path's accessible name, so each data-path field's button names its own path. */
 export function keepPathName(pathLabel: string): string {
-  return `${KEEP_CURRENT_PATH_LABEL} for ${pathLabel}`
+  return t('config.keepPath', { path: pathLabel })
 }
 
 export type DataPathKey = 'knowledge.dir' | 'services.dashboard.dbPath' | 'services.dashboard.artifactsDir'

@@ -26,7 +26,7 @@ export function signInActive(flow: SignInFlow): boolean {
 
 /** The connection line a sign-in that didn't finish leaves behind; the test's own line otherwise. */
 export function signInLine(flow: SignInFlow): { state: TestResult; sentence: string } | undefined {
-  if (flow.state === "failed") return { state: "failed", sentence: signInFailedText(flow.reason ?? "") }
+  if (flow.state === "failed") return { state: "failed", sentence: signInFailedText(flow.reason) }
   if (flow.state === "timed-out") return { state: "failed", sentence: SIGN_IN_TIMED_OUT_TEXT }
   return undefined
 }
