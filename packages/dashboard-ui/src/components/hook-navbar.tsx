@@ -63,14 +63,21 @@ export function HookNavbar({
           {t('hooks.navbar.hooks')}
         </Link>
         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        {/* The name gives way first: Edit shrinks only once the name is gone. */}
         {isCreateMode ? (
           <span className="truncate text-sm font-medium">{t('hooks.navbar.newHook')}</span>
         ) : hookHref && !isViewMode ? (
-          <Link to={hookHref} className="truncate text-sm font-medium transition-colors hover:text-primary">
+          <Link
+            to={hookHref}
+            className="shrink-[100000] truncate text-sm font-medium transition-colors hover:text-primary"
+            title={hookName}
+          >
             {hookName}
           </Link>
         ) : (
-          <span className="truncate text-sm font-medium">{hookName}</span>
+          <span className="shrink-[100000] truncate text-sm font-medium" title={hookName}>
+            {hookName}
+          </span>
         )}
         {showEditCrumb && (
           <>

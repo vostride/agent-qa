@@ -90,14 +90,15 @@ export function TestNavbar({
           {t("tests.navbar.tests")}
         </Link>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        {/* The name gives way first: Edit shrinks only once the name is gone. */}
         {isCreateMode ? (
           <span className="text-sm font-medium truncate">{t("tests.navbar.newTest")}</span>
         ) : testHref && !isViewMode ? (
-          <Link to={testHref} className="truncate text-sm font-medium hover:text-primary transition-colors">
+          <Link to={testHref} className="shrink-[100000] truncate text-sm font-medium hover:text-primary transition-colors" title={testName}>
             {testName}
           </Link>
         ) : (
-          <span className="text-sm font-medium truncate">{testName}</span>
+          <span className="shrink-[100000] text-sm font-medium truncate" title={testName}>{testName}</span>
         )}
         {showEditCrumb && (
           <>

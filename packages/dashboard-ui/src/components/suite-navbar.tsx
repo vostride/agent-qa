@@ -89,14 +89,15 @@ export function SuiteNavbar({
           {t("suites.navbar.suites")}
         </Link>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+        {/* The name gives way first: Edit shrinks only once the name is gone. */}
         {isCreateMode ? (
           <span className="text-sm font-medium truncate">{t("suites.navbar.newSuite")}</span>
         ) : suiteHref && !isViewMode ? (
-          <Link to={suiteHref} className="truncate text-sm font-medium hover:text-primary transition-colors">
+          <Link to={suiteHref} className="shrink-[100000] truncate text-sm font-medium hover:text-primary transition-colors" title={suiteName}>
             {suiteName}
           </Link>
         ) : (
-          <span className="text-sm font-medium truncate">{suiteName}</span>
+          <span className="shrink-[100000] text-sm font-medium truncate" title={suiteName}>{suiteName}</span>
         )}
         {showEditCrumb && (
           <>
