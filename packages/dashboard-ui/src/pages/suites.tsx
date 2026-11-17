@@ -581,7 +581,7 @@ export default function SuitesPage() {
             className="max-w-[220px]"
           />
           <Select value={status || "all"} onValueChange={(v) => { setStatus(v === "all" ? "" : v); setSelectedIndex(-1); setRowSelection({}) }}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="min-w-[150px]">
               <SelectValue placeholder={t("suites.list.filter.allStatuses")} />
             </SelectTrigger>
             <SelectContent>
@@ -593,7 +593,7 @@ export default function SuitesPage() {
             </SelectContent>
           </Select>
           <Select value={platform || "all"} onValueChange={(v) => { setPlatform(v === "all" ? "" : v); setSelectedIndex(-1); setRowSelection({}) }}>
-            <SelectTrigger className="w-[140px]">
+            <SelectTrigger className="min-w-[140px]">
               <SelectValue placeholder={t("suites.list.filter.allPlatforms")} />
             </SelectTrigger>
             <SelectContent>
