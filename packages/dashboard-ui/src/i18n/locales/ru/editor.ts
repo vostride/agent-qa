@@ -149,8 +149,8 @@ export default {
   'editor.settings.mobile.devicePlaceholderSuite':
     'Выберите устройство для этого мобильного набора.',
   'editor.settings.mobile.appState': 'Состояние приложения',
-  'editor.settings.mobile.preserve': 'Сохранять данные приложения',
-  'editor.settings.mobile.reset': 'Сбрасывать данные приложения',
+  'editor.settings.mobile.preserve': 'Сохранять данные',
+  'editor.settings.mobile.reset': 'Сбрасывать данные',
   'editor.settings.mobile.selectAppState': 'Выберите состояние приложения',
   'editor.settings.timeouts': 'Тайм-ауты',
   'editor.settings.timeout.step': 'Шаг',

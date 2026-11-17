@@ -153,8 +153,8 @@ export default {
   'editor.settings.mobile.devicePlaceholderSuite':
     'Sélectionnez un appareil pour cette suite mobile.',
   'editor.settings.mobile.appState': 'État de l’application',
-  'editor.settings.mobile.preserve': 'Conserver les données de l’application',
-  'editor.settings.mobile.reset': 'Réinitialiser les données de l’application',
+  'editor.settings.mobile.preserve': 'Conserver les données',
+  'editor.settings.mobile.reset': 'Réinitialiser les données',
   'editor.settings.mobile.selectAppState': 'Sélectionner l’état de l’application',
   'editor.settings.timeouts': 'Délais d’expiration',
   'editor.settings.timeout.step': 'Étape',

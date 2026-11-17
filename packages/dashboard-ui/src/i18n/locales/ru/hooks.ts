@@ -72,7 +72,7 @@ export default {
   'hooks.navbar.hooks': 'Хуки',
   'hooks.navbar.newHook': 'Новый хук',
   'hooks.navbar.unsaved': 'Не сохранено',
-  'hooks.navbar.runHook': 'Запустить хук',
+  'hooks.navbar.runHook': 'Запустить',
   'hooks.navbar.running': 'Выполняется…',
   'hooks.navbar.deleting': 'Удаление…',
   'hooks.navbar.saving': 'Сохранение…',

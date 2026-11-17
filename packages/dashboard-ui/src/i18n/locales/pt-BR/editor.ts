@@ -150,8 +150,8 @@ export default {
   'editor.settings.mobile.devicePlaceholderSuite':
     'Selecione um dispositivo para esta suíte móvel.',
   'editor.settings.mobile.appState': 'Estado do aplicativo',
-  'editor.settings.mobile.preserve': 'Preservar os dados do aplicativo',
-  'editor.settings.mobile.reset': 'Redefinir os dados do aplicativo',
+  'editor.settings.mobile.preserve': 'Manter dados do aplicativo',
+  'editor.settings.mobile.reset': 'Redefinir dados do aplicativo',
   'editor.settings.mobile.selectAppState': 'Selecionar o estado do aplicativo',
   'editor.settings.timeouts': 'Tempos limite',
   'editor.settings.timeout.step': 'Etapa',

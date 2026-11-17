@@ -73,7 +73,7 @@ export default {
   'hooks.navbar.hooks': 'Hooks',
   'hooks.navbar.newHook': 'Neuer Hook',
   'hooks.navbar.unsaved': 'Nicht gespeichert',
-  'hooks.navbar.runHook': 'Hook ausführen',
+  'hooks.navbar.runHook': 'Ausführen',
   'hooks.navbar.running': 'Wird ausgeführt …',
   'hooks.navbar.deleting': 'Wird gelöscht …',
   'hooks.navbar.saving': 'Wird gespeichert …',
