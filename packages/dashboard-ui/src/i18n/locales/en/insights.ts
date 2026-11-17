@@ -57,7 +57,7 @@ export default {
   'insights.duration.title': 'Duration',
   'insights.duration.description': 'Average run duration by day for the selected window.',
   'insights.chart.passRate': 'Pass Rate',
-  'insights.chart.duration': 'Duration',
+  'insights.chart.duration': 'duration',
   'insights.breakdown.test': 'Test',
   'insights.breakdown.suite': 'Suite',
   'insights.breakdown.platform': 'Platform',

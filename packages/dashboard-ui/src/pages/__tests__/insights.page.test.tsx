@@ -13,6 +13,7 @@ import { createRoot, type Root } from "react-dom/client"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
+import i18n from "@/i18n"
 import InsightsPage from "@/pages/insights"
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -146,11 +147,13 @@ vi.mock("recharts", () => ({
   CartesianGrid: () => <div data-recharts="cartesian-grid" />,
   Line: ({
     type,
+    name,
     strokeWidth,
     dot,
     isAnimationActive,
   }: {
     type?: string
+    name?: string
     strokeWidth?: number
     dot?: boolean
     isAnimationActive?: boolean
@@ -158,6 +161,7 @@ vi.mock("recharts", () => ({
     <div
       data-recharts="line"
       data-type={type}
+      data-name={name}
       data-stroke-width={String(strokeWidth)}
       data-dot={String(dot)}
       data-animation={String(isAnimationActive)}
@@ -808,5 +812,26 @@ describe("insights chart contracts", () => {
     expect(tooltip?.getAttribute("data-has-formatter")).toBe("true")
     expect(container?.textContent).toContain("1.3s")
     expect(container?.querySelector('[data-recharts="y-axis"]')?.getAttribute("data-tick-formatter")).toBe("true")
+  })
+
+  it("names the duration line from the catalog, which is what its tooltip row reads", async () => {
+    const { DurationChart } = await vi.importActual<typeof import("@/components/duration-chart")>("@/components/duration-chart")
+    const lineName = () => container?.querySelector('[data-recharts="line"]')?.getAttribute("data-name")
+
+    await renderElement(<DurationChart data={[{ date: "2026-04-10", duration: 1250 }]} />)
+    expect(lineName()).toBe("duration")
+
+    i18n.addResourceBundle("de", "translation", { "insights.chart.duration": "Dauer" })
+    try {
+      await act(async () => {
+        await i18n.changeLanguage("de")
+      })
+      expect(lineName()).toBe("Dauer")
+    } finally {
+      await act(async () => {
+        await i18n.changeLanguage("en")
+      })
+      i18n.removeResourceBundle("de", "translation")
+    }
   })
 })

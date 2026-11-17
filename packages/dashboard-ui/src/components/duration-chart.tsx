@@ -18,13 +18,12 @@ function formatDate(value: string) {
   return formatDateTime(new Date(value), { month: "short", day: "numeric" })
 }
 
-function renderDurationTooltipValue(value: unknown, name: unknown, fallbackLabel: string) {
-  const label = typeof name === "string" ? name : fallbackLabel
+function renderDurationTooltipValue(value: unknown, name: unknown) {
   const formattedValue = typeof value === "number" ? formatDuration(value) : String(value)
 
   return (
     <>
-      <span className="text-muted-foreground">{label}</span>
+      <span className="text-muted-foreground">{String(name)}</span>
       <span className="font-mono font-medium text-foreground tabular-nums">{formattedValue}</span>
     </>
   )
@@ -58,16 +57,13 @@ export function DurationChart({ data, className }: DurationChartProps) {
           width={56}
         />
         <ChartTooltip
-          content={
-            <ChartTooltipContent
-              formatter={(value, name) => renderDurationTooltipValue(value, name, label)}
-            />
-          }
+          content={<ChartTooltipContent formatter={renderDurationTooltipValue} />}
           isAnimationActive={false}
         />
         <Line
           type="linear"
           dataKey="duration"
+          name={label}
           stroke="var(--color-duration)"
           strokeWidth={2}
           dot={false}
