@@ -668,7 +668,6 @@ export const REMOTES_COPY = textTable({
     }),
   missingValue: () => '—',
   pluginNotDeclared: () => t('config.remotes.pluginNotDeclared'),
-  empty: () => t('config.remotes.empty'),
   example: () =>
     [
       'registry:',
@@ -679,25 +678,19 @@ export const REMOTES_COPY = textTable({
       '      query: # or headers, with the same {{secret:NAME}} values',
       '        token: "{{secret:GRID_TOKEN}}"',
     ].join('\n'),
-  pick: () => t('config.remotes.pick'),
-  listed: () => t('config.remotes.listed'),
   pluginsTitle: () => t('config.remotes.pluginsTitle'),
   pluginColumns: () =>
     textTable({
       name: () => t('config.remotes.pluginColumns.name'),
       source: () => t('config.remotes.pluginColumns.source'),
     }),
-  pluginsListed: () => t('config.remotes.pluginsListed'),
 })
 
 export function pluginRemoteText(entry: string): string {
   return t('config.pluginRemote', { entry })
 }
 
-type NameSentenceKey =
-  | 'config.remoteNotListed'
-  | 'config.remoteUnlistedChoice'
-  | 'config.remotePickNotListed'
+type NameSentenceKey = 'config.remoteUnlistedChoice' | 'config.remotePickNotListed'
 
 // The sentence is split before the name goes in, so a name is never read for slots.
 function nameSentenceParts<T>(key: NameSentenceKey, name: T): readonly (T | string)[] {
@@ -706,11 +699,6 @@ function nameSentenceParts<T>(key: NameSentenceKey, name: T): readonly (T | stri
     const before = index > 0 ? [name] : []
     return piece ? [...before, piece] : before
   })
-}
-
-// The strict parse refuses this default, but the page still shows a config that fails to parse.
-export function remoteNotListedParts<T>(name: T): readonly (T | string)[] {
-  return nameSentenceParts('config.remoteNotListed', name)
 }
 
 export function remoteUnlistedChoiceParts<T>(name: T): readonly (T | string)[] {
@@ -725,11 +713,69 @@ export function remoteChoiceParts<T>(name: T, protocol: string | undefined): [T,
   return [name, protocol === undefined ? '' : ` (${protocol})`]
 }
 
-export function remoteCredentialsLine(secretsFile: string | undefined): string {
+const REMOTES_NOTE_KEYS = {
+  empty: 'config.remotes.empty',
+  pick: 'config.remotes.pick',
+  listed: 'config.remotes.listed',
+  pluginsListed: 'config.remotes.pluginsListed',
+} as const
+
+type CodeSentenceKey =
+  | (typeof REMOTES_NOTE_KEYS)[keyof typeof REMOTES_NOTE_KEYS]
+  | 'config.remoteNotListed'
+  | 'config.remoteCredentials.file'
+  | 'config.remoteCredentials.noFile'
+
+type CodeSpan<T> = (inner: readonly (T | string)[], index: number) => T
+
+const CODE_AND_SLOT_MARKS = /(<code>|<\/code>|\{\{\s*\w+\s*\}\})/
+
+// The catalog marks each config key with a bare <code> tag. The sentence is split at its marks
+// and slots before any value goes in, so a value is never read for either.
+function codeSentenceParts<T>(
+  key: CodeSentenceKey,
+  slots: Record<string, T | string>,
+  code: CodeSpan<T>,
+): readonly (T | string)[] {
+  const sentence = String(t(key, { skipInterpolation: true } as never))
+  const parts: (T | string)[] = []
+  let span: (T | string)[] | undefined
+  for (const [index, piece] of sentence.split(CODE_AND_SLOT_MARKS).entries()) {
+    if (piece === '<code>') {
+      span ??= []
+    } else if (piece === '</code>') {
+      if (span) parts.push(code(span, index))
+      span = undefined
+    } else if (piece !== '') {
+      const slot = /^\{\{\s*(\w+)\s*\}\}$/.exec(piece)?.[1]
+      const value = slot !== undefined && slot in slots ? slots[slot]! : piece
+      if (span) span.push(value)
+      else parts.push(value)
+    }
+  }
+  return span ? [...parts, ...span] : parts
+}
+
+export function remotesNoteParts<T>(
+  note: keyof typeof REMOTES_NOTE_KEYS,
+  code: CodeSpan<T>,
+): readonly (T | string)[] {
+  return codeSentenceParts(REMOTES_NOTE_KEYS[note], {}, code)
+}
+
+// The strict parse refuses this default, but the page still shows a config that fails to parse.
+export function remoteNotListedParts<T>(name: T, code: CodeSpan<T>): readonly (T | string)[] {
+  return codeSentenceParts('config.remoteNotListed', { name }, code)
+}
+
+export function remoteCredentialsParts<T>(
+  secretsFile: string | undefined,
+  code: CodeSpan<T>,
+): readonly (T | string)[] {
   const reference = '{{secret:NAME}}'
   return secretsFile === undefined
-    ? t('config.remoteCredentials.noFile', { reference })
-    : t('config.remoteCredentials.file', { reference, file: secretsFile })
+    ? codeSentenceParts('config.remoteCredentials.noFile', { reference }, code)
+    : codeSentenceParts('config.remoteCredentials.file', { reference, file: secretsFile }, code)
 }
 export const NO_DEVICES_TEXT = () => t('configUi.noDevicesText')
 export const NO_LOGIN_STATES_TEXT = () => t('configUi.noLoginStatesText')

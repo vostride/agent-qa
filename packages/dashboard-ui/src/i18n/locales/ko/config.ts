@@ -199,16 +199,16 @@ export default {
   'config.remotes.columns.origin': '출처',
   'config.remotes.pluginNotDeclared': 'plugins에 선언되지 않음',
   'config.remotes.empty':
-    '등록된 원격 환경이 없습니다. agent-qa.config.yaml의 registry.remotes에 추가하세요:',
+    '등록된 원격 환경이 없습니다. <code>agent-qa.config.yaml</code>의 <code>registry.remotes</code>에 추가하세요:',
   'config.remotes.pick':
-    'agent-qa.config.yaml, 스위트 또는 테스트에서 use.browser.remote: <name> 형식으로 선택하세요. 이 컴퓨터에서 실행하려면 local을 사용하세요.',
+    '<code>agent-qa.config.yaml</code>, 스위트 또는 테스트에서 <code>use.browser.remote: <name></code> 형식으로 선택하세요. 이 컴퓨터에서 실행하려면 <code>local</code>을 사용하세요.',
   'config.remotes.listed':
-    '원격 환경은 agent-qa.config.yaml의 registry.remotes에 정의하고 use.browser.remote로 선택합니다.',
+    '원격 환경은 <code>agent-qa.config.yaml</code>의 <code>registry.remotes</code>에 정의하고 <code>use.browser.remote</code>로 선택합니다.',
   'config.remotes.pluginsTitle': '플러그인',
   'config.remotes.pluginColumns.name': '이름',
   'config.remotes.pluginColumns.source': '패키지 또는 경로',
   'config.remotes.pluginsListed':
-    '플러그인은 agent-qa.config.yaml의 plugins에 선언하며, 옵션은 파일에 그대로 남습니다.',
+    '플러그인은 <code>agent-qa.config.yaml</code>의 <code>plugins</code>에 선언하며, 옵션은 파일에 그대로 남습니다.',
   'config.loginStateColumn.target': '대상',
   'config.loginStateColumn.name': '이름',
   'config.loginStateColumn.captured': '캡처 시각',
@@ -326,13 +326,13 @@ export default {
   'config.removeAttribute': '{{key}} 속성 제거',
   'config.pluginRemote': '플러그인 {{entry}}',
   'config.remoteNotListed':
-    '{{name}} 원격 환경이 registry.remotes에 없어서 이 기본값을 사용하는 웹 테스트를 실행할 수 없습니다. 목록에 추가하거나 use.browser.remote 값을 바꾸세요.',
+    '{{name}} 원격 환경이 <code>registry.remotes</code>에 없어서 이 기본값을 사용하는 웹 테스트를 실행할 수 없습니다. 목록에 추가하거나 <code>use.browser.remote</code> 값을 바꾸세요.',
   'config.remoteUnlistedChoice': '{{name}}(목록에 없음)',
   'config.remotePickNotListed': '{{name}} 원격 환경이 설정의 remotes 목록에 없습니다.',
   'config.remoteCredentials.file':
-    '자격 증명은 {{file}}에 선언된 이름을 가리키는 {{reference}} 참조로 작성하세요.',
+    '자격 증명은 {{file}}에 선언된 이름을 가리키는 <code>{{reference}}</code> 참조로 작성하세요.',
   'config.remoteCredentials.noFile':
-    '자격 증명은 시크릿 파일(workspace.secretsFile로 설정)에 선언된 이름을 가리키는 {{reference}} 참조로 작성하세요.',
+    '자격 증명은 시크릿 파일(<code>workspace.secretsFile</code>로 설정)에 선언된 이름을 가리키는 <code>{{reference}}</code> 참조로 작성하세요.',
   'config.targetDeviceUnlistedChoice': '{{name}}(이 플랫폼 목록에 없음)',
   'config.targetNameTaken': '이름이 {{name}}인 대상이 이미 있습니다.',
   'config.deviceNameTaken': '이름이 {{name}}인 기기가 이미 있습니다.',

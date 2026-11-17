@@ -200,16 +200,16 @@ export default {
   'config.remotes.columns.origin': '提供元',
   'config.remotes.pluginNotDeclared': 'pluginsで宣言されていません',
   'config.remotes.empty':
-    'リモートはありません。agent-qa.config.yamlのregistry.remotesに追加してください：',
+    'リモートはありません。<code>agent-qa.config.yaml</code>の<code>registry.remotes</code>に追加してください：',
   'config.remotes.pick':
-    'agent-qa.config.yaml、スイート、テストのいずれかでuse.browser.remote: <name>と指定して選びます。このマシンで実行するにはlocalを指定します。',
+    '<code>agent-qa.config.yaml</code>、スイート、テストのいずれかで<code>use.browser.remote: <name></code>と指定して選びます。このマシンで実行するには<code>local</code>を指定します。',
   'config.remotes.listed':
-    'リモートはagent-qa.config.yamlのregistry.remotesで定義し、use.browser.remoteで選びます。',
+    'リモートは<code>agent-qa.config.yaml</code>の<code>registry.remotes</code>で定義し、<code>use.browser.remote</code>で選びます。',
   'config.remotes.pluginsTitle': 'プラグイン',
   'config.remotes.pluginColumns.name': '名前',
   'config.remotes.pluginColumns.source': 'パッケージまたはパス',
   'config.remotes.pluginsListed':
-    'プラグインはagent-qa.config.yamlのpluginsで宣言します。オプションはファイル内に記述したままです。',
+    'プラグインは<code>agent-qa.config.yaml</code>の<code>plugins</code>で宣言します。オプションはファイル内に記述したままです。',
   'config.loginStateColumn.target': 'ターゲット',
   'config.loginStateColumn.name': '名前',
   'config.loginStateColumn.captured': '取得日時',
@@ -332,13 +332,13 @@ export default {
   'config.removeAttribute': '属性{{key}}を削除',
   'config.pluginRemote': 'プラグイン{{entry}}',
   'config.remoteNotListed':
-    '{{name}}はregistry.remotesに登録されていないため、この既定値を使うWebテストは実行できません。登録するか、use.browser.remoteを変更してください。',
+    '{{name}}は<code>registry.remotes</code>に登録されていないため、この既定値を使うWebテストは実行できません。登録するか、<code>use.browser.remote</code>を変更してください。',
   'config.remoteUnlistedChoice': '{{name}}（未登録）',
   'config.remotePickNotListed': '{{name}}は設定のリモートに登録されていません。',
   'config.remoteCredentials.file':
-    '認証情報は、{{file}}で宣言した名前を参照する{{reference}}の形式で記述してください。',
+    '認証情報は、{{file}}で宣言した名前を参照する<code>{{reference}}</code>の形式で記述してください。',
   'config.remoteCredentials.noFile':
-    '認証情報は、シークレットファイル（workspace.secretsFileで指定）で宣言した名前を参照する{{reference}}の形式で記述してください。',
+    '認証情報は、シークレットファイル（<code>workspace.secretsFile</code>で指定）で宣言した名前を参照する<code>{{reference}}</code>の形式で記述してください。',
   'config.targetDeviceUnlistedChoice': '{{name}}（このプラットフォームには未登録）',
   'config.targetNameTaken': '{{name}}という名前のターゲットはすでにあります。',
   'config.deviceNameTaken': '{{name}}という名前のデバイスはすでにあります。',

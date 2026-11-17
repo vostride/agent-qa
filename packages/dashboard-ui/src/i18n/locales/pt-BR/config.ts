@@ -203,16 +203,16 @@ export default {
   'config.remotes.columns.origin': 'Origem',
   'config.remotes.pluginNotDeclared': 'não declarado em plugins',
   'config.remotes.empty':
-    'Nenhum remoto está listado. Adicione um em registry.remotes no agent-qa.config.yaml:',
+    'Nenhum remoto está listado. Adicione um em <code>registry.remotes</code> no <code>agent-qa.config.yaml</code>:',
   'config.remotes.pick':
-    'Escolha um com use.browser.remote: <name> no agent-qa.config.yaml, em uma suíte ou em um teste. Use local para executar nesta máquina.',
+    'Escolha um com <code>use.browser.remote: <name></code> no <code>agent-qa.config.yaml</code>, em uma suíte ou em um teste. Use <code>local</code> para executar nesta máquina.',
   'config.remotes.listed':
-    'Os remotos são definidos em registry.remotes no agent-qa.config.yaml e escolhidos com use.browser.remote.',
+    'Os remotos são definidos em <code>registry.remotes</code> no <code>agent-qa.config.yaml</code> e escolhidos com <code>use.browser.remote</code>.',
   'config.remotes.pluginsTitle': 'Plugins',
   'config.remotes.pluginColumns.name': 'Nome',
   'config.remotes.pluginColumns.source': 'Pacote ou caminho',
   'config.remotes.pluginsListed':
-    'Os plugins são declarados em plugins no agent-qa.config.yaml; as opções deles ficam no arquivo.',
+    'Os plugins são declarados em <code>plugins</code> no <code>agent-qa.config.yaml</code>; as opções deles ficam no arquivo.',
   'config.loginStateColumn.target': 'Destino',
   'config.loginStateColumn.name': 'Nome',
   'config.loginStateColumn.captured': 'Capturado',
@@ -336,13 +336,13 @@ export default {
   'config.removeAttribute': 'Remover o atributo {{key}}',
   'config.pluginRemote': 'plugin {{entry}}',
   'config.remoteNotListed':
-    '{{name}} não está listado em registry.remotes, então os testes web que usam este padrão não podem ser executados. Liste-o ou altere use.browser.remote.',
+    '{{name}} não está listado em <code>registry.remotes</code>, então os testes web que usam este padrão não podem ser executados. Liste-o ou altere <code>use.browser.remote</code>.',
   'config.remoteUnlistedChoice': '{{name}} (não listado)',
   'config.remotePickNotListed': '{{name}} não está listado entre os remotos da configuração.',
   'config.remoteCredentials.file':
-    'Escreva as credenciais como referências {{reference}} a nomes declarados em {{file}}.',
+    'Escreva as credenciais como referências <code>{{reference}}</code> a nomes declarados em {{file}}.',
   'config.remoteCredentials.noFile':
-    'Escreva as credenciais como referências {{reference}} a nomes declarados no seu arquivo de segredos (defina workspace.secretsFile).',
+    'Escreva as credenciais como referências <code>{{reference}}</code> a nomes declarados no seu arquivo de segredos (defina <code>workspace.secretsFile</code>).',
   'config.targetDeviceUnlistedChoice': '{{name}} (não listado para esta plataforma)',
   'config.targetNameTaken': 'Já existe um destino chamado {{name}}.',
   'config.deviceNameTaken': 'Já existe um dispositivo chamado {{name}}.',

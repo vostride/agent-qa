@@ -45,10 +45,11 @@ The languages, with their codes and their own names: `zh-Hans` 简体中文, `zh
   is never translated: `{{name}}`, `{{count}}`, `{{target}}`, `{{reason}}`, `{{reference}}`,
   `{{issue}}`, `{{sentence}}`, `{{steps}}` and every other. A slot is filled in by the code, so the
   text around it must read with any value: a name, a number, a sentence.
-- **Tags.** A tag of the English text (`<a>…</a>`) is kept as a bare tag, with no attribute,
-  around the words of the language that do the same job. A tag never carries an attribute such as
-  `href` or `class`: an attribute written in a catalog string replaces the one the code sets, so it
-  could send a link somewhere else. The code sets every link's address.
+- **Tags.** A tag of the English text (`<a>…</a>` around a link's words, `<code>…</code>` around a
+  config key) is kept as a bare tag, with no attribute, around the words of the language that do
+  the same job. A tag never carries an attribute such as `href` or `class`: an attribute written in
+  a catalog string replaces the one the code sets, so it could send a link somewhere else. The code
+  sets every link's address.
 - **Plural forms.** A key that ends in `_one` or `_other` is a plural key: write the forms the
   language has, as § Plural forms says, and always `_other`.
 - **Spaces.** A value never begins or ends with a space. Where a sentence is joined to another piece,
@@ -213,6 +214,12 @@ for slots.
 - `config.remoteNotListed`, `config.remoteUnlistedChoice`, `config.remotePickNotListed`: split at
   `{{name}}`. `config.connectRefusalIssue.*` keeps `{{issue}}`, `config.signInFailed.*` keeps
   `{{reason}}`, `config.remoteCredentials.*` keeps `{{reference}}`.
+- The Remotes sentences mark what is shown as code with a bare `<code>` tag: `config.remotes.empty`,
+  `.pick`, `.listed` and `.pluginsListed`, `config.remoteNotListed` and the two
+  `config.remoteCredentials.*`. Keep each tag around the same config key, file name, value or
+  slot as English, as often as English has it. A word of the language that only looks like a key
+  stays outside: French writes `Les plugins sont déclarés sous <code>plugins</code>`, with the tag
+  on the key alone.
 
 ### action
 

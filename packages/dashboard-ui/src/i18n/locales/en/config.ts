@@ -196,16 +196,16 @@ export default {
   'config.remotes.columns.origin': 'Origin',
   'config.remotes.pluginNotDeclared': 'not declared under plugins',
   'config.remotes.empty':
-    'No remotes are listed. Add one under registry.remotes in agent-qa.config.yaml:',
+    'No remotes are listed. Add one under <code>registry.remotes</code> in <code>agent-qa.config.yaml</code>:',
   'config.remotes.pick':
-    'Pick one with use.browser.remote: <name> in agent-qa.config.yaml, a suite or a test. Use local to run on this machine.',
+    'Pick one with <code>use.browser.remote: <name></code> in <code>agent-qa.config.yaml</code>, a suite or a test. Use <code>local</code> to run on this machine.',
   'config.remotes.listed':
-    'Remotes are defined under registry.remotes in agent-qa.config.yaml and picked with use.browser.remote.',
+    'Remotes are defined under <code>registry.remotes</code> in <code>agent-qa.config.yaml</code> and picked with <code>use.browser.remote</code>.',
   'config.remotes.pluginsTitle': 'Plugins',
   'config.remotes.pluginColumns.name': 'Name',
   'config.remotes.pluginColumns.source': 'Package or path',
   'config.remotes.pluginsListed':
-    'Plugins are declared under plugins in agent-qa.config.yaml; their options stay in the file.',
+    'Plugins are declared under <code>plugins</code> in <code>agent-qa.config.yaml</code>; their options stay in the file.',
   'config.loginStateColumn.target': 'Target',
   'config.loginStateColumn.name': 'Name',
   'config.loginStateColumn.captured': 'Captured',
@@ -311,13 +311,13 @@ export default {
   'config.removeAttribute': 'Remove attribute {{key}}',
   'config.pluginRemote': 'plugin {{entry}}',
   'config.remoteNotListed':
-    '{{name}} is not listed under registry.remotes, so web tests that use this default cannot run. List it, or change use.browser.remote.',
+    '{{name}} is not listed under <code>registry.remotes</code>, so web tests that use this default cannot run. List it, or change <code>use.browser.remote</code>.',
   'config.remoteUnlistedChoice': '{{name}} (not listed)',
   'config.remotePickNotListed': "{{name}} is not listed under the config's remotes.",
   'config.remoteCredentials.file':
-    'Write credentials as {{reference}} references to names declared in {{file}}.',
+    'Write credentials as <code>{{reference}}</code> references to names declared in {{file}}.',
   'config.remoteCredentials.noFile':
-    'Write credentials as {{reference}} references to names declared in your secrets file (set workspace.secretsFile).',
+    'Write credentials as <code>{{reference}}</code> references to names declared in your secrets file (set <code>workspace.secretsFile</code>).',
   'config.targetDeviceUnlistedChoice': '{{name}} (not listed for this platform)',
   'config.targetNameTaken': 'A target named {{name}} already exists.',
   'config.deviceNameTaken': 'A device named {{name}} already exists.',

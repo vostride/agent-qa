@@ -189,16 +189,16 @@ export default {
   'config.remotes.columns.origin': '來源',
   'config.remotes.pluginNotDeclared': '未在 plugins 下宣告',
   'config.remotes.empty':
-    '沒有列出任何遠端環境。請在 agent-qa.config.yaml 的 registry.remotes 下新增一個：',
+    '沒有列出任何遠端環境。請在 <code>agent-qa.config.yaml</code> 的 <code>registry.remotes</code> 下新增一個：',
   'config.remotes.pick':
-    '請在 agent-qa.config.yaml、套件或測試中以 use.browser.remote: <name> 指定一個。使用 local 即可在這台電腦上執行。',
+    '請在 <code>agent-qa.config.yaml</code>、套件或測試中以 <code>use.browser.remote: <name></code> 指定一個。使用 <code>local</code> 即可在這台電腦上執行。',
   'config.remotes.listed':
-    '遠端環境定義在 agent-qa.config.yaml 的 registry.remotes 下，並以 use.browser.remote 指定。',
+    '遠端環境定義在 <code>agent-qa.config.yaml</code> 的 <code>registry.remotes</code> 下，並以 <code>use.browser.remote</code> 指定。',
   'config.remotes.pluginsTitle': '外掛程式',
   'config.remotes.pluginColumns.name': '名稱',
   'config.remotes.pluginColumns.source': '套件或路徑',
   'config.remotes.pluginsListed':
-    '外掛程式宣告在 agent-qa.config.yaml 的 plugins 下；其選項保留在檔案中。',
+    '外掛程式宣告在 <code>agent-qa.config.yaml</code> 的 <code>plugins</code> 下；其選項保留在檔案中。',
   'config.loginStateColumn.target': '目標',
   'config.loginStateColumn.name': '名稱',
   'config.loginStateColumn.captured': '擷取時間',
@@ -313,12 +313,13 @@ export default {
   'config.removeAttribute': '移除屬性 {{key}}',
   'config.pluginRemote': '外掛程式 {{entry}}',
   'config.remoteNotListed':
-    '{{name}} 未列在 registry.remotes 下，因此使用此預設值的網頁測試無法執行。請將它列入，或變更 use.browser.remote。',
+    '{{name}} 未列在 <code>registry.remotes</code> 下，因此使用此預設值的網頁測試無法執行。請將它列入，或變更 <code>use.browser.remote</code>。',
   'config.remoteUnlistedChoice': '{{name}}（未列出）',
   'config.remotePickNotListed': '{{name}} 未列在設定的遠端環境中。',
-  'config.remoteCredentials.file': '請將憑證寫成 {{reference}} 參照，指向 {{file}} 中宣告的名稱。',
+  'config.remoteCredentials.file':
+    '請將憑證寫成 <code>{{reference}}</code> 參照，指向 {{file}} 中宣告的名稱。',
   'config.remoteCredentials.noFile':
-    '請將憑證寫成 {{reference}} 參照，指向機密檔案中宣告的名稱（請設定 workspace.secretsFile）。',
+    '請將憑證寫成 <code>{{reference}}</code> 參照，指向機密檔案中宣告的名稱（請設定 <code>workspace.secretsFile</code>）。',
   'config.targetDeviceUnlistedChoice': '{{name}}（未列於此平台）',
   'config.targetNameTaken': '已有名為 {{name}} 的目標。',
   'config.deviceNameTaken': '已有名為 {{name}} 的裝置。',

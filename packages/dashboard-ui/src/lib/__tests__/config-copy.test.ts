@@ -23,6 +23,10 @@ function collectStrings(value: unknown, into: string[] = []): string[] {
   return into
 }
 
+const unmarked = (inner: readonly string[]) => inner.join('')
+const REMOTES_NOTES = ['empty', 'pick', 'listed', 'pluginsListed'] as const
+const remotesNotes = () => REMOTES_NOTES.map((note) => copy.remotesNoteParts(note, unmarked).join(''))
+
 const deleteKinds = EXPLICIT_ACTION_KINDS.filter(
   (kind): kind is copy.DeleteActionKind => kind.startsWith('delete-'),
 )
@@ -60,13 +64,14 @@ function functionOutputs(): string[] {
     copy.attributeValueLabel('git.branch'),
     copy.removeAttributeName('git.branch'),
     copy.targetNameTakenError('staging'),
-    copy.remoteNotListedParts('grid').join(''),
+    ...remotesNotes(),
+    copy.remoteNotListedParts('grid', unmarked).join(''),
     copy.remoteChoiceParts('grid', 'playwright').join(''),
     copy.remoteChoiceParts('grid', undefined).join(''),
     copy.remoteUnlistedChoiceParts('gird').join(''),
     copy.remotePickNotListedParts('gird').join(''),
-    copy.remoteCredentialsLine('.env.secrets.local'),
-    copy.remoteCredentialsLine(undefined),
+    copy.remoteCredentialsParts('.env.secrets.local', unmarked).join(''),
+    copy.remoteCredentialsParts(undefined, unmarked).join(''),
     copy.deviceNameTakenError('pixel'),
   ]
 }
@@ -80,9 +85,10 @@ const REMOTE_KEY_PATHS = ['registry.remotes', 'use.browser.remote'] as const
 function remotesStrings(): string[] {
   return [
     ...collectStrings(copy.REMOTES_COPY),
-    copy.remoteNotListedParts('grid').join(''),
-    copy.remoteCredentialsLine('.env.secrets.local'),
-    copy.remoteCredentialsLine(undefined),
+    ...remotesNotes(),
+    copy.remoteNotListedParts('grid', unmarked).join(''),
+    copy.remoteCredentialsParts('.env.secrets.local', unmarked).join(''),
+    copy.remoteCredentialsParts(undefined, unmarked).join(''),
   ]
 }
 
@@ -408,14 +414,14 @@ describe('The Config sentences in another language', () => {
   })
 
   it('a not-listed sentence returns its parts in the language order, with the name kept whole', async () => {
-    expect(copy.remoteNotListedParts('grid')[0]).toBe('grid')
+    expect(copy.remoteNotListedParts('grid', unmarked)[0]).toBe('grid')
     i18n.addResourceBundle('fr', 'translation', {
       'config.remoteNotListed': 'Absent de registry.remotes : {{name}}',
       'config.remoteUnlistedChoice': '(absent) {{name}}',
       'config.remotePickNotListed': 'Le remote {{name}} manque dans la config.',
     })
     await i18n.changeLanguage('fr')
-    expect(copy.remoteNotListedParts('grid').join('|')).toBe('Absent de registry.remotes : |grid')
+    expect(copy.remoteNotListedParts('grid', unmarked).join('|')).toBe('Absent de registry.remotes : |grid')
     expect(copy.remoteUnlistedChoiceParts('gird').join('|')).toBe('(absent) |gird')
     expect(copy.remotePickNotListedParts('gird').join('|')).toBe(
       'Le remote |gird| manque dans la config.',
@@ -426,22 +432,46 @@ describe('The Config sentences in another language', () => {
     expect(copy.remoteChoiceParts('grid', 'playwright').join('|')).toBe('grid| (playwright)')
 
     await i18n.changeLanguage('en')
-    expect(copy.remoteNotListedParts('grid')[0]).toBe('grid')
+    expect(copy.remoteNotListedParts('grid', unmarked)[0]).toBe('grid')
     expect(copy.remoteUnlistedChoiceParts('gird').join('|')).toBe('gird| (not listed)')
   })
 
+  it('a sentence returns its code spans where the language marks them and reads no value for marks', async () => {
+    const marked = (inner: readonly string[]) => `[${inner.join('')}]`
+    expect(copy.remotesNoteParts('pluginsListed', marked).join('')).toBe(
+      'Plugins are declared under [plugins] in [agent-qa.config.yaml]; their options stay in the file.',
+    )
+    expect(copy.remotesNoteParts('pick', marked).join('')).toBe(
+      'Pick one with [use.browser.remote: <name>] in [agent-qa.config.yaml], a suite or a test. Use [local] to run on this machine.',
+    )
+    expect(copy.remoteNotListedParts('grid', marked).join('')).toBe(
+      'grid is not listed under [registry.remotes], so web tests that use this default cannot run. List it, or change [use.browser.remote].',
+    )
+    i18n.addResourceBundle('fr', 'translation', {
+      'config.remotes.pluginsListed': 'Les plugins sont déclarés sous <code>plugins</code>.',
+      'config.remoteCredentials.file': 'Dans {{file}} : <code>{{reference}}</code>',
+    })
+    await i18n.changeLanguage('fr')
+    expect(copy.remotesNoteParts('pluginsListed', marked).join('')).toBe(
+      'Les plugins sont déclarés sous [plugins].',
+    )
+    expect(copy.remoteCredentialsParts('<code>plugins</code> {{reference}}', marked).join('|')).toBe(
+      'Dans |<code>plugins</code> {{reference}}| : |[{{secret:NAME}}]',
+    )
+  })
+
   it('the credentials line names the secrets file, or says where to set one', async () => {
-    expect(copy.remoteCredentialsLine('.env.secrets.local')).toBe(
+    expect(copy.remoteCredentialsParts('.env.secrets.local', unmarked).join('')).toBe(
       'Write credentials as {{secret:NAME}} references to names declared in .env.secrets.local.',
     )
-    expect(copy.remoteCredentialsLine(undefined)).toBe(
+    expect(copy.remoteCredentialsParts(undefined, unmarked).join('')).toBe(
       'Write credentials as {{secret:NAME}} references to names declared in your secrets file (set workspace.secretsFile).',
     )
     i18n.addResourceBundle('fr', 'translation', {
       'config.remoteCredentials.file': 'Références {{reference}} déclarées dans {{file}}.',
     })
     await i18n.changeLanguage('fr')
-    expect(copy.remoteCredentialsLine('.env.secrets.local')).toBe(
+    expect(copy.remoteCredentialsParts('.env.secrets.local', unmarked).join('')).toBe(
       'Références {{secret:NAME}} déclarées dans .env.secrets.local.',
     )
   })

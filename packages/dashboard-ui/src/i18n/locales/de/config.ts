@@ -208,16 +208,16 @@ export default {
   'config.remotes.columns.origin': 'Herkunft',
   'config.remotes.pluginNotDeclared': 'nicht unter plugins deklariert',
   'config.remotes.empty':
-    'Es sind keine Remotes aufgeführt. Fügen Sie in agent-qa.config.yaml einen unter registry.remotes hinzu:',
+    'Es sind keine Remotes aufgeführt. Fügen Sie in <code>agent-qa.config.yaml</code> einen unter <code>registry.remotes</code> hinzu:',
   'config.remotes.pick':
-    'Wählen Sie einen mit use.browser.remote: <name> in agent-qa.config.yaml, einer Suite oder einem Test. Mit local läuft der Test auf diesem Rechner.',
+    'Wählen Sie einen mit <code>use.browser.remote: <name></code> in <code>agent-qa.config.yaml</code>, einer Suite oder einem Test. Mit <code>local</code> läuft der Test auf diesem Rechner.',
   'config.remotes.listed':
-    'Remotes werden in agent-qa.config.yaml unter registry.remotes definiert und mit use.browser.remote ausgewählt.',
+    'Remotes werden in <code>agent-qa.config.yaml</code> unter <code>registry.remotes</code> definiert und mit <code>use.browser.remote</code> ausgewählt.',
   'config.remotes.pluginsTitle': 'Plugins',
   'config.remotes.pluginColumns.name': 'Name',
   'config.remotes.pluginColumns.source': 'Paket oder Pfad',
   'config.remotes.pluginsListed':
-    'Plugins werden in agent-qa.config.yaml unter plugins deklariert; ihre Optionen bleiben in der Datei.',
+    'Plugins werden in <code>agent-qa.config.yaml</code> unter <code>plugins</code> deklariert; ihre Optionen bleiben in der Datei.',
   'config.loginStateColumn.target': 'Ziel',
   'config.loginStateColumn.name': 'Name',
   'config.loginStateColumn.captured': 'Erfasst',
@@ -342,14 +342,14 @@ export default {
   'config.removeAttribute': 'Attribut {{key}} entfernen',
   'config.pluginRemote': 'Plugin {{entry}}',
   'config.remoteNotListed':
-    '{{name}} ist nicht unter registry.remotes aufgeführt, daher können Web-Tests, die diesen Standard verwenden, nicht laufen. Führen Sie ihn dort auf oder ändern Sie use.browser.remote.',
+    '{{name}} ist nicht unter <code>registry.remotes</code> aufgeführt, daher können Web-Tests, die diesen Standard verwenden, nicht laufen. Führen Sie ihn dort auf oder ändern Sie <code>use.browser.remote</code>.',
   'config.remoteUnlistedChoice': '{{name}} (nicht aufgeführt)',
   'config.remotePickNotListed':
     '{{name}} ist nicht unter den Remotes der Konfiguration aufgeführt.',
   'config.remoteCredentials.file':
-    'Schreiben Sie Zugangsdaten als {{reference}}-Verweise auf Namen, die in {{file}} deklariert sind.',
+    'Schreiben Sie Zugangsdaten als <code>{{reference}}</code>-Verweise auf Namen, die in {{file}} deklariert sind.',
   'config.remoteCredentials.noFile':
-    'Schreiben Sie Zugangsdaten als {{reference}}-Verweise auf Namen, die in Ihrer Secrets-Datei deklariert sind (workspace.secretsFile festlegen).',
+    'Schreiben Sie Zugangsdaten als <code>{{reference}}</code>-Verweise auf Namen, die in Ihrer Secrets-Datei deklariert sind (<code>workspace.secretsFile</code> festlegen).',
   'config.targetDeviceUnlistedChoice': '{{name}} (für diese Plattform nicht aufgeführt)',
   'config.targetNameTaken': 'Ein Ziel namens {{name}} ist bereits vorhanden.',
   'config.deviceNameTaken': 'Ein Gerät namens {{name}} ist bereits vorhanden.',

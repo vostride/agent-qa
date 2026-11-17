@@ -42,6 +42,9 @@ command palette behavior, charts, tables, and YAML authoring surfaces.
 - A link inside a sentence is a bare `<a>…</a>` tag in the catalog, drawn with `Trans` and a
   `components` map that sets the address. A tag is never named after an HTML void element such
   as `link` or `br`: `Trans` closes it at once and the words fall outside it.
+- A config key shown as code inside a sentence is a bare `<code>…</code>` tag in the catalog.
+  The Remotes sentences are split at those tags by `src/lib/config-copy.ts`, not by `Trans`,
+  because one of them holds the config syntax `<name>`. No code searches a sentence for a key.
 - Text from outside the UI (server messages, run output, model text, the project's tests,
   suites and hooks), Monaco's own text and the schema package's sentences are shown as
   produced. `agent-qa`, YAML keys, commands and file names stay as written in every language.

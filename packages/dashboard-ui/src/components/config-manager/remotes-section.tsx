@@ -16,8 +16,9 @@ import {
   pluginRemoteText,
   REMOTES_COPY,
   remoteChoiceParts,
-  remoteCredentialsLine,
+  remoteCredentialsParts,
   remoteNotListedParts,
+  remotesNoteParts,
   remoteUnlistedChoiceParts,
 } from "@/lib/config-copy"
 
@@ -51,43 +52,17 @@ const EXAMPLE_CLASS =
   "rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs whitespace-pre-wrap [overflow-wrap:anywhere]"
 const NOTE_CLASS = "text-xs text-muted-foreground"
 const CODE_CLASS = "font-mono wrap-anywhere"
-// Longest first, so a key path is set as code whole rather than by a shorter path it starts with.
-const CODE_TERMS = [
-  "use.browser.remote: <name>",
-  "use.browser.remote",
-  "registry.remotes",
-  "plugins",
-  "workspace.secretsFile",
-  "agent-qa.config.yaml",
-  "{{secret:NAME}}",
-]
-const PICK_TERMS = [...CODE_TERMS, "local"]
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
-function escapeRegExp(term: string): string {
-  return term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-}
-
-function withCode(line: string, terms: readonly string[] = CODE_TERMS, key = ""): ReactNode[] {
-  const pattern = new RegExp(`(${terms.map(escapeRegExp).join("|")})`)
-  return line.split(pattern).map((part, index) =>
-    index % 2 === 1 ? (
-      <code key={`${key}${index}`} className={CODE_CLASS}>
-        {part}
-      </code>
-    ) : (
-      part
-    ),
-  )
-}
-
-// The remote name is the config's text, so only the sentence around it is read for key paths.
-function withName(parts: readonly ReactNode[]): ReactNode[] {
-  return parts.flatMap((part, index) =>
-    typeof part === "string" ? withCode(part, CODE_TERMS, `${index}:`) : [part],
+// What the catalog marks as code in a sentence: a key path, the config file, a config value.
+function code(inner: readonly ReactNode[], index: number): ReactNode {
+  return (
+    <code key={index} className={CODE_CLASS}>
+      {inner}
+    </code>
   )
 }
 
@@ -233,7 +208,7 @@ function PluginsList({ plugins }: { plugins: PluginRow[] }) {
         </TableBody>
       </Table>
       <p data-plugins-listed className={NOTE_CLASS}>
-        {withCode(REMOTES_COPY.pluginsListed)}
+        {remotesNoteParts("pluginsListed", code)}
       </p>
     </div>
   )
@@ -249,22 +224,22 @@ export function RemotesSection({ config }: RemotesSectionProps) {
       {plugins.length === 0 ? null : <PluginsList plugins={plugins} />}
       {unlisted ? (
         <p data-remote-unlisted className="text-sm text-destructive">
-          {withName(remoteNotListedParts(nameMark(pick)))}
+          {remoteNotListedParts(nameMark(pick), code)}
         </p>
       ) : null}
       {remotes.length === 0 ? (
         <div className="space-y-2">
           <p data-remotes-empty className="text-sm text-foreground">
-            {withCode(REMOTES_COPY.empty)}
+            {remotesNoteParts("empty", code)}
           </p>
           <pre data-remotes-example className={EXAMPLE_CLASS}>
             <code>{REMOTES_COPY.example}</code>
           </pre>
           <p data-remotes-credentials className={NOTE_CLASS}>
-            {withCode(remoteCredentialsLine(secretsFileOf(config)))}
+            {remoteCredentialsParts(secretsFileOf(config), code)}
           </p>
           <p data-remotes-pick className={NOTE_CLASS}>
-            {withCode(REMOTES_COPY.pick, PICK_TERMS)}
+            {remotesNoteParts("pick", code)}
           </p>
         </div>
       ) : (
@@ -297,7 +272,7 @@ export function RemotesSection({ config }: RemotesSectionProps) {
             </TableBody>
           </Table>
           <p data-remotes-listed className={NOTE_CLASS}>
-            {withCode(REMOTES_COPY.listed)}
+            {remotesNoteParts("listed", code)}
           </p>
         </div>
       )}

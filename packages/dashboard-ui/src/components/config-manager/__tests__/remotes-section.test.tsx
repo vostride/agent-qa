@@ -13,10 +13,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
 import { RemotesSection } from '@/components/config-manager/remotes-section'
+import i18n, { applyLanguage } from '@/i18n'
+import fr from '@/i18n/locales/fr'
+import ptBR from '@/i18n/locales/pt-BR'
 import {
   DEFAULT_BADGE,
   REMOTES_COPY,
-  remoteCredentialsLine,
+  remoteCredentialsParts,
+  remotesNoteParts,
 } from '@/lib/config-copy'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -39,10 +43,15 @@ beforeEach(() => {
   root = createRoot(container)
 })
 
-afterEach(() => {
+afterEach(async () => {
   act(() => root.unmount())
   container.remove()
+  await applyLanguage('en')
+  i18n.removeResourceBundle('fr', 'translation')
+  i18n.removeResourceBundle('pt-BR', 'translation')
 })
+
+const unmarked = (inner: readonly string[]) => inner.join('')
 
 function show(config: Record<string, unknown>) {
   act(() => {
@@ -153,7 +162,9 @@ describe('the Remotes section', () => {
   it('shows the empty state when no remotes are listed', () => {
     for (const config of [{}, { registry: { remotes: [] } }, { registry: { targets: {} } }]) {
       const section = show(config)
-      expect(section.querySelector('[data-remotes-empty]')?.textContent).toBe(REMOTES_COPY.empty)
+      expect(section.querySelector('[data-remotes-empty]')?.textContent).toBe(
+        remotesNoteParts('empty', unmarked).join(''),
+      )
       expect(rows(section)).toEqual([])
     }
   })
@@ -186,9 +197,11 @@ describe('the Remotes section', () => {
   it('names the workspace secrets file the config declares, and the workspace key when it declares none', () => {
     const named = show({ workspace: { secretsFile: 'secrets/remote.env' } })
     expect(named.querySelector('[data-remotes-credentials]')?.textContent).toBe(
-      remoteCredentialsLine('secrets/remote.env'),
+      remoteCredentialsParts('secrets/remote.env', unmarked).join(''),
     )
-    expect(remoteCredentialsLine('secrets/remote.env')).toContain('secrets/remote.env.')
+    expect(remoteCredentialsParts('secrets/remote.env', unmarked).join('')).toContain(
+      'secrets/remote.env.',
+    )
     for (const config of [{}, { workspace: { secretsFile: '' } }, { workspace: 'none' }]) {
       expect(show(config).querySelector('[data-remotes-credentials]')?.textContent).toBe(
         'Write credentials as {{secret:NAME}} references to names declared in your secrets file (set workspace.secretsFile).',
@@ -271,6 +284,25 @@ describe('the Remotes section', () => {
     )
     for (const hidden of ['apiKey', 'KERNEL_API_KEY', 'option-value-77', 'option-region-12']) {
       expect(section.textContent).not.toContain(hidden)
+    }
+  })
+
+  it('sets only the plugins key and the config file in code where the language also says plugins as a word', async () => {
+    const config = { plugins: [{ name: 'lab', path: './tools/lab' }], ...TWO_REMOTES }
+    for (const [language, catalog] of [
+      ['fr', fr],
+      ['pt-BR', ptBR],
+    ] as const) {
+      await applyLanguage(language)
+      const note = show(config).querySelector('[data-plugins-listed]')
+      const sentence = catalog['config.remotes.pluginsListed']
+
+      expect(sentence.split('plugins')).toHaveLength(3)
+      expect(note?.textContent).toBe(sentence.replace(/<\/?code>/g, ''))
+      expect(Array.from(note?.querySelectorAll('code') ?? []).map((code) => code.textContent)).toEqual([
+        'plugins',
+        'agent-qa.config.yaml',
+      ])
     }
   })
 

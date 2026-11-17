@@ -201,16 +201,16 @@ export default {
   'config.remotes.columns.origin': 'Источник',
   'config.remotes.pluginNotDeclared': 'не объявлен в plugins',
   'config.remotes.empty':
-    'Удалённые среды не указаны. Добавьте среду в registry.remotes в agent-qa.config.yaml:',
+    'Удалённые среды не указаны. Добавьте среду в <code>registry.remotes</code> в <code>agent-qa.config.yaml</code>:',
   'config.remotes.pick':
-    'Выберите среду через use.browser.remote: <name> в agent-qa.config.yaml, в наборе или в тесте. Укажите local, чтобы выполнять на этом компьютере.',
+    'Выберите среду через <code>use.browser.remote: <name></code> в <code>agent-qa.config.yaml</code>, в наборе или в тесте. Укажите <code>local</code>, чтобы выполнять на этом компьютере.',
   'config.remotes.listed':
-    'Удалённые среды задаются в registry.remotes в agent-qa.config.yaml и выбираются через use.browser.remote.',
+    'Удалённые среды задаются в <code>registry.remotes</code> в <code>agent-qa.config.yaml</code> и выбираются через <code>use.browser.remote</code>.',
   'config.remotes.pluginsTitle': 'Плагины',
   'config.remotes.pluginColumns.name': 'Имя',
   'config.remotes.pluginColumns.source': 'Пакет или путь',
   'config.remotes.pluginsListed':
-    'Плагины объявляются в plugins в agent-qa.config.yaml; их параметры остаются в файле.',
+    'Плагины объявляются в <code>plugins</code> в <code>agent-qa.config.yaml</code>; их параметры остаются в файле.',
   'config.loginStateColumn.target': 'Цель',
   'config.loginStateColumn.name': 'Имя',
   'config.loginStateColumn.captured': 'Сохранено',
@@ -331,13 +331,13 @@ export default {
   'config.removeAttribute': 'Удалить атрибут {{key}}',
   'config.pluginRemote': 'плагин {{entry}}',
   'config.remoteNotListed':
-    'Среда {{name}} не указана в registry.remotes, поэтому веб-тесты с этим значением по умолчанию не смогут выполняться. Укажите её там или измените use.browser.remote.',
+    'Среда {{name}} не указана в <code>registry.remotes</code>, поэтому веб-тесты с этим значением по умолчанию не смогут выполняться. Укажите её там или измените <code>use.browser.remote</code>.',
   'config.remoteUnlistedChoice': '{{name}} (не указана)',
   'config.remotePickNotListed': 'Среда {{name}} не указана среди удалённых сред конфигурации.',
   'config.remoteCredentials.file':
-    'Указывайте учётные данные ссылками вида {{reference}} на имена, объявленные в файле {{file}}.',
+    'Указывайте учётные данные ссылками вида <code>{{reference}}</code> на имена, объявленные в файле {{file}}.',
   'config.remoteCredentials.noFile':
-    'Указывайте учётные данные ссылками вида {{reference}} на имена, объявленные в вашем файле секретов (задайте workspace.secretsFile).',
+    'Указывайте учётные данные ссылками вида <code>{{reference}}</code> на имена, объявленные в вашем файле секретов (задайте <code>workspace.secretsFile</code>).',
   'config.targetDeviceUnlistedChoice': '{{name}} (не указано для этой платформы)',
   'config.targetNameTaken': 'Цель с именем {{name}} уже существует.',
   'config.deviceNameTaken': 'Устройство с именем {{name}} уже существует.',
