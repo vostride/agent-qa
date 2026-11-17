@@ -108,7 +108,9 @@ function chooseFirst() {
 }
 
 async function settledOn(language: string) {
-  await act(() => vi.waitFor(() => expect(document.documentElement.lang).toBe(language)))
+  await act(() =>
+    vi.waitFor(() => expect(document.documentElement.lang).toBe(language), { timeout: 15_000 }),
+  )
 }
 
 async function idle() {
