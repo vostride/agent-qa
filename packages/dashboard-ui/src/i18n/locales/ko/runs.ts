@@ -35,7 +35,7 @@ export default {
   'runs.filter.allTargets': '모든 대상',
   'runs.filter.title': '속성으로 필터링',
   'runs.filter.attributes': '속성',
-  'runs.filter.attributesCount': '속성({{count}})',
+  'runs.filter.attributesCount': '속성({{number}})',
   'runs.filter.key': '키',
   'runs.filter.value': '값',
   'runs.filter.noKeys': '속성이 없습니다',

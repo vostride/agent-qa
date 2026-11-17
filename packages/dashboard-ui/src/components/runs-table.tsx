@@ -296,7 +296,7 @@ function AttributeFilterControl({
         >
           <SlidersHorizontal className="size-4" />
           {predicates.length > 0
-            ? t("runs.filter.attributesCount", { count: predicates.length })
+            ? t("runs.filter.attributesCount", { number: predicates.length })
             : t("runs.filter.attributes")}
         </Button>
       </PopoverTrigger>

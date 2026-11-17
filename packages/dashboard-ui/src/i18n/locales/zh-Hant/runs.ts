@@ -35,7 +35,7 @@ export default {
   'runs.filter.allTargets': '所有目標',
   'runs.filter.title': '依屬性篩選',
   'runs.filter.attributes': '屬性',
-  'runs.filter.attributesCount': '屬性（{{count}}）',
+  'runs.filter.attributesCount': '屬性（{{number}}）',
   'runs.filter.key': '鍵',
   'runs.filter.value': '值',
   'runs.filter.noKeys': '找不到任何屬性',

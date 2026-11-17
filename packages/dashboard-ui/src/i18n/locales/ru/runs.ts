@@ -56,7 +56,7 @@ export default {
   'runs.filter.allTargets': 'Все цели',
   'runs.filter.title': 'Фильтр по атрибутам',
   'runs.filter.attributes': 'Атрибуты',
-  'runs.filter.attributesCount': 'Атрибуты ({{count}})',
+  'runs.filter.attributesCount': 'Атрибуты ({{number}})',
   'runs.filter.key': 'Ключ',
   'runs.filter.value': 'Значение',
   'runs.filter.noKeys': 'Атрибуты не найдены',

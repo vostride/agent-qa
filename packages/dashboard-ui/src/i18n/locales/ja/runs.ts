@@ -35,7 +35,7 @@ export default {
   'runs.filter.allTargets': 'すべてのターゲット',
   'runs.filter.title': '属性で絞り込む',
   'runs.filter.attributes': '属性',
-  'runs.filter.attributesCount': '属性（{{count}}）',
+  'runs.filter.attributesCount': '属性（{{number}}）',
   'runs.filter.key': 'キー',
   'runs.filter.value': '値',
   'runs.filter.noKeys': '属性が見つかりません',

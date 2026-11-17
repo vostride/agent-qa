@@ -82,9 +82,9 @@ export function countedTriggerName(kind: EvidenceKind, value: Exclude<TabCount, 
   const problem = value.kind === 'problem'
   switch (kind) {
     case 'variables':
-      return t('evidence.trigger.variables', { count })
+      return t('evidence.trigger.variables', { number: count })
     case 'aria':
-      return t('evidence.trigger.aria', { count })
+      return t('evidence.trigger.aria', { number: count })
     case 'console':
       return problem
         ? t('evidence.trigger.consoleErrors', { count })

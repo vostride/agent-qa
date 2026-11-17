@@ -43,7 +43,7 @@ export default {
   'runs.filter.allTargets': 'Toutes les cibles',
   'runs.filter.title': 'Filtrer par attributs',
   'runs.filter.attributes': 'Attributs',
-  'runs.filter.attributesCount': 'Attributs ({{count}})',
+  'runs.filter.attributesCount': 'Attributs ({{number}})',
   'runs.filter.key': 'Clé',
   'runs.filter.value': 'Valeur',
   'runs.filter.noKeys': 'Aucun attribut trouvé',

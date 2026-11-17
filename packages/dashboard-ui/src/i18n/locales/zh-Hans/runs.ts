@@ -35,7 +35,7 @@ export default {
   'runs.filter.allTargets': '所有目标',
   'runs.filter.title': '按属性筛选',
   'runs.filter.attributes': '属性',
-  'runs.filter.attributesCount': '属性（{{count}}）',
+  'runs.filter.attributesCount': '属性（{{number}}）',
   'runs.filter.key': '键',
   'runs.filter.value': '值',
   'runs.filter.noKeys': '未找到属性',

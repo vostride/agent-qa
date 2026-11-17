@@ -42,7 +42,7 @@ export default {
   'runs.filter.allTargets': 'Todos os destinos',
   'runs.filter.title': 'Filtrar por atributos',
   'runs.filter.attributes': 'Atributos',
-  'runs.filter.attributesCount': 'Atributos ({{count}})',
+  'runs.filter.attributesCount': 'Atributos ({{number}})',
   'runs.filter.key': 'Chave',
   'runs.filter.value': 'Valor',
   'runs.filter.noKeys': 'Nenhum atributo encontrado',
