@@ -10,7 +10,6 @@ import {
 import { routes } from "@/lib/routes"
 import { fetchAppMetadata, type AppMetadataResponse } from "@/lib/api"
 import { ThemeProvider } from "@/components/theme-provider"
-import { useTranslation } from "@/i18n"
 import { LanguageProvider } from "@/i18n/language-provider"
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
@@ -66,8 +65,6 @@ function isUpdateBannerEligiblePath(pathname: string): boolean {
 }
 
 function AppLayout() {
-  // Subscribes the frame to language changes, so the header and the update banner follow a switch.
-  useTranslation()
   const matches = useMatches()
   const location = useLocation()
   const hideHeader = matches.some((m) => (m.handle as Record<string, unknown>)?.hideHeader)
