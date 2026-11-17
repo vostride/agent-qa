@@ -99,7 +99,8 @@ describe('API error messages in another language', () => {
   })
 
   it('falls back to the English sentence in a language with no text for it', async () => {
-    await i18n.changeLanguage('ko')
+    i18n.addResourceBundle('fr', 'translation', { 'nav.runs': 'Exécutions' })
+    await i18n.changeLanguage('fr')
     mockFetch.mockReturnValue(err(500, 'Internal Server Error'))
 
     await expect(fetchRuns()).rejects.toThrow('API error 500: Internal Server Error')

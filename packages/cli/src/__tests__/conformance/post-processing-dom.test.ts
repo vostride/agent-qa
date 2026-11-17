@@ -70,15 +70,13 @@ const BACKLOG_CHAINS = 3
 
 
 /**
- * A published constant, read out of the module that publishes it.
+ * A single-quoted member of an exported object literal, read out of the module that publishes it.
  *
- * `live-view-dom.test.ts`'s `publishedSentence`, widened by one level because the sentences this
- * file asserts on live inside a `Record` literal rather than at the top level. Extracted rather
- * than imported for that file's own reason: importing a `dashboard-ui` module into a Node test
- * would drag a renderer in. Either way the cell fails when the sentence moves, which is the point —
- * a hardcoded copy would go on passing against a page that says something else.
+ * Used for `STAGE_CARD_LINE_SELECTORS`, the card-line selectors this file harvests by. Extracted
+ * rather than imported because importing a `dashboard-ui` module into a Node test would drag a
+ * renderer in. The file fails when a selector moves, rather than harvesting nothing.
  */
-function publishedRecordSentence(relativePath: string, record: string, key: string): string {
+function publishedRecordMember(relativePath: string, record: string, key: string): string {
   const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
   const block = new RegExp(`${record}[^=]*=\\s*\\{([\\s\\S]*?)\\n\\}`, 'u').exec(source)
   if (block === null) throw new Error(`${record} is no longer an exported object literal in ${relativePath}`)
@@ -175,7 +173,7 @@ const STAGE_CARD_LINES = {
 } as const
 
 for (const [kind, selector] of Object.entries(STAGE_CARD_LINES)) {
-  const published = publishedRecordSentence(
+  const published = publishedRecordMember(
     'components/run-detail/post-processing-chips.tsx',
     'STAGE_CARD_LINE_SELECTORS',
     kind,

@@ -59,6 +59,7 @@ test('a media error reads its text in the language shown when it is drawn', asyn
     })
   } finally {
     await i18n.changeLanguage('en')
+    i18n.removeResourceBundle('fr', 'translation')
   }
 
   expect(mediaErrorView('video', { status: 500 })).toMatchObject(english)
