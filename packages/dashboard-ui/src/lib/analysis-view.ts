@@ -15,9 +15,6 @@ import { t } from '@/i18n'
 export type OnMark = (testIndex: number, stepIndex: number | undefined, kind: Mark, note?: string) => Promise<'refreshed' | 'retained' | 'stale'>
 export interface MarkDenial { reason: string }
 
-/** The provenance chip when the model authored this verdict. */
-export const LLM_VERDICT_LABEL = () => t('runDetail.analysis.llmVerdict')
-
 /** The provenance chip when nothing but the deterministic classifier spoke. */
 export const DETERMINISTIC_FALLBACK_LABEL = () => t('runDetail.analysis.deterministicFallback')
 

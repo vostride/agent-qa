@@ -130,7 +130,6 @@ export default {
   'runDetail.postProcessing.timing.running': '実行中',
   'runDetail.postProcessing.timing.finishedIn': '{{duration}}で完了',
   'runDetail.postProcessing.timing.attempts_other': '試行{{count}}回',
-  'runDetail.analysis.llmVerdict': 'LLMの判定',
   'runDetail.analysis.llmVerdictConfidence': 'LLMの判定・{{confidence}}',
   'runDetail.analysis.deterministicFallback': '決定論的フォールバック',
   'runDetail.analysis.provisional': '分析を実行中です。結果が更新される可能性があります',

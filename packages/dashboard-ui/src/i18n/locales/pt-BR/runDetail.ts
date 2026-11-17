@@ -150,7 +150,6 @@ export default {
   'runDetail.postProcessing.timing.finishedIn': 'concluída em {{duration}}',
   'runDetail.postProcessing.timing.attempts_one': '{{count}} tentativa',
   'runDetail.postProcessing.timing.attempts_other': '{{count}} tentativas',
-  'runDetail.analysis.llmVerdict': 'Veredito do LLM',
   'runDetail.analysis.llmVerdictConfidence': 'Veredito do LLM · {{confidence}}',
   'runDetail.analysis.deterministicFallback': 'alternativa determinística',
   'runDetail.analysis.provisional': 'análise em execução; este resultado pode ser atualizado',

@@ -125,22 +125,17 @@ function publishedText(area: string, key: string): string {
   return unescapeStringBody(entry[3] as string)
 }
 
-/** The provenance chip's first half when the model authored the verdict. */
-const LLM_VERDICT_LABEL = publishedText('runDetail', 'runDetail.analysis.llmVerdict')
+/** The provenance chip when the model authored the verdict, before its confidence goes in. */
+const LLM_VERDICT_SENTENCE = publishedText('runDetail', 'runDetail.analysis.llmVerdictConfidence')
 
 /** The word BOTH `evidence-incomplete` variants wear. */
 const EVIDENCE_INCOMPLETE_LABEL = publishedText('runDetail', 'runDetail.evidence.incomplete')
 
-/**
- * The provenance line the block must read, composed from the SAME formula the product uses.
- *
- * `provenanceLabel` is a function, not a constant, so it cannot be read the way a label can. The
- * formula is therefore restated here — `${LLM_VERDICT_LABEL} · ${confidence.toFixed(2)}` — over the
- * label read from the English catalog and the confidence the stub scripts, which is what keeps a
- * copy change in the catalog from being invisible to this cell while still not hardcoding it.
- */
+// The provenance line the block must read: the catalog's sentence, filled with the confidence the
+// stub scripts, formatted to two decimals as `provenanceLabel` formats it.
 function expectedProvenance(confidence: number): string {
-  return `${LLM_VERDICT_LABEL} · ${confidence.toFixed(2)}`
+  expect(LLM_VERDICT_SENTENCE).toContain('{{confidence}}')
+  return LLM_VERDICT_SENTENCE.replace('{{confidence}}', confidence.toFixed(2))
 }
 
 // The plural agrees with the total: the noun is the set the member cited, not what vanished.

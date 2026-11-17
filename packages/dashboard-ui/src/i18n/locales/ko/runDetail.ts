@@ -131,7 +131,6 @@ export default {
   'runDetail.postProcessing.timing.running': '실행 중',
   'runDetail.postProcessing.timing.finishedIn': '{{duration}} 만에 완료',
   'runDetail.postProcessing.timing.attempts_other': '시도 {{count}}회',
-  'runDetail.analysis.llmVerdict': 'LLM 판정',
   'runDetail.analysis.llmVerdictConfidence': 'LLM 판정 · {{confidence}}',
   'runDetail.analysis.deterministicFallback': '결정론적 대체 판정',
   'runDetail.analysis.provisional': '분석 실행 중 — 결과가 갱신될 수 있습니다',

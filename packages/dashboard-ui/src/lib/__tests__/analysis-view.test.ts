@@ -11,7 +11,6 @@ import {
   ANALYSIS_FAILED_FALLBACK_TEXT,
   ANALYSIS_PROVISIONAL_TEXT,
   DETERMINISTIC_FALLBACK_LABEL,
-  LLM_VERDICT_LABEL,
   MEMORY_ON_PATH_NONE_TEXT,
   markerFor,
   memoryOnPathLine,
@@ -102,8 +101,8 @@ describe('projectAnalysisView joins verdicts to members by perTest', () => {
   })
 
   it("reads provenance from the verdict's own producer and confidence", () => {
-    expect(provenanceLabel('analyze-run', 0.86)).toBe(`${LLM_VERDICT_LABEL()} · 0.86`)
-    expect(provenanceLabel('analyze-run', 1)).toBe(`${LLM_VERDICT_LABEL()} · 1.00`)
+    expect(provenanceLabel('analyze-run', 0.86)).toBe('LLM verdict · 0.86')
+    expect(provenanceLabel('analyze-run', 1)).toBe('LLM verdict · 1.00')
     // The classifier's confidence is 0 by construction on the floor, and printing "· 0.00" beside
     // "deterministic fallback" would offer a number that means nothing to compare.
     expect(provenanceLabel('deterministic-classifier', 0)).toBe(DETERMINISTIC_FALLBACK_LABEL())

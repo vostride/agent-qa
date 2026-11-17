@@ -182,7 +182,6 @@ export default {
   'runDetail.postProcessing.timing.attempts_few': '{{count}} попытки',
   'runDetail.postProcessing.timing.attempts_many': '{{count}} попыток',
   'runDetail.postProcessing.timing.attempts_other': '{{count}} попытки',
-  'runDetail.analysis.llmVerdict': 'Вердикт LLM',
   'runDetail.analysis.llmVerdictConfidence': 'Вердикт LLM · {{confidence}}',
   'runDetail.analysis.deterministicFallback': 'детерминированный запасной вариант',
   'runDetail.analysis.provisional': 'анализ выполняется — результат может уточниться',

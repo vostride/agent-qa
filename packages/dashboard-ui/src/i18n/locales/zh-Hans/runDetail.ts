@@ -118,7 +118,6 @@ export default {
   'runDetail.postProcessing.timing.running': '运行中',
   'runDetail.postProcessing.timing.finishedIn': '耗时 {{duration}} 完成',
   'runDetail.postProcessing.timing.attempts_other': '尝试 {{count}} 次',
-  'runDetail.analysis.llmVerdict': 'LLM 判定',
   'runDetail.analysis.llmVerdictConfidence': 'LLM 判定 · {{confidence}}',
   'runDetail.analysis.deterministicFallback': '确定性回退',
   'runDetail.analysis.provisional': '分析进行中，结果可能更新',

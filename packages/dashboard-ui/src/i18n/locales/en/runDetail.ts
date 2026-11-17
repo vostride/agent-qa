@@ -147,7 +147,6 @@ export default {
   'runDetail.postProcessing.timing.finishedIn': 'finished in {{duration}}',
   'runDetail.postProcessing.timing.attempts_one': '{{count}} attempts',
   'runDetail.postProcessing.timing.attempts_other': '{{count}} attempts',
-  'runDetail.analysis.llmVerdict': 'LLM verdict',
   'runDetail.analysis.llmVerdictConfidence': 'LLM verdict · {{confidence}}',
   'runDetail.analysis.deterministicFallback': 'deterministic fallback',
   'runDetail.analysis.provisional': 'analysis running — this may upgrade',
