@@ -35,7 +35,7 @@ interface TabOverviewProps extends OverviewPlayerProps {
   pipelineRef?: React.RefObject<ReasoningPipelineHandle | null>
 }
 
-/** The three words a recorded result can be — raw, closed, and never a sentence. */
+/** The three words a recorded result can be — closed, and never a sentence. */
 function resultWord(sub: RunDetailSubAction): string {
   if (readIdempotentNoopMeta(sub.result)) return RESULT_WORDS["no-input"]
   return sub.result.success
