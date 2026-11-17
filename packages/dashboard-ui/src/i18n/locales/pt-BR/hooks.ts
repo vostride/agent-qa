@@ -71,7 +71,7 @@ export default {
   'hooks.navbar.hooks': 'Hooks',
   'hooks.navbar.newHook': 'Novo hook',
   'hooks.navbar.unsaved': 'Não salvo',
-  'hooks.navbar.runHook': 'Executar hook',
+  'hooks.navbar.runHook': 'Executar',
   'hooks.navbar.running': 'Executando…',
   'hooks.navbar.deleting': 'Excluindo…',
   'hooks.navbar.saving': 'Salvando…',
