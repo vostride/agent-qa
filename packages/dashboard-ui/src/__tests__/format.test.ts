@@ -119,6 +119,12 @@ describe('the unit and percent formats print the number they are given', () => {
     expect(formatPercent(Math.round(0.285 * 100))).toBe('28%')
     expect(formatUnit(850.25, 'millisecond')).toBe('850.25ms')
   })
+
+  it('prints a value that rounds to zero from below with no minus sign', () => {
+    expect(formatUnit(Math.round(-0.3), 'millisecond')).toBe('0ms')
+    expect(formatPercent(Math.round(-0.3))).toBe('0%')
+    expect(formatUnit(-1, 'millisecond')).toBe('-1ms')
+  })
 })
 
 describe('German', () => {

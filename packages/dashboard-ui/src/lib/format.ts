@@ -89,7 +89,8 @@ function formatAsGiven(
   unit: string,
   options: Intl.NumberFormatOptions | undefined,
 ): string {
-  return formatNumber(value, {
+  // Adding zero turns -0 into 0: a template printed `0ms` for it, `Intl` prints `-0ms`.
+  return formatNumber(value + 0, {
     style: 'unit',
     unit,
     unitDisplay: 'narrow',
