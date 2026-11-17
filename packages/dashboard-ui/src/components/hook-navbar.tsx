@@ -92,7 +92,8 @@ export function HookNavbar({
         )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-2">
+      {/* On a phone the actions may reach into the row's right padding, then scroll sideways. */}
+      <div className="flex shrink-0 items-center gap-2 max-sm:max-w-[calc(100%+1rem)] max-sm:overflow-x-auto max-sm:py-1">
         {isViewMode ? (
           <>
             <Button variant="outline" size="sm" asChild>
