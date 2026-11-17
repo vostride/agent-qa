@@ -134,6 +134,7 @@ export default {
     'пропущено событий: {{count}} (номера {{from}}–{{to}}) — см. сведения о запуске',
   'live.run.remoteProgress': 'Удалённая среда {{remote}}: {{message}}',
   'live.run.remoteProgressPercent': 'Удалённая среда {{remote}}: {{message}} {{percent}}',
+  'live.run.remoteProgressNamed': '{{tests}} · {{line}}',
   'live.run.testFallback': 'тест {{number}}',
   'live.steps.empty': 'ожидание первого шага',
   'live.steps.memberFallback': 'тест набора {{number}}',

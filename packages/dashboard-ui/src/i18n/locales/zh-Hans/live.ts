@@ -119,6 +119,7 @@ export default {
     '错过了 {{count}} 个事件（序号 {{from}}–{{to}}），请查看运行详情',
   'live.run.remoteProgress': '远程环境 {{remote}}：{{message}}',
   'live.run.remoteProgressPercent': '远程环境 {{remote}}：{{message}} {{percent}}',
+  'live.run.remoteProgressNamed': '{{tests}} · {{line}}',
   'live.run.testFallback': '测试 {{number}}',
   'live.steps.empty': '等待第一个步骤',
   'live.steps.memberFallback': '成员 {{number}}',

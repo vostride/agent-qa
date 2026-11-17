@@ -118,6 +118,7 @@ export default {
   'live.run.gapMarker_other': '遺漏了 {{count}} 個事件（序號 {{from}}–{{to}}），請參閱執行詳細資料',
   'live.run.remoteProgress': '遠端環境 {{remote}}：{{message}}',
   'live.run.remoteProgressPercent': '遠端環境 {{remote}}：{{message}} {{percent}}',
+  'live.run.remoteProgressNamed': '{{tests}} · {{line}}',
   'live.run.testFallback': '測試 {{number}}',
   'live.steps.empty': '正在等待第一個步驟',
   'live.steps.memberFallback': '成員 {{number}}',

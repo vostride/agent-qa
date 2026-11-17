@@ -134,6 +134,7 @@ export default {
     '{{count}} Ereignisse verpasst (Sequenz {{from}}–{{to}}) – siehe Details des Laufs',
   'live.run.remoteProgress': 'Remote {{remote}}: {{message}}',
   'live.run.remoteProgressPercent': 'Remote {{remote}}: {{message}} {{percent}}',
+  'live.run.remoteProgressNamed': '{{tests}} · {{line}}',
   'live.run.testFallback': 'Test {{number}}',
   'live.steps.empty': 'Warten auf den ersten Schritt',
   'live.steps.memberFallback': 'Mitglied {{number}}',

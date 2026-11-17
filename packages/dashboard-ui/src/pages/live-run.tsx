@@ -54,27 +54,41 @@ export function remoteProgressText(line: RemoteProgressLine): string {
 
 export interface RemoteProgressRow {
   key: string
-  text: string
+  line: RemoteProgressLine
+  testIndexes: number[]
+  named: boolean
 }
 
 // Each distinct line once, so a suite's shared session shows one; when the lines differ, each
-// names the tests it belongs to.
-export function remoteProgressRows(
-  progress: RunStreamState['progress'],
-  members: RunStreamState['members'],
-): RemoteProgressRow[] {
-  const byText = new Map<string, number[]>()
+// names the tests it belongs to. Lines are the same when they would read the same.
+export function remoteProgressRows(progress: RunStreamState['progress']): RemoteProgressRow[] {
+  const byFacts = new Map<string, { line: RemoteProgressLine; testIndexes: number[] }>()
   for (const [testIndex, line] of Object.entries(progress)) {
-    const text = remoteProgressText(line)
-    byText.set(text, [...(byText.get(text) ?? []), Number(testIndex)])
+    const percent = line.percent === undefined ? '' : String(Math.round(line.percent))
+    const facts = JSON.stringify([line.remote, line.message, percent])
+    const group = byFacts.get(facts)
+    if (group) group.testIndexes.push(Number(testIndex))
+    else byFacts.set(facts, { line, testIndexes: [Number(testIndex)] })
   }
-  const named = byText.size > 1
-  return [...byText].map(([text, testIndexes]) => {
-    const names = testIndexes.map(
-      (testIndex) => members[testIndex]?.name ?? t('live.run.testFallback', { number: testIndex + 1 }),
-    )
-    return { key: testIndexes.join(','), text: named ? `${names.join(', ')} · ${text}` : text }
-  })
+  const named = byFacts.size > 1
+  return [...byFacts.values()].map(({ line, testIndexes }) => ({
+    key: testIndexes.join(','),
+    line,
+    testIndexes,
+    named,
+  }))
+}
+
+export function remoteProgressRowText(
+  row: RemoteProgressRow,
+  members: RunStreamState['members'],
+): string {
+  const line = remoteProgressText(row.line)
+  if (!row.named) return line
+  const tests = row.testIndexes.map(
+    (testIndex) => members[testIndex]?.name ?? t('live.run.testFallback', { number: testIndex + 1 }),
+  )
+  return t('live.run.remoteProgressNamed', { tests: tests.join(', '), line })
 }
 
 /** What the terminal band says beside the verdict. */
@@ -273,7 +287,7 @@ export default function LiveRunPage() {
 
   // Named once so the strip's condition and the element inside it cannot come apart.
   const rung = state.retrievalRung
-  const progressRows = remoteProgressRows(state.progress, state.members)
+  const progressRows = remoteProgressRows(state.progress)
 
   // Gated on `rungBannerText`, the banner's own predicate, so container and child cannot disagree.
   const rungSentence = rungBannerText(rung === undefined ? undefined : {
@@ -377,7 +391,7 @@ export default function LiveRunPage() {
             <div role="status" aria-live="polite" className="contents">
               {progressRows.map((row) => (
                 <p key={`progress:${row.key}`} data-remote-progress={row.key} className="text-muted-foreground">
-                  {row.text}
+                  {remoteProgressRowText(row, state.members)}
                 </p>
               ))}
             </div>

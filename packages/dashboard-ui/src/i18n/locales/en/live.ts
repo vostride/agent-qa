@@ -121,6 +121,7 @@ export default {
   'live.run.gapMarker_other': '{{count}} events missed (seq {{from}}–{{to}}) — see run detail',
   'live.run.remoteProgress': 'Remote {{remote}}: {{message}}',
   'live.run.remoteProgressPercent': 'Remote {{remote}}: {{message}} {{percent}}',
+  'live.run.remoteProgressNamed': '{{tests}} · {{line}}',
   'live.run.testFallback': 'test {{number}}',
   'live.steps.empty': 'waiting for the first step',
   'live.steps.memberFallback': 'member {{number}}',

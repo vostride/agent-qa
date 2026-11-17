@@ -133,6 +133,7 @@ export default {
     '{{count}} événements manqués (seq {{from}}–{{to}}) : voir le détail de l’exécution',
   'live.run.remoteProgress': 'Service distant {{remote}} : {{message}}',
   'live.run.remoteProgressPercent': 'Service distant {{remote}} : {{message}} {{percent}}',
+  'live.run.remoteProgressNamed': '{{tests}} · {{line}}',
   'live.run.testFallback': 'test {{number}}',
   'live.steps.empty': 'en attente de la première étape',
   'live.steps.memberFallback': 'membre {{number}}',

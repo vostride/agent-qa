@@ -132,6 +132,7 @@ export default {
     '{{count}} eventos perdidos (seq. {{from}}–{{to}}). Veja os detalhes da execução',
   'live.run.remoteProgress': 'Remoto {{remote}}: {{message}}',
   'live.run.remoteProgressPercent': 'Remoto {{remote}}: {{message}} {{percent}}',
+  'live.run.remoteProgressNamed': '{{tests}} · {{line}}',
   'live.run.testFallback': 'teste {{number}}',
   'live.steps.empty': 'aguardando a primeira etapa',
   'live.steps.memberFallback': 'membro {{number}}',

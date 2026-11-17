@@ -302,7 +302,9 @@ for slots.
 - `live.pane.signedOut` and `live.authState.saveFailed` keep `{{name}}` and `{{target}}`; the
   `live.run.gapMarker` plural key keeps `{{count}}`, `{{from}}` and `{{to}}`; the
   `live.run.remoteProgress` sentences keep `{{remote}}` and `{{message}}` (and `{{percent}}` where
-  the English has it); `live.pane.hook.withStatus` keeps `{{name}}` and `{{status}}`;
+  the English has it); `live.run.remoteProgressNamed` puts the names of the tests a progress
+  line belongs to (`{{tests}}`) before that line (`{{line}}`) when the running tests' lines
+  differ; `live.pane.hook.withStatus` keeps `{{name}}` and `{{status}}`;
   `live.pane.test.stepNumber`, `live.run.testFallback` and `live.steps.memberFallback` keep
   `{{number}}`.
 

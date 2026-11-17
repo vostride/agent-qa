@@ -125,6 +125,7 @@ export default {
     '이벤트 {{count}}개 누락(seq {{from}}–{{to}}) — 실행 세부 정보를 확인하세요',
   'live.run.remoteProgress': '원격 환경 {{remote}}: {{message}}',
   'live.run.remoteProgressPercent': '원격 환경 {{remote}}: {{message}} {{percent}}',
+  'live.run.remoteProgressNamed': '{{tests}} · {{line}}',
   'live.run.testFallback': '테스트 {{number}}',
   'live.steps.empty': '첫 단계를 기다리는 중',
   'live.steps.memberFallback': '구성원 {{number}}',

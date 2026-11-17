@@ -8,6 +8,7 @@ import { MemoryRouter, Route, Routes, useLocation } from 'react-router'
 import { toast } from 'sonner'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import i18n from '@/i18n'
 import { ApiError } from '@/lib/api'
 import LiveRunPage from '@/pages/live-run'
 import { STEPS_EMPTY_TEXT } from '@/components/live-run/step-list'
@@ -670,6 +671,38 @@ describe("a running test's plugin progress", () => {
       'checkout · Remote bs-chrome: queued, 3 ahead',
       'login · Remote bs-chrome: uploading app 40%',
     ])
+  })
+
+  it('words a named line in the order the language writes it, and regroups nothing on a switch', async () => {
+    await mount()
+    await open()
+    await emit(runStarted(), testStarted(0, 'checkout', 1), testStarted(1, 'login', 1))
+    await emit(
+      remoteProgress({ message: 'queued, 3 ahead', testIndex: 0 }),
+      remoteProgress({ message: 'uploading app', testIndex: 1 }),
+    )
+
+    i18n.addResourceBundle('fr', 'translation', {
+      'live.run.remoteProgress': 'Distant {{remote}} : {{message}}',
+      'live.run.remoteProgressNamed': '{{line}} ({{tests}})',
+    })
+    try {
+      await act(async () => {
+        await i18n.changeLanguage('fr')
+      })
+      expect(
+        qa('[data-remote-progress]').map((node) => node.getAttribute('data-remote-progress')),
+      ).toEqual(['0', '1'])
+      expect(progressText()).toEqual([
+        'Distant bs-chrome : queued, 3 ahead (checkout)',
+        'Distant bs-chrome : uploading app (login)',
+      ])
+    } finally {
+      await act(async () => {
+        await i18n.changeLanguage('en')
+      })
+      i18n.removeResourceBundle('fr', 'translation')
+    }
   })
 
   it('announces the lines from one polite live region', async () => {

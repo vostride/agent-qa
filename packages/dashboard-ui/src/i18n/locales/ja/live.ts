@@ -127,6 +127,7 @@ export default {
     '{{count}}件のイベントが欠落しています（連番{{from}}～{{to}}）。実行の詳細を確認してください',
   'live.run.remoteProgress': 'リモート{{remote}}：{{message}}',
   'live.run.remoteProgressPercent': 'リモート{{remote}}：{{message}}（{{percent}}）',
+  'live.run.remoteProgressNamed': '{{tests}} · {{line}}',
   'live.run.testFallback': 'テスト{{number}}',
   'live.steps.empty': '最初のステップを待っています',
   'live.steps.memberFallback': 'メンバー{{number}}',
