@@ -10,8 +10,8 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { LIVE_STEP_GLYPHS, LiveStepRowView } from '@/components/live-step-row'
-import { LIVE_STEP_STATUS_NAMES, liveLabelText } from '@/lib/live-step-row'
-import { STEP_STATUSES, type LiveStepRow, type StepStatus } from '@/lib/run-stream-reducer'
+import { liveLabelText, statusNameText } from '@/lib/live-step-row'
+import { STEP_STATUSES, type LiveStepRow } from '@/lib/run-stream-reducer'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -181,7 +181,7 @@ describe('THE LIVE STEP ROW', () => {
       const li = render(row({ status }))
       const wrapper = li.children[0] as HTMLElement
       expect(wrapper.getAttribute('role'), status).toBe('img')
-      expect(wrapper.getAttribute('aria-label'), status).toBe(LIVE_STEP_STATUS_NAMES[status as StepStatus])
+      expect(wrapper.getAttribute('aria-label'), status).toBe(statusNameText(status))
     }
   })
 

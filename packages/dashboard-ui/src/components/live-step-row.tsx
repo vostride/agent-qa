@@ -1,7 +1,7 @@
 import { Ban, Check, Circle, CircleDashed, Minus, ShieldCheck, X, type LucideIcon } from 'lucide-react'
 
 import { useTranslation } from '@/i18n'
-import { LIVE_STEP_STATUS_NAMES, liveLabelText, liveRowShown } from '@/lib/live-step-row'
+import { liveLabelText, liveRowShown, statusNameText } from '@/lib/live-step-row'
 import type { LiveStepRow, StepStatus } from '@/lib/run-stream-reducer'
 import { cn } from '@/lib/utils'
 
@@ -42,7 +42,7 @@ export function LiveStepRowView({ row }: { row: LiveStepRow }) {
     >
       <span
         role="img"
-        aria-label={LIVE_STEP_STATUS_NAMES[row.status]}
+        aria-label={statusNameText(row.status)}
         className="inline-flex h-5 shrink-0 items-center"
       >
         <Glyph className={cn('size-3.5', STATUS_TONE[row.status])} aria-hidden="true" />

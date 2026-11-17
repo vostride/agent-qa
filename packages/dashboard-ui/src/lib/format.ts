@@ -1,5 +1,5 @@
 import i18n, { t } from '@/i18n'
-import { isLanguage } from '@/i18n/languages'
+import { browserTags, isLanguage } from '@/i18n/languages'
 
 // Constructing an `Intl` object is the expensive half, so each one is kept per locale and options
 // and built on first use, never at module load.
@@ -19,21 +19,14 @@ function language(): string {
   return isLanguage(i18n.language) ? i18n.language : 'en'
 }
 
-function navigatorTags(): readonly string[] {
-  const nav = globalThis.navigator
-  if (!nav) return []
-  if (nav.languages?.length) return nav.languages
-  return nav.language ? [nav.language] : []
-}
-
 // The browser's own regional variant of the dashboard's language, so `en` in an `en-IN` browser
 // keeps Indian formats; the dashboard's language when the browser lists no variant of it.
 export function formatLocale(
   dashboardLanguage: string = language(),
-  browserTags: readonly string[] = navigatorTags(),
+  tags: readonly string[] = browserTags(),
 ): string {
   const wanted = new Intl.Locale(dashboardLanguage).maximize()
-  for (const tag of browserTags) {
+  for (const tag of tags) {
     try {
       const offered = new Intl.Locale(tag)
       const { language: lang, script } = offered.maximize()

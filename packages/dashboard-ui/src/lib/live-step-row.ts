@@ -1,17 +1,6 @@
 import { t } from '@/i18n'
 import { textTable } from '@/i18n/text-table'
-import type { LiveStepRow, StepStatus } from '@/lib/run-stream-reducer'
-
-// Each status has its own accessible name, so colour is never the only signal.
-export const LIVE_STEP_STATUS_NAMES = textTable({
-  pending: () => t('status.name.pending'),
-  running: () => t('status.name.running'),
-  passed: () => t('status.name.passed'),
-  failed: () => t('status.name.failed'),
-  healed: () => t('status.name.healed'),
-  skipped: () => t('status.name.skipped'),
-  cancelled: () => t('status.name.cancelled'),
-}) satisfies Record<StepStatus, string>
+import type { LiveStepRow } from '@/lib/run-stream-reducer'
 
 const STATUS_NAMES: Readonly<Record<string, string>> = textTable({
   idle: () => t('status.name.idle'),

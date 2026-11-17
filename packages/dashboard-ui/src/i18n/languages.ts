@@ -44,7 +44,7 @@ function wellFormed(tag: string): boolean {
   }
 }
 
-function browserTags(): readonly string[] {
+export function browserTags(): readonly string[] {
   const nav = globalThis.navigator
   if (!nav) return []
   if (nav.languages?.length) return nav.languages

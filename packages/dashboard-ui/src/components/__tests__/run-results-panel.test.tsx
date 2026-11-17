@@ -8,8 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { RunResultsPanel } from '@/components/run-results-panel'
 import type { RunStreamOptions } from '@/lib/api'
-import { LIVE_STEP_STATUS_NAMES } from '@/lib/live-step-row'
-import type { StepStatus } from '@/lib/run-stream-reducer'
+import { statusNameText } from '@/lib/live-step-row'
 
 import type { RunEventEnvelope, RunEventPayload, RunEventType } from '@vostride/agent-qa-schema'
 
@@ -214,8 +213,8 @@ describe('RunResultsPanel renders the one live row', () => {
       expect(row.getAttribute('data-step-ticks')).not.toBeNull()
       const glyphs = row.querySelectorAll('[role="img"]')
       expect(glyphs).toHaveLength(1)
-      const status = row.getAttribute('data-step-status') as StepStatus
-      expect(glyphs[0]?.getAttribute('aria-label')).toBe(LIVE_STEP_STATUS_NAMES[status])
+      const status = row.getAttribute('data-step-status') ?? ''
+      expect(glyphs[0]?.getAttribute('aria-label')).toBe(statusNameText(status))
     }
   })
 
