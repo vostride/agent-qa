@@ -42,7 +42,7 @@ describe('loading a language', () => {
   it('keeps the language it had when a chunk fails to load', async () => {
     await applyLanguage('de')
 
-    await expect(applyLanguage('ja', () => Promise.reject(new Error('offline')))).resolves.toBeUndefined()
+    await expect(applyLanguage('ja', () => Promise.reject(new Error('offline')))).resolves.toBe(false)
 
     expect(i18n.language).toBe('de')
     expect(document.documentElement.lang).toBe('de')
@@ -55,9 +55,9 @@ describe('loading a language', () => {
       () => new Promise((resolve) => (release = () => resolve({ default: {} }))),
     )
 
-    await applyLanguage('de')
+    await expect(applyLanguage('de')).resolves.toBe(true)
     release()
-    await slow
+    await expect(slow).resolves.toBe(false)
 
     expect(i18n.language).toBe('de')
     expect(document.documentElement.lang).toBe('de')

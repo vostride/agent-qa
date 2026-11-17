@@ -14,7 +14,17 @@ import en from '@/i18n/locales/en'
 
 const handed = vi.hoisted(() => ({
   onValueChange: undefined as ((value: string) => void) | undefined,
+  loaders: new Map<string, () => Promise<{ default: Record<string, string> }>>(),
 }))
+
+vi.mock('@/i18n', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/i18n')>()
+  return {
+    ...actual,
+    applyLanguage: (language: Parameters<typeof actual.applyLanguage>[0]) =>
+      actual.applyLanguage(language, handed.loaders.get(language)),
+  }
+})
 
 vi.mock('@/components/ui/select', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/components/ui/select')>()
@@ -101,6 +111,12 @@ async function settledOn(language: string) {
   await act(() => vi.waitFor(() => expect(document.documentElement.lang).toBe(language)))
 }
 
+async function idle() {
+  await act(async () => {
+    await new Promise((resolve) => setTimeout(resolve, 20))
+  })
+}
+
 beforeEach(() => {
   localStorage.clear()
   HTMLElement.prototype.scrollIntoView = vi.fn()
@@ -113,6 +129,7 @@ afterEach(async () => {
   container = null
   languages?.mockRestore()
   languages = undefined
+  handed.loaders.clear()
   localStorage.clear()
   await act(async () => {
     await applyLanguage('en')
@@ -209,21 +226,89 @@ describe('the language block', () => {
     expect(label().textContent).toBe(de['language.label'])
   })
 
-  it('ends on the later of two choices made before the first has loaded', async () => {
+  it('ends on the later of two choices when the first finishes loading last', async () => {
     i18n.removeResourceBundle('de', 'translation')
     i18n.removeResourceBundle('ja', 'translation')
+    let finishGerman = () => {}
+    handed.loaders.set(
+      'de',
+      () => new Promise((resolve) => (finishGerman = () => resolve({ default: de }))),
+    )
     await mount(true)
 
     choose('Deutsch')
     choose('日本語')
     await settledOn('ja')
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20))
-    })
+    finishGerman()
+    await idle()
 
     expect(localStorage.getItem(STORAGE_KEY)).toBe('ja')
     expect(document.documentElement.lang).toBe('ja')
     expect(trigger().textContent).toBe('日本語')
+  })
+
+  it('saves nothing and stays where it was when a language fails to load, then loads it on the same choice', async () => {
+    i18n.removeResourceBundle('de', 'translation')
+    handed.loaders.set('de', () => Promise.reject(new Error('offline')))
+    await mount(true)
+
+    choose('Deutsch')
+    await idle()
+
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
+    expect(document.documentElement.lang).toBe('en')
+    expect(label().textContent).toBe(en['language.label'])
+    expect(trigger().textContent).toBe('Browser language (English)')
+
+    handed.loaders.delete('de')
+    choose('Deutsch')
+    await settledOn('de')
+
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('de')
+    expect(trigger().textContent).toBe('Deutsch')
+  })
+
+  it('keeps the earlier saved choice when a later one fails to load', async () => {
+    i18n.removeResourceBundle('de', 'translation')
+    handed.loaders.set('de', () => Promise.reject(new Error('offline')))
+    await mount(true)
+    choose('日本語')
+    await settledOn('ja')
+
+    choose('Deutsch')
+    await idle()
+
+    expect(localStorage.getItem(STORAGE_KEY)).toBe('ja')
+    expect(document.documentElement.lang).toBe('ja')
+    expect(trigger().textContent).toBe('日本語')
+  })
+
+  it('shows the language the page is in when the saved one did not load, and loads it when chosen', async () => {
+    localStorage.setItem(STORAGE_KEY, 'de')
+    await mount(true)
+
+    expect(document.documentElement.lang).toBe('en')
+    expect(trigger().textContent).toBe('English')
+
+    choose('Deutsch')
+    await settledOn('de')
+
+    expect(trigger().textContent).toBe('Deutsch')
+  })
+
+  it('does not follow a choice another tab saved when its language fails to load here', async () => {
+    i18n.removeResourceBundle('de', 'translation')
+    handed.loaders.set('de', () => Promise.reject(new Error('offline')))
+    await mount(true)
+
+    localStorage.setItem(STORAGE_KEY, 'de')
+    act(() => {
+      window.dispatchEvent(new StorageEvent('storage', { key: STORAGE_KEY, newValue: 'de' }))
+    })
+    await idle()
+
+    expect(document.documentElement.lang).toBe('en')
+    expect(trigger().textContent).toBe('Browser language (English)')
   })
 
   it('follows a choice another tab saved', async () => {
@@ -275,9 +360,7 @@ describe('the language block', () => {
     act(() => {
       window.dispatchEvent(new StorageEvent('storage', { key: 'vite-ui-theme', newValue: 'light' }))
     })
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20))
-    })
+    await idle()
 
     expect(document.documentElement.lang).toBe('de')
     expect(trigger().textContent).toBe('Deutsch')
@@ -304,9 +387,7 @@ describe('the language block', () => {
     act(() => {
       window.dispatchEvent(new Event('languagechange'))
     })
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20))
-    })
+    await idle()
 
     expect(document.documentElement.lang).toBe('ja')
     expect(localStorage.getItem(STORAGE_KEY)).toBe('ja')
@@ -319,9 +400,7 @@ describe('the language block', () => {
 
     act(() => handed.onValueChange!('xx'))
     act(() => handed.onValueChange!('../de'))
-    await act(async () => {
-      await new Promise((resolve) => setTimeout(resolve, 20))
-    })
+    await idle()
 
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull()
     expect(document.documentElement.lang).toBe('en')

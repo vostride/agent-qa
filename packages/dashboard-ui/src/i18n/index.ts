@@ -35,18 +35,19 @@ void i18n.use(initReactI18next).init({
 
 let latestRequest = 0
 
-export async function applyLanguage(language: Language, load?: Loader): Promise<void> {
+export async function applyLanguage(language: Language, load?: Loader): Promise<boolean> {
   const request = ++latestRequest
   if (language !== 'en' && !i18n.hasResourceBundle(language, 'translation')) {
     const bundle = await (load ?? loaders[language])().then(
       (loaded) => loaded.default,
       () => undefined,
     )
-    if (bundle) i18n.addResourceBundle(language, 'translation', bundle, true, true)
-    if (request !== latestRequest || !bundle) return
+    if (!bundle) return false
+    i18n.addResourceBundle(language, 'translation', bundle, true, true)
   }
-  if (request !== latestRequest) return
+  if (request !== latestRequest) return false
   await i18n.changeLanguage(language)
+  return true
 }
 
 export async function startLanguage(): Promise<void> {
