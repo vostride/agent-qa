@@ -79,7 +79,7 @@ export function remoteProgressRows(progress: RunStreamState['progress']): Remote
   }))
 }
 
-export function remoteProgressRowText(
+function remoteProgressRowText(
   row: RemoteProgressRow,
   members: RunStreamState['members'],
 ): string {
