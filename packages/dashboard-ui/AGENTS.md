@@ -30,8 +30,8 @@ command palette behavior, charts, tables, and YAML authoring surfaces.
   kept in step with its catalog. English shows through only for a key that was missed.
 - Nothing checks for a missing translation, and no test, type or warning for one is added.
   `src/i18n/__tests__/translations-keep-placeholders-and-tags.test.ts` checks that a
-  translation keeps English's slots and tags and carries bare tags only; it does not check
-  wording.
+  translation keeps English's slots and tags and carries bare tags only, and that no English tag
+  is named after an HTML void element; it does not check wording.
 - Read text through `useTranslation` in a component and through `t` from `@/i18n` in a plain
   module, at render and never at module scope. A table of text is a `textTable`, and a text
   constant is a zero-argument function. Put `t` in the dependency list of a `useMemo` or

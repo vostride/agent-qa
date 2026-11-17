@@ -35,6 +35,24 @@ const TRANSLATED = LANGUAGES.filter((language): language is Translated => langua
 const PLACEHOLDER = /\{\{\s*([^\s,}]+)\s*(?:,[^}]*)?\}\}/g
 const TAG = /<(\/?)([^\s<>/]+)([^<>]*)>/g
 const PLURAL_FORM = /^(.+)_(zero|one|two|few|many|other)$/
+// `Trans` closes a tag named after one of these at once, and the words fall outside it.
+const VOID_ELEMENTS = new Set([
+  'area',
+  'base',
+  'br',
+  'col',
+  'embed',
+  'hr',
+  'img',
+  'input',
+  'keygen',
+  'link',
+  'meta',
+  'param',
+  'source',
+  'track',
+  'wbr',
+])
 
 function slotCounts(text: string): Map<string, number> {
   const counts = new Map<string, number>()
@@ -69,6 +87,14 @@ function problems(english: string, translation: string, pluralForm?: string): st
     if (!translatedTags.has(name)) found.push(`missing tag <${name}>`)
   }
   return found
+}
+
+function voidTags(catalog: Catalog): string[] {
+  return Object.entries(catalog).flatMap(([key, text]) =>
+    [...tagNames(text)]
+      .filter((name) => VOID_ELEMENTS.has(name.toLowerCase()))
+      .map((name) => `${key}: <${name}>`),
+  )
 }
 
 function englishFor(key: string, english: Catalog = ENGLISH): EnglishPair | undefined {
@@ -168,6 +194,17 @@ describe('the tags of a translation', () => {
     expect(problems('No targets. <a>Add one.</a>', 'Keine Ziele. Eines anlegen.')).toEqual([
       'missing tag <a>',
     ])
+  })
+})
+
+describe('the tag names of the English text', () => {
+  it('reports a tag named after an HTML void element', () => {
+    const catalog = { 'x.none': 'None. <link>Add one.</link>', 'x.ok': 'See <a>this</a>' }
+    expect(voidTags(catalog)).toEqual(['x.none: <link>'])
+  })
+
+  it('names no tag after an HTML void element', () => {
+    expect(voidTags(ENGLISH)).toEqual([])
   })
 })
 

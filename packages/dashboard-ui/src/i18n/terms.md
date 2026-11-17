@@ -98,7 +98,8 @@ every key a language has, it reports by key a slot that is missing, misspelled o
 carries anything after its name, a tag the English text does not have and a tag the translation
 drops. A plural form English does not write is compared with the English `_other` form; a `_one`
 form may leave `{{count}}` out, and any plural form may add it. A key a language leaves out is not
-looked at. Run it with
+looked at. It also reports an English tag named after an HTML void element such as `link` or `br`.
+Run it with
 `pnpm --filter @vostride/agent-qa-dashboard-ui exec vitest run src/i18n/__tests__/translations-keep-placeholders-and-tags.test.ts`.
 
 ## What stays in English
