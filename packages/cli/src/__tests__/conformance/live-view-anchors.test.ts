@@ -53,6 +53,7 @@ interface Fixture {
 }
 
 let fixture: Fixture | undefined
+let spawned: SpawnedDashboard | undefined
 
 function held(): Fixture {
   if (fixture === undefined) throw new Error('the live-view anchors fixture never came up')
@@ -176,6 +177,7 @@ beforeAll(async () => {
 
   const project = runServiceFixtureProject('live-view')
   const dashboard = await spawnDashboard(project.root, project.configPath)
+  spawned = dashboard
   expect(
     dashboard.ready,
     `the built \`agent-qa dashboard\` never reported that it was listening. ${childContext(dashboard)}`,
@@ -212,9 +214,8 @@ beforeAll(async () => {
 }, 180_000)
 
 afterAll(async () => {
-  const open = fixture
   fixture = undefined
-  if (open !== undefined) await open.dashboard.stop()
+  await spawned?.stop()
   cleanupTempRoots()
 })
 

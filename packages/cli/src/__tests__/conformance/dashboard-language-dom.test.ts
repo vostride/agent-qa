@@ -119,8 +119,8 @@ describe('the shipped dashboard follows the browser language and the Config page
     configPath = project.configPath
     seedRuns(project.root)
     const spawned = await spawnDashboard(project.root, project.configPath)
-    expect(spawned.ready, `the built dashboard never listened. stdout: ${spawned.stdout().slice(-1200)} stderr: ${spawned.stderr().slice(-1200)}`).toBe(true)
     dashboard = spawned
+    expect(spawned.ready, `the built dashboard never listened. stdout: ${spawned.stdout().slice(-1200)} stderr: ${spawned.stderr().slice(-1200)}`).toBe(true)
     try {
       browser = await chromium.launch({ headless: true, args: ['--lang=en-US'] })
     } catch (error) {
@@ -130,10 +130,13 @@ describe('the shipped dashboard follows the browser language and the Config page
   }, 180_000)
 
   afterAll(async () => {
-    for (const context of contexts) await context.close()
-    await browser?.close()
-    await dashboard?.stop()
-    cleanupTempRoots()
+    try {
+      for (const context of contexts) await context.close()
+      await browser?.close()
+    } finally {
+      await dashboard?.stop()
+      cleanupTempRoots()
+    }
   })
 
   function origin(): string {

@@ -56,6 +56,7 @@ interface DomFixture {
 }
 
 let fixture: DomFixture | undefined
+let spawned: SpawnedDashboard | undefined
 
 /**
  * Stand the whole instrument up once: freshness, dashboard, browser.
@@ -70,6 +71,7 @@ beforeAll(async () => {
 
   const project = dashboardFixtureProject('dom')
   const dashboard = await spawnDashboard(project.root, project.configPath)
+  spawned = dashboard
   expect(
     dashboard.ready,
     'the built `agent-qa dashboard` command never reported that it was listening. its stdout: '
@@ -94,11 +96,12 @@ beforeAll(async () => {
 afterAll(async () => {
   const held = fixture
   fixture = undefined
-  if (held !== undefined) {
-    await held.browser.close()
-    await held.dashboard.stop()
+  try {
+    await held?.browser.close()
+  } finally {
+    await spawned?.stop()
+    cleanupTempRoots()
   }
-  cleanupTempRoots()
 })
 
 /** The fixture, or a failure that names what did not stand up rather than a `undefined` read. */
