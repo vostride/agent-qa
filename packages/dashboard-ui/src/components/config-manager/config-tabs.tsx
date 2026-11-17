@@ -55,13 +55,15 @@ export function ConfigTabBar({ tab, draftTabs, statusSlot }: ConfigTabBarProps) 
     measure()
     const box = scrollRef.current
     if (!box || typeof ResizeObserver === "undefined") return
-    // A widening status (an Undo line) narrows the strip; the active tab stays in view.
+    // A widening status (an Undo line) narrows the strip; the active tab stays in view. The tab
+    // list is watched too, because a language switch changes its width and not the strip's.
     const observer = new ResizeObserver(() => {
       const trigger = box.querySelector<HTMLElement>(`[data-config-tab="${activeTab.current}"]`)
       if (trigger) revealTrigger(box, trigger)
       measure()
     })
     observer.observe(box)
+    if (box.firstElementChild) observer.observe(box.firstElementChild)
     return () => observer.disconnect()
   }, [measure])
 

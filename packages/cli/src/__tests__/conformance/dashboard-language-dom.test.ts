@@ -43,6 +43,7 @@ const RUN_ROW = '[data-runs-row-surface]'
 const HEADER_CELLS = 'thead th'
 const NAV_INSIGHTS = 'a[href="/insights"]'
 const INSIGHTS_TITLE = '[data-insights-page-root] h1'
+const TAB_STRIP = '[data-config-tabs-scroll]'
 
 // Each language's own browser tag and the code the dashboard sets as `<html lang>` for it.
 const LANGUAGE_TAGS = [
@@ -195,6 +196,14 @@ describe('the shipped dashboard follows the browser language and the Config page
     return (await page.locator(selector).textContent())?.trim() ?? ''
   }
 
+  async function tabStrip(page: Page) {
+    return page.locator(TAB_STRIP).evaluate((box) => ({
+      room: box.clientWidth,
+      tabs: box.querySelector('[role="tablist"]')!.getBoundingClientRect().width,
+      fade: box.hasAttribute('data-fade-right'),
+    }))
+  }
+
   async function savedChoice(page: Page): Promise<string | null> {
     return page.evaluate((key) => localStorage.getItem(key), STORAGE_KEY)
   }
@@ -294,6 +303,44 @@ describe('the shipped dashboard follows the browser language and the Config page
     await page.locator(NAV_INSIGHTS).click()
     expect(await text(page, INSIGHTS_TITLE)).toBe(german.title)
     expect(await marked(page)).toBe(true)
+  }, 60_000)
+
+  it("fades the Config tab bar's edge when a switch makes its tabs wider than the bar", async () => {
+    const context = await newContext({ locale: 'en-US' })
+    const page = await newPage(context, 'tab fade')
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openConfig(page)
+    const english = (await tabStrip(page)).tabs
+    await chooseLanguage(page, 'Русский')
+    await langBecomes(page, 'ru')
+    const russian = (await tabStrip(page)).tabs
+    expect(russian, 'the Russian tabs are no wider than the English ones').toBeGreaterThan(english + 40)
+    await chooseLanguage(page, 'English')
+    await langBecomes(page, 'en')
+
+    // A width where the English tabs fit and the Russian ones do not.
+    const between = (room: number) => room > english + 10 && room < russian - 10
+    let width = 1440
+    let strip = await tabStrip(page)
+    for (let attempt = 0; attempt < 3 && !between(strip.room); attempt++) {
+      width += Math.round((english + russian) / 2 - strip.room)
+      await page.setViewportSize({ width, height: 900 })
+      await page.evaluate(() => new Promise((done) => {
+        requestAnimationFrame(() => requestAnimationFrame(done))
+      }))
+      strip = await tabStrip(page)
+    }
+    const where = `tabs ${String(english)} and ${String(russian)} wide at ${String(width)}: ${JSON.stringify(strip)}`
+    expect(between(strip.room), where).toBe(true)
+    expect(strip.fade, where).toBe(false)
+
+    await chooseLanguage(page, 'Русский')
+    await langBecomes(page, 'ru')
+    await expect.poll(async () => (await tabStrip(page)).fade, { timeout: 5_000 }).toBe(true)
+
+    await chooseLanguage(page, 'English')
+    await langBecomes(page, 'en')
+    await expect.poll(async () => (await tabStrip(page)).fade, { timeout: 5_000 }).toBe(false)
   }, 60_000)
 
   it('carries the choice to a second tab of the same browser', async () => {
