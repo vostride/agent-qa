@@ -10,7 +10,6 @@ import { FeedbackPreview, type FeedbackPreviewProps } from '../feedback-preview'
 import type { FeedbackReadFailure } from '@/lib/api'
 import {
   CLI_ESCAPE_PARTS,
-  CLI_ESCAPE_TEXT,
   PREVIEW_READ_FAILED_TEXT,
   PREVIEW_REFUSAL_TEXT,
   PREVIEW_RETRY_ACCESSIBLE_NAME,
@@ -366,7 +365,9 @@ describe('the special arms, the refusals and the failed read', () => {
     expect(retry!.getAttribute('aria-label')!.startsWith(retry!.textContent!)).toBe(true)
     expect(denial!.compareDocumentPosition(retry!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
 
-    const escape = [...section().querySelectorAll('p')].find((p) => p.textContent === CLI_ESCAPE_TEXT())
+    const escape = [...section().querySelectorAll('p')].find(
+      (p) => p.textContent === 'You can still record feedback from the CLI (agent-qa runs mark) or over MCP.',
+    )
     expect(escape, 'no CLI escape line').toBeDefined()
     expect(retry!.compareDocumentPosition(escape!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     expect(escape!.querySelector('.font-mono')?.textContent).toBe(CLI_ESCAPE_PARTS.name)

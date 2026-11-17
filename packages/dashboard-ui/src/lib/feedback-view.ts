@@ -888,8 +888,6 @@ export const CLI_ESCAPE_PARTS = textTable({
   suffix: () => cliEscapeParts().suffix ?? '',
 }) satisfies Required<FeedbackTextParts>
 
-export const CLI_ESCAPE_TEXT = () => feedbackPartsText(CLI_ESCAPE_PARTS)
-
 export const RETRY_LABEL = () => t('feedback.retry')
 /** Label-in-name: the accessible name starts with the visible word and says what it retries. */
 export const PREVIEW_RETRY_ACCESSIBLE_NAME = () => t('feedback.preview.retryName')

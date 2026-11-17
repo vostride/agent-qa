@@ -46,7 +46,6 @@ import {
   SUBMIT_REASON_REFUSED,
   SUBMIT_REASON_SENDING,
   CLI_ESCAPE_PARTS,
-  CLI_ESCAPE_TEXT,
   PREVIEW_REFUSAL_TEXT,
   PREVIEW_RETRY_ACCESSIBLE_NAME,
   RETRY_LABEL,
@@ -517,8 +516,7 @@ describe('the special arms and the failed read', () => {
     expect(PREVIEW_READ_FAILED_TEXT("the dashboard server didn't answer")).toBe(
       "Couldn't check what this will do — the dashboard server didn't answer.",
     )
-    expect(CLI_ESCAPE_TEXT()).toBe('You can still record feedback from the CLI (agent-qa runs mark) or over MCP.')
-    expect(feedbackPartsText(CLI_ESCAPE_PARTS)).toBe(CLI_ESCAPE_TEXT())
+    expect(feedbackPartsText(CLI_ESCAPE_PARTS)).toBe('You can still record feedback from the CLI (agent-qa runs mark) or over MCP.')
     expect(CLI_ESCAPE_PARTS.name).toBe('agent-qa runs mark')
     expect(RETRY_LABEL()).toBe('Retry')
     expect(PREVIEW_RETRY_ACCESSIBLE_NAME()).toBe('Retry checking what this will do')

@@ -31,9 +31,6 @@ export const TOKEN_USAGE_TRIGGER_LABEL = () => t('runDetail.usage.triggerLabel')
 // Missing bytes differ from masked values and failed reads, as each sends a reader somewhere else.
 export const EVIDENCE_INCOMPLETE_LABEL = () => t('runDetail.evidence.incomplete')
 
-// The same text, not a second string, so the two names cannot disagree.
-export const SCREENSHOT_UNAVAILABLE_LABEL = () => EVIDENCE_INCOMPLETE_LABEL()
-
 // Distinct from an empty projection, so a server fault never looks like a quiet test.
 export const RUN_DETAIL_UNAVAILABLE_LABEL = () => t('runDetail.unavailable')
 

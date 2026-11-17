@@ -788,10 +788,6 @@ export function isReplayComplete(guard: ReplayGuard): boolean {
   return replayStop(guard) === undefined && guard.total > 0 && guard.checksPassed === guard.total
 }
 
-export function effectSentenceText(parts: EffectSentenceParts, stepsText: string): string {
-  return `${parts.lead}${stepsText}${parts.tail}`
-}
-
 export function uncountedTrialsLine(count: number): string {
   return t('knowledge.effect.uncounted', { count })
 }

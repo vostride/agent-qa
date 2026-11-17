@@ -11,7 +11,7 @@ import { TabOverview } from '@/components/run-detail/tab-overview'
 import { buildTimelineModel } from "@/lib/playhead"
 import { fromRunDetailStep } from '@/lib/display-step'
 import { routes } from '@/lib/routes'
-import { EVIDENCE_INCOMPLETE_LABEL, SCREENSHOT_UNAVAILABLE_LABEL } from '@/lib/run-detail-view'
+import { EVIDENCE_INCOMPLETE_LABEL } from '@/lib/run-detail-view'
 import type { RunDetailArtifactRef, RunDetailSubAction } from '@vostride/agent-qa-schema'
 import { asRef } from '@vostride/agent-qa-schema'
 
@@ -128,11 +128,6 @@ describe('EvidenceIncomplete', () => {
     expect(view.querySelector('[href]')).toBeNull()
     expect(view.querySelector('[data-masked]')).toBeNull()
     expect(view.querySelector('[data-run-detail-error]')).toBeNull()
-  })
-
-  // The old name stays an alias, pinned so a respelling of either has to be deliberate.
-  it('keeps the screenshot-unavailable name as an alias of the evidence-incomplete label', () => {
-    expect(SCREENSHOT_UNAVAILABLE_LABEL()).toBe(EVIDENCE_INCOMPLETE_LABEL())
   })
 })
 

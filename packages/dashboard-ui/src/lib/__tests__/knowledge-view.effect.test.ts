@@ -13,7 +13,6 @@ import {
   REPLAY_STOP_CAUSES,
   UNCOUNTED_TRIALS_TOOLTIP,
   effectSectionView,
-  effectSentenceText,
   isReplayComplete,
   planSourceSentence,
   projectKnowledgeView,
@@ -23,7 +22,13 @@ import {
   uncountedTrialsLine,
   unmeasuredRecordsLine,
   type EffectSectionView,
+  type EffectSentenceParts,
 } from '@/lib/knowledge-view'
+
+// The sentence as the Effect section draws it: the lead, the step references, the tail.
+function effectSentenceText(parts: EffectSentenceParts, stepsText: string): string {
+  return `${parts.lead}${stepsText}${parts.tail}`
+}
 
 type ReadyProjection = Extract<RunKnowledgeProjection, { kind: 'ready' }>
 type Outcome = 'confirmed' | 'contradicted' | 'helpful' | 'harmful'
