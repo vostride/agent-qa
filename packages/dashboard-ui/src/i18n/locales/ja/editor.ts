@@ -230,7 +230,7 @@ export default {
   'editor.forms.targetHelp':
     'ワークスペースの設定に登録されたアプリのターゲットです。テストの実行先（WebのURLまたはモバイルアプリ）を定義します。',
   'editor.forms.noTargets':
-    'ターゲットが設定されていません。<link>設定でターゲットを追加</link>してください。',
+    'ターゲットが設定されていません。<a>設定でターゲットを追加</a>してください。',
   'editor.forms.selectTarget': 'ターゲットを選択',
   'editor.forms.context': 'コンテキスト',
   'editor.forms.contextHelp':

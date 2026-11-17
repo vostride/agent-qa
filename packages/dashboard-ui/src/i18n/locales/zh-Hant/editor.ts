@@ -212,7 +212,7 @@ export default {
   'editor.forms.target': '目標',
   'editor.forms.targetHelp':
     '工作區設定中已註冊的應用程式目標。定義測試在哪裡執行（網頁 URL 或行動應用程式）。',
-  'editor.forms.noTargets': '尚未設定任何目標。<link>在「設定」中新增目標</link>。',
+  'editor.forms.noTargets': '尚未設定任何目標。<a>在「設定」中新增目標</a>。',
   'editor.forms.selectTarget': '選取目標',
   'editor.forms.context': '背景資訊',
   'editor.forms.contextHelp':

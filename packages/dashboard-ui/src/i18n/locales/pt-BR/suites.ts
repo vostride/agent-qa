@@ -203,13 +203,12 @@ export default {
     'Um destino de aplicativo registrado na configuração do seu espaço de trabalho. Define onde a suíte é executada (URL web ou aplicativo móvel).',
   'suites.form.selectTarget': 'Selecione um destino',
   'suites.form.noTargets':
-    'Nenhum destino configurado. <link>Adicione destinos nas Configurações.</link>',
+    'Nenhum destino configurado. <a>Adicione destinos nas Configurações.</a>',
   'suites.form.context': 'Contexto',
   'suites.form.contextHelp':
     'Instruções adicionais passadas a cada teste desta suíte antes do contexto do próprio teste. Use para notas de preparação de toda a suíte ou pré-condições compartilhadas.',
   'suites.form.contextPlaceholder': 'Instruções adicionais aplicadas a cada teste desta suíte…',
-  'suites.picker.noTests':
-    'Nenhum arquivo de teste encontrado. <link>Crie um teste primeiro.</link>',
+  'suites.picker.noTests': 'Nenhum arquivo de teste encontrado. <a>Crie um teste primeiro.</a>',
   'suites.picker.search': 'Buscar por nome, caminho ou ID do teste…',
   'suites.picker.noMatches': 'Nenhum teste corresponde à sua busca.',
   'suites.picker.help':

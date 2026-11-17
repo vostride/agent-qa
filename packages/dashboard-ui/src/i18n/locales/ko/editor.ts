@@ -223,7 +223,7 @@ export default {
   'editor.forms.target': '대상',
   'editor.forms.targetHelp':
     '워크스페이스 설정에 등록된 앱 대상입니다. 테스트가 실행되는 곳(웹 URL 또는 모바일 앱)을 정합니다.',
-  'editor.forms.noTargets': '설정된 대상이 없습니다. <link>설정에서 대상을 추가하세요</link>.',
+  'editor.forms.noTargets': '설정된 대상이 없습니다. <a>설정에서 대상을 추가하세요</a>.',
   'editor.forms.selectTarget': '대상 선택',
   'editor.forms.context': '컨텍스트',
   'editor.forms.contextHelp':

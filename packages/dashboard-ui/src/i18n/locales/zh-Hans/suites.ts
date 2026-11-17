@@ -182,12 +182,12 @@ export default {
   'suites.form.targetHelp':
     '工作区配置中注册的应用目标。它决定套件在哪里运行（Web URL 或移动应用）。',
   'suites.form.selectTarget': '选择目标',
-  'suites.form.noTargets': '未配置目标。<link>在设置中添加目标。</link>',
+  'suites.form.noTargets': '未配置目标。<a>在设置中添加目标。</a>',
   'suites.form.context': '上下文',
   'suites.form.contextHelp':
     '在每个测试自身的上下文之前传给此套件中每个测试的附加指令。可用于整个套件的准备说明或共享的前提条件。',
   'suites.form.contextPlaceholder': '应用于此套件中每个测试的附加指令…',
-  'suites.picker.noTests': '未找到测试文件。<link>请先创建一个测试。</link>',
+  'suites.picker.noTests': '未找到测试文件。<a>请先创建一个测试。</a>',
   'suites.picker.search': '按测试名称、路径或 ID 搜索…',
   'suites.picker.noMatches': '没有符合查询的测试。',
   'suites.picker.help':

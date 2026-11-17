@@ -182,12 +182,12 @@ export default {
   'suites.form.targetHelp':
     '工作區設定中已註冊的應用程式目標。定義套件在哪裡執行（網頁 URL 或行動應用程式）。',
   'suites.form.selectTarget': '選取目標',
-  'suites.form.noTargets': '尚未設定任何目標。<link>在「設定」中新增目標。</link>',
+  'suites.form.noTargets': '尚未設定任何目標。<a>在「設定」中新增目標。</a>',
   'suites.form.context': '背景資訊',
   'suites.form.contextHelp':
     '在此套件中每個測試自己的背景資訊之前，傳給它的額外指示。可用於整個套件的準備說明或共用的前置條件。',
   'suites.form.contextPlaceholder': '套用到此套件中每個測試的額外指示…',
-  'suites.picker.noTests': '找不到任何測試檔案。<link>請先建立測試。</link>',
+  'suites.picker.noTests': '找不到任何測試檔案。<a>請先建立測試。</a>',
   'suites.picker.search': '依測試名稱、路徑或 ID 搜尋…',
   'suites.picker.noMatches': '沒有符合查詢的測試。',
   'suites.picker.help':

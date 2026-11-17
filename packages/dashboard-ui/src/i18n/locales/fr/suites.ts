@@ -209,13 +209,13 @@ export default {
     'Une cible d’application enregistrée dans la configuration de votre espace de travail. Elle définit où la suite s’exécute (URL Web ou application mobile).',
   'suites.form.selectTarget': 'Sélectionnez une cible',
   'suites.form.noTargets':
-    'Aucune cible configurée. <link>Ajoutez des cibles dans les paramètres.</link>',
+    'Aucune cible configurée. <a>Ajoutez des cibles dans les paramètres.</a>',
   'suites.form.context': 'Contexte',
   'suites.form.contextHelp':
     'Instructions supplémentaires transmises à chaque test de cette suite avant son propre contexte. Utilisez ce champ pour des notes de préparation communes à la suite ou des préconditions partagées.',
   'suites.form.contextPlaceholder':
     'Instructions supplémentaires appliquées à chaque test de cette suite…',
-  'suites.picker.noTests': 'Aucun fichier de test trouvé. <link>Créez d’abord un test.</link>',
+  'suites.picker.noTests': 'Aucun fichier de test trouvé. <a>Créez d’abord un test.</a>',
   'suites.picker.search': 'Rechercher par nom de test, chemin ou ID…',
   'suites.picker.noMatches': 'Aucun test ne correspond à votre recherche.',
   'suites.picker.help':

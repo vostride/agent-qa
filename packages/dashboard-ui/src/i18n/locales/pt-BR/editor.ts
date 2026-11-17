@@ -238,7 +238,7 @@ export default {
   'editor.forms.targetHelp':
     'Um destino de aplicativo registrado na configuração do seu espaço de trabalho. Define onde o teste é executado (URL web ou aplicativo móvel).',
   'editor.forms.noTargets':
-    'Nenhum destino configurado. <link>Adicione destinos nas Configurações</link>.',
+    'Nenhum destino configurado. <a>Adicione destinos nas Configurações</a>.',
   'editor.forms.selectTarget': 'Selecione um destino',
   'editor.forms.context': 'Contexto',
   'editor.forms.contextHelp':

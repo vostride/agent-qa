@@ -159,7 +159,7 @@ export function SuiteMetadataForm({
             <Trans
               i18nKey="suites.form.noTargets"
               components={{
-                link: (
+                a: (
                   <Link
                     to="/config"
                     className="text-primary underline underline-offset-4 hover:text-primary/80"

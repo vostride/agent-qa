@@ -110,7 +110,7 @@ export function TestMetadataForm({
             <Trans
               i18nKey="editor.forms.noTargets"
               components={{
-                link: (
+                a: (
                   <Link
                     to="/config"
                     className="text-primary underline underline-offset-4 hover:text-primary/80"

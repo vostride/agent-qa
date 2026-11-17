@@ -237,7 +237,7 @@ export default {
   'editor.forms.targetHelp':
     'Ein registriertes App-Ziel aus der Konfiguration Ihres Arbeitsbereichs. Legt fest, wo der Test läuft (Web-URL oder mobile App).',
   'editor.forms.noTargets':
-    'Keine Ziele konfiguriert. <link>Fügen Sie in den Einstellungen Ziele hinzu</link>.',
+    'Keine Ziele konfiguriert. <a>Fügen Sie in den Einstellungen Ziele hinzu</a>.',
   'editor.forms.selectTarget': 'Ziel auswählen',
   'editor.forms.context': 'Kontext',
   'editor.forms.contextHelp':

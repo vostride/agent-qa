@@ -217,7 +217,7 @@ export default {
   'editor.forms.target': '目标',
   'editor.forms.targetHelp':
     '工作区配置中注册的应用目标。它决定测试在哪里运行（Web URL 或移动应用）。',
-  'editor.forms.noTargets': '未配置目标。<link>在设置中添加目标</link>。',
+  'editor.forms.noTargets': '未配置目标。<a>在设置中添加目标</a>。',
   'editor.forms.selectTarget': '选择目标',
   'editor.forms.context': '上下文',
   'editor.forms.contextHelp':

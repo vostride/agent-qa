@@ -194,13 +194,13 @@ export default {
   'suites.form.targetHelp':
     'A registered app target from your workspace config. Defines where the suite runs (web URL or mobile app).',
   'suites.form.selectTarget': 'Select a target',
-  'suites.form.noTargets': 'No targets configured. <link>Add targets in Settings.</link>',
+  'suites.form.noTargets': 'No targets configured. <a>Add targets in Settings.</a>',
   'suites.form.context': 'Context',
   'suites.form.contextHelp':
     'Additional instructions passed to every test in this suite before its own context. Use this for suite-wide setup notes or shared preconditions.',
   'suites.form.contextPlaceholder':
     'Additional instructions applied to every test in this suite...',
-  'suites.picker.noTests': 'No test files found. <link>Create a test first.</link>',
+  'suites.picker.noTests': 'No test files found. <a>Create a test first.</a>',
   'suites.picker.search': 'Search by test name, path, or ID...',
   'suites.picker.noMatches': 'No tests match your query.',
   'suites.picker.help':

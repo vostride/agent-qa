@@ -242,7 +242,7 @@ export default {
   'editor.forms.target': 'Цель',
   'editor.forms.targetHelp':
     'Зарегистрированная цель приложения из конфигурации рабочей области. Определяет, где выполняется тест (веб-URL или мобильное приложение).',
-  'editor.forms.noTargets': 'Цели не настроены. <link>Добавьте цели в настройках</link>.',
+  'editor.forms.noTargets': 'Цели не настроены. <a>Добавьте цели в настройках</a>.',
   'editor.forms.selectTarget': 'Выберите цель',
   'editor.forms.context': 'Контекст',
   'editor.forms.contextHelp':

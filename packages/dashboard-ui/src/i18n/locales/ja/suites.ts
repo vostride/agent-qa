@@ -190,13 +190,12 @@ export default {
     'ワークスペースの設定に登録されたアプリのターゲットです。スイートの実行先（WebのURLまたはモバイルアプリ）を定義します。',
   'suites.form.selectTarget': 'ターゲットを選択',
   'suites.form.noTargets':
-    'ターゲットが設定されていません。<link>設定でターゲットを追加してください。</link>',
+    'ターゲットが設定されていません。<a>設定でターゲットを追加してください。</a>',
   'suites.form.context': 'コンテキスト',
   'suites.form.contextHelp':
     'このスイートの各テストに、そのテスト自身のコンテキストより前に渡される追加の指示です。スイート全体のセットアップのメモや共通の前提条件に使用します。',
   'suites.form.contextPlaceholder': 'このスイートのすべてのテストに適用される追加の指示…',
-  'suites.picker.noTests':
-    'テストファイルが見つかりません。<link>先にテストを作成してください。</link>',
+  'suites.picker.noTests': 'テストファイルが見つかりません。<a>先にテストを作成してください。</a>',
   'suites.picker.search': 'テスト名、パス、IDで検索…',
   'suites.picker.noMatches': '検索に一致するテストはありません。',
   'suites.picker.help':

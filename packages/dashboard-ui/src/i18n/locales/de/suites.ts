@@ -208,13 +208,12 @@ export default {
     'Ein registriertes App-Ziel aus der Konfiguration Ihres Arbeitsbereichs. Legt fest, wo die Suite läuft (Web-URL oder mobile App).',
   'suites.form.selectTarget': 'Ziel auswählen',
   'suites.form.noTargets':
-    'Keine Ziele konfiguriert. <link>Fügen Sie in den Einstellungen Ziele hinzu.</link>',
+    'Keine Ziele konfiguriert. <a>Fügen Sie in den Einstellungen Ziele hinzu.</a>',
   'suites.form.context': 'Kontext',
   'suites.form.contextHelp':
     'Zusätzliche Anweisungen, die jeder Test dieser Suite vor seinem eigenen Kontext erhält. Verwenden Sie dies für Hinweise zur Einrichtung der ganzen Suite oder gemeinsame Vorbedingungen.',
   'suites.form.contextPlaceholder': 'Zusätzliche Anweisungen für jeden Test dieser Suite …',
-  'suites.picker.noTests':
-    'Keine Testdateien gefunden. <link>Erstellen Sie zuerst einen Test.</link>',
+  'suites.picker.noTests': 'Keine Testdateien gefunden. <a>Erstellen Sie zuerst einen Test.</a>',
   'suites.picker.search': 'Nach Testname, Pfad oder ID suchen …',
   'suites.picker.noMatches': 'Keine Tests passen zu Ihrer Suche.',
   'suites.picker.help':

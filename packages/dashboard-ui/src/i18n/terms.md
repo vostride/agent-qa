@@ -45,7 +45,7 @@ The languages, with their codes and their own names: `zh-Hans` 简体中文, `zh
   is never translated: `{{name}}`, `{{count}}`, `{{target}}`, `{{reason}}`, `{{reference}}`,
   `{{issue}}`, `{{sentence}}`, `{{steps}}` and every other. A slot is filled in by the code, so the
   text around it must read with any value: a name, a number, a sentence.
-- **Tags.** A tag of the English text (`<link>…</link>`) is kept as a bare tag, with no attribute,
+- **Tags.** A tag of the English text (`<a>…</a>`) is kept as a bare tag, with no attribute,
   around the words of the language that do the same job. A tag never carries an attribute such as
   `href` or `class`: an attribute written in a catalog string replaces the one the code sets, so it
   could send a link somewhere else. The code sets every link's address.
@@ -262,7 +262,7 @@ for slots.
 - `editor.monaco.hint` keeps `{{suggestion}}`; `tests.viewer.flaky` keeps `{{score}}`;
   `tests.navbar.session` keeps `{{number}}`.
 - `editor.settings.inherited` keeps `{{value}}` exactly once (the code splits there).
-  `editor.forms.noTargets` keeps its bare `<link>` tag. `editor.page.title.live` keeps `{{number}}`
+  `editor.forms.noTargets` keeps its bare `<a>` tag. `editor.page.title.live` keeps `{{number}}`
   and `{{name}}`; the auth-state sentences keep `{{name}}` and `{{target}}`.
 - The busy labels are keys of their own beside the idle ones (`tests.navbar.running` beside
   `tests.navbar.run`): translate both.
@@ -273,7 +273,7 @@ for slots.
 - `suites.viewer.flaky` keeps `{{score}}`; `suites.navbar.session` keeps `{{number}}`;
   `suites.editor.title.live` keeps `{{number}}` and `{{name}}`; the `suites.editor.authState.*`
   sentences keep `{{name}}` and `{{target}}`; `suites.editor.missingTests` keeps `{{tests}}`.
-- `suites.form.noTargets` and `suites.picker.noTests` keep their bare `<link>` tag.
+- `suites.form.noTargets` and `suites.picker.noTests` keep their bare `<a>` tag.
 - `suites.builder.row.setupHook` and `.teardownHook` begin with the YAML words `setup:` and
   `teardown:`, which stay as written.
 

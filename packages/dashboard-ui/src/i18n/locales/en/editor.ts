@@ -222,7 +222,7 @@ export default {
   'editor.forms.target': 'Target',
   'editor.forms.targetHelp':
     'A registered app target from your workspace config. Defines where the test runs (web URL or mobile app).',
-  'editor.forms.noTargets': 'No targets configured. <link>Add targets in Settings</link>.',
+  'editor.forms.noTargets': 'No targets configured. <a>Add targets in Settings</a>.',
   'editor.forms.selectTarget': 'Select a target',
   'editor.forms.context': 'Context',
   'editor.forms.contextHelp':

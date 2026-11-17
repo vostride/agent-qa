@@ -24,7 +24,7 @@ export function SuiteTestPicker({ availableTests, onAdd, disabled = false }: Sui
         <Trans
           i18nKey="suites.picker.noTests"
           components={{
-            link: (
+            a: (
               <Link
                 to="/tests/new"
                 className="text-primary underline underline-offset-4 hover:text-primary/80"

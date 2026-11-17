@@ -242,7 +242,7 @@ export default {
   'editor.forms.targetHelp':
     'Une cible d’application enregistrée dans la configuration de votre espace de travail. Elle définit où le test s’exécute (URL Web ou application mobile).',
   'editor.forms.noTargets':
-    'Aucune cible configurée. <link>Ajoutez des cibles dans les paramètres</link>.',
+    'Aucune cible configurée. <a>Ajoutez des cibles dans les paramètres</a>.',
   'editor.forms.selectTarget': 'Sélectionnez une cible',
   'editor.forms.context': 'Contexte',
   'editor.forms.contextHelp':

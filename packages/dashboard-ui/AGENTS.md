@@ -39,6 +39,9 @@ command palette behavior, charts, tables, and YAML authoring surfaces.
 - A sentence is one key with slots (`{{name}}`), never glued from parts. A count uses `count`
   with `_one` and `_other` forms. No code compares or cuts a shown sentence to decide
   something; pass the code or flag instead.
+- A link inside a sentence is a bare `<a>…</a>` tag in the catalog, drawn with `Trans` and a
+  `components` map that sets the address. A tag is never named after an HTML void element such
+  as `link` or `br`: `Trans` closes it at once and the words fall outside it.
 - Text from outside the UI (server messages, run output, model text, the project's tests,
   suites and hooks), Monaco's own text and the schema package's sentences are shown as
   produced. `agent-qa`, YAML keys, commands and file names stay as written in every language.

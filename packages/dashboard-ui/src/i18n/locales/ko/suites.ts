@@ -188,12 +188,12 @@ export default {
   'suites.form.targetHelp':
     '워크스페이스 설정에 등록된 앱 대상입니다. 스위트가 실행되는 곳(웹 URL 또는 모바일 앱)을 정합니다.',
   'suites.form.selectTarget': '대상 선택',
-  'suites.form.noTargets': '설정된 대상이 없습니다. <link>설정에서 대상을 추가하세요.</link>',
+  'suites.form.noTargets': '설정된 대상이 없습니다. <a>설정에서 대상을 추가하세요.</a>',
   'suites.form.context': '컨텍스트',
   'suites.form.contextHelp':
     '이 스위트의 모든 테스트에 각 테스트의 컨텍스트보다 먼저 전달되는 추가 지시입니다. 스위트 전체의 셋업 메모나 공통 전제 조건에 사용하세요.',
   'suites.form.contextPlaceholder': '이 스위트의 모든 테스트에 적용할 추가 지시…',
-  'suites.picker.noTests': '테스트 파일이 없습니다. <link>먼저 테스트를 만드세요.</link>',
+  'suites.picker.noTests': '테스트 파일이 없습니다. <a>먼저 테스트를 만드세요.</a>',
   'suites.picker.search': '테스트 이름, 경로 또는 ID로 검색…',
   'suites.picker.noMatches': '검색어와 일치하는 테스트가 없습니다.',
   'suites.picker.help':

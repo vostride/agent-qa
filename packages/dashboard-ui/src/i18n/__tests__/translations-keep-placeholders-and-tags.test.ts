@@ -165,8 +165,8 @@ describe('the tags of a translation', () => {
   })
 
   it('reports a tag of the English text the translation leaves out', () => {
-    expect(problems('No targets. <link>Add one.</link>', 'Keine Ziele. Eines anlegen.')).toEqual([
-      'missing tag <link>',
+    expect(problems('No targets. <a>Add one.</a>', 'Keine Ziele. Eines anlegen.')).toEqual([
+      'missing tag <a>',
     ])
   })
 })

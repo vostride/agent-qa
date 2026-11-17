@@ -205,14 +205,13 @@ export default {
   'suites.form.targetHelp':
     'Un destino de aplicación registrado en la configuración del espacio de trabajo. Define dónde se ejecuta la suite (URL web o aplicación móvil).',
   'suites.form.selectTarget': 'Seleccionar un destino',
-  'suites.form.noTargets': 'No hay destinos configurados. <link>Añade destinos en Ajustes.</link>',
+  'suites.form.noTargets': 'No hay destinos configurados. <a>Añade destinos en Ajustes.</a>',
   'suites.form.context': 'Contexto',
   'suites.form.contextHelp':
     'Instrucciones adicionales que recibe cada prueba de esta suite antes de su propio contexto. Úsalo para notas de preparación de toda la suite o condiciones previas compartidas.',
   'suites.form.contextPlaceholder':
     'Instrucciones adicionales que se aplican a cada prueba de esta suite…',
-  'suites.picker.noTests':
-    'No se encontraron archivos de prueba. <link>Crea una prueba primero.</link>',
+  'suites.picker.noTests': 'No se encontraron archivos de prueba. <a>Crea una prueba primero.</a>',
   'suites.picker.search': 'Buscar por nombre, ruta o ID de la prueba…',
   'suites.picker.noMatches': 'Ninguna prueba coincide con tu búsqueda.',
   'suites.picker.help':
