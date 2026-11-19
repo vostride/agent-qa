@@ -32,6 +32,8 @@ const DUMMY_KEY = 'DUMMY-KEY-B'
 
 const oauthTokens = { access: DUMMY_TOKEN, refresh: DUMMY_TOKEN, expires: 0 }
 
+const CLOCK = { now: Date.UTC(2026, 10, 19, 6, 0), timeZone: 'UTC' }
+
 const FIXTURE_STORE = {
   'claude-code': { type: 'oauth', provider: 'anthropic-subscription', tokens: oauthTokens },
   work: { type: 'api', provider: 'openai-compatible', key: DUMMY_KEY },
@@ -54,7 +56,7 @@ async function savedFrom(store: Record<string, unknown>): Promise<SavedCredentia
 
 // The saved section's options; a store with nothing listed gives the new choices alone.
 function savedOptions(saved: readonly SavedCredential[]) {
-  return initModelSections(saved)
+  return initModelSections(saved, CLOCK)
     .slice(1)
     .flatMap((section) => section.options)
 }
@@ -73,6 +75,7 @@ describe('model question sections', () => {
         'claude-code': FIXTURE_STORE['claude-code'],
         work: FIXTURE_STORE.work,
       }),
+      CLOCK,
     )
 
     expect(sections.map((section) => section.heading)).toEqual([
@@ -85,7 +88,7 @@ describe('model question sections', () => {
     expect(sections[1]?.options.map((option) => [option.value, option.status])).toEqual([
       [
         { kind: 'saved', name: 'claude-code', provider: 'anthropic-subscription', type: 'oauth' },
-        'signed in',
+        'signed in · renews on next use',
       ],
       [{ kind: 'saved', name: 'work', provider: 'openai-compatible', type: 'api' }, 'key saved'],
     ])
@@ -94,11 +97,13 @@ describe('model question sections', () => {
   })
 
   it('gives the new choices alone when nothing is saved', () => {
-    expect(initModelSections([]).map((section) => section.heading)).toEqual(['Connect a new model'])
+    expect(initModelSections([], CLOCK).map((section) => section.heading)).toEqual([
+      'Connect a new model',
+    ])
   })
 
   it('leaves out a stored name that fails the name rule and a provider outside the table', async () => {
-    const sections = initModelSections(await savedFrom(FIXTURE_STORE))
+    const sections = initModelSections(await savedFrom(FIXTURE_STORE), CLOCK)
     const savedNames = sections.flatMap((section) =>
       section.options.flatMap((option) =>
         option.value.kind === 'saved' ? [option.value.name] : [],
@@ -109,7 +114,7 @@ describe('model question sections', () => {
   })
 
   it('carries no secret from the store into any section', async () => {
-    const text = JSON.stringify(initModelSections(await savedFrom(FIXTURE_STORE)))
+    const text = JSON.stringify(initModelSections(await savedFrom(FIXTURE_STORE), CLOCK))
     expect(text).not.toContain(DUMMY_TOKEN)
     expect(text).not.toContain(DUMMY_KEY)
   })
@@ -124,7 +129,7 @@ describe('model question sections', () => {
     expect(options.map((option) => [option.value, option.status])).toEqual([
       [
         { kind: 'saved', name: 'codex', provider: 'openai-subscription', type: 'oauth' },
-        'signed in',
+        'signed in · renews on next use',
       ],
       [
         { kind: 'saved', name: 'proxy', provider: 'anthropic-compatible', type: 'bearer' },
@@ -143,6 +148,7 @@ describe('model question sections', () => {
         work: { type: 'api', provider: 'openai-compatible', key: DUMMY_KEY },
         claude: { type: 'oauth', provider: 'anthropic-subscription', tokens: oauthTokens },
       }),
+      CLOCK,
     )
 
     expect(sections[1]?.heading).toBe('Saved on this machine (6)')
@@ -184,12 +190,13 @@ describe('model question sections', () => {
         other: FIXTURE_STORE.other,
         'a b': FIXTURE_STORE['a b'],
       }),
+      CLOCK,
     )
     expect(sections.map((section) => section.heading)).toEqual(['Connect a new model'])
   })
 
   it('labels the seven new choices and gives each its status', () => {
-    const [newChoices] = initModelSections([])
+    const [newChoices] = initModelSections([], CLOCK)
     expect(
       newChoices?.options.map((option) => [
         option.value.kind === 'new' ? option.value.choice : option.value.name,
@@ -210,20 +217,36 @@ describe('model question sections', () => {
 
 describe('the status of a new choice that reuses a saved credential', () => {
   const statusOf = (saved: readonly SavedCredential[], choice: InitModelChoice) =>
-    initModelSections(saved)[0]?.options.find(
+    initModelSections(saved, CLOCK)[0]?.options.find(
       (option) => option.value.kind === 'new' && option.value.choice === choice,
     )?.status
 
-  it('says signed in on a new subscription whose stable name holds a saved sign-in for it', async () => {
+  it('gives a new subscription the state of the saved sign-in its stable name holds', async () => {
     const saved = await savedFrom({
       'claude-code': FIXTURE_STORE['claude-code'],
       codex: { type: 'oauth', provider: 'openai-subscription-oauth', tokens: oauthTokens },
     })
 
-    expect(statusOf(saved, 'claude-code')).toBe('signed in')
-    expect(statusOf(saved, 'codex')).toBe('signed in')
+    expect(statusOf(saved, 'claude-code')).toBe('signed in · renews on next use')
+    expect(statusOf(saved, 'codex')).toBe('signed in · renews on next use')
     const signedIn = savedOptions(saved).map((option) => option.status)
-    expect(signedIn).toEqual(['signed in', 'signed in'])
+    expect(signedIn).toEqual(['signed in · renews on next use', 'signed in · renews on next use'])
+  })
+
+  it("shows a saved sign-in's date and that it renews itself", async () => {
+    const saved = await savedFrom({
+      'claude-code': {
+        type: 'oauth',
+        provider: 'anthropic-subscription',
+        signedInAt: Date.UTC(2026, 10, 3, 12, 0),
+        tokens: { ...oauthTokens, expires: Date.UTC(2026, 10, 19, 9, 0) },
+      },
+    })
+
+    expect(statusOf(saved, 'claude-code')).toBe('signed in 3 Nov 2026 · valid, renews itself')
+    expect(savedOptions(saved).map((option) => option.status)).toEqual([
+      'signed in 3 Nov 2026 · valid, renews itself',
+    ])
   })
 
   it('says key saved on the Gemini choice whose stable name holds a saved Gemini key', async () => {
@@ -274,6 +297,7 @@ const oauth = (name: string, provider: string): SavedCredential => ({
   name,
   type: 'oauth',
   provider,
+  signIn: { renews: true },
 })
 
 describe('the entry each new choice writes', () => {

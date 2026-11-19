@@ -1277,7 +1277,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
 
         if (modelPick === undefined) {
           asked = true
-          const sections = initModelSections(saved)
+          const sections = initModelSections(saved, { now: Date.now() })
           modelPick = await ui.select<InitModelPick>({
             message: 'Which model should agent-qa use?',
             sections,

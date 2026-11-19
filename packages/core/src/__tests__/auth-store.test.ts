@@ -183,13 +183,23 @@ describe('auth store', () => {
       )
     })
 
-    it('lists every credential by name, kind and provider', async () => {
+    it('lists every credential by name, kind and provider, and a sign-in by its times and whether it renews', async () => {
       const saved = await listSavedCredentials(authPath)
       expect(saved).toEqual([
-        { name: 'claude-code', type: 'oauth', provider: 'anthropic-subscription' },
+        {
+          name: 'claude-code',
+          type: 'oauth',
+          provider: 'anthropic-subscription',
+          signIn: { renews: true, expires: 0 },
+        },
         { name: 'work', type: 'api', provider: 'openai-compatible' },
         { name: 'g', type: 'api', provider: 'gemini' },
-        { name: 'a b', type: 'oauth', provider: 'anthropic-subscription' },
+        {
+          name: 'a b',
+          type: 'oauth',
+          provider: 'anthropic-subscription',
+          signIn: { renews: true, expires: 0 },
+        },
         { name: 'other', type: 'api', provider: 'some-unknown-provider' },
         { name: 'lost', type: 'bearer', provider: 'anthropic-compatible' },
       ])
@@ -198,11 +208,59 @@ describe('auth store', () => {
     it('never returns a key, token or tokens field or a secret value', async () => {
       const saved = await listSavedCredentials(authPath)
       for (const entry of saved) {
-        expect(Object.keys(entry).sort()).toEqual(['name', 'provider', 'type'])
+        if (entry.type === 'oauth') {
+          expect(Object.keys(entry).sort()).toEqual(['name', 'provider', 'signIn', 'type'])
+          for (const value of Object.values(entry.signIn)) {
+            expect(['number', 'boolean']).toContain(typeof value)
+          }
+        } else {
+          expect(Object.keys(entry).sort()).toEqual(['name', 'provider', 'type'])
+        }
       }
       const text = JSON.stringify(saved)
       expect(text).not.toContain(dummyToken)
       expect(text).not.toContain(dummyKey)
+    })
+
+    it("reads a sign-in's date, expiry and refresh token only when they are well formed", async () => {
+      const signedInAt = Date.UTC(2026, 10, 3, 12, 0)
+      const expires = Date.UTC(2026, 10, 19, 9, 0)
+      await writeFile(
+        authPath,
+        JSON.stringify({
+          full: {
+            type: 'oauth',
+            provider: 'anthropic-subscription',
+            signedInAt,
+            tokens: { access: dummyToken, refresh: dummyToken, expires },
+          },
+          short: {
+            type: 'oauth',
+            provider: 'anthropic-subscription',
+            tokens: { access: dummyToken, refresh: '', expires },
+          },
+          bare: { type: 'oauth', provider: 'openai-subscription-oauth' },
+          text: {
+            type: 'oauth',
+            provider: 'anthropic-subscription',
+            signedInAt: 'yesterday',
+            tokens: { access: dummyToken, refresh: dummyToken, expires: 'soon' },
+          },
+        }),
+        'utf-8',
+      )
+      const signIns = Object.fromEntries(
+        (await listSavedCredentials(authPath)).map((entry) => [
+          entry.name,
+          entry.type === 'oauth' ? entry.signIn : undefined,
+        ]),
+      )
+      expect(signIns).toEqual({
+        full: { renews: true, expires, signedInAt },
+        short: { renews: false, expires },
+        bare: { renews: false },
+        text: { renews: true },
+      })
     })
 
     it('drops an entry with no known kind or no provider', async () => {

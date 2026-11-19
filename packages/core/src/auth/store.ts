@@ -70,15 +70,38 @@ export async function readAuth(path?: string): Promise<AuthStore> {
   }
 }
 
-export interface SavedCredential {
-  name: string
-  type: AuthCredential['type']
-  provider: string
-}
+export type SavedCredential =
+  | {
+    name: string
+    type: 'oauth'
+    provider: string
+    signIn: { renews: boolean; expires?: number; signedInAt?: number }
+  }
+  | { name: string; type: 'api' | 'bearer'; provider: string }
 
 const SAVED_CREDENTIAL_TYPES: ReadonlySet<string> = new Set(['oauth', 'api', 'bearer'])
 
-// Only the name, kind and provider leave this module; a key or token never does.
+function finiteNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function signInOf(entry: object): Extract<SavedCredential, { type: 'oauth' }>['signIn'] {
+  const { tokens, signedInAt } = entry as { tokens?: unknown; signedInAt?: unknown }
+  const held =
+    typeof tokens === 'object' && tokens !== null
+      ? (tokens as { refresh?: unknown; expires?: unknown })
+      : {}
+  const expires = finiteNumber(held.expires)
+  const at = finiteNumber(signedInAt)
+  return {
+    renews: typeof held.refresh === 'string' && held.refresh !== '',
+    ...(expires === undefined ? {} : { expires }),
+    ...(at === undefined ? {} : { signedInAt: at }),
+  }
+}
+
+// The name, kind and provider leave, and for a sign-in its stored times and whether it holds a
+// refresh token; a key or token never does.
 export async function listSavedCredentials(path?: string): Promise<SavedCredential[]> {
   const store: unknown = await readAuth(path)
   if (typeof store !== 'object' || store === null || Array.isArray(store)) return []
@@ -88,7 +111,11 @@ export async function listSavedCredentials(path?: string): Promise<SavedCredenti
     const { type, provider } = entry as { type?: unknown; provider?: unknown }
     if (typeof type !== 'string' || !SAVED_CREDENTIAL_TYPES.has(type)) continue
     if (typeof provider !== 'string') continue
-    saved.push({ name, type: type as SavedCredential['type'], provider })
+    saved.push(
+      type === 'oauth'
+        ? { name, type, provider, signIn: signInOf(entry) }
+        : { name, type: type as 'api' | 'bearer', provider },
+    )
   }
   return saved
 }
