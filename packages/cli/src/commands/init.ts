@@ -79,7 +79,12 @@ import {
   type AgentSetupFileResult,
 } from './agent-setup.js'
 import type { CodingAgent } from './agent-setup-manifest.js'
-import { INIT_AGENT_OPTIONS, detectCodingAgents, parseInitAgentsFlag } from './init-agents.js'
+import {
+  INIT_AGENT_OPTIONS,
+  detectCodingAgents,
+  initAgentOptions,
+  parseInitAgentsFlag,
+} from './init-agents.js'
 import {
   INIT_MODEL_CHOICES,
   initModelSections,
@@ -92,6 +97,8 @@ import {
 import { EXAMPLE_PATHS, dashboardPage, initNextSteps, nextStepLines } from './init-next-steps.js'
 import {
   INTERRUPTED,
+  NONE_CHOSEN,
+  NONE_FOUND,
   NOT_RUN,
   createInitStepRunner,
   freshInitPlan,
@@ -1287,19 +1294,21 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         modelSetup ??= modelEntryFor(modelPick, modelFlags)
 
         let agents = flaggedAgents
+        const agentsPicked = flaggedAgents !== undefined || ask
         if (agents === undefined) {
-          agents = await detectCodingAgents({
+          const detected = await detectCodingAgents({
             projectDir: dir,
             homeDir: host.homedir,
             env: host.env,
             io: host.io,
           })
+          agents = detected
           if (ask) {
             asked = true
             agents = await ui.multiselect<CodingAgent>({
               message: 'Which coding agents should agent-qa set up?',
-              options: INIT_AGENT_OPTIONS,
-              initialValues: agents,
+              options: initAgentOptions(detected),
+              initialValues: detected,
               required: false,
             })
           }
@@ -1580,7 +1589,8 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
             )
           }
           if (agents.length === 0) {
-            runner.skip('skills', 'Coding agents: none chosen', 'none chosen')
+            const reason = agentsPicked ? NONE_CHOSEN : NONE_FOUND
+            runner.skip('skills', `Coding agents: ${reason}`, reason)
           } else {
             await runner.run(
               'skills',

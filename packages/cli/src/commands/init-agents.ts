@@ -17,6 +17,12 @@ export const INIT_AGENT_OPTIONS: readonly InitAgentOption[] = [
   { value: 'codex', label: 'Codex', hint: '.agents/skills, .codex/config.toml' },
 ]
 
+export function initAgentOptions(detected: readonly CodingAgent[]): InitAgentOption[] {
+  return INIT_AGENT_OPTIONS.map((option) =>
+    detected.includes(option.value) ? { ...option, hint: `${option.hint} · detected` } : option,
+  )
+}
+
 const PROJECT_MARKERS: Readonly<Record<CodingAgent, readonly string[]>> = {
   'claude-code': ['.claude', 'CLAUDE.md', '.mcp.json'],
   codex: ['.codex', '.agents'],
@@ -48,13 +54,12 @@ export async function detectCodingAgents(
   const { resolveAnalyticsAgentProduct } = await import('@vostride/agent-qa-analytics')
   const product = resolveAnalyticsAgentProduct(options.env)
   const host = product === undefined ? undefined : HOST_AGENTS[product]
-  const detected = CODING_AGENTS.filter(
+  return CODING_AGENTS.filter(
     (agent) =>
       agent === host ||
       PROJECT_MARKERS[agent].some((marker) => io.exists(join(options.projectDir, marker))) ||
       HOME_MARKERS[agent].some((marker) => io.exists(join(options.homeDir, marker))),
   )
-  return detected.length === 0 ? [...CODING_AGENTS] : detected
 }
 
 const AGENT_NAMES_HINT = 'Use claude-code, codex, all or none.'

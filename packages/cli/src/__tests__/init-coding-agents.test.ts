@@ -12,6 +12,7 @@ import { createInitCommand } from '../commands/init.js'
 import {
   INIT_AGENT_OPTIONS,
   detectCodingAgents,
+  initAgentOptions,
   parseInitAgentsFlag,
 } from '../commands/init-agents.js'
 import type { ProjectIo } from '../commands/project-host.js'
@@ -19,6 +20,7 @@ import { createClackUi } from '../init-ui/clack-ui.js'
 import type { InitUi } from '../init-ui/init-ui.js'
 import { brandPalette } from '../init-ui/palette.js'
 import { KEY, clackStreams, type ClackStreams } from './clack-keys.js'
+import { fakeInitUi, type FakeInitUiEntry } from './fake-init-ui.js'
 import { cleanupTempProjects, fakeRunner, tempProject } from './project-fixtures.js'
 
 afterEach(cleanupTempProjects)
@@ -60,6 +62,30 @@ describe('the coding agents question', () => {
       { value: 'codex', label: 'Codex', hint: '.agents/skills, .codex/config.toml' },
     ])
   })
+
+  it('marks each detected agent as detected in its hint and leaves the others as they are', () => {
+    expect(initAgentOptions(['claude-code'])).toEqual([
+      {
+        value: 'claude-code',
+        label: 'Claude Code',
+        hint: '.claude/skills, .mcp.json · detected',
+      },
+      { value: 'codex', label: 'Codex', hint: '.agents/skills, .codex/config.toml' },
+    ])
+  })
+
+  it('lists both agents in their usual order whatever is detected', () => {
+    for (const detected of [[], ['codex'], ['codex', 'claude-code']] as const) {
+      const options = initAgentOptions(detected)
+      expect(options.map(({ value, label }) => ({ value, label }))).toEqual(
+        INIT_AGENT_OPTIONS.map(({ value, label }) => ({ value, label })),
+      )
+    }
+  })
+
+  it('offers the hints as they are when nothing is detected', () => {
+    expect(initAgentOptions([])).toEqual(INIT_AGENT_OPTIONS)
+  })
 })
 
 describe('detectCodingAgents', () => {
@@ -95,12 +121,9 @@ describe('detectCodingAgents', () => {
     ])
   })
 
-  it('pre-checks both agents when nothing is detected', async () => {
+  it('pre-checks no agent when nothing is detected', async () => {
     const { root, home } = tempProject('agents-nothing')
-    expect(await detectCodingAgents({ projectDir: root, homeDir: home, env: {} })).toEqual([
-      'claude-code',
-      'codex',
-    ])
+    expect(await detectCodingAgents({ projectDir: root, homeDir: home, env: {} })).toEqual([])
   })
 
   it('pre-checks both agents in their usual order when both are detected', async () => {
@@ -193,6 +216,8 @@ describe('parseInitAgentsFlag', () => {
 })
 
 const AGENTS_QUESTION = 'Which coding agents should agent-qa set up?'
+const LATER_LINE =
+  'To set up a coding agent later, run npx agent-qa init --agents claude-code or --agents codex.'
 
 const silentAnalytics: typeof composeAnalyticsHost = async () =>
   composeAnalyticsHost({
@@ -293,7 +318,7 @@ describe('the coding agents question in init', () => {
     const run = await agentsOnTheRail(project, [KEY.down, KEY.enter])
 
     expect(lineWith(run.drawn, 'Claude Code')).toContain(
-      `${S_CHECKBOX_SELECTED} Claude Code (.claude/skills, .mcp.json)`,
+      `${S_CHECKBOX_SELECTED} Claude Code (.claude/skills, .mcp.json · detected)`,
     )
     expect(lineWith(run.drawn, 'Codex')).toContain(`${S_CHECKBOX_INACTIVE} Codex`)
     expect(run.text).toContain('Codex (.agents/skills, .codex/config.toml)')
@@ -309,11 +334,94 @@ describe('the coding agents question in init', () => {
     expect(run.answers).toEqual([[]])
   })
 
-  it('checks both agents when nothing is detected', async () => {
-    const run = await agentsOnTheRail(tempProject('agents-rail-both'), [KEY.enter])
+  it('lists both agents, checks neither when nothing is detected, and Enter sets up none, saying how to set one up later', async () => {
+    const run = await agentsOnTheRail(tempProject('agents-rail-nothing'), [KEY.enter])
 
-    expect(lineWith(run.drawn, 'Claude Code')).toContain(S_CHECKBOX_SELECTED)
-    expect(lineWith(run.drawn, 'Codex')).toContain(S_CHECKBOX_SELECTED)
-    expect(run.answers).toEqual([['claude-code', 'codex']])
+    expect(lineWith(run.drawn, 'Claude Code')).not.toContain(S_CHECKBOX_SELECTED)
+    expect(lineWith(run.drawn, 'Codex')).not.toContain(S_CHECKBOX_SELECTED)
+    expect(lineWith(run.drawn, 'Codex')).toContain(`${S_CHECKBOX_INACTIVE} Codex`)
+    expect(run.answers).toEqual([[]])
+    expect(run.text).toContain('Coding agents: none chosen')
+    expect(run.text).toContain(LATER_LINE)
+  })
+})
+
+async function initWithoutATerminal(project: { root: string; home: string }) {
+  const ui = fakeInitUi()
+  const parent = new Command()
+  const command = createInitCommand({
+    cwd: project.root,
+    host: { homedir: project.home, env: {}, run: fakeRunner() },
+    isTTY: false,
+    composeAnalytics: silentAnalytics,
+    ui,
+  })
+  parent.exitOverride()
+  command.exitOverride()
+  parent.addCommand(command)
+  await parent.parseAsync([
+    'node',
+    'test',
+    'init',
+    '--platform',
+    'web',
+    '--llm',
+    'claude-code',
+    '--pm',
+    'none',
+    '--no-browsers',
+  ])
+  return ui
+}
+
+function linesAfterTheBox(entries: readonly FakeInitUiEntry[]): string[] {
+  const note = entries.findIndex((entry) => entry.kind === 'note' && entry.text === 'Next steps')
+  const outro = entries.findIndex((entry) => entry.kind === 'outro')
+  expect(note, 'init drew its next steps').toBeGreaterThanOrEqual(0)
+  expect(outro, 'init drew its outro').toBeGreaterThan(note)
+  return entries
+    .slice(note + 1, outro)
+    .filter((entry) => entry.kind === 'line')
+    .map((entry) => entry.text)
+}
+
+describe('init without a terminal', () => {
+  beforeEach(() => {
+    vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
+    vi.spyOn(process.stderr, 'write').mockImplementation(() => true)
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  it('sets up no coding agent when nothing is detected, and says how to set one up later', async () => {
+    const project = tempProject('agents-plain-nothing')
+
+    const ui = await initWithoutATerminal(project)
+
+    for (const path of ['.claude', '.agents', '.codex', '.mcp.json', 'AGENTS.md']) {
+      expect(existsSync(join(project.root, path)), path).toBe(false)
+    }
+    expect(ui.entries).toContainEqual({ kind: 'skipped', text: 'Coding agents: none found' })
+    expect(linesAfterTheBox(ui.entries)).toContain(LATER_LINE)
+  })
+
+  it('sets up Codex alone for a .codex folder in the home folder, with no line about setting one up later', async () => {
+    const project = tempProject('agents-plain-codex')
+    mkdirSync(join(project.home, '.codex'))
+
+    const ui = await initWithoutATerminal(project)
+
+    const done = ui.entries.filter((entry) => entry.kind === 'done').map((entry) => entry.text)
+    const codex = done.find((text) => text.startsWith('Codex: '))
+    expect(codex).toContain('skills, MCP entries, AGENTS.md block')
+    expect(existsSync(join(project.root, '.codex', 'config.toml'))).toBe(true)
+    expect(existsSync(join(project.root, '.claude'))).toBe(false)
+    expect(linesAfterTheBox(ui.entries)).toEqual([
+      'Your coding agent can use agent-qa now: ask it to run the starter test.',
+      'Codex reads .codex/config.toml only in a trusted folder: trust this folder when Codex asks.',
+    ])
   })
 })

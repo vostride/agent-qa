@@ -4,13 +4,14 @@ import { dashboardOpenPath } from '../commands/dashboard.js'
 import {
   CODEX_TRUST_HINT,
   CODING_AGENT_HINT,
+  NO_CODING_AGENT_HINT,
   dashboardPage,
   initNextSteps,
   nextStepLines,
   type InitNextStepFacts,
   type InitNextStepModel,
 } from '../commands/init-next-steps.js'
-import type { InitStepRecord } from '../commands/init-steps.js'
+import { NONE_CHOSEN, NONE_FOUND, type InitStepRecord } from '../commands/init-steps.js'
 
 const DASHBOARD = 'npx agent-qa dashboard'
 const RUN_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total.yaml'
@@ -488,8 +489,47 @@ describe('the lines under the box', () => {
     expect(initNextSteps(facts({ agents: ['claude-code'] })).hints).toEqual([CODING_AGENT_HINT])
   })
 
-  it('no coding agent gives no hint', () => {
-    expect(initNextSteps(facts({ agents: [] })).hints).toEqual([])
+  it('no coding agent found gives the line that names --agents', () => {
+    const steps = withRecord(DONE, { name: 'skills', outcome: 'skipped', reason: NONE_FOUND })
+    expect(initNextSteps(facts({ steps, agents: [] })).hints).toEqual([NO_CODING_AGENT_HINT])
+  })
+
+  it('no coding agent chosen gives the line that names --agents', () => {
+    const steps = withRecord(DONE, { name: 'skills', outcome: 'skipped', reason: NONE_CHOSEN })
+    expect(initNextSteps(facts({ steps, agents: [] })).hints).toEqual([NO_CODING_AGENT_HINT])
+  })
+
+  it('the line names both agents init can set up', () => {
+    expect(NO_CODING_AGENT_HINT).toBe(
+      'To set up a coding agent later, run npx agent-qa init --agents claude-code or --agents codex.',
+    )
+  })
+
+  it('a failed coding agent setup lists its command and gives no hint', () => {
+    const steps = withRecord(DONE, {
+      name: 'skills',
+      outcome: 'failed',
+      reason: 'EACCES',
+      command: 'npx agent-qa init',
+    })
+    const next = initNextSteps(facts({ steps, agents: [] }))
+
+    expect(next.steps).toContainEqual({
+      command: 'npx agent-qa init',
+      description: 'Set up the coding agents',
+    })
+    expect(next.hints).toEqual([])
+  })
+
+  it('a scaffold that was not written gives no hint, even with no coding agent found', () => {
+    const steps = withRecord(
+      withRecord(
+        withRecord(DONE, { name: 'package-json', outcome: 'failed', reason: 'EACCES' }),
+        { name: 'scaffold', outcome: 'skipped', reason: 'package.json was not written' },
+      ),
+      { name: 'skills', outcome: 'skipped', reason: NONE_FOUND },
+    )
+    expect(initNextSteps(facts({ steps, agents: [] })).hints).toEqual([])
   })
 
   it('the coding agent hint asks for the starter test when one is listed, and is the plain ready line when none is', () => {
@@ -521,6 +561,10 @@ describe("a re-run's next steps", () => {
   ]
   const rerunFacts = (overrides: Partial<InitNextStepFacts> = {}): InitNextStepFacts =>
     facts({ steps: RERUN_DONE, model: GEMINI_READY, ...overrides })
+
+  it('no coding agent set up again gives no hint', () => {
+    expect(initNextSteps(rerunFacts({ agents: [] })).hints).toEqual([])
+  })
 
   it('a scaffold row that is current never asks for init again', () => {
     expect(commands(rerunFacts())).toEqual([DASHBOARD, RUN_STARTER])

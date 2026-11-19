@@ -514,11 +514,11 @@ describe('--agents answers the coding agents question', () => {
     expect(lastDocument().agents).toEqual(agents)
   })
 
-  it('--json with nothing detected records both agents in the document', async () => {
+  it('--json with nothing detected records no agent in the document', async () => {
     const { error } = await initWithFlags(['--platform', 'web', '--json'])
 
     expect(error).toBeUndefined()
-    expect(lastDocument().agents.join(', ')).toBe('claude-code, codex')
+    expect(lastDocument().agents).toEqual([])
   })
 
   it('--agents codex in a terminal answers the question without drawing it', async () => {

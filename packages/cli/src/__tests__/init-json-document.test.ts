@@ -190,7 +190,7 @@ describe('init --json prints one document on stdout', () => {
       { name: 'scaffold', outcome: 'done' },
       { name: 'install', outcome: 'skipped', reason: '--pm none', command: 'npm install' },
       { name: 'chromium', outcome: 'done' },
-      { name: 'skills', outcome: 'done' },
+      { name: 'skills', outcome: 'skipped', reason: 'none found' },
       {
         name: 'validate',
         outcome: 'skipped',
@@ -218,9 +218,8 @@ describe('init --json prints one document on stdout', () => {
       outcome: 'created',
       step: 'scaffold',
     })
-    expect(doc.files).toContainEqual({ path: 'AGENTS.md', outcome: 'created', step: 'skills' })
-    expect(doc.files).toContainEqual({ path: '.mcp.json', outcome: 'created', step: 'skills' })
-    expect(doc.agents).toEqual(['claude-code', 'codex'])
+    expect(doc.files.filter((file) => file.step === 'skills')).toEqual([])
+    expect(doc.agents).toEqual([])
     expect(doc.agentQa).toEqual({ version: VERSION, via: 'running' })
     expect(doc.plugins).toEqual([
       { package: '@vostride/agent-qa-subscription-auth', version: VERSION },
@@ -417,7 +416,7 @@ describe('init --json prints one document on stdout', () => {
         reason: 'Chromium download failed twice: npm ERR! boom',
         command: 'npx agent-qa install-browsers --chromium',
       },
-      { name: 'skills', outcome: 'done' },
+      { name: 'skills', outcome: 'skipped', reason: 'none found' },
       {
         name: 'validate',
         outcome: 'failed',
@@ -614,7 +613,7 @@ describe('init --json prints one document on stdout', () => {
 
   it('a re-run of an initialized project skips its current rows, validates and writes no file', async () => {
     const { root, home } = tempProject('json-initialized')
-    await init(root, home, ['--platform', 'web', '--pm', 'none'])
+    await init(root, home, ['--platform', 'web', '--pm', 'none', '--agents', 'all'])
     const declared = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8')) as {
       devDependencies: Record<string, string>
     }
@@ -653,6 +652,8 @@ describe('init --json prints one document on stdout', () => {
       'web',
       '--pm',
       'none',
+      '--agents',
+      'all',
     ])
 
     const doc = documentOf(result)

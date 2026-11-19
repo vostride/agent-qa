@@ -3,7 +3,7 @@ import { NAME_SLUG_PATTERN } from '@vostride/agent-qa-schema'
 import type { CodingAgent } from './agent-setup-manifest.js'
 import { guideLines, type VersionMove } from './agent-qa-upgrade.js'
 import type { InitModelSetup, InitModelStatus } from './init-model-choice.js'
-import type { InitStepName, InitStepRecord } from './init-steps.js'
+import { NONE_CHOSEN, NONE_FOUND, type InitStepName, type InitStepRecord } from './init-steps.js'
 
 export interface InitNextStep {
   command: string
@@ -58,6 +58,8 @@ const ADD_MODEL = 'Add the model in the dashboard:'
 const FINISH_MODEL = 'Finish setting up the model in the dashboard:'
 const CODING_AGENT_READY = 'Your coding agent can use agent-qa now'
 export const CODING_AGENT_HINT = `${CODING_AGENT_READY}: ask it to run the starter test.`
+export const NO_CODING_AGENT_HINT =
+  'To set up a coding agent later, run npx agent-qa init --agents claude-code or --agents codex.'
 export const CODEX_TRUST_HINT =
   'Codex reads .codex/config.toml only in a trusted folder: trust this folder when Codex asks.'
 
@@ -169,6 +171,13 @@ export function initNextSteps(facts: InitNextStepFacts): {
     hints.push(starterListed ? CODING_AGENT_HINT : `${CODING_AGENT_READY}.`)
   }
   if (facts.agents.includes('codex')) hints.push(CODEX_TRUST_HINT)
+  const noneSetUp = facts.steps.some(
+    (record) =>
+      record.name === 'skills' &&
+      record.outcome === 'skipped' &&
+      (record.reason === NONE_CHOSEN || record.reason === NONE_FOUND),
+  )
+  if (facts.agents.length === 0 && noneSetUp) hints.push(NO_CODING_AGENT_HINT)
   return { steps, hints }
 }
 

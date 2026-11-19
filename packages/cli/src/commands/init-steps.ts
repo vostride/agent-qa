@@ -56,6 +56,11 @@ export const INTERRUPTED = 'interrupted'
 // The reason a step after a refusal or a bug carries: init stopped before it.
 export const NOT_RUN = 'not run'
 
+// A fresh init's skills step when no coding agent was picked: by --agents or the question, or by
+// detection alone.
+export const NONE_CHOSEN = 'none chosen'
+export const NONE_FOUND = 'none found'
+
 // The steps a fresh init plans, in the order it runs them. Only a mobile init downloads the
 // Playground app.
 export function freshInitPlan({ mobile = false }: { mobile?: boolean } = {}): InitStepName[] {

@@ -147,7 +147,10 @@ describe('a fresh init draws one line per step', () => {
     const { root, home } = tempProject('steps-fake')
     const ui = fakeInitUi()
 
-    await init(root, home, { ui })
+    await init(root, home, {
+      ui,
+      args: ['--platform', 'web', '--llm', 'gemini', '--pm', 'none', '--agents', 'all'],
+    })
 
     expect(ui.entries.filter((entry) => entry.kind === 'step').map((entry) => entry.text)).toEqual([
       'Writing package.json',
@@ -190,7 +193,7 @@ describe('a fresh init draws one line per step', () => {
     const error = await init(root, home, {
       ui,
       run,
-      args: ['--platform', 'web', '--llm', 'gemini'],
+      args: ['--platform', 'web', '--llm', 'gemini', '--agents', 'all'],
     }).catch((caught: unknown) => caught)
 
     expect(error).toBeInstanceOf(CliRefusal)
@@ -476,6 +479,10 @@ describe('the steps after the install', () => {
     for (const path of ['.claude', '.agents', '.mcp.json', '.codex', 'AGENTS.md']) {
       expect(existsSync(join(root, path)), path).toBe(false)
     }
+    expect(ui.entries).toContainEqual({
+      kind: 'line',
+      text: 'To set up a coding agent later, run npx agent-qa init --agents claude-code or --agents codex.',
+    })
   })
 
   it('with no agent-qa installed, the skills line says they came from this agent-qa', async () => {
