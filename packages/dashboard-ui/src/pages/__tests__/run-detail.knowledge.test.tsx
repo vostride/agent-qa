@@ -764,11 +764,6 @@ describe("a step reference in Knowledge used takes the reader to that step", () 
     expect(knowledgeState(view)).toBe("ready")
     expect(view.querySelector('[role="tab"][data-state="active"]')?.textContent).toBe("Knowledge")
     expect(document.activeElement).toBe(control)
-
-    await act(async () => { await new Promise(resolve => requestAnimationFrame(() => resolve(undefined))) })
-    const scrolled = vi.mocked(Element.prototype.scrollIntoView).mock.contexts
-    expect(scrolled).toContain(view.querySelector('[data-step-id="0:1"]'))
-    expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({ block: "nearest", behavior: "smooth" })
   })
 
   it("STEP-REF-HIDDEN-MEMBER-WIDENS: a reference to a member the filter hides widens the filter, then selects", async () => {

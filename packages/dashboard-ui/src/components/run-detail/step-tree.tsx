@@ -10,7 +10,7 @@ import type { ExecutionLogEntry } from "@/lib/api"
 import { displayStepsForGroups, type DisplayStep } from "@/lib/display-step"
 import type { RunDetailGroup } from "@/lib/run-detail-view"
 import type { MemberVerdictView } from "@/lib/analysis-view"
-import { hasStepId, type Selection } from "@/lib/selection"
+import { hasStepId, selectedRowAttribute, type Selection } from "@/lib/selection"
 import { feedbackAddress } from "@/lib/feedback-view"
 import type { Playhead } from '@/lib/playhead'
 import { useTranslation } from '@/i18n'
@@ -48,7 +48,7 @@ function HookTreeItem({ log, isSelected, onSelect }: {
   onSelect: () => void
 }) {
   return (
-    <li role="treeitem" aria-level={1} aria-selected={isSelected}>
+    <li role="treeitem" aria-level={1} aria-selected={isSelected} data-hook-id={log.id}>
       <button
         className={cn(
           "flex w-full items-center gap-2 py-1.5 px-3 text-left rounded-[2px] text-sm",
@@ -157,6 +157,7 @@ export function StepTree({
   }, [inlineLogs, displayGroups, groups.length])
 
   const hasAnyStep = displayGroups.some((entry) => entry.steps.length > 0)
+  const selectionKey = selectedRowAttribute(selection)?.key ?? ""
 
   if (groups.length === 0 && !hasAnyStep) {
     if (setupHooks.length > 0 || teardownHooks.length > 0) {
@@ -193,6 +194,8 @@ export function StepTree({
               onCitedStep={onCitedStep}
               onSelectMember={onSelectMember}
               onCitedArtifact={onCitedArtifact}
+              holdsSelection={hasStepId(selection) && steps.some((step) => step.id === selection.stepId)}
+              selectionKey={selectionKey}
             >
               {steps.map((step) => {
                 const { testIndex, stepIndex } = step

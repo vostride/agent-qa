@@ -226,6 +226,54 @@ describe("the toggle of a group that holds a verdict says so, collapsed or not",
   })
 })
 
+describe("a collapsed member opens when a new selection lands inside it", () => {
+  function checkout(holdsSelection: boolean, selectionKey: string) {
+    return (
+      <ul role="tree">
+        <MemberGroup
+          group={group(member(1, { name: "Checkout", outcome: "passed" }), [step(1, 0), step(1, 1)])}
+          showChrome
+          holdsSelection={holdsSelection}
+          selectionKey={selectionKey}
+        >
+          <li data-step-id="1:0" />
+          <li data-step-id="1:1" />
+        </MemberGroup>
+      </ul>
+    )
+  }
+  const rerender = (element: ReactElement) => act(() => { root.render(element) })
+  const toggle = (view: HTMLElement) => view.querySelector<HTMLElement>("[data-member-toggle]")!
+
+  it("a new selection inside a collapsed member opens it", () => {
+    const view = mount(checkout(false, "data-step-id=0:3"))
+    act(() => { toggle(view).click() })
+    expect(toggle(view).getAttribute("aria-expanded")).toBe("false")
+    expect(view.querySelector('[data-step-id="1:0"]')).toBeNull()
+
+    rerender(checkout(false, "data-step-id=0:4"))
+    expect(toggle(view).getAttribute("aria-expanded"), "a selection in another member leaves it collapsed").toBe("false")
+
+    rerender(checkout(true, "data-step-id=1:0"))
+    expect(toggle(view).getAttribute("aria-expanded")).toBe("true")
+    expect(view.querySelector('[data-step-id="1:0"]')).not.toBeNull()
+  })
+
+  it("collapsing the member that holds the selection keeps it collapsed until the selection moves", () => {
+    const view = mount(checkout(true, "data-step-id=1:0"))
+    act(() => { toggle(view).click() })
+    expect(toggle(view).getAttribute("aria-expanded")).toBe("false")
+
+    rerender(checkout(true, "data-step-id=1:0"))
+    expect(toggle(view).getAttribute("aria-expanded")).toBe("false")
+    expect(view.querySelector('[data-step-id="1:0"]')).toBeNull()
+
+    rerender(checkout(true, "data-sub-action-id=1:1-0"))
+    expect(toggle(view).getAttribute("aria-expanded")).toBe("true")
+    expect(view.querySelector('[data-step-id="1:1"]')).not.toBeNull()
+  })
+})
+
 describe("a re-run says so, and a first attempt says nothing", () => {
   it("reads the re-run count off `attempts` for a member that was re-run", () => {
     const label = reranLabel(3)

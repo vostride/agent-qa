@@ -10,7 +10,6 @@ export type Selection =
   | { type: 'test'; testIndex: number }
 
 export type StepLinkedSelection = Extract<Selection, { stepId: string }>
-export type SubactionSelection = Extract<Selection, { type: 'subaction' }>
 
 /** The separator between the handle and the step ordinal in a run-detail step key. */
 const STEP_KEY_SEPARATOR = ':'
@@ -41,8 +40,20 @@ export function hasStepId(selection: Selection | null | undefined): selection is
   )
 }
 
-export function isSubactionSelection(
-  selection: Selection | null | undefined,
-): selection is SubactionSelection {
-  return selection?.type === 'subaction'
+interface SelectedRowAttribute {
+  name: 'data-step-id' | 'data-sub-action-id' | 'data-execution-id' | 'data-hook-id'
+  value: string
+  key: string
+}
+
+// The data attribute that names the selected item's row in the step tree; `null` when it has none.
+export function selectedRowAttribute(selection: Selection | null | undefined): SelectedRowAttribute | null {
+  const row = (name: SelectedRowAttribute['name'], value: string) => ({ name, value, key: `${name}=${value}` })
+  switch (selection?.type) {
+    case 'step': return row('data-step-id', selection.stepId)
+    case 'subaction': return row('data-sub-action-id', `${selection.stepId}-${String(selection.subIndex)}`)
+    case 'execution': return row('data-execution-id', selection.logId)
+    case 'hook': return row('data-hook-id', selection.hookId)
+    default: return null
+  }
 }

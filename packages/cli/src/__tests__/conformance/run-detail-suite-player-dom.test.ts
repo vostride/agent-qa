@@ -743,6 +743,60 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
   }
 }, 120_000)
 
+it("playing the recording keeps the playhead's action in view in the step list, and the next member's first action when the recording continues", async () => {
+  // In view: inside the client box of every ancestor that clips the row, and inside the window.
+  const rowInView = (page: Page, id: string) => page.evaluate((id) => {
+    const item = Array.from(document.querySelectorAll('[data-sub-action-id]')).find(element => element.getAttribute('data-sub-action-id') === id)
+    if (item === undefined) return false
+    const row = item.firstElementChild instanceof HTMLButtonElement ? item.firstElementChild : item
+    const box = row.getBoundingClientRect()
+    let visible = box.height > 0 && box.top >= -1 && box.bottom <= window.innerHeight + 1
+    for (let element = row.parentElement; element && element !== document.documentElement; element = element.parentElement) {
+      if (getComputedStyle(element).overflowY === 'visible') continue
+      const top = element.getBoundingClientRect().top + element.clientTop
+      if (box.top < top - 1 || box.bottom > top + element.clientHeight + 1) visible = false
+    }
+    return visible
+  }, id)
+  const playheadRow = (page: Page) => page.evaluate(() => document.querySelector('[data-playhead-row]')?.getAttribute('data-sub-action-id') ?? null)
+  const scrollListToTop = (page: Page) => page.evaluate(() => {
+    const tree = document.querySelector('[role="tree"]')
+    for (let element = tree?.parentElement; element && element !== document.documentElement; element = element.parentElement) {
+      const overflowY = getComputedStyle(element).overflowY
+      if (overflowY === 'auto' || overflowY === 'scroll') element.scrollTo({ top: 0, behavior: 'instant' })
+    }
+  })
+  const last = detail.subActions.filter(sub => sub.testIndex === 0).at(-1)!
+  const lastId = `0:${last.stepIndex}-${last.subActionIndex}`
+  const firstOfNext = detail.subActions.find(sub => sub.testIndex === 1)!
+  const firstOfNextId = `1:${firstOfNext.stepIndex}-${firstOfNext.subActionIndex}`
+  for (const viewport of [{ width: 1280, height: 560 }, { width: 390, height: 700 }]) {
+    const page = await fixture.browser.newPage({ viewport })
+    try {
+      await ready(page)
+      await mediaReady(page)
+      expect(await rowInView(page, lastId), `${lastId} starts out of view`).toBe(false)
+      await seek(page, last.recordingOffsetMs! / 1000 + 0.02)
+      await page.getByRole('button', { name: 'Play recording', exact: true }).click()
+      await expect.poll(() => playheadRow(page), { timeout: 5000 }).toBe(lastId)
+      await page.getByRole('button', { name: 'Pause recording', exact: true }).click()
+      expect(await playheadRow(page)).toBe(lastId)
+      await expect.poll(() => rowInView(page, lastId), { timeout: 3000, message: `${lastId} in view at ${viewport.width}x${viewport.height}` }).toBe(true)
+
+      await scrollListToTop(page)
+      expect(await rowInView(page, firstOfNextId), `${firstOfNextId} starts out of view`).toBe(false)
+      const duration = await page.locator('video').evaluate(video => (video as HTMLVideoElement).duration)
+      await seek(page, duration - 0.2)
+      await page.getByRole('button', { name: 'Play recording', exact: true }).click()
+      await expect.poll(() => playheadRow(page), { timeout: 10_000 }).toMatch(/^1:/)
+      const next = (await playheadRow(page))!
+      await expect.poll(() => rowInView(page, next), { timeout: 3000, message: `${next} in view at ${viewport.width}x${viewport.height}` }).toBe(true)
+    } finally {
+      await page.close()
+    }
+  }
+}, 120_000)
+
 describe('the suite player\'s seek, span and clock helpers', () => {
   it("a settled-seek wait that sees no seek on the member's source fails with a message within its bound", async () => {
     const page = await fixture.browser.newPage()

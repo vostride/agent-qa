@@ -28,6 +28,9 @@ interface MemberGroupProps {
   onCitedStep?: (testIndex: number, stepIndex: number) => void
   onSelectMember?: (testIndex: number) => void
   onCitedArtifact?: (sha: string) => void
+  // Whether the page's selection is one of this group's steps, and that selection's row key.
+  holdsSelection?: boolean
+  selectionKey?: string
   children?: ReactNode
 }
 
@@ -58,9 +61,18 @@ export function MemberGroup({
   onCitedStep = NO_OP,
   onSelectMember = NO_OP,
   onCitedArtifact = NO_OP,
+  holdsSelection = false,
+  selectionKey = "",
   children,
 }: MemberGroupProps) {
   const [open, setOpen] = useState(true)
+  // Opened while rendering, not in an effect, so the row exists when the page reveals it. A
+  // collapse of the group that holds the selection stays until the selection moves.
+  const [seenSelectionKey, setSeenSelectionKey] = useState(selectionKey)
+  if (selectionKey !== seenSelectionKey) {
+    setSeenSelectionKey(selectionKey)
+    if (holdsSelection && !open) setOpen(true)
+  }
   const { member } = group
   const isThin = group.steps.length === 0
   const rerun = reranLabel(member.attempts)

@@ -53,7 +53,7 @@ import { isPreMilestoneRun } from '@/lib/run-notice-view'
 import { usePageTitle } from "@/hooks/use-page-title"
 import { useTranslation } from "@/i18n"
 import { getRunFaviconState, useRunStatusFavicon } from "@/hooks/use-run-status-favicon"
-import { hasStepId, isSubactionSelection, runDetailStepKey, type Selection } from "@/lib/selection"
+import { hasStepId, runDetailStepKey, selectedRowAttribute, type Selection } from "@/lib/selection"
 import { displayStepsForGroups, type DisplayStep } from "@/lib/display-step"
 import { buildTimelineModel, findMarkerBySha, latestUsableFrame, type PlayerSource, parkTargetForStep, playheadFromSelection, selectionFromPlayhead, type Playhead } from '@/lib/playhead'
 
@@ -96,31 +96,34 @@ function getSelectionFromUrlOrFirst(
   return null
 }
 
-function scrollElementIntoContainerView(container: HTMLElement, element: HTMLElement) {
-  const containerRect = container.getBoundingClientRect()
-  const elementRect = element.getBoundingClientRect()
+// The list scrolls inside the step tree, not the panel root, so every scrolling ancestor up to the
+// boundary is moved, innermost first, and nothing outside it.
+function revealTreeRow(row: HTMLElement, boundary: HTMLElement) {
   const padding = 12
-  const topEdge = containerRect.top + padding
-  const bottomEdge = containerRect.bottom - padding
-
-  if (elementRect.top >= topEdge && elementRect.bottom <= bottomEdge) return
-
-  const nextTop =
-    elementRect.top < topEdge
-      ? container.scrollTop + (elementRect.top - topEdge)
-      : container.scrollTop + (elementRect.bottom - bottomEdge)
-
-  const top = Math.max(0, nextTop)
-
-  if (typeof container.scrollTo === "function") {
-    container.scrollTo({
-      top,
-      behavior: "smooth",
-    })
-    return
+  const behavior: ScrollBehavior =
+    window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ? "auto" : "smooth"
+  const box = row.getBoundingClientRect()
+  let shift = 0
+  for (let element = row.parentElement; element; element = element.parentElement) {
+    const overflowY = getComputedStyle(element).overflowY
+    if ((overflowY === "auto" || overflowY === "scroll") && element.scrollHeight > element.clientHeight) {
+      const top = element.getBoundingClientRect().top + element.clientTop
+      const topEdge = top + padding
+      const bottomEdge = top + element.clientHeight - padding
+      const rowTop = box.top - shift
+      const rowBottom = box.bottom - shift
+      if (rowTop < topEdge || rowBottom > bottomEdge) {
+        const delta = rowTop < topEdge || rowBottom - rowTop > bottomEdge - topEdge
+          ? rowTop - topEdge
+          : rowBottom - bottomEdge
+        const next = Math.max(0, Math.min(element.scrollTop + delta, element.scrollHeight - element.clientHeight))
+        shift += next - element.scrollTop
+        if (typeof element.scrollTo === "function") element.scrollTo({ top: next, behavior })
+        else element.scrollTop = next
+      }
+    }
+    if (element === boundary) break
   }
-
-  container.scrollTop = top
 }
 
 
@@ -245,7 +248,8 @@ export default function RunDetailPage() {
   const [notFound, setNotFound] = useState(false)
   const pipelineRef = useRef<ReasoningPipelineHandle | null>(null)
   const stepTreeScrollRef = useRef<HTMLDivElement | null>(null)
-  const skippedInitialDefaultSelectionRef = useRef<string | null>(null)
+  // The page's own first pick on a load without `?step=` or `?sub=` does not move the list.
+  const loadPickKeyRef = useRef<string | null>(null)
 
   const [selection, setTreeSelection] = useState<Selection | null>(null)
   const [playheadTarget, setPlayheadTarget] = useState<Playhead | null>(null)
@@ -338,8 +342,6 @@ export default function RunDetailPage() {
   useEffect(() => {
     if (!id) return
 
-    skippedInitialDefaultSelectionRef.current = null
-
     let cancelled = false
     let retryCount = 0
     // The bounded row catch-up below, so the effect's own teardown can disarm it. A page that
@@ -377,7 +379,11 @@ export default function RunDetailPage() {
             groupRunDetail(projection),
             parseMemberFilter(searchParams.get("member")),
           )
-          setSelection(getSelectionFromUrlOrFirst(displayStepsForGroups(groups), searchParams))
+          const first = getSelectionFromUrlOrFirst(displayStepsForGroups(groups), searchParams)
+          loadPickKeyRef.current = searchParams.has("step") || searchParams.has("sub")
+            ? null
+            : selectedRowAttribute(first)?.key ?? null
+          setSelection(first)
         } catch {
           if (cancelled) return
           setDetail(null)
@@ -853,44 +859,24 @@ export default function RunDetailPage() {
     }
   }, [selection, playhead, activeTab, displaySteps, searchParams, setSearchParams, isLoading, detail, pendingCitationSha])
 
-  // Scroll selected item into view
+  const selectedRow = useMemo(() => selectedRowAttribute(selection), [selection])
+  const selectedRowKey = selectedRow?.key ?? null
   useEffect(() => {
-    if (!hasStepId(selection)) return
     const container = stepTreeScrollRef.current
-    if (!container) return
-
-    const isDefaultInitialStepSelection =
-      selection.type === 'step' &&
-      !searchParams.has('step') &&
-      !searchParams.has('sub') &&
-      displaySteps[0]?.id === selection.stepId
-
-    if (isDefaultInitialStepSelection) {
-      skippedInitialDefaultSelectionRef.current = selection.stepId
-      return
+    if (selectedRow === null || container === null) return
+    if (loadPickKeyRef.current !== null) {
+      if (loadPickKeyRef.current === selectedRow.key) return
+      loadPickKeyRef.current = null
     }
-
-    skippedInitialDefaultSelectionRef.current = null
-
-    const selector = selection.type === 'step'
-      ? `[data-step-id="${selection.stepId}"]`
-      : selection.type === 'execution'
-      ? `[data-execution-id="${selection.logId}"]`
-      : isSubactionSelection(selection)
-      ? `[data-sub-action-id="${selection.stepId}-${selection.subIndex}"]`
-      : null
-
-    if (!selector) return
-
     const animationFrameId = requestAnimationFrame(() => {
-      const el = container.querySelector<HTMLElement>(selector)
-      if (el) {
-        scrollElementIntoContainerView(container, el)
-      }
+      const item = Array.from(container.querySelectorAll<HTMLElement>(`[${selectedRow.name}]`))
+        .find(element => element.getAttribute(selectedRow.name) === selectedRow.value)
+      if (!item) return
+      const row = item.firstElementChild instanceof HTMLButtonElement ? item.firstElementChild : item
+      revealTreeRow(row, container)
     })
-
     return () => cancelAnimationFrame(animationFrameId)
-  }, [selection, displaySteps, searchParams])
+  }, [selectedRowKey, displaySteps, setupHooks.length, teardownHooks.length, stepExecutionLogs.length, analysisView.size])
 
   // The filter is URL state only; narrowing filters the projection already in hand.
   const handleMemberFilterChange = useCallback((value: string) => {
@@ -922,19 +908,10 @@ export default function RunDetailPage() {
 
   // A hidden step is selected only after the widened tree renders, or the guard pulls it back.
   const [pendingKnowledgeStep, setPendingKnowledgeStep] = useState<string | null>(null)
-  const scrollTreeRowIntoView = useCallback((stepId: string) => {
-    requestAnimationFrame(() => {
-      const container: ParentNode = stepTreeScrollRef.current ?? document
-      const row = container.querySelector<HTMLElement>(`[data-step-id="${stepId}"]`)
-      const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false
-      row?.scrollIntoView({ block: 'nearest', behavior: reduced ? 'auto' : 'smooth' })
-    })
-  }, [])
   const onKnowledgeStep = useCallback((address: StepAddress) => {
     const stepId = runDetailStepKey(address.testIndex, address.stepIndex)
     if (displaySteps.some((step) => step.id === stepId)) {
       onCitedStep(address.testIndex, address.stepIndex)
-      scrollTreeRowIntoView(stepId)
       return
     }
     const exists = groups.some(
@@ -947,14 +924,13 @@ export default function RunDetailPage() {
     next.delete('member')
     setSearchParams(next, { replace: false })
     setPendingKnowledgeStep(stepId)
-  }, [displaySteps, groups, onCitedStep, scrollTreeRowIntoView, searchParams, setSearchParams])
+  }, [displaySteps, groups, onCitedStep, searchParams, setSearchParams])
   useEffect(() => {
     if (pendingKnowledgeStep === null) return
     if (!displaySteps.some((step) => step.id === pendingKnowledgeStep)) return
     setPendingKnowledgeStep(null)
     setSelection({ type: 'step', stepId: pendingKnowledgeStep })
-    scrollTreeRowIntoView(pendingKnowledgeStep)
-  }, [pendingKnowledgeStep, displaySteps, setSelection, scrollTreeRowIntoView])
+  }, [pendingKnowledgeStep, displaySteps, setSelection])
 
   const knowledgeStepRefs = useMemo<StepRefContext>(() => ({
     onSelect: onKnowledgeStep,
