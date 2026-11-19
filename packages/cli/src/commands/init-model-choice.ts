@@ -1,5 +1,6 @@
 import {
   NameSlugSchema,
+  listSavedCredentials,
   loadLLMAuthPlugins,
   resolveLLMAuth,
   type SavedCredential,
@@ -315,12 +316,13 @@ export function resolveLlmFlag(value: string, saved: readonly SavedCredential[])
 export interface InitModelStatus {
   status: 'ready' | 'pending'
   reason?: string
+  signIn?: string
 }
 
 const DASHBOARD_REASON = "set up on the dashboard's model page"
 
 // Read from the local store only: the subscription plugin is loaded so the resolver knows its
-// provider, and nothing leaves the machine.
+// provider, a sign-in's state comes from its stored times, and nothing leaves the machine.
 export async function modelStatus(input: {
   entry?: InitModelEntry
   dashboard?: InitModelSetup['dashboard']
@@ -328,6 +330,7 @@ export async function modelStatus(input: {
   projectDir: string
   authPath: string
   pluginInstalled: boolean
+  clock: SignInClock
 }): Promise<InitModelStatus> {
   const { entry } = input
   if (entry === undefined) return { status: 'pending', reason: DASHBOARD_REASON }
@@ -346,7 +349,17 @@ export async function modelStatus(input: {
     }
   }
   const auth = await resolveLLMAuth(entry.name, entry, input.authPath)
-  if (auth.kind !== 'missing') return { status: 'ready' }
+  if (auth.kind !== 'missing') {
+    if (!subscription) return { status: 'ready' }
+    const signIn = (await listSavedCredentials(input.authPath)).find(
+      (credential) => credential.name === entry.name && credential.type === 'oauth',
+    )
+    if (signIn?.type !== 'oauth') return { status: 'ready' }
+    const state = readSignIn(signIn.signIn, input.clock)
+    return state.expired === undefined
+      ? { status: 'ready', signIn: state.status }
+      : { status: 'pending', reason: state.expired }
+  }
   return {
     status: 'pending',
     reason: subscription ? 'not signed in' : "add the key on the dashboard's model page",

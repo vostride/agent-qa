@@ -1611,6 +1611,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           projectDir: dir,
           authPath,
           pluginInstalled,
+          clock: { now: Date.now() },
         })
         // A Ctrl-C that landed outside a step is read here.
         if (runner.interrupted()) throw new PromptCancelled()

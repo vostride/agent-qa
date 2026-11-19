@@ -670,7 +670,21 @@ async function statusOf(
     projectDir: root,
     authPath,
     pluginInstalled: options.plugin === true,
+    clock: CLOCK,
   })
+}
+
+const DATED_SIGN_IN = {
+  type: 'oauth',
+  provider: 'anthropic-subscription',
+  signedInAt: Date.UTC(2026, 10, 3, 12, 0),
+  tokens: { ...oauthTokens, expires: Date.UTC(2026, 10, 19, 9, 0) },
+}
+
+const EXPIRED_SIGN_IN = {
+  type: 'oauth',
+  provider: 'anthropic-subscription',
+  tokens: { ...oauthTokens, refresh: '', expires: Date.UTC(2026, 10, 18, 3, 42) },
 }
 
 describe('the model reads ready or pending from the local store', () => {
@@ -693,7 +707,28 @@ describe('the model reads ready or pending from the local store', () => {
   it('a Claude subscription with its plugin and a saved sign-in is ready', async () => {
     const store = { 'claude-code': FIXTURE_STORE['claude-code'] }
 
-    expect(await statusOf('claude-code', { store, plugin: true })).toEqual({ status: 'ready' })
+    expect(await statusOf('claude-code', { store, plugin: true })).toEqual({
+      status: 'ready',
+      signIn: 'signed in · renews on next use',
+    })
+  })
+
+  it('a ready sign-in carries its date and that it renews itself', async () => {
+    const store = { 'claude-code': DATED_SIGN_IN }
+
+    expect(await statusOf('claude-code', { store, plugin: true })).toEqual({
+      status: 'ready',
+      signIn: 'signed in 3 Nov 2026 · valid, renews itself',
+    })
+  })
+
+  it('a sign-in that cannot renew and whose token has expired is pending with when it expired', async () => {
+    const store = { 'claude-code': EXPIRED_SIGN_IN }
+
+    expect(await statusOf('claude-code', { store, plugin: true })).toEqual({
+      status: 'pending',
+      reason: 'the sign-in expired 18 Nov 2026 03:42',
+    })
   })
 
   it('a Claude subscription with its plugin and no sign-in is pending', async () => {
@@ -727,6 +762,8 @@ describe('the model reads ready or pending from the local store', () => {
     }
 
     await statusOf('claude-code', { store, plugin: true })
+    await statusOf('claude-code', { store: { 'claude-code': DATED_SIGN_IN }, plugin: true })
+    await statusOf('claude-code', { store: { 'claude-code': EXPIRED_SIGN_IN }, plugin: true })
     await statusOf('gemini', { store })
     await statusOf('openai-compatible', {
       flags: { baseUrl: 'http://localhost:11434/v1', model: 'm' },

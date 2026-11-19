@@ -22,6 +22,7 @@ export interface InitDocumentModel {
   provider?: string
   status: 'ready' | 'pending'
   reason?: string
+  signIn?: string
 }
 
 export interface InitDocumentSetupRow {

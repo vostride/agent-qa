@@ -2,7 +2,12 @@ import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
 
-import { getAgentQaVersion, getAuthPath } from '@vostride/agent-qa-core'
+import {
+  clearLLMAuthProviderPlugins,
+  clearLoadedLLMAuthPluginModules,
+  getAgentQaVersion,
+  getAuthPath,
+} from '@vostride/agent-qa-core'
 import { parseDocument } from 'yaml'
 
 import { afterEach, describe, expect, it } from 'vitest'
@@ -15,6 +20,7 @@ import type { InitDocument } from '../commands/init-document.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import { createClackUi } from '../init-ui/clack-ui.js'
 import { brandPalette } from '../init-ui/palette.js'
+import { SUBSCRIPTION_AUTH_PACKAGE } from '../commands/scaffold-content.js'
 import { clackStreams } from './clack-keys.js'
 import type { FakeInitUiEntry } from './fake-init-ui.js'
 import {
@@ -51,6 +57,53 @@ function saveGeminiKey(home: string): void {
     authPath,
     JSON.stringify({ gemini: { type: 'api', provider: 'gemini', key: SAVED_KEY } }),
   )
+}
+
+const SIGN_IN_ACCESS = 'DUMMY-ACCESS-SUMMARY'
+const SIGN_IN_REFRESH = 'DUMMY-REFRESH-SUMMARY'
+
+function saveClaudeSignIn(home: string, tokens: { refresh: string; expires: number }): void {
+  const authPath = getAuthPath({ env: {}, homeDir: home })
+  mkdirSync(dirname(authPath), { recursive: true })
+  writeFileSync(
+    authPath,
+    JSON.stringify({
+      'claude-code': {
+        type: 'oauth',
+        provider: 'anthropic-subscription',
+        tokens: { access: SIGN_IN_ACCESS, ...tokens },
+      },
+    }),
+  )
+}
+
+// A stand-in for the subscription plugin: it registers the Claude subscription and makes no call.
+function installFakeSubscriptionPlugin(root: string): void {
+  writeInstalledPackage(root, SUBSCRIPTION_AUTH_PACKAGE, VERSION, {
+    packageJson: { type: 'module', exports: './index.js' },
+    files: {
+      'index.js': [
+        'export const providers = [{',
+        "  providerId: 'anthropic-subscription',",
+        "  credentialProviderId: 'anthropic-subscription',",
+        "  label: 'Claude subscription',",
+        "  modelAdapter: 'anthropic-messages',",
+        "  dashboardAuth: { mode: 'manual-code' },",
+        '  createAuthFetch: () => async () => {',
+        "    throw new Error('the fake plugin made a call')",
+        '  },',
+        '}]',
+        '',
+      ].join('\n'),
+    },
+  })
+}
+
+function expectNoSignInSecret(result: { stdout: string; stderr: string; entries: unknown }): void {
+  for (const text of [result.stdout, result.stderr, JSON.stringify(result.entries)]) {
+    expect(text).not.toContain(SIGN_IN_ACCESS)
+    expect(text).not.toContain(SIGN_IN_REFRESH)
+  }
 }
 
 function editConfig(root: string, change: (doc: ReturnType<typeof parseDocument>) => void): void {
@@ -309,6 +362,61 @@ describe("a re-run's summary of the project's agent-qa version", () => {
 })
 
 describe("a re-run's summary of the model and the coding agents", () => {
+  afterEach(() => {
+    clearLLMAuthProviderPlugins()
+    clearLoadedLLMAuthPluginModules()
+  })
+
+  it("says a subscription model is ready with its sign-in's state", async () => {
+    const project = await initializedProject('rerun-summary-sign-in-ready', { llm: 'claude-code' })
+    installFakeSubscriptionPlugin(project.root)
+    saveClaudeSignIn(project.home, { refresh: SIGN_IN_REFRESH, expires: Date.now() + 3_600_000 })
+
+    const result = await rerun(project)
+
+    expect(result.exit, result.stderr).toBe(0)
+    expect(summaryLines(result.entries)).toContain(
+      'Model claude-code is ready: signed in · valid, renews itself.',
+    )
+    expectNoSignInSecret(result)
+
+    const json = await rerun(project, ['--json'], { plain: true })
+
+    expect(json.exit, json.stderr).toBe(0)
+    expect(json.stderr).toContain('  Model claude-code is ready: signed in · valid, renews itself.\n')
+    const doc = JSON.parse(json.stdout) as InitDocument
+    expect(doc.model?.signIn).toBe('signed in · valid, renews itself')
+    expectNoSignInSecret(json)
+  })
+
+  it('says a subscription model is pending when its sign-in expired and cannot renew, and lists the sign-in', async () => {
+    const project = await initializedProject('rerun-summary-sign-in-expired', {
+      llm: 'claude-code',
+    })
+    installFakeSubscriptionPlugin(project.root)
+    saveClaudeSignIn(project.home, { refresh: '', expires: Date.now() - 3_600_000 })
+
+    const result = await rerun(project)
+
+    expect(result.exit, result.stderr).toBe(0)
+    const line = (summaryLines(result.entries) ?? []).find((item) => item.startsWith('Model '))
+    expect(line).toMatch(
+      /^Model claude-code is pending: the sign-in expired \d{1,2} [A-Z][a-z]{2} \d{4} \d{2}:\d{2}\.$/u,
+    )
+    expectNoSignInSecret(result)
+
+    const json = await rerun(project, ['--json'], { plain: true })
+
+    expect(json.exit, json.stderr).toBe(0)
+    const doc = JSON.parse(json.stdout) as InitDocument
+    expect(doc.model?.status).toBe('pending')
+    expect(doc.nextSteps).toContainEqual({
+      command: 'npx agent-qa auth login --config claude-code',
+      description: 'Sign in with your subscription:',
+    })
+    expectNoSignInSecret(json)
+  })
+
   it('says the model is ready when its key is saved in the store', async () => {
     const project = await initializedProject('rerun-summary-model-ready')
     saveGeminiKey(project.home)

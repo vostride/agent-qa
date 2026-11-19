@@ -384,6 +384,7 @@ async function recordModel(input: InitRerunInput, setup: InitModelSetup): Promis
     projectDir: input.dir,
     authPath: getAuthPath({ env: input.host.env, homeDir: input.host.homedir }),
     pluginInstalled,
+    clock: { now: Date.now() },
   })
   const { entry } = setup
   input.recorder.model({
@@ -405,9 +406,11 @@ function modelLine(model: RecordedModel | undefined): string | undefined {
   if (model === undefined) return undefined
   const { entry } = model.setup
   if (entry === undefined) return 'No model is set up.'
-  return model.status.status === 'ready'
+  const { status, reason, signIn } = model.status
+  if (status === 'pending') return `Model ${entry.name} is pending: ${reason}.`
+  return signIn === undefined
     ? `Model ${entry.name} is ready.`
-    : `Model ${entry.name} is pending: ${model.status.reason}.`
+    : `Model ${entry.name} is ready: ${signIn}.`
 }
 
 function agentsLine(agents: readonly CodingAgent[]): string {
