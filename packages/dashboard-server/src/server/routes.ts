@@ -356,7 +356,7 @@ export function createCredentialLock(): CredentialLock {
 }
 
 type DashboardAuthCredential =
-  | { type: 'oauth'; provider?: string; tokens: { expires: number } }
+  | { type: 'oauth'; provider?: string; tokens: { expires: number }; signedInAt?: number }
   | { type: 'api'; provider?: string; key?: string }
   | { type: 'bearer'; provider: string; token?: string }
 
@@ -3653,6 +3653,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
                         type: 'oauth',
                         provider: plugin.credentialProviderId,
                         tokens,
+                        signedInAt: Date.now(),
                       })
                       return false
                     })
@@ -3737,6 +3738,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
                   type: 'oauth',
                   provider: session.credentialProviderId,
                   tokens,
+                  signedInAt: Date.now(),
                 })
                 return false
               })

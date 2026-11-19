@@ -310,6 +310,22 @@ const subscriptionConfig = [
   '',
 ].join('\n')
 
+// The sign-in written for a name, with when it was made inside the window the route ran in.
+function expectSignInWritten(
+  name: string,
+  before: number,
+  after: number,
+  expected: Record<string, unknown>,
+): void {
+  const credential = mockWriteAuth.mock.calls.filter(([written]) => written === name).at(-1)?.[1]
+  expect(credential).toBeDefined()
+  const { signedInAt, ...rest } = credential as { signedInAt?: unknown }
+  expect(Object.keys(credential!).sort()).toEqual(['provider', 'signedInAt', 'tokens', 'type'])
+  expect(rest).toEqual(expected)
+  expect(signedInAt).toBeGreaterThanOrEqual(before)
+  expect(signedInAt).toBeLessThanOrEqual(after)
+}
+
 function registerTestSubscriptionPlugins(options: {
   browserTokens?: Promise<{ access: string; refresh: string; expires: number }>
   exchangeCode?: (code: string, sessionState: unknown) => Promise<{ access: string; refresh: string; expires: number }>
@@ -1325,6 +1341,7 @@ describe('dashboard LLM auth and test routes', () => {
     await useConfigWorkspace(subscriptionConfig)
     registerTestSubscriptionPlugins()
 
+    const before = Date.now()
     const startRes = await invokeRoute('/api/auth/plugin/openai-subscription/start', {
       method: 'POST',
       headers: { 'content-type': 'application/json', host: LLM_TEST_HOST },
@@ -1341,15 +1358,16 @@ describe('dashboard LLM auth and test routes', () => {
     })
 
     await vi.waitFor(() => {
-      expect(mockWriteAuth).toHaveBeenCalledWith('codex', {
-        type: 'oauth',
-        provider: 'openai-subscription-oauth',
-        tokens: {
-          access: 'openai-access',
-          refresh: 'openai-refresh',
-          expires: 1777675000000,
-        },
-      })
+      expect(mockWriteAuth).toHaveBeenCalledWith('codex', expect.anything())
+    })
+    expectSignInWritten('codex', before, Date.now(), {
+      type: 'oauth',
+      provider: 'openai-subscription-oauth',
+      tokens: {
+        access: 'openai-access',
+        refresh: 'openai-refresh',
+        expires: 1777675000000,
+      },
     })
 
     const resultRes = await invokeRoute(`/api/auth/plugin/openai-subscription/result?session=${started.sessionId}`)
@@ -1386,6 +1404,7 @@ describe('dashboard LLM auth and test routes', () => {
       mode: 'manual-code',
     })
 
+    const before = Date.now()
     const exchangeRes = await invokeRoute('/api/auth/plugin/anthropic-subscription/exchange', {
       method: 'POST',
       headers: { 'content-type': 'application/json', host: LLM_TEST_HOST },
@@ -1394,11 +1413,12 @@ describe('dashboard LLM auth and test routes', () => {
         code: 'anthropic-code',
       }),
     })
+    const after = Date.now()
 
     expect(exchangeRes.status).toBe(200)
     expect(JSON.parse(exchangeRes.body)).toEqual({ status: 'completed', saved: true })
     expect(exchangeCode).toHaveBeenCalledTimes(1)
-    expect(mockWriteAuth).toHaveBeenCalledWith('claude', {
+    expectSignInWritten('claude', before, after, {
       type: 'oauth',
       provider: 'anthropic-subscription',
       tokens: {

@@ -203,6 +203,7 @@ async function runSubscriptionPluginLogin(configName: string, provider: Subscrip
       type: 'oauth',
       provider: plugin.credentialProviderId,
       tokens,
+      signedInAt: Date.now(),
     })
     console.log(pc.green(`Authenticated ${configName} with ${plugin.label}`))
   } catch (err: unknown) {

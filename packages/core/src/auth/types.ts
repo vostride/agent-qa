@@ -19,7 +19,13 @@ export interface OAuthTokens {
 }
 
 export type AuthCredential =
-  | { type: 'oauth'; provider: AuthProvider; tokens: OAuthTokens }
+  | {
+    type: 'oauth'
+    provider: AuthProvider
+    tokens: OAuthTokens
+    // When the sign-in was made, in epoch milliseconds; a token refresh keeps it.
+    signedInAt?: number
+  }
   | { type: 'api'; provider: string; key: string }
   | { type: 'bearer'; provider: string; token: string }
 

@@ -440,6 +440,44 @@ describe('resolveLLMAuth', () => {
     })
   })
 
+  it('a token refresh keeps the time the sign-in was made', async () => {
+    registerSubscriptionPlugins()
+    const signedInAt = Date.UTC(2026, 9, 1, 8, 0)
+    await writeAuth('planner', {
+      type: 'oauth',
+      provider: 'openai-subscription-oauth',
+      signedInAt,
+      tokens: { access: 'expired-access', refresh: 'expired-refresh', expires: 1 },
+    }, authPath)
+
+    const result = await resolveLLMAuth('planner', {
+      provider: 'openai-subscription',
+      model: 'gpt-5',
+    }, authPath)
+    if (result.kind !== 'auth-fetch') throw new Error('Expected auth-fetch result')
+
+    globalThis.fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({
+        access_token: 'refreshed-openai-access',
+        refresh_token: 'refreshed-openai-refresh',
+        expires_in: 3600,
+      }), { status: 200 }))
+      .mockResolvedValueOnce(new Response('ok', { status: 200 }))
+
+    await result.fetch('https://api.openai.com/v1/responses')
+
+    const store = await readAuth(authPath)
+    expect(store.planner).toMatchObject({
+      type: 'oauth',
+      provider: 'openai-subscription-oauth',
+      signedInAt,
+      tokens: {
+        access: 'refreshed-expired-access',
+        refresh: 'refreshed-expired-refresh',
+      },
+    })
+  })
+
   it('resolves anthropic subscription OAuth credentials through an auth fetch and refreshes the same config key', async () => {
     registerSubscriptionPlugins()
     await writeAuth('anthropic-subscription', {

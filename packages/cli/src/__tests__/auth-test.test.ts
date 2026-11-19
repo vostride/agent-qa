@@ -213,6 +213,23 @@ const TEST_TOKENS = {
   expires: 1777675000000,
 }
 
+// The sign-in is written once, with when it was made inside the window the command ran in.
+function expectSignInWritten(
+  name: string,
+  before: number,
+  after: number,
+  expected: Record<string, unknown>,
+): void {
+  expect(mockWriteAuth).toHaveBeenCalledTimes(1)
+  const [written, credential] = mockWriteAuth.mock.calls[0]!
+  expect(written).toBe(name)
+  const { signedInAt, ...rest } = credential as { signedInAt?: unknown }
+  expect(Object.keys(credential).sort()).toEqual(['provider', 'signedInAt', 'tokens', 'type'])
+  expect(rest).toEqual(expected)
+  expect(signedInAt).toBeGreaterThanOrEqual(before)
+  expect(signedInAt).toBeLessThanOrEqual(after)
+}
+
 function createMockAuthPlugin(overrides: Record<string, unknown> = {}) {
   return {
     providerId: 'openai-subscription',
@@ -342,12 +359,14 @@ describe('auth provider mode contract', () => {
       model: 'gpt-5.3-codex',
     })
 
+    const before = Date.now()
     await expect(runAuthCommand(['login', '--config', 'codex'])).resolves.toBeUndefined()
+    const after = Date.now()
 
     expect(mockGetLLMAuthProviderPlugin).toHaveBeenCalledWith('openai-subscription')
     expect(startAuth).toHaveBeenCalledWith({ configName: 'codex' })
     expect(mockExec).toHaveBeenCalled()
-    expect(mockWriteAuth).toHaveBeenCalledWith('codex', {
+    expectSignInWritten('codex', before, after, {
       type: 'oauth',
       provider: 'openai-subscription-oauth',
       tokens: TEST_TOKENS,
@@ -386,12 +405,14 @@ describe('auth provider mode contract', () => {
       model: 'claude-sonnet-4-20250514',
     })
 
+    const before = Date.now()
     await expect(runAuthCommand(['login', '--config', 'claude-subscription'])).resolves.toBeUndefined()
+    const after = Date.now()
 
     expect(startAuth).toHaveBeenCalledWith({ configName: 'claude-subscription' })
     expect(mockInput).toHaveBeenCalledWith({ message: 'Authorization code:' })
     expect(exchangeCode).toHaveBeenCalledWith({ code: 'auth-code', sessionState })
-    expect(mockWriteAuth).toHaveBeenCalledWith('claude-subscription', {
+    expectSignInWritten('claude-subscription', before, after, {
       type: 'oauth',
       provider: 'anthropic-subscription',
       tokens,
