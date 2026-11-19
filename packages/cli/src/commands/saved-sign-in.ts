@@ -1,6 +1,9 @@
-import type { SavedCredential } from '@vostride/agent-qa-core'
-
-type SavedSignIn = Extract<SavedCredential, { type: 'oauth' }>['signIn']
+// The facts listSavedCredentials hands out for a saved sign-in.
+interface SavedSignIn {
+  renews: boolean
+  expires?: number
+  signedInAt?: number
+}
 
 export interface SignInClock {
   now: number
