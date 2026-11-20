@@ -352,7 +352,11 @@ function createComposedRunExecution(input: {
       } catch (error) {
         // A started run's framework error still acks: `runs.start` answers a start, not an outcome.
         if (startedRunId === undefined) throw error
-        warn(`Run ${startedRunId} failed: ${error instanceof Error ? error.message : String(error)}`)
+        // A driver's error can quote what it was sent, so the line is masked like the run's own.
+        const message = inputs.runtimeSecrets.secretRedactor.redactString(
+          error instanceof Error ? error.message : String(error),
+        )
+        warn(`Run ${startedRunId} failed: ${message}`)
         return { runId: startedRunId as RunId }
       } finally {
         runRecord.close()

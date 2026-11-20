@@ -628,10 +628,11 @@ async function composeDaemonRunExecution(input: {
       } catch (error) {
         if (startedRunId === undefined) throw error
         // A started run with a framework error left evidence; the composition decides the ack.
-        input.logger.error(
-          `Dispatched run ${startedRunId} failed: ${error instanceof Error ? error.message : String(error)}`,
-          'run',
+        // A driver's error can quote what it was sent, so the line is masked like the run's own.
+        const message = inputs.runtimeSecrets.secretRedactor.redactString(
+          error instanceof Error ? error.message : String(error),
         )
+        input.logger.error(`Dispatched run ${startedRunId} failed: ${message}`, 'run')
         recordRunOutcome(jobAnalytics, startedRunId, 'failed')
         return { runId: asRunId(startedRunId) }
       } finally {
