@@ -1,5 +1,6 @@
 // An unproven step's error reaches the JUnit failure message and the failed-step line verbatim.
 
+import pc from 'picocolors'
 import { describe, expect, it } from 'vitest'
 
 import { CURRENT_BUS_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
@@ -99,11 +100,9 @@ describe('the step failure reason in the reporters', () => {
 
     const capture = createCapture()
     const reporter = createConsoleReporter({
-      plain: true,
-      colorize: false,
+      colors: pc.createColors(false),
       verbose: true,
       write: capture.write,
-      isTTY: false,
     })
     for (const envelope of envelopes()) reporter.handler(envelope)
     expect(capture.output()).toContain(`Error: ${UNPROVEN_ERROR}`)

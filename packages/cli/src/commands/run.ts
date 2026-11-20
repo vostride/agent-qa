@@ -2678,7 +2678,7 @@ async function executeSuites(
           analyticsHost?.bindMaskingContext({ mask })
           return attachRunSubscribers({
             session,
-            console: reporterSelection.console ? { verbose: false, logLevel: effectiveLogLevel } : false,
+            console: reporterSelection.console ? { verbose: false } : false,
             junitOutputPath: reporterSelection.junit ? opts.junitOutput : undefined,
             extraSubscribers,
             // The same resolved set the run is assembled with, so reporters and verdict agree.
@@ -5489,7 +5489,7 @@ export function createRunCommand(
                 // Bus subscribers replay then go live; `quarantined` is the run's assembled set.
                 return attachRunSubscribers({
                   session,
-                  console: reporterSelection.console ? { verbose: false, logLevel: effectiveLogLevel } : false,
+                  console: reporterSelection.console ? { verbose: false } : false,
                   junitOutputPath: reporterSelection.junit ? opts.junitOutput : undefined,
                   extraSubscribers: singleExtraSubscribers,
                   quarantined,

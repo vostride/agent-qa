@@ -1,6 +1,5 @@
-import pc from 'picocolors'
-import { guardRunText, isGitHubActions } from '@vostride/agent-qa-core/run-text-output'
-import type { RunTextEnv } from '@vostride/agent-qa-core/run-text-output'
+import { colorsFor, guardRunText, isGitHubActions } from '@vostride/agent-qa-core/run-text-output'
+import type { LogColors, RunTextEnv } from '@vostride/agent-qa-core/run-text-output'
 import { quarantineAppliesToTest } from '@vostride/agent-qa-schema'
 import type { QuarantineAppliedEntry } from '@vostride/agent-qa-schema'
 import type {
@@ -25,18 +24,12 @@ export function humanDuration(milliseconds: number): string {
   return `${minutes}m ${seconds}s`
 }
 
-const CLEAR_LINE = '\x1B[2K\r'
-
 export interface ConsoleReporterOptions {
   verbose?: boolean
-  colorize?: boolean
-  plain?: boolean
-  logLevel?: string
+  // Defaults to stdout's colours.
+  colors?: LogColors
   /** Injectable write target — every human write flows through here. */
   write?: (chunk: string) => void
-  /** Test seam: override TTY detection (defaults to process.stdout.isTTY). */
-  isTTY?: boolean
-  columns?: number
   // Taken at construction from the set the verdict rule got, matched through schema's predicate.
   quarantined?: readonly QuarantineAppliedEntry[]
   env?: RunTextEnv
@@ -65,27 +58,15 @@ interface TestMeta {
 export function createConsoleReporter(options: ConsoleReporterOptions = {}): ConsoleReporterHandle {
   const verbose = options.verbose ?? false
   const env = options.env ?? process.env
-  const isTTY = options.isTTY ?? process.stdout.isTTY === true
-  const plain = options.plain ?? (!isTTY || process.env.CI === 'true' || isGitHubActions(env))
-  const colorize = plain ? false : (options.colorize ?? true)
-  const canOverwrite = !plain && isTTY && options.logLevel !== 'debug'
+  const colors = options.colors ?? colorsFor(process.stdout, env)
   const sink = options.write ?? ((chunk: string) => void process.stdout.write(chunk))
 
   function emit(finalMasked: string): void {
     sink(finalMasked)
   }
 
-  function transient(text: string): void {
-    if (!canOverwrite) return
-    emit(CLEAR_LINE + text)
-  }
-
   function println(text: string): void {
-    if (canOverwrite) {
-      emit(CLEAR_LINE + text + '\n')
-    } else {
-      emit(text + '\n')
-    }
+    emit(text + '\n')
   }
 
   // Run-derived lines print as one block, so under GitHub Actions they share one stop-commands pair.
@@ -95,10 +76,6 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
       return
     }
     for (const line of lines) println(line)
-  }
-
-  function c(fn: (s: string) => string, text: string): string {
-    return colorize ? fn(text) : text
   }
 
   // Accumulation state.
@@ -146,56 +123,35 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
   }
 
   function statusIcon(status: string | undefined): string {
-    if (plain) {
-      switch (status) {
-        case 'passed':
-        case 'healed':
-          return 'ok'
-        case 'failed':
-          return 'x'
-        case 'skipped':
-          return 'skipped'
-        case 'cancelled':
-          return 'cancelled'
-        default:
-          return '-'
-      }
-    }
     switch (status) {
       case 'passed':
-        return c(pc.green, '✓')
+        return colors.green('✓')
       case 'healed':
-        return c(pc.yellow, '✓')
+        return colors.yellow('✓')
       case 'failed':
-        return c(pc.red, '✗')
+        return colors.red('✗')
       case 'skipped':
-        return c(pc.dim, '○')
+        return colors.dim('○')
       case 'cancelled':
-        return c(pc.yellow, '⊘')
+        return colors.yellow('⊘')
       default:
         return ' '
     }
   }
 
-  function testBadge(status: 'running' | 'passed' | 'failed'): string {
-    if (plain) return status === 'running' ? 'RUN' : status === 'passed' ? 'PASS' : 'FAIL'
-    switch (status) {
-      case 'running':
-        return c(pc.bgYellow, c(pc.black, ' RUN  '))
-      case 'passed':
-        return c(pc.bgGreen, c(pc.black, ' PASS '))
-      case 'failed':
-        return c(pc.bgRed, c(pc.white, ' FAIL '))
-    }
+  function testBadge(status: 'passed' | 'failed'): string {
+    return status === 'passed'
+      ? colors.bgGreen(colors.black(' PASS '))
+      : colors.bgRed(colors.white(' FAIL '))
   }
 
   function formatStepsLine(): string {
     const total = stepsPassed + stepsFailed + stepsCancelled + stepsSkipped
     const parts: string[] = []
-    if (stepsPassed > 0) parts.push(c(pc.green, `${stepsPassed} passed`))
-    if (stepsFailed > 0) parts.push(c(pc.red, `${stepsFailed} failed`))
-    if (stepsCancelled > 0) parts.push(c(pc.yellow, `${stepsCancelled} cancelled`))
-    if (stepsSkipped > 0) parts.push(c(pc.dim, `${stepsSkipped} skipped`))
+    if (stepsPassed > 0) parts.push(colors.green(`${stepsPassed} passed`))
+    if (stepsFailed > 0) parts.push(colors.red(`${stepsFailed} failed`))
+    if (stepsCancelled > 0) parts.push(colors.yellow(`${stepsCancelled} cancelled`))
+    if (stepsSkipped > 0) parts.push(colors.dim(`${stepsSkipped} skipped`))
     parts.push(`${total} total`)
     return parts.join(', ')
   }
@@ -206,9 +162,9 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
     const model = process.env.AGENT_QA_LLM_MODEL
     const provider = process.env.AGENT_QA_LLM_PROVIDER
     const modelInfo = model
-      ? `  ${c(pc.dim, `Model: ${model}${provider ? ` (${provider})` : ''}`)}\n`
+      ? `  ${colors.dim(`Model: ${model}${provider ? ` (${provider})` : ''}`)}\n`
       : ''
-    const text = `\n${c(pc.bold, `Running ${memberTestCount} test(s)...`)}\n${modelInfo}`
+    const text = `\n${colors.bold(`Running ${memberTestCount} test(s)...`)}\n${modelInfo}`
     if (model) printBlock([text])
     else println(text)
   }
@@ -222,15 +178,12 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
     if (payload.suiteId && payload.suiteId !== currentSuiteId) {
       currentSuiteId = payload.suiteId
       sawSuite = true
-      printBlock([`\n${c(pc.bold, `Suite: ${payload.suiteName ?? payload.suiteId}`)}`])
+      printBlock([`\n${colors.bold(`Suite: ${payload.suiteName ?? payload.suiteId}`)}`])
     }
-    const indent = sawSuite ? '  ' : ''
-    transient(`${indent}${testBadge('running')} ${payload.filePath ?? payload.name}`)
   }
 
   function onStepStarted(payload: StepStartedPayload): void {
     stepTextByIndex.set(payload.stepIndex, payload.stepText)
-    transient(`${plain ? '->' : c(pc.dim, '→')} ${payload.stepText}`)
   }
 
   function onStepFinalized(payload: StepFinalizedPayload): void {
@@ -247,9 +200,9 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
 
     const stepText = stepTextByIndex.get(payload.stepIndex) ?? `Step ${payload.stepIndex + 1}`
     const dur = humanDuration(payload.durationMs ?? 0)
-    const lines = [`${statusIcon(status)} ${stepText} ${c(pc.dim, dur)}`]
+    const lines = [`${statusIcon(status)} ${stepText} ${colors.dim(dur)}`]
     if (status === 'failed' && payload.error) {
-      lines.push(`  ${c(pc.red, 'Error:')} ${payload.error}`)
+      lines.push(`  ${colors.red('Error:')} ${payload.error}`)
     }
     printBlock(lines)
   }
@@ -264,20 +217,20 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
         : payload.phase === 'teardown'
           ? 'Running teardown hooks'
           : `Running hook: ${payload.hookName}`
-    const line = `${plain ? 'RUN' : c(pc.bold, '▶')} ${label}`
+    const line = `${colors.bold('▶')} ${label}`
     if (payload.phase === 'inline') printBlock([line])
     else println(line)
   }
 
   function onHookFinished(payload: HookFinishedPayload): void {
     const icon = statusIcon(payload.status === 'passed' ? 'passed' : payload.status === 'failed' ? 'failed' : 'skipped')
-    const lines = [`  ${icon} ${payload.hookName} ${c(pc.dim, humanDuration(payload.durationMs))}`]
+    const lines = [`  ${icon} ${payload.hookName} ${colors.dim(humanDuration(payload.durationMs))}`]
     if (payload.status === 'failed' && payload.error) {
-      lines.push(`    ${c(pc.red, 'Error:')} ${payload.error}`)
+      lines.push(`    ${colors.red('Error:')} ${payload.error}`)
     }
     if (verbose && payload.variables && Object.keys(payload.variables).length > 0) {
       for (const [key, value] of Object.entries(payload.variables)) {
-        lines.push(`    ${plain ? '->' : c(pc.dim, '↳')} ${key}=${value}`)
+        lines.push(`    ${colors.dim('↳')} ${key}=${value}`)
       }
     }
     printBlock(lines)
@@ -326,8 +279,8 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
     const indent = sawSuite ? '  ' : ''
     const dur = skipped || cancelled ? `(${outcome})` : humanDuration(payload.durationMs ?? 0)
     // Empty at zero quarantined, so the line is unchanged for an unquarantined member.
-    const disposition = quarantined ? ` ${c(pc.yellow, QUARANTINE_TEST_ANNOTATION)}` : ''
-    printBlock([`${indent}${badge} ${name} ${c(pc.dim, dur)}${disposition}`])
+    const disposition = quarantined ? ` ${colors.yellow(QUARANTINE_TEST_ANNOTATION)}` : ''
+    printBlock([`${indent}${badge} ${name} ${colors.dim(dur)}${disposition}`])
     println('')
   }
 
@@ -344,13 +297,13 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
     const total = testsPassed + testsFailed + testsSkipped + testsCancelled
     const cancelledSegment = testsCancelled > 0 ? `, ${testsCancelled} cancelled` : ''
     if (failedTests.length > 0) {
-      println(c(pc.red, 'Failed tests:'))
+      println(colors.red('Failed tests:'))
       for (const failure of failedTests) {
-        const disposition = failure.quarantined ? ` ${c(pc.yellow, QUARANTINE_TEST_ANNOTATION)}` : ''
-        const lines = [`  ${plain ? 'x' : c(pc.red, '✗')} ${failure.name}${disposition}`]
+        const disposition = failure.quarantined ? ` ${colors.yellow(QUARANTINE_TEST_ANNOTATION)}` : ''
+        const lines = [`  ${colors.red('✗')} ${failure.name}${disposition}`]
         if (failure.failureSummary) {
           for (const line of failure.failureSummary.split('\n')) {
-            lines.push(`    ${c(pc.dim, line)}`)
+            lines.push(`    ${colors.dim(line)}`)
           }
         }
         printBlock(lines)

@@ -1,3 +1,4 @@
+import pc from 'picocolors'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { CURRENT_BUS_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
@@ -21,6 +22,10 @@ import {
   createCapture,
 } from './fixtures.js'
 
+const COLOURS_OFF = pc.createColors(false)
+const COLOURS_ON = pc.createColors(true)
+const ESC = '\x1B'
+
 function renderFixture(
   verbose = true,
   quarantined?: readonly QuarantineAppliedEntry[],
@@ -28,11 +33,9 @@ function renderFixture(
   const fixture = buildReporterFixture()
   const capture = createCapture()
   const reporter = createConsoleReporter({
-    plain: true,
-    colorize: false,
+    colors: COLOURS_OFF,
     verbose,
     write: capture.write,
-    isTTY: false,
     ...(quarantined === undefined ? {} : { quarantined }),
   })
   for (const envelope of fixture.envelopes) reporter.handler(envelope)
@@ -66,20 +69,8 @@ describe('createConsoleReporter', () => {
     const fixture = buildReporterFixture()
     const a = createCapture()
     const b = createCapture()
-    const repA = createConsoleReporter({
-      plain: true,
-      colorize: false,
-      verbose: true,
-      write: a.write,
-      isTTY: false,
-    })
-    const repB = createConsoleReporter({
-      plain: true,
-      colorize: false,
-      verbose: true,
-      write: b.write,
-      isTTY: false,
-    })
+    const repA = createConsoleReporter({ colors: COLOURS_OFF, verbose: true, write: a.write })
+    const repB = createConsoleReporter({ colors: COLOURS_OFF, verbose: true, write: b.write })
     for (const envelope of fixture.envelopes) repA.handler(envelope)
     for (const envelope of fixture.envelopes) repB.handler(envelope)
     expect(a.output()).toBe(b.output())
@@ -88,9 +79,100 @@ describe('createConsoleReporter', () => {
   it('exposes an awaitable flush()', async () => {
     const fixture = buildReporterFixture()
     const capture = createCapture()
-    const reporter = createConsoleReporter({ plain: true, write: capture.write, isTTY: false })
+    const reporter = createConsoleReporter({ colors: COLOURS_OFF, write: capture.write })
     for (const envelope of fixture.envelopes) reporter.handler(envelope)
     await expect(reporter.flush()).resolves.toBeUndefined()
+  })
+})
+
+function renderWith(options: ConsoleReporterOptions): { output: string; chunks: string[] } {
+  const chunks: string[] = []
+  const reporter = createConsoleReporter({
+    verbose: true,
+    ...options,
+    write: (chunk) => {
+      chunks.push(chunk)
+    },
+  })
+  for (const envelope of buildReporterFixture().envelopes) reporter.handler(envelope)
+  return { output: chunks.join(''), chunks }
+}
+
+describe('the console reporter prints one text form', () => {
+  it('prints icons and padded badges, never the words ok, x or an unpadded FAIL', () => {
+    const { output } = renderFixture(true)
+    expect(output).toContain('✓ Open login page')
+    expect(output).toContain(' FAIL  Checkout test 1s')
+    expect(output).toContain(' PASS  Login test')
+    expect(output).toContain('  ✗ Checkout test')
+    expect(output).not.toMatch(/^(ok |x |FAIL )/mu)
+    for (const line of output.split('\n')) {
+      expect(line.trimStart()).not.toMatch(/^(ok|x|->) /u)
+    }
+  })
+
+  it('prints the same text in CI as outside it when handed the same colours', () => {
+    for (const colors of [COLOURS_OFF, COLOURS_ON]) {
+      const inCi = renderWith({ colors, env: { CI: 'true' } }).output
+      const outside = renderWith({ colors, env: {} }).output
+      expect(inCi).toBe(outside)
+    }
+  })
+
+  it('colours a passed step green and a failed test on a red background when colour is on', () => {
+    const coloured = renderWith({ colors: COLOURS_ON, env: {} }).output
+    expect(coloured).toContain(COLOURS_ON.green('✓'))
+    expect(coloured).toContain(COLOURS_ON.bgRed(COLOURS_ON.white(' FAIL ')))
+    expect(renderWith({ colors: COLOURS_OFF, env: {} }).output).not.toContain(ESC)
+  })
+
+  it('writes no escape character or carriage return with colour off, only result lines', () => {
+    const { chunks } = renderWith({ colors: COLOURS_OFF, env: {} })
+    expect(chunks.length).toBeGreaterThan(0)
+    for (const chunk of chunks) {
+      expect(chunk).not.toContain(ESC)
+      expect(chunk).not.toContain('\r')
+    }
+
+    const started: string[] = []
+    const reporter = createConsoleReporter({
+      colors: COLOURS_OFF,
+      write: (chunk) => {
+        started.push(chunk)
+      },
+    })
+    const startedOnly = actionsStream([
+      ['testStarted', { testId: 't0', testIndex: 0, name: 'Login test' }],
+      ['stepStarted', { testIndex: 0, stepIndex: 0, stepText: 'Open login page' }],
+    ])
+    for (const envelope of startedOnly) reporter.handler(envelope)
+    expect(started).toEqual([])
+  })
+})
+
+describe('the console reporter colours for stdout when it is handed no colours', () => {
+  const saved = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+
+  afterEach(() => {
+    if (saved === undefined) Reflect.deleteProperty(process.stdout, 'isTTY')
+    else Object.defineProperty(process.stdout, 'isTTY', saved)
+  })
+
+  function withStdoutNotATerminal(env: Record<string, string>): string {
+    Object.defineProperty(process.stdout, 'isTTY', { value: false, configurable: true, writable: true })
+    return renderWith({ env }).output
+  }
+
+  it('colours in CI, where stdout is not a terminal', () => {
+    expect(withStdoutNotATerminal({ CI: 'true' })).toContain(ESC)
+  })
+
+  it('does not colour outside CI when stdout is not a terminal', () => {
+    expect(withStdoutNotATerminal({})).not.toContain(ESC)
+  })
+
+  it('does not colour in CI when NO_COLOR is set', () => {
+    expect(withStdoutNotATerminal({ CI: 'true', NO_COLOR: '1' })).not.toContain(ESC)
   })
 })
 
@@ -102,16 +184,16 @@ describe('createConsoleReporter — the quarantine disposition', () => {
 
   it('annotates the failing member and counts it separately in the summary', () => {
     const { output } = renderFixture(true, [QUARANTINED_CHECKOUT])
-    expect(output).toContain(`FAIL Checkout test 1s${ANNOTATION}`)
+    expect(output).toContain(` FAIL  Checkout test 1s${ANNOTATION}`)
     expect(output).toContain(`Tests:  1 of 2 passed${SEGMENT}`)
     // the failed-tests block names it too — the reader scanning red rows learns why the build is green
-    expect(output).toContain(`  x Checkout test${ANNOTATION}`)
+    expect(output).toContain(`  ✗ Checkout test${ANNOTATION}`)
   })
 
   it('never rewrites the outcome — the member still reads FAIL and still counts as failed', () => {
     const { output } = renderFixture(true, [QUARANTINED_CHECKOUT])
-    expect(output).toContain('FAIL Checkout test')
-    expect(output).not.toContain('PASS Checkout test')
+    expect(output).toContain(' FAIL  Checkout test')
+    expect(output).not.toContain(' PASS  Checkout test')
     // 1 of 2 passed: the quarantined failure is NOT promoted into the passed tally
     expect(output).toMatch(/Tests:  1 of 2 passed/)
     // the failed-tests block is still rendered at all
@@ -149,12 +231,7 @@ describe('the console reporter prints masked payloads', () => {
   it('the console reporter prints the masked payload as it is', () => {
     const fixture = buildReporterFixture()
     const capture = createCapture()
-    const reporter = createConsoleReporter({
-      plain: true,
-      colorize: false,
-      write: capture.write,
-      isTTY: false,
-    })
+    const reporter = createConsoleReporter({ colors: COLOURS_OFF, write: capture.write })
     for (const envelope of fixture.envelopes) {
       const payload = envelope.payload as StepStartedPayload
       const masked = envelope.type === 'stepStarted' && payload.stepIndex === 0
@@ -205,53 +282,33 @@ function abortSkippedStream(): RunEventEnvelope[] {
 describe('console words for abort-skipped and cancelled members', () => {
   it('the console names an abort-skipped member by its test', () => {
     const capture = createCapture()
-    const reporter = createConsoleReporter({
-      plain: true,
-      colorize: false,
-      write: capture.write,
-      isTTY: false,
-    })
+    const reporter = createConsoleReporter({ colors: COLOURS_OFF, write: capture.write })
     for (const envelope of abortSkippedStream()) reporter.handler(envelope)
     const output = capture.output()
-    expect(output).toContain('skipped Checkout flow (skipped)')
+    expect(output).toContain('○ Checkout flow (skipped)')
     expect(output).not.toContain('Test 2')
   })
 
   it('the console prints a cancelled member and step as cancelled with their own glyph and counts', () => {
-    const render = (plain: boolean): string => {
-      const capture = createCapture()
-      const reporter = createConsoleReporter({
-        plain,
-        colorize: !plain,
-        write: capture.write,
-        isTTY: false,
-      })
-      for (const envelope of cancelledStream()) reporter.handler(envelope)
-      return capture.output()
-    }
+    const capture = createCapture()
+    const reporter = createConsoleReporter({ colors: COLOURS_OFF, write: capture.write })
+    for (const envelope of cancelledStream()) reporter.handler(envelope)
+    const output = capture.output()
 
-    const plain = render(true)
-    expect(plain).toContain('cancelled Pay now 0ms\n')
-    expect(plain).toContain('cancelled Checkout flow (cancelled)\n')
-    expect(plain).toContain('Tests:  1 of 2 passed, 1 cancelled\n')
-    expect(plain).toContain('Steps:  1 passed, 1 cancelled, 2 total\n')
-    expect(plain).not.toContain('skipped')
-
-    const colour = render(false)
-    expect(colour.split('⊘')).toHaveLength(3)
-    expect(colour).not.toContain('○')
+    expect(output).toContain('⊘ Pay now 0ms\n')
+    expect(output).toContain('⊘ Checkout flow (cancelled)\n')
+    expect(output).toContain('Tests:  1 of 2 passed, 1 cancelled\n')
+    expect(output).toContain('Steps:  1 passed, 1 cancelled, 2 total\n')
+    expect(output).not.toContain('skipped')
+    expect(output.split('⊘')).toHaveLength(3)
+    expect(output).not.toContain('○')
   })
 })
 
 describe('the Cache line', () => {
   const render = (statusesByTest: readonly (readonly string[])[]): string => {
     const capture = createCapture()
-    const reporter = createConsoleReporter({
-      plain: true,
-      colorize: false,
-      write: capture.write,
-      isTTY: false,
-    })
+    const reporter = createConsoleReporter({ colors: COLOURS_OFF, write: capture.write })
     for (const envelope of cacheStream(statusesByTest)) reporter.handler(envelope)
     return capture.output()
   }
@@ -392,12 +449,12 @@ function actionsStream(events: readonly (readonly [RunEventType, object])[]): Ru
 
 function recordChunks(
   envelopes: readonly RunEventEnvelope[],
-  options: ConsoleReporterOptions = { plain: true, isTTY: false },
+  options: ConsoleReporterOptions = {},
 ): string[] {
   const chunks: string[] = []
   const reporter = createConsoleReporter({
     ...options,
-    colorize: false,
+    colors: COLOURS_OFF,
     write: (chunk) => {
       chunks.push(chunk)
     },
@@ -414,7 +471,7 @@ describe('the console reporter under GitHub Actions', () => {
     expect(blocks).toHaveLength(1)
     const [block] = blocks
     expect(block).toMatch(WRAPPED_BLOCK)
-    expect(block).toContain('x Submit form 0 100ms\n')
+    expect(block).toContain('✗ Submit form 0 100ms\n')
     expect(block).toContain('  Error: ::set-output name=x::y\n##[error]x\n')
   })
 
@@ -427,12 +484,6 @@ describe('the console reporter under GitHub Actions', () => {
     expect(tokens[0]).toBeDefined()
     expect(tokens[1]).toBeDefined()
     expect(tokens[0]).not.toBe(tokens[1])
-  })
-
-  it('is plain without a plain option, so no line is cleared or overwritten', () => {
-    const chunks = recordChunks(failedStepStream(['##[error]x']), { isTTY: true })
-    expect(chunks.length).toBeGreaterThan(0)
-    for (const chunk of chunks) expect(chunk.startsWith('\x1B[2K\r')).toBe(false)
   })
 
   afterEach(() => {
@@ -476,14 +527,14 @@ describe('the console reporter under GitHub Actions', () => {
           },
         ],
       ]),
-      { plain: true, isTTY: false, verbose: true },
+      { verbose: true },
     )
     expect(chunks).toHaveLength(1)
     const [block] = chunks
     expect(block).toMatch(WRAPPED_BLOCK)
-    expect(block).toContain('  x seed-db 300ms\n')
+    expect(block).toContain('  ✗ seed-db 300ms\n')
     expect(block).toContain('    Error: ::add-mask::x\n')
-    expect(block).toContain('    -> REGION=##[error]v\n')
+    expect(block).toContain('    ↳ REGION=##[error]v\n')
   })
 
   it('wraps the suite line, a named hook label and a test result line in separate pairs', () => {
@@ -530,7 +581,7 @@ describe('the console reporter under GitHub Actions', () => {
     )
     const failure = chunks.find((chunk) => chunk.includes('first ::warning::a'))
     expect(failure).toMatch(WRAPPED_BLOCK)
-    expect(failure).toContain('  x ##[error]x\n    first ::warning::a\n    second ##[error]b\n')
+    expect(failure).toContain('  ✗ ##[error]x\n    first ::warning::a\n    second ##[error]b\n')
     expect(chunks).toContain('Failed tests:\n')
     const totals = chunks.filter((chunk) => /^(Tests|Steps|Cache|Time):/u.test(chunk))
     expect(totals).toHaveLength(4)
