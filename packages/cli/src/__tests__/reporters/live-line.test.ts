@@ -116,7 +116,7 @@ describe('the live line on a terminal', () => {
 
   it('draws one row with a spinner, the cut text and the seconds so far', async () => {
     const term = emulator(48)
-    const live = createLiveLine(term.stream, (glyph) => glyph)
+    const live = await createLiveLine(term.stream, (glyph) => glyph)
 
     live.start(LONG)
     vi.advanceTimersByTime(12_100)
@@ -130,7 +130,7 @@ describe('the live line on a terminal', () => {
 
   it('passes each spinner glyph through the frame function', async () => {
     const term = emulator(60)
-    const live = createLiveLine(term.stream, (glyph) => `[${glyph}]`)
+    const live = await createLiveLine(term.stream, (glyph) => `[${glyph}]`)
 
     live.start('Open the cart')
     vi.advanceTimersByTime(300)
@@ -143,7 +143,7 @@ describe('the live line on a terminal', () => {
 
   it('leaves only the result line after a step longer than the window', async () => {
     const term = emulator(40)
-    const live = createLiveLine(term.stream, (glyph) => glyph)
+    const live = await createLiveLine(term.stream, (glyph) => glyph)
 
     live.start(LONG)
     vi.advanceTimersByTime(2_400)
@@ -158,7 +158,7 @@ describe('the live line on a terminal', () => {
 
   it('leaves only the result line after the window narrows and widens during a step', async () => {
     const term = emulator(60)
-    const live = createLiveLine(term.stream, (glyph) => glyph)
+    const live = await createLiveLine(term.stream, (glyph) => glyph)
 
     live.start(LONG)
     vi.advanceTimersByTime(300)
@@ -180,7 +180,7 @@ describe('the live line on a terminal', () => {
 
   it('prints a line that arrives during a step once, above the live line', async () => {
     const term = emulator(60)
-    const live = createLiveLine(term.stream, (glyph) => glyph)
+    const live = await createLiveLine(term.stream, (glyph) => glyph)
     const arriving = '12:00:01  appium     started on port 4723'
 
     live.start('Open the cart')
@@ -195,9 +195,9 @@ describe('the live line on a terminal', () => {
     expect(await term.screen()).toEqual([arriving, '✓ Open the cart 1s'])
   })
 
-  it('writes nothing when stopped before it was started', () => {
+  it('writes nothing when stopped before it was started', async () => {
     const term = emulator(60)
-    const live = createLiveLine(term.stream, (glyph) => glyph)
+    const live = await createLiveLine(term.stream, (glyph) => glyph)
 
     expect(() => live.stop()).not.toThrow()
     expect(term.written()).toBe('')
@@ -205,7 +205,7 @@ describe('the live line on a terminal', () => {
 
   it('shows only the second text when started twice, with the seconds counted again', async () => {
     const term = emulator(60)
-    const live = createLiveLine(term.stream, (glyph) => glyph)
+    const live = await createLiveLine(term.stream, (glyph) => glyph)
 
     live.start('Open the cart')
     vi.advanceTimersByTime(3_100)
@@ -220,9 +220,9 @@ describe('the live line on a terminal', () => {
     expect(await term.screen()).toEqual([])
   })
 
-  it('leaves no timer and no resize listener behind once stopped', () => {
+  it('leaves no timer and no resize listener behind once stopped', async () => {
     const term = emulator(60)
-    const live = createLiveLine(term.stream, (glyph) => glyph)
+    const live = await createLiveLine(term.stream, (glyph) => glyph)
 
     live.start('Open the cart')
     expect(term.stream.listenerCount('resize')).toBe(1)
