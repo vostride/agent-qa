@@ -294,7 +294,11 @@ export async function startServer(opts: StartServerOptions): Promise<{
   }
 
   // Appium lifecycle manager — auto-starts Appium for mobile tests
-  const appiumManager = new AppiumManager()
+  const appiumManager = new AppiumManager({
+    logLevel: opts.logLevel === 'debug' ? 'debug' : 'normal',
+  })
+  // Bound once: the server serves one project, and the mask rereads its secrets file when it changes.
+  appiumManager.bindMask(opts.declaredSecretMask)
   const mobileRuns = new Map<string, 'android' | 'ios'>()
 
   const releaseMobileAppiumLease = (runId: string, reason: string): void => {
