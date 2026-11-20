@@ -1,5 +1,7 @@
 // A control socket whose session cannot be ended prints one line under the live tag.
 
+import { once } from 'node:events'
+
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import WebSocket from 'ws'
 
@@ -67,6 +69,8 @@ async function endHeldSession(): Promise<void> {
     `ws://localhost:${String(started.port)}/api/live-editor/ws?sessionId=${SESSION_ID}`,
   )
   sockets.push(socket)
+  // Terminating a socket that is still connecting raises an error after the test has ended.
+  await once(socket, 'open')
   await vi.waitFor(() => expect(terminations).toHaveLength(1))
   terminations[0]?.()
 }
