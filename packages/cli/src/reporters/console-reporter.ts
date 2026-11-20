@@ -331,7 +331,9 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
     if (failedTests.length > 0) {
       println(colors.red('Failed tests:'))
       for (const failure of failedTests) {
-        const disposition = failure.quarantined ? ` ${colors.yellow(QUARANTINE_TEST_ANNOTATION)}` : ''
+        const disposition = failure.quarantined
+          ? ` ${colors.yellow(QUARANTINE_TEST_ANNOTATION)}`
+          : ''
         const lines = [`  ${colors.red('✗')} ${failure.name}${disposition}`]
         if (failure.failureSummary) {
           for (const line of failure.failureSummary.split('\n')) {

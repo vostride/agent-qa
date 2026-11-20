@@ -91,7 +91,8 @@ export class AppiumManager {
   }
 
   private async startAndWait(): Promise<void> {
-    // A chunk can end inside a line, and inside a secret, so only whole lines are masked and printed.
+    // A chunk can end inside a line, and inside a secret, so only whole lines are masked and
+    // printed.
     const unfinished = { stdout: '', stderr: '' }
     const forward = (line: string, stream: 'stdout' | 'stderr'): void => {
       if (line === '') return
