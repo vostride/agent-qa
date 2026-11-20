@@ -3766,7 +3766,9 @@ describe('run command — Zod validation before execution', () => {
 
     await runCommand()
 
-    expect(mockFormatParseError).toHaveBeenCalledWith(parseError)
+    expect(mockFormatParseError).toHaveBeenCalledWith(parseError, {
+      colors: expect.objectContaining({ red: expect.any(Function), bold: expect.any(Function) }),
+    })
     expect(exitSpy).toHaveBeenCalledWith(2)
   })
 })

@@ -1,5 +1,6 @@
 import pc from 'picocolors'
 
+import type { LogColors } from '../logging/log-line.js'
 import { yamlParseFailureMessage } from '../validation/yaml-fault.js'
 
 export interface ParseError {
@@ -14,6 +15,7 @@ export interface ParseError {
 
 interface FormatOptions {
   noColor?: boolean
+  colors?: Pick<LogColors, 'red' | 'bold' | 'blue' | 'yellow'>
 }
 
 function shouldUseColor(opts?: FormatOptions): boolean {
@@ -26,18 +28,21 @@ export function formatParseError(
   error: ParseError,
   opts?: FormatOptions,
 ): string {
-  const color = shouldUseColor(opts)
+  const handed = opts?.noColor ? undefined : opts?.colors
+  const color = handed === undefined && shouldUseColor(opts)
   const lineNum = String(error.line)
   const pad = ' '.repeat(lineNum.length)
 
-  const red = color ? pc.red : (s: string) => s
-  const bold = color ? pc.bold : (s: string) => s
-  const blue = color ? pc.blue : (s: string) => s
+  const plain = (s: string) => s
+  const red = handed?.red ?? (color ? pc.red : plain)
+  const bold = handed?.bold ?? (color ? pc.bold : plain)
+  const blue = handed?.blue ?? (color ? pc.blue : plain)
+  const yellow = handed?.yellow ?? pc.yellow
   const boldRed = (s: string) => bold(red(s))
   const boldBlue = (s: string) => bold(blue(s))
 
   const severity =
-    error.severity === 'error' ? boldRed('error') : bold(pc.yellow('warning'))
+    error.severity === 'error' ? boldRed('error') : bold(yellow('warning'))
 
   let output = ''
   output += `${severity}: ${error.message}\n`
