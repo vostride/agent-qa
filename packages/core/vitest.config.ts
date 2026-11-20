@@ -7,7 +7,8 @@ export default defineConfig({
     include: ['src/**/__tests__/**/*.test.ts'],
     globals: true,
     maxWorkers: 1,
-    env: { GITHUB_ACTIONS: '' },
+    // The test environment states its colour, so a CI runner and a developer machine print alike.
+    env: { GITHUB_ACTIONS: '', NO_COLOR: '1' },
     typecheck: {
       enabled: true,
       tsconfig: './tsconfig.json',

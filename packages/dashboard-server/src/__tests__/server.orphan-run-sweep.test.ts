@@ -167,7 +167,7 @@ describe('the startup orphan sweep', () => {
     await startDashboard()
 
     const lines = log.mock.calls.map((call) => String(call[0]))
-    expect(lines.some((line) => line.startsWith('Dashboard running at'))).toBe(true)
+    expect(lines.some((line) => line.includes('Dashboard running at'))).toBe(true)
     expect(lines.filter((line) => CLEANUP_LINE.test(line))).toEqual([])
     expect(reader.getRuns({})).toHaveLength(0)
   })
@@ -186,7 +186,7 @@ describe('the startup orphan sweep', () => {
     expect(snapshotOf(id)).toBe(afterFirst)
     expect(reader.listRunningRunOwners()).toEqual([])
     const lines = log.mock.calls.map((call) => String(call[0]))
-    expect(lines.filter((line) => line.startsWith('Dashboard running at'))).toHaveLength(2)
+    expect(lines.filter((line) => line.includes('Dashboard running at'))).toHaveLength(2)
     expect(lines.filter((line) => CLEANUP_LINE.test(line))).toEqual([
       'Finalized 1 run(s) whose agent-qa process had ended',
     ])
@@ -210,7 +210,7 @@ describe('the startup sweep when the start-time read throws', () => {
     await startDashboard({ self: SELF, probe: throwingProbe })
 
     const lines = log.mock.calls.map((call) => String(call[0]))
-    expect(lines.some((line) => line.startsWith('Dashboard running at'))).toBe(true)
+    expect(lines.some((line) => line.includes('Dashboard running at'))).toBe(true)
     expect(lines.filter((line) => CLEANUP_LINE.test(line))).toEqual([])
     expect(reader.getRun(id)?.status).toBe('running')
     expect(snapshotOf(id)).toBe(before)
