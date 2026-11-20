@@ -12,6 +12,7 @@ import type {
 } from '@vostride/agent-qa-agent-local'
 import {
   guardJsonText,
+  printLogLine,
   printRunText,
   reserveStdoutForData,
 } from '@vostride/agent-qa-core/run-text-output'
@@ -184,7 +185,7 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
         process.exitCode = exitCode
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        printRunText(pc.red(`Daemon error: ${message}`), (block) => console.error(block))
+        printLogLine({ tag: 'daemon', level: 'error', message: `Daemon error: ${message}` })
         errorReporter()?.capture(error)
         process.exitCode = 1
       } finally {

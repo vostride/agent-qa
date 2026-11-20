@@ -801,6 +801,23 @@ describe('runDaemonHost — execution-posture pin', () => {
   })
 })
 
+describe('a daemon start that fails', () => {
+  it('prints Daemon error on stderr as the time, the daemon tag and the message', async () => {
+    const paths = makePaths('start-fails')
+    const deps = daemonCommandDeps(paths)
+
+    const result = await invokeDaemon(deps, [])
+
+    expect(deps.runHost).not.toHaveBeenCalled()
+    expect(result.exitCode).toBe(1)
+    const failures = result.stderr.split('\n').filter((line) => line.includes('Daemon error'))
+    expect(failures, result.stderr).toEqual([
+      expect.stringMatching(/^\d\d:\d\d:\d\d {2}daemon {5}Daemon error: \S/u),
+    ])
+    expect(result.stdout).not.toContain('Daemon error')
+  })
+})
+
 describe('daemon status and stop operator controls', () => {
   it('reports live holder, uptime, and curation depth in human and JSON forms', async () => {
     const paths = makePaths('status-live')
@@ -3348,7 +3365,7 @@ describe('runDaemonHost — the run-outcome projection reconcile', () => {
     expect(calls[0]!.tracesAtCall).not.toContain('jobs-opened')
 
     // A rebuild of the derived index is never silent — the tail's own rule, on the second host.
-    expect(info).toHaveBeenCalledWith(
+    expect(info.mock.calls.map((call) => call[0])).toContainEqual(
       expect.stringContaining('folded 2, skipped 0 handoff, 1 artifact'),
     )
   })
