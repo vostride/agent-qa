@@ -354,6 +354,8 @@ function startScheduledHost(options: {
   drainQueue: DaemonHostOperations['drainQueue']
   runMaintenanceTail?: (...args: unknown[]) => unknown
   acquireWriterLease?: DaemonHostOperations['acquireWriterLease']
+  logger?: { info: (message: string, tag?: string) => void; error: (message: string, tag?: string) => void }
+  logLevel?: string
 }): ScheduledHostHarness {
   const signals = new Map<NodeJS.Signals, () => void>()
   const intervals = new Map<number, { callback: () => void; intervalMs: number }>()
@@ -406,7 +408,8 @@ function startScheduledHost(options: {
     model: () => MODEL,
     author: () => async () => ({ kind: 'fallback-required', reason: 'no-model' }),
     operations,
-    logger: { info: vi.fn(), error: vi.fn() },
+    logger: options.logger ?? { info: vi.fn(), error: vi.fn() },
+    ...(options.logLevel === undefined ? {} : { logLevel: options.logLevel }),
   })
   return {
     running,
@@ -1175,8 +1178,154 @@ describe('daemon curation scheduling', () => {
   })
 })
 
+describe("the daemon's drain session summary", () => {
+  const LEARNED_A = '1a'.repeat(32)
+  const HELD_B = '2b'.repeat(32)
+  const HELD_C = '3c'.repeat(32)
+  const LEARNED_D = '4d'.repeat(32)
+  const HELD_E = '5e'.repeat(32)
+
+  // Two drain calls: three commits with a promotion and two holds, then two with one of each.
+  function twoCallDrain(queued: Set<string>): DaemonHostOperations['drainQueue'] {
+    const reports = [
+      {
+        committed: 3,
+        promotions: [
+          { candidateId: LEARNED_A, promotionPath: 'deterministic-verdict-floor' as const },
+          { candidateId: HELD_B, promotionHoldReason: 'no-element-observation' as const },
+          { candidateId: HELD_C, promotionHoldReason: 'missing-root-cause' as const },
+        ],
+      },
+      {
+        committed: 2,
+        promotions: [
+          { candidateId: LEARNED_D, promotionPath: 'user-sovereign' as const },
+          { candidateId: HELD_E, promotionHoldReason: 'window-closed' as const },
+        ],
+      },
+    ]
+    return vi.fn<DaemonHostOperations['drainQueue']>(async () => {
+      const next = [...queued].sort()[0]
+      if (next !== undefined) queued.delete(next)
+      const report = reports.shift()
+      if (report === undefined) throw new Error('the drain was called more often than the fixture plans')
+      return { ...drainReport(1, queued.size), ...report } as never
+    })
+  }
+
+  async function drainOnce(options: {
+    readonly queued: Set<string>
+    readonly drainQueue: DaemonHostOperations['drainQueue']
+    readonly logLevel?: string
+  }): Promise<{ info: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> }> {
+    const paths = makeRoot()
+    const logger = { info: vi.fn(), error: vi.fn() }
+    const host = startScheduledHost({
+      paths,
+      queued: options.queued,
+      drainQueue: options.drainQueue,
+      logger,
+      ...(options.logLevel === undefined ? {} : { logLevel: options.logLevel }),
+    })
+    await waitUntil(
+      () => existsSync(join(paths.agentQaRoot, DAEMON_REGISTRATION_FILE)),
+      'drain-summary daemon did not register',
+    )
+    host.fire(30_000)
+    await waitUntil(
+      () => readDrainSessionReceipts(paths.agentQaRoot).length === 1,
+      'the drain session did not finish',
+    )
+    host.signal('SIGTERM')
+    await expect(host.running).resolves.toBe(0)
+    return logger
+  }
+
+  function knowledgeCalls(mock: ReturnType<typeof vi.fn>): unknown[][] {
+    return mock.mock.calls.filter((call) => call[1] === 'knowledge')
+  }
+
+  function everyMessage(logger: { info: ReturnType<typeof vi.fn>; error: ReturnType<typeof vi.fn> }): string {
+    return [...logger.info.mock.calls, ...logger.error.mock.calls].map((call) => String(call[0])).join('\n')
+  }
+
+  it('prints one knowledge summary after the last drain call of a working session', async () => {
+    const queued = new Set(['1'.repeat(64), '2'.repeat(64)])
+    const drainQueue = twoCallDrain(queued)
+    const logger = await drainOnce({ queued, drainQueue })
+
+    expect(drainQueue).toHaveBeenCalledTimes(2)
+    expect(knowledgeCalls(logger.info)).toEqual([['Learned 5, held 3', 'knowledge']])
+    const summaryCall = logger.info.mock.calls.findIndex((call) => call[1] === 'knowledge')
+    const lastDrain = vi.mocked(drainQueue).mock.invocationCallOrder.at(-1)!
+    expect(logger.info.mock.invocationCallOrder[summaryCall]).toBeGreaterThan(lastDrain)
+    const printed = everyMessage(logger)
+    expect(printed).not.toMatch(/[0-9a-f]{64}/u)
+    expect(printed).not.toContain('promoted via')
+    expect(printed).not.toContain(' held: ')
+  })
+
+  it('adds the item lines with 8-character ids in the same message at the debug level', async () => {
+    const queued = new Set(['1'.repeat(64), '2'.repeat(64)])
+    const logger = await drainOnce({ queued, drainQueue: twoCallDrain(queued), logLevel: 'debug' })
+
+    // At debug the startup's projection line is a knowledge line too; the summary is the other one.
+    const summaries = knowledgeCalls(logger.info)
+      .filter((call) => !String(call[0]).includes('run-outcome projection'))
+    expect(summaries).toEqual([[
+      [
+        'Learned 5, held 3',
+        'learned  1a1a1a1a  verdict floor',
+        'held     2b2b2b2b  no element observation',
+        'held     3c3c3c3c  missing root cause',
+        'learned  4d4d4d4d  your decision',
+        'held     5e5e5e5e  window closed',
+      ].join('\n'),
+      'knowledge',
+    ]])
+    expect(everyMessage(logger)).not.toMatch(/[0-9a-f]{64}/u)
+  })
+
+  it('prints no knowledge line for a session that processed no job', async () => {
+    const queued = new Set(['1'.repeat(64)])
+    const drainQueue = vi.fn<DaemonHostOperations['drainQueue']>(async () => drainReport(0, 1))
+    const logger = await drainOnce({ queued, drainQueue })
+
+    expect(drainQueue).toHaveBeenCalledOnce()
+    expect(knowledgeCalls(logger.info)).toEqual([])
+    expect(knowledgeCalls(logger.error)).toEqual([])
+  })
+
+  it('prints a failed drain as a knowledge error and still sums what the session committed', async () => {
+    const queued = new Set(['1'.repeat(64), '2'.repeat(64)])
+    let calls = 0
+    const drainQueue = vi.fn<DaemonHostOperations['drainQueue']>(async () => {
+      calls += 1
+      if (calls === 2) throw new Error('fixture drain failure')
+      const next = [...queued].sort()[0]
+      if (next !== undefined) queued.delete(next)
+      return {
+        ...drainReport(1, queued.size),
+        committed: 2,
+        promotions: [{ candidateId: LEARNED_A, promotionPath: 'deterministic-verdict-floor' }],
+      } as never
+    })
+    const logger = await drainOnce({ queued, drainQueue })
+
+    expect(knowledgeCalls(logger.error)).toEqual([
+      ['Daemon curation drain failed: fixture drain failure', 'knowledge'],
+    ])
+    expect(knowledgeCalls(logger.info)).toEqual([
+      ['Learned 2, held 0\nnot finished, resumes on the next run', 'knowledge'],
+    ])
+  })
+})
+
 describe("the daemon's fold log", () => {
-  it('prints the fold summary as one knowledge line and none of its detail', async () => {
+  async function foldThroughDaemon(logLevel: string | undefined): Promise<{
+    info: ReturnType<typeof vi.fn>
+    error: ReturnType<typeof vi.fn>
+  }> {
     const paths = makeRoot()
     const runId = 'r_daemon-fold-learned-two'
     const signals = new Map<NodeJS.Signals, () => void>()
@@ -1187,12 +1336,17 @@ describe("the daemon's fold log", () => {
       ...actualOperations(),
       loadCompletedRunHandoff: () => ({ runId, executionContext: 'local-headless' }) as never,
     }))
-    let foldLog: CurationTailLogger | undefined
     vi.spyOn(curationTail, 'curateCompletedRun').mockImplementation(async (input) => {
-      foldLog = input.log
       input.log.warn('a fold warning')
       input.log.detail?.('curation: drained inline (0s)')
-      input.log.summary?.({ runId, learned: 2, held: 1, proposed: 0, items: [] })
+      input.log.detail?.('post-processing complete', 'post-run')
+      input.log.summary?.({
+        runId,
+        learned: 2,
+        held: 1,
+        proposed: 0,
+        items: [{ outcome: 'held', id: 'c'.repeat(64), reason: 'no-element-observation' }],
+      })
       return { curated: 2, deprecated: 0, complete: true, drainKind: 'drained' }
     })
     const running = runDaemonHost({
@@ -1223,6 +1377,7 @@ describe("the daemon's fold log", () => {
         hardExit: vi.fn(),
       } as unknown as Partial<DaemonHostOperations>,
       logger,
+      ...(logLevel === undefined ? {} : { logLevel }),
     })
     await waitUntil(
       () => existsSync(join(paths.agentQaRoot, DAEMON_REGISTRATION_FILE)),
@@ -1233,12 +1388,26 @@ describe("the daemon's fold log", () => {
 
     await composed?.postRun?.curateRun({ runId, executionContext: 'local-headless' })
 
-    expect(foldLog).toBeDefined()
-    expect(foldLog).not.toHaveProperty('detail')
-    expect(logger.info.mock.calls).toEqual([['Learned 2, held 1 · r_daemon-fold', 'knowledge']])
-    expect(logger.error.mock.calls).toEqual([['a fold warning', 'knowledge']])
-
     signals.get('SIGTERM')?.()
     await expect(running).resolves.toBe(0)
+    return logger
+  }
+
+  it('prints the fold summary as one knowledge line, its warning as a knowledge error, and no detail', async () => {
+    const logger = await foldThroughDaemon(undefined)
+
+    expect(logger.info.mock.calls).toEqual([['Learned 2, held 1 · r_daemon-fold', 'knowledge']])
+    expect(logger.error.mock.calls).toEqual([['a fold warning', 'knowledge']])
+  })
+
+  it('adds the detail lines under their tags and the item lines under the summary at debug', async () => {
+    const logger = await foldThroughDaemon('debug')
+
+    expect(logger.info.mock.calls).toEqual([
+      ['curation: drained inline (0s)', 'knowledge'],
+      ['post-processing complete', 'post-run'],
+      ['Learned 2, held 1 · r_daemon-fold\nheld     cccccccc  no element observation', 'knowledge'],
+    ])
+    expect(logger.error.mock.calls).toEqual([['a fold warning', 'knowledge']])
   })
 })

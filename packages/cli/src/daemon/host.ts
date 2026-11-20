@@ -4,8 +4,8 @@ import { rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import type { Readable } from 'node:stream'
 import { isDeepStrictEqual } from 'node:util'
-import { knowledgeTaggedMessage } from '../curation/knowledge-summary.js'
-import { renderPromotionLine } from '../curation/promotion-line.js'
+import { knowledgeSummaryOfDrain, knowledgeTaggedMessage } from '../curation/knowledge-summary.js'
+import { createTaggedCurationLog } from '../curation/tagged-curation-log.js'
 import { createRunLineReporter } from '../reporters/run-line-reporter.js'
 
 import type {
@@ -255,6 +255,10 @@ export interface DaemonHostOperations {
   randomUUID(): string
   trace?(step: DaemonHostTraceStep): void
 }
+
+type DrainPromotion = NonNullable<
+  Awaited<ReturnType<DaemonHostOperations['drainQueue']>>['promotions']
+>[number]
 
 export interface DaemonHostOptions {
   /** The project's runtime root (`<config-dir>/.agent-qa`), always absolute. */
@@ -649,6 +653,8 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
 
   const operations = { ...defaultOperations(), ...input.operations }
   const logger = input.logger ?? DEFAULT_DAEMON_LOGGER
+  const logLevel = input.logLevel ?? 'warn'
+  const verbose = logLevel === 'debug'
   const instanceId = randomUUID()
   const recordDaemonEvent = (event: DaemonEvent): void => {
     try {
@@ -1393,6 +1399,14 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
     let jobsProcessed = 0
     let failures = 0
     let quarantined = 0
+    // The session's running totals, for its one knowledge summary.
+    const drained = {
+      committed: 0,
+      evidenceCommitted: 0,
+      downgraded: 0,
+      requeued: 0,
+      promotions: [] as DrainPromotion[],
+    }
     let remainingAfter = remainingTotal(operations.countRemainingCurationWork(
       input.knowledgeRoot,
       { currentLeaseId: acquired.leaseId },
@@ -1482,9 +1496,11 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       } finally {
         if (worker !== undefined) armEmbedderWorkerIdleTimer(worker)
       }
-      for (const entry of report.promotions ?? []) {
-        logger.info(renderPromotionLine(entry), 'knowledge')
-      }
+      drained.committed += report.committed
+      drained.evidenceCommitted += report.evidenceCommitted ?? 0
+      drained.downgraded += report.downgraded
+      drained.requeued += report.requeued
+      drained.promotions.push(...(report.promotions ?? []))
       jobsProcessed += report.jobsProcessed
       failures += report.failures
       quarantined += report.quarantined
@@ -1529,6 +1545,14 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       jobsProcessed,
       remainingAfter,
     })
+    if (jobsProcessed > 0) {
+      const summary = knowledgeSummaryOfDrain({
+        executionContext: 'local-headless',
+        complete: drained.requeued === 0 && failures === 0,
+        drain: { kind: 'drained', ...drained },
+      })
+      logger.info(knowledgeTaggedMessage(summary, { verbose }), 'knowledge')
+    }
   }
 
   const serviceDrainRequests = async (): Promise<void> => {
@@ -1932,7 +1956,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
           'daemon: run-outcome projection not reconciled (no writer authority)',
           'knowledge',
         )
-      } else if (reconcile.kind === 'rebuilt') {
+      } else if (reconcile.kind === 'rebuilt' && verbose) {
         logger.info(
           'daemon: run-outcome projection rebuilt '
           + `(folded ${reconcile.report.folded}, `
@@ -2004,12 +2028,14 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
             author: await (authorPromise ??= Promise.resolve(factory())),
             authority: { leaseId: acquired.leaseId, epoch: acquired.epoch },
             ...(deadlineMs === undefined ? {} : { deadlineMs }),
-            log: {
-              warn: (message: string) => logger.error(message, 'knowledge'),
-              summary: (summary) => {
-                logger.info(knowledgeTaggedMessage(summary, { verbose: false }), 'knowledge')
+            // This log serves the fold alone, so its warnings are the curator's and keep its tag.
+            log: createTaggedCurationLog({
+              logLevel,
+              print: (line) => {
+                if (line.level === 'warn') logger.error(line.message, 'knowledge')
+                else logger.info(line.message, line.tag)
               },
-            },
+            }),
           })
           // Same fields as the CLI binding; only a leg with the declared mask may claim the kind.
           return {
