@@ -153,10 +153,35 @@ describe('the console reporter prints one text form', () => {
 
 describe('the console reporter colours for stdout when it is handed no colours', () => {
   const saved = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
+  const savedStderr = Object.getOwnPropertyDescriptor(process.stderr, 'isTTY')
 
   afterEach(() => {
     if (saved === undefined) Reflect.deleteProperty(process.stdout, 'isTTY')
     else Object.defineProperty(process.stdout, 'isTTY', saved)
+    if (savedStderr === undefined) Reflect.deleteProperty(process.stderr, 'isTTY')
+    else Object.defineProperty(process.stderr, 'isTTY', savedStderr)
+  })
+
+  function withTerminals(terminals: { stdout: boolean; stderr: boolean }): string {
+    Object.defineProperty(process.stdout, 'isTTY', {
+      value: terminals.stdout,
+      configurable: true,
+      writable: true,
+    })
+    Object.defineProperty(process.stderr, 'isTTY', {
+      value: terminals.stderr,
+      configurable: true,
+      writable: true,
+    })
+    return renderWith({ env: {} }).output
+  }
+
+  it('colours when stdout is a terminal and stderr is not', () => {
+    expect(withTerminals({ stdout: true, stderr: false })).toContain(ESC)
+  })
+
+  it('does not colour when stderr is a terminal and stdout is not', () => {
+    expect(withTerminals({ stdout: false, stderr: true })).not.toContain(ESC)
   })
 
   function withStdoutNotATerminal(env: Record<string, string>): string {

@@ -170,6 +170,60 @@ describe('printLogLine', () => {
     expect(log).not.toHaveBeenCalled()
   })
 
+  describe('when one stream is a terminal and the other is not', () => {
+    const streams = [process.stdout, process.stderr] as const
+    let saved: (PropertyDescriptor | undefined)[] = []
+
+    function setTerminals(terminals: { stdout: boolean; stderr: boolean }): void {
+      for (const [stream, isTTY] of [
+        [process.stdout, terminals.stdout],
+        [process.stderr, terminals.stderr],
+      ] as const) {
+        Object.defineProperty(stream, 'isTTY', { value: isTTY, configurable: true, writable: true })
+      }
+    }
+
+    beforeEach(() => {
+      saved = streams.map((stream) => Object.getOwnPropertyDescriptor(stream, 'isTTY'))
+    })
+
+    afterEach(() => {
+      streams.forEach((stream, index) => {
+        const descriptor = saved[index]
+        if (descriptor === undefined) Reflect.deleteProperty(stream, 'isTTY')
+        else Object.defineProperty(stream, 'isTTY', descriptor)
+      })
+    })
+
+    it('colours the lines it sends to stderr and not the ones it sends to stdout when only stderr is a terminal', () => {
+      setTerminals({ stdout: false, stderr: true })
+
+      printLogLine({ tag: 'server', message: 'started' }, { env: {} })
+      printLogLine({ tag: 'server', message: 'careful', level: 'warn' }, { env: {} })
+      printLogLine({ tag: 'server', message: 'broken', level: 'error' }, { env: {} })
+      printLogLine({ tag: 'server', message: 'moved' }, { env: {}, to: 'stderr' })
+
+      expect(String(log.mock.calls[0]?.[0])).toMatch(/^\d\d:\d\d:\d\d {2}server {5}started$/u)
+      expect(String(warn.mock.calls[0]?.[0])).toContain(`${YELLOW}careful`)
+      expect(String(error.mock.calls[0]?.[0])).toContain(`${RED}broken`)
+      expect(String(error.mock.calls[1]?.[0]).startsWith(DIM)).toBe(true)
+    })
+
+    it('colours the lines it sends to stdout and not the ones it sends to stderr when only stdout is a terminal', () => {
+      setTerminals({ stdout: true, stderr: false })
+
+      printLogLine({ tag: 'server', message: 'started' }, { env: {} })
+      printLogLine({ tag: 'server', message: 'careful', level: 'warn' }, { env: {} })
+      printLogLine({ tag: 'server', message: 'broken', level: 'error' }, { env: {} })
+      printLogLine({ tag: 'server', message: 'moved', level: 'error' }, { env: {}, to: 'stdout' })
+
+      expect(String(log.mock.calls[0]?.[0]).startsWith(DIM)).toBe(true)
+      expect(String(warn.mock.calls[0]?.[0])).toMatch(/^\d\d:\d\d:\d\d {2}server {5}careful$/u)
+      expect(String(error.mock.calls[0]?.[0])).toMatch(/^\d\d:\d\d:\d\d {2}server {5}broken$/u)
+      expect(String(log.mock.calls[1]?.[0])).toContain(`${RED}moved`)
+    })
+  })
+
   it('writes one stop-commands pair holding the line under GitHub Actions', () => {
     printLogLine({ tag: 'server', message: '::set-output name=x::y' }, {
       env: { GITHUB_ACTIONS: 'true' },
