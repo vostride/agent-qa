@@ -23,6 +23,7 @@ import { composeMcpMasking, createMcpHttpRequestListener } from '../../commands/
 import { invokeViaDaemon } from '../../daemon/client.js'
 import { runDaemonHost } from '../../daemon/host.js'
 import type { DaemonHostOperations } from '../../daemon/host.js'
+import { shortRunId } from '../../reporters/short-run-id.js'
 import {
   openDashboardScene,
   printedRunIds,
@@ -135,6 +136,15 @@ let pageDashboard: (SpawnedDashboard & { readonly ready: boolean }) | undefined
 let browser: Browser | undefined
 let setupFailure: string | undefined
 const drivenOrder: string[] = []
+
+interface SpawnedDashboardRun {
+  readonly outcome: Outcome
+  readonly name: string
+  runId?: string
+  error?: string
+}
+const spawnedDashboardRuns: SpawnedDashboardRun[] = []
+let spawnedRunsFailure: string | undefined
 
 function testPathOf(row: DoorRow): string {
   return row.outcome === 'passed' ? POPULATED_TEST_PATH : POPULATED_SECOND_TEST_PATH
@@ -346,8 +356,8 @@ async function commander(args: readonly string[]): Promise<string> {
   return printed.join('\n')
 }
 
-async function postJson(path: string, body: unknown): Promise<{ status: number; text: string; json: Record<string, unknown> }> {
-  const response = await fetch(`${scene!.origin}${path}`, {
+async function postJson(path: string, body: unknown, origin = scene!.origin): Promise<{ status: number; text: string; json: Record<string, unknown> }> {
+  const response = await fetch(`${origin}${path}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
@@ -670,6 +680,55 @@ async function observePages(): Promise<void> {
   }
 }
 
+interface TerminalLine {
+  readonly tag?: string
+  readonly text: string
+}
+
+// The spawned dashboard's stdout, each tagged line split into its tag and message.
+function terminalLines(stdout: string): TerminalLine[] {
+  return stdout.replace(/\x1b\[[0-9;]*m/gu, '').split('\n').map((line) => {
+    const tagged = /^\d\d:\d\d:\d\d {2}(\S+) +(.*)$/u.exec(line)
+    return tagged === null ? { text: line } : { tag: tagged[1]!, text: tagged[2]! }
+  })
+}
+
+function resultLineIndex(lines: readonly TerminalLine[], run: SpawnedDashboardRun): number {
+  const icon = run.outcome === 'passed' ? '✓' : '✗'
+  return lines.findIndex((line) => line.tag === 'run'
+    && line.text.startsWith(`${icon} ${run.name} · ${run.outcome} · `))
+}
+
+// Started through the page dashboard's own door, one after the other, after the page pass.
+async function runThroughTheSpawnedDashboard(): Promise<void> {
+  if (pageDashboard?.ready !== true) throw new Error('the page dashboard is not listening')
+  for (const outcome of ['passed', 'failed'] as const) {
+    const run: SpawnedDashboardRun = {
+      outcome,
+      name: outcome === 'passed' ? PASSING_NAME : FAILING_NAME,
+    }
+    spawnedDashboardRuns.push(run)
+    const path = outcome === 'passed' ? POPULATED_TEST_PATH : POPULATED_SECOND_TEST_PATH
+    const answer = await postJson('/run', { patterns: [path] }, pageDashboard.origin)
+    if (typeof answer.json['runId'] !== 'string') {
+      run.error = `POST /run answered ${String(answer.status)} ${answer.text.slice(0, 1_000)}`
+      continue
+    }
+    run.runId = answer.json['runId']
+    const deadline = Date.now() + RUN_FINISH_BUDGET_MS
+    while (resultLineIndex(terminalLines(pageDashboard.stdout()), run) < 0 && Date.now() < deadline) {
+      await new Promise((tick) => setTimeout(tick, 100))
+    }
+    // The knowledge line follows the result line once the run's post-run tail has finished.
+    const short = shortRunId(run.runId)
+    const knowledgeDeadline = Date.now() + 60_000
+    while (Date.now() < knowledgeDeadline && !terminalLines(pageDashboard.stdout())
+      .some((line) => line.tag === 'knowledge' && line.text.includes(` · ${short}`))) {
+      await new Promise((tick) => setTimeout(tick, 100))
+    }
+  }
+}
+
 function overviewShas(document: OverviewDocument | undefined): string[] {
   const shas = (document?.tests ?? []).flatMap((test) => (test.steps ?? [])
     .flatMap((step) => (step.capture.screenshots ?? []).map((shot) => shot.sha)))
@@ -754,6 +813,11 @@ describe('a run through every door', () => {
       await observePages()
     } catch (error) {
       setupFailure = `${setupFailure ?? ''} the page pass failed: ${message(error)}`.trim()
+    }
+    try {
+      await runThroughTheSpawnedDashboard()
+    } catch (error) {
+      spawnedRunsFailure = message(error)
     }
   }, MATRIX_BUDGET_MS)
 
@@ -863,5 +927,38 @@ describe('a run through every door', () => {
     const lines = written.split('\n').filter((line) => line.trim() !== '')
     expect(lines.some((line) => isJson(line) && line.includes('"jsonrpc"')), 'the stdout instrument saw the JSON-RPC stream').toBe(true)
     expect(JSON.stringify(lines.filter((line) => !isJson(line))), 'stdout lines that are not JSON-RPC').toBe('[]')
+  })
+
+  it('the dashboard terminal names each run it started when it starts and when it ends', () => {
+    const stdout = pageDashboard?.stdout() ?? ''
+    const seen = `${spawnedRunsFailure ?? ''}\n${JSON.stringify(spawnedDashboardRuns)}\n${stdout}`
+    const lines = terminalLines(stdout)
+    expect(spawnedDashboardRuns.map((run) => run.outcome), seen).toEqual(['passed', 'failed'])
+    for (const run of spawnedDashboardRuns) {
+      expect(run.error, seen).toBeUndefined()
+      const short = shortRunId(run.runId!)
+      const start = lines.findIndex((line) => line.tag === 'run' && line.text.startsWith('▶ ')
+        && line.text.includes(run.name) && line.text.endsWith(` · ${short}`))
+      expect(start, `the start line of ${run.runId!}\n${seen}`).toBeGreaterThanOrEqual(0)
+      const result = resultLineIndex(lines, run)
+      expect(result, `the result line of ${run.runId!}\n${seen}`).toBeGreaterThan(start)
+      if (run.outcome === 'failed') {
+        const continuation = lines[result + 1]
+        expect(continuation?.tag, seen).toBeUndefined()
+        expect(continuation?.text, seen).toMatch(/^ {21}\S/u)
+      }
+      expect(
+        lines.some((line) => line.tag === 'knowledge' && line.text.includes(` · ${short}`)),
+        `the knowledge line of ${run.runId!}\n${seen}`,
+      ).toBe(true)
+    }
+    const messages = [
+      ...lines.map((line) => line.text.trimStart()),
+      ...terminalLines(pageDashboard?.stderr() ?? '').map((line) => line.text.trimStart()),
+    ]
+    expect(
+      messages.filter((text) => /^(?:Knowledge curation candidates|curation: |Knowledge: |Run ID: )/u.test(text)),
+      seen,
+    ).toEqual([])
   })
 })

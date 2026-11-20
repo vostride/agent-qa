@@ -408,6 +408,8 @@ export async function createDashboardRunDoor(input: {
   readonly db: unknown
   // Threaded through the bridge, because the drain leg reads `runBridge.chipRelay` for its emitter.
   readonly chipRelay?: (envelope: RunEventEnvelope) => void
+  // The command's log level; absent, the door prints no run lines, as in a test that composes it.
+  readonly logLevel?: string
 }): Promise<DashboardRunDoor> {
   const { createInProcessExecutionBackend } = await import('@vostride/agent-qa-dashboard')
 
@@ -428,6 +430,8 @@ export async function createDashboardRunDoor(input: {
   const runBridge: NonNullable<ComposeCliLocalAgentInput['runBridge']> = {
     // An absent relay is an absent field, so the drain leg's `relay === undefined` arm decides.
     ...(input.chipRelay === undefined ? {} : { chipRelay: input.chipRelay }),
+    // This terminal is a log, so each run's two lines and the tagged knowledge lines belong here.
+    ...(input.logLevel === undefined ? {} : { terminalLines: { logLevel: input.logLevel } }),
     // Routed by the session's own id, because the door runs as many at once as the queue has slots.
     onSession: (session: RunSession): void => {
       entries.get(session.id as unknown as string)?.onSession(session)
@@ -852,6 +856,7 @@ async function startDashboardBackedServices(
     const runDoor = await createDashboardRunDoor({
       db,
       chipRelay: postProcessingRelay.publish,
+      logLevel,
     })
 
     // Hoisted and unconditional, so the run-stream door can attach to runs this process executes.
