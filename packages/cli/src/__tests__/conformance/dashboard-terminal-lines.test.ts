@@ -15,6 +15,10 @@ import {
 
 const FILE_BUDGET_MS = 120_000
 
+// The time, two spaces, a tag padded so the message starts in column 21, then the message.
+const TAGGED_LINE = /^\d\d:\d\d:\d\d {2}[a-z][a-z-]* {2,}(?<=^.{21})\S/u
+const CONTINUATION_LINE = /^ {21}/u
+
 let dashboard: (SpawnedDashboard & { readonly ready: boolean }) | undefined
 
 beforeAll(async () => {
@@ -63,7 +67,7 @@ describe('the dashboard terminal', () => {
     ])
   })
 
-  // Last, because it stops the dashboard the cells above read.
+  // The last two stop the dashboard the cells above read.
   it('says it is shutting down as the time, the server tag and the message once stopped', async () => {
     if (dashboard?.ready !== true) {
       throw new Error(
@@ -78,5 +82,19 @@ describe('the dashboard terminal', () => {
     expect(shutdown, dashboard.stdout()).toEqual([
       expect.stringMatching(/^\d\d:\d\d:\d\d  server     Shutting down dashboard\.\.\.$/u),
     ])
+  }, FILE_BUDGET_MS)
+
+  it('prints only tagged lines and their continuation lines on stdout from its start to its stop', async () => {
+    if (dashboard?.ready !== true) {
+      throw new Error(
+        `the spawned dashboard never said it was listening:\n${dashboard?.stdout() ?? ''}`,
+      )
+    }
+    await dashboard.stop()
+    const lines = dashboard.stdout().split('\n').filter((line) => line.length > 0)
+    expect(lines.filter((line) => TAGGED_LINE.test(line)).length, dashboard.stdout())
+      .toBeGreaterThanOrEqual(3)
+    const neither = lines.filter((line) => !TAGGED_LINE.test(line) && !CONTINUATION_LINE.test(line))
+    expect(neither, dashboard.stdout()).toEqual([])
   }, FILE_BUDGET_MS)
 })
