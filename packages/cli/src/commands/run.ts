@@ -301,9 +301,9 @@ export function printRunWarning(line: string): void {
 }
 
 // The command's one live line. Built once, because a run of suites and then tests attaches the
-// reporter twice.
+// reporter twice. A line that cannot be built is not tried again.
 interface RunLiveLine {
-  build(consoleSelected: boolean): Promise<ConsoleReporterOptions['liveLine']>
+  build(consoleSelected: boolean, logLevel: string): Promise<ConsoleReporterOptions['liveLine']>
   stop(): void
 }
 
@@ -321,13 +321,25 @@ function createRunLiveLine(): RunLiveLine {
   let building: Promise<ConsoleReporterOptions['liveLine']> | undefined
   let built: ConsoleReporterOptions['liveLine']
   return {
-    async build(consoleSelected) {
+    async build(consoleSelected, logLevel) {
       if (!drawsLiveLine(process.stdout, process.env, consoleSelected)) return undefined
-      building ??= import('../reporters/live-line.js').then(async ({ createLiveLine }) => {
-        const colors = colorsFor(process.stdout)
-        built = await createLiveLine(process.stdout, (glyph) => colors.cyan(glyph))
-        return built
-      })
+      building ??= import('../reporters/live-line.js')
+        .then(async ({ createLiveLine }) => {
+          const colors = colorsFor(process.stdout)
+          built = await createLiveLine(process.stdout, (glyph) => colors.cyan(glyph))
+          return built
+        })
+        // The line never costs a run: without it the run prints its result lines alone.
+        .catch((error: unknown) => {
+          if (logLevel !== 'debug') return undefined
+          const reason = error instanceof Error ? error.message : String(error)
+          const message = `The line for the step in progress could not be built: ${reason}`
+          printRunText(
+            formatLogLine({ tag: 'run', message, level: 'debug' }, colorsFor(process.stderr)),
+            (text) => console.error(text),
+          )
+          return undefined
+        })
       return await building
     },
     stop() {
@@ -2756,7 +2768,7 @@ async function executeSuites(
     // NOTHING ASKS. This door builds no confirm channel and carries no session trust: a suite starts
     // at a terminal, on a piped stdio and in CI alike, whatever environment its targets declare.
 
-    liveLine = await runLiveLine.build(reporterSelection.console)
+    liveLine = await runLiveLine.build(reporterSelection.console, effectiveLogLevel)
     const { runInProcessCliRun } = await import('../composition/in-process-run-execution.js')
 
     const outcome = await (runInProcessCliRun as typeof RunInProcessCliRun)(
@@ -5597,7 +5609,7 @@ export function createRunCommand(
           ...(produced.remotePlugins === undefined ? {} : { remotePlugins: produced.remotePlugins }),
         }))
 
-        const liveLine = await runLiveLine.build(reporterSelection.console)
+        const liveLine = await runLiveLine.build(reporterSelection.console, effectiveLogLevel)
         const { runInProcessCliRun } = await import('../composition/in-process-run-execution.js')
         let singleExit: number
         try {

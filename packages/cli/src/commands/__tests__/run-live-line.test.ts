@@ -1,5 +1,5 @@
-// agent-qa run on a terminal, with the browser's start held so the run stays in progress: what is
-// on the screen when the run is forced to exit.
+// agent-qa run on a terminal: when it draws the live line, what is on the screen when the run is
+// forced to exit, and what a run prints when the line cannot be built.
 
 import { WebPlatformAdapter } from '@vostride/agent-qa-web'
 import { Command } from 'commander'
@@ -18,6 +18,7 @@ import { createRunCommand, drawsLiveLine } from '../run.js'
 const RUN_BUDGET_MS = 120_000
 const EXIT_MARKER = 'fixture command exit'
 const RUN_ID_LINE = /^Run ID: r_[a-z0-9-]+$/
+const BUILD_FAILURE = "Cannot find package 'ora' imported from the test"
 
 let pinnedTmpdir: PinnedTmpdir | undefined
 let stdoutIsTTY: PropertyDescriptor | undefined
@@ -158,6 +159,42 @@ async function runHeldAtBrowserStart(
   }
 }
 
+interface FinishedRun {
+  // Every line up to the first exit, which a real exit would end the process at.
+  readonly printed: readonly string[]
+  readonly exitCode: unknown
+  readonly buildAttempts: number
+}
+
+// The command runs to its end on a terminal whose live line cannot be built. The browser's start
+// fails at once, so each test fails and the run reaches its verdict.
+async function runWithoutALiveLine(args: readonly string[]): Promise<FinishedRun> {
+  const { printed } = onATerminal('xterm-256color')
+  const build = vi
+    .spyOn(liveLineModule, 'createLiveLine')
+    .mockRejectedValue(new Error(BUILD_FAILURE))
+  const exitCodes: unknown[] = []
+  let atFirstExit: string[] = []
+  vi.spyOn(process, 'exit').mockImplementation((code) => {
+    if (exitCodes.length === 0) atFirstExit = [...printed]
+    exitCodes.push(code)
+    throw new Error(EXIT_MARKER)
+  })
+  vi.spyOn(WebPlatformAdapter.prototype, 'setup').mockRejectedValue(
+    new Error('the browser did not start'),
+  )
+
+  const fixture = createInProcessFixture({ origin: 'http://127.0.0.1:1', environment: 'local' })
+  const program = new Command()
+    .option('--config <path>')
+    .option('--verbose')
+    .addCommand(createRunCommand())
+  await expect(
+    program.parseAsync(['--config', fixture.configPath, ...args], { from: 'user' }),
+  ).rejects.toThrow(EXIT_MARKER)
+  return { printed: atFirstExit, exitCode: exitCodes[0], buildAttempts: build.mock.calls.length }
+}
+
 describe('whether a run draws the live line', () => {
   const terminal = { isTTY: true }
   const outsideCi = { TERM: 'xterm-256color' }
@@ -234,5 +271,35 @@ describe.each(['direct', 'suite'] as const)('a forced exit of a %s run on a term
 
     expect(run.exits.length).toBeGreaterThan(1)
     expect(run.runIdLines()).toHaveLength(1)
+  }, RUN_BUDGET_MS)
+})
+
+describe('a run on a terminal whose live line cannot be built', () => {
+  // A browser that does not start fails a suite's member, and is a framework error of a direct run.
+  it.each([
+    ['direct', 'tests/direct.yaml', 2],
+    ['suite', 'suites/gate.suite.yaml', 1],
+  ] as const)('runs a %s run to its result lines', async (_path, pattern, exitCode) => {
+    const run = await runWithoutALiveLine(['run', pattern])
+
+    const output = run.printed.join('\n')
+    expect(run.printed, output).toContain('Tests:  0 of 1 passed')
+    expect(run.printed.filter((line) => RUN_ID_LINE.test(line)), output).toHaveLength(1)
+    expect(output).not.toContain(BUILD_FAILURE)
+    expect(run.exitCode, output).toBe(exitCode)
+  }, RUN_BUDGET_MS)
+
+  it('tries once and says why once with --verbose, in a run of suites and then tests', async () => {
+    const run = await runWithoutALiveLine(['--verbose', 'run', '--all'])
+
+    const output = run.printed.join('\n')
+    expect(run.printed, output).toContain('Suite: the in-process suite')
+    expect(run.printed, output).toContain('Running 2 test(s)...')
+    expect(run.buildAttempts, output).toBe(1)
+    expect(run.printed.filter((line) => line.includes(BUILD_FAILURE)), output).toEqual([
+      expect.stringMatching(
+        /^\d\d:\d\d:\d\d {2}run {8}The line for the step in progress could not be built: Cannot/,
+      ),
+    ])
   }, RUN_BUDGET_MS)
 })
