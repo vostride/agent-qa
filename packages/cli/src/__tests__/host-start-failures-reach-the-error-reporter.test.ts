@@ -405,7 +405,7 @@ describe('agent-qa daemon', () => {
     )
 
     expect(arms.on.exitCode).toBe(1)
-    expect(arms.on.printed).toContain('Daemon error: fixture daemon failure')
+    expect(arms.on.printed).toContain('<time>  daemon     Daemon error: fixture daemon failure')
     expect(reportedErrors(arms.on.sent)).toEqual(['fixture daemon failure'])
     for (const run of [arms.on, arms.off]) {
       expect(run.steps).toEqual([...DRAINED, ...SETTLED])

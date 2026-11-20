@@ -43,7 +43,7 @@ import {
 } from '@vostride/agent-qa-schema'
 
 import { analyticsRunId } from '@vostride/agent-qa-analytics'
-import { printRunText } from '@vostride/agent-qa-core/run-text-output'
+import { printLogLine } from '@vostride/agent-qa-core/run-text-output'
 
 import { analyticsEvent } from '../composition/analytics-host.js'
 import type { CliAnalyticsHost } from '../composition/analytics-host.js'
@@ -154,8 +154,8 @@ export type DaemonHostTraceStep =
   | 'registration-removed'
 
 export interface DaemonHostLogger {
-  info(message: string): void
-  error(message: string): void
+  info(message: string, tag?: string): void
+  error(message: string, tag?: string): void
 }
 
 export interface EmbedderWorkerSpawnOptions {
@@ -280,9 +280,9 @@ export interface DaemonHostOptions {
   operations?: Partial<DaemonHostOperations>
 }
 
-const DEFAULT_LOGGER: DaemonHostLogger = {
-  info: (message) => printRunText(message),
-  error: (message) => printRunText(message, (line) => console.error(line)),
+export const DEFAULT_DAEMON_LOGGER: DaemonHostLogger = {
+  info: (message, tag) => printLogLine({ tag: tag ?? 'daemon', message }),
+  error: (message, tag) => printLogLine({ tag: tag ?? 'daemon', level: 'error', message }),
 }
 
 async function waitForEmbedderWorkerReady(
@@ -558,7 +558,7 @@ async function composeDaemonRunExecution(input: {
       const inputs = await resolveRunInvocationInputs({
         configPath,
         ...(request.patterns === undefined ? {} : { patterns: request.patterns }),
-        warn: (message: string) => input.logger.info(message),
+        warn: (message: string) => input.logger.info(message, 'run'),
       })
 
       // Read ONCE per run, here, so the conditional spread and the value it spreads are the same
@@ -567,7 +567,7 @@ async function composeDaemonRunExecution(input: {
       // The record's incomplete line goes to the daemon's log, never stdout.
       const runRecord = createRunRecord({
         attributes: doorRunAttributes('cli'),
-        warn: (line: string) => input.logger.error(line),
+        warn: (line: string) => input.logger.error(line, 'run'),
       })
 
       let startedRunId: string | undefined
@@ -600,7 +600,7 @@ async function composeDaemonRunExecution(input: {
                 return { flush: async () => { await subscriber.flush?.() } }
               },
             }),
-            warn: (message: string) => input.logger.info(message),
+            warn: (message: string) => input.logger.info(message, 'run'),
           },
           request,
         )
@@ -616,6 +616,7 @@ async function composeDaemonRunExecution(input: {
         // A started run with a framework error left evidence; the composition decides the ack.
         input.logger.error(
           `Dispatched run ${startedRunId} failed: ${error instanceof Error ? error.message : String(error)}`,
+          'run',
         )
         recordRunOutcome(jobAnalytics, startedRunId, 'failed')
         return { runId: asRunId(startedRunId) }
@@ -637,7 +638,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
   LOCAL_DAEMON_CAPABILITIES.pinLocalHeadlessExecutionContext()
 
   const operations = { ...defaultOperations(), ...input.operations }
-  const logger = input.logger ?? DEFAULT_LOGGER
+  const logger = input.logger ?? DEFAULT_DAEMON_LOGGER
   const instanceId = randomUUID()
   const recordDaemonEvent = (event: DaemonEvent): void => {
     try {
@@ -884,6 +885,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       } catch (error) {
         logger.error(
           `Embedder worker registration cleanup failed: ${error instanceof Error ? error.message : String(error)}`,
+          'embedder',
         )
       }
       try {
@@ -891,6 +893,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       } catch (error) {
         logger.error(
           `Embedder worker socket cleanup failed: ${error instanceof Error ? error.message : String(error)}`,
+          'embedder',
         )
       }
     }
@@ -899,6 +902,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
     } catch (error) {
       logger.error(
         `Embedder capability reset failed: ${error instanceof Error ? error.message : String(error)}`,
+        'embedder',
       )
     }
 
@@ -921,6 +925,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
     } catch (error) {
       logger.error(
         `Embedder worker exit event failed: ${error instanceof Error ? error.message : String(error)}`,
+        'embedder',
       )
     } finally {
       runtime.resolveExit()
@@ -1205,7 +1210,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
     }
     embedderWorker = runtime
     child.once('error', (error) => {
-      logger.error(`Embedder worker spawn error: ${error.message}`)
+      logger.error(`Embedder worker spawn error: ${error.message}`, 'embedder')
     })
     child.once('close', (code, signal) => finishEmbedderWorkerExit(runtime, code, signal))
 
@@ -1342,6 +1347,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       void stopEmbedderWorker('idle').catch((error) => {
         logger.error(
           `Embedder worker idle stop failed: ${error instanceof Error ? error.message : String(error)}`,
+          'embedder',
         )
       })
     }, EMBEDDER_WORKER_IDLE_MS)
@@ -1423,6 +1429,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
         } catch (error) {
           logger.error(
             `Embedder worker start failed: ${error instanceof Error ? error.message : String(error)}`,
+            'embedder',
           )
         }
       }
@@ -1455,6 +1462,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
         failures += 1
         logger.error(
           `Daemon curation drain failed: ${error instanceof Error ? error.message : String(error)}`,
+          'knowledge',
         )
         remainingAfter = remainingTotal(operations.countRemainingCurationWork(
           input.knowledgeRoot,
@@ -1464,7 +1472,9 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       } finally {
         if (worker !== undefined) armEmbedderWorkerIdleTimer(worker)
       }
-      for (const entry of report.promotions ?? []) logger.info(renderPromotionLine(entry))
+      for (const entry of report.promotions ?? []) {
+        logger.info(renderPromotionLine(entry), 'knowledge')
+      }
       jobsProcessed += report.jobsProcessed
       failures += report.failures
       quarantined += report.quarantined
@@ -1525,7 +1535,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
           await operations.recoverPendingPostVerdictContinuations({
             agentQaRoot: input.agentQaRoot, configPath: input.configPath,
             knowledgeRoot: input.knowledgeRoot, deadlineMs,
-            log: { warn: (message) => logger.error(message) },
+            log: { warn: (message) => logger.error(message, 'post-run') },
             onEnqueued: () => jobDispatcher?.wake(),
           })
         }
@@ -1555,6 +1565,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       .catch((error) => {
         logger.error(
           `Daemon curation drain failed: ${error instanceof Error ? error.message : String(error)}`,
+          'knowledge',
         )
       })
       .finally(() => {
@@ -1907,13 +1918,17 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
         extractAnchors: exercisedAnchors,
       })
       if (reconcile.kind === 'skipped') {
-        logger.error('daemon: run-outcome projection not reconciled (no writer authority)')
+        logger.error(
+          'daemon: run-outcome projection not reconciled (no writer authority)',
+          'knowledge',
+        )
       } else if (reconcile.kind === 'rebuilt') {
         logger.info(
           'daemon: run-outcome projection rebuilt '
           + `(folded ${reconcile.report.folded}, `
           + `skipped ${reconcile.report.skippedHandoffs} handoff, `
           + `${reconcile.report.skippedArtifacts} artifact)`,
+          'knowledge',
         )
       }
     } catch (error) {
@@ -1924,6 +1939,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
         + ' partial, and the next reconcile rebuilds it; if it stopped before that, the family and'
         + ' its previous stamp are untouched. Continuing to serve. '
         + `(${error instanceof Error ? error.message : String(error)})`,
+        'knowledge',
       )
     }
 
@@ -1979,8 +1995,8 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
             authority: { leaseId: acquired.leaseId, epoch: acquired.epoch },
             ...(deadlineMs === undefined ? {} : { deadlineMs }),
             log: {
-              warn: (message: string) => logger.error(message),
-              info: (message: string) => logger.info(message),
+              warn: (message: string) => logger.error(message, 'knowledge'),
+              info: (message: string) => logger.info(message, 'knowledge'),
             },
           })
           // Same fields as the CLI binding; only a leg with the declared mask may claim the kind.
@@ -2014,6 +2030,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       recordEvent: recordDaemonEvent,
       reportError: (error) => logger.error(
         `Daemon agent-job dispatch failed: ${error instanceof Error ? error.message : String(error)}`,
+        'jobs',
       ),
     })
 
@@ -2083,6 +2100,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
           } catch (error) {
             logger.error(
               `Embedder worker start failed: ${error instanceof Error ? error.message : String(error)}`,
+              'embedder',
             )
           }
         }
