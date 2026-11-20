@@ -11,7 +11,6 @@ export const AGENT_QA_DASHBOARD_FORBIDDEN_RESPONSIBILITIES = [
 ] as const
 export const AGENT_QA_DASHBOARD_EXTERNAL_DEPENDENCIES = [
   'ai',
-  'picocolors',
   'ws',
   'yaml',
   'zod',
