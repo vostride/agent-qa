@@ -21,6 +21,7 @@ export const AGENT_QA_CLI_EXTERNAL_DEPENDENCIES = [
   'chalk',
   'commander',
   'jsonc-parser',
+  'ora',
   'picocolors',
   'playwright-core',
   'toml-eslint-parser',
