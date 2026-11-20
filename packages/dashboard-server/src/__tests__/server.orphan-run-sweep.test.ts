@@ -29,6 +29,7 @@ const probe: RunOwnerProbe = {
 }
 
 const CLEANUP_LINE = /run\(s\) whose agent-qa process had ended/
+const FINALIZED_ONE = /^\d\d:\d\d:\d\d  server     Finalized 1 run\(s\) whose agent-qa process had ended$/u
 
 let dir: string
 let dbPath: string
@@ -77,9 +78,18 @@ function snapshotOf(id: string): string {
   })
 }
 
-async function startDashboard(ownership: RunOwnership = { self: SELF, probe }): Promise<void> {
+async function startDashboard(
+  ownership: RunOwnership = { self: SELF, probe },
+  extra: { logLevel?: string } = {},
+): Promise<void> {
   const db = new DashboardDatabase({ dbPath, runOwnership: ownership })
-  const handle = await startServer({ declaredSecretMask: (text) => text, db, port: 0, configPath })
+  const handle = await startServer({
+    declaredSecretMask: (text) => text,
+    db,
+    port: 0,
+    configPath,
+    ...extra,
+  })
   started.push(handle)
 }
 
@@ -114,7 +124,7 @@ describe('the startup orphan sweep', () => {
     expectOrphanFinalized(id, GONE.pid)
     const lines = log.mock.calls.map((call) => String(call[0]))
     expect(lines.filter((line) => CLEANUP_LINE.test(line))).toEqual([
-      'Finalized 1 run(s) whose agent-qa process had ended',
+      expect.stringMatching(FINALIZED_ONE),
     ])
   })
 
@@ -188,7 +198,7 @@ describe('the startup orphan sweep', () => {
     const lines = log.mock.calls.map((call) => String(call[0]))
     expect(lines.filter((line) => line.includes('Dashboard running at'))).toHaveLength(2)
     expect(lines.filter((line) => CLEANUP_LINE.test(line))).toEqual([
-      'Finalized 1 run(s) whose agent-qa process had ended',
+      expect.stringMatching(FINALIZED_ONE),
     ])
   })
 })
@@ -216,6 +226,76 @@ describe('the startup sweep when the start-time read throws', () => {
     expect(snapshotOf(id)).toBe(before)
   })
 })
+
+describe('the start-up lines', () => {
+  const APPIUM_LINE = 'Appium lifecycle manager initialized (started only for a run on a device here)'
+
+  function loggedLines(log: { mock: { calls: unknown[][] } }): string[] {
+    return log.mock.calls.map((call) => String(call[0]))
+  }
+
+  it('says the queue is ready with its slot count, under the queue tag', async () => {
+    writeFileSync(configPath, 'testDir: tests\nconcurrency: 4\n')
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+
+    await startDashboard()
+
+    expect(loggedLines(log).filter((line) => line.includes('Ready, '))).toEqual([
+      expect.stringMatching(/^\d\d:\d\d:\d\d  queue      Ready, 4 slots$/u),
+    ])
+  })
+
+  it('says one slot in the singular', async () => {
+    writeFileSync(configPath, 'testDir: tests\nconcurrency: 1\n')
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+
+    await startDashboard()
+
+    expect(loggedLines(log).filter((line) => line.includes('Ready, '))).toEqual([
+      expect.stringMatching(/^\d\d:\d\d:\d\d  queue      Ready, 1 slot$/u),
+    ])
+  })
+
+  it('says pending runs from a previous session wait for the queue, under the queue tag', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+    seedPending('Queued one')
+
+    await startDashboard()
+
+    expect(loggedLines(log).filter((line) => line.includes('pending run(s)'))).toEqual([
+      expect.stringMatching(
+        /^\d\d:\d\d:\d\d  queue      Found 1 pending run\(s\) from previous session — will be processed when queue starts$/u,
+      ),
+    ])
+  })
+
+  it.each([
+    ['no log level', {}],
+    ['the warn level', { logLevel: 'warn' }],
+  ])('leaves out the Appium manager line with %s', async (_name, extra) => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+
+    await startDashboard(undefined, extra)
+
+    expect(loggedLines(log).some((line) => line.includes(APPIUM_LINE))).toBe(false)
+    expect(loggedLines(log).some((line) => line.includes('Dashboard running at'))).toBe(true)
+  })
+
+  it('prints the Appium manager line under the appium tag at the debug level', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
+
+    await startDashboard(undefined, { logLevel: 'debug' })
+
+    const tagged = new RegExp(`^\\d\\d:\\d\\d:\\d\\d  appium     ${escapeRegExp(APPIUM_LINE)}$`, 'u')
+    expect(loggedLines(log).filter((line) => line.includes(APPIUM_LINE))).toEqual([
+      expect.stringMatching(tagged),
+    ])
+  })
+})
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+}
 
 function linuxResolver(
   name: string,
@@ -267,7 +347,7 @@ describe('the startup sweep beside another pid namespace', () => {
     expectOrphanFinalized(controlId, control.pid)
     const lines = log.mock.calls.map((call) => String(call[0]))
     expect(lines.filter((line) => CLEANUP_LINE.test(line))).toEqual([
-      'Finalized 1 run(s) whose agent-qa process had ended',
+      expect.stringMatching(FINALIZED_ONE),
     ])
   })
 })

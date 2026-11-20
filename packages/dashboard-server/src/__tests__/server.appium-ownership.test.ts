@@ -750,7 +750,7 @@ describe('an Appium start failure for a queued run', () => {
     expect(errors.filter((args) => String(args[0]).includes('Failed to start Appium'))).toEqual([])
   })
 
-  it('prints the same console.error line as before off GitHub Actions', async () => {
+  it('prints one console.error line under the appium tag off GitHub Actions', async () => {
     const errors: unknown[][] = []
     spies.push(
       vi.spyOn(console, 'error').mockImplementation((...args: unknown[]) => {
@@ -760,8 +760,13 @@ describe('an Appium start failure for a queued run', () => {
 
     const runId = await enqueueFailingMobileRun('boom')
 
-    expect(errors.filter((args) => String(args[0]).includes('Failed to start Appium'))).toEqual([
-      [`Failed to start Appium for run ${runId}: boom`],
-    ])
+    const failed = errors.filter((args) => String(args[0]).includes('Failed to start Appium'))
+    expect(failed).toHaveLength(1)
+    expect(failed[0]).toHaveLength(1)
+    const line = String(failed[0]?.[0])
+    expect(line).toMatch(/^\d\d:\d\d:\d\d  appium     /u)
+    expect(line.slice('HH:MM:SS  appium     '.length)).toBe(
+      `Failed to start Appium for run ${runId}: boom`,
+    )
   })
 })
