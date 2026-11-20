@@ -48,6 +48,7 @@ import type { CanaryCreditCounters } from './canary-credit.js'
 import { NON_SIGNAL_CLASSES } from './emit-canary-outcomes.js'
 import { emitCurationCandidates, type EmitReport } from './emit-candidates.js'
 import { exercisedAnchors } from './handoff-anchors.js'
+import type { KnowledgeSummary } from './knowledge-summary.js'
 import { renderPromotionLine } from './promotion-line.js'
 import { resolveRunCurationContext } from './run-curation-context.js'
 import { ciResumeClause } from './resume-limit.js'
@@ -82,8 +83,10 @@ export type CurationTailModelDeps = Pick<
 
 export interface CurationTailLogger {
   warn(message: string): void
-  // Lines of diagnosis, never control flow.
-  detail?(message: string): void
+  // A line for `--verbose`; the tag names its module when it is not `knowledge`. Lines of
+  // diagnosis, never control flow.
+  detail?(message: string, tag?: string): void
+  summary?(summary: KnowledgeSummary): void
 }
 
 export interface CurationTailOperations {
