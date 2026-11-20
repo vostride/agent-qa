@@ -18,7 +18,7 @@ interface FormatOptions {
 
 function shouldUseColor(opts?: FormatOptions): boolean {
   if (opts?.noColor) return false
-  if (process.env.NO_COLOR !== undefined) return false
+  if (process.env.NO_COLOR !== undefined && process.env.NO_COLOR !== '') return false
   return true
 }
 

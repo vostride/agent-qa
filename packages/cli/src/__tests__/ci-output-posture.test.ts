@@ -1,11 +1,13 @@
-// The CLI's CI posture: no colour without a terminal, and what resuming pending work needs.
+// The CLI's CI posture: stdout's colour follows the one colour rule, and what resuming pending
+// work needs.
 
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
+import { colorEnabled } from '@vostride/agent-qa-core/run-text-output'
 import type { PostProcessingStatus } from '@vostride/agent-qa-schema'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { preparationPendingWarning } from '../composition/in-process-run-execution.js'
 import { renderPostProcessingSummaryLine, runPostRunTail } from '../curation/post-run-tail.js'
@@ -15,42 +17,123 @@ type ApplyColorPosture = (env: NodeJS.ProcessEnv, stdoutIsTTY: boolean) => void
 
 // The module applies the posture to this process on load; the worker's own environment is put back.
 async function loadColorPosture(): Promise<ApplyColorPosture> {
-  const saved = process.env.NO_COLOR
+  const saved = { NO_COLOR: process.env.NO_COLOR, FORCE_COLOR: process.env.FORCE_COLOR }
+  vi.resetModules()
   try {
     return (await import('../color-posture.js')).applyColorPosture
   } finally {
-    if (saved === undefined) delete process.env.NO_COLOR
-    else process.env.NO_COLOR = saved
+    for (const [name, value] of Object.entries(saved)) {
+      if (value === undefined) delete process.env[name]
+      else process.env[name] = value
+    }
   }
 }
 
-describe('colour posture', () => {
-  it('the posture turns colour off when stdout is not a terminal', async () => {
-    const applyColorPosture = await loadColorPosture()
-    const env: NodeJS.ProcessEnv = {}
-    applyColorPosture(env, false)
-    expect(env).toEqual({ NO_COLOR: '1' })
+// picocolors.js lines 2-4, without its command-line flags.
+function libraryReads(env: NodeJS.ProcessEnv, stdoutIsTTY: boolean, platform: string): boolean {
+  return (
+    !env.NO_COLOR &&
+    (!!env.FORCE_COLOR || platform === 'win32' || (stdoutIsTTY && env.TERM !== 'dumb') || !!env.CI)
+  )
+}
 
-    const ciEnv: NodeJS.ProcessEnv = { CI: 'true' }
-    applyColorPosture(ciEnv, false)
-    expect(ciEnv).toEqual({ CI: 'true', NO_COLOR: '1' })
+interface PostureCase {
+  env: NodeJS.ProcessEnv
+  tty: boolean
+  after: NodeJS.ProcessEnv
+}
+
+const TURNS_OFF: readonly PostureCase[] = [
+  { env: {}, tty: false, after: { NO_COLOR: '1' } },
+  { env: { CI: 'false' }, tty: false, after: { CI: 'false', NO_COLOR: '1' } },
+  { env: { CI: '0' }, tty: false, after: { CI: '0', NO_COLOR: '1' } },
+  { env: { FORCE_COLOR: '0' }, tty: true, after: { FORCE_COLOR: '0', NO_COLOR: '1' } },
+  { env: { FORCE_COLOR: 'false' }, tty: true, after: { FORCE_COLOR: 'false', NO_COLOR: '1' } },
+  { env: { TERM: 'dumb' }, tty: true, after: { TERM: 'dumb', NO_COLOR: '1' } },
+]
+
+const FORCES_ON: readonly PostureCase[] = [
+  {
+    env: { GITHUB_ACTIONS: 'true' },
+    tty: false,
+    after: { GITHUB_ACTIONS: 'true', FORCE_COLOR: '1' },
+  },
+  { env: { FORCE_COLOR: '' }, tty: false, after: { FORCE_COLOR: '1' } },
+]
+
+const LEAVES_ALONE: readonly Omit<PostureCase, 'after'>[] = [
+  { env: { CI: 'true' }, tty: false },
+  { env: { FORCE_COLOR: '1' }, tty: false },
+  { env: { NO_COLOR: '' }, tty: true },
+  { env: { NO_COLOR: '1' }, tty: true },
+  { env: { NO_COLOR: '0' }, tty: true },
+  { env: {}, tty: true },
+]
+
+const AGREEMENT_ENVS: readonly NodeJS.ProcessEnv[] = [
+  ...[...TURNS_OFF, ...FORCES_ON, ...LEAVES_ALONE].map(({ env }) => env),
+  { NO_COLOR: '1', FORCE_COLOR: '1' },
+  { CI: 'true', NO_COLOR: '1' },
+  { CI: 'true', FORCE_COLOR: '0' },
+  { CI: '' },
+  { GITHUB_ACTIONS: 'FALSE' },
+  { CI: 'false', GITHUB_ACTIONS: 'true' },
+]
+
+describe('colour posture', () => {
+  it('sets NO_COLOR when the rule turns colour off for stdout', async () => {
+    const applyColorPosture = await loadColorPosture()
+    for (const { env, tty, after } of TURNS_OFF) {
+      const copy = { ...env }
+      applyColorPosture(copy, tty)
+      expect(copy, JSON.stringify({ env, tty })).toEqual(after)
+    }
   })
 
-  it('the posture leaves a terminal, FORCE_COLOR and an existing NO_COLOR alone', async () => {
+  it('sets FORCE_COLOR when the rule turns colour on and the colour library would not', async () => {
     const applyColorPosture = await loadColorPosture()
-    const cases: readonly { env: NodeJS.ProcessEnv; tty: boolean }[] = [
-      { env: {}, tty: true },
-      { env: { CI: 'true' }, tty: true },
-      { env: { FORCE_COLOR: '1' }, tty: false },
-      { env: { FORCE_COLOR: '' }, tty: false },
-      { env: { NO_COLOR: '' }, tty: false },
-      { env: { NO_COLOR: '0' }, tty: false },
-      { env: { NO_COLOR: '1', FORCE_COLOR: '1' }, tty: true },
-    ]
-    for (const { env, tty } of cases) {
-      const before = { ...env }
-      applyColorPosture(env, tty)
-      expect(env, JSON.stringify({ before, tty })).toEqual(before)
+    for (const { env, tty, after } of FORCES_ON) {
+      const copy = { ...env }
+      applyColorPosture(copy, tty)
+      expect(copy, JSON.stringify({ env, tty })).toEqual(after)
+    }
+  })
+
+  it('leaves the environment alone when the colour library already reads it as the rule does', async () => {
+    const applyColorPosture = await loadColorPosture()
+    for (const { env, tty } of LEAVES_ALONE) {
+      const copy = { ...env }
+      applyColorPosture(copy, tty)
+      expect(copy, JSON.stringify({ env, tty })).toEqual(env)
+    }
+  })
+
+  it('makes the colour library read every environment as the rule does, on POSIX and on Windows', async () => {
+    const applyColorPosture = await loadColorPosture()
+    for (const platform of ['linux', 'win32']) {
+      for (const env of AGREEMENT_ENVS) {
+        for (const tty of [false, true]) {
+          const copy = { ...env }
+          applyColorPosture(copy, tty)
+          expect(libraryReads(copy, tty, platform), JSON.stringify({ env, tty, platform })).toBe(
+            colorEnabled(env, tty),
+          )
+        }
+      }
+    }
+  })
+
+  it("importing the module leaves this process's NO_COLOR and FORCE_COLOR as they were", async () => {
+    vi.stubEnv('NO_COLOR', undefined)
+    vi.stubEnv('FORCE_COLOR', undefined)
+    vi.stubEnv('CI', '')
+    vi.stubEnv('GITHUB_ACTIONS', '')
+    try {
+      await loadColorPosture()
+      expect(process.env.NO_COLOR).toBeUndefined()
+      expect(process.env.FORCE_COLOR).toBeUndefined()
+    } finally {
+      vi.unstubAllEnvs()
     }
   })
 })
