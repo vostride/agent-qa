@@ -51,9 +51,27 @@ export function isCi(env: RunTextEnv = process.env): boolean {
   return (ci !== undefined && ci !== '' && ci !== '0' && ci !== 'false') || isGitHubActions(env)
 }
 
+type ColorVariable = 'NO_COLOR' | 'FORCE_COLOR'
+
+interface ColorPosture {
+  asked: Readonly<Record<ColorVariable, string | undefined>>
+  left: Readonly<Record<ColorVariable, string | undefined>>
+}
+
+const COLOR_POSTURE = Symbol.for('agent-qa.color-posture')
+
+// The CLI's colour posture rewrites the process's two variables to fit stdout and records what the
+// user had set. A variable that still holds what the posture left reads as the user's value.
+function userSet(env: RunTextEnv, name: ColorVariable): string | undefined {
+  if (env !== process.env) return env[name]
+  const posture = (globalThis as { [COLOR_POSTURE]?: ColorPosture })[COLOR_POSTURE]
+  return posture !== undefined && env[name] === posture.left[name] ? posture.asked[name] : env[name]
+}
+
 export function colorEnabled(env: RunTextEnv, isTTY: boolean): boolean {
-  if (env.NO_COLOR !== undefined && env.NO_COLOR !== '') return false
-  const force = env.FORCE_COLOR
+  const noColor = userSet(env, 'NO_COLOR')
+  if (noColor !== undefined && noColor !== '') return false
+  const force = userSet(env, 'FORCE_COLOR')
   if (force !== undefined) return force !== '0' && force !== 'false'
   if (isTTY) return env.TERM !== 'dumb'
   return isCi(env)

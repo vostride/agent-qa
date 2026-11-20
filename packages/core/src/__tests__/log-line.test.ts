@@ -128,6 +128,59 @@ describe('colorEnabled', () => {
   })
 })
 
+describe("colorEnabled once the CLI's colour posture has rewritten the process's variables", () => {
+  const POSTURE = Symbol.for('agent-qa.color-posture')
+  type Variables = { NO_COLOR?: string; FORCE_COLOR?: string }
+
+  // What the CLI's color-posture.ts records: the two variables as the user set them and as it
+  // left them.
+  function postureRan(asked: Variables, left: Variables): void {
+    vi.stubEnv('NO_COLOR', left.NO_COLOR)
+    vi.stubEnv('FORCE_COLOR', left.FORCE_COLOR)
+    vi.stubEnv('CI', '')
+    vi.stubEnv('GITHUB_ACTIONS', '')
+    vi.stubEnv('TERM', undefined)
+    Object.assign(globalThis, { [POSTURE]: { asked, left } })
+  }
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+    Reflect.deleteProperty(globalThis, POSTURE)
+  })
+
+  it('reads a NO_COLOR the posture wrote as not set, so a terminal stream is coloured', () => {
+    postureRan({}, { NO_COLOR: '1' })
+    expect(colorEnabled(process.env, true)).toBe(true)
+    expect(colorEnabled(process.env, false)).toBe(false)
+    expect(colorsFor({ isTTY: true }).red('x')).toBe(`${RED}x\u001b[39m`)
+  })
+
+  it('reads a FORCE_COLOR the posture replaced as the user set it', () => {
+    postureRan({ FORCE_COLOR: '0' }, { FORCE_COLOR: '0', NO_COLOR: '1' })
+    expect(colorEnabled(process.env, true)).toBe(false)
+
+    postureRan({ FORCE_COLOR: '' }, { FORCE_COLOR: '1' })
+    expect(colorEnabled(process.env, false)).toBe(true)
+  })
+
+  it('reads a NO_COLOR the user set as set', () => {
+    postureRan({ NO_COLOR: '1' }, { NO_COLOR: '1' })
+    expect(colorEnabled(process.env, true)).toBe(false)
+  })
+
+  it('reads a variable changed after the posture ran as it now stands', () => {
+    postureRan({}, { NO_COLOR: '1' })
+    vi.stubEnv('NO_COLOR', 'yes')
+    expect(colorEnabled(process.env, true)).toBe(false)
+  })
+
+  it("reads an environment that is not the process's own as it is given", () => {
+    postureRan({}, { NO_COLOR: '1' })
+    expect(colorEnabled({ NO_COLOR: '1' }, true)).toBe(false)
+    expect(colorEnabled({ ...process.env }, true)).toBe(false)
+  })
+})
+
 describe('colorsFor', () => {
   it('colours a terminal stream and not another stream of the same process', () => {
     expect(colorsFor({ isTTY: true }, {}).red('x')).toBe(`${RED}x\u001b[39m`)
