@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto'
+import { format } from 'node:util'
+import { printLogLine } from '@vostride/agent-qa-core'
 import { LiveSession } from './live-session.js'
 import type { SessionState, LiveSessionConfig, EntityRef } from './types.js'
 import type { AppiumManager } from '../execution/appium-manager.js'
@@ -69,7 +71,11 @@ export class SessionManager {
     this.deps.liveEditorSubjects?.register(sessionId, session.liveAttachment())
     const expire = (kind: string) => () => {
       void this.terminateSession(sessionId).catch((error: unknown) => {
-        console.error(`[live-editor] ${kind} expiry could not end session ${sessionId}`, error)
+        printLogLine({
+          tag: 'live',
+          level: 'error',
+          message: format('%s', `${kind} expiry could not end session ${sessionId}`, error),
+        })
       })
     }
     // The idle window runs until the first control socket attaches, so an unopened session ends.

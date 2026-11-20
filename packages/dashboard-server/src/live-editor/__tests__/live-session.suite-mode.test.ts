@@ -85,6 +85,7 @@ vi.mock('@vostride/agent-qa-runner-local', async (importOriginal) => ({
 
 vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   printRunText: (await importOriginal<typeof import('@vostride/agent-qa-core')>()).printRunText,
+  printLogLine: (await importOriginal<typeof import('@vostride/agent-qa-core')>()).printLogLine,
   connectionSecretMisuse: (await importOriginal<typeof import('@vostride/agent-qa-core')>())
     .connectionSecretMisuse,
   RemoteEntrySchema: (await importOriginal<typeof import('@vostride/agent-qa-core')>())

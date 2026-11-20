@@ -1,6 +1,11 @@
 import { format } from 'node:util'
 import type WebSocket from 'ws'
-import { normalizeAuthStateUse, parseTestFile, printRunText } from '@vostride/agent-qa-core'
+import {
+  colorsFor,
+  normalizeAuthStateUse,
+  parseTestFile,
+  printLogLine,
+} from '@vostride/agent-qa-core'
 import type { LiveSession } from './live-session.js'
 import { LIVE_EDITOR_SUPERSEDED_CLOSE_CODE, LIVE_EDITOR_UNKNOWN_SESSION_CLOSE_CODE } from './types.js'
 import type {
@@ -227,15 +232,21 @@ export function createSessionHandler(
             try {
               raw = await testFileManager.read(msg.path)
             } catch (readErr: any) {
-              const line = `[ws-handler] execute-test: read failed for path=${msg.path}`
-              printRunText(format(line, readErr), () => console.error(line, readErr))
+              printLogLine({
+                tag: 'live',
+                level: 'error',
+                message: format('%s', `✗ Could not read ${msg.path}`, readErr),
+              })
               throw new Error(`Cannot read test file "${msg.path}": ${readErr?.message ?? String(readErr)}`)
             }
 
             const parsed = parseTestFile(raw, msg.path)
             if (parsed.errors.length > 0) {
-              const line = `[ws-handler] execute-test: parse errors for ${msg.path}`
-              printRunText(format(line, parsed.errors), () => console.error(line, parsed.errors))
+              printLogLine({
+                tag: 'live',
+                level: 'error',
+                message: format('%s', `✗ Parse errors in ${msg.path}`, parsed.errors),
+              })
               throw new Error(`Parse error in ${msg.path}: ${parsed.errors[0].message}`)
             }
             const testDef = parsed.tests[0]
@@ -251,11 +262,10 @@ export function createSessionHandler(
             const stepCount = stepInstructions.length
             const setupCount = (testDef.setup ?? []).length
             const teardownCount = (testDef.teardown ?? []).length
-            printRunText(
-              `[ws-handler] execute-test: starting "${testDef.name}" ` +
-                `(${stepCount} steps, setup=${setupCount}, teardown=${teardownCount})`,
-              (text) => console.log(text),
-            )
+            const hooks = setupCount === 0 && teardownCount === 0
+              ? ''
+              : ` · setup ${setupCount}, teardown ${teardownCount}`
+            printLogLine({ tag: 'live', message: `▶ ${testDef.name} · ${stepCount} steps${hooks}` })
 
             reply({
               type: 'test-start',
@@ -281,12 +291,14 @@ export function createSessionHandler(
               },
             )
 
-            const errorPart = result.error ? ` error=${result.error}` : ''
-            printRunText(
-              `[ws-handler] execute-test: finished "${testDef.name}" status=${result.status} ` +
-                `duration=${result.duration}ms${errorPart}`,
-              (text) => console.log(text),
-            )
+            const colors = colorsFor(process.stdout)
+            const icon = result.status === 'passed' ? colors.green('✓') : colors.red('✗')
+            const seconds = (result.duration / 1000).toFixed(1)
+            const errorPart = result.error ? `\n${result.error}` : ''
+            printLogLine({
+              tag: 'live',
+              message: `${icon} ${testDef.name} · ${result.status} · ${seconds}s${errorPart}`,
+            })
             reply({
               type: 'test-complete',
               test: {
@@ -299,9 +311,12 @@ export function createSessionHandler(
             })
             reply({ type: 'session-state', state: session.getState() })
           } catch (err: any) {
-            const line = `[ws-handler] execute-test: caught error for path=${msg.path}`
             const detail = { message: err?.message, stack: err?.stack, code: err?.code }
-            printRunText(format(line, detail), () => console.error(line, detail))
+            printLogLine({
+              tag: 'live',
+              level: 'error',
+              message: format('%s', `✗ ${msg.path} stopped on an error`, detail),
+            })
             reply({
               type: 'test-error',
               test: {
