@@ -255,6 +255,30 @@ export async function spawnCollecting(
   })
 }
 
+const TAGGED_LINE = /^\d\d:\d\d:\d\d {2}(?:\S.{8}|\S{10,}) {2}/u
+const CONTINUATION_INDENT = ' '.repeat(21)
+
+// Gives each tagged line's message, and each continuation line, back without the time, the tag
+// and the indent; a line that is not tagged comes back as it is.
+export function untagLogLines(text: string): string {
+  let inTagged = false
+  return text
+    .split('\n')
+    .map((line) => {
+      const tagged = TAGGED_LINE.exec(line)
+      if (tagged !== null) {
+        inTagged = true
+        return line.slice(tagged[0].length)
+      }
+      if (inTagged && line.startsWith(CONTINUATION_INDENT)) {
+        return line.slice(CONTINUATION_INDENT.length)
+      }
+      inTagged = false
+      return line
+    })
+    .join('\n')
+}
+
 // The deterministic resolver route, which reaches no model.
 export const CHAT_ANCHOR_UTTERANCE = '/fn quarantine.list'
 
