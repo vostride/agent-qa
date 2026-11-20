@@ -158,11 +158,13 @@ describe('curation tail snapshot', () => {
     expect(await folded).not.toHaveProperty('snapshot')
     expect(writeCurationTailReceipt).toHaveBeenCalledTimes(1)
     expect(writeCurationTailReceipt.mock.calls[0]![1]).not.toHaveProperty('snapshot')
-    const warn = f.input.log.warn as ReturnType<typeof vi.fn>
-    expect(warn).toHaveBeenCalledTimes(1)
-    expect(warn).toHaveBeenCalledWith(
-      'curation snapshot could not be validated and was not recorded; committed bundles are unaffected')
-    expect(String(warn.mock.calls[0]![0])).not.toMatch(/record-|observation-|replacement/)
+    expect(f.input.log.warn).not.toHaveBeenCalled()
+    const snapshotLines = f.info.mock.calls
+      .map(([message]) => String(message))
+      .filter((message) => message.startsWith('curation snapshot'))
+    expect(snapshotLines).toEqual([
+      'curation snapshot could not be validated and was not recorded; committed bundles are unaffected'])
+    expect(snapshotLines[0]).not.toMatch(/record-|observation-|replacement/)
   })
 
   it('reports no knowledge summary for a fold answered from a matching receipt', async () => {

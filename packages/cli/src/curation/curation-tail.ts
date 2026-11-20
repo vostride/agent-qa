@@ -53,7 +53,6 @@ import {
   knowledgeSummaryOfDrain,
   type KnowledgeSummary,
 } from './knowledge-summary.js'
-import { renderPromotionLine } from './promotion-line.js'
 import { resolveRunCurationContext } from './run-curation-context.js'
 import { ciResumeClause } from './resume-limit.js'
 
@@ -337,25 +336,8 @@ function candidateSummaryLine(runId: string, report: EmitReport): string {
   return `Knowledge curation candidates for ${runId}: ${segments.join('; ')}.`
 }
 
-// `committed` includes downgraded changes, so the recorded share is `committed - downgraded`.
-export function curationOutcomeLine(input: {
-  readonly executionContext: ExecutionContext | undefined
-  readonly committed: number
-  readonly downgraded: number
-}): string | undefined {
-  if (input.committed <= 0) return undefined
-  const proposed = Math.min(Math.max(input.downgraded, 0), input.committed)
-  const recorded = input.committed - proposed
-  if (input.executionContext === 'ci' || input.executionContext === 'cloud') {
-    return `curation: ${recorded} learned change(s) recorded, ${proposed} kept proposed `
-      + `(${input.executionContext} runs never promote learned knowledge)`
-  }
-  return `curation: ${recorded} learned change(s) applied, ${proposed} kept proposed `
-    + '(local runs apply learned knowledge to the knowledge root)'
-}
-
-/** Fixed text: the warning names no row content. */
-const SNAPSHOT_NOT_RECORDED_WARNING =
+/** Fixed text: the line names no row content. */
+const SNAPSHOT_NOT_RECORDED_LINE =
   'curation snapshot could not be validated and was not recorded; committed bundles are unaffected'
 
 // The context is the run's persisted one; in `ci` and `cloud` the line states the resume limit.
@@ -545,7 +527,7 @@ export async function curateCompletedRun(
         knowledgeRoot: input.knowledgeRoot,
         ...(input.mask === undefined ? {} : { mask: input.mask }),
       })
-      // Visibility never gates: the summary line sits beside the noop warn and the complete check.
+      // Visibility never gates: the candidates line sits beside the noop line and the complete check.
       input.log.detail?.(candidateSummaryLine(receiptIdentity.runId, candidates))
       // Candidate and canary drops share this scope and crash boundary.
       const reader = operations.openKnowledgeReader({ knowledgeRoot: input.knowledgeRoot })
@@ -607,17 +589,9 @@ export async function curateCompletedRun(
         const elapsedSeconds = Math.max(0, Math.floor((Date.now() - tailStartedAtMs) / 1_000))
         input.log.detail?.(`curation: drained inline (${elapsedSeconds}s)`)
       }
-      for (const entry of drain.promotions ?? []) input.log.detail?.(renderPromotionLine(entry))
-      const outcomeLine = curationOutcomeLine({
-        executionContext: input.handoff.executionContext,
-        committed: drain.committed - (drain.evidenceCommitted ?? 0),
-        downgraded: drain.downgraded,
-      })
-      if (outcomeLine !== undefined) input.log.detail?.(outcomeLine)
       // A commit noop is visible but never fatal, or evidence-token dedup would wedge the tail.
       if (drain.noops > 0) {
-        // The count-anchored prefix stays byte-identical for the ladder extractor.
-        input.log.warn(
+        input.log.detail?.(
           `Knowledge curation drain produced ${drain.noops} commit noop(s) for ${receiptIdentity.runId}: ${drain.noopDetails
             .map((noop) =>
               `${noop.candidateId} (${noop.reason}${
@@ -643,7 +617,7 @@ export async function curateCompletedRun(
           : CurationSnapshotSchema.safeParse(drain.snapshot)
         if ((drain.kind === 'drained' && drain.snapshotFoldFailed === true)
           || (validated !== undefined && !validated.success)) {
-          input.log.warn(SNAPSHOT_NOT_RECORDED_WARNING)
+          input.log.detail?.(SNAPSHOT_NOT_RECORDED_LINE)
         }
         completedReceipt = {
           ...receiptIdentity,
@@ -672,7 +646,10 @@ export async function curateCompletedRun(
   )
 
   if (!complete || completedReceipt === undefined) {
-    input.log.warn(incompleteWarning(receiptIdentity.runId, input.handoff.executionContext, incompleteDetails))
+    // The summary's second line tells the user; the counters are for `--verbose`.
+    input.log.detail?.(
+      incompleteWarning(receiptIdentity.runId, input.handoff.executionContext, incompleteDetails),
+    )
     input.log.summary?.(drainReport === undefined
       ? unfinishedKnowledgeSummary(receiptIdentity.runId, input.handoff.executionContext)
       : knowledgeSummaryOfDrain({

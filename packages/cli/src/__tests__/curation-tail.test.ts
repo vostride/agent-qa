@@ -449,8 +449,9 @@ function handedOffDrainReport() {
 }
 
 describe('runCurationTail post-verdict fold', () => {
-  it('prints every promotion in report order', async () => {
+  it('sends no promotion line, and its summary lists the gate decisions in report order', async () => {
     const info = vi.fn()
+    const summary = vi.fn()
     const drainQueue = vi.fn(async (_options: object) => ({
       ...handedOffDrainReport(),
       promotions: [
@@ -459,15 +460,17 @@ describe('runCurationTail post-verdict fold', () => {
       ],
     }))
     await runCurationTail(baseOptions(successfulOperations({ drainQueue }), {
-      log: { warn: vi.fn(), detail: info },
+      log: { warn: vi.fn(), detail: info, summary },
     }))
     // The drain is handed no proposals root.
     expect(drainQueue.mock.calls[0]![0]).not.toHaveProperty('agentQaRoot')
     expect(info.mock.calls.map(([message]) => message).filter(message => message.startsWith('curation: '))).toEqual([
       'curation: handed to daemon (pid 4242)',
-      'curation: c1 promoted via deterministic-verdict-floor',
-      'curation: c2 held: no-confirmed-evidence',
     ])
+    expect(summary.mock.calls.map(([reported]) => reported.items)).toEqual([[
+      { outcome: 'learned', id: 'c1', reason: 'deterministic-verdict-floor' },
+      { outcome: 'held', id: 'c2', reason: 'no-confirmed-evidence' },
+    ]])
   })
   it('loads the handoff, emits candidates and canary outcomes in one scope, then drains', async () => {
     const order: string[] = []
@@ -793,7 +796,8 @@ describe('runCurationTail post-verdict fold', () => {
     await runCurationTail(baseOptions(operations, { log: { warn, detail: info } }))
 
     expect(writeCurationTailReceipt).not.toHaveBeenCalled()
-    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/curation incomplete/i))
+    expect(info).toHaveBeenCalledWith(expect.stringMatching(/curation incomplete/i))
+    expect(warn).not.toHaveBeenCalled()
     expect(info.mock.calls
       .map(([message]) => String(message))
       .filter((message) => message.startsWith('curation: ')))
@@ -1005,6 +1009,7 @@ describe('runCurationTail post-verdict fold', () => {
     'drain-aborted',
   ] as const)('withholds the durable receipt for a structured %s result', async (condition) => {
     const warn = vi.fn()
+    const detail = vi.fn()
     const writeCurationTailReceipt = vi.fn()
     const operations = successfulOperations({
       writeCurationTailReceipt,
@@ -1059,11 +1064,15 @@ describe('runCurationTail post-verdict fold', () => {
     })
 
     await expect(
-      runCurationTail(baseOptions(operations, { log: { warn } })),
+      runCurationTail(baseOptions(operations, { log: { warn, detail } })),
     ).resolves.toBeUndefined()
 
     expect(writeCurationTailReceipt).not.toHaveBeenCalled()
-    expect(warn).toHaveBeenCalledWith(expect.stringMatching(CI_CURATION_RESUME))
+    expect(warn).not.toHaveBeenCalled()
+    const incomplete = detail.mock.calls
+      .map(([message]) => String(message))
+      .find((message) => /curation incomplete/i.test(message))
+    expect(incomplete).toMatch(CI_CURATION_RESUME)
     const diagnostic = {
       'candidate-refused': 'candidate-refused=1',
       'candidate-cap-exceeded': 'candidate-cap-exceeded=1',
@@ -1073,7 +1082,7 @@ describe('runCurationTail post-verdict fold', () => {
       'drain-requeued': 'drain-requeued=1',
       'drain-aborted': 'drain-kind=aborted',
     }[condition]
-    expect(warn.mock.calls[0]?.[0]).toContain(diagnostic)
+    expect(incomplete).toContain(diagnostic)
   })
 
   it('replays a prior failed canary drop once and receipts successful siblings idempotently', async () => {
@@ -1094,6 +1103,7 @@ describe('runCurationTail post-verdict fold', () => {
     let completedRunDirs = [oldDir]
     let oldAttempts = 0
     const warn = vi.fn()
+    const detail = vi.fn()
     const drainQueue = vi.fn(successfulOperations().drainQueue)
     const operations = successfulOperations({
       loadCompletedRunHandoff(file) {
@@ -1148,15 +1158,16 @@ describe('runCurationTail post-verdict fold', () => {
 
     await runCurationTail(baseOptions(operations, {
       runId: oldRunId,
-      log: { warn },
+      log: { warn, detail },
     }))
     expect(receipts.has(oldDir)).toBe(false)
-    expect(warn).toHaveBeenCalledWith(expect.stringMatching(CI_CURATION_RESUME))
+    expect(detail).toHaveBeenCalledWith(expect.stringMatching(CI_CURATION_RESUME))
+    expect(warn).not.toHaveBeenCalled()
 
     completedRunDirs = [oldDir, newDir]
     await runCurationTail(baseOptions(operations, {
       runId: newRunId,
-      log: { warn },
+      log: { warn, detail },
     }))
 
     expect(receipts.has(oldDir)).toBe(true)
@@ -1172,7 +1183,7 @@ describe('runCurationTail post-verdict fold', () => {
 
     await runCurationTail(baseOptions(operations, {
       runId: newRunId,
-      log: { warn },
+      log: { warn, detail },
     }))
     expect(canaryRuns).toEqual([oldRunId, oldRunId, newRunId])
     expect(drainQueue).toHaveBeenCalledTimes(3)
@@ -1346,6 +1357,7 @@ describe('runCurationTail post-verdict fold', () => {
 describe('run-outcome projection under the extended tail receipt', () => {
   it('isolates a run-outcome fold failure: counted, logged, and never blocking the drain', async () => {
     const warn = vi.fn()
+    const detail = vi.fn()
     const writeCurationTailReceipt = vi.fn()
     const drainQueue = vi.fn(successfulOperations().drainQueue)
     const operations = successfulOperations({
@@ -1357,12 +1369,13 @@ describe('run-outcome projection under the extended tail receipt', () => {
     })
 
     await expect(
-      runCurationTail(baseOptions(operations, { log: { warn } })),
+      runCurationTail(baseOptions(operations, { log: { warn, detail } })),
     ).resolves.toBeUndefined()
 
     expect(drainQueue).toHaveBeenCalledOnce()
     expect(writeCurationTailReceipt).not.toHaveBeenCalled()
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('projection-failed=1'))
+    expect(detail).toHaveBeenCalledWith(expect.stringContaining('projection-failed=1'))
+    expect(warn).not.toHaveBeenCalled()
   })
 
   it('skips the projection fold too for an already-receipted handoffDigest — the one extended receipt', async () => {
@@ -1665,8 +1678,9 @@ describe('verdict-first CLI tail wiring', () => {
     expect(drainQueue).toHaveBeenCalledOnce()
   })
 
-  it('warns naming every drain noop while still completing the tail', async () => {
+  it('sends a line naming every drain noop to detail while still completing the tail', async () => {
     const warn = vi.fn()
+    const detail = vi.fn()
     const writeCurationTailReceipt = vi.fn()
     const base = successfulOperations()
     const operations = successfulOperations({
@@ -1684,24 +1698,25 @@ describe('verdict-first CLI tail wiring', () => {
       },
     })
 
-    await runCurationTail(baseOptions(operations, { log: { warn } }))
+    await runCurationTail(baseOptions(operations, { log: { warn, detail } }))
 
-    const noopWarning = warn.mock.calls
+    const noopLine = detail.mock.calls
       .map(([message]) => String(message))
       .find((message) => /noop/i.test(message))
-    expect(noopWarning).toBeDefined()
-    expect(noopWarning).toContain('cand-a')
-    expect(noopWarning).toContain('procedure-body-unparseable')
-    expect(noopWarning).toContain('cand-b')
-    expect(noopWarning).toContain('evidence-token-consumed')
+    expect(noopLine).toBeDefined()
+    expect(noopLine).toContain('cand-a')
+    expect(noopLine).toContain('procedure-body-unparseable')
+    expect(noopLine).toContain('cand-b')
+    expect(noopLine).toContain('evidence-token-consumed')
+    expect(warn).not.toHaveBeenCalled()
     // The complete predicate does NOT gate on noops: legitimate reasons (dedup) must never
     // wedge a healthy tail into the incomplete retry loop.
-    expect(warn).not.toHaveBeenCalledWith(expect.stringMatching(/curation incomplete/i))
+    expect(detail).not.toHaveBeenCalledWith(expect.stringMatching(/curation incomplete/i))
     expect(writeCurationTailReceipt).toHaveBeenCalledOnce()
   })
 
   it('renders the empty-delta cause inside the noop parenthetical', async () => {
-    const warn = vi.fn()
+    const detail = vi.fn()
     const base = successfulOperations()
     const operations = successfulOperations({
       async drainQueue(options) {
@@ -1721,19 +1736,19 @@ describe('verdict-first CLI tail wiring', () => {
       },
     })
 
-    await runCurationTail(baseOptions(operations, { log: { warn } }))
+    await runCurationTail(baseOptions(operations, { log: { warn: vi.fn(), detail } }))
 
-    const noopWarning = warn.mock.calls
+    const noopLine = detail.mock.calls
       .map(([message]) => String(message))
       .find((message) => /noop/i.test(message))
-    expect(noopWarning).toBeDefined()
+    expect(noopLine).toBeDefined()
     // The cause renders inside the existing trailing parenthetical.
-    expect(noopWarning).toContain('cand-a (delta-noop: fallback-malformed)')
-    expect(noopWarning).toContain('cand-b (evidence-token-consumed)')
+    expect(noopLine).toContain('cand-a (delta-noop: fallback-malformed)')
+    expect(noopLine).toContain('cand-b (evidence-token-consumed)')
   })
 
-  it('keeps the count-anchored warn prefix the ladder extractor parses', async () => {
-    const warn = vi.fn()
+  it('states the noop count once, at the start of the noop line', async () => {
+    const detail = vi.fn()
     const base = successfulOperations()
     const operations = successfulOperations({
       async drainQueue(options) {
@@ -1752,20 +1767,19 @@ describe('verdict-first CLI tail wiring', () => {
       },
     })
 
-    await runCurationTail(baseOptions(operations, { log: { warn } }))
+    await runCurationTail(baseOptions(operations, { log: { warn: vi.fn(), detail } }))
 
-    const noopWarning = warn.mock.calls
+    const noopLine = detail.mock.calls
       .map(([message]) => String(message))
       .find((message) => /noop/i.test(message))
-    expect(noopWarning).toBeDefined()
-    // The count-anchored pattern `demo/init/scripts/ladder-evidence.mjs` embeds in its self-check.
-    const matches = [...String(noopWarning).matchAll(/drain produced (\d+) commit noop\(s\)[^\n]*/g)]
+    expect(noopLine).toBeDefined()
+    const matches = [...String(noopLine).matchAll(/drain produced (\d+) commit noop\(s\)[^\n]*/g)]
     expect(matches).toHaveLength(1)
     expect(Number(matches[0]![1])).toBe(1)
   })
 
   it('adds a drain-noops entry to incompleteDetails when the tail is already incomplete', async () => {
-    const warn = vi.fn()
+    const detail = vi.fn()
     const base = successfulOperations()
     const operations = successfulOperations({
       async drainQueue(options) {
@@ -1782,9 +1796,9 @@ describe('verdict-first CLI tail wiring', () => {
       },
     })
 
-    await runCurationTail(baseOptions(operations, { log: { warn } }))
+    await runCurationTail(baseOptions(operations, { log: { warn: vi.fn(), detail } }))
 
-    const incomplete = warn.mock.calls
+    const incomplete = detail.mock.calls
       .map(([message]) => String(message))
       .find((message) => /curation incomplete/i.test(message))
     expect(incomplete).toBeDefined()
@@ -1860,7 +1874,7 @@ describe('per-run candidate summary line', () => {
       .map(([message]) => String(message))
       .filter((message) => message.startsWith('Knowledge curation candidates for ')))
       .toHaveLength(1)
-    // Additive beside the ladder extractor: the line matches NEITHER harness regex.
+    // The candidates line carries neither the noop count nor the drain-noops counter.
     expect([...String(line).matchAll(/drain produced (\d+) commit noop\(s\)/g)]).toHaveLength(0)
     expect([...String(line).matchAll(/drain-noops=(\d+)/g)]).toHaveLength(0)
   })
@@ -1902,7 +1916,8 @@ describe('per-run candidate summary line', () => {
 
     const line = summaryLineFrom(info)
     expect(line).toContain(`procedure 1 projected (1 coalesced: ${procedureId})`)
-    expect(warn).not.toHaveBeenCalledWith(expect.stringMatching(/curation incomplete/i))
+    expect(info).not.toHaveBeenCalledWith(expect.stringMatching(/curation incomplete/i))
+    expect(warn).not.toHaveBeenCalled()
     expect(writeCurationTailReceipt).toHaveBeenCalledOnce()
   })
 
@@ -2216,7 +2231,7 @@ function drainedReport(over: Record<string, unknown> = {}) {
 }
 
 describe('the knowledge summary a fold reports', () => {
-  it('reports what a complete local fold learned and held, once, beside its lines', async () => {
+  it('reports what a complete local fold learned and held, once, and sends no promotion or count line', async () => {
     const summary = vi.fn()
     const detail = vi.fn()
     const promotions = [
@@ -2231,7 +2246,8 @@ describe('the knowledge summary a fold reports', () => {
       drainQueue: vi.fn(async () => drainedReport({ committed: 5, promotions })),
     })
 
-    await runCurationTail(baseOptions(operations, { log: { warn: vi.fn(), detail, summary } }))
+    const warn = vi.fn()
+    await runCurationTail(baseOptions(operations, { log: { warn, detail, summary } }))
 
     expect(summary).toHaveBeenCalledOnce()
     expect(summary).toHaveBeenCalledWith({
@@ -2247,11 +2263,10 @@ describe('the knowledge summary a fold reports', () => {
         { outcome: 'held', id: 'c5', reason: 'no-element-observation' },
       ],
     })
-    expect(detail).toHaveBeenCalledWith('curation: c1 promoted via deterministic-verdict-floor')
-    expect(detail).toHaveBeenCalledWith(
-      'curation: 5 learned change(s) applied, 0 kept proposed '
-      + '(local runs apply learned knowledge to the knowledge root)',
-    )
+    const lines = [...detail.mock.calls, ...warn.mock.calls].map(([message]) => String(message))
+    expect(lines.filter((line) => /promoted via| held: |learned change\(s\)|kept proposed/u.test(line)))
+      .toEqual([])
+    expect(lines.filter((line) => /\bc[1-5]\b/u.test(line))).toEqual([])
   })
 
   it('counts a change kept proposed in ci as proposed, not learned', async () => {
@@ -2296,7 +2311,8 @@ describe('the knowledge summary a fold reports', () => {
       drainQueue: vi.fn(async () => drainedReport({ requeued: 1, remaining: 1 })),
     })
 
-    await runCurationTail(baseOptions(operations, { log: { warn, summary } }))
+    const detail = vi.fn()
+    await runCurationTail(baseOptions(operations, { log: { warn, detail, summary } }))
 
     expect(summary).toHaveBeenCalledOnce()
     expect(summary).toHaveBeenCalledWith({
@@ -2307,9 +2323,12 @@ describe('the knowledge summary a fold reports', () => {
       items: [],
       unfinished: { notWritten: 1, resume },
     })
-    expect(warn).toHaveBeenCalledOnce()
-    expect(warn.mock.calls[0]?.[0]).toMatch(/^Post-verdict knowledge curation incomplete for /u)
-    expect(warn.mock.calls[0]?.[0]).toContain('drain-requeued=1')
+    expect(warn).not.toHaveBeenCalled()
+    const incomplete = detail.mock.calls
+      .map(([message]) => String(message))
+      .filter((message) => message.startsWith('Post-verdict knowledge curation incomplete for '))
+    expect(incomplete).toHaveLength(1)
+    expect(incomplete[0]).toContain('drain-requeued=1')
   })
 
   it('works with a log that has only warn', async () => {
@@ -2322,6 +2341,38 @@ describe('the knowledge summary a fold reports', () => {
     })
 
     await expect(runCurationTail(baseOptions(operations, { log: { warn } }))).resolves.toBeUndefined()
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['commit noops', { noops: 1, noopDetails: [{ candidateId: 'cand-a', reason: 'delta-noop' }] }],
+    ['a snapshot that was not recorded', { snapshotFoldFailed: true }],
+    ['a fold that did not finish', { requeued: 1, remaining: 1 }],
+  ] as const)('hands a log that has only warn nothing for %s', async (_label, over) => {
+    const warn = vi.fn()
+    const operations = successfulOperations({
+      drainQueue: vi.fn(async () => drainedReport(over)),
+    })
+
+    await expect(runCurationTail(baseOptions(operations, { log: { warn } }))).resolves.toBeUndefined()
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['commit noops', { noops: 1, noopDetails: [{ candidateId: 'cand-a', reason: 'delta-noop' }] },
+      'Knowledge curation drain produced 1 commit noop(s) for run-curation-tail: cand-a (delta-noop).'],
+    ['a snapshot that was not recorded', { snapshotFoldFailed: true },
+      'curation snapshot could not be validated and was not recorded; committed bundles are unaffected'],
+  ] as const)('sends the sentence for %s to detail with its text unchanged', async (_label, over, sentence) => {
+    const warn = vi.fn()
+    const detail = vi.fn()
+    const operations = successfulOperations({
+      drainQueue: vi.fn(async () => drainedReport(over)),
+    })
+
+    await runCurationTail(baseOptions(operations, { log: { warn, detail } }))
+
+    expect(detail).toHaveBeenCalledWith(sentence)
     expect(warn).not.toHaveBeenCalled()
   })
 })

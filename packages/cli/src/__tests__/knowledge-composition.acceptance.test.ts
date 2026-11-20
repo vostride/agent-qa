@@ -44,6 +44,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { buildMemberRunConfig, constructKnowledgeReader } from '@vostride/agent-qa-agent-local'
 import { CURATION_TAIL_RECEIPT_FILE, runCurationTail } from '../curation/curation-tail.js'
+import type { KnowledgeSummary } from '../curation/knowledge-summary.js'
 
 const PRODUCT = 'composition-storefront'
 const BUILD_ORDINAL = 52
@@ -300,12 +301,13 @@ describe('knowledge composition acceptance', () => {
     expect(listQueuedCandidates(knowledgeRoot)).toHaveLength(1)
 
     const warn = vi.fn()
+    const summaries: KnowledgeSummary[] = []
     await runCurationTail({
       runId,
       agentQaRoot,
       knowledgeConfig: { dir: 'agent-qa-knowledge' },
       configDir: root,
-      log: { warn },
+      log: { warn, summary: (summary) => { summaries.push(summary) } },
     })
 
     expect(listQueuedCandidates(knowledgeRoot)).toEqual([])
@@ -319,5 +321,7 @@ describe('knowledge composition acceptance', () => {
     )
     expect(warn).not.toHaveBeenCalled()
     expect(existsSync(join(runDir, CURATION_TAIL_RECEIPT_FILE))).toBe(true)
+    expect(summaries.length).toBeGreaterThan(0)
+    expect(summaries.filter((summary) => summary.unfinished !== undefined)).toEqual([])
   }, 30_000)
 })
