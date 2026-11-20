@@ -31,6 +31,7 @@ import {
   parseProcedureTrajectorySeed,
   projectCurationCandidates,
 } from '../emit-candidates.js'
+import type { KnowledgeSummary } from '../knowledge-summary.js'
 import { removeTempRoots } from '../../__tests__/temp-roots.js'
 
 // Consumes a recorded run's verbatim artifacts; each row pins one stage of the procedure candidate.
@@ -85,9 +86,20 @@ function stageRoots(): StagedRoots {
   }
 }
 
-function warnCapture(): { warns: string[]; log: { warn(message: string): void } } {
+function logCapture() {
   const warns: string[] = []
-  return { warns, log: { warn: (message: string) => warns.push(message) } }
+  const details: string[] = []
+  const summaries: KnowledgeSummary[] = []
+  return {
+    warns,
+    details,
+    summaries,
+    log: {
+      warn: (message: string) => { warns.push(message) },
+      detail: (message: string) => { details.push(message) },
+      summary: (summary: KnowledgeSummary) => { summaries.push(summary) },
+    },
+  }
 }
 
 function bundleIds(knowledgeRoot: string): string[] {
@@ -237,7 +249,7 @@ describe('the live-artifact staged reproduction', () => {
     'stage D-nomodel (site discriminator): with no model anywhere the drain records exactly one visible procedure-job noop (delta-noop: fallback-no-model)',
     async () => {
       const roots = stageRoots()
-      const { warns, log } = warnCapture()
+      const { warns, details, summaries, log } = logCapture()
       // REAL defaultOperations: no operations override at all. Mask and audit
       // sink mirror run-session-composition.ts.
       await runCurationTail({
@@ -251,7 +263,9 @@ describe('the live-artifact staged reproduction', () => {
 
       // The live silent signature's healthy half must hold: curation completed, receipt
       // written, both fact bundles committed.
-      expect(warns.filter((line) => line.includes('incomplete'))).toEqual([])
+      expect([...warns, ...details].filter((line) => line.includes('incomplete'))).toEqual([])
+      expect(summaries.length).toBeGreaterThan(0)
+      expect(summaries.filter((summary) => summary.unfinished !== undefined)).toEqual([])
       expect(existsSync(join(roots.runDir, CURATION_TAIL_RECEIPT_FILE))).toBe(true)
       expect(JSON.parse(readFileSync(join(roots.runDir, CURATION_TAIL_RECEIPT_FILE), 'utf8'))).toMatchObject({
         schemaVersion: CURATION_TAIL_RECEIPT_SCHEMA_VERSION, canary: emptyCanaryCreditCounters(),
@@ -260,7 +274,8 @@ describe('the live-artifact staged reproduction', () => {
       expect(procedureBundleIds(roots.knowledgeRoot)).toHaveLength(0)
 
       // With no model, a drained candidate leaves one noop line, so zero means it died upstream.
-      const noopLines = warns.filter((line) => line.includes('commit noop'))
+      expect(warns.filter((line) => line.includes('commit noop'))).toEqual([])
+      const noopLines = details.filter((line) => line.includes('commit noop'))
       expect(noopLines).toHaveLength(1)
       expect(noopLines[0]).toContain('produced 1 commit noop(s)')
       expect(noopLines[0]).toContain('(delta-noop: fallback-no-model)')
@@ -272,7 +287,7 @@ describe('the live-artifact staged reproduction', () => {
     "stage D-scripted (desired end-to-end): the email-arm artifacts commit a procedure bundle with the proposal's parameter and every drain outcome is visible",
     async () => {
       const roots = stageRoots()
-      const { warns, log } = warnCapture()
+      const { warns, details, summaries, log } = logCapture()
       const reports: DrainReport[] = []
       await runCurationTail({
         runId: RUN_ID,
@@ -312,7 +327,9 @@ describe('the live-artifact staged reproduction', () => {
         },
       })
 
-      expect(warns.filter((line) => line.includes('incomplete'))).toEqual([])
+      expect([...warns, ...details].filter((line) => line.includes('incomplete'))).toEqual([])
+      expect(summaries.length).toBeGreaterThan(0)
+      expect(summaries.filter((summary) => summary.unfinished !== undefined)).toEqual([])
       expect(factBundleIds(roots.knowledgeRoot)).toHaveLength(2)
 
       // Rung A's truth at unit level, plus the never-zero-trace law: three jobs

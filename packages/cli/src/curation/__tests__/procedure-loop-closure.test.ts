@@ -67,6 +67,7 @@ import { runCurationTail } from '../curation-tail.js'
 import { projectCurationCandidates, projectProcedureTargets } from '../emit-candidates.js'
 import { buildCuratorAuthor } from '../curator-author.js'
 import { emitCanaryOutcomes } from '../emit-canary-outcomes.js'
+import type { KnowledgeSummary } from '../knowledge-summary.js'
 
 type CuratorModel = ReturnType<typeof createModel>
 type GenerateResult = Awaited<ReturnType<CuratorModel['doGenerate']>>
@@ -347,7 +348,10 @@ describe('procedure loop closure', () => {
     rmSync(root, { recursive: true, force: true })
   })
 
-  async function runTail(runId: string, buildOrdinal: number): Promise<string[]> {
+  async function runTail(
+    runId: string,
+    buildOrdinal: number,
+  ): Promise<{ warnings: string[]; unfinished: KnowledgeSummary[] }> {
     const runDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(runId))
     mkdirSync(runDir, { recursive: true })
     writeFileSync(
@@ -356,16 +360,20 @@ describe('procedure loop closure', () => {
       'utf8',
     )
     const warnings: string[] = []
+    const unfinished: KnowledgeSummary[] = []
     await runCurationTail({
       runId,
       agentQaRoot,
       knowledgeConfig: { dir: 'agent-qa-knowledge' },
       configDir: root,
       modelDeps: { profile: scriptedProfile(), auth: noAuth },
-      log: { warn: (message) => warnings.push(message) },
+      log: {
+        warn: (message) => { warnings.push(message) },
+        summary: (summary) => { if (summary.unfinished !== undefined) unfinished.push(summary) },
+      },
       operations: { buildCuratorAuthor: () => fixtureAuthor },
     })
-    return warnings
+    return { warnings, unfinished }
   }
 
   function procedureBundles(): LoadedBundle[] {
@@ -383,8 +391,9 @@ describe('procedure loop closure', () => {
   // scratch. It guarantees only the COMMIT prerequisite, never canary state: the ordered
   // flow's canary accumulation across tests stays intentional.
   async function ensureCommittedProcedure(): Promise<void> {
-    const warnings = await runTail('run-loop-1', 42)
-    expect(warnings).toEqual([])
+    const tail = await runTail('run-loop-1', 42)
+    expect(tail.warnings).toEqual([])
+    expect(tail.unfinished).toEqual([])
     const bundle = procedureBundles()[0]
     if (bundle !== undefined) procedureId = bundle.frontmatter.id as RecordId
   }
@@ -395,6 +404,7 @@ describe('procedure loop closure', () => {
     proposal: string
   }): Promise<{
     warnings: string[]
+    unfinished: KnowledgeSummary[]
     bundles: LoadedBundle[]
     commitOutcomes: CommitCurationOutcome[]
   }> {
@@ -431,13 +441,17 @@ describe('procedure loop closure', () => {
         },
       })
     const warnings: string[] = []
+    const unfinished: KnowledgeSummary[] = []
     await runCurationTail({
       runId,
       agentQaRoot: fixtureAgentQaRoot,
       knowledgeConfig: { dir: 'agent-qa-knowledge' },
       configDir: fixtureRoot,
       modelDeps: { profile: scriptedProfile(), auth: noAuth },
-      log: { warn: (message) => warnings.push(message) },
+      log: {
+        warn: (message) => { warnings.push(message) },
+        summary: (summary) => { if (summary.unfinished !== undefined) unfinished.push(summary) },
+      },
       operations: {
         buildCuratorAuthor: () => isolatedAuthor,
         drainQueue: captureDrain,
@@ -449,7 +463,7 @@ describe('procedure loop closure', () => {
         ? [outcome.bundle]
         : []
     })
-    return { warnings, bundles, commitOutcomes }
+    return { warnings, unfinished, bundles, commitOutcomes }
   }
 
   function getProcedure(): ProcedureMatch | undefined {
@@ -537,8 +551,9 @@ describe('procedure loop closure', () => {
     expect(finalSubAction.stateBefore.url).toBe('/login')
     expect(finalSubAction.stateAfter?.url).toBe('/dashboard')
 
-    const warnings = await runTail('run-loop-1', 42)
-    expect(warnings).toEqual([])
+    const tail = await runTail('run-loop-1', 42)
+    expect(tail.warnings).toEqual([])
+    expect(tail.unfinished).toEqual([])
 
     const bundles = procedureBundles()
     expect(bundles).toHaveLength(1)
@@ -1019,8 +1034,9 @@ describe('procedure loop closure', () => {
 
     const confirmedBefore = deriveBundleTrust(procedureBundles()[0]!).counters.confirmed
 
-    const warnings = await runTail('run-loop-2', 43)
-    expect(warnings).toEqual([])
+    const tail = await runTail('run-loop-2', 43)
+    expect(tail.warnings).toEqual([])
+    expect(tail.unfinished).toEqual([])
 
     const bundles = procedureBundles()
     expect(bundles).toHaveLength(1)
@@ -1099,6 +1115,7 @@ describe('procedure loop closure', () => {
 
     // Repeated text resolves by ordinal window, never disposed as globally ambiguous.
     expect(fixture.warnings).toEqual([])
+    expect(fixture.unfinished).toEqual([])
     expect(fixture.commitOutcomes).not.toContainEqual({
       kind: 'noop',
       reason: 'procedure-step-coverage',
@@ -1117,6 +1134,7 @@ describe('procedure loop closure', () => {
 
     // The scalar keeps its JSON type from emit through `parseProcedureBody`.
     expect(fixture.warnings).toEqual([])
+    expect(fixture.unfinished).toEqual([])
     expect(fixture.bundles).toHaveLength(1)
     const payload = parseProcedureBody(fixture.bundles[0]!.body)
     expect(payload?.steps[2]?.action.values['submit']).toBe(true)
@@ -1168,6 +1186,7 @@ describe('procedure loop closure', () => {
 
     // Traverses the real emit, author, disposition, commit and `record.md` pipe.
     expect(fixture.warnings).toEqual([])
+    expect(fixture.unfinished).toEqual([])
     expect(fixture.commitOutcomes).not.toContainEqual({
       kind: 'noop',
       reason: 'procedure-param-undeclared',

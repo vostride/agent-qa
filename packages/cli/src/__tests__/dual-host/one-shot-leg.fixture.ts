@@ -16,6 +16,7 @@ import {
   runCurationTail,
   type RunCurationTailOptions,
 } from '../../curation/curation-tail.js'
+import type { KnowledgeSummary } from '../../curation/knowledge-summary.js'
 import {
   FIXTURE_RUN_ID,
   createScriptedAuthor,
@@ -52,13 +53,17 @@ export async function runOneShotLeg(): Promise<void> {
     executionContext: 'local-interactive',
   } as unknown as CompletedRunHandoff
   const warnings: string[] = []
+  const unfinished: KnowledgeSummary[] = []
   await runCurationTail({
     runId: FIXTURE_RUN_ID,
     agentQaRoot,
     knowledgeConfig: { dir: knowledgeRoot },
     configDir: root,
     modelDeps: {} as NonNullable<RunCurationTailOptions['modelDeps']>,
-    log: { warn: (message) => warnings.push(message) },
+    log: {
+      warn: (message) => { warnings.push(message) },
+      summary: (summary) => { if (summary.unfinished !== undefined) unfinished.push(summary) },
+    },
     operations: {
       loadCompletedRunHandoff: () => handoff,
       resolveKnowledgeRoot: () => knowledgeRoot,
@@ -92,8 +97,9 @@ export async function runOneShotLeg(): Promise<void> {
       },
     },
   })
-  if (warnings.length > 0) {
-    throw new Error(`${warnings.join('\n')}\nDrain report: ${JSON.stringify(observedDrain)}`)
+  if (warnings.length > 0 || unfinished.length > 0) {
+    throw new Error(`${[...warnings, ...unfinished.map((summary) => JSON.stringify(summary))]
+      .join('\n')}\nDrain report: ${JSON.stringify(observedDrain)}`)
   }
   const receipt = readCurationTailReceipt(runDir)
   expect(receipt).toBeDefined()

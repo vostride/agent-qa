@@ -48,7 +48,7 @@ import {
   resolveAgentQaSkillsDirectory,
   runningAgentQaSkillSummaries,
 } from '../../commands/skills.js'
-import { curationOutcomeLine } from '../../curation/curation-tail.js'
+import { knowledgeSummaryOfDrain } from '../../curation/knowledge-summary.js'
 import { createAgentQaProgram } from '../../program.js'
 import { registryOpIds } from './adapters.js'
 import { agentQaRoot, buildCatalogSkillRows, CHAT_ALIAS_PROBES } from './catalog.js'
@@ -1186,19 +1186,21 @@ function codeOf(relativePath: string): string {
 }
 
 describe('curation and chat say where a change went, and point at no review', () => {
-  it('a local fold reports what it applied; ci and cloud report what they kept proposed', () => {
-    expect(curationOutcomeLine({ executionContext: 'local-interactive', committed: 3, downgraded: 0 }))
-      .toBe('curation: 3 learned change(s) applied, 0 kept proposed (local runs apply learned knowledge to the knowledge root)')
-    expect(curationOutcomeLine({ executionContext: 'local-headless', committed: 3, downgraded: 1 }))
-      .toBe('curation: 2 learned change(s) applied, 1 kept proposed (local runs apply learned knowledge to the knowledge root)')
-    expect(curationOutcomeLine({ executionContext: 'ci', committed: 2, downgraded: 2 }))
-      .toBe('curation: 0 learned change(s) recorded, 2 kept proposed (ci runs never promote learned knowledge)')
-    expect(curationOutcomeLine({ executionContext: 'cloud', committed: 1, downgraded: 1 }))
-      .toBe('curation: 0 learned change(s) recorded, 1 kept proposed (cloud runs never promote learned knowledge)')
-    // A fold that committed nothing says nothing, so the one-line drained hint stays one line.
-    expect(curationOutcomeLine({ executionContext: 'ci', committed: 0, downgraded: 0 })).toBeUndefined()
-    expect(curationOutcomeLine({ executionContext: undefined, committed: 1, downgraded: 5 }))
-      .toBe('curation: 0 learned change(s) applied, 1 kept proposed (local runs apply learned knowledge to the knowledge root)')
+  it('a local fold reports what it applied as learned; ci and cloud report what they kept as proposed', () => {
+    const counts = (executionContext: string | undefined, committed: number, downgraded: number) => {
+      const summary = knowledgeSummaryOfDrain({
+        executionContext,
+        complete: true,
+        drain: { kind: 'drained', committed, downgraded, requeued: 0 },
+      })
+      return { learned: summary.learned, proposed: summary.proposed }
+    }
+    expect(counts('local-interactive', 3, 0)).toEqual({ learned: 3, proposed: 0 })
+    expect(counts('local-headless', 3, 1)).toEqual({ learned: 2, proposed: 1 })
+    expect(counts('ci', 2, 2)).toEqual({ learned: 0, proposed: 2 })
+    expect(counts('cloud', 1, 1)).toEqual({ learned: 0, proposed: 1 })
+    expect(counts('ci', 0, 0)).toEqual({ learned: 0, proposed: 0 })
+    expect(counts(undefined, 1, 5)).toEqual({ learned: 0, proposed: 1 })
   })
 
   it('the curation tail and the chat turn engine show no review command and no waiting step', () => {

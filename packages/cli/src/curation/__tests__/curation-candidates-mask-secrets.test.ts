@@ -26,6 +26,7 @@ import {
   parseProcedureTrajectorySeed,
   type EmitReport,
 } from '../emit-candidates.js'
+import type { KnowledgeSummary } from '../knowledge-summary.js'
 
 const DECLARED = 'qa-admin-42'
 const MARKER = '[secret:DECLARED_USER]'
@@ -207,16 +208,22 @@ describe('curation candidates queue declared values only masked', () => {
         mkdirSync(knowledgeRoot, { recursive: true })
         new FsHandoffStore({ root: agentQaRoot, runId: String(handoff.runId) }).save(handoff)
         const warns: string[] = []
+        const summaries: KnowledgeSummary[] = []
         await runCurationTail({
           runId: String(handoff.runId),
           agentQaRoot,
           knowledgeConfig: { dir: 'agent-qa-knowledge' },
           configDir: root,
           mask: declaredMask(),
-          log: { warn: (message: string) => warns.push(message) },
+          log: {
+            warn: (message: string) => warns.push(message),
+            summary: (summary) => { summaries.push(summary) },
+          },
         })
 
         expect(warns.filter((line) => line.includes('incomplete'))).toEqual([])
+        expect(summaries.length).toBeGreaterThan(0)
+        expect(summaries.filter((summary) => summary.unfinished !== undefined)).toEqual([])
         const bundlesDir = join(knowledgeRoot, 'memory', SCOPE_KEY, 'bundles')
         const facts = readdirSync(bundlesDir).filter((name) => name.startsWith('fact-'))
         expect(facts).toHaveLength(1)
