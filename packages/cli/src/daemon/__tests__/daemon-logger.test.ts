@@ -70,6 +70,34 @@ describe('the default daemon logger', () => {
     )
   })
 
+  it('prints a warning on stderr with its tag and the message, and not as an error', () => {
+    vi.stubEnv('GITHUB_ACTIONS', '')
+    const spies = consoleSpies()
+
+    DEFAULT_DAEMON_LOGGER.warn?.('Quarantine withheld for the cart test', 'post-run')
+    DEFAULT_DAEMON_LOGGER.warn?.('The run record could not be opened')
+
+    expect(spies.warn.mock.calls).toEqual([
+      [expect.stringMatching(tagged('post-run', 'Quarantine withheld for the cart test'))],
+      [expect.stringMatching(tagged('daemon', 'The run record could not be opened'))],
+    ])
+    expect(spies.log).not.toHaveBeenCalled()
+    expect(spies.error).not.toHaveBeenCalled()
+  })
+
+  it('colours a warning yellow when colour is on', () => {
+    vi.stubEnv('GITHUB_ACTIONS', '')
+    vi.stubEnv('NO_COLOR', '')
+    vi.stubEnv('FORCE_COLOR', '1')
+    const spies = consoleSpies()
+
+    DEFAULT_DAEMON_LOGGER.warn?.('Quarantine withheld for the cart test', 'run')
+
+    expect(String(spies.warn.mock.calls[0]?.[0])).toContain(
+      '\u001b[33mQuarantine withheld for the cart test\u001b[39m',
+    )
+  })
+
   it('under GitHub Actions writes one stop-commands pair and calls no console method', () => {
     vi.stubEnv('GITHUB_ACTIONS', 'true')
     const spies = consoleSpies()
@@ -95,6 +123,12 @@ describe('the default daemon logger', () => {
 })
 
 describe('a logger a caller hands the daemon', () => {
+  it('fits without a warn method', () => {
+    const logger: DaemonHostLogger = { info: () => {}, error: () => {} }
+
+    expect(logger.warn).toBeUndefined()
+  })
+
   it('fits with methods that take one argument and receives each message unchanged first', () => {
     const infos: string[] = []
     const errors: string[] = []
