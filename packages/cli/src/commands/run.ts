@@ -495,9 +495,10 @@ async function acquireHostAppium(
 async function startAppiumOrThrow(
   logLevel: string,
   setup: { platform: 'android' | 'ios'; targetName: string; deviceName: string | undefined },
+  mask: MaskFn,
 ): Promise<string> {
   try {
-    return await ensureProcessAppium(logLevel)
+    return await ensureProcessAppium(logLevel, mask)
   } catch (err) {
     throw new MobileSetupError({
       category: 'appium-startup',
@@ -3374,7 +3375,7 @@ export async function produceSuiteRunMembers(
                 platform: suitePlatform as 'android' | 'ios',
                 targetName: suiteResolvedTarget.name,
                 deviceName,
-              }),
+              }, suiteRunMask),
             listDevicesHere: suiteDevicesHere,
           })
 
@@ -4590,7 +4591,7 @@ export async function produceDirectRunMembers(
                     platform: testMobileResolved.platform,
                     targetName: testResolvedTarget.name,
                     deviceName: testDeviceName,
-                  }),
+                  }, singleRunMask),
                 listDevicesHere: directDevicesHere,
               })
 

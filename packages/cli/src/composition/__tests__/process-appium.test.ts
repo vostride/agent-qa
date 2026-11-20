@@ -2,9 +2,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const appium = vi.hoisted(() => ({
   built: [] as unknown[],
+  events: [] as string[],
   ensureRunning: vi.fn<() => Promise<void>>(),
   getUrl: vi.fn<() => string>(),
   shutdown: vi.fn<() => Promise<void>>(),
+  bindMask: vi.fn<(mask: (text: string) => string) => () => void>(),
+  releases: [] as Array<ReturnType<typeof vi.fn<() => void>>>,
 }))
 
 vi.mock('@vostride/agent-qa-dashboard', () => ({
@@ -13,7 +16,12 @@ vi.mock('@vostride/agent-qa-dashboard', () => ({
       appium.built.push(options)
     }
     ensureRunning(): Promise<void> {
+      appium.events.push('ensureRunning')
       return appium.ensureRunning()
+    }
+    bindMask(mask: (text: string) => string): () => void {
+      appium.events.push(`bindMask:${mask('secret')}`)
+      return appium.bindMask(mask)
     }
     getUrl(): string {
       return appium.getUrl()
@@ -51,6 +59,13 @@ function watch(promise: Promise<void> | undefined): { readonly settled: boolean 
 
 beforeEach(() => {
   appium.built.length = 0
+  appium.events.length = 0
+  appium.releases.length = 0
+  appium.bindMask.mockReset().mockImplementation(() => {
+    const release = vi.fn<() => void>()
+    appium.releases.push(release)
+    return release
+  })
   appium.ensureRunning.mockReset().mockResolvedValue(undefined)
   appium.getUrl.mockReset().mockReturnValue(APPIUM_URL)
   appium.shutdown.mockReset().mockResolvedValue(undefined)
@@ -151,5 +166,63 @@ describe("the process's Appium", () => {
     expect(atBound.settled).toBe(false)
     await vi.advanceTimersByTimeAsync(1)
     expect(atBound.settled).toBe(true)
+  })
+
+  describe('the masks a run binds', () => {
+    const maskOne = (text: string): string => text.replace('secret', '[secret:ONE]')
+    const maskTwo = (text: string): string => text.replace('secret', '[secret:TWO]')
+
+    it("binds the run's mask before it starts Appium", async () => {
+      const { ensureProcessAppium } = await freshModule()
+
+      await ensureProcessAppium('debug', maskOne)
+
+      expect(appium.events).toEqual(['bindMask:[secret:ONE]', 'ensureRunning'])
+      expect(appium.bindMask).toHaveBeenCalledWith(maskOne)
+    })
+
+    it('binds nothing with no mask and still starts Appium', async () => {
+      const { ensureProcessAppium } = await freshModule()
+
+      await expect(ensureProcessAppium('normal')).resolves.toBe(APPIUM_URL)
+
+      expect(appium.bindMask).not.toHaveBeenCalled()
+      expect(appium.events).toEqual(['ensureRunning'])
+    })
+
+    it('binds the mask of each run, releases every one once on stop, and binds again on a new manager', async () => {
+      const { ensureProcessAppium, stopProcessAppium } = await freshModule()
+      await ensureProcessAppium('debug', maskOne)
+      await ensureProcessAppium('debug', maskTwo)
+      expect(appium.built).toHaveLength(1)
+      expect(appium.bindMask.mock.calls).toEqual([[maskOne], [maskTwo]])
+      const [releaseOne, releaseTwo] = appium.releases
+
+      await stopProcessAppium()
+      await stopProcessAppium()
+      expect(releaseOne).toHaveBeenCalledTimes(1)
+      expect(releaseTwo).toHaveBeenCalledTimes(1)
+
+      await ensureProcessAppium('debug', maskOne)
+      expect(appium.built).toHaveLength(2)
+      expect(appium.bindMask).toHaveBeenCalledTimes(3)
+      expect(releaseOne).toHaveBeenCalledTimes(1)
+    })
+
+    it('a release that throws stops neither the other releases nor the shutdown', async () => {
+      const { ensureProcessAppium, stopProcessAppium } = await freshModule()
+      await ensureProcessAppium('debug', maskOne)
+      await ensureProcessAppium('debug', maskTwo)
+      const [releaseOne, releaseTwo] = appium.releases
+      releaseOne?.mockImplementation(() => {
+        throw new Error('release failed')
+      })
+
+      await stopProcessAppium()
+
+      expect(releaseOne).toHaveBeenCalledTimes(1)
+      expect(releaseTwo).toHaveBeenCalledTimes(1)
+      expect(appium.shutdown).toHaveBeenCalledTimes(1)
+    })
   })
 })

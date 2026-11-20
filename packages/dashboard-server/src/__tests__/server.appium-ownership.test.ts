@@ -15,6 +15,10 @@ interface AppiumInstance {
   releaseLease: Mock
   shutdown: Mock
   getUrl: Mock
+  bindMask: Mock
+  options: unknown
+  real: AppiumManager
+  forward(text: string, stream: 'stdout' | 'stderr'): void
   leases: Map<string, string>
   releases: Array<{ runId: string; reason: string }>
   stopCalls: number
@@ -67,8 +71,14 @@ class FakeExecutionBackend extends EventEmitter {
   }
 }
 
-vi.mock('../execution/appium-manager.js', () => {
+vi.mock('../execution/appium-manager.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../execution/appium-manager.js')>()
   class MockAppiumManager {
+    options: unknown
+    forward = (_text: string, _stream: 'stdout' | 'stderr'): void => {}
+    // A real manager over a fake Appium, so a mask the server binds applies as it does in a run.
+    real: InstanceType<typeof actual.AppiumManager>
+    bindMask = vi.fn((mask: (text: string) => string) => this.real.bindMask(mask))
     leases = new Map<string, string>()
     releases: Array<{ runId: string; reason: string }> = []
     stopCalls = 0
@@ -90,7 +100,15 @@ vi.mock('../execution/appium-manager.js', () => {
       mockState.events.push('shutdown')
     })
 
-    constructor() {
+    constructor(options?: { logLevel?: 'normal' | 'debug' }) {
+      this.options = options
+      this.real = new actual.AppiumManager({
+        ...options,
+        startAppium: async ({ onOutput }) => {
+          this.forward = (text, stream) => onOutput?.(text, stream)
+          return { url: 'http://127.0.0.1:4723', exited: new Promise<void>(() => {}), stop: async () => {} }
+        },
+      })
       mockState.appiumInstances.push(this as unknown as AppiumInstance)
     }
   }
@@ -140,6 +158,7 @@ import { EventEmitter } from 'node:events'
 
 import { DashboardDatabase } from '../db/database.js'
 import { startServer } from '../server/server.js'
+import type { AppiumManager } from '../execution/appium-manager.js'
 import type {
   AppiumProvider,
   ExecuteOptions,
@@ -222,13 +241,16 @@ function createConfigPath(content = MOBILE_CONFIG): { configPath: string; worksp
 async function startDashboard(opts: {
   configContent?: string
   llm?: boolean
+  logLevel?: string
+  declaredSecretMask?: (text: string) => string
 } = {}): Promise<number> {
   const db = new DashboardDatabase({ dbPath: ':memory:' })
   currentDb = db
   const { configPath, workspacePaths } = createConfigPath(opts.configContent)
   const backend = new FakeExecutionBackend() as unknown as ExecutionBackend
   started = await startServer({
-    declaredSecretMask: (text) => text,
+    declaredSecretMask: opts.declaredSecretMask ?? ((text) => text),
+    ...(opts.logLevel === undefined ? {} : { logLevel: opts.logLevel }),
     db,
     port: 0,
     configPath,
@@ -768,5 +790,40 @@ describe('an Appium start failure for a queued run', () => {
     expect(line.slice('HH:MM:SS  appium     '.length)).toBe(
       `Failed to start Appium for run ${runId}: boom`,
     )
+  })
+})
+
+describe("the server's Appium manager", () => {
+  it.each([
+    ['debug', 'debug'],
+    [undefined, 'normal'],
+    ['warn', 'normal'],
+    ['verbose', 'normal'],
+  ] as const)('is built with the log level %s at %s', async (logLevel, built) => {
+    vi.spyOn(console, 'log').mockImplementation(() => {})
+    await startDashboard({ logLevel })
+
+    expect(currentAppium().options).toEqual({ logLevel: built })
+  })
+
+  it('binds the declared-secret mask once, so a line the fake Appium forwards at debug prints masked', async () => {
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+    const value = 'made-up-device-pw-63ea'
+    const declaredSecretMask = (text: string): string => text.replaceAll(value, '[secret:DEVICE_PW]')
+    await startDashboard({ logLevel: 'debug', declaredSecretMask })
+    const appium = currentAppium()
+
+    expect(appium.bindMask).toHaveBeenCalledTimes(1)
+    expect(appium.bindMask).toHaveBeenCalledWith(declaredSecretMask)
+    await appium.real.ensureRunning()
+    appium.forward(`[HTTP] --> POST /session {"appium:password":"${value}"}\n`, 'stdout')
+
+    const forwarded = logSpy.mock.calls
+      .map((call) => String(call[0]))
+      .filter((line) => line.includes('POST /session'))
+    expect(forwarded).toHaveLength(1)
+    expect(forwarded[0]).toMatch(/^\d\d:\d\d:\d\d  appium     /u)
+    expect(forwarded[0]).toContain('{"appium:password":"[secret:DEVICE_PW]"}')
+    expect(forwarded[0]?.includes(value)).toBe(false)
   })
 })
