@@ -1,6 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import pc from 'picocolors'
 import { afterEach, describe, it, expect, vi } from 'vitest'
 import { parseAllTestBindings, parseAllTests, parseTestFile } from '../yaml-parser.js'
 import { formatParseError } from '../errors.js'
@@ -179,7 +180,10 @@ describe('parseTestFile', () => {
 
     // picocolors decides at its own load, and this package's tests load it with NO_COLOR=1, so the
     // formatter is loaded fresh over a colour-enabled picocolors to see what NO_COLOR alone does.
-    async function formatWithNoColor(value: string | undefined): Promise<string> {
+    async function formatWithNoColor(
+      value: string | undefined,
+      opts?: Parameters<typeof formatParseError>[1],
+    ): Promise<string> {
       const error = parseTestFile(readFixture('malformed-schema.yaml'), 'malformed-schema.yaml')
         .errors[0]
       vi.doMock('picocolors', async () => {
@@ -192,7 +196,7 @@ describe('parseTestFile', () => {
       vi.stubEnv('NO_COLOR', value)
       try {
         const { formatParseError: format } = await import('../errors.js')
-        return format(error)
+        return format(error, opts)
       } finally {
         vi.unstubAllEnvs()
         vi.doUnmock('picocolors')
@@ -208,6 +212,39 @@ describe('parseTestFile', () => {
 
     it('formats a parse error with NO_COLOR=1 with no escape code', async () => {
       expect(await formatWithNoColor('1')).not.toContain('\u001b[')
+    })
+
+    function malformedSchemaError() {
+      return parseTestFile(readFixture('malformed-schema.yaml'), 'malformed-schema.yaml').errors[0]
+    }
+
+    it('colours a parse error with the colours it is handed, whatever the process colours', () => {
+      const error = malformedSchemaError()
+      const formatted = formatParseError(error, { colors: pc.createColors(true) })
+      expect(formatted).toContain('\u001b[1m\u001b[31merror\u001b[39m\u001b[22m: ')
+      expect(formatted).toContain('\u001b[1m\u001b[34m-->\u001b[39m\u001b[22m ')
+      expect(formatted.replace(/\u001b\[[0-9;]*m/g, '')).toBe(
+        formatParseError(error, { noColor: true }),
+      )
+    })
+
+    it('prints a parse error plain when the colours it is handed are off', async () => {
+      const formatted = await formatWithNoColor(undefined, { colors: pc.createColors(false) })
+      expect(formatted).not.toContain('\u001b[')
+      expect(formatted).toBe(formatParseError(malformedSchemaError(), { noColor: true }))
+    })
+
+    it('formats a parse error handed no colours with the process colours', async () => {
+      expect(await formatWithNoColor(undefined)).toBe(
+        formatParseError(malformedSchemaError(), { colors: pc.createColors(true) }),
+      )
+    })
+
+    it('keeps a parse error plain when it is told no colour and handed colours', () => {
+      const error = malformedSchemaError()
+      expect(formatParseError(error, { noColor: true, colors: pc.createColors(true) })).toBe(
+        formatParseError(error, { noColor: true }),
+      )
     })
   })
 

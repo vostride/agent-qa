@@ -22,6 +22,9 @@ import {
 const MISSING_TEST_LINE = 'Error: Workspace test file not found: tests/missing.yaml'
 const COLOUR_CODE = '\x1b['
 const RED = '\x1b[31m'
+const BOLD_RED = '\x1b[1m\x1b[31m'
+const BOLD_BLUE = '\x1b[1m\x1b[34m'
+const BOLD_END = '\x1b[39m\x1b[22m'
 
 interface BinOutcome {
   readonly status: number | null
@@ -131,6 +134,44 @@ async function runDaemonOnUnreadableConfig(
   return await runBin(project, ['daemon', ...subcommand], {}, terminal)
 }
 
+const PARSE_ERROR_HEADING = 'Found 2 parse error(s):'
+
+// A single-test run of a file that does not parse prints a heading and core's parse-error block
+// on stderr. `block` is that output without its colour codes.
+async function runMalformedTest(
+  terminal: Terminal,
+): Promise<{ outcome: BinOutcome; block: string }> {
+  const project = missingTestProject()
+  const file = join(project.root, 'tests', 'malformed.yaml')
+  mkdirSync(join(project.root, 'tests'), { recursive: true })
+  writeFileSync(file, 'name: Malformed\ntarget: shop\nsteps: "not an array"\n', 'utf8')
+  const block = [
+    PARSE_ERROR_HEADING,
+    '',
+    'error: test-id: Invalid input: expected string, received undefined',
+    `  --> ${file}:1:1`,
+    '    |',
+    '  1 | name: Malformed',
+    '    | ^',
+    "    = help: check that 'test-id' has the correct type",
+    '',
+    'error: steps: Invalid input: expected array, received string',
+    `  --> ${file}:3:8`,
+    '    |',
+    '  3 | steps: "not an array"',
+    '    |        ^',
+    "    = help: check that 'steps' has the correct type",
+    '',
+    '',
+  ].join('\n')
+  const outcome = await runBin(project, ['run', 'tests/malformed.yaml'], {}, terminal)
+  return { outcome, block }
+}
+
+function withoutColourCodes(text: string): string {
+  return text.replace(/\x1b\[[0-9;]*m/g, '')
+}
+
 // Lines the run and daemon commands colour themselves and print on stderr.
 const COMMAND_ERROR_LINES: readonly {
   readonly name: string
@@ -215,6 +256,34 @@ describe('the shipped bin\'s colour posture', () => {
       const outcome = await run('stdout')
       expect(outcome.stderr, JSON.stringify(outcome)).toContain(line)
       expect(outcome.stderr.includes(COLOUR_CODE), JSON.stringify(outcome.stderr)).toBe(false)
+    },
+    90_000,
+  )
+
+  it(
+    'with stdout piped and stderr a terminal, the parse errors of a single-test run are coloured',
+    async () => {
+      const { outcome, block } = await runMalformedTest('stderr')
+      expect(outcome.status, JSON.stringify(outcome)).toBe(2)
+      expect(outcome.stderr, JSON.stringify(outcome)).toContain(`${RED}${PARSE_ERROR_HEADING}`)
+      expect(outcome.stderr, JSON.stringify(outcome)).toContain(
+        `${BOLD_RED}error${BOLD_END}: steps: `,
+      )
+      expect(outcome.stderr, JSON.stringify(outcome)).toContain(`${BOLD_BLUE}-->${BOLD_END} `)
+      expect(outcome.stderr, JSON.stringify(outcome)).toContain(`${BOLD_RED}^${BOLD_END}`)
+      expect(withoutColourCodes(outcome.stderr), JSON.stringify(outcome)).toContain(block)
+      expect(outcome.stdout.includes(COLOUR_CODE), JSON.stringify(outcome.stdout)).toBe(false)
+    },
+    90_000,
+  )
+
+  it(
+    'with stdout a terminal and stderr piped, the parse errors of a single-test run have no colour',
+    async () => {
+      const { outcome, block } = await runMalformedTest('stdout')
+      expect(outcome.status, JSON.stringify(outcome)).toBe(2)
+      expect(outcome.stderr.includes(COLOUR_CODE), JSON.stringify(outcome.stderr)).toBe(false)
+      expect(outcome.stderr, JSON.stringify(outcome)).toContain(block)
     },
     90_000,
   )

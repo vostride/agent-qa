@@ -5419,10 +5419,11 @@ export function createRunCommand(
         const configuredRunsDbPath = config.services?.dashboard?.dbPath
 
         if (parseResult.errors.length > 0) {
+          const colors = stderrColors()
           printRunText(
             [
-              stderrColors().red(`Found ${parseResult.errors.length} parse error(s):\n`),
-              ...parseResult.errors.map((err) => formatParseError(err)),
+              colors.red(`Found ${parseResult.errors.length} parse error(s):\n`),
+              ...parseResult.errors.map((err) => formatParseError(err, { colors })),
             ].join('\n'),
             (text) => console.error(text),
           )
