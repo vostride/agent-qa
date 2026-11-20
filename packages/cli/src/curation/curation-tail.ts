@@ -82,8 +82,8 @@ export type CurationTailModelDeps = Pick<
 
 export interface CurationTailLogger {
   warn(message: string): void
-  // Carries the per-run candidate summary line: diagnosis, never control flow.
-  info?(message: string): void
+  // Lines of diagnosis, never control flow.
+  detail?(message: string): void
 }
 
 export interface CurationTailOperations {
@@ -455,7 +455,7 @@ function logQuarantineDisposition(
   const entered = outcome.events.filter((event) => event.kind === 'entered').length
   const released = outcome.events.filter((event) => event.kind === 'released-auto').length
   if (entered > 0 || released > 0 || outcome.escalatedNotQuarantined.length > 0) {
-    log.info?.(
+    log.detail?.(
       `quarantine: ${String(entered)} entered, ${String(released)} released-auto, `
       + `${String(outcome.escalatedNotQuarantined.length)} escalated-not-quarantined `
       + `(${String(outcome.flagged.length)} flagged)`,
@@ -523,7 +523,7 @@ export async function curateCompletedRun(
         ...(input.mask === undefined ? {} : { mask: input.mask }),
       })
       // Visibility never gates: the summary line sits beside the noop warn and the complete check.
-      input.log.info?.(candidateSummaryLine(receiptIdentity.runId, candidates))
+      input.log.detail?.(candidateSummaryLine(receiptIdentity.runId, candidates))
       // Candidate and canary drops share this scope and crash boundary.
       const reader = operations.openKnowledgeReader({ knowledgeRoot: input.knowledgeRoot })
       const canaries = await operations.emitCanaryOutcomes({
@@ -577,19 +577,19 @@ export async function curateCompletedRun(
       deprecated = drain.deprecated ?? 0
       if (drain.kind === 'handed-off') {
         drainKind = 'handed-off'
-        input.log.info?.(`curation: handed to daemon (pid ${drain.holder.pid})`)
+        input.log.detail?.(`curation: handed to daemon (pid ${drain.holder.pid})`)
       } else if (drain.kind === 'drained') {
         drainKind = 'drained'
         const elapsedSeconds = Math.max(0, Math.floor((Date.now() - tailStartedAtMs) / 1_000))
-        input.log.info?.(`curation: drained inline (${elapsedSeconds}s)`)
+        input.log.detail?.(`curation: drained inline (${elapsedSeconds}s)`)
       }
-      for (const entry of drain.promotions ?? []) input.log.info?.(renderPromotionLine(entry))
+      for (const entry of drain.promotions ?? []) input.log.detail?.(renderPromotionLine(entry))
       const outcomeLine = curationOutcomeLine({
         executionContext: input.handoff.executionContext,
         committed: drain.committed - (drain.evidenceCommitted ?? 0),
         downgraded: drain.downgraded,
       })
-      if (outcomeLine !== undefined) input.log.info?.(outcomeLine)
+      if (outcomeLine !== undefined) input.log.detail?.(outcomeLine)
       // A commit noop is visible but never fatal, or evidence-token dedup would wedge the tail.
       if (drain.noops > 0) {
         // The count-anchored prefix stays byte-identical for the ladder extractor.
@@ -660,7 +660,7 @@ export async function curateCompletedRun(
   operations.writeCurationTailReceipt(input.runDir, completedReceipt)
   if (completedReceipt.snapshot !== undefined) {
     const breakdown = completedReceipt.snapshot.breakdown
-    input.log.info?.(`curation: ${CURATION_BREAKDOWN_BUCKETS.map(bucket =>
+    input.log.detail?.(`curation: ${CURATION_BREAKDOWN_BUCKETS.map(bucket =>
       `${bucket} ${breakdown[bucket]}`).join(', ')}`)
   }
   if (completedReceipt.drainKind === 'handed-off') {
@@ -737,7 +737,7 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
     if (reconcile.kind === 'skipped') {
       opts.log.warn('curation: run-outcome projection not reconciled (no writer authority)')
     } else if (reconcile.kind === 'rebuilt') {
-      opts.log.info?.(
+      opts.log.detail?.(
         'curation: run-outcome projection rebuilt at version '
         + `${LOCAL_CURATION_CAPABILITIES.runOutcomesProjectionVersion} `
         + `(folded ${reconcile.report.folded}, `

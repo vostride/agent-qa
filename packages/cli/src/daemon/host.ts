@@ -1996,7 +1996,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
             ...(deadlineMs === undefined ? {} : { deadlineMs }),
             log: {
               warn: (message: string) => logger.error(message, 'knowledge'),
-              info: (message: string) => logger.info(message, 'knowledge'),
+              detail: (message: string) => logger.info(message, 'knowledge'),
             },
           })
           // Same fields as the CLI binding; only a leg with the declared mask may claim the kind.

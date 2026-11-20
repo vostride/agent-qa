@@ -189,7 +189,7 @@ async function tailPreparationLine(executionContext: Context): Promise<string> {
     configPath: join(root, 'agent-qa.config.yaml'),
     configDir: root,
     knowledgeConfig: { dir: 'knowledge' },
-    log: { warn: (message) => lines.push(message), info: (message) => lines.push(message) },
+    log: { warn: (message) => lines.push(message), detail: (message) => lines.push(message) },
     postVerdict,
     ...(executionContext === undefined ? {} : { executionContext }),
   })

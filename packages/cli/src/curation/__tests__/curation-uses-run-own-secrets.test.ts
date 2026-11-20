@@ -348,7 +348,7 @@ async function drainTail(input: {
     knowledgeConfig: { dir: input.knowledgeDir },
     mask: createDeclaredSecretMask(input.configPath).mask,
     ...(spy === undefined ? {} : { modelDeps: {} as never }),
-    log: { warn: (message: string) => warns.push(message), info: () => undefined },
+    log: { warn: (message: string) => warns.push(message), detail: () => undefined },
     operations,
   })
   await tail.drain()

@@ -285,7 +285,7 @@ function createComposedRunExecution(input: {
                 // host (stdout IS the JSON-RPC connection). Both go to the same stderr sink the
                 // quarantine warning uses, so nothing this door serves can have its channel
                 // corrupted by a post-run line.
-                log: { warn, info: warn },
+                log: { warn, detail: warn },
                 executionContext,
                 ...(input.runBridge?.chipRelay === undefined
                   ? {}

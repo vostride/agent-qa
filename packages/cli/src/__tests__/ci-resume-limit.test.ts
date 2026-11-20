@@ -217,7 +217,7 @@ describe('every CI door states the resume limit', () => {
         configPath: '/workspace/agent-qa.config.yaml',
         configDir: '/workspace',
         knowledgeConfig: { dir: 'knowledge' },
-        log: { warn: (message) => warnings.push(message), info: () => undefined },
+        log: { warn: (message) => warnings.push(message), detail: () => undefined },
         executionContext: context,
         operations: { resolveKnowledgeRoot: () => { throw new Error('fixture root failure') } },
       })
@@ -287,7 +287,7 @@ describe('every CI door states the resume limit', () => {
         agentQaRoot: '/workspace/.agent-qa',
         knowledgeConfig: { dir: 'knowledge' },
         configDir: '/workspace',
-        log: { warn: (message: string) => { warnings.push(message) }, info: () => undefined },
+        log: { warn: (message: string) => { warnings.push(message) }, detail: () => undefined },
         operations: {
           loadCompletedRunHandoff: (() => ({ runId: 'run_fold', executionContext: context })) as never,
           resolveKnowledgeRoot: () => { throw new Error('fixture root failure') },

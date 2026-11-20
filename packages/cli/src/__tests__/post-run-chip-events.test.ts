@@ -184,7 +184,7 @@ function fixture(behaviour: {
         ...(behaviour.mask === undefined ? {} : { mask: behaviour.mask }),
         log: {
           warn: (message: string) => warn(message),
-          info: (message: string) => info(message),
+          detail: (message: string) => info(message),
         },
         operations: {
           resolveKnowledgeRoot: () => knowledgeRoot,

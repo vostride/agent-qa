@@ -263,7 +263,7 @@ export const curationTailLog = {
   },
   // The per-run candidate summary line: the same stderr channel as warn, so the ladder run log
   // captures it, but never dressed as a warning.
-  info(message: string): void {
+  detail(message: string): void {
     printRunText(message, (text) => console.error(text))
   },
 }

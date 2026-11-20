@@ -246,9 +246,9 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
   const mask = opts.mask ?? ((text: string) => text)
   const log: RunPostRunTailOptions['log'] = {
     warn: (message) => opts.log.warn(mask(message)),
-    ...(opts.log.info === undefined
+    ...(opts.log.detail === undefined
       ? {}
-      : { info: (message: string) => opts.log.info?.(mask(message)) }),
+      : { detail: (message: string) => opts.log.detail?.(mask(message)) }),
   }
   // Resolved inside a leg's try, so a module read that throws cannot turn a pass into exit 2.
   let resolvedOperations: PostRunTailOperations | undefined
@@ -558,7 +558,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
       const actualEnqueue = enqueueOutcome()
       if (opts.postVerdict !== undefined && actualEnqueue === undefined) {
         const resumeClause = ciResumeClause(opts.executionContext, 'any-host')
-        log.info?.(resumeClause !== undefined
+        log.detail?.(resumeClause !== undefined
           ? `Run ${opts.runId}: post-verdict hand-off pending; analysis is not yet queued. It ${resumeClause}. Durable intent: ${opts.postVerdict.pendingPath}.`
           : `Run ${opts.runId}: post-verdict hand-off pending; analysis is not yet queued. Durable intent: ${opts.postVerdict.pendingPath}. The next local run or daemon drain resumes eligible pending hand-offs.`)
         if (!observingLateFailure && opts.postVerdict.completion !== undefined) {
@@ -596,7 +596,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         if (!analyzeRunCompleted) return
         const digest = await readDigest(openedHost)
         if (digest === undefined || digest.lines.length === 0) return
-        log.info?.(digest.lines.join('\n'))
+        log.detail?.(digest.lines.join('\n'))
       }
       // A failed enqueue already warned, so no close-out line is built from an empty chain.
       if (actualEnqueue === 'failed') return
@@ -613,13 +613,13 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         if (status.notification !== undefined && drainOutcome === 'drained') {
           // The chain reached its terminal in this process, so this line reports what happened.
           const receipt = readCurationTailReceipt(completedRunDir(opts.agentQaRoot, opts.runId))
-          log.info?.(renderChainTerminalLine(status.notification,
+          log.detail?.(renderChainTerminalLine(status.notification,
             receipt?.runId === opts.runId ? receipt : undefined))
           await printDigestBlock(openedHost)
           return
         }
         // Statuses are durable; the parenthetical and the fetch suffix are this process's posture.
-        log.info?.(
+        log.detail?.(
           renderPostProcessingSummaryLine(
             status,
             postureOf(drainOutcome),
