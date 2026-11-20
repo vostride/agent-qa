@@ -289,6 +289,11 @@ export const curationTailLog = {
   },
 }
 
+// A refusal or an error is written to stderr, so it takes that stream's colours, not stdout's.
+function stderrColors(): ReturnType<typeof colorsFor> {
+  return colorsFor(process.stderr)
+}
+
 // A warning is written to stderr, which can be a terminal while stdout is a file.
 export function printRunWarning(line: string): void {
   printRunText(colorsFor(process.stderr).yellow(line), (text) => console.warn(text))
@@ -895,7 +900,11 @@ export function resolveRunConcurrencyConfig(
     const parsed = Number.parseInt(opts.workers, 10)
     if (!Number.isInteger(parsed) || parsed < 1 || String(parsed) !== opts.workers.trim()) {
       throw new CliRunInputError(
-        [pc.red(`Error: --workers must be a positive integer (got "${opts.workers}").`)],
+        [
+          stderrColors().red(
+            `Error: --workers must be a positive integer (got "${opts.workers}").`,
+          ),
+        ],
         2,
       )
     }
@@ -1386,16 +1395,17 @@ export function closeOwnRowAtForcedExit(record: RunRecord): void {
 // Lines rather than writes, so a door with no terminal can carry the report elsewhere.
 function formatParseErrorLines(errors: ParseError[]): string[] {
   const lines: string[] = []
+  const colors = stderrColors()
   for (const err of errors) {
     const location = `${err.file}:${err.line}:${err.column}`
-    const severity = err.severity === 'error' ? pc.red('error') : pc.yellow('warning')
+    const severity = err.severity === 'error' ? colors.red('error') : colors.yellow('warning')
     lines.push(`${severity}: ${err.message}`)
-    lines.push(`  ${pc.blue('-->')} ${location}`)
+    lines.push(`  ${colors.blue('-->')} ${location}`)
     if (err.source) {
-      lines.push(`  ${pc.blue('|')} ${err.source}`)
+      lines.push(`  ${colors.blue('|')} ${err.source}`)
     }
     if (err.suggestion) {
-      lines.push(`  ${pc.blue('=')} ${pc.bold('help')}: ${err.suggestion}`)
+      lines.push(`  ${colors.blue('=')} ${colors.bold('help')}: ${err.suggestion}`)
     }
     lines.push('')
   }
@@ -1535,7 +1545,7 @@ function resolveRunModels(
     return resolveLLMModels(config)
   } catch (err) {
     if (err instanceof NoModelConfiguredError) {
-      throw new CliRunInputError([pc.red(err.message)], 2, { cause: err })
+      throw new CliRunInputError([stderrColors().red(err.message)], 2, { cause: err })
     }
     throw err
   }
@@ -1543,7 +1553,8 @@ function resolveRunModels(
 
 function secretsRefusal(err: DeclaredSecretsUnavailableError): CliRunInputError {
   const [first = '', ...rest] = err.lines
-  return new CliRunInputError([pc.red(first), ...rest.map((line) => pc.dim(line))], 1)
+  const colors = stderrColors()
+  return new CliRunInputError([colors.red(first), ...rest.map((line) => colors.dim(line))], 1)
 }
 
 function anyTargetRunsOnDevice(
@@ -1613,7 +1624,7 @@ function selectDirectRemotes(
 ): Map<ParsedTestBinding, RemoteBrowserConfig | RemotePluginBrowserConfig> {
   const remotes = new Map<ParsedTestBinding, RemoteBrowserConfig | RemotePluginBrowserConfig>()
   for (const { binding, selected } of placeDirectTests(config, configDir, bindings, browserFlag)) {
-    if ('refusal' in selected) throw new CliRunInputError([pc.red(selected.refusal)], 2)
+    if ('refusal' in selected) throw new CliRunInputError([stderrColors().red(selected.refusal)], 2)
     if (selected.place.kind === 'remote') remotes.set(binding, selected.place.remote)
   }
   return remotes
@@ -1659,7 +1670,7 @@ function placeDirectDevices(
       ...(binding.test.use?.device === undefined ? {} : { test: binding.test.use.device }),
       file: configRelativeFile(configDir, binding.filePath),
     })
-    if ('refusal' in selected) throw new CliRunInputError([pc.red(selected.refusal)], 2)
+    if ('refusal' in selected) throw new CliRunInputError([stderrColors().red(selected.refusal)], 2)
     places.set(binding, selected.place)
   }
   return places
@@ -1777,7 +1788,7 @@ function placeSuiteDevice(input: {
       ]
     }),
   })
-  if ('refusal' in selected) throw new CliRunInputError([pc.red(selected.refusal)], 2)
+  if ('refusal' in selected) throw new CliRunInputError([stderrColors().red(selected.refusal)], 2)
   return selected.place
 }
 
@@ -1936,7 +1947,7 @@ function refuseRemoteSecretProblems(input: {
       if (!lines.includes(sentence)) lines.push(sentence)
     }
   }
-  if (lines.length > 0) throw new CliRunInputError(lines.map((line) => pc.red(line)), 2)
+  if (lines.length > 0) throw new CliRunInputError(lines.map((line) => stderrColors().red(line)), 2)
 }
 
 // Zero runnable tests from resolved files refuses loudly, never a green `0 of 0` run.
@@ -1947,9 +1958,9 @@ export function refuseZeroRunnableTests(
   if (bindings.length > 0) return
   throw new CliRunInputError(
     [
-      pc.red('Error: Resolved test file(s) but found 0 runnable tests.'),
-      ...files.map((file) => pc.red(`  ${file}`)),
-      pc.dim('Each test file must define at least one test (a top-level `name` + `steps`, or a `tests:` list).'),
+      stderrColors().red('Error: Resolved test file(s) but found 0 runnable tests.'),
+      ...files.map((file) => stderrColors().red(`  ${file}`)),
+      stderrColors().dim('Each test file must define at least one test (a top-level `name` + `steps`, or a `tests:` list).'),
     ],
     2,
   )
@@ -1965,7 +1976,7 @@ export function refuseZeroRunnableTests(
 export function requireReporterSelection(opts: RunOptions): ReporterSelection {
   const result = resolveReporterSelection(opts)
   if (result.error) {
-    throw new CliRunInputError([pc.red(`Error: ${result.error}`)], 2)
+    throw new CliRunInputError([stderrColors().red(`Error: ${result.error}`)], 2)
   }
   return result.selection!
 }
@@ -2061,7 +2072,7 @@ export async function resolveRunInvocationInputs(
     }
   } catch (err) {
     throw new CliRunInputError(
-      [pc.red(`Error: ${err instanceof Error ? err.message : String(err)}`)],
+      [stderrColors().red(`Error: ${err instanceof Error ? err.message : String(err)}`)],
       2,
     )
   }
@@ -2078,7 +2089,7 @@ export async function resolveRunInvocationInputs(
   const resolvedEnvFilePath: string | null = workspacePaths.envFile.absolutePath
   if (!existsSync(workspacePaths.envFile.absolutePath)) {
     throw new CliRunInputError(
-      [pc.red(`Error: Env file not found: ${workspacePaths.envFile.absolutePath}`)],
+      [stderrColors().red(`Error: Env file not found: ${workspacePaths.envFile.absolutePath}`)],
       1,
     )
   }
@@ -2087,7 +2098,11 @@ export async function resolveRunInvocationInputs(
     envFileVars = parseEnvFile(rawEnvFileContent)
   } catch {
     throw new CliRunInputError(
-      [pc.red(`Error: Env file could not be read: ${workspacePaths.envFile.absolutePath}`)],
+      [
+        stderrColors().red(
+          `Error: Env file could not be read: ${workspacePaths.envFile.absolutePath}`,
+        ),
+      ],
       1,
     )
   }
@@ -2097,7 +2112,10 @@ export async function resolveRunInvocationInputs(
 
   const hooksFilePath = workspacePaths.hooksFile.absolutePath
   if (!existsSync(hooksFilePath)) {
-    throw new CliRunInputError([pc.red(`Error: Hooks file not found: ${hooksFilePath}`)], 1)
+    throw new CliRunInputError(
+      [stderrColors().red(`Error: Hooks file not found: ${hooksFilePath}`)],
+      1,
+    )
   }
   try {
     const { parseHooksFile } = await import('@vostride/agent-qa-core')
@@ -2105,8 +2123,8 @@ export async function resolveRunInvocationInputs(
     if (errors.length > 0) {
       throw new CliRunInputError(
         [
-          pc.red('Hooks configuration errors:'),
-          ...errors.map((err: string) => pc.red(`  - ${err}`)),
+          stderrColors().red('Hooks configuration errors:'),
+          ...errors.map((err: string) => stderrColors().red(`  - ${err}`)),
         ],
         1,
       )
@@ -2123,8 +2141,8 @@ export async function resolveRunInvocationInputs(
     if (err instanceof CliRunInputError) throw err
     throw new CliRunInputError(
       [
-        pc.red(`Error: Hooks file could not be read: ${hooksFilePath}`),
-        ...(err instanceof Error && err.message ? [pc.dim(err.message)] : []),
+        stderrColors().red(`Error: Hooks file could not be read: ${hooksFilePath}`),
+        ...(err instanceof Error && err.message ? [stderrColors().dim(err.message)] : []),
       ],
       1,
     )
@@ -2146,7 +2164,7 @@ export async function resolveRunInvocationInputs(
       discoveredSuiteFiles = selected.suites
     } catch (err) {
       throw new CliRunInputError(
-        [pc.red(`Error: ${err instanceof Error ? err.message : String(err)}`)],
+        [stderrColors().red(`Error: ${err instanceof Error ? err.message : String(err)}`)],
         1,
       )
     }
@@ -2155,8 +2173,8 @@ export async function resolveRunInvocationInputs(
       const patternKind = patterns.every((pattern) => classifyRunPattern(pattern) === 'suite') ? 'suite' : 'test'
       throw new CliRunInputError(
         [
-          pc.red(`Error: No ${patternKind} files found matching patterns:`),
-          ...patterns.map((p) => pc.red(`  ${p}`)),
+          stderrColors().red(`Error: No ${patternKind} files found matching patterns:`),
+          ...patterns.map((p) => stderrColors().red(`  ${p}`)),
         ],
         2,
       )
@@ -2167,8 +2185,8 @@ export async function resolveRunInvocationInputs(
     if (discoveredSuiteFiles.length === 0) {
       throw new CliRunInputError(
         [
-          pc.red('Error: No suite files found matching workspace.suiteMatch'),
-          ...workspacePaths.suiteMatch.map((p) => pc.red(`  ${p}`)),
+          stderrColors().red('Error: No suite files found matching workspace.suiteMatch'),
+          ...workspacePaths.suiteMatch.map((p) => stderrColors().red(`  ${p}`)),
         ],
         2,
       )
@@ -2181,14 +2199,14 @@ export async function resolveRunInvocationInputs(
 
     if (discoveredTestFiles.length === 0 && discoveredSuiteFiles.length === 0) {
       throw new CliRunInputError(
-        [pc.red('Error: No test or suite files found. Check workspace.testMatch and workspace.suiteMatch in agent-qa.config.yaml')],
+        [stderrColors().red('Error: No test or suite files found. Check workspace.testMatch and workspace.suiteMatch in agent-qa.config.yaml')],
         2,
       )
     }
   } else {
     if (!workspacePaths.testMatch || workspacePaths.testMatch.length === 0) {
       throw new CliRunInputError(
-        [pc.red('Error: No testMatch patterns in config. Add workspace.testMatch to agent-qa.config.yaml.')],
+        [stderrColors().red('Error: No testMatch patterns in config. Add workspace.testMatch to agent-qa.config.yaml.')],
         2,
       )
     }
@@ -2197,8 +2215,8 @@ export async function resolveRunInvocationInputs(
     if (discoveredTestFiles.length === 0) {
       throw new CliRunInputError(
         [
-          pc.red('Error: No test files found matching workspace.testMatch'),
-          ...workspacePaths.testMatch.map((p) => pc.red(`  ${p}`)),
+          stderrColors().red('Error: No test files found matching workspace.testMatch'),
+          ...workspacePaths.testMatch.map((p) => stderrColors().red(`  ${p}`)),
         ],
         2,
       )
@@ -2467,7 +2485,7 @@ async function resolveSelectedAuthStateForRun(input: {
   } catch (err) {
     // A config refusal, not an exit, because a daemon serving a run reaches this helper.
     throw new CliRunInputError(
-      [pc.red(`Error: ${err instanceof Error ? err.message : String(err)}`)],
+      [stderrColors().red(`Error: ${err instanceof Error ? err.message : String(err)}`)],
       2,
     )
   }
@@ -2491,7 +2509,7 @@ function resolveAuthStateCapturePathsForRun(input: {
   } catch (err) {
     // Same class, same finding, same fix as its sibling above.
     throw new CliRunInputError(
-      [pc.red(`Error: ${err instanceof Error ? err.message : String(err)}`)],
+      [stderrColors().red(`Error: ${err instanceof Error ? err.message : String(err)}`)],
       2,
     )
   }
@@ -2806,7 +2824,7 @@ async function executeSuites(
   await stopProcessAppium()
   if (remoteRefusal === undefined) return { exitCode, remoteRefused: false }
   printRunText(
-    pc.red(redactSecretValue(remoteRefusal.message, variableContext?.secretRedactor)),
+    stderrColors().red(redactSecretValue(remoteRefusal.message, variableContext?.secretRedactor)),
     (text) => console.error(text),
   )
   return { exitCode: shutdownRequested ? exitCode : 2, remoteRefused: true }
@@ -2867,7 +2885,7 @@ export async function produceMembersFromPatterns(
     if (parseResult.errors.length > 0) {
       throw new CliRunParseError(
         [
-          pc.red(`Found ${parseResult.errors.length} parse error(s):`),
+          stderrColors().red(`Found ${parseResult.errors.length} parse error(s):`),
           '',
           ...formatParseErrorLines(parseResult.errors),
         ],
@@ -2939,7 +2957,10 @@ export async function produceMembersFromPatterns(
 
   // Defense in depth: `resolveRunInvocationInputs` already refuses an empty split, so reaching here
   // means a door produced its own inputs and produced nothing to run.
-  throw new CliRunInputError([pc.red('Error: No test or suite files resolved for this run.')], 2)
+  throw new CliRunInputError(
+    [stderrColors().red('Error: No test or suite files resolved for this run.')],
+    2,
+  )
 }
 
 // Its own function because `--dry-run` stops on exactly this read-only parse.
@@ -3256,7 +3277,7 @@ export async function produceSuiteRunMembers(
     const suiteMembers: Array<Record<string, unknown>> = []
     for (const { test: relativePath, id: suiteEntryId } of suite.tests) {
       if (!isPathInsideDir(relativePath, configDir)) {
-        const refusalLines = [pc.red(`Path traversal rejected: ${relativePath}`)]
+        const refusalLines = [stderrColors().red(`Path traversal rejected: ${relativePath}`)]
         recordPreparationFailure({
           name: `Path traversal rejected in suite`,
           attributes: suiteFailureAttributes,
@@ -3274,7 +3295,7 @@ export async function produceSuiteRunMembers(
       const parseResult = preloaded?.parseResult ?? parseTestFile(fileContent, absolutePath)
       if (parseResult.errors.length > 0) {
         const refusalLines = [
-          pc.red(`Parse errors in ${relativePath}:`),
+          stderrColors().red(`Parse errors in ${relativePath}:`),
           ...formatParseErrorLines(parseResult.errors),
         ]
         const errorLines: string[] = []
@@ -3293,7 +3314,7 @@ export async function produceSuiteRunMembers(
         throw new CliRunInputError(refusalLines, 2)
       }
       if (parseResult.tests.length === 0) {
-        const refusalLines = [pc.red(`No test definition found in ${relativePath}`)]
+        const refusalLines = [stderrColors().red(`No test definition found in ${relativePath}`)]
         recordPreparationFailure({
           name: `No test definition in suite "${suite.name}"`,
           attributes: suiteFailureAttributes,
@@ -3310,13 +3331,13 @@ export async function produceSuiteRunMembers(
       // The suite owns the shared browser context; child authState can only repeat the same logical state.
       if (suiteAuthStateUse && childAuthStateUse && childAuthStateUse.name !== suiteAuthStateUse.name) {
         throw new CliRunInputError(
-          [pc.red(`Suite auth state "${suiteAuthStateUse.name}" conflicts with child test auth state "${childAuthStateUse.name}". Use one primary auth state per suite.`)],
+          [stderrColors().red(`Suite auth state "${suiteAuthStateUse.name}" conflicts with child test auth state "${childAuthStateUse.name}". Use one primary auth state per suite.`)],
           2,
         )
       }
       if (testDef['test-id'] && testDef['test-id'] !== suiteEntryId) {
         const mismatchMsg = `ID mismatch in suite "${suite.name}": test file ${relativePath} has test-id "${testDef['test-id']}" but suite entry specifies id "${suiteEntryId}"`
-        const refusalLines = [pc.red(mismatchMsg)]
+        const refusalLines = [stderrColors().red(mismatchMsg)]
         recordPreparationFailure({
           name: `ID mismatch in suite "${suite.name}"`,
           attributes: suiteFailureAttributes,
@@ -3362,7 +3383,9 @@ export async function produceSuiteRunMembers(
         members: testEntries,
         engine: browserEngine((mergedUse.browser as Record<string, unknown> | undefined)?.name),
       })
-      if ('refusal' in selected) throw new CliRunInputError([pc.red(selected.refusal)], 2)
+      if ('refusal' in selected) {
+        throw new CliRunInputError([stderrColors().red(selected.refusal)], 2)
+      }
       suitePlace = selected.place
     }
     const suiteRemote = suitePlace.kind === 'remote' ? suitePlace.remote : undefined
@@ -4994,7 +5017,11 @@ export async function produceDirectRunMembers(
   // Unreachable after the guard above, asserted here so no zero-member session can start.
   if (members.length === 0) {
     throw new CliRunInputError(
-      [pc.red('Error: Refusing to start a run with zero members (no runnable tests resolved).')],
+      [
+        stderrColors().red(
+          'Error: Refusing to start a run with zero members (no runnable tests resolved).',
+        ),
+      ],
       2,
     )
   }
@@ -5204,7 +5231,9 @@ export function createRunCommand(
         // the module owns computation, the door owns process termination.
         const modeFlags = [opts.test, opts.suite, opts.all].filter(Boolean).length
         if (modeFlags > 1) {
-          console.error(pc.red('Error: --test, --suite, and --all are mutually exclusive.'))
+          console.error(
+            stderrColors().red('Error: --test, --suite, and --all are mutually exclusive.'),
+          )
           await drainAnalytics()
           process.exit(1)
         }
@@ -5339,7 +5368,7 @@ export function createRunCommand(
         if (parseResult.errors.length > 0) {
           printRunText(
             [
-              pc.red(`Found ${parseResult.errors.length} parse error(s):\n`),
+              stderrColors().red(`Found ${parseResult.errors.length} parse error(s):\n`),
               ...parseResult.errors.map((err) => formatParseError(err)),
             ].join('\n'),
             (text) => console.error(text),
@@ -5663,7 +5692,7 @@ export function createRunCommand(
         // Exit 2 with the core's message: an id the caller may not name is refused; nothing ran.
         if (err instanceof RunIdNotMintedError || err instanceof RunIdAlreadyInUseError) {
           printRunText(
-            pc.red(redactSecretValue(err.message, _crashSecretRedactor)),
+            stderrColors().red(redactSecretValue(err.message, _crashSecretRedactor)),
             (text) => console.error(text),
           )
           errorReporter()?.capture(err)
@@ -5673,7 +5702,7 @@ export function createRunCommand(
         // A run this command cannot record is refused, exit 2, no id.
         if (err instanceof RunRecordUnavailableError) {
           printRunText(
-            pc.red(redactSecretValue(err.message, _crashSecretRedactor)),
+            stderrColors().red(redactSecretValue(err.message, _crashSecretRedactor)),
             (text) => console.error(text),
           )
           errorReporter()?.capture(err)
@@ -5690,7 +5719,7 @@ export function createRunCommand(
         // A remote refused before its test started: its one sentence, exit 2.
         if (isRemoteRefusal(err)) {
           printRunText(
-            pc.red(redactSecretValue(err.message, _crashSecretRedactor)),
+            stderrColors().red(redactSecretValue(err.message, _crashSecretRedactor)),
             (text) => console.error(text),
           )
           printStartedRunId()
@@ -5701,7 +5730,7 @@ export function createRunCommand(
         }
         const errMsg = err instanceof Error ? err.message : String(err)
         printRunText(
-          pc.red(frameworkErrorTerminalLine(errMsg, _crashSecretRedactor)),
+          stderrColors().red(frameworkErrorTerminalLine(errMsg, _crashSecretRedactor)),
           (text) => console.error(text),
         )
 

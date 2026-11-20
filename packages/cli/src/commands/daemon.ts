@@ -11,13 +11,13 @@ import type {
   WriterLease,
 } from '@vostride/agent-qa-agent-local'
 import {
+  colorsFor,
   guardJsonText,
   printLogLine,
   printRunText,
   reserveStdoutForData,
 } from '@vostride/agent-qa-core/run-text-output'
 import { Command } from 'commander'
-import pc from 'picocolors'
 
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import type { CliAnalyticsHost } from '../composition/analytics-host.js'
@@ -144,7 +144,7 @@ function renderStatusHuman(status: DaemonStatusDto): void {
     return
   }
   if (status.state === 'malformed') {
-    console.error(pc.red('agent-qa daemon registration is malformed'))
+    console.error(colorsFor(process.stderr).red('agent-qa daemon registration is malformed'))
     return
   }
   if (status.state === 'stale') {
@@ -246,7 +246,10 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
         else renderStatusHuman(status)
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error)
-        printRunText(pc.red(`Daemon status error: ${message}`), (block) => console.error(block))
+        printRunText(
+          colorsFor(process.stderr).red(`Daemon status error: ${message}`),
+          (block) => console.error(block),
+        )
         process.exitCode = 1
       } finally {
         releaseStdout?.()
@@ -273,9 +276,8 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
         deps.signalProcess(inspected.registration.pid, 'SIGTERM')
         console.log(`sent SIGTERM to agent-qa daemon pid ${inspected.registration.pid}`)
       } catch (error) {
-        console.error(
-          pc.red(`Daemon stop error: ${error instanceof Error ? error.message : String(error)}`),
-        )
+        const message = error instanceof Error ? error.message : String(error)
+        console.error(colorsFor(process.stderr).red(`Daemon stop error: ${message}`))
         process.exitCode = 1
       }
     })
