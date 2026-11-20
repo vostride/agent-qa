@@ -1,6 +1,7 @@
 // One guarded request-URL parse for the listener, the `upgrade` handler and the router head.
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { printLogLine } from '@vostride/agent-qa-core'
 
 /**
  * The request URL, or `undefined` when the request line is not one.
@@ -64,10 +65,12 @@ export function backstopServerError(
   error: unknown,
 ): void {
   const kind = error instanceof Error ? error.constructor.name : typeof error
-  console.error(
-    `Dashboard: a ${req.method ?? 'request'} handler threw (${kind}); answered 500 rather than `
-    + 'ending the process',
-  )
+  printLogLine({
+    tag: 'server',
+    level: 'error',
+    message: `A ${req.method ?? 'request'} handler threw (${kind}); answered 500 rather than `
+      + 'ending the process',
+  })
   if (res.headersSent) {
     res.destroy()
     return

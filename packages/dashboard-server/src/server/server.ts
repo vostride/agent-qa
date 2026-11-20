@@ -107,6 +107,8 @@ interface StartServerOptions {
   pluginDebugLog?: (line: string) => void
   // The session's mask, handed to the host while the session lives; the host returns what ends it.
   bindSessionMask?: (mask: (text: string) => string) => () => void
+  // The door's log level; only `debug` adds the verbose lines.
+  logLevel?: string
   port?: number
   /** Defaults to loopback; any other value is refused before anything listens. */
   host?: string
@@ -276,13 +278,20 @@ export async function startServer(opts: StartServerOptions): Promise<{
     }
   }
   if (finalized > 0) {
-    console.log(`Finalized ${finalized} run(s) whose agent-qa process had ended`)
+    printLogLine({
+      tag: 'server',
+      message: `Finalized ${finalized} run(s) whose agent-qa process had ended`,
+    })
   }
 
   // Log any pending rows left from previous session (benign — picked up when queue starts)
   const pendingOrphans = db.getRuns({ statuses: ['pending'] })
   if (pendingOrphans.length > 0) {
-    console.log(`Found ${pendingOrphans.length} pending run(s) from previous session — will be processed when queue starts`)
+    printLogLine({
+      tag: 'queue',
+      message: `Found ${pendingOrphans.length} pending run(s) from previous session — will be `
+        + 'processed when queue starts',
+    })
   }
 
   // Appium lifecycle manager — auto-starts Appium for mobile tests
@@ -308,8 +317,16 @@ export async function startServer(opts: StartServerOptions): Promise<{
     concurrency,
     requestStop: (runId) => executionBackend?.kill(runId) ?? false,
   })
-  console.log(`Run queue started with ${concurrency} concurrency slot(s)`)
-  console.log('Appium lifecycle manager initialized (started only for a run on a device here)')
+  printLogLine({
+    tag: 'queue',
+    message: `Ready, ${concurrency} ${concurrency === 1 ? 'slot' : 'slots'}`,
+  })
+  if (opts.logLevel === 'debug') {
+    printLogLine({
+      tag: 'appium',
+      message: 'Appium lifecycle manager initialized (started only for a run on a device here)',
+    })
+  }
 
   // A run asks for Appium only when its device is here and AGENT_QA_APPIUM_URL is unset.
   const appiumFor = (runId: string): AppiumProvider => ({
@@ -318,9 +335,11 @@ export async function startServer(opts: StartServerOptions): Promise<{
         await appiumManager.acquireLease({ runId, platform })
       } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err)
-        printRunText(`Failed to start Appium for run ${runId}: ${message}`, (text) =>
-          console.error(text),
-        )
+        printLogLine({
+          tag: 'appium',
+          level: 'error',
+          message: `Failed to start Appium for run ${runId}: ${message}`,
+        })
         throw err
       }
       mobileRuns.set(runId, platform)

@@ -50,4 +50,16 @@ describe('the dashboard terminal', () => {
     )
     expect(start).not.toContain('\u001b')
   })
+
+  it('says the queue is ready as the time, the queue tag and the slot count', () => {
+    if (dashboard?.ready !== true) {
+      throw new Error(
+        `the spawned dashboard never said it was listening:\n${dashboard?.stdout() ?? ''}`,
+      )
+    }
+    const ready = dashboard.stdout().split('\n').filter((line) => line.includes('Ready, '))
+    expect(ready, dashboard.stdout()).toEqual([
+      expect.stringMatching(/^\d\d:\d\d:\d\d  queue      Ready, \d+ slots?$/u),
+    ])
+  })
 })

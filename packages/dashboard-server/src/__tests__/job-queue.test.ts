@@ -587,13 +587,16 @@ describe('a queue dispatch failure under GitHub Actions', () => {
     expect(errorSpy).not.toHaveBeenCalled()
   })
 
-  it('prints the same console.error line as before off GitHub Actions', () => {
+  it('prints one console.error line under the queue tag off GitHub Actions', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
     failDispatch('::set-output name=x::y')
 
     expect(errorSpy).toHaveBeenCalledOnce()
-    expect(errorSpy).toHaveBeenCalledWith(
+    const line = String(errorSpy.mock.calls[0]?.[0])
+    expect(errorSpy.mock.calls[0]).toHaveLength(1)
+    expect(line).toMatch(/^\d\d:\d\d:\d\d  queue      /u)
+    expect(line.slice('HH:MM:SS  queue      '.length)).toBe(
       'Queue could not dispatch the next run after an enqueue: ::set-output name=x::y',
     )
   })

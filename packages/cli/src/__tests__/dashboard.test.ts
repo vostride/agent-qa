@@ -200,6 +200,36 @@ describe('createDashboardCommand', () => {
     expect(typeof backendOptions?.invokeRun).toBe('function')
   })
 
+  it('hands the server the debug level with --verbose', async () => {
+    const program = new Command()
+    program.option('--config <path>')
+    program.option('--verbose')
+    program.addCommand(createDashboardCommand())
+
+    await program.parseAsync(['node', 'agent-qa', '--config', configPath, '--verbose', 'dashboard'])
+
+    expect(mockStartServer).toHaveBeenCalledWith(expect.objectContaining({ logLevel: 'debug' }))
+  })
+
+  it('hands the server warn with no flag, or the configured level when there is one', async () => {
+    const start = async (): Promise<void> => {
+      const program = new Command()
+      program.option('--config <path>')
+      program.option('--verbose')
+      program.addCommand(createDashboardCommand())
+      await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'dashboard'])
+    }
+
+    await start()
+    expect(mockStartServer).toHaveBeenLastCalledWith(expect.objectContaining({ logLevel: 'warn' }))
+
+    mockResolveConfig.mockResolvedValue(
+      makeDashboardConfig({ services: { logging: { level: 'info' } } }),
+    )
+    await start()
+    expect(mockStartServer).toHaveBeenLastCalledWith(expect.objectContaining({ logLevel: 'info' }))
+  })
+
   it('opens the page given to --open on the listening port through the opener', async () => {
     const child = { on: vi.fn(), unref: vi.fn() }
     const spawn = vi.fn(() => child)

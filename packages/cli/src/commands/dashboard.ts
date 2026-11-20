@@ -766,7 +766,8 @@ async function startDashboardBackedServices(
     const config = await resolveConfig({
       configPath: globalOpts.config,
     })
-    const pluginLog = pluginDebugLog(doorLogLevel(globalOpts, config))
+    const logLevel = doorLogLevel(globalOpts, config)
+    const pluginLog = pluginDebugLog(logLevel)
 
     const configFilePath = resolve(globalOpts.config ?? 'agent-qa.config.yaml')
     const configDir = dirname(configFilePath)
@@ -923,6 +924,7 @@ async function startDashboardBackedServices(
       // What a plugin answers a live session is masked in this process's error reports.
       bindSessionMask: bindLiveSessionMask,
       ...(pluginLog === undefined ? {} : { pluginDebugLog: pluginLog }),
+      logLevel,
     })
 
     // Loopback rather than a hostname, matching where this server binds.
