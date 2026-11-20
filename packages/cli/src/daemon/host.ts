@@ -6,6 +6,7 @@ import type { Readable } from 'node:stream'
 import { isDeepStrictEqual } from 'node:util'
 import { knowledgeTaggedMessage } from '../curation/knowledge-summary.js'
 import { renderPromotionLine } from '../curation/promotion-line.js'
+import { createRunLineReporter } from '../reporters/run-line-reporter.js'
 
 import type {
   ConfigReaderPort,
@@ -277,6 +278,8 @@ export interface DaemonHostOptions {
   // Composed by `commands/daemon.ts`; absent, the emission sites below are no-ops.
   analytics?: CliAnalyticsHost
   logger?: DaemonHostLogger
+  // The door's log level; only `debug` adds the verbose lines.
+  logLevel?: string
   /** Test-only operations table. Production callers omit it. */
   operations?: Partial<DaemonHostOperations>
 }
@@ -517,8 +520,7 @@ async function composeDaemonRunExecution(input: {
     await import('../commands/run.js')
   const { runInProcessCliRun } = await import('../composition/in-process-run-execution.js')
   const analytics = input.analytics
-  const runSession =
-    analytics === undefined ? undefined : await import('../run-session-composition.js')
+  const runSession = await import('../run-session-composition.js')
 
   // Reports `job_kind: 'run'` only; `duration_ms` stays absent because nothing here measured one.
   const recordRunOutcome = (
@@ -589,18 +591,25 @@ async function composeDaemonRunExecution(input: {
               : { postProcessing: { writerAuthority: daemonAuthority } }),
             onSession: (session) => { startedRunId = session.id as unknown as string },
             // Subscribed directly: `attachRunSubscribers`' wire reporter can print to stdout.
-            ...(jobAnalytics === undefined || runSession === undefined ? {} : {
-              subscribers: ({ session, runner, remotePlugins }) => {
-                const subscriber = runSession.buildAnalyticsRunSubscriber({
-                  analytics: jobAnalytics,
-                  triggerSource: 'daemon',
-                  ...(runner === undefined ? {} : { runner }),
-                  ...(remotePlugins === undefined ? {} : { remotePlugins }),
-                })
+            subscribers: ({ session, runner, remotePlugins, platforms }) => {
+              const subscriber = jobAnalytics === undefined
+                ? undefined
+                : runSession.buildAnalyticsRunSubscriber({
+                    analytics: jobAnalytics,
+                    triggerSource: 'daemon',
+                    ...(runner === undefined ? {} : { runner }),
+                    ...(remotePlugins === undefined ? {} : { remotePlugins }),
+                  })
+              if (subscriber !== undefined) {
                 session.subscribe(runSession.REPLAY_FROM_START, subscriber.handler)
-                return { flush: async () => { await subscriber.flush?.() } }
-              },
-            }),
+              }
+              const runLines = createRunLineReporter({
+                ...(platforms === undefined ? {} : { platforms }),
+                print: (message) => { input.logger.info(message, 'run') },
+              })
+              session.subscribe(runSession.REPLAY_FROM_START, runLines.handler)
+              return { flush: async () => { await subscriber?.flush?.() } }
+            },
             warn: (message: string) => input.logger.info(message, 'run'),
           },
           request,

@@ -195,6 +195,8 @@ async function dispatchThroughDaemon(input: {
   refusal: unknown
   analyticsEvents: CapturedEvent[]
   hostErrors: string[]
+  // Every info line with its tag, as `tag: message`.
+  hostInfo: string[]
   /** Whether anything reached this process's stdout while the daemon served the dispatch. */
   stdoutWrites: number
 }> {
@@ -202,6 +204,7 @@ async function dispatchThroughDaemon(input: {
   const signals = signalHarness()
   const sent: CapturedEvent[] = []
   const hostErrors: string[] = []
+  const hostInfo: string[] = []
   let started = false
   let writesToStdout = 0
 
@@ -231,7 +234,10 @@ async function dispatchThroughDaemon(input: {
     operations: signals.operations,
     analytics,
     logger: {
-      info: () => { started = true },
+      info: (message, tag) => {
+        started = true
+        hostInfo.push(`${tag ?? 'daemon'}: ${message}`)
+      },
       error: (message) => hostErrors.push(message),
     },
   })
@@ -264,7 +270,14 @@ async function dispatchThroughDaemon(input: {
     await running
   }
 
-  return { acknowledged, refusal, analyticsEvents: sent, hostErrors, stdoutWrites: writesToStdout }
+  return {
+    acknowledged,
+    refusal,
+    analyticsEvents: sent,
+    hostErrors,
+    hostInfo,
+    stdoutWrites: writesToStdout,
+  }
 }
 
 describe('the daemon dispatches runs through the in-process core', () => {
@@ -674,13 +687,16 @@ describe('the run outcome of a daemon-dispatched run', () => {
     try {
       const project = daemonProject({ origin: target.origin, environment: 'local' })
       const { fixture } = project
-      const { acknowledged, refusal, analyticsEvents, stdoutWrites } =
+      const { acknowledged, refusal, analyticsEvents, hostInfo, stdoutWrites } =
         await dispatchThroughDaemon({ project, patterns: [fixture.testPattern] })
 
       expect(refusal, `runs.start refused: ${String(refusal)}`).toBeUndefined()
       const runId = (acknowledged as { runId?: string }).runId
       expect(runId, 'runs.start acknowledged no run').toMatch(/^r_/)
       expect(stdoutWrites, 'the daemon wrote to stdout').toBe(0)
+      // With analytics on, the run lines still reach the daemon's logger under the run tag.
+      const runLines = hostInfo.filter((line) => line.startsWith('run: '))
+      expect(runLines.map((line) => line.split(' ')[1]), hostInfo.join('\n')).toEqual(['▶', '✗'])
       expect(
         analyticsEvents.filter((event) => event.name === 'agent-qa.daemon.job.completed'),
         'the job events',

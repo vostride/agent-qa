@@ -24,6 +24,7 @@ import type { CliAnalyticsHost } from '../composition/analytics-host.js'
 import { createDeclaredSecretMask } from '../composition/declared-secrets.js'
 import { errorReporter, settleReporting } from '../composition/error-reporting.js'
 import { createConfigReader } from '../composition/local-agent-host.js'
+import { doorLogLevel } from '../composition/plugin-host.js'
 import { resolveConfig, resolveConfiguredKnowledgeRoot } from '../config.js'
 import { buildCuratorAuthor } from '../curation/curator-author.js'
 import { runDaemonHost } from '../daemon/host.js'
@@ -112,11 +113,21 @@ async function resolveDaemonCuratorAuthor(configPath: string): Promise<CuratorAu
   })
 }
 
-function configPathFor(command: Command): string {
+interface DaemonGlobalOptions {
+  config?: string
+  logLevel?: string
+  verbose?: boolean
+  quiet?: boolean
+}
+
+function globalOptionsFor(command: Command): DaemonGlobalOptions {
   let root = command
   while (root.parent !== null) root = root.parent
-  const globalOpts = root.opts<{ config?: string }>()
-  return resolve(globalOpts.config ?? 'agent-qa.config.yaml')
+  return root.opts<DaemonGlobalOptions>()
+}
+
+function configPathFor(command: Command): string {
+  return resolve(globalOptionsFor(command).config ?? 'agent-qa.config.yaml')
 }
 
 function formatUptime(uptimeMs: number): string {
@@ -163,6 +174,7 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
         const configPath = configPathFor(command)
         const configDir = dirname(configPath)
         const config = await resolveConfig({ configPath, loadAuthPlugins: false })
+        const logLevel = doorLogLevel(globalOptionsFor(command), config)
         const declaredSecrets = createDeclaredSecretMask(configPath)
         // A standing daemon emits from its first dispatch, so it composes eagerly.
         analytics = await composeAnalyticsHost({
@@ -172,6 +184,7 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
         })
         const exitCode = await deps.runHost({
           analytics,
+          logLevel,
           agentQaRoot: resolve(configDir, '.agent-qa'),
           knowledgeRoot: resolveConfiguredKnowledgeRoot(config, configDir),
           configPath,

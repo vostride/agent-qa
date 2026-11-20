@@ -177,6 +177,7 @@ interface DaemonInvocation {
 async function invokeDaemon(
   deps: DaemonCommandDeps,
   args: readonly string[],
+  globalArgs: readonly string[] = ['--config', '/project/agent-qa.config.yaml'],
 ): Promise<DaemonInvocation> {
   const stdout: string[] = []
   const stderr: string[] = []
@@ -193,13 +194,14 @@ async function invokeDaemon(
     const program = new Command()
       .name('agent-qa')
       .option('--config <path>')
+      .option('--log-level <level>')
+      .option('--verbose')
+      .option('--quiet')
       .exitOverride()
     const daemon = createDaemonCommand(deps)
     daemon.exitOverride()
     program.addCommand(daemon)
-    await program.parseAsync(
-      ['node', 'agent-qa', '--config', '/project/agent-qa.config.yaml', 'daemon', ...args],
-    )
+    await program.parseAsync(['node', 'agent-qa', ...globalArgs, 'daemon', ...args])
     return {
       stdout: stdout.join('\n'),
       stderr: stderr.join('\n'),
@@ -815,6 +817,57 @@ describe('a daemon start that fails', () => {
       expect.stringMatching(/^\d\d:\d\d:\d\d {2}daemon {5}Daemon error: \S/u),
     ])
     expect(result.stdout).not.toContain('Daemon error')
+  })
+})
+
+describe('the log level a daemon start hands its host', () => {
+  function projectWithConfig(label: string, services = ''): ReturnType<typeof makePaths> {
+    const paths = makePaths(label)
+    writeFileSync(
+      paths.configPath,
+      'workspace:\n'
+        + '  testMatch: [tests/**/*.yaml]\n'
+        + '  suiteMatch: [suites/**/*.suite.yaml]\n'
+        + '  hooksFile: hooks.yaml\n'
+        + '  envFile: .env\n'
+        + '  secretsFile: .env.secrets.local\n'
+        + services,
+    )
+    writeFileSync(join(paths.root, 'hooks.yaml'), 'hooks: []\n')
+    writeFileSync(join(paths.root, '.env'), '')
+    writeFileSync(join(paths.root, '.env.secrets.local'), '')
+    return paths
+  }
+
+  async function startedLevel(
+    paths: ReturnType<typeof makePaths>,
+    flags: readonly string[],
+  ): Promise<unknown> {
+    const deps = daemonCommandDeps(paths)
+    const result = await invokeDaemon(deps, [], ['--config', paths.configPath, ...flags])
+    expect(result.exitCode, result.stderr).toBe(0)
+    expect(deps.runHost).toHaveBeenCalledTimes(1)
+    return vi.mocked(deps.runHost).mock.calls[0]?.[0].logLevel
+  }
+
+  it('is debug with --verbose and silent with --quiet', async () => {
+    const paths = projectWithConfig('level-flags')
+
+    expect(await startedLevel(paths, ['--verbose'])).toBe('debug')
+    expect(await startedLevel(paths, ['--quiet'])).toBe('silent')
+  })
+
+  it('is warn with no flag and no configured level', async () => {
+    const paths = projectWithConfig('level-default')
+
+    expect(await startedLevel(paths, [])).toBe('warn')
+  })
+
+  it('is the project services.logging.level with no flag, and --log-level wins over it', async () => {
+    const paths = projectWithConfig('level-configured', 'services:\n  logging:\n    level: info\n')
+
+    expect(await startedLevel(paths, [])).toBe('info')
+    expect(await startedLevel(paths, ['--log-level', 'error'])).toBe('error')
   })
 })
 
