@@ -62,4 +62,21 @@ describe('the dashboard terminal', () => {
       expect.stringMatching(/^\d\d:\d\d:\d\d  queue      Ready, \d+ slots?$/u),
     ])
   })
+
+  // Last, because it stops the dashboard the cells above read.
+  it('says it is shutting down as the time, the server tag and the message once stopped', async () => {
+    if (dashboard?.ready !== true) {
+      throw new Error(
+        `the spawned dashboard never said it was listening:\n${dashboard?.stdout() ?? ''}`,
+      )
+    }
+    await dashboard.stop()
+    const shutdown = dashboard
+      .stdout()
+      .split('\n')
+      .filter((line) => line.includes('Shutting down'))
+    expect(shutdown, dashboard.stdout()).toEqual([
+      expect.stringMatching(/^\d\d:\d\d:\d\d  server     Shutting down dashboard\.\.\.$/u),
+    ])
+  }, FILE_BUDGET_MS)
 })

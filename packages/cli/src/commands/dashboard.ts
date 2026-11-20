@@ -23,7 +23,7 @@ import {
 } from '@vostride/agent-qa-agent'
 import type { LocalAgentHost } from '@vostride/agent-qa-agent-local'
 import { resolveWorkspacePaths } from '@vostride/agent-qa-core'
-import { printRunText } from '@vostride/agent-qa-core/run-text-output'
+import { printLogLine } from '@vostride/agent-qa-core/run-text-output'
 import type { RunAttributes } from '@vostride/agent-qa-core'
 import type {
   AgentHost,
@@ -673,7 +673,7 @@ export async function mountCoHostedMcp(input: {
 }): Promise<McpCoHostListenResult> {
   const { server, port } = input
   const warn = input.warn
-    ?? ((line: string) => printRunText(pc.yellow(line), (block) => console.error(block)))
+    ?? ((line: string) => printLogLine({ tag: 'mcp', level: 'warn', message: line }))
 
   try {
     await new Promise<void>((listening, failed) => {
@@ -832,7 +832,11 @@ async function startDashboardBackedServices(
       uiDir = resolve(dirname(pkgPath), 'dist')
     } catch {
       if (globalOpts.verbose) {
-        console.log(pc.yellow('Warning: @vostride/agent-qa-dashboard-ui not found — API-only mode'))
+        printLogLine({
+          tag: 'server',
+          level: 'warn',
+          message: '@vostride/agent-qa-dashboard-ui not found — API-only mode',
+        })
       }
     }
 
@@ -959,10 +963,11 @@ async function startDashboardBackedServices(
       const mcpMount = await mountCoHostedMcp({ server: mcpServer, port: mcpPort })
       mcpServer = mcpMount.server
       if (mcpMount.server !== undefined) {
-        console.log(pc.dim(
-          `MCP endpoint listening on http://${MCP_HTTP_BIND_HOST}:${String(mcpMount.boundPort)}/ `
-          + '(live view attached).',
-        ))
+        printLogLine({
+          tag: 'mcp',
+          message: `MCP endpoint listening on http://${MCP_HTTP_BIND_HOST}:`
+            + `${String(mcpMount.boundPort)}/ (live view attached).`,
+        })
       }
     }
 
@@ -974,7 +979,7 @@ async function startDashboardBackedServices(
     const shutdown = async () => {
       if (shuttingDown) return
       shuttingDown = true
-      console.log(pc.dim(`\nShutting down ${labels.shutdown}...`))
+      printLogLine({ tag: 'server', message: `Shutting down ${labels.shutdown}...` })
       await shutdownDashboard({
         close,
         // the co-hosted MCP listener is this command's to close, beside the dashboard's
@@ -1000,7 +1005,7 @@ async function startDashboardBackedServices(
     process.on('SIGTERM', shutdown)
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err)
-    printRunText(pc.red(`${labels.error} error: ${message}`), (block) => console.error(block))
+    printLogLine({ tag: 'server', level: 'error', message: `${labels.error} error: ${message}` })
     errorReporter()?.capture(err)
     await exitAfterSettling(2)
   }

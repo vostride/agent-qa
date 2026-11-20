@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Command } from 'commander'
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -69,6 +71,7 @@ import {
   bindLiveSessionMask,
   createDashboardCommand,
   createServeCommand,
+  mountCoHostedMcp,
 } from '../commands/dashboard.js'
 import { processRemoteSessions, REMOTE_RELEASE_BOUND_MS } from '../commands/run.js'
 import * as errorReporting from '../composition/error-reporting.js'
@@ -93,6 +96,11 @@ function makeDashboardConfig(config: Record<string, unknown> = {}): Record<strin
     },
     ...config,
   }
+}
+
+function taggedLine(tag: string, message: string): RegExp {
+  const escaped = message.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+  return new RegExp(`^\\d\\d:\\d\\d:\\d\\d  ${tag.padEnd(9)}  ${escaped}$`, 'u')
 }
 
 function createWorkspaceFiles(): void {
@@ -436,6 +444,9 @@ describe('createDashboardCommand', () => {
       expect(close).toHaveBeenCalledOnce()
       expect(exitSpy).toHaveBeenCalledWith(0)
       expect(steps).toEqual(['close', 'settle', 'settled', 'exit 0'])
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringMatching(taggedLine('server', 'Shutting down dashboard...')),
+      )
       expect(mockStartServer).toHaveBeenCalledWith(
         expect.objectContaining({
           remoteSessions: processRemoteSessions,
@@ -524,9 +535,127 @@ describe('createServeCommand', () => {
       await expect(Promise.resolve(shutdown?.())).rejects.toThrow('process.exit')
       expect(close).toHaveBeenCalledOnce()
       expect(logSpy).toHaveBeenCalledWith(expect.stringContaining('Shutting down local services'))
+      expect(logSpy).toHaveBeenCalledWith(
+        expect.stringMatching(taggedLine('server', 'Shutting down local services...')),
+      )
       expect(exitSpy).toHaveBeenCalledWith(0)
     } finally {
       processOnSpy.mockRestore()
+    }
+  })
+
+  it('prints the MCP endpoint it listens on under the mcp tag, with the port readable', async () => {
+    mockResolveConfig.mockResolvedValue(makeDashboardConfig({
+      services: { mcp: { enabled: true, port: 0 } },
+    }))
+    const signalHandlers = new Map<string | symbol, (...args: any[]) => unknown>()
+    const processOnSpy = vi.spyOn(process, 'on').mockImplementation(((event, listener) => {
+      signalHandlers.set(event, listener as (...args: any[]) => unknown)
+      return process
+    }) as typeof process.on)
+
+    try {
+      const program = new Command()
+      program.option('--config <path>')
+      const cmd = createServeCommand()
+      program.addCommand(cmd)
+
+      await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'serve'])
+
+      const listening = logSpy.mock.calls.filter(
+        (call: unknown[]) => String(call[0]).includes('MCP endpoint listening on'),
+      )
+      expect(listening).toHaveLength(1)
+      expect(listening[0]).toHaveLength(1)
+      expect(listening[0][0]).toMatch(
+        /^\d\d:\d\d:\d\d  mcp        MCP endpoint listening on http:\/\/127\.0\.0\.1:\d+\/ \(live view attached\)\.$/u,
+      )
+      expect(String(listening[0][0])).toMatch(/MCP endpoint listening on http:\/\/127\.0\.0\.1:(\d+)\//u)
+
+      await expect(Promise.resolve(signalHandlers.get('SIGTERM')?.())).rejects.toThrow('process.exit')
+    } finally {
+      processOnSpy.mockRestore()
+    }
+  })
+})
+
+describe('a start that fails', () => {
+  it('prints the dashboard error under the server tag in one string to stderr', async () => {
+    mockStartServer.mockRejectedValueOnce(new Error('port 3470 is taken'))
+    const program = new Command()
+    program.option('--config <path>')
+    program.addCommand(createDashboardCommand())
+
+    await expect(
+      program.parseAsync(['node', 'agent-qa', '--config', configPath, 'dashboard']),
+    ).rejects.toThrow('process.exit')
+
+    expect(exitSpy).toHaveBeenCalledWith(2)
+    const failures = errorSpy.mock.calls.filter(
+      (call: unknown[]) => String(call[0]).includes('Dashboard error'),
+    )
+    expect(failures).toEqual([
+      [expect.stringMatching(taggedLine('server', 'Dashboard error: port 3470 is taken'))],
+    ])
+  })
+
+  it('names serve in the error line of the serve command', async () => {
+    mockStartServer.mockRejectedValueOnce(new Error('port 3470 is taken'))
+    const program = new Command()
+    program.option('--config <path>')
+    program.addCommand(createServeCommand())
+
+    await expect(
+      program.parseAsync(['node', 'agent-qa', '--config', configPath, 'serve']),
+    ).rejects.toThrow('process.exit')
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      expect.stringMatching(taggedLine('server', 'Serve error: port 3470 is taken')),
+    )
+  })
+})
+
+describe('an MCP endpoint that cannot bind', () => {
+  async function occupiedPort(): Promise<{ port: number; release: () => Promise<void> }> {
+    const squatter = createServer(() => {})
+    await new Promise<void>((bound) => squatter.listen(0, '127.0.0.1', () => bound()))
+    return {
+      port: (squatter.address() as AddressInfo).port,
+      release: () => new Promise<void>((closed) => squatter.close(() => closed())),
+    }
+  }
+
+  it('warns once under the mcp tag naming the port when the caller hands no warn', async () => {
+    const occupied = await occupiedPort()
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    try {
+      const outcome = await mountCoHostedMcp({ server: createServer(() => {}), port: occupied.port })
+      expect(outcome.server).toBeUndefined()
+      expect(warnSpy).toHaveBeenCalledOnce()
+      expect(warnSpy.mock.calls[0]).toHaveLength(1)
+      expect(warnSpy.mock.calls[0][0]).toMatch(taggedLine('mcp', outcome.warning ?? ''))
+      expect(outcome.warning).toMatch(
+        new RegExp(`^MCP endpoint not mounted on 127\\.0\\.0\\.1:${String(occupied.port)} — `, 'u'),
+      )
+    } finally {
+      warnSpy.mockRestore()
+      await occupied.release()
+    }
+  })
+
+  it('hands a caller its own warn the bare sentence', async () => {
+    const occupied = await occupiedPort()
+    const warnings: string[] = []
+    try {
+      const outcome = await mountCoHostedMcp({
+        server: createServer(() => {}),
+        port: occupied.port,
+        warn: (line) => warnings.push(line),
+      })
+      expect(warnings).toEqual([outcome.warning])
+      expect(warnings[0]).toMatch(/^MCP endpoint not mounted on /u)
+    } finally {
+      await occupied.release()
     }
   })
 })
