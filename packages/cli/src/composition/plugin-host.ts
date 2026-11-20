@@ -1,8 +1,9 @@
 import { dirname, resolve } from 'node:path'
 
 import {
+  colorsFor,
   createPluginHostPool,
-  formatLogEntry,
+  formatLogLine,
   getAgentQaVersion,
   pluginHostVersions,
   pluginSecretResolver,
@@ -44,16 +45,10 @@ function secretsFileOf(config: AgentQaConfig): string {
 export function pluginDebugLog(logLevel: string): ((line: string) => void) | undefined {
   if (logLevel !== 'debug') return undefined
   return (line) => {
-    const text = formatLogEntry({
-      id: '',
-      stepId: null,
-      runId: '',
-      level: 'debug',
-      source: 'adapter',
-      message: line,
-      data: {},
-      timestamp: new Date().toISOString(),
-    })
+    const text = formatLogLine(
+      { tag: 'plugin', message: line, level: 'debug' },
+      colorsFor(process.stderr),
+    )
     printRunText(text, (shown) => process.stderr.write(shown + '\n'))
   }
 }

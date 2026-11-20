@@ -132,13 +132,13 @@ async function runWithStderr(globalArgs: readonly string[]): Promise<StderrRun> 
 }
 
 describe("a plugin's stderr during agent-qa run", () => {
-  it("shows a plugin's stderr line, masked and under its entry, as a DEBUG line on stderr at --log-level debug", async () => {
+  it("shows a plugin's stderr line, masked and under its entry, as a line with the plugin tag on stderr at --log-level debug", async () => {
     const run = await runWithStderr(['--log-level', 'debug'])
 
     expect(run.exitCode, run.log).toBe(0)
     expect(run.stderr).toMatch(
       new RegExp(
-        `DEBUG\\s+\\[adapter\\] plugin lab: signed in to the lab with \\[secret:${PLANTED_SECRET_NAME}\\]`,
+        `\\d\\d:\\d\\d:\\d\\d {2}plugin {5}plugin lab: signed in to the lab with \\[secret:${PLANTED_SECRET_NAME}\\]`,
       ),
     )
     expect(run.stderr).not.toContain(PLANTED)

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto'
 import { LOG_LEVEL_PRIORITY } from './types.js'
 import type { LogLevel, LogSource, LogEntry, LogStorage, ScopedLogger } from './types.js'
-import { formatLogEntry } from './cli-formatter.js'
+import { colorsFor, formatLogLine } from './log-line.js'
 import { guardJsonText, printRunText, type RunTextEnv } from './run-text-output.js'
 import { redactSecretValue, type SecretRedactor } from '@vostride/agent-qa-runner'
 
@@ -101,7 +101,16 @@ export class LogManager {
 
     if (this.shouldDisplay(level)) {
       printRunText(
-        formatLogEntry(entry),
+        formatLogLine(
+          {
+            tag: entry.source,
+            message: entry.message,
+            level: entry.level,
+            data: entry.data,
+            time: new Date(entry.timestamp),
+          },
+          colorsFor(process.stderr, this.env),
+        ),
         (line) => {
           process.stderr.write(`${line}\n`)
         },

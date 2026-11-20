@@ -463,7 +463,7 @@ describe("doctor's plugin rows", () => {
     return written
   }
 
-  it("shows the account check's plugin stderr, masked and under its entry, as DEBUG lines on stderr under --log-level debug, and its JSON stays whole", async () => {
+  it("shows the account check's plugin stderr, masked and under its entry, as lines with the plugin tag on stderr under --log-level debug, and its JSON stays whole", async () => {
     const project = await newProject('LAB_KEY=' + SECRET_VALUE + '\n')
     const raw = stderrProject(project)
     const written = captureStderr()
@@ -474,7 +474,7 @@ describe("doctor's plugin rows", () => {
     expect(row?.status).toBe('pass')
     const stderr = written.join('')
     expect(stderr).toMatch(
-      /DEBUG\s+\[adapter\] plugin lab: checking the plan with \[secret:LAB_KEY\]/,
+      /\d\d:\d\d:\d\d {2}plugin {5}plugin lab: checking the plan with \[secret:LAB_KEY\]/u,
     )
     expect(stderr).not.toContain(SECRET_VALUE)
   })
