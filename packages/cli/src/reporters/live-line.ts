@@ -6,6 +6,29 @@ export interface LiveLine {
 const FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const graphemes = new Intl.Segmenter()
 
+const TWO_CELLS = new RegExp(
+  [
+    // East Asian wide and fullwidth characters, by block.
+    String.raw`[\u1100-\u115F\u2E80-\u303E\u3041-\uA4CF\uA960-\uA97F\uAC00-\uD7A3\uF900-\uFAFF]`,
+    String.raw`[\uFE10-\uFE19\uFE30-\uFE6F\uFF00-\uFF60\uFF9E\uFF9F\uFFE0-\uFFE6]`,
+    String.raw`[\u{16FE0}-\u{18D7F}\u{1AFF0}-\u{1B2FF}\u{1D300}-\u{1D37F}\u{20000}-\u{3FFFD}]`,
+    // What a terminal draws as an emoji, the variation selector that asks for one included.
+    String.raw`[\u{1F000}-\u{1FAFF}\uFE0F]|\p{Emoji_Presentation}`,
+  ].join('|'),
+  'u',
+)
+// Combining marks, variation selectors among them, and joiners: drawn on the character before.
+const NO_CELL = /^[\p{Mn}\p{Me}\u200C\u200D]+$/u
+const TAKES_A_CELL = /[^\p{Mn}\p{Me}\u200C\u200D]/gu
+
+// A cell too many cuts the text a little early; a cell too few wraps the row. So a grapheme some
+// terminals draw wider than others counts two: an emoji, and a cluster of letters as Thai writes.
+function cellsOf(grapheme: string): number {
+  if (NO_CELL.test(grapheme)) return 0
+  if (TWO_CELLS.test(grapheme)) return 2
+  return (grapheme.match(TAKES_A_CELL)?.length ?? 1) > 1 ? 2 : 1
+}
+
 // The spinner's glyph and the space after it take the row's first two columns.
 export function fitToRow(text: string, columns: number, tail: string): string {
   const room = columns - 2 - tail.length
@@ -14,7 +37,14 @@ export function fitToRow(text: string, columns: number, tail: string): string {
     graphemes.segment(text.replace(/\s+/gu, ' ').trim()),
     (part) => part.segment,
   )
-  return parts.length > room ? `${parts.slice(0, room - 1).join('')}…` : parts.join('')
+  let cells = 0
+  let kept = 0
+  for (const [index, part] of parts.entries()) {
+    cells += cellsOf(part)
+    if (cells > room) return `${parts.slice(0, kept).join('')}…`
+    if (cells < room) kept = index + 1
+  }
+  return parts.join('')
 }
 
 // The library loads here, on first use: the bundled CLI would hoist a static import into every

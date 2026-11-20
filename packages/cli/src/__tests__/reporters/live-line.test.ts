@@ -13,6 +13,8 @@ import { buildReporterFixture } from './fixtures.js'
 const LONG = 'Check the total is $24.00 and the shipping is $5.00 before paying. '
   .repeat(4)
   .slice(0, 200)
+const JAPANESE = 'カートを開いて、合計が二千四百円で送料が五百円であることを確認する。'.repeat(4)
+const EMOJI = 'Add 🛒, pay 💳, see ✅ and 🎉, then ship it to 🇯🇵. '.repeat(4)
 const FRAME = /^[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏] /u
 const COLOURS_OFF = pc.createColors(false)
 const ENDS_THE_LIVE_LINE = new Set([
@@ -26,9 +28,26 @@ const ENDS_THE_LIVE_LINE = new Set([
 const segments = (text: string): string[] =>
   Array.from(new Intl.Segmenter().segment(text), (part) => part.segment)
 
+// The emulator's own width table is Unicode 6, where an emoji takes one cell. This one draws an
+// emoji two cells wide, and a flag's two letters one cell each, as the terminals in use do. The
+// emulator reads a character's width from bits 1 and 2 of the number `charProperties` returns.
+function drawEmojiTwoCellsWide(terminal: InstanceType<typeof xterm.Terminal>): void {
+  const cells = (codepoint: number): 1 | 2 => {
+    const character = String.fromCodePoint(codepoint)
+    if (/\p{Regional_Indicator}/u.test(character)) return 1
+    return /\p{Emoji_Presentation}/u.test(character) ? 2 : 1
+  }
+  terminal.unicode.register({
+    version: 'emoji-two-cells',
+    wcwidth: cells,
+    charProperties: (codepoint) => cells(codepoint) << 1,
+  })
+  terminal.unicode.activeVersion = 'emoji-two-cells'
+}
+
 // A terminal the live line draws on: the stream's bytes go to the emulator, and the screen is read
 // back from the emulator's buffer once it has parsed every byte written so far.
-function emulator(columns: number, rows = 12) {
+function emulator(columns: number, rows = 12, widths: 'unicode-6' | 'wide-emoji' = 'unicode-6') {
   // A terminal device moves to the start of the row on a line feed, so the emulator does too.
   const terminal = new xterm.Terminal({
     cols: columns,
@@ -36,6 +55,7 @@ function emulator(columns: number, rows = 12) {
     allowProposedApi: true,
     convertEol: true,
   })
+  if (widths === 'wide-emoji') drawEmojiTwoCellsWide(terminal)
   let written = ''
   const stream = Object.assign(new EventEmitter(), {
     isTTY: true,
@@ -69,6 +89,17 @@ function emulator(columns: number, rows = 12) {
         if (row !== '') found.push(row)
       }
       return found
+    },
+    // The cells of the first row that are drawn on, a wide character counted as the two it takes.
+    async cellsOnFirstRow(): Promise<number> {
+      await flush()
+      const row = terminal.buffer.active.getLine(0)
+      let drawn = 0
+      for (let x = 0; x < terminal.cols; x++) {
+        const cell = row?.getCell(x)
+        if (cell !== undefined && cell.getChars() !== '') drawn = x + cell.getWidth()
+      }
+      return drawn
     },
     // As in a terminal: the window changes size first, and the program hears of it afterwards.
     async resize(next: number): Promise<void> {
@@ -159,6 +190,30 @@ describe('fitToRow', () => {
       '  4s',
       'Open the cart and add the mug to the bag',
     ],
+    [
+      'cuts a Japanese text by the two cells each character takes',
+      'カートを開いて合計を確認する',
+      20,
+      '  4s',
+      'カートを開い…',
+    ],
+    [
+      'keeps a Japanese text that fills the row exactly',
+      'カートを開いて',
+      20,
+      '  4s',
+      'カートを開いて',
+    ],
+    [
+      'leaves a cell empty when a wide character would straddle the cut',
+      'abcd漢字x',
+      12,
+      '  4s',
+      'abcd…',
+    ],
+    ['counts an emoji as two cells', '🛒🛒🛒🛒🛒', 14, '  4s', '🛒🛒🛒…'],
+    ['counts a Thai cluster of two letters as two cells', 'น้ำน้ำน้ำน้ำ', 12, '  4s', 'น้ำน้ำ…'],
+    ['gives a combining mark that stands alone no cell', '\u0301abcd', 10, '  4s', '\u0301abcd'],
     ['gives nothing when the row holds only the tail', 'Open the cart', 7, '  4s', ''],
     ['gives nothing when the window reports no width', 'Open the cart', 0, '  4s', ''],
   ])('%s', (_title, text, columns, tail, expected) => {
@@ -175,14 +230,19 @@ describe('fitToRow', () => {
   it('cuts between graphemes, never inside a flag, a family emoji or an accented letter', () => {
     const text = 'é🇳🇱👨‍👩‍👧 '.repeat(30)
     const whole = segments(text)
+    // An accented letter and a space take one cell; a flag and a family emoji take two.
+    const cellsOf = (parts: string[]): number =>
+      parts.reduce((sum, part) => sum + (/\p{Emoji_Presentation}/u.test(part) ? 2 : 1), 0)
 
     for (let columns = 9; columns <= 60; columns++) {
       const fitted = fitToRow(text, columns, '  3s')
       const kept = segments(fitted.slice(0, -1))
+      const room = columns - 2 - 4
 
       expect(fitted.endsWith('…')).toBe(true)
-      expect(segments(fitted)).toHaveLength(columns - 2 - 4)
       expect(kept).toEqual(whole.slice(0, kept.length))
+      expect(cellsOf(kept) + 1).toBeLessThanOrEqual(room)
+      expect(cellsOf(whole.slice(0, kept.length + 1)) + 1).toBeGreaterThan(room)
     }
   })
 })
@@ -236,6 +296,44 @@ describe('the live line on a terminal', () => {
     expect(during).toHaveLength(1)
     expect(segments(during[0] ?? '').length).toBeLessThanOrEqual(40)
     expect(await term.screen()).toEqual(['✗ Check the total 27s'])
+  })
+
+  it('keeps a Japanese step on one row of an 80-column window', async () => {
+    const term = emulator(80)
+    const live = await createLiveLine(term.stream, (glyph) => glyph)
+
+    live.start(JAPANESE)
+    vi.advanceTimersByTime(2_400)
+    const during = await term.screen()
+    const cells = await term.cellsOnFirstRow()
+    live.stop()
+    term.stream.write('✓ カートを開く 3s\n')
+
+    expect(during).toHaveLength(1)
+    expect(during[0]).toBe(`${during[0]?.slice(0, 2)}${JAPANESE.slice(0, 36)}…  2s`)
+    expect(during[0]).toMatch(FRAME)
+    expect(cells).toBe(79)
+    expect(await term.screen()).toEqual(['✓ カートを開く 3s'])
+  })
+
+  it('keeps an emoji step on one row of an 80-column window', async () => {
+    const term = emulator(80, 12, 'wide-emoji')
+    const live = await createLiveLine(term.stream, (glyph) => glyph)
+
+    live.start(EMOJI)
+    vi.advanceTimersByTime(2_400)
+    const during = await term.screen()
+    const cells = await term.cellsOnFirstRow()
+    live.stop()
+    term.stream.write('✓ Add 🛒 3s\n')
+
+    expect(during).toHaveLength(1)
+    expect(during[0]).toMatch(FRAME)
+    expect(during[0]).toMatch(/…  2s$/u)
+    expect(EMOJI.startsWith(during[0]?.slice(2, -5) ?? '-')).toBe(true)
+    // The row is full but for the cell a cut before a wide character can leave empty.
+    expect([79, 80]).toContain(cells)
+    expect(await term.screen()).toEqual(['✓ Add 🛒 3s'])
   })
 
   it('leaves only the result line after the window narrows and widens during a step', async () => {
