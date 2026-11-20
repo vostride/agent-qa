@@ -229,7 +229,8 @@ export function composeDoorOutput(terminalLines: { readonly logLevel: string } |
   return {
     warn: (message) => { printLogLine({ tag: 'run', level: 'warn', message }) },
     tailLog: createTaggedCurationLog({ logLevel: terminalLines.logLevel }),
-    runLines: ({ platforms }) => createRunLineReporter(platforms === undefined ? {} : { platforms }),
+    runLines: ({ platforms }) =>
+      createRunLineReporter(platforms === undefined ? {} : { platforms }),
   }
 }
 

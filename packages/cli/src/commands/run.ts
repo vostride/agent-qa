@@ -8,7 +8,12 @@ import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, 
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
 import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, describeAndroidHere, describeIOSHere, discoverWorkspaceFiles, findDeviceHere, isUrlRemoteEntry, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, projectRemotesForDisplay, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
-import { colorsFor, formatLogLine, isCi, printRunText } from '@vostride/agent-qa-core/run-text-output'
+import {
+  colorsFor,
+  formatLogLine,
+  isCi,
+  printRunText,
+} from '@vostride/agent-qa-core/run-text-output'
 import type { RunTextEnv } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, RemoteConnectionFields, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
@@ -272,7 +277,10 @@ export const curationTailLog = {
   detail(message: string, tag?: string): void {
     if (curationTailLog.level !== 'debug') return
     printRunText(
-      formatLogLine({ tag: tag ?? 'knowledge', message, level: 'debug' }, colorsFor(process.stderr)),
+      formatLogLine(
+        { tag: tag ?? 'knowledge', message, level: 'debug' },
+        colorsFor(process.stderr),
+      ),
       (text) => console.error(text),
     )
   },

@@ -528,7 +528,8 @@ export async function curateCompletedRun(
         knowledgeRoot: input.knowledgeRoot,
         ...(input.mask === undefined ? {} : { mask: input.mask }),
       })
-      // Visibility never gates: the candidates line sits beside the noop line and the complete check.
+      // Visibility never gates: the candidates line sits beside the noop line and the complete
+      // check.
       input.log.detail?.(candidateSummaryLine(receiptIdentity.runId, candidates))
       // Candidate and canary drops share this scope and crash boundary.
       const reader = operations.openKnowledgeReader({ knowledgeRoot: input.knowledgeRoot })
@@ -795,7 +796,9 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
         ? currentHandoff
         : operations.loadCompletedRunHandoff(join(runDir, HANDOFF_FILE))
     } catch {
-      opts.log.warn(`Skipping post-verdict knowledge curation for ${runDir}: handoff is malformed.`)
+      opts.log.warn(
+        `Skipping post-verdict knowledge curation for ${runDir}: handoff is malformed.`,
+      )
       continue
     }
 
@@ -811,7 +814,9 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
           drainerKnowledgeRoot: knowledgeRoot,
         })
         if ('handBack' in context) {
-          opts.log.warn(`Skipping post-verdict knowledge curation for ${runDir}: ${context.handBack}`)
+          opts.log.warn(
+            `Skipping post-verdict knowledge curation for ${runDir}: ${context.handBack}`,
+          )
           continue
         }
         runMask = context.mask

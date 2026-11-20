@@ -265,7 +265,10 @@ export function createSessionHandler(
             const hooks = setupCount === 0 && teardownCount === 0
               ? ''
               : ` · setup ${setupCount}, teardown ${teardownCount}`
-            printLogLine({ tag: 'live', message: `▶ ${testDef.name} · ${stepCount} steps${hooks}` })
+            printLogLine({
+              tag: 'live',
+              message: `▶ ${testDef.name} · ${stepCount} steps${hooks}`,
+            })
 
             reply({
               type: 'test-start',

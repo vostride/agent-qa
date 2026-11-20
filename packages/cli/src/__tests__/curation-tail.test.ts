@@ -2547,7 +2547,7 @@ describe('the knowledge summary a sweep reports', () => {
     expect(detail).not.toHaveBeenCalledWith(expect.stringContaining('fixture hand-back reason'))
   })
 
-  it('warns a log that has only warn of failures, skipped runs and the quarantine, and of nothing else', async () => {
+  it('warns a log that has only warn of failures, skipped runs and the quarantine', async () => {
     const siblingRunId = '000-sibling-run'
     const currentRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(runId))
     const siblingRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(siblingRunId))
@@ -2597,9 +2597,12 @@ describe('the knowledge summary a sweep reports', () => {
     expect(warn.mock.calls.map(([message]) => String(message))).toEqual([
       'curation: run-outcome projection writer lease release refused',
       `Skipping post-verdict knowledge curation for ${siblingRunDir}: handoff is malformed.`,
-      expect.stringContaining('Quarantine withheld for checkout completes (suite/checkout.test.ts): '),
+      expect.stringContaining(
+        'Quarantine withheld for checkout completes (suite/checkout.test.ts): ',
+      ),
       expect.stringContaining(`Quarantine ledger has 1 unreadable line(s) for ${runId}: `),
-      'Skipping post-verdict knowledge curation: the completed run handoff is missing or malformed.',
+      'Skipping post-verdict knowledge curation: '
+      + 'the completed run handoff is missing or malformed.',
     ])
   })
 })
