@@ -23,10 +23,11 @@ import {
   MASKED_RESOLVED_CONFIG_SCHEMA_VERSION,
 } from '@vostride/agent-qa-schema'
 import pc from 'picocolors'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { curationTailLog } from '../commands/run.js'
 import { runVerdictFirstCurationTail } from '../curation/curation-tail.js'
+import type { KnowledgeSummary } from '../curation/knowledge-summary.js'
 import {
   digestFetchCommand,
   runPostRunTail,
@@ -43,6 +44,9 @@ const MINT_IDENTITY = (filePath: string): string => filePath
 
 const RUN_ID = 'run-isolation'
 const EVENTS_FILE = 'events.jsonl'
+const TIME = '\\d{2}:\\d{2}:\\d{2}'
+// A tagged line's later lines start under its message: the time, two spaces, the tag column, two.
+const MESSAGE_COLUMN = ' '.repeat(21)
 
 // Unparseable text, not a throw: a throwing model aborts the chain; this degrades to the floor.
 const TEST_MODEL: JobModelCapability = {
@@ -412,9 +416,11 @@ describe('an induced post-processing failure is invisible to the verdict', () =>
     expect(lines(failedSuffix)).toEqual([])
     // The clean run's suffix differs, with close-out and digest, so the prefix identity is a claim.
     const cleanLines = lines(cleanSuffix)
-    expect(cleanLines[0]).toContain(`post-processing complete for ${RUN_ID}`)
-    expect(cleanLines[1]).toBe(`digest — ${RUN_ID}`)
-    expect(cleanLines[2]).toBe('analysis — 2 distinct problems:')
+    // No fold reported here, so the summary is the durable stage's word, then the close-out.
+    expect(cleanLines[0]).toBe('Knowledge: complete')
+    expect(cleanLines[1]).toContain(`post-processing complete for ${RUN_ID}`)
+    expect(cleanLines[2]).toBe(`digest — ${RUN_ID}`)
+    expect(cleanLines[3]).toBe('analysis — 2 distinct problems:')
     // Every digest section is present; this host reads no mark ledger, and the digest says so.
     expect(cleanSuffix).toContain('marks — ledger not read here')
     expect(cleanSuffix).not.toMatch(/pending overall|minted this run/)
@@ -425,6 +431,32 @@ describe('an induced post-processing failure is invisible to the verdict', () =>
     // Nothing escaped the tail: a tail that rethrew would land here even with the exit code intact.
     expect(clean.unexpectedErrors).toEqual([])
     expect(failed.unexpectedErrors).toEqual([])
+  })
+
+  it('prints the close-out and the digest block as tagged post-run lines at debug', async () => {
+    const saved = curationTailLog.level
+    curationTailLog.level = 'debug'
+    try {
+      const scenario = await runScenario(fixture())
+
+      expect(scenario.stdout).toBe(scenario.verdictScopedStdout)
+      const suffixLines = lines(tailSuffix(scenario.stderr, scenario.verdictScopedStderr))
+      expect(suffixLines[0]).toBe('Knowledge: complete')
+      expect(suffixLines[1]).toMatch(
+        new RegExp(`^${TIME}  post-run   post-processing complete for ${RUN_ID}`, 'u'),
+      )
+      expect(suffixLines[2]).toMatch(new RegExp(`^${TIME}  post-run   digest — ${RUN_ID}$`, 'u'))
+      expect(suffixLines[3]).toBe(`${MESSAGE_COLUMN}analysis — 2 distinct problems:`)
+      for (const line of suffixLines.slice(1)) {
+        expect(
+          new RegExp(`^${TIME}  post-run   `, 'u').test(line) || line.startsWith(MESSAGE_COLUMN),
+          line,
+        ).toBe(true)
+      }
+      expect(scenario.unexpectedErrors).toEqual([])
+    } finally {
+      curationTailLog.level = saved
+    }
   })
 
   it.each([
@@ -508,6 +540,8 @@ describe('the structural halves', () => {
       expect(scenario.unexpectedErrors).toEqual([])
       const suffix = tailSuffix(scenario.stderr, scenario.verdictScopedStderr)
       expect(lines(suffix)).toEqual([
+        'Knowledge: pending',
+        '  not finished, resumes on a later local run',
         'post-processing — analysis: pending · curation: pending'
         // Nothing drained under `--detach`, so the line carries the fetch command.
         + ` · digest: ${digestFetchCommand(RUN_ID)}`,
@@ -543,5 +577,191 @@ describe('the structural halves', () => {
     expect(source.match(/runCurationTail\(/gu) ?? []).toHaveLength(0)
     // …and the navigation line this file mirrors is on stdout, where the tail never writes.
     expect(source).toContain('console.log(`Run ID: ${runId}`)')
+  })
+})
+
+interface TailLogCapture {
+  stdout: string
+  stderr: string
+  streamWrites: string[]
+  consoleCalls: number
+}
+
+function captureTailLog(): TailLogCapture {
+  const captured: TailLogCapture = { stdout: '', stderr: '', streamWrites: [], consoleCalls: 0 }
+  const to = (channel: 'stdout' | 'stderr') => (...args: unknown[]): void => {
+    captured.consoleCalls += 1
+    captured[channel] += `${args.map((arg) => String(arg)).join(' ')}\n`
+  }
+  vi.spyOn(console, 'log').mockImplementation(to('stdout'))
+  vi.spyOn(console, 'info').mockImplementation(to('stdout'))
+  vi.spyOn(console, 'error').mockImplementation(to('stderr'))
+  vi.spyOn(console, 'warn').mockImplementation(to('stderr'))
+  for (const stream of [process.stdout, process.stderr]) {
+    vi.spyOn(stream, 'write').mockImplementation((chunk: unknown) => {
+      captured.streamWrites.push(String(chunk))
+      return true
+    })
+  }
+  return captured
+}
+
+const ITEM_IDS = { learned: `0b0a3ce0${'1'.repeat(56)}`, held: `2300c56a${'2'.repeat(56)}` }
+
+function summaryOf(overrides: Partial<KnowledgeSummary> = {}): KnowledgeSummary {
+  return {
+    runId: RUN_ID,
+    learned: 5,
+    held: 3,
+    proposed: 0,
+    items: [
+      { outcome: 'learned', id: ITEM_IDS.learned, reason: 'deterministic-verdict-floor' },
+      { outcome: 'held', id: ITEM_IDS.held, reason: 'no-element-observation' },
+    ],
+    ...overrides,
+  }
+}
+
+async function atLevel(level: string, body: () => void | Promise<void>): Promise<void> {
+  const saved = curationTailLog.level
+  curationTailLog.level = level
+  try {
+    await body()
+  } finally {
+    curationTailLog.level = saved
+  }
+}
+
+describe("the run command's tail logger prints every line on stderr", () => {
+  beforeEach(() => {
+    vi.stubEnv('GITHUB_ACTIONS', '')
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('prints a finished summary as one Knowledge line', () => {
+    const captured = captureTailLog()
+
+    curationTailLog.summary(summaryOf())
+
+    expect(captured.stderr).toBe('Knowledge: learned 5, held 3\n')
+    expect(captured.stdout).toBe('')
+    expect(captured.streamWrites).toEqual([])
+  })
+
+  it('adds the second line, indented, when curation did not finish', () => {
+    const captured = captureTailLog()
+
+    curationTailLog.summary(summaryOf({
+      unfinished: { notWritten: 1, resume: 'resumes on the next run' },
+    }))
+
+    expect(lines(captured.stderr)).toEqual([
+      'Knowledge: learned 5, held 3',
+      '  1 change not written, resumes on the next run',
+    ])
+    expect(captured.stdout).toBe('')
+  })
+
+  it('prints a finished fold beside a pending stage with the pending second line', () => {
+    const captured = captureTailLog()
+
+    curationTailLog.summary(summaryOf({
+      learned: 0,
+      held: 0,
+      items: [],
+      unfinished: { notWritten: 0, resume: 'resumes on a later local run' },
+    }))
+
+    expect(lines(captured.stderr)).toEqual([
+      'Knowledge: learned 0, held 0',
+      '  not finished, resumes on a later local run',
+    ])
+    expect(captured.stdout).toBe('')
+  })
+
+  it('adds the item lines with short ids and the reason in words at debug', async () => {
+    const captured = captureTailLog()
+
+    await atLevel('debug', () => {
+      curationTailLog.summary(summaryOf())
+    })
+
+    expect(lines(captured.stderr)).toEqual([
+      'Knowledge: learned 5, held 3',
+      '  learned  0b0a3ce0  verdict floor',
+      '  held     2300c56a  no element observation',
+    ])
+    expect(captured.stdout).toBe('')
+  })
+
+  it('prints a detail line as it is at the default level and at info', async () => {
+    const message = 'curation: drained inline (12ms)'
+    for (const level of ['warn', 'info']) {
+      const captured = captureTailLog()
+
+      await atLevel(level, () => {
+        curationTailLog.detail(message, 'post-run')
+      })
+
+      expect(captured.stderr, level).toBe(`${message}\n`)
+      expect(captured.stdout, level).toBe('')
+      vi.restoreAllMocks()
+    }
+  })
+
+  it('prints a detail line with the time and its tag at debug, knowledge by default', async () => {
+    const captured = captureTailLog()
+
+    await atLevel('debug', () => {
+      curationTailLog.detail('curation: drained inline (12ms)')
+      curationTailLog.detail('post-processing — analysis: pending', 'post-run')
+    })
+
+    expect(lines(captured.stderr)).toHaveLength(2)
+    expect(lines(captured.stderr)[0]).toMatch(
+      new RegExp(`^${TIME}  knowledge  curation: drained inline \\(12ms\\)$`, 'u'),
+    )
+    expect(lines(captured.stderr)[1]).toMatch(
+      new RegExp(`^${TIME}  post-run   post-processing — analysis: pending$`, 'u'),
+    )
+    expect(captured.stdout).toBe('')
+  })
+
+  it('prints a warning on stderr', () => {
+    const captured = captureTailLog()
+
+    curationTailLog.warn('curation did not finish')
+
+    expect(captured.stderr).toBe('Warning: curation did not finish\n')
+    expect(captured.stdout).toBe('')
+  })
+
+  it("prints a summary's lines as one stop-commands pair under GitHub Actions", async () => {
+    vi.stubEnv('GITHUB_ACTIONS', 'true')
+    const captured = captureTailLog()
+
+    await atLevel('debug', () => {
+      curationTailLog.summary(summaryOf({
+        unfinished: { notWritten: 2, resume: 'resumes on the next run' },
+      }))
+    })
+
+    expect(captured.consoleCalls).toBe(0)
+    expect(captured.streamWrites).toHaveLength(1)
+    const written = captured.streamWrites[0]!.replace(/\x1b\[[0-9;]*m/g, '')
+    const token = /^::stop-commands::([0-9a-f]+)\n/u.exec(written)?.[1]
+    expect(token, written).toBeDefined()
+    expect(written).toBe([
+      `::stop-commands::${token}`,
+      'Knowledge: learned 5, held 3',
+      '  2 changes not written, resumes on the next run',
+      '  learned  0b0a3ce0  verdict floor',
+      '  held     2300c56a  no element observation',
+      `::${token}::`,
+      '',
+    ].join('\n'))
   })
 })

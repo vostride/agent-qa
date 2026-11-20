@@ -1,9 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { printRunWarning } from '../commands/run.js'
+import { curationTailLog, printRunWarning } from '../commands/run.js'
 
 const ESC = '\x1B'
 const YELLOW = '\x1B[33m'
+const DIM = '\x1B[2m'
 const LINE = '  Quarantine: one test is quarantined'
 const streams = [process.stdout, process.stderr] as const
 
@@ -111,5 +112,73 @@ describe("a run's warning takes the colours of stderr, the stream it is written 
     const token = /^::stop-commands::([0-9a-f]+)\n/u.exec(written)?.[1]
     expect(token, written).toBeDefined()
     expect(written).toBe(`::stop-commands::${token}\n${LINE}\n::${token}::\n`)
+  })
+})
+
+describe("the curator's lines in a run take the colours of stderr, the stream they go to", () => {
+  const WARNING = 'Warning: curation did not finish'
+  const DETAIL = 'curation: drained inline (12ms)'
+
+  let calls: ReturnType<typeof captureConsole> & { error: ReturnType<typeof vi.spyOn> }
+
+  function capture(): void {
+    const base = captureConsole()
+    calls = { ...base, error: base.others[1]! }
+  }
+
+  function detailAtDebug(): string {
+    const saved = curationTailLog.level
+    curationTailLog.level = 'debug'
+    try {
+      curationTailLog.detail(DETAIL)
+    } finally {
+      curationTailLog.level = saved
+    }
+    expect(calls.error).toHaveBeenCalledTimes(1)
+    return (calls.error.mock.calls[0] as [string])[0]
+  }
+
+  it('prints the warning in yellow when stderr is a terminal and stdout is not', () => {
+    setTerminals({ stdout: false, stderr: true })
+    capture()
+
+    curationTailLog.warn('curation did not finish')
+
+    expect(calls.warn).toHaveBeenCalledTimes(1)
+    const [printed] = calls.warn.mock.calls[0] as [string]
+    expect(printed).toContain(YELLOW)
+    expect(printed).toContain(WARNING)
+    expect(calls.stdout).toEqual([])
+  })
+
+  it('prints the warning with no colour when stdout is a terminal and stderr is not', () => {
+    setTerminals({ stdout: true, stderr: false })
+    capture()
+
+    curationTailLog.warn('curation did not finish')
+
+    expect(calls.warn).toHaveBeenCalledTimes(1)
+    expect(calls.warn).toHaveBeenCalledWith(WARNING)
+  })
+
+  it('dims the time of a detail line at debug when stderr is a terminal and stdout is not', () => {
+    setTerminals({ stdout: false, stderr: true })
+    capture()
+
+    const printed = detailAtDebug()
+
+    expect(printed).toContain(DIM)
+    expect(printed).toContain(DETAIL)
+    expect(calls.stdout).toEqual([])
+  })
+
+  it('prints a detail line at debug with no colour when stdout is a terminal and stderr is not', () => {
+    setTerminals({ stdout: true, stderr: false })
+    capture()
+
+    const printed = detailAtDebug()
+
+    expect(printed).not.toContain(ESC)
+    expect(printed).toMatch(/^\d{2}:\d{2}:\d{2} {2}knowledge {2}curation: drained inline \(12ms\)$/u)
   })
 })
