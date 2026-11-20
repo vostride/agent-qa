@@ -1322,7 +1322,10 @@ describe("the daemon's drain session summary", () => {
 })
 
 describe("the daemon's fold log", () => {
-  async function foldThroughDaemon(logLevel: string | undefined): Promise<{
+  async function foldThroughDaemon(
+    logLevel: string | undefined,
+    warn?: (message: string, tag?: string) => void,
+  ): Promise<{
     info: ReturnType<typeof vi.fn>
     error: ReturnType<typeof vi.fn>
   }> {
@@ -1330,7 +1333,7 @@ describe("the daemon's fold log", () => {
     const runId = 'r_daemon-fold-learned-two'
     const signals = new Map<NodeJS.Signals, () => void>()
     let composed: ComposeLocalAgentInput | undefined
-    const logger = { info: vi.fn(), error: vi.fn() }
+    const logger = { info: vi.fn(), error: vi.fn(), ...(warn === undefined ? {} : { warn }) }
     const actualOperations = curationTail.defaultCurationTailOperations
     vi.spyOn(curationTail, 'defaultCurationTailOperations').mockImplementation(() => ({
       ...actualOperations(),
@@ -1398,6 +1401,15 @@ describe("the daemon's fold log", () => {
 
     expect(logger.info.mock.calls).toEqual([['Learned 2, held 1 · r_daemon-fold', 'knowledge']])
     expect(logger.error.mock.calls).toEqual([['a fold warning', 'knowledge']])
+  })
+
+  it('hands a logger\'s warn the fold\'s warning under the post-run tag, as no error', async () => {
+    const warn = vi.fn<(message: string, tag?: string) => void>()
+    const logger = await foldThroughDaemon(undefined, warn)
+
+    expect(warn.mock.calls).toEqual([['a fold warning', 'post-run']])
+    expect(logger.error).not.toHaveBeenCalled()
+    expect(logger.info.mock.calls).toEqual([['Learned 2, held 1 · r_daemon-fold', 'knowledge']])
   })
 
   it('adds the detail lines under their tags and the item lines under the summary at debug', async () => {

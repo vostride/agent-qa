@@ -158,6 +158,8 @@ export type DaemonHostTraceStep =
 export interface DaemonHostLogger {
   info(message: string, tag?: string): void
   error(message: string, tag?: string): void
+  // Optional: a logger without it gets each warning on the method it got it on before.
+  warn?(message: string, tag?: string): void
 }
 
 export interface EmbedderWorkerSpawnOptions {
@@ -291,6 +293,7 @@ export interface DaemonHostOptions {
 export const DEFAULT_DAEMON_LOGGER: DaemonHostLogger = {
   info: (message, tag) => printLogLine({ tag: tag ?? 'daemon', message }),
   error: (message, tag) => printLogLine({ tag: tag ?? 'daemon', level: 'error', message }),
+  warn: (message, tag) => printLogLine({ tag: tag ?? 'daemon', level: 'warn', message }),
 }
 
 async function waitForEmbedderWorkerReady(
@@ -525,6 +528,10 @@ async function composeDaemonRunExecution(input: {
   const { runInProcessCliRun } = await import('../composition/in-process-run-execution.js')
   const analytics = input.analytics
   const runSession = await import('../run-session-composition.js')
+  const warnOfRun = (message: string): void => {
+    if (input.logger.warn === undefined) input.logger.info(message, 'run')
+    else input.logger.warn(message, 'run')
+  }
 
   // Reports `job_kind: 'run'` only; `duration_ms` stays absent because nothing here measured one.
   const recordRunOutcome = (
@@ -565,7 +572,7 @@ async function composeDaemonRunExecution(input: {
       const inputs = await resolveRunInvocationInputs({
         configPath,
         ...(request.patterns === undefined ? {} : { patterns: request.patterns }),
-        warn: (message: string) => input.logger.info(message, 'run'),
+        warn: warnOfRun,
       })
 
       // Read ONCE per run, here, so the conditional spread and the value it spreads are the same
@@ -614,7 +621,7 @@ async function composeDaemonRunExecution(input: {
               session.subscribe(runSession.REPLAY_FROM_START, runLines.handler)
               return { flush: async () => { await subscriber?.flush?.() } }
             },
-            warn: (message: string) => input.logger.info(message, 'run'),
+            warn: warnOfRun,
           },
           request,
         )
@@ -1570,7 +1577,12 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
           await operations.recoverPendingPostVerdictContinuations({
             agentQaRoot: input.agentQaRoot, configPath: input.configPath,
             knowledgeRoot: input.knowledgeRoot, deadlineMs,
-            log: { warn: (message) => logger.error(message, 'post-run') },
+            log: {
+              warn: (message) => {
+                if (logger.warn === undefined) logger.error(message, 'post-run')
+                else logger.warn(message, 'post-run')
+              },
+            },
             onEnqueued: () => jobDispatcher?.wake(),
           })
         }
@@ -2029,12 +2041,13 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
             author: await (authorPromise ??= Promise.resolve(factory())),
             authority: { leaseId: acquired.leaseId, epoch: acquired.epoch },
             ...(deadlineMs === undefined ? {} : { deadlineMs }),
-            // This log serves the fold alone, so its warnings are the curator's and keep its tag.
+            // A warning keeps the tag the log gave it; a logger with no `warn` gets it as before.
             log: createTaggedCurationLog({
               logLevel,
               print: (line) => {
-                if (line.level === 'warn') logger.error(line.message, 'knowledge')
-                else logger.info(line.message, line.tag)
+                if (line.level !== 'warn') logger.info(line.message, line.tag)
+                else if (logger.warn === undefined) logger.error(line.message, 'knowledge')
+                else logger.warn(line.message, line.tag)
               },
             }),
           })
