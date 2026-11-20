@@ -91,6 +91,8 @@ export interface RunSubscriberAttachInput {
   readonly runner?: string
   // The analytics ids of the plugins the producer's places use.
   readonly remotePlugins?: readonly string[]
+  // The platforms the producer's places drive, so a door's run lines can name them.
+  readonly platforms?: readonly string[]
 }
 
 /** What a door's post-verdict tail is handed, INSIDE the run's own safety scope. */
@@ -328,6 +330,7 @@ export async function runInProcessCliRun(
         ...(produced.onMemberSnapshot === undefined ? {} : { onMemberSnapshot: produced.onMemberSnapshot }),
         ...(runner === undefined ? {} : { runner }),
         ...(produced.remotePlugins === undefined ? {} : { remotePlugins: produced.remotePlugins }),
+        ...(produced.platforms === undefined ? {} : { platforms: produced.platforms }),
       })
       // Subscribed directly, never through `attachRunSubscribers`: its wire reporter can print to
       // stdout, which is the protocol on the MCP stdio server and `fn --json`.

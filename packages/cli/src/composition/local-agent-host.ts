@@ -95,8 +95,11 @@ import {
   // Shared with core's `validateConfig`, so the position-only sentence has one spelling.
   yamlParseFailureMessage,
 } from '@vostride/agent-qa-core'
-import { printRunText } from '@vostride/agent-qa-core/run-text-output'
+import { printLogLine, printRunText } from '@vostride/agent-qa-core/run-text-output'
 import { knowledgeHeadline, knowledgeSecondLine } from '../curation/knowledge-summary.js'
+import { createTaggedCurationLog } from '../curation/tagged-curation-log.js'
+import { createRunLineReporter } from '../reporters/run-line-reporter.js'
+import type { RunLineReporterHandle } from '../reporters/run-line-reporter.js'
 import type { RunAttributeTrigger, TestDefinition } from '@vostride/agent-qa-core'
 import type {
   ExplicitReviewDelegate,
@@ -149,7 +152,7 @@ import type { InProcessCliRunExecutionOptions } from './in-process-run-execution
 import type { RunRecordHostBinding } from '../commands/run.js'
 // Type-only: the pump's authority shape, named here because this door's drain leg declares
 // what its `takeLease` thunk answered. Erased at emit, so no runtime edge is added.
-import type { CurationWriterAuthority } from '../curation/curation-tail.js'
+import type { CurationTailLogger, CurationWriterAuthority } from '../curation/curation-tail.js'
 import { buildMaskedResolvedConfig } from './masked-config.js'
 import { createDeclaredSecretMask, type DeclaredSecretMask } from './declared-secrets.js'
 
@@ -192,6 +195,44 @@ export function currentRunDoor(): RunAttributeTrigger | undefined {
   return runDoorScope.getStore()
 }
 
+// What the run door prints, decided in one place by whether its host asked for terminal lines.
+export function composeDoorOutput(terminalLines: { readonly logLevel: string } | undefined): {
+  warn(message: string): void
+  tailLog: CurationTailLogger
+  runLines?: (input: { readonly platforms?: readonly string[] }) => RunLineReporterHandle
+} {
+  if (terminalLines === undefined) {
+    // Both `warn` seams print to stderr locally. Under GitHub Actions they are wrapped, and they
+    // stay on stderr when the door's stdout carries JSON or the MCP protocol.
+    const warn = (message: string): void => {
+      printRunText(message, (line) => console.warn(line))
+    }
+    return {
+      warn,
+      // LOG, NEVER PRINT. The tail's summary is the one line this door prints for it, and this
+      // door serves `agent-qa fn --json` (stdout is the JSON document) and the MCP host (stdout IS
+      // the JSON-RPC connection). Warnings and the summary go to the same stderr sink the
+      // quarantine warning uses, so nothing this door serves can have its channel corrupted by a
+      // post-run line.
+      tailLog: {
+        warn,
+        summary: (summary) => {
+          const second = knowledgeSecondLine(summary)
+          warn([
+            `Knowledge: ${knowledgeHeadline(summary)}`,
+            ...(second === undefined ? [] : [`  ${second}`]),
+          ].join('\n'))
+        },
+      },
+    }
+  }
+  return {
+    warn: (message) => { printLogLine({ tag: 'run', level: 'warn', message }) },
+    tailLog: createTaggedCurationLog({ logLevel: terminalLines.logLevel }),
+    runLines: ({ platforms }) => createRunLineReporter(platforms === undefined ? {} : { platforms }),
+  }
+}
+
 // Deferred import: a static one would close an ESM cycle with `commands/run.js` at load.
 function createComposedRunExecution(input: {
   readonly configPath: string
@@ -207,17 +248,14 @@ function createComposedRunExecution(input: {
       const { createRunRecord, doorRunAttributes, resolveRunInvocationInputs } = await import('../commands/run.js')
       const { runInProcessCliRun } = await import('./in-process-run-execution.js')
       const analytics = input.analytics
-      const runSession =
-        analytics === undefined ? undefined : await import('../run-session-composition.js')
+      const { warn, tailLog, runLines } = composeDoorOutput(input.runBridge?.terminalLines)
+      const runSession = analytics === undefined && runLines === undefined
+        ? undefined
+        : await import('../run-session-composition.js')
 
       // The request may name another config; the drive resolves against exactly this expression, so
       // a preflight read here that used a different one would resolve a different project.
       const configPath = request.configPath ?? input.configPath
-      // Both `warn` seams print to stderr locally. Under GitHub Actions they are wrapped, and they
-      // stay on stderr when the door's stdout carries JSON or the MCP protocol.
-      const warn = (message: string): void => {
-        printRunText(message, (line) => console.warn(line))
-      }
       const inputs = await resolveRunInvocationInputs({
         configPath,
         ...(request.patterns === undefined ? {} : { patterns: request.patterns }),
@@ -247,16 +285,24 @@ function createComposedRunExecution(input: {
             },
             runRecord,
             // Subscribed directly: `attachRunSubscribers`' wire reporter can print to stdout.
-            ...(analytics === undefined || runSession === undefined ? {} : {
-              subscribers: ({ session, runner, remotePlugins }) => {
-                const subscriber = runSession.buildAnalyticsRunSubscriber({
-                  analytics,
-                  triggerSource: trigger,
-                  ...(runner === undefined ? {} : { runner }),
-                  ...(remotePlugins === undefined ? {} : { remotePlugins }),
-                })
-                session.subscribe(runSession.REPLAY_FROM_START, subscriber.handler)
-                return { flush: async () => { await subscriber.flush?.() } }
+            ...(runSession === undefined ? {} : {
+              subscribers: ({ session, runner, remotePlugins, platforms }) => {
+                const subscriber = analytics === undefined
+                  ? undefined
+                  : runSession.buildAnalyticsRunSubscriber({
+                      analytics,
+                      triggerSource: trigger,
+                      ...(runner === undefined ? {} : { runner }),
+                      ...(remotePlugins === undefined ? {} : { remotePlugins }),
+                    })
+                if (subscriber !== undefined) {
+                  session.subscribe(runSession.REPLAY_FROM_START, subscriber.handler)
+                }
+                if (runLines !== undefined) {
+                  const reporter = runLines(platforms === undefined ? {} : { platforms })
+                  session.subscribe(runSession.REPLAY_FROM_START, reporter.handler)
+                }
+                return { flush: async () => { await subscriber?.flush?.() } }
               },
             }),
             ...(input.runBridge?.appiumFor === undefined
@@ -281,21 +327,8 @@ function createComposedRunExecution(input: {
                 configFilePath: context.configFilePath,
                 knowledgeConfig: inputs.config.knowledge,
                 mask: context.mask,
-                // LOG, NEVER PRINT. The tail's summary is the one line this door prints for it, and
-                // this door serves `agent-qa fn --json` (stdout is the JSON document) and the MCP
-                // host (stdout IS the JSON-RPC connection). Warnings and the summary go to the same
-                // stderr sink the quarantine warning uses, so nothing this door serves can have its
-                // channel corrupted by a post-run line.
-                log: {
-                  warn,
-                  summary: (summary) => {
-                    const second = knowledgeSecondLine(summary)
-                    warn([
-                      `Knowledge: ${knowledgeHeadline(summary)}`,
-                      ...(second === undefined ? [] : [`  ${second}`]),
-                    ].join('\n'))
-                  },
-                },
+                // Stderr only, unless the host asked for terminal lines: see `composeDoorOutput`.
+                log: tailLog,
                 executionContext,
                 ...(input.runBridge?.chipRelay === undefined
                   ? {}
@@ -383,6 +416,9 @@ export interface ComposeCliLocalAgentInput {
      * whether the run then returns or re-raises a member's framework error.
      */
     readonly onPostRun?: InProcessCliRunExecutionOptions['onPostRun']
+    // Set by a host whose stdout is a terminal log: the door then prints each run's two lines
+    // and tags its warnings and its knowledge lines.
+    readonly terminalLines?: { readonly logLevel: string }
   }
   /** The `agent-qa.trigger` this host's runs record outside any `withRunDoor` scope. */
   runTrigger?: RunAttributeTrigger
