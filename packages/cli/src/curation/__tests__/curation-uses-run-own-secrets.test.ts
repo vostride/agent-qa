@@ -397,8 +397,8 @@ async function handedBackByB(p: Project, reasonPart: string): Promise<void> {
     configPath: p.bConfig,
     knowledgeDir: p.knowledgeDirB,
   })
-  expect(details.filter((line) => line.includes(RUN_A) && line.includes(reasonPart))).toHaveLength(1)
-  expect(warns.filter((line) => line.includes(RUN_A))).toEqual([])
+  expect(warns.filter((line) => line.includes(RUN_A) && line.includes(reasonPart))).toHaveLength(1)
+  expect(details.filter((line) => line.includes(RUN_A) && line.includes(reasonPart))).toEqual([])
   expect(receiptOfRunA(p)).toBeUndefined()
   expect(readCurationTailReceipt(completedRunDir(p.agentQaRoot, RUN_B))).toBeDefined()
   nothingOfRunA(p)

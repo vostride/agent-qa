@@ -767,8 +767,8 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
       )
     }
   } catch (error) {
-    // A reconcile can throw before or after its deletes, so the line promises neither outcome.
-    opts.log.detail?.(
+    // A reconcile can throw before or after its deletes, so the warning promises neither outcome.
+    opts.log.warn(
       'Post-verdict knowledge curation: the run-outcome projection reconcile did not complete. '
       + 'If the rebuild write phase had already begun, the projection family is left unstamped and possibly'
       + ' partial, and the next reconcile rebuilds it; if it stopped before that, the family and'
@@ -780,10 +780,10 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
       try {
         const released = operations.releaseLease({ knowledgeRoot, leaseId: acquiredReconcileLease.leaseId })
         if (released.kind !== 'released') {
-          opts.log.detail?.('curation: run-outcome projection writer lease release refused')
+          opts.log.warn('curation: run-outcome projection writer lease release refused')
         }
       } catch {
-        opts.log.detail?.('curation: run-outcome projection writer lease release failed')
+        opts.log.warn('curation: run-outcome projection writer lease release failed')
       }
     }
   }
@@ -795,7 +795,7 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
         ? currentHandoff
         : operations.loadCompletedRunHandoff(join(runDir, HANDOFF_FILE))
     } catch {
-      opts.log.detail?.(`Skipping post-verdict knowledge curation for ${runDir}: handoff is malformed.`)
+      opts.log.warn(`Skipping post-verdict knowledge curation for ${runDir}: handoff is malformed.`)
       continue
     }
 
@@ -811,7 +811,7 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
           drainerKnowledgeRoot: knowledgeRoot,
         })
         if ('handBack' in context) {
-          opts.log.detail?.(`Skipping post-verdict knowledge curation for ${runDir}: ${context.handBack}`)
+          opts.log.warn(`Skipping post-verdict knowledge curation for ${runDir}: ${context.handBack}`)
           continue
         }
         runMask = context.mask
