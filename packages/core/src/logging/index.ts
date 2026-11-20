@@ -25,3 +25,5 @@ export {
   printRunText,
 } from './run-text-output.js'
 export type { RunTextEnv, PrintRunTextOptions } from './run-text-output.js'
+export { formatLogLine, printLogLine, colorEnabled, colorsFor, isCi } from './log-line.js'
+export type { LogColors, LogLine, LogLineLevel } from './log-line.js'

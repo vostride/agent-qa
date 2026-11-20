@@ -14,6 +14,8 @@ export default defineConfig({
     // Playwright reads a browser's own host variable before the shared one, so each is set.
     env: {
       GITHUB_ACTIONS: '',
+      // The test environment states its colour, so a CI runner and a developer machine print alike.
+      NO_COLOR: '1',
       PLAYWRIGHT_DOWNLOAD_HOST: 'http://127.0.0.1:0',
       PLAYWRIGHT_CHROMIUM_DOWNLOAD_HOST: 'http://127.0.0.1:0',
       PLAYWRIGHT_FIREFOX_DOWNLOAD_HOST: 'http://127.0.0.1:0',

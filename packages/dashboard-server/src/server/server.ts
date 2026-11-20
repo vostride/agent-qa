@@ -43,6 +43,7 @@ import type {
 } from '@vostride/agent-qa-schema'
 import {
   isLoopbackHost,
+  printLogLine,
   printRunText,
   type ResolvedWorkspacePaths,
 } from '@vostride/agent-qa-core'
@@ -652,11 +653,12 @@ export async function startServer(opts: StartServerOptions): Promise<{
       const address = server.address()
       const boundPort = typeof address === 'object' && address !== null ? address.port : port
       // Harnesses parse the port from this line; only a loopback bind names `localhost`.
-      console.log(
-        isLoopbackHost(host)
+      printLogLine({
+        tag: 'server',
+        message: isLoopbackHost(host)
           ? `Dashboard running at http://localhost:${boundPort}`
           : `Dashboard running at http://${host.includes(':') ? `[${host}]` : host}:${boundPort}`,
-      )
+      })
       resolve({
         server,
         port: boundPort,

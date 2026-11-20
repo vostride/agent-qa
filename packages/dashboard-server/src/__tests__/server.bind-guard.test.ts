@@ -131,8 +131,9 @@ describe('the dashboard bind contract', () => {
       const bound = (server.address() as AddressInfo).port
       expect(bound).toBeGreaterThan(0)
       expect(port).toBe(bound)
-      expect(log.mock.calls.map((call) => String(call[0])))
-        .toContain(`Dashboard running at http://localhost:${String(bound)}`)
+      const lines = log.mock.calls.map((call) => String(call[0]))
+      const announced = `Dashboard running at http://localhost:${String(bound)}`
+      expect(lines.some((line) => line.endsWith(announced)), lines.join('\n')).toBe(true)
     } finally {
       log.mockRestore()
     }

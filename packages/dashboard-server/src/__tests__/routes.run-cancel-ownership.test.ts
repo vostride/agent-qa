@@ -295,7 +295,7 @@ describe('a cancel on an orphaned run', () => {
     const after = snapshotOf(cancelledFirst)
     const dashboard = await startDashboard()
     expect(snapshotOf(cancelledFirst)).toBe(after)
-    expect(dashboard.logged().some((line) => line.startsWith('Dashboard running at'))).toBe(true)
+    expect(dashboard.logged().some((line) => line.includes('Dashboard running at'))).toBe(true)
     expect(dashboard.logged().filter((line) => CLEANUP_LINE.test(line))).toEqual([])
   })
 })
