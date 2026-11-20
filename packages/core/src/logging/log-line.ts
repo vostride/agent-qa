@@ -1,5 +1,10 @@
 import pc from 'picocolors'
-import { isGitHubActions, printRunText, type RunTextEnv } from './run-text-output.js'
+import {
+  isGitHubActions,
+  printRunText,
+  stdoutCarriesData,
+  type RunTextEnv,
+} from './run-text-output.js'
 
 export type LogColors = ReturnType<typeof pc.createColors>
 export type LogLineLevel = 'error' | 'warn' | 'info' | 'debug'
@@ -89,20 +94,19 @@ export function printLogLine(
 ): void {
   const env = options.env ?? process.env
   const level = line.level ?? 'info'
+  const wantsStdout =
+    options.to === 'stdout' || (options.to === undefined && level !== 'error' && level !== 'warn')
   let print: (text: string) => void
   let stream: { isTTY?: boolean }
-  if (options.to === 'stdout') {
+  if (wantsStdout && !stdoutCarriesData()) {
     print = (text) => console.log(text)
     stream = process.stdout
-  } else if (options.to === 'stderr' || level === 'error') {
-    print = (text) => console.error(text)
-    stream = process.stderr
-  } else if (level === 'warn') {
+  } else if (options.to === undefined && level === 'warn') {
     print = (text) => console.warn(text)
     stream = process.stderr
   } else {
-    print = (text) => console.log(text)
-    stream = process.stdout
+    print = (text) => console.error(text)
+    stream = process.stderr
   }
   printRunText(formatLogLine(line, colorsFor(stream, env)), print, { env })
 }
