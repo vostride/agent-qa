@@ -7,9 +7,12 @@ import { join } from 'node:path'
 import { emptyCanaryCreditCounters } from '../canary-credit.js'
 import {
   completedRunDir,
+  curateCompletedRun,
   CURATION_TAIL_RECEIPT_FILE,
   CURATION_TAIL_RECEIPT_SCHEMA_VERSION,
   readCurationTailReceipt,
+  runCurationTail,
+  type CurationTailOperations,
 } from '../curation-tail.js'
 import type { Mock } from 'vitest'
 
@@ -44,6 +47,7 @@ import {
   digestFetchCommand,
   renderAnalysisClusterBlock,
   runPostRunTail,
+  type PostRunTailHostInput,
   type PostRunTailOperations,
   type RunPostRunTailOptions,
 } from '../post-run-tail.js'
@@ -898,7 +902,7 @@ describe('the one knowledge summary the tail hands its host', () => {
     expect(h.summary.mock.calls).toEqual([[fold]])
   })
 
-  it('a run folded twice in one process hands over one summary, built from the second report', async () => {
+  it('a run folded twice in one process hands over one summary of both reports', async () => {
     const first = foldReport({
       learned: 0,
       held: 0,
@@ -915,6 +919,216 @@ describe('the one knowledge summary the tail hands its host', () => {
       ...second,
       unfinished: { notWritten: 0, resume: LOCAL_PENDING_RESUME },
     }]])
+  })
+
+  describe('when the queued job and the sweep both fold the run', () => {
+    const NEXT_RUN_RESUME = 'resumes on the next run'
+    const JOB_FOLD_ITEMS = [
+      { outcome: 'learned', id: 'cand0001aaaabbbb', reason: 'deterministic-verdict-floor' },
+      { outcome: 'held', id: 'cand0002ccccdddd', reason: 'no-element-observation' },
+      { outcome: 'held', id: 'cand0003eeeeffff', reason: 'no-element-observation' },
+      { outcome: 'held', id: 'cand0004gggghhhh', reason: 'no-element-observation' },
+    ] as const
+
+    function drainReport(overrides: object = {}): object {
+      return {
+        kind: 'drained',
+        jobsProcessed: 0,
+        committed: 0,
+        downgraded: 0,
+        withheld: 0,
+        quarantined: 0,
+        requeued: 0,
+        failures: 0,
+        failureDetails: [],
+        noops: 0,
+        noopDetails: [],
+        remaining: 0,
+        remainingWork: { queued: 0, claimedNonterminal: 0, quarantined: 0 },
+        reconcile: undefined,
+        writerPass: { kind: 'not-requested' },
+        gc: { kind: 'not-run' },
+        ...overrides,
+      }
+    }
+
+    // Five changes written, three candidates held, and one change sent back to the queue.
+    const JOB_DRAIN_UNFINISHED = drainReport({
+      committed: 5,
+      requeued: 1,
+      failures: 1,
+      remaining: 1,
+      promotions: [
+        { candidateId: 'cand0001aaaabbbb', promotionPath: 'deterministic-verdict-floor' },
+        { candidateId: 'cand0002ccccdddd', promotionHoldReason: 'no-element-observation' },
+        { candidateId: 'cand0003eeeeffff', promotionHoldReason: 'no-element-observation' },
+        { candidateId: 'cand0004gggghhhh', promotionHoldReason: 'no-element-observation' },
+      ],
+    })
+
+    // The fold and the sweep are the real ones; only the knowledge store's side is scripted.
+    async function closeOutOf(
+      drains: readonly (object | Error)[],
+      input: {
+        status?: PostProcessingStatus
+        operations?: Partial<CurationTailOperations>
+      } = {},
+    ): Promise<{ summaries: KnowledgeSummary[]; drains: number; receipts: number }> {
+      let drained = 0
+      const drainQueue = vi.fn(async () => {
+        const next = drains[drained++] ?? drainReport()
+        if (next instanceof Error) throw next
+        return next
+      })
+      const writeCurationTailReceipt = vi.fn()
+      const foldOperations = {
+        loadCompletedRunHandoff: () => handoff,
+        resolveKnowledgeRoot: () => knowledgeRoot,
+        runSafetyScope: (_scope: unknown, fn: () => Promise<void>) => fn(),
+        emitCurationCandidates: () => ({
+          enqueued: 0, coalesced: 0, capExceeded: 0, refused: 0, details: [],
+        }),
+        openKnowledgeReader: () => ({ emitCanaryOutcome: vi.fn() }),
+        emitCanaryOutcomes: async () => ({
+          emitted: 0,
+          refused: 0,
+          unresolved: 0,
+          canary: emptyCanaryCreditCounters(),
+          procedure: { emitted: 0, refused: 0, unresolved: 0 },
+          details: [],
+        }),
+        foldRunOutcomes: () => ({
+          kind: 'applied', tests: 0, quarantine: { kind: 'not-evaluated', reason: 'not-requested' },
+        }),
+        reconcileRunOutcomesProjection: () => ({ kind: 'current' }),
+        drainQueue,
+        listCompletedRunDirs: () => [],
+        readCurationTailReceipt: () => undefined,
+        writeCurationTailReceipt,
+        ...input.operations,
+      } as unknown as Partial<CurationTailOperations>
+
+      let curateRun: PostRunTailHostInput['curateRun'] | undefined
+      let pumped = 0
+      const h = harness({
+        status: input.status ?? pendingStatus(),
+        runNextJob: vi.fn(async () => {
+          if (pumped++ > 0 || curateRun === undefined) return { ran: false, reason: 'no-job' }
+          const folded = await curateRun({ runId, executionContext: 'local-headless' })
+          return {
+            ran: true,
+            disposition: folded.complete ? 'completed' : 'retry-scheduled',
+            job: { id: String(OWN_CHAIN.curateMemory) },
+          }
+        }),
+        runCurationTail: (sweep) => runCurationTail({ ...sweep, operations: foldOperations }),
+      })
+      const composeHost = h.operations.composeHost
+      const operations: PostRunTailOperations = {
+        ...h.operations,
+        composeHost: (hostInput) => {
+          curateRun = hostInput.curateRun
+          return composeHost(hostInput)
+        },
+        curateCompletedRun: (fold) => curateCompletedRun({ ...fold, operations: foldOperations }),
+      }
+      const tail = runPostRunTail({ ...options(h), operations })
+      await tail.drain()
+      await tail.finish()
+      return {
+        summaries: h.summary.mock.calls.map(([summary]) => summary),
+        drains: drainQueue.mock.calls.length,
+        receipts: writeCurationTailReceipt.mock.calls.length,
+      }
+    }
+
+    it('a sweep that writes nothing more keeps the unfinished job fold\'s numbers', async () => {
+      const closeOut = await closeOutOf([JOB_DRAIN_UNFINISHED, drainReport({ remaining: 1 })])
+
+      expect(closeOut.drains).toBe(2)
+      expect(closeOut.receipts).toBe(0)
+      expect(closeOut.summaries).toEqual([{
+        runId,
+        learned: 5,
+        held: 3,
+        proposed: 0,
+        items: JOB_FOLD_ITEMS,
+        unfinished: { notWritten: 1, resume: NEXT_RUN_RESUME },
+      }])
+    })
+
+    it('a sweep that finishes the run adds what it wrote to the job fold\'s numbers', async () => {
+      const closeOut = await closeOutOf([
+        JOB_DRAIN_UNFINISHED,
+        drainReport({
+          committed: 1,
+          promotions: [
+            { candidateId: 'cand0005iiiijjjj', promotionPath: 'deterministic-verdict-floor' },
+          ],
+        }),
+      ], { status: statusWith('complete') })
+
+      expect(closeOut.drains).toBe(2)
+      expect(closeOut.receipts).toBe(1)
+      expect(closeOut.summaries).toEqual([{
+        runId,
+        learned: 6,
+        held: 3,
+        proposed: 0,
+        items: [
+          ...JOB_FOLD_ITEMS,
+          { outcome: 'learned', id: 'cand0005iiiijjjj', reason: 'deterministic-verdict-floor' },
+        ],
+      }])
+    })
+
+    it('a sweep whose fold of the run throws keeps the numbers and the second line', async () => {
+      const closeOut = await closeOutOf([
+        JOB_DRAIN_UNFINISHED,
+        new Error('the knowledge store could not be opened'),
+      ])
+
+      expect(closeOut.drains).toBe(2)
+      expect(closeOut.summaries).toEqual([{
+        runId,
+        learned: 5,
+        held: 3,
+        proposed: 0,
+        items: JOB_FOLD_ITEMS,
+        unfinished: { notWritten: 1, resume: NEXT_RUN_RESUME },
+      }])
+    })
+
+    it('a sweep that cannot list the runs keeps the finished job fold\'s numbers', async () => {
+      const closeOut = await closeOutOf([
+        drainReport({
+          committed: 2,
+          promotions: [
+            { candidateId: 'cand0001aaaabbbb', promotionPath: 'deterministic-verdict-floor' },
+            { candidateId: 'cand0002ccccdddd', promotionHoldReason: 'no-element-observation' },
+          ],
+        }),
+      ], {
+        status: statusWith('complete'),
+        operations: {
+          listCompletedRunDirs: () => { throw new Error('the runs folder could not be read') },
+        },
+      })
+
+      expect(closeOut.drains).toBe(1)
+      expect(closeOut.receipts).toBe(1)
+      expect(closeOut.summaries).toEqual([{
+        runId,
+        learned: 2,
+        held: 1,
+        proposed: 0,
+        items: [
+          { outcome: 'learned', id: 'cand0001aaaabbbb', reason: 'deterministic-verdict-floor' },
+          { outcome: 'held', id: 'cand0002ccccdddd', reason: 'no-element-observation' },
+        ],
+        unfinished: { notWritten: 0, resume: NEXT_RUN_RESUME },
+      }])
+    })
   })
 
   it('another run\'s summary, or one with no run, reaches the host at once as one untagged detail line', async () => {
