@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { format } from 'node:util'
 import type { Mock } from 'vitest'
 import type { LiveFrame, LiveFrameEndReason } from '@vostride/agent-qa-schema'
 import type { LiveSessionConfig } from '../live-editor/types.js'
@@ -207,6 +208,7 @@ vi.mock('@vostride/agent-qa-core', async () => {
     selectSuitePlace: actual.selectSuitePlace,
     selectWebPlace: actual.selectWebPlace,
     printRunText: actual.printRunText,
+    printLogLine: actual.printLogLine,
     TestDefinitionSchema: actual.TestDefinitionSchema,
     SuiteDefinitionSchema: actual.SuiteDefinitionSchema,
   }
@@ -1337,24 +1339,87 @@ describe('executeTestCommand warnings', () => {
 
     await session.executeTestCommand('exec-warn', draft)
 
-    const blocks = writes.filter((chunk) => chunk.includes('executeTestCommand'))
+    const blocks = writes.filter((chunk) => chunk.includes('Step 1 (archive all) failed'))
     expect(blocks).toHaveLength(1)
     expect(blocks[0]).toMatch(PAIR)
-    expect(blocks[0]).toContain('Step 1 (archive all) failed: ::set-output name=x::y')
+    expect(blocks[0]).toContain('live       Step 1 (archive all) failed: ::set-output name=x::y')
     expect(blocks[0]).toContain("testName: 'Warn'")
+    expect(blocks[0]).not.toContain('[live-session]')
     expect(warnSpy).not.toHaveBeenCalled()
   })
 
-  it('passes console.warn the same arguments as before off GitHub Actions', async () => {
+  const MESSAGE_COLUMN = 'HH:MM:SS  live       '.length
+
+  // The text after the time and the tag, with continuation lines brought back from the message
+  // column: the message, then the detail object as it was.
+  function warnedBodies(warnSpy: { mock: { calls: unknown[][] } }): string[] {
+    return warnSpy.mock.calls.map((call) => {
+      expect(call).toHaveLength(1)
+      const line = String(call[0])
+      expect(line).toMatch(/^\d\d:\d\d:\d\d  live       /u)
+      for (const continued of line.split('\n').slice(1)) {
+        expect(continued.startsWith(' '.repeat(MESSAGE_COLUMN))).toBe(true)
+      }
+      return line.slice(MESSAGE_COLUMN).replaceAll(`\n${' '.repeat(MESSAGE_COLUMN)}`, '\n')
+    })
+  }
+
+  it('warns a failed step under the live tag with its detail object', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     await session.executeTestCommand('exec-warn', draft)
 
-    expect(warnSpy.mock.calls).toEqual([
-      [
-        '[live-session] executeTestCommand: Step 1 (archive all) failed: ::set-output name=x::y',
+    expect(warnedBodies(warnSpy)).toEqual([
+      format('%s', 'Step 1 (archive all) failed: ::set-output name=x::y', { testName: 'Warn' }),
+    ])
+  })
+
+  it('warns an auth state conflict under the live tag with its detail object', async () => {
+    const conflicted = new LiveSession('auth-conflict-session')
+    await conflicted.initialize({ ...webConfig, authState: { name: 'admin', load: false } })
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await conflicted.executeTestCommand('exec-auth', { ...draft, authStateName: 'guest' })
+
+    expect(warnedBodies(warnSpy)).toEqual([
+      format(
+        '%s',
+        'Suite auth state "admin" conflicts with child test auth state "guest". '
+          + 'Use one primary auth state per suite.',
         { testName: 'Warn' },
-      ],
+      ),
+    ])
+  })
+
+  it('warns a refused planner limit under the live tag with its detail object', async () => {
+    const refused = new LiveSession('limit-refused-session')
+    await refused.initialize({
+      ...webConfig,
+      plannerLimitsForTest: async () => {
+        throw new LivePlannerLimitsRefusedError('the limit is refused')
+      },
+    })
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await refused.executeTestCommand('exec-limit', draft)
+
+    expect(warnedBodies(warnSpy)).toEqual([
+      format('%s', 'the limit is refused', { testName: 'Warn' }),
+    ])
+  })
+
+  it('warns a failed per-test setup hook under the live tag with its detail object', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    await session.executeTestCommand('exec-setup', { ...draft, setup: [HOOK_ID] })
+
+    const error = `Hook ID "${HOOK_ID}" is not defined in hooks.yaml`
+    expect(warnedBodies(warnSpy)).toEqual([
+      format('%s', `Setup hook "${HOOK_ID}" failed: ${error}`, {
+        testName: 'Warn',
+        setupHooks: [HOOK_ID],
+        failedHook: { name: HOOK_ID, stderr: null, error },
+      }),
     ])
   })
 })

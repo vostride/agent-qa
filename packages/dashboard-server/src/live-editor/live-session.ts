@@ -18,7 +18,7 @@ import {
   normalizeAuthStateUse,
   pluginHostVersions,
   pluginSecretResolver,
-  printRunText,
+  printLogLine,
   readAuthStateMetadata,
   resolveAuthStateForRun,
   resolveAuthStatePaths,
@@ -1679,9 +1679,8 @@ export class LiveSession {
         testDraft.authStateName !== sessionAuthStateName
       ) {
         const message = `Suite auth state "${sessionAuthStateName}" conflicts with child test auth state "${testDraft.authStateName}". Use one primary auth state per suite.`
-        const line = `[live-session] executeTestCommand: ${message}`
         const detail = { testName: testDraft.testName }
-        printRunText(format(line, detail), () => console.warn(line, detail))
+        printLogLine({ tag: 'live', level: 'warn', message: format('%s', message, detail) })
         return this.redact({
           status: 'failed',
           duration: performance.now() - start,
@@ -1700,9 +1699,8 @@ export class LiveSession {
           : this.plannerLimits ?? resolvePlannerLimits()
       } catch (error) {
         if (!(error instanceof LivePlannerLimitsRefusedError)) throw error
-        const line = `[live-session] executeTestCommand: ${error.message}`
         const detail = { testName: testDraft.testName }
-        printRunText(format(line, detail), () => console.warn(line, detail))
+        printLogLine({ tag: 'live', level: 'warn', message: format('%s', error.message, detail) })
         return this.redact({
           status: 'failed',
           duration: performance.now() - start,
@@ -1726,7 +1724,6 @@ export class LiveSession {
         const detail = failedHook
           ? `Setup hook "${failedHook.hookName}" failed${failedHook.error ? `: ${failedHook.error}` : ''}${failedHook.stderr ? ` — ${failedHook.stderr.split('\n')[0].slice(0, 200)}` : ''}`
           : 'Per-test setup hook failed'
-        const line = `[live-session] executeTestCommand: ${detail}`
         const context = {
           testName: testDraft.testName,
           setupHooks: testDraft.setup,
@@ -1734,7 +1731,7 @@ export class LiveSession {
             ? { name: failedHook.hookName, stderr: failedHook.stderr, error: failedHook.error }
             : null,
         }
-        printRunText(format(line, context), () => console.warn(line, context))
+        printLogLine({ tag: 'live', level: 'warn', message: format('%s', detail, context) })
         return {
           status: 'failed',
           duration: performance.now() - start,
@@ -1826,9 +1823,8 @@ export class LiveSession {
           : 'Teardown hook failed'
       }
       if (topLevelError) {
-        const line = `[live-session] executeTestCommand: ${topLevelError}`
         const detail = { testName: testDraft.testName }
-        printRunText(format(line, detail), () => console.warn(line, detail))
+        printLogLine({ tag: 'live', level: 'warn', message: format('%s', topLevelError, detail) })
       }
 
       return this.redact({

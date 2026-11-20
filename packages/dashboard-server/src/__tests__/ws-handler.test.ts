@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi, type Mock } from 'vitest'
-import { generateTestId } from '@vostride/agent-qa-ids'
+import { generateHookId, generateTestId } from '@vostride/agent-qa-ids'
 import { createSessionHandler } from '../live-editor/ws-handler.js'
 import { IDLE_TIMEOUT_MS, LiveSession } from '../live-editor/live-session.js'
 import type { ServerMessage, SessionState } from '../live-editor/types.js'
@@ -546,13 +546,18 @@ describe('execute-test console lines', () => {
     vi.unstubAllEnvs()
   })
 
-  async function executeTest(read: () => Promise<string>): Promise<void> {
+  const FAILED = { status: 'failed', duration: 7, error: '##[error]x' }
+  const LINE_START = '^\\d\\d:\\d\\d:\\d\\d  live       '
+  const CONTINUATION = ' '.repeat('HH:MM:SS  live       '.length)
+
+  async function executeTest(
+    read: () => Promise<string>,
+    outcome: { status: string; duration: number; error?: string } = FAILED,
+  ): Promise<void> {
     const ws = new MockWebSocket()
     const session = createMockSession({
       executeTestCommand: vi.fn().mockResolvedValue({
-        status: 'failed',
-        duration: 7,
-        error: '##[error]x',
+        ...outcome,
         setupHookExecutions: [],
         stepResults: [],
         teardownHookExecutions: [],
@@ -568,19 +573,21 @@ describe('execute-test console lines', () => {
     })
   }
 
-  it('prints the starting and finished lines in a pair each under GitHub Actions', async () => {
+  function onlyArguments(spy: Mock): string[] {
+    for (const call of spy.mock.calls) expect(call).toHaveLength(1)
+    return spy.mock.calls.map((call) => String(call[0]))
+  }
+
+  it('prints the start and result lines in a pair each under GitHub Actions', async () => {
     vi.stubEnv('GITHUB_ACTIONS', 'true')
 
     await executeTest(async () => TEST_YAML)
 
     expect(writes).toHaveLength(2)
-    for (const block of writes) {
-      expect(block).toMatch(PAIR)
-      expect(block).toContain(`"${NAME}"`)
-    }
-    expect(writes[0]).toContain('execute-test: starting')
-    expect(writes[1]).toContain('execute-test: finished')
-    expect(writes[1]).toContain('error=##[error]x')
+    for (const block of writes) expect(block).toMatch(PAIR)
+    expect(writes[0]).toContain(`live       ▶ ${NAME} · 1 steps`)
+    expect(writes[1]).toContain(`live       ✗ ${NAME} · failed · 0.0s`)
+    expect(writes[1]).toContain('##[error]x')
     expect(logSpy).not.toHaveBeenCalled()
   })
 
@@ -593,9 +600,9 @@ describe('execute-test console lines', () => {
 
     expect(writes).toHaveLength(2)
     for (const block of writes) expect(block).toMatch(PAIR)
-    expect(writes[0]).toContain('execute-test: read failed for path=a.yaml')
+    expect(writes[0]).toContain('live       ✗ Could not read a.yaml')
     expect(writes[0]).toContain(NAME)
-    expect(writes[1]).toContain('execute-test: caught error for path=a.yaml')
+    expect(writes[1]).toContain('live       ✗ a.yaml stopped on an error')
     expect(writes[1]).toContain(`Cannot read test file "a.yaml": ${NAME}`)
     expect(errSpy).not.toHaveBeenCalled()
   })
@@ -607,33 +614,77 @@ describe('execute-test console lines', () => {
 
     expect(writes).toHaveLength(2)
     expect(writes[0]).toMatch(PAIR)
-    expect(writes[0]).toContain('execute-test: parse errors for a.yaml')
+    expect(writes[0]).toContain('live       ✗ Parse errors in a.yaml')
     expect(writes[0]).toContain('not readable as YAML')
     expect(errSpy).not.toHaveBeenCalled()
   })
 
-  it('passes console.log and console.error the same arguments as before off Actions', async () => {
+  it('hands each console call one string with the live tag and the sentence off Actions', async () => {
     await executeTest(async () => TEST_YAML)
     const readError = new Error('gone')
     await executeTest(async () => {
       throw readError
     })
 
-    expect(logSpy.mock.calls).toEqual([
-      [`[ws-handler] execute-test: starting "${NAME}" (1 steps, setup=0, teardown=0)`],
-      [`[ws-handler] execute-test: finished "${NAME}" status=failed duration=7ms error=##[error]x`],
-    ])
-    expect(errSpy.mock.calls).toEqual([
-      ['[ws-handler] execute-test: read failed for path=a.yaml', readError],
-      [
-        '[ws-handler] execute-test: caught error for path=a.yaml',
-        {
-          message: 'Cannot read test file "a.yaml": gone',
-          stack: expect.any(String),
-          code: undefined,
-        },
-      ],
-    ])
+    const logged = onlyArguments(logSpy)
+    expect(logged).toHaveLength(2)
+    expect(logged[0]).toMatch(new RegExp(`${LINE_START}▶ ${NAME} · 1 steps$`, 'u'))
+    expect(logged[1]).toMatch(
+      new RegExp(`${LINE_START}✗ ${NAME} · failed · 0\\.0s\\n${CONTINUATION}##\\[error\\]x$`, 'u'),
+    )
+
+    const errored = onlyArguments(errSpy)
+    expect(errored).toHaveLength(2)
+    expect(errored[0]).toMatch(new RegExp(`${LINE_START}✗ Could not read a\\.yaml `, 'u'))
+    expect(errored[0]).toContain('Error: gone')
+    expect(errored[1]).toMatch(new RegExp(`${LINE_START}✗ a\\.yaml stopped on an error `, 'u'))
+    expect(errored[1]).toContain(`message: 'Cannot read test file "a.yaml": gone'`)
+    expect(errored[1]).toContain('stack: ')
+    expect(errored[1]).toContain('code: undefined')
+    for (const line of [...logged, ...errored]) {
+      expect(line).not.toMatch(/\[ws-handler\]|execute-test|path=|status=|duration=/u)
+    }
     expect(writes).toHaveLength(0)
+  })
+
+  it('names the setup and teardown counts on the start line only when either is not zero', async () => {
+    const hooks = `setup:\n  - ${generateHookId()}\n  - ${generateHookId()}\n`
+      + `teardown:\n  - ${generateHookId()}\n`
+
+    await executeTest(async () => `${TEST_YAML}${hooks}`)
+
+    expect(onlyArguments(logSpy)[0]).toMatch(
+      new RegExp(`${LINE_START}▶ ${NAME} · 1 steps · setup 2, teardown 1$`, 'u'),
+    )
+  })
+
+  it('prints a passed result with the seconds to one decimal', async () => {
+    await executeTest(async () => TEST_YAML, { status: 'passed', duration: 7049 })
+
+    expect(onlyArguments(logSpy)[1]).toMatch(
+      new RegExp(`${LINE_START}✓ ${NAME} · passed · 7\\.0s$`, 'u'),
+    )
+  })
+
+  it('colours the result icon green for passed and red otherwise when stdout has colour', async () => {
+    vi.stubEnv('NO_COLOR', '')
+    vi.stubEnv('FORCE_COLOR', '1')
+
+    await executeTest(async () => TEST_YAML, { status: 'passed', duration: 7049 })
+    await executeTest(async () => TEST_YAML)
+
+    const logged = onlyArguments(logSpy)
+    expect(logged[1]).toContain('\x1b[32m✓')
+    expect(logged[3]).toContain('\x1b[31m✗')
+  })
+
+  it('leaves the result icon uncoloured when stdout has no colour', async () => {
+    await executeTest(async () => TEST_YAML, { status: 'passed', duration: 7049 })
+    await executeTest(async () => TEST_YAML)
+
+    const logged = onlyArguments(logSpy)
+    expect(logged[1]).toContain('✓')
+    expect(logged[3]).toContain('✗')
+    for (const line of logged) expect(line).not.toContain('\x1b[')
   })
 })

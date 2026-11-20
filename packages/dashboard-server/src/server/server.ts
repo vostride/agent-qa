@@ -44,7 +44,6 @@ import type {
 import {
   isLoopbackHost,
   printLogLine,
-  printRunText,
   type ResolvedWorkspacePaths,
 } from '@vostride/agent-qa-core'
 import type { DashboardLLMConfig } from '../llm-model-mapping.js'
@@ -621,8 +620,11 @@ export async function startServer(opts: StartServerOptions): Promise<{
         session.clearIdleTimer()
         const handler = createSessionHandler(session, () => {
           void sessionManager.terminateSession(sessionId).catch((error: unknown) => {
-            const line = `[live-editor] could not end session ${sessionId}`
-            printRunText(format(line, error), () => console.error(line, error))
+            printLogLine({
+              tag: 'live',
+              level: 'error',
+              message: format('%s', `Could not end session ${sessionId}`, error),
+            })
           })
         }, (event) => {
           db.insertTokenEvent(event)

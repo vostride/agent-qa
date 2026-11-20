@@ -237,7 +237,12 @@ describe('the editor control socket across reconnects', () => {
     await vi.advanceTimersByTimeAsync(IDLE_TIMEOUT_MS)
     await new Promise((resolve) => setImmediate(resolve))
     expect(manager.getSession(sessionId)).toBeUndefined()
-    expect(reported).toHaveBeenCalledWith(expect.stringContaining(sessionId), expect.any(Error))
+    expect(reported).toHaveBeenCalledOnce()
+    expect(reported.mock.calls[0]).toHaveLength(1)
+    expect(String(reported.mock.calls[0]?.[0])).toMatch(
+      /^\d\d:\d\d:\d\d  live       idle expiry could not end session \S+ Error: teardown failed/u,
+    )
+    expect(String(reported.mock.calls[0]?.[0])).toContain(sessionId)
   })
 
   it('TEARDOWN-NOT-HELD-BY-HUB: a hub close that never settles cannot keep the browser up', async () => {
