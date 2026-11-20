@@ -835,6 +835,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
   let resolveCompletion: ((code: number) => void) | undefined
   let shutdownPromise: Promise<void> | undefined
   let shutdownCompleted = false
+  let startLinePrinted = false
   let drainRequested = false
   let drainReceiptRequired = false
   let requestedDrainSessionId: string | undefined
@@ -1818,6 +1819,13 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
         } catch {
           // Completion still settles if both the event sink and its logger fail.
         }
+        if (startLinePrinted) {
+          try {
+            logger.info('agent-qa daemon stopped')
+          } catch {
+            // A logger failure must not keep the shutdown from completing.
+          }
+        }
         shutdownCompleted = true
         resolveCompletion?.(exitCode)
       }
@@ -2218,6 +2226,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
     }, ENTITY_INDEX_SWEEP_INTERVAL_MS)
 
     logger.info(`agent-qa daemon started (pid ${process.pid}, epoch ${acquired.epoch})`)
+    startLinePrinted = true
 
     return await completion
   } catch (error) {
