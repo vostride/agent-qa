@@ -1,4 +1,5 @@
-// The shipped bin prints no colour code without a terminal; the env comes from `hermeticEnv`.
+// Where the shipped bin colours its output: in CI and with FORCE_COLOR, not in a plain pipe or
+// with NO_COLOR. The env comes from `hermeticEnv`.
 
 import { spawn } from 'node:child_process'
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
@@ -58,7 +59,9 @@ function missingTestProject(): { root: string; configPath: string } {
   return { root, configPath }
 }
 
-async function runMissingTest(extraEnv: Readonly<Record<string, string>>): Promise<BinOutcome> {
+type ColourEnv = Readonly<Partial<Record<'CI' | 'NO_COLOR' | 'FORCE_COLOR', string>>>
+
+async function runMissingTest(colourEnv: ColourEnv): Promise<BinOutcome> {
   if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')
   const freshness = buildFreshness(ANCHORED_BUILDS)
   expect(
@@ -66,10 +69,11 @@ async function runMissingTest(extraEnv: Readonly<Record<string, string>>): Promi
     `these cells drive the built CLI: ${REBUILD_INSTRUCTION}`,
   ).toEqual({ missing: [], stale: [] })
   const project = missingTestProject()
-  const env: NodeJS.ProcessEnv = { ...hermeticEnv(project.root), CI: 'true' }
+  const env: NodeJS.ProcessEnv = { ...hermeticEnv(project.root) }
+  delete env.CI
   delete env.NO_COLOR
   delete env.FORCE_COLOR
-  Object.assign(env, extraEnv)
+  Object.assign(env, colourEnv)
   const child = spawn(
     process.execPath,
     [CLI_ENTRY, '--config', project.configPath, 'run', 'tests/missing.yaml'],
@@ -92,7 +96,14 @@ async function runMissingTest(extraEnv: Readonly<Record<string, string>>): Promi
 }
 
 describe('the shipped bin\'s colour posture', () => {
-  it('the shipped bin under CI=true with stdout piped prints no colour code', async () => {
+  it('the shipped bin under CI=true with stdout and stderr piped prints colour codes', async () => {
+    const outcome = await runMissingTest({ CI: 'true' })
+    expect(outcome.stderr, JSON.stringify(outcome)).toContain(MISSING_TEST_LINE)
+    expect(outcome.status, JSON.stringify(outcome)).toBe(1)
+    expect(outcome.stderr.includes(COLOUR_CODE), JSON.stringify(outcome.stderr)).toBe(true)
+  }, 90_000)
+
+  it('the shipped bin with a pipe and no CI prints no colour code', async () => {
     const outcome = await runMissingTest({})
     expect(outcome.stderr, JSON.stringify(outcome)).toContain(MISSING_TEST_LINE)
     expect(outcome.status, JSON.stringify(outcome)).toBe(1)
@@ -100,7 +111,15 @@ describe('the shipped bin\'s colour posture', () => {
     expect(outcome.stderr.includes(COLOUR_CODE), JSON.stringify(outcome.stderr)).toBe(false)
   }, 90_000)
 
-  it('the shipped bin with FORCE_COLOR prints colour codes', async () => {
+  it('the shipped bin under CI=true with NO_COLOR=1 prints no colour code', async () => {
+    const outcome = await runMissingTest({ CI: 'true', NO_COLOR: '1' })
+    expect(outcome.stderr, JSON.stringify(outcome)).toContain(MISSING_TEST_LINE)
+    expect(outcome.status, JSON.stringify(outcome)).toBe(1)
+    expect(outcome.stdout.includes(COLOUR_CODE), JSON.stringify(outcome.stdout)).toBe(false)
+    expect(outcome.stderr.includes(COLOUR_CODE), JSON.stringify(outcome.stderr)).toBe(false)
+  }, 90_000)
+
+  it('the shipped bin with a pipe, no CI and FORCE_COLOR=1 prints colour codes', async () => {
     const outcome = await runMissingTest({ FORCE_COLOR: '1' })
     expect(outcome.stderr, JSON.stringify(outcome)).toContain(MISSING_TEST_LINE)
     expect(outcome.status, JSON.stringify(outcome)).toBe(1)

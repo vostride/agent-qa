@@ -2,6 +2,7 @@
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { stripVTControlCharacters } from 'node:util'
 
 import { generateTestId } from '@vostride/agent-qa-ids'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
@@ -142,7 +143,8 @@ describe('agent-qa run output under GitHub Actions', () => {
     })
     expect(outcome.code).toBe(2)
     expect(outcome.stderr).not.toContain(CRAFTED_STEPS)
-    const block = WRAPPED_PARSE_ERRORS.exec(outcome.stdout)?.[0]
+    // Under GitHub Actions the error is coloured; the pair is read by its words.
+    const block = WRAPPED_PARSE_ERRORS.exec(stripVTControlCharacters(outcome.stdout))?.[0]
     expect(block).toContain(`steps: "${CRAFTED_STEPS}"`)
   })
 
