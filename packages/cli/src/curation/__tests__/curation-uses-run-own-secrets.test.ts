@@ -310,8 +310,9 @@ async function drainTail(input: {
   readonly knowledgeDir: string
   readonly chainRunId?: string
   readonly egress?: AuthorEgress[]
-}): Promise<{ readonly warns: string[]; readonly chain?: ChainResult }> {
+}): Promise<{ readonly warns: string[]; readonly details: string[]; readonly chain?: ChainResult }> {
   const warns: string[] = []
+  const details: string[] = []
   let bound: PostRunTailHostInput | undefined
   let chain: ChainResult | undefined
   const spy = input.egress === undefined ? undefined : authorSpy(input.egress)
@@ -348,11 +349,14 @@ async function drainTail(input: {
     knowledgeConfig: { dir: input.knowledgeDir },
     mask: createDeclaredSecretMask(input.configPath).mask,
     ...(spy === undefined ? {} : { modelDeps: {} as never }),
-    log: { warn: (message: string) => warns.push(message), detail: () => undefined },
+    log: {
+      warn: (message: string) => warns.push(message),
+      detail: (message: string) => { details.push(message) },
+    },
     operations,
   })
   await tail.drain()
-  return { warns, ...(chain === undefined ? {} : { chain }) }
+  return { warns, details, ...(chain === undefined ? {} : { chain }) }
 }
 
 function reasonOf(chain: ChainResult | undefined): string | undefined {
@@ -387,13 +391,14 @@ async function handedBackByB(p: Project, reasonPart: string): Promise<void> {
   expect(receiptOfRunA(p)).toBeUndefined()
   nothingOfRunA(p)
 
-  const { warns } = await drainTail({
+  const { warns, details } = await drainTail({
     p,
     runId: RUN_B,
     configPath: p.bConfig,
     knowledgeDir: p.knowledgeDirB,
   })
-  expect(warns.filter((line) => line.includes(RUN_A) && line.includes(reasonPart))).toHaveLength(1)
+  expect(details.filter((line) => line.includes(RUN_A) && line.includes(reasonPart))).toHaveLength(1)
+  expect(warns.filter((line) => line.includes(RUN_A))).toEqual([])
   expect(receiptOfRunA(p)).toBeUndefined()
   expect(readCurationTailReceipt(completedRunDir(p.agentQaRoot, RUN_B))).toBeDefined()
   nothingOfRunA(p)

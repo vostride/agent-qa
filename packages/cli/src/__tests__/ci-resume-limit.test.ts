@@ -348,7 +348,7 @@ describe('every CI door states the resume limit', () => {
     }
   }, 120_000)
 
-  it('in ci the curation fold incomplete warning states the resume limit', async () => {
+  it('in ci the curation fold incomplete line states the resume limit', async () => {
     const expected: Record<Context, string> = {
       ci: `it ${LOCAL_RUN}.`,
       cloud: `it ${LOCAL_RUN}.`,
@@ -361,21 +361,27 @@ describe('every CI door states the resume limit', () => {
     }
     for (const context of ['local-headless', ...CI_CONTEXTS] as const) {
       const warnings: string[] = []
+      const details: string[] = []
       const summary = vi.fn()
       await runCurationTail({
         runId: 'run_fold',
         agentQaRoot: '/workspace/.agent-qa',
         knowledgeConfig: { dir: 'knowledge' },
         configDir: '/workspace',
-        log: { warn: (message: string) => { warnings.push(message) }, detail: () => undefined, summary },
+        log: {
+          warn: (message: string) => { warnings.push(message) },
+          detail: (message: string) => { details.push(message) },
+          summary,
+        },
         operations: {
           loadCompletedRunHandoff: (() => ({ runId: 'run_fold', executionContext: context })) as never,
           resolveKnowledgeRoot: () => { throw new Error('fixture root failure') },
         },
       })
-      expect(warnings, context).toEqual([
+      expect(details, context).toEqual([
         `Post-verdict knowledge curation incomplete for run_fold; ${expected[context]}`,
       ])
+      expect(warnings, context).toEqual([])
       expect(summary.mock.calls, context).toEqual([[{
         runId: 'run_fold',
         learned: 0,
