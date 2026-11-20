@@ -45,6 +45,8 @@ const BUCKETS_LINE =
 const PROMOTION_LINE = /^curation: \S+ (?:held: |promoted via )/u
 const CI_OUTCOME_LINE =
   /^curation: (\d+) learned change\(s\) recorded, (\d+) kept proposed \(ci runs never promote learned knowledge\)$/u
+// `knowledgePendingResumeWords` in `ci`, the end of the line under a `Knowledge:` line.
+const CI_RESUME_SENTENCE = "resumes only if this workspace's .agent-qa/ is kept and a later local run picks it up"
 
 type Verdict = 'passed' | 'failed'
 
@@ -81,8 +83,15 @@ interface Leg {
   // line (`post-processing <outcome> for <id> — …`): the one line naming the stages.
   exitLines?: string[]
   curationLines?: string[]
+  // Each `Knowledge:` line on stderr, with the indented line under it when there is one.
+  knowledge?: KnowledgeLines[]
   requestKinds?: string[]
   knowledgeAfter?: BundleFacts[]
+}
+
+interface KnowledgeLines {
+  readonly line: string
+  readonly second?: string
 }
 
 interface Scene {
@@ -203,9 +212,19 @@ async function runLeg(project: PopulatedRunProject, leg: Leg): Promise<void> {
     || line.startsWith(`post-processing complete for ${leg.runId} — `)
     || line.startsWith(`post-processing failed for ${leg.runId} — `))
   leg.curationLines = lines.filter((line) => line.startsWith('curation: '))
+  leg.knowledge = knowledgeLinesOf(withoutColour(stderr))
   leg.requestKinds = (model?.requests ?? []).slice(before).map((request) => request.kind)
   leg.recordedVerdict = verdictOf(project, leg.runId)
   leg.knowledgeAfter = knowledgeOf(project)
+}
+
+function knowledgeLinesOf(stderr: string): KnowledgeLines[] {
+  const lines = stderr.split('\n')
+  return lines.flatMap((line, index) => {
+    if (!line.startsWith('Knowledge: ')) return []
+    const next = lines[index + 1]
+    return [next !== undefined && next.startsWith('  ') ? { line, second: next } : { line }]
+  })
 }
 
 function leg(key: string, verdict: Verdict, testPath: string, flags: readonly string[]): Leg {
@@ -329,6 +348,19 @@ describe('headless CI runs', () => {
             .toBe(`pending${CI_PENDING_SUFFIX[stage]}`)
         }
       }
+      expect(run.knowledge?.length, `${key} prints one Knowledge line\n${seen()}`).toBe(1)
+      const knowledge = run.knowledge![0]!
+      const curation = stageWordOf('curation', stages.curation!)
+      if (curation === 'pending') {
+        expect(knowledge.second, `${key}'s pending curation has a second line\n${seen()}`)
+          .toMatch(/^ {2}\S/u)
+        expect(knowledge.second!.endsWith(CI_RESUME_SENTENCE),
+          `${key}'s second line states the resume limit\n${seen()}`).toBe(true)
+      }
+      if (curation === 'complete') {
+        expect(knowledge.second, `${key}'s complete curation has no second line\n${seen()}`)
+          .toBeUndefined()
+      }
       expect(withoutColour(`${streams.stdout}\n${streams.stderr}`), `${key} prints no done or excluded stage\n${seen()}`)
         .not.toMatch(/(?:analysis|curation): (?:done|excluded)\b/u)
     }
@@ -344,6 +376,9 @@ describe('headless CI runs', () => {
       analysis: `pending${CI_PENDING_SUFFIX.analysis}`,
       curation: `pending${CI_PENDING_SUFFIX.curation}`,
     })
+    expect(run.knowledge, seen()).toEqual([
+      { line: 'Knowledge: pending', second: `  not finished, ${CI_RESUME_SENTENCE}` },
+    ])
   })
 
   it('a CI run curation outcome line counts only the changes its buckets line shows', () => {
@@ -371,6 +406,8 @@ describe('curation in CI only proposes', () => {
 
     expect(bucketsOf(first), `the first CI run's close-out\n${seen()}`)
       .toEqual([{ added: 1, confirmed: 0, superseded: 0, deprecated: 0, proposed: 0 }])
+    expect(first.knowledge?.map((each) => each.line), `the first CI run's summary\n${seen()}`)
+      .toEqual(['Knowledge: learned 1, held 0'])
     expect(first.curationLines, `the CI outcome line\n${seen()}`).toContain(
       'curation: 1 learned change(s) recorded, 0 kept proposed (ci runs never promote learned knowledge)',
     )
@@ -383,6 +420,8 @@ describe('curation in CI only proposes', () => {
     expect(second.requestKinds, `the curator arm authored the Supersede\n${seen()}`).toContain('curator')
     expect(bucketsOf(second), `the second CI run's close-out\n${seen()}`)
       .toEqual([{ added: 0, confirmed: 0, superseded: 0, deprecated: 0, proposed: 1 }])
+    expect(second.knowledge?.map((each) => each.line), `the second CI run's summary\n${seen()}`)
+      .toEqual(['Knowledge: learned 0, held 0, proposed 1'])
     expect(second.curationLines, `the CI outcome line for the proposed correction\n${seen()}`).toContain(
       'curation: 0 learned change(s) recorded, 1 kept proposed (ci runs never promote learned knowledge)',
     )

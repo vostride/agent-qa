@@ -8,7 +8,7 @@ import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, 
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
 import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, describeAndroidHere, describeIOSHere, discoverWorkspaceFiles, findDeviceHere, isUrlRemoteEntry, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, projectRemotesForDisplay, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
-import { colorsFor, isCi, printRunText } from '@vostride/agent-qa-core/run-text-output'
+import { colorsFor, formatLogLine, isCi, printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, RemoteConnectionFields, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
@@ -113,6 +113,12 @@ import {
   unexpectedCurationTailWarning,
   type CurationTailModelDeps,
 } from '../curation/curation-tail.js'
+import {
+  knowledgeHeadline,
+  knowledgeItemLines,
+  knowledgeSecondLine,
+  type KnowledgeSummary,
+} from '../curation/knowledge-summary.js'
 import { composeCliPostRunTail } from '../curation/post-run-tail-composition.js'
 import { flushWorkingMemory } from '../wm-flush.js'
 import { isPathInsideDir } from '@vostride/agent-qa-core'
@@ -249,22 +255,35 @@ function runTargetSeed(
 }
 
 /**
- * Every post-run line's CHANNEL, in one place — and exported because the channel is a promise.
- *
- * Post-processing never gates the verdict or the navigation, so no post-run line lands on stdout,
- * where the reporter and the navigation live: both members write to stderr. Under GitHub Actions
- * each line prints inside its own stop-commands pair on stdout instead, like all run-derived text.
- * Exported so the byte-proof binds THIS object rather than a copy of it: a proof against a
- * re-declared log would keep passing on the day somebody routes a close-out line to `console.log`.
+ * Every line the post-run tail prints, in one place. Post-processing never gates the verdict or
+ * the navigation, so no post-run line lands on stdout, where the reporter and the navigation live:
+ * every member writes to stderr. Under GitHub Actions each block prints inside its own
+ * stop-commands pair instead, like all run-derived text. Exported so the test that compares stdout
+ * byte for byte binds this object and not a copy, which would keep passing on the day a post-run
+ * line moved to `console.log`. The run command sets `level` before the tail starts.
  */
 export const curationTailLog = {
+  level: 'warn' as string,
   warn(message: string): void {
-    printRunText(pc.yellow(`Warning: ${message}`), (text) => console.warn(text))
+    printRunWarning(`Warning: ${message}`)
   },
-  // The per-run candidate summary line: the same stderr channel as warn, so the ladder run log
-  // captures it, but never dressed as a warning.
-  detail(message: string): void {
-    printRunText(message, (text) => console.error(text))
+  detail(message: string, tag?: string): void {
+    const line = curationTailLog.level === 'debug'
+      ? formatLogLine({ tag: tag ?? 'knowledge', message, level: 'debug' }, colorsFor(process.stderr))
+      : message
+    printRunText(line, (text) => console.error(text))
+  },
+  summary(summary: KnowledgeSummary): void {
+    const second = knowledgeSecondLine(summary)
+    const lines = [
+      `Knowledge: ${knowledgeHeadline(summary)}`,
+      ...(second === undefined ? [] : [second]),
+      ...(curationTailLog.level === 'debug' ? knowledgeItemLines(summary) : []),
+    ]
+    printRunText(
+      lines.map((line, index) => (index === 0 ? line : `  ${line}`)).join('\n'),
+      (text) => console.error(text),
+    )
   },
 }
 
@@ -2719,6 +2738,7 @@ async function executeSuites(
           return frozenExitCode
         },
         afterVerdict: async ({ exitCode: verdictExitCode, mask, postVerdict, postVerdictDeadlineMs }) => {
+          curationTailLog.level = effectiveLogLevel
           // One post-run tail serves both tail sites; only the in-process drain is detach-gated.
           const postRunTail = composeCliPostRunTail({
             postVerdict,
@@ -5542,6 +5562,7 @@ export function createRunCommand(
                 return frozenExitCode
               },
               afterVerdict: async ({ exitCode, mask, postVerdict, postVerdictDeadlineMs }) => {
+                curationTailLog.level = effectiveLogLevel
                 // The shared tail; the shell already enqueued, so it only drains and finishes.
                 const postRunTail = composeCliPostRunTail({
                   postVerdict,
