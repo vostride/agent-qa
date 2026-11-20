@@ -1253,10 +1253,10 @@ describe('runCurationTail post-verdict fold', () => {
       validRunDir,
       expect.objectContaining({ runId }),
     )
-    expect(warn).not.toHaveBeenCalled()
-    expect(detail).toHaveBeenCalledWith(
+    expect(warn.mock.calls).toEqual([[
       `Skipping post-verdict knowledge curation for ${malformedRunDir}: handoff is malformed.`,
-    )
+    ]])
+    expect(detail).not.toHaveBeenCalledWith(expect.stringContaining('handoff is malformed'))
     expect(detail).not.toHaveBeenCalledWith(expect.stringMatching(/curation incomplete/i))
   })
 
@@ -1318,10 +1318,10 @@ describe('runCurationTail post-verdict fold', () => {
         validRunDir,
         expect.objectContaining({ runId }),
       )
-      expect(warn).not.toHaveBeenCalled()
-      expect(detail).toHaveBeenCalledWith(
+      expect(warn.mock.calls).toEqual([[
         `Skipping post-verdict knowledge curation for ${malformedRunDir}: handoff is malformed.`,
-      )
+      ]])
+      expect(detail).not.toHaveBeenCalledWith(expect.stringContaining('handoff is malformed'))
       expect(detail).not.toHaveBeenCalledWith(
         expect.stringContaining(`curation incomplete for ${malformedRunId}`),
       )
@@ -1572,7 +1572,7 @@ describe('run-outcome projection under the extended tail receipt', () => {
     expect(operations.foldRunOutcomes).toHaveBeenCalledOnce()
   })
 
-  it('isolates a throwing reconcile: said on detail, and every per-run fold still happens', async () => {
+  it('isolates a throwing reconcile: warned, and every per-run fold still happens', async () => {
     const warn = vi.fn()
     const detail = vi.fn()
     const foldRunOutcomes = vi.fn(successfulOperations().foldRunOutcomes)
@@ -1594,23 +1594,24 @@ describe('run-outcome projection under the extended tail receipt', () => {
     expect(operations.releaseLease).toHaveBeenCalledExactlyOnceWith({ knowledgeRoot, leaseId: 'sweep-lease' })
 
     // A throw before any delete leaves the family intact, one after leaves it unstamped.
-    expect(detail).toHaveBeenCalledWith(
+    expect(warn).toHaveBeenCalledOnce()
+    expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('the run-outcome projection reconcile did not complete'),
     )
-    expect(detail).toHaveBeenCalledWith(
+    expect(warn).toHaveBeenCalledWith(
       expect.stringContaining(
         'If the rebuild write phase had already begun, the projection family is left unstamped and possibly'
         + ' partial, and the next reconcile rebuilds it',
       ),
     )
-    expect(detail).toHaveBeenCalledWith(
+    expect(warn).toHaveBeenCalledWith(
       expect.stringContaining(
         'if it stopped before that, the family and its previous stamp are untouched',
       ),
     )
     // The injected message is absent from the static text above, so this cannot pass vacuously.
-    expect(detail).toHaveBeenCalledWith(expect.stringContaining('reconcile failed'))
-    expect(warn).not.toHaveBeenCalled()
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('reconcile failed'))
+    expect(detail).not.toHaveBeenCalledWith(expect.stringContaining('reconcile'))
     expect(foldRunOutcomes).toHaveBeenCalledOnce()
     expect(drainQueue).toHaveBeenCalledOnce()
     expect(writeCurationTailReceipt).toHaveBeenCalledOnce()
@@ -2511,18 +2512,20 @@ describe('the knowledge summary a sweep reports', () => {
   it.each([
     ['refused', () => ({ kind: 'not-held' as const })],
     ['failed', () => { throw new Error('fixture release failure') }],
-  ] as const)('says on detail that the reconcile lease release %s', async (outcome, releaseLease) => {
+  ] as const)('warns that the reconcile lease release %s', async (outcome, releaseLease) => {
     const warn = vi.fn()
     const detail = vi.fn()
     const operations = successfulOperations({ releaseLease: vi.fn(releaseLease) as never })
 
     await runCurationTail(baseOptions(operations, { log: { warn, detail } }))
 
-    expect(detail).toHaveBeenCalledWith(`curation: run-outcome projection writer lease release ${outcome}`)
-    expect(warn).not.toHaveBeenCalled()
+    expect(warn.mock.calls).toEqual([[
+      `curation: run-outcome projection writer lease release ${outcome}`,
+    ]])
+    expect(detail).not.toHaveBeenCalledWith(expect.stringContaining('lease release'))
   })
 
-  it('says on detail that it skips a sibling run its context hands back', async () => {
+  it('warns that it skips a sibling run its context hands back', async () => {
     const siblingRunId = '000-sibling-run'
     const currentRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(runId))
     const siblingRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(siblingRunId))
@@ -2538,13 +2541,13 @@ describe('the knowledge summary a sweep reports', () => {
 
     await runCurationTail(baseOptions(operations, { log: { warn, detail } }))
 
-    expect(detail).toHaveBeenCalledWith(
+    expect(warn.mock.calls).toEqual([[
       `Skipping post-verdict knowledge curation for ${siblingRunDir}: fixture hand-back reason`,
-    )
-    expect(warn).not.toHaveBeenCalled()
+    ]])
+    expect(detail).not.toHaveBeenCalledWith(expect.stringContaining('fixture hand-back reason'))
   })
 
-  it('warns a log that has only warn of the quarantine and the missing handoff, and of nothing else', async () => {
+  it('warns a log that has only warn of failures, skipped runs and the quarantine, and of nothing else', async () => {
     const siblingRunId = '000-sibling-run'
     const currentRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(runId))
     const siblingRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(siblingRunId))
@@ -2591,10 +2594,12 @@ describe('the knowledge summary a sweep reports', () => {
       loadCompletedRunHandoff: () => { throw new Error('missing handoff') },
     }), { log: { warn } }))).resolves.toBeUndefined()
 
-    expect(warn.mock.calls.map(([message]) => String(message).split(':')[0])).toEqual([
-      'Quarantine withheld for checkout completes (suite/checkout.test.ts)',
-      `Quarantine ledger has 1 unreadable line(s) for ${runId}`,
-      'Skipping post-verdict knowledge curation',
+    expect(warn.mock.calls.map(([message]) => String(message))).toEqual([
+      'curation: run-outcome projection writer lease release refused',
+      `Skipping post-verdict knowledge curation for ${siblingRunDir}: handoff is malformed.`,
+      expect.stringContaining('Quarantine withheld for checkout completes (suite/checkout.test.ts): '),
+      expect.stringContaining(`Quarantine ledger has 1 unreadable line(s) for ${runId}: `),
+      'Skipping post-verdict knowledge curation: the completed run handoff is missing or malformed.',
     ])
   })
 })
