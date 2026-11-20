@@ -39,6 +39,7 @@ import type {
   VerdictSentenceParts,
 } from '@vostride/agent-qa-schema'
 
+import { knowledgeTaggedMessage, type KnowledgeSummary } from '../knowledge-summary.js'
 import {
   digestFetchCommand,
   renderAnalysisClusterBlock,
@@ -282,8 +283,9 @@ interface Harness {
   runNextJob: ReturnType<typeof vi.fn>
   readRunDigest: ReturnType<typeof vi.fn>
   chipObserve: ReturnType<typeof vi.fn>
-  info: Mock<(message: string) => void>
+  info: Mock<(message: string, tag?: string) => void>
   warn: Mock<(message: string) => void>
+  summary: Mock<(summary: KnowledgeSummary) => void>
   clock: { value: number }
 }
 
@@ -293,10 +295,12 @@ function harness(overrides: {
   status?: PostProcessingStatus
   digest?: RunDigest
   readRunDigest?: ReturnType<typeof vi.fn>
+  runCurationTail?: PostRunTailOperations['runCurationTail']
 } = {}): Harness {
   const clock = { value: 1_000 }
-  const info = vi.fn<(message: string) => void>()
+  const info = vi.fn<(message: string, tag?: string) => void>()
   const warn = vi.fn<(message: string) => void>()
+  const summary = vi.fn<(summary: KnowledgeSummary) => void>()
   const runNextJob = overrides.runNextJob
     ?? vi.fn(async () => ({ ran: false, reason: 'no-job' }))
   const readRunDigest = overrides.readRunDigest
@@ -328,14 +332,14 @@ function harness(overrides: {
       complete: true,
       drainKind: 'drained' as const,
     })),
-    runCurationTail: vi.fn(async () => undefined),
+    runCurationTail: overrides.runCurationTail ?? vi.fn(async () => undefined),
     createChipEmitter: vi.fn(() => ({ observe: chipObserve })),
     readPostProcessingStatus: vi.fn(async () => overrides.status ?? pendingStatus()),
     readRunDigest,
     now: () => clock.value,
   } as unknown as PostRunTailOperations
 
-  return { operations, runNextJob, readRunDigest, chipObserve, info, warn, clock }
+  return { operations, runNextJob, readRunDigest, chipObserve, info, warn, summary, clock }
 }
 
 function options(h: Harness): RunPostRunTailOptions {
@@ -348,7 +352,10 @@ function options(h: Harness): RunPostRunTailOptions {
     mask: (text: string) => text,
     log: {
       warn: (message: string) => h.warn(message),
-      detail: (message: string) => h.info(message),
+      detail: (message: string, tag?: string) => tag === undefined
+        ? h.info(message)
+        : h.info(message, tag),
+      summary: (summary: KnowledgeSummary) => h.summary(summary),
     },
     operations: h.operations,
   }
@@ -740,6 +747,381 @@ describe('the chain terminal line after a retry', () => {
       { ...FOREIGN_RETRY, job: { id: String(OWN_CHAIN.analyzeRun) } },
       ANALYZE_COMPLETED,
     ]))
+  })
+})
+
+const LOCAL_PENDING_RESUME = 'resumes on a later local run'
+const CI_RESUME = "resumes only if this workspace's .agent-qa/ is kept and a later local run picks it up"
+const PENDING_RESUME = {
+  'local-headless': LOCAL_PENDING_RESUME,
+  ci: CI_RESUME,
+  cloud: CI_RESUME,
+} as const
+
+function foldReport(overrides: Partial<KnowledgeSummary> = {}): KnowledgeSummary {
+  return {
+    runId,
+    learned: 2,
+    held: 1,
+    proposed: 0,
+    items: [
+      { outcome: 'learned', id: 'cand0001aaaabbbb', reason: 'deterministic-verdict-floor' },
+      { outcome: 'held', id: 'cand0002ccccdddd', reason: 'no-element-observation' },
+    ],
+    ...overrides,
+  }
+}
+
+// The sweep is where a fold of this run reports from in these cells, as it does after the pump.
+function sweepReporting(...summaries: KnowledgeSummary[]): PostRunTailOperations['runCurationTail'] {
+  return vi.fn(async (input) => {
+    for (const summary of summaries) input.log.summary?.(summary)
+  }) as unknown as PostRunTailOperations['runCurationTail']
+}
+
+function statusWith(
+  curation: PostProcessingStatus['chips']['curation'],
+  extra: Partial<PostProcessingStatus> = {},
+): PostProcessingStatus {
+  return { runId, chips: { analysis: 'complete', curation }, ...extra }
+}
+
+const ANALYZE_FAILED = {
+  ran: true,
+  disposition: 'failed',
+  job: { id: String(OWN_CHAIN.analyzeRun) },
+}
+
+function pendingOnly(resume: string): KnowledgeSummary {
+  return {
+    runId,
+    learned: 0,
+    held: 0,
+    proposed: 0,
+    items: [],
+    instead: 'pending',
+    unfinished: { notWritten: 0, resume },
+  }
+}
+
+describe('the one knowledge summary the tail hands its host', () => {
+  it('a chain that finished here hands over the fold\'s report as it is, then the close-out lines as post-run detail', async () => {
+    const fold = foldReport()
+    const h = harness({
+      runNextJob: pump([ANALYZE_COMPLETED]),
+      status: statusWith('complete', { notification: terminalNotification() }),
+      runCurationTail: sweepReporting(fold),
+    })
+    const tail = runPostRunTail(options(h))
+    await tail.drain()
+    await tail.finish()
+
+    expect(tail.report().drain).toBe('drained')
+    expect(h.summary.mock.calls).toEqual([[fold]])
+    expect(h.info.mock.calls.map(([, tag]) => tag)).toEqual(['post-run', 'post-run'])
+    const [terminal, block] = h.info.mock.calls.map(([message]) => message)
+    expect(terminal).toContain(`post-processing complete for ${runId}`)
+    expect(block).toBe(digestOutput().lines.join('\n'))
+    expect(h.summary.mock.invocationCallOrder[0]!)
+      .toBeLessThan(h.info.mock.invocationCallOrder[0]!)
+  })
+
+  it.each(['local-headless', 'ci', 'cloud'] as const)(
+    'in %s a finished fold beside a pending curation stage keeps its numbers and gains the pending second line',
+    async (executionContext) => {
+      const fold = foldReport({ learned: 0, held: 0, items: [] })
+      const h = harness({
+        runNextJob: pump([ANALYZE_FAILED]),
+        status: pendingStatus(),
+        runCurationTail: sweepReporting(fold),
+      })
+      const tail = runPostRunTail({ ...options(h), executionContext })
+      await tail.drain()
+      await tail.finish()
+
+      expect(h.summary.mock.calls).toEqual([[{
+        ...fold,
+        unfinished: { notWritten: 0, resume: PENDING_RESUME[executionContext] },
+      }]])
+      expect(fold.unfinished).toBeUndefined()
+      expect(h.info.mock.calls).toHaveLength(1)
+      const [line, tag] = h.info.mock.calls[0]!
+      expect(line.startsWith('post-processing — analysis: pending')).toBe(true)
+      expect(line).toContain(' · curation: pending')
+      expect(tag).toBe('post-run')
+      expect(h.summary.mock.invocationCallOrder[0]!)
+        .toBeLessThan(h.info.mock.invocationCallOrder[0]!)
+    },
+  )
+
+  it('a fold with items and counts keeps every one of them when the second line is added', async () => {
+    const fold = foldReport({ proposed: 1 })
+    const h = harness({ status: pendingStatus(), runCurationTail: sweepReporting(fold) })
+    const tail = runPostRunTail(options(h))
+    await tail.drain()
+    await tail.finish()
+
+    const [[handed]] = h.summary.mock.calls as [[KnowledgeSummary]]
+    expect(handed).toEqual({
+      ...fold,
+      unfinished: { notWritten: 0, resume: LOCAL_PENDING_RESUME },
+    })
+    expect(handed.items).toEqual(fold.items)
+  })
+
+  it('a fold that reported its own unfinished line is handed over as it is beside a pending stage', async () => {
+    const fold = foldReport({ unfinished: { notWritten: 1, resume: 'resumes on the next run' } })
+    const h = harness({
+      runNextJob: pump([ANALYZE_FAILED]),
+      status: pendingStatus(),
+      runCurationTail: sweepReporting(fold),
+    })
+    const tail = runPostRunTail(options(h))
+    await tail.drain()
+    await tail.finish()
+
+    expect(h.summary.mock.calls).toEqual([[fold]])
+  })
+
+  it.each([
+    ['a skipped run', statusWith('pending', { skipped: { reason: 'gate-run' } })],
+    ['a failed curation', statusWith('failed')],
+    ['a running curation', statusWith('running')],
+    ['a complete curation', statusWith('complete')],
+  ] as const)('a finished fold beside %s is handed over as the fold reported it', async (_, status) => {
+    const fold = foldReport()
+    const h = harness({ status, runCurationTail: sweepReporting(fold) })
+    const tail = runPostRunTail(options(h))
+    await tail.drain()
+    await tail.finish()
+
+    expect(h.summary.mock.calls).toEqual([[fold]])
+  })
+
+  it('a run folded twice in one process hands over one summary, built from the second report', async () => {
+    const first = foldReport({
+      learned: 0,
+      held: 0,
+      items: [],
+      unfinished: { notWritten: 3, resume: 'resumes on the next run' },
+    })
+    const second = foldReport({ learned: 3 })
+    const h = harness({ status: pendingStatus(), runCurationTail: sweepReporting(first, second) })
+    const tail = runPostRunTail(options(h))
+    await tail.drain()
+    await tail.finish()
+
+    expect(h.summary.mock.calls).toEqual([[{
+      ...second,
+      unfinished: { notWritten: 0, resume: LOCAL_PENDING_RESUME },
+    }]])
+  })
+
+  it('another run\'s summary, or one with no run, reaches the host at once as one untagged detail line', async () => {
+    const other = foldReport({ runId: 'run-other-sibling-id' })
+    const { runId: _ownRun, ...noRun } = foldReport({ learned: 1, held: 0, items: [] })
+    const own = foldReport()
+    const h = harness({
+      status: statusWith('complete'),
+      runCurationTail: sweepReporting(other, noRun, own),
+    })
+    const tail = runPostRunTail(options(h))
+    await tail.drain()
+    expect(h.info.mock.calls).toEqual([
+      [knowledgeTaggedMessage(other, { verbose: false })],
+      [knowledgeTaggedMessage(noRun, { verbose: false })],
+    ])
+    expect(h.info.mock.calls[0]![0]).toBe('Learned 2, held 1 · run-other')
+    expect(h.info.mock.calls[1]![0]).toBe('Learned 1, held 0')
+    expect(h.summary).not.toHaveBeenCalled()
+
+    await tail.finish()
+    expect(h.summary.mock.calls).toEqual([[own]])
+  })
+
+  it.each(['local-headless', 'ci', 'cloud'] as const)(
+    'in %s --detach with nothing drained hands over a pending summary, then the post-processing line',
+    async (executionContext) => {
+      const h = harness()
+      const tail = runPostRunTail({ ...options(h), executionContext })
+      await tail.finish({ detached: true })
+
+      expect(h.summary.mock.calls).toEqual([[pendingOnly(PENDING_RESUME[executionContext])]])
+      expect(h.info.mock.calls).toHaveLength(1)
+      const [line, tag] = h.info.mock.calls[0]!
+      expect(line.startsWith('post-processing — analysis: pending')).toBe(true)
+      expect(line).toContain(`digest: ${FETCH_COMMAND}`)
+      expect(tag).toBe('post-run')
+      expect(h.summary.mock.invocationCallOrder[0]!)
+        .toBeLessThan(h.info.mock.invocationCallOrder[0]!)
+    },
+  )
+
+  it.each([
+    ['complete', statusWith('complete'), 'complete'],
+    ['failed', statusWith('failed'), 'failed'],
+    ['running', statusWith('running'), 'running'],
+    ['skipped as a gate run', statusWith('pending', { skipped: { reason: 'gate-run' } }), 'skipped (gate run)'],
+  ] as const)('with no fold reported, a curation stage that is %s is the summary\'s words', async (_, status, instead) => {
+    const h = harness({ status })
+    const tail = runPostRunTail(options(h))
+    await tail.finish({ detached: true })
+
+    expect(h.summary.mock.calls).toEqual([[{
+      runId, learned: 0, held: 0, proposed: 0, items: [], instead,
+    }]])
+  })
+
+  it.each(['local-headless', 'ci'] as const)(
+    'in %s a drain handed to another holder of the writer lease reads pending, and names no daemon and no next run',
+    async (executionContext) => {
+      const h = harness({ lease: { kind: 'held', holder: { pid: 4242 } } as never })
+      const tail = runPostRunTail({ ...options(h), executionContext })
+      await tail.drain()
+      await tail.finish()
+
+      expect(tail.report().drain).toBe('handed-off')
+      expect(h.summary.mock.calls).toEqual([[pendingOnly(PENDING_RESUME[executionContext])]])
+      const words = JSON.stringify(h.summary.mock.calls)
+      expect(words).not.toContain('daemon')
+      expect(words).not.toContain('next run')
+    },
+  )
+
+  it.each([
+    ['pending', pendingStatus(), { unfinished: { notWritten: 0, resume: LOCAL_PENDING_RESUME } }],
+    ['complete', statusWith('complete'), {}],
+  ] as const)('a fold handed to the daemon keeps its words beside a %s stage', async (_, status, added) => {
+    const fold = foldReport({ instead: 'handed to the daemon' })
+    const h = harness({ status, runCurationTail: sweepReporting(fold) })
+    const tail = runPostRunTail(options(h))
+    await tail.drain()
+    await tail.finish()
+
+    expect(h.summary.mock.calls).toEqual([[{ ...fold, ...added }]])
+  })
+
+  it('a hand-off still pending at exit hands over a pending summary, then the sentence with the durable intent path', async () => {
+    const h = harness()
+    const pendingPath = '/owned/run/post-verdict-pending.json'
+    const tail = runPostRunTail({ ...options(h), postVerdict: {
+      outcome: undefined,
+      completion: new Promise(() => undefined), pendingPath,
+      takeAcquiredLease: () => undefined, takeUnclaimedLease: () => undefined,
+    } })
+    await tail.drain()
+    await tail.finish()
+
+    expect(h.summary.mock.calls).toEqual([[pendingOnly(LOCAL_PENDING_RESUME)]])
+    expect(h.info.mock.calls).toHaveLength(1)
+    const [sentence, tag] = h.info.mock.calls[0]!
+    expect(sentence).toContain(`Durable intent: ${pendingPath}.`)
+    expect(tag).toBe('post-run')
+    expect(h.summary.mock.invocationCallOrder[0]!)
+      .toBeLessThan(h.info.mock.invocationCallOrder[0]!)
+  })
+
+  it('a failed enqueue still warns and hands over neither a summary nor a line', async () => {
+    const h = harness()
+    const tail = runPostRunTail({ ...options(h), postVerdict: {
+      outcome: undefined,
+      enqueueState: 'failed',
+      failureDetail: `Run ${runId}: analysis enqueue failed.`,
+      takeAcquiredLease: () => undefined, takeUnclaimedLease: () => undefined,
+    } })
+    await tail.drain()
+    await tail.finish()
+
+    expect(h.warn.mock.calls).toEqual([[`Run ${runId}: analysis enqueue failed.`]])
+    expect(h.summary).not.toHaveBeenCalled()
+    expect(h.info).not.toHaveBeenCalled()
+  })
+
+  it('a status read that throws still warns, and hands over the fold\'s report as it is', async () => {
+    const fold = foldReport()
+    const h = harness({ runCurationTail: sweepReporting(fold) })
+    ;(h.operations as { readPostProcessingStatus: unknown }).readPostProcessingStatus = vi.fn(
+      async () => { throw new Error('the status row could not be read') },
+    )
+    const tail = runPostRunTail(options(h))
+    await tail.drain()
+    await tail.finish()
+
+    expect(h.warn).toHaveBeenCalledTimes(1)
+    expect(String(h.warn.mock.calls[0]![0])).toContain('the status row could not be read')
+    expect(h.summary.mock.calls).toEqual([[fold]])
+    expect(h.info).not.toHaveBeenCalled()
+  })
+
+  it('a status read that throws makes up no summary when no fold reported', async () => {
+    const h = harness()
+    ;(h.operations as { readPostProcessingStatus: unknown }).readPostProcessingStatus = vi.fn(
+      async () => { throw new Error('the status row could not be read') },
+    )
+    const tail = runPostRunTail(options(h))
+    await tail.finish({ detached: true })
+
+    expect(h.warn).toHaveBeenCalledTimes(1)
+    expect(h.summary).not.toHaveBeenCalled()
+  })
+
+  it('a store that will not open at the close-out still warns, and makes up no summary', async () => {
+    const h = harness()
+    ;(h.operations as { composeHost: unknown }).composeHost = vi.fn(() => {
+      throw new Error('the store would not open')
+    })
+    const tail = runPostRunTail(options(h))
+    await tail.finish({ detached: true })
+
+    expect(h.warn).toHaveBeenCalledTimes(1)
+    expect(String(h.warn.mock.calls[0]![0])).toContain('the store would not open')
+    expect(h.summary).not.toHaveBeenCalled()
+  })
+
+  it('every warn and detail message reaches the host masked, its tag passed on, and the summary as it is', async () => {
+    const other = foldReport({ runId: 'run-other-sibling-id' })
+    const own = foldReport()
+    const h = harness({
+      status: pendingStatus(),
+      runCurationTail: vi.fn(async (input) => {
+        input.log.warn('a fold warning')
+        input.log.detail?.('a fold line')
+        input.log.detail?.('a tagged fold line', 'knowledge')
+        input.log.summary?.(other)
+        input.log.summary?.(own)
+      }) as unknown as PostRunTailOperations['runCurationTail'],
+    })
+    const tail = runPostRunTail({ ...options(h), mask: (text: string) => `<masked>${text}` })
+    await tail.drain()
+    await tail.finish({ detached: true })
+
+    expect(h.warn.mock.calls).toEqual([['<masked>a fold warning']])
+    expect(h.info.mock.calls.slice(0, 3)).toEqual([
+      ['<masked>a fold line'],
+      ['<masked>a tagged fold line', 'knowledge'],
+      [`<masked>${knowledgeTaggedMessage(other, { verbose: false })}`],
+    ])
+    for (const [message] of h.info.mock.calls) expect(message.startsWith('<masked>')).toBe(true)
+    expect(h.info.mock.calls.at(-1)![1]).toBe('post-run')
+    expect(h.summary.mock.calls).toEqual([[{
+      ...own,
+      unfinished: { notWritten: 0, resume: LOCAL_PENDING_RESUME },
+    }]])
+  })
+
+  it('a host with only warn gets the warnings and nothing throws', async () => {
+    const h = harness({
+      status: pendingStatus(),
+      runCurationTail: sweepReporting(foldReport({ runId: 'run-other-sibling-id' }), foldReport()),
+    })
+    const warnings: string[] = []
+    const tail = runPostRunTail({
+      ...options(h),
+      log: { warn: (message: string) => { warnings.push(message) } },
+    })
+    await tail.drain()
+    await expect(tail.finish()).resolves.toBeUndefined()
+    expect(warnings).toEqual([])
   })
 })
 

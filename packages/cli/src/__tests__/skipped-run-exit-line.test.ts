@@ -9,6 +9,7 @@ import { POST_PROCESSING_SKIP_REASON_WORDS } from '@vostride/agent-qa-schema'
 import type { PostProcessingSkipReason, PostProcessingStatus, RunDigest } from '@vostride/agent-qa-schema'
 import { afterEach, describe, expect, it } from 'vitest'
 
+import type { KnowledgeSummary } from '../curation/knowledge-summary.js'
 import { runPostRunTail, type PostRunTailOperations } from '../curation/post-run-tail.js'
 import type { PostVerdictHandoff } from '../curation/post-verdict-step.js'
 
@@ -37,6 +38,7 @@ afterEach(() => {
 interface SkippedTailRun {
   readonly lines: readonly string[]
   readonly warnings: readonly string[]
+  readonly summaries: readonly KnowledgeSummary[]
   readonly drainCalls: readonly string[]
   readonly leaseTakes: number
   readonly report: ReturnType<ReturnType<typeof runPostRunTail>['report']>
@@ -51,6 +53,7 @@ async function runSkippedTail(
   roots.push(root)
   const lines: string[] = []
   const warnings: string[] = []
+  const summaries: KnowledgeSummary[] = []
   const drainCalls: string[] = []
   let leaseTakes = 0
   const postVerdict: PostVerdictHandoff = {
@@ -75,7 +78,11 @@ async function runSkippedTail(
     configPath: join(root, 'agent-qa.config.yaml'),
     configDir: root,
     knowledgeConfig: { dir: 'knowledge' },
-    log: { warn: (message) => warnings.push(message), detail: (message) => lines.push(message) },
+    log: {
+      warn: (message) => warnings.push(message),
+      detail: (message) => lines.push(message),
+      summary: (summary) => summaries.push(summary),
+    },
     postVerdict,
     executionContext,
     operations: {
@@ -88,7 +95,7 @@ async function runSkippedTail(
   })
   await tail.drain({ takeLease: () => { leaseTakes += 1; return undefined } })
   await tail.finish(detached ? { detached: true } : {})
-  return { lines, warnings, drainCalls, leaseTakes, report: tail.report() }
+  return { lines, warnings, summaries, drainCalls, leaseTakes, report: tail.report() }
 }
 
 async function expectSkippedExitLine(reason: PostProcessingSkipReason): Promise<number> {
@@ -110,6 +117,9 @@ async function expectSkippedExitLine(reason: PostProcessingSkipReason): Promise<
       expect(line, key).not.toMatch(/\bdone\b|(?<!outcome-)\bexcluded\b/)
       expect(ran.lines, `${key} prints the exit line and nothing else`).toEqual([line])
       expect(ran.warnings, key).toEqual([])
+      expect(ran.summaries, `${key} hands over one summary in the skip's words`).toEqual([{
+        runId: RUN_ID, learned: 0, held: 0, proposed: 0, items: [], instead: `skipped (${word})`,
+      }])
       expect(ran.drainCalls, `${key} starts no drain`).toEqual([])
       expect(ran.leaseTakes, `${key} takes no lease`).toBe(0)
       expect(ran.report, key).toEqual({ enqueue: 'skipped', drain: 'not-attempted', jobsRun: 0 })

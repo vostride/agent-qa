@@ -228,6 +228,44 @@ describe('every CI door states the resume limit', () => {
     }
   })
 
+  it("in ci the post-run tail's summary of a pending curation states the resume limit", async () => {
+    const resume: Record<Context, string> = {
+      ci: LOCAL_RUN,
+      cloud: LOCAL_RUN,
+      'local-headless': 'resumes on a later local run',
+    }
+    for (const context of ['local-headless', ...CI_CONTEXTS] as const) {
+      const summary = vi.fn()
+      const tail = runPostRunTail({
+        runId: 'run_pending',
+        agentQaRoot: '/workspace/.agent-qa',
+        configPath: '/workspace/agent-qa.config.yaml',
+        configDir: '/workspace',
+        knowledgeConfig: { dir: 'knowledge' },
+        log: { warn: () => undefined, detail: () => undefined, summary },
+        executionContext: context,
+        operations: {
+          composeHost: () => ({ close: async () => undefined }) as never,
+          readPostProcessingStatus: async () => ({
+            runId: 'run_pending',
+            chips: { analysis: 'pending', curation: 'pending' },
+          }),
+          readRunDigest: async () => ({ runId: 'run_pending', lines: [] }) as never,
+        },
+      })
+      await tail.finish({ detached: true })
+      expect(summary.mock.calls, context).toEqual([[{
+        runId: 'run_pending',
+        learned: 0,
+        held: 0,
+        proposed: 0,
+        items: [],
+        instead: 'pending',
+        unfinished: { notWritten: 0, resume: resume[context] },
+      }]])
+    }
+  })
+
   it('in ci the run command unexpected curation-tail error states the resume limit, on both of its tail sites', async () => {
     const expected: Record<'ci' | 'local-headless', string> = {
       ci: `Warning: Post-verdict knowledge curation incomplete; it ${LOCAL_RUN}.`,

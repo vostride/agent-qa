@@ -84,6 +84,16 @@ describePosix('post-processing status survives a closed socket', () => {
         // The handed-off tail completed no analyze-run, so the exit line carries the fetch command.
         + ` · digest: agent-qa digest "${RUN_ID}"`,
       ])
+      // No daemon runs this run's curation, so the summary says pending and when it resumes.
+      expect(tail.summaries).toEqual([{
+        runId: RUN_ID,
+        learned: 0,
+        held: 0,
+        proposed: 0,
+        items: [],
+        instead: 'pending',
+        unfinished: { notWritten: 0, resume: 'resumes on a later local run' },
+      }])
       expect(tail.warn).toEqual([])
 
       // ---- mid-chain, over the daemon's shoulder ----------------------------------------------

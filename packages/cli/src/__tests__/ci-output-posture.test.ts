@@ -10,6 +10,7 @@ import type { PostProcessingStatus } from '@vostride/agent-qa-schema'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { preparationPendingWarning } from '../composition/in-process-run-execution.js'
+import type { KnowledgeSummary } from '../curation/knowledge-summary.js'
 import { renderPostProcessingSummaryLine, runPostRunTail } from '../curation/post-run-tail.js'
 import type { PostVerdictHandoff } from '../curation/post-verdict-step.js'
 
@@ -199,6 +200,33 @@ async function tailPreparationLine(executionContext: Context): Promise<string> {
   return pending[0]!
 }
 
+async function tailPreparationSummaries(executionContext: Context): Promise<KnowledgeSummary[]> {
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-pending-'))
+  roots.push(root)
+  const summaries: KnowledgeSummary[] = []
+  const tail = runPostRunTail({
+    runId: RUN_ID,
+    agentQaRoot: join(root, '.agent-qa'),
+    configPath: join(root, 'agent-qa.config.yaml'),
+    configDir: root,
+    knowledgeConfig: { dir: 'knowledge' },
+    log: {
+      warn: () => undefined,
+      detail: () => undefined,
+      summary: (summary) => { summaries.push(summary) },
+    },
+    postVerdict: {
+      outcome: undefined,
+      pendingPath: PENDING_PATH,
+      takeAcquiredLease: () => undefined,
+      takeUnclaimedLease: () => undefined,
+    },
+    ...(executionContext === undefined ? {} : { executionContext }),
+  })
+  await tail.finish()
+  return summaries
+}
+
 describe('the pending stage suffix in CI', () => {
   it('in CI a pending analysis stage says a later run or the daemon must pick it up in this workspace', () => {
     let checked = 0
@@ -259,5 +287,23 @@ describe('the pending stage suffix in CI', () => {
     expect(local)
       .toBe(`${PREPARATION_HEAD} Durable intent: ${PENDING_PATH}. ${LOCAL_PREPARATION_PROMISE}`)
     expect(preparationPendingWarning(RUN_ID, PENDING_PATH, 'local-interactive')).toBe(local)
+  })
+
+  it("in CI a pending curation's summary carries the resume limit on its second line", async () => {
+    const summary = (resume: string): KnowledgeSummary => ({
+      runId: RUN_ID,
+      learned: 0,
+      held: 0,
+      proposed: 0,
+      items: [],
+      instead: 'pending',
+      unfinished: { notWritten: 0, resume },
+    })
+    for (const context of CI_CONTEXTS) {
+      expect(await tailPreparationSummaries(context), context)
+        .toEqual([summary(`${WORKSPACE_KEPT} and a later local run picks it up`)])
+    }
+    expect(await tailPreparationSummaries('local-headless'))
+      .toEqual([summary('resumes on a later local run')])
   })
 })
