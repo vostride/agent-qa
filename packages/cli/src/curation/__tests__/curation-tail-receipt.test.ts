@@ -165,6 +165,38 @@ describe('curation tail snapshot', () => {
     expect(String(warn.mock.calls[0]![0])).not.toMatch(/record-|observation-|replacement/)
   })
 
+  it('reports no knowledge summary for a fold answered from a matching receipt', async () => {
+    const f = fixture()
+    await tailModule.curateCompletedRun(f.input)
+    const summary = vi.fn()
+    const again = await tailModule.curateCompletedRun({ ...f.input, log: { ...f.input.log, summary } })
+    expect(again).toMatchObject({ complete: true, snapshot })
+    expect(f.drainQueue).toHaveBeenCalledTimes(1)
+    expect(summary).not.toHaveBeenCalled()
+  })
+
+  it('throws before it reports a knowledge summary when the receipt cannot be written', async () => {
+    const f = fixture()
+    const summary = vi.fn()
+    const input = { ...f.input, log: { ...f.input.log, summary }, operations: { ...f.input.operations,
+      readCurationTailReceipt: () => undefined,
+      writeCurationTailReceipt: () => { throw new Error('disk full') } } } as tailModule.CurateCompletedRunInput
+    await expect(tailModule.curateCompletedRun(input)).rejects.toThrow('disk full')
+    expect(summary).not.toHaveBeenCalled()
+  })
+
+  it('reports an unfinished fold with nothing counted when its drain never reported', async () => {
+    const f = fixture()
+    const summary = vi.fn()
+    const input = { ...f.input, log: { ...f.input.log, summary }, operations: { ...f.input.operations,
+      runSafetyScope: async () => undefined } } as unknown as tailModule.CurateCompletedRunInput
+    expect(await tailModule.curateCompletedRun(input)).toMatchObject({ complete: false })
+    expect(f.drainQueue).not.toHaveBeenCalled()
+    expect(summary).toHaveBeenCalledOnce()
+    expect(summary).toHaveBeenCalledWith({ runId: RUN_ID, learned: 0, held: 0, proposed: 0, items: [],
+      unfinished: { notWritten: 0, resume: 'resumes on the next run' } })
+  })
+
   it('CURATE-CAPABILITY-SNAPSHOT terminal preserves complete snapshot through the real tail adapter', async () => {
     const root = tempRoot()
     let bound: PostRunTailHostInput | undefined

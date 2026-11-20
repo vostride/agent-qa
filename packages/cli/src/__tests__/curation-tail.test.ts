@@ -2201,3 +2201,127 @@ describe('the quarantine disposition line', () => {
       .filter((message) => message.toLowerCase().includes('quarantine'))).toEqual([])
   })
 })
+
+const LOCAL_RESUME = 'resumes on the next run'
+const CI_RESUME = "resumes only if this workspace's .agent-qa/ is kept and a later local run picks it up"
+
+function drainedReport(over: Record<string, unknown> = {}) {
+  return {
+    ...handedOffDrainReport(),
+    kind: 'drained' as const,
+    writerPass: { kind: 'not-requested' as const },
+    gc: { kind: 'not-run' as const },
+    ...over,
+  }
+}
+
+describe('the knowledge summary a fold reports', () => {
+  it('reports what a complete local fold learned and held, once, beside its lines', async () => {
+    const summary = vi.fn()
+    const detail = vi.fn()
+    const promotions = [
+      { candidateId: 'c1', promotionPath: 'deterministic-verdict-floor' as const },
+      { candidateId: 'c2', promotionHoldReason: 'no-element-observation' as const },
+      { candidateId: 'c3', promotionPath: 'user-sovereign' as const },
+      { candidateId: 'c4', promotionHoldReason: 'no-confirmed-evidence' as const },
+      { candidateId: 'c5', promotionHoldReason: 'no-element-observation' as const },
+    ]
+    const operations = successfulOperations({
+      loadCompletedRunHandoff: () => handoff('local-headless'),
+      drainQueue: vi.fn(async () => drainedReport({ committed: 5, promotions })),
+    })
+
+    await runCurationTail(baseOptions(operations, { log: { warn: vi.fn(), detail, summary } }))
+
+    expect(summary).toHaveBeenCalledOnce()
+    expect(summary).toHaveBeenCalledWith({
+      runId,
+      learned: 5,
+      held: 3,
+      proposed: 0,
+      items: [
+        { outcome: 'learned', id: 'c1', reason: 'deterministic-verdict-floor' },
+        { outcome: 'held', id: 'c2', reason: 'no-element-observation' },
+        { outcome: 'learned', id: 'c3', reason: 'user-sovereign' },
+        { outcome: 'held', id: 'c4', reason: 'no-confirmed-evidence' },
+        { outcome: 'held', id: 'c5', reason: 'no-element-observation' },
+      ],
+    })
+    expect(detail).toHaveBeenCalledWith('curation: c1 promoted via deterministic-verdict-floor')
+    expect(detail).toHaveBeenCalledWith(
+      'curation: 5 learned change(s) applied, 0 kept proposed '
+      + '(local runs apply learned knowledge to the knowledge root)',
+    )
+  })
+
+  it('counts a change kept proposed in ci as proposed, not learned', async () => {
+    const summary = vi.fn()
+    const operations = successfulOperations({
+      drainQueue: vi.fn(async () => drainedReport({ committed: 1, downgraded: 1 })),
+    })
+
+    await runCurationTail(baseOptions(operations, { log: { warn: vi.fn(), summary } }))
+
+    expect(summary).toHaveBeenCalledOnce()
+    expect(summary).toHaveBeenCalledWith({ runId, learned: 0, held: 0, proposed: 1, items: [] })
+  })
+
+  it('reports a fold handed to a daemon as handed to the daemon', async () => {
+    const summary = vi.fn()
+    const detail = vi.fn()
+    const operations = successfulOperations({ drainQueue: vi.fn(async () => handedOffDrainReport()) })
+
+    await runCurationTail(baseOptions(operations, { log: { warn: vi.fn(), detail, summary } }))
+
+    expect(summary).toHaveBeenCalledOnce()
+    expect(summary).toHaveBeenCalledWith({
+      runId,
+      learned: 0,
+      held: 0,
+      proposed: 0,
+      items: [],
+      instead: 'handed to the daemon',
+    })
+    expect(detail).toHaveBeenCalledWith('curation: handed to daemon (pid 4242)')
+  })
+
+  it.each([
+    ['local-headless', LOCAL_RESUME],
+    ['ci', CI_RESUME],
+  ] as const)('reports an unfinished %s fold with the changes not written', async (context, resume) => {
+    const summary = vi.fn()
+    const warn = vi.fn()
+    const operations = successfulOperations({
+      loadCompletedRunHandoff: () => handoff(context),
+      drainQueue: vi.fn(async () => drainedReport({ requeued: 1, remaining: 1 })),
+    })
+
+    await runCurationTail(baseOptions(operations, { log: { warn, summary } }))
+
+    expect(summary).toHaveBeenCalledOnce()
+    expect(summary).toHaveBeenCalledWith({
+      runId,
+      learned: 0,
+      held: 0,
+      proposed: 0,
+      items: [],
+      unfinished: { notWritten: 1, resume },
+    })
+    expect(warn).toHaveBeenCalledOnce()
+    expect(warn.mock.calls[0]?.[0]).toMatch(/^Post-verdict knowledge curation incomplete for /u)
+    expect(warn.mock.calls[0]?.[0]).toContain('drain-requeued=1')
+  })
+
+  it('works with a log that has only warn', async () => {
+    const warn = vi.fn()
+    const operations = successfulOperations({
+      drainQueue: vi.fn(async () => drainedReport({
+        committed: 1,
+        promotions: [{ candidateId: 'c1', promotionPath: 'deterministic-verdict-floor' as const }],
+      })),
+    })
+
+    await expect(runCurationTail(baseOptions(operations, { log: { warn } }))).resolves.toBeUndefined()
+    expect(warn).not.toHaveBeenCalled()
+  })
+})

@@ -48,7 +48,11 @@ import type { CanaryCreditCounters } from './canary-credit.js'
 import { NON_SIGNAL_CLASSES } from './emit-canary-outcomes.js'
 import { emitCurationCandidates, type EmitReport } from './emit-candidates.js'
 import { exercisedAnchors } from './handoff-anchors.js'
-import type { KnowledgeSummary } from './knowledge-summary.js'
+import {
+  knowledgeResumeWords,
+  knowledgeSummaryOfDrain,
+  type KnowledgeSummary,
+} from './knowledge-summary.js'
 import { renderPromotionLine } from './promotion-line.js'
 import { resolveRunCurationContext } from './run-curation-context.js'
 import { ciResumeClause } from './resume-limit.js'
@@ -374,6 +378,21 @@ export function unexpectedCurationTailWarning(executionContext: ExecutionContext
     : 'Post-verdict knowledge curation incomplete; it will resume on the next run.'
 }
 
+// Work this process started and could not finish, with nothing counted.
+function unfinishedKnowledgeSummary(
+  runId: string,
+  executionContext: ExecutionContext | undefined,
+): KnowledgeSummary {
+  return {
+    runId,
+    learned: 0,
+    held: 0,
+    proposed: 0,
+    items: [],
+    unfinished: { notWritten: 0, resume: knowledgeResumeWords(executionContext) },
+  }
+}
+
 /** The author `drainQueue` accepts, named off the capability so no second import declares it. */
 type CurationAuthorCapability =
   Parameters<LocalCurationCapabilities['drainQueue']>[0]['author']
@@ -507,6 +526,7 @@ export async function curateCompletedRun(
   let complete = false
   let completedReceipt: CurationTailReceipt | undefined
   let incompleteDetails: string | undefined
+  let drainReport: Parameters<typeof knowledgeSummaryOfDrain>[0]['drain'] | undefined
   let projectionFailed = false
   const tailStartedAtMs = Date.now()
   // One budget for the whole tail: a caller hands in its deadline and the drain gets what is left.
@@ -576,6 +596,7 @@ export async function curateCompletedRun(
         ...(budgetMs === undefined ? {} : { budgetMs }),
         ...(input.signal === undefined ? {} : { signal: input.signal }),
       })
+      drainReport = drain
       curated = drain.committed
       deprecated = drain.deprecated ?? 0
       if (drain.kind === 'handed-off') {
@@ -652,6 +673,14 @@ export async function curateCompletedRun(
 
   if (!complete || completedReceipt === undefined) {
     input.log.warn(incompleteWarning(receiptIdentity.runId, input.handoff.executionContext, incompleteDetails))
+    input.log.summary?.(drainReport === undefined
+      ? unfinishedKnowledgeSummary(receiptIdentity.runId, input.handoff.executionContext)
+      : knowledgeSummaryOfDrain({
+          runId: receiptIdentity.runId,
+          executionContext: input.handoff.executionContext,
+          complete: false,
+          drain: drainReport,
+        }))
     return {
       curated,
       deprecated,
@@ -665,6 +694,14 @@ export async function curateCompletedRun(
     const breakdown = completedReceipt.snapshot.breakdown
     input.log.detail?.(`curation: ${CURATION_BREAKDOWN_BUCKETS.map(bucket =>
       `${bucket} ${breakdown[bucket]}`).join(', ')}`)
+  }
+  if (drainReport !== undefined) {
+    input.log.summary?.(knowledgeSummaryOfDrain({
+      runId: receiptIdentity.runId,
+      executionContext: input.handoff.executionContext,
+      complete: true,
+      drain: drainReport,
+    }))
   }
   if (completedReceipt.drainKind === 'handed-off') {
     void operations.nudgeDaemon(
