@@ -554,6 +554,75 @@ describe('runDaemonHost — the entity-index sweep', () => {
   })
 })
 
+describe('runDaemonHost — the line it prints when it stops', () => {
+  const STOPPED = 'agent-qa daemon stopped'
+
+  function startedHost(name: string, info: (message: string, tag?: string) => void) {
+    const paths = makePaths(name)
+    const harness = hostHarness()
+    const running = runDaemonHost({
+      agentQaRoot: paths.agentQaRoot,
+      knowledgeRoot: paths.knowledgeRoot,
+      config: TEST_CONFIG,
+      model: () => TEST_MODEL,
+      operations: harness.operations,
+      logger: { info, error: vi.fn() },
+    })
+    return { paths, harness, running }
+  }
+
+  it('prints one daemon line, after its start line, when a signal stops it', async () => {
+    const lines: Array<[string, string | undefined]> = []
+    const host = startedHost('stop-line', (message, tag) => { lines.push([message, tag]) })
+    await waitUntil(
+      () => lines.some(([message]) => message.startsWith('agent-qa daemon started')),
+      'the daemon did not print its start line',
+    )
+    expect(lines.map(([message]) => message)).not.toContain(STOPPED)
+
+    host.harness.signal('SIGTERM')
+    await expect(host.running).resolves.toBe(0)
+
+    expect(lines.filter(([message]) => message === STOPPED)).toEqual([[STOPPED, undefined]])
+    expect(lines.at(-1)).toEqual([STOPPED, undefined])
+    expect(existsSync(join(host.paths.agentQaRoot, DAEMON_REGISTRATION_FILE))).toBe(false)
+  })
+
+  it('prints no stop line for a host that never started', async () => {
+    const first = startedHost('stop-line-refused', vi.fn())
+    await waitUntil(
+      () => existsSync(join(first.paths.agentQaRoot, DAEMON_REGISTRATION_FILE)),
+      'first daemon registration was not written',
+    )
+    const info = vi.fn()
+
+    await expect(runDaemonHost({
+      agentQaRoot: first.paths.agentQaRoot,
+      knowledgeRoot: first.paths.knowledgeRoot,
+      config: TEST_CONFIG,
+      model: () => TEST_MODEL,
+      logger: { info, error: vi.fn() },
+    })).resolves.toBe(1)
+
+    expect(info).not.toHaveBeenCalled()
+    first.harness.signal('SIGTERM')
+    await expect(first.running).resolves.toBe(0)
+  })
+
+  it('stops all the same when its logger throws on the stop line', async () => {
+    let started = false
+    const host = startedHost('stop-line-throws', (message) => {
+      if (message.startsWith('agent-qa daemon started')) started = true
+      if (message === STOPPED) throw new Error('the terminal is gone')
+    })
+    await waitUntil(() => started, 'the daemon did not print its start line')
+
+    host.harness.signal('SIGTERM')
+    await expect(host.running).resolves.toBe(0)
+    expect(existsSync(join(host.paths.agentQaRoot, DAEMON_REGISTRATION_FILE))).toBe(false)
+  })
+})
+
 describe('runDaemonHost — standing leaseholder tracer', () => {
   it('pins posture, recovers under the minted epoch, composes once, beats, and stops cleanly', async () => {
     const paths = makePaths('tracer')
