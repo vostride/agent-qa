@@ -9,6 +9,7 @@ import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, bu
 import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, describeAndroidHere, describeIOSHere, discoverWorkspaceFiles, findDeviceHere, isUrlRemoteEntry, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, projectRemotesForDisplay, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
 import { colorsFor, formatLogLine, isCi, printRunText } from '@vostride/agent-qa-core/run-text-output'
+import type { RunTextEnv } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, RemoteConnectionFields, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
@@ -306,13 +307,22 @@ interface RunLiveLine {
   stop(): void
 }
 
-// Drawn only in a real terminal outside CI, so a pipe, a file and a CI log never load the library.
+// A pipe, a file and a CI log get the result lines only, and never load the library. So does a
+// terminal that cannot move its cursor, which would print every frame's codes as text.
+export function drawsLiveLine(
+  stream: { isTTY?: boolean },
+  env: RunTextEnv,
+  consoleSelected: boolean,
+): boolean {
+  return consoleSelected && stream.isTTY === true && env.TERM !== 'dumb' && !isCi(env)
+}
+
 function createRunLiveLine(): RunLiveLine {
   let building: Promise<ConsoleReporterOptions['liveLine']> | undefined
   let built: ConsoleReporterOptions['liveLine']
   return {
     async build(consoleSelected) {
-      if (!consoleSelected || process.stdout.isTTY !== true || isCi(process.env)) return undefined
+      if (!drawsLiveLine(process.stdout, process.env, consoleSelected)) return undefined
       building ??= import('../reporters/live-line.js').then(async ({ createLiveLine }) => {
         const colors = colorsFor(process.stdout)
         built = await createLiveLine(process.stdout, (glyph) => colors.cyan(glyph))

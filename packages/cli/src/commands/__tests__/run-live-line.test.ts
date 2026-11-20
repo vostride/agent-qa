@@ -13,7 +13,7 @@ import {
 import { pinProcessTmpdir, removeTempRoots } from '../../__tests__/temp-roots.js'
 import type { PinnedTmpdir } from '../../__tests__/temp-roots.js'
 import * as liveLineModule from '../../reporters/live-line.js'
-import { createRunCommand } from '../run.js'
+import { createRunCommand, drawsLiveLine } from '../run.js'
 
 const RUN_BUDGET_MS = 120_000
 const EXIT_MARKER = 'fixture command exit'
@@ -48,11 +48,11 @@ function plain(text: string): string {
 }
 
 // Stdout as a terminal outside CI, and nothing the run writes reaching the real one.
-function onATerminal(): { readonly printed: string[] } {
+function onATerminal(term: string): { readonly printed: string[] } {
   stdoutIsTTY = Object.getOwnPropertyDescriptor(process.stdout, 'isTTY')
   Object.defineProperty(process.stdout, 'isTTY', { value: true, configurable: true })
   vi.stubEnv('CI', '')
-  vi.stubEnv('TERM', 'xterm-256color')
+  vi.stubEnv('TERM', term)
   vi.stubEnv('HOME', freshUpdateCheckHome())
   exitCodeBefore = process.exitCode
   const printed: string[] = []
@@ -77,6 +77,7 @@ interface ForcedExit {
 }
 
 interface HeldRun {
+  liveLinesBuilt(): number
   liveLineDrawn(): boolean
   runIdLines(): string[]
   // What the screen held each time the command reached an exit; a real exit ends at the first.
@@ -86,10 +87,13 @@ interface HeldRun {
 
 // The command runs up to the start of its test's browser and waits there. The mocked exit throws,
 // so a cell reads what the command had done when it reached its first exit.
-async function runHeldAtBrowserStart(path: 'direct' | 'suite'): Promise<HeldRun> {
-  const { printed } = onATerminal()
+async function runHeldAtBrowserStart(
+  path: 'direct' | 'suite',
+  term = 'xterm-256color',
+): Promise<HeldRun> {
+  const { printed } = onATerminal(term)
   let drawn = false
-  vi.spyOn(liveLineModule, 'createLiveLine').mockResolvedValue({
+  const build = vi.spyOn(liveLineModule, 'createLiveLine').mockResolvedValue({
     start: () => {
       drawn = true
     },
@@ -142,6 +146,7 @@ async function runHeldAtBrowserStart(path: 'direct' | 'suite'): Promise<HeldRun>
   await Promise.race([atBrowserStart, ended])
 
   return {
+    liveLinesBuilt: () => build.mock.calls.length,
     liveLineDrawn: () => drawn,
     runIdLines,
     exits,
@@ -152,6 +157,44 @@ async function runHeldAtBrowserStart(path: 'direct' | 'suite'): Promise<HeldRun>
     },
   }
 }
+
+describe('whether a run draws the live line', () => {
+  const terminal = { isTTY: true }
+  const outsideCi = { TERM: 'xterm-256color' }
+
+  it('draws it on a terminal outside CI when the console reporter prints the run', () => {
+    expect(drawsLiveLine(terminal, outsideCi, true)).toBe(true)
+    expect(drawsLiveLine(terminal, {}, true)).toBe(true)
+    expect(drawsLiveLine(terminal, { ...outsideCi, CI: '', GITHUB_ACTIONS: '' }, true)).toBe(true)
+  })
+
+  it.each([
+    ['stdout is a pipe or a file', { isTTY: false }, outsideCi, true],
+    ['stdout does not say what it is', {}, outsideCi, true],
+    ['CI is set', terminal, { ...outsideCi, CI: 'true' }, true],
+    ['the run is under GitHub Actions', terminal, { ...outsideCi, GITHUB_ACTIONS: 'true' }, true],
+    ['the terminal cannot move its cursor', terminal, { TERM: 'dumb' }, true],
+    ['the console reporter is not selected', terminal, outsideCi, false],
+  ])('draws none when %s', (_title, stream, env, consoleSelected) => {
+    expect(drawsLiveLine(stream, env, consoleSelected)).toBe(false)
+  })
+})
+
+describe.each(['direct', 'suite'] as const)('a %s run on a terminal', (path) => {
+  it('builds one live line and draws it while a test is in progress', async () => {
+    const run = await runHeldAtBrowserStart(path)
+
+    expect(run.liveLinesBuilt()).toBe(1)
+    expect(run.liveLineDrawn()).toBe(true)
+  }, RUN_BUDGET_MS)
+
+  it('builds no live line when the terminal cannot move its cursor', async () => {
+    const run = await runHeldAtBrowserStart(path, 'dumb')
+
+    expect(run.liveLinesBuilt()).toBe(0)
+    expect(run.liveLineDrawn()).toBe(false)
+  }, RUN_BUDGET_MS)
+})
 
 describe.each(['direct', 'suite'] as const)('a forced exit of a %s run on a terminal', (path) => {
   it('stops the live line and prints the run id once on a second stop signal', async () => {
