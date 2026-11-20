@@ -306,11 +306,12 @@ describe('headless CI runs', () => {
     }
   })
 
-  it('a headless CI run prints no redraw, spinner or prompt', () => {
+  it('a headless CI run colours its report and prints no redraw, spinner or prompt', () => {
     for (const key of ['passed', 'supersede', 'failed', 'detached']) {
       const run = legOf(key)
       const streams = { stdout: run.stdout ?? '', stderr: run.stderr ?? '' }
       expect(streams.stdout.length, `${key} printed its report\n${seen()}`).toBeGreaterThan(0)
+      expect(streams.stdout, `${key}'s stdout is coloured in CI\n${seen()}`).toMatch(/\x1b\[[0-9;]*m/u)
       for (const [name, text] of Object.entries(streams)) {
         expect(text.includes('\r'), `${key}'s ${name} has no carriage-return redraw\n${seen()}`).toBe(false)
         expect(SPINNER_GLYPHS.test(text), `${key}'s ${name} has no spinner\n${seen()}`).toBe(false)

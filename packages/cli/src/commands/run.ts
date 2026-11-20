@@ -8,7 +8,7 @@ import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, 
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
 import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, describeAndroidHere, describeIOSHere, discoverWorkspaceFiles, findDeviceHere, isUrlRemoteEntry, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, projectRemotesForDisplay, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
-import { printRunText } from '@vostride/agent-qa-core/run-text-output'
+import { colorsFor, printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, RemoteConnectionFields, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
@@ -265,6 +265,11 @@ export const curationTailLog = {
   info(message: string): void {
     printRunText(message, (text) => console.error(text))
   },
+}
+
+// A warning is written to stderr, which can be a terminal while stdout is a file.
+export function printRunWarning(line: string): void {
+  printRunText(colorsFor(process.stderr).yellow(line), (text) => console.warn(text))
 }
 
 // Unref'd backstop: a run that cannot settle still exits 130, so Ctrl+C never hangs the CLI.
@@ -2575,7 +2580,7 @@ async function executeSuites(
   // One record per invocation, written whatever the config holds.
   const record = createRunRecord({
     attributes: runAttributes,
-    warn: (line) => printRunText(pc.yellow(line), (text) => console.warn(text)),
+    warn: (line) => printRunWarning(line),
   })
   const forceExit = (code: number): never => {
     closeOwnRowAtForcedExit(record)
@@ -2685,8 +2690,7 @@ async function executeSuites(
             quarantined,
           })
         },
-        warn: (message) =>
-          printRunText(pc.yellow(`  Quarantine: ${message}`), (text) => console.warn(text)),
+        warn: (message) => printRunWarning(`  Quarantine: ${message}`),
         postVerdictSignal: curationAbortController.signal,
         freezeVerdict: (verdict) => {
           clearGraceTimer()
@@ -5261,7 +5265,7 @@ export function createRunCommand(
         // One record for this path, written whatever the config holds.
         const record = createRunRecord({
           attributes: directAttributes,
-          warn: (line) => printRunText(pc.yellow(line), (text) => console.warn(text)),
+          warn: (line) => printRunWarning(line),
         })
         _crashRecord = record
         const configuredRunsDbPath = config.services?.dashboard?.dbPath
@@ -5495,8 +5499,7 @@ export function createRunCommand(
                   quarantined,
                 })
               },
-              warn: (message) =>
-                printRunText(pc.yellow(`  Quarantine: ${message}`), (text) => console.warn(text)),
+              warn: (message) => printRunWarning(`  Quarantine: ${message}`),
               // The post-verdict tail, run INSIDE the run's own safety scope so its curation egress
               // masks like every other. The `--all` fold happens on the freeze line below and is
               // untouched by this rework.
