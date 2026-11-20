@@ -942,9 +942,10 @@ describe('runCurationTail post-verdict fold', () => {
   })
 
   it.each(['emit', 'canary-emit', 'drain'] as const)(
-    'swallows a %s failure and warns that incomplete curation resumes on the next run',
+    'swallows a %s failure and says on detail that incomplete curation resumes on the next run',
     async (failureStage) => {
       const warn = vi.fn()
+      const detail = vi.fn()
       const operations = successfulOperations({
         emitCurationCandidates() {
           if (failureStage === 'emit') throw new Error('emit failed')
@@ -991,11 +992,14 @@ describe('runCurationTail post-verdict fold', () => {
       })
 
       await expect(
-        runCurationTail(baseOptions(operations, { log: { warn } })),
+        runCurationTail(baseOptions(operations, { log: { warn, detail } })),
       ).resolves.toBeUndefined()
-      expect(warn).toHaveBeenCalledOnce()
-      expect(warn.mock.calls[0]?.[0]).toMatch(/curation incomplete/i)
-      expect(warn.mock.calls[0]?.[0]).toMatch(CI_CURATION_RESUME)
+      expect(warn).not.toHaveBeenCalled()
+      const incomplete = detail.mock.calls
+        .map(([message]) => String(message))
+        .filter((message) => /curation incomplete/i.test(message))
+      expect(incomplete).toHaveLength(1)
+      expect(incomplete[0]).toMatch(CI_CURATION_RESUME)
     },
   )
 
@@ -1205,6 +1209,7 @@ describe('runCurationTail post-verdict fold', () => {
       tests: [{}],
     }
     const warn = vi.fn()
+    const detail = vi.fn()
     const emitCurationCandidates = vi.fn(
       successfulOperations().emitCurationCandidates,
     )
@@ -1226,7 +1231,7 @@ describe('runCurationTail post-verdict fold', () => {
       writeCurationTailReceipt,
     })
 
-    await runCurationTail(baseOptions(operations, { log: { warn } }))
+    await runCurationTail(baseOptions(operations, { log: { warn, detail } }))
 
     expect(
       emitCurationCandidates.mock.calls.filter(
@@ -1248,11 +1253,11 @@ describe('runCurationTail post-verdict fold', () => {
       validRunDir,
       expect.objectContaining({ runId }),
     )
-    expect(warn).toHaveBeenCalledOnce()
-    expect(warn).toHaveBeenCalledWith(
+    expect(warn).not.toHaveBeenCalled()
+    expect(detail).toHaveBeenCalledWith(
       `Skipping post-verdict knowledge curation for ${malformedRunDir}: handoff is malformed.`,
     )
-    expect(warn).not.toHaveBeenCalledWith(expect.stringMatching(/curation incomplete/i))
+    expect(detail).not.toHaveBeenCalledWith(expect.stringMatching(/curation incomplete/i))
   })
 
   it.each(malformedSiblingCases)(
@@ -1269,6 +1274,7 @@ describe('runCurationTail post-verdict fold', () => {
       const malformedDocument = completeHandoffForGuard(malformedRunId)
       mutate(malformedDocument)
       const warn = vi.fn()
+      const detail = vi.fn()
       const emitCurationCandidates = vi.fn(
         successfulOperations().emitCurationCandidates,
       )
@@ -1290,7 +1296,7 @@ describe('runCurationTail post-verdict fold', () => {
         writeCurationTailReceipt,
       })
 
-      await runCurationTail(baseOptions(operations, { log: { warn } }))
+      await runCurationTail(baseOptions(operations, { log: { warn, detail } }))
 
       expect(
         emitCurationCandidates.mock.calls.filter(
@@ -1312,11 +1318,11 @@ describe('runCurationTail post-verdict fold', () => {
         validRunDir,
         expect.objectContaining({ runId }),
       )
-      expect(warn).toHaveBeenCalledOnce()
-      expect(warn).toHaveBeenCalledWith(
+      expect(warn).not.toHaveBeenCalled()
+      expect(detail).toHaveBeenCalledWith(
         `Skipping post-verdict knowledge curation for ${malformedRunDir}: handoff is malformed.`,
       )
-      expect(warn).not.toHaveBeenCalledWith(
+      expect(detail).not.toHaveBeenCalledWith(
         expect.stringContaining(`curation incomplete for ${malformedRunId}`),
       )
     },
@@ -1549,23 +1555,26 @@ describe('run-outcome projection under the extended tail receipt', () => {
     expect(operations.releaseLease).toHaveBeenCalledExactlyOnceWith({ knowledgeRoot, leaseId: 'sweep-lease' })
   })
 
-  it('warns on the no-authority skip and continues without releasing another holder', async () => {
+  it('says on detail that the projection was not reconciled and continues without releasing another holder', async () => {
     const warn = vi.fn()
+    const detail = vi.fn()
     const operations = successfulOperations({
       acquireWriterLease: vi.fn(() => ({ kind: 'held' as const, holder: handedOffDrainReport().holder })),
       reconcileRunOutcomesProjection: vi.fn(() => ({ kind: 'skipped' as const, reason: 'no-writer-authority' as const })),
     })
-    await runCurationTail(baseOptions(operations, { log: { warn } }))
+    await runCurationTail(baseOptions(operations, { log: { warn, detail } }))
     expect(operations.reconcileRunOutcomesProjection).toHaveBeenCalledWith(expect.not.objectContaining({
       authority: expect.anything(),
     }))
-    expect(warn).toHaveBeenCalledWith('curation: run-outcome projection not reconciled (no writer authority)')
+    expect(detail).toHaveBeenCalledWith('curation: run-outcome projection not reconciled (no writer authority)')
+    expect(warn).not.toHaveBeenCalled()
     expect(operations.releaseLease).not.toHaveBeenCalled()
     expect(operations.foldRunOutcomes).toHaveBeenCalledOnce()
   })
 
-  it('isolates a throwing reconcile: warned, and every per-run fold still happens', async () => {
+  it('isolates a throwing reconcile: said on detail, and every per-run fold still happens', async () => {
     const warn = vi.fn()
+    const detail = vi.fn()
     const foldRunOutcomes = vi.fn(successfulOperations().foldRunOutcomes)
     const drainQueue = vi.fn(successfulOperations().drainQueue)
     const writeCurationTailReceipt = vi.fn()
@@ -1579,28 +1588,29 @@ describe('run-outcome projection under the extended tail receipt', () => {
     })
 
     await expect(
-      runCurationTail(baseOptions(operations, { log: { warn } })),
+      runCurationTail(baseOptions(operations, { log: { warn, detail } })),
     ).resolves.toBeUndefined()
 
     expect(operations.releaseLease).toHaveBeenCalledExactlyOnceWith({ knowledgeRoot, leaseId: 'sweep-lease' })
 
     // A throw before any delete leaves the family intact, one after leaves it unstamped.
-    expect(warn).toHaveBeenCalledWith(
+    expect(detail).toHaveBeenCalledWith(
       expect.stringContaining('the run-outcome projection reconcile did not complete'),
     )
-    expect(warn).toHaveBeenCalledWith(
+    expect(detail).toHaveBeenCalledWith(
       expect.stringContaining(
         'If the rebuild write phase had already begun, the projection family is left unstamped and possibly'
         + ' partial, and the next reconcile rebuilds it',
       ),
     )
-    expect(warn).toHaveBeenCalledWith(
+    expect(detail).toHaveBeenCalledWith(
       expect.stringContaining(
         'if it stopped before that, the family and its previous stamp are untouched',
       ),
     )
     // The injected message is absent from the static text above, so this cannot pass vacuously.
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining('reconcile failed'))
+    expect(detail).toHaveBeenCalledWith(expect.stringContaining('reconcile failed'))
+    expect(warn).not.toHaveBeenCalled()
     expect(foldRunOutcomes).toHaveBeenCalledOnce()
     expect(drainQueue).toHaveBeenCalledOnce()
     expect(writeCurationTailReceipt).toHaveBeenCalledOnce()
@@ -2401,10 +2411,12 @@ describe('the knowledge summary a sweep reports', () => {
       resolveKnowledgeRoot: () => { throw new Error('fixture root failure') },
     })
 
-    await runCurationTail(baseOptions(operations, { log: { warn, summary } }))
+    const detail = vi.fn()
+    await runCurationTail(baseOptions(operations, { log: { warn, detail, summary } }))
 
     expect(summary.mock.calls).toEqual([[unfinishedSummary(runId, resume)]])
-    expect(warn.mock.calls).toEqual([[
+    expect(warn).not.toHaveBeenCalled()
+    expect(detail.mock.calls).toEqual([[
       `Post-verdict knowledge curation incomplete for ${runId}; `
       + (context === 'local-headless' ? 'it will resume on the next run.' : `it ${CI_RESUME}.`),
     ]])
@@ -2432,13 +2444,15 @@ describe('the knowledge summary a sweep reports', () => {
       }),
     })
 
-    await runCurationTail(baseOptions(operations, { log: { warn, summary } }))
+    const detail = vi.fn()
+    await runCurationTail(baseOptions(operations, { log: { warn, detail, summary } }))
 
     expect(summary.mock.calls).toEqual([
       [unfinishedSummary(siblingRunId, resume)],
       [{ runId, learned: 0, held: 0, proposed: 0, items: [] }],
     ])
-    expect(warn.mock.calls).toEqual([[
+    expect(warn).not.toHaveBeenCalled()
+    expect(detail.mock.calls.filter(([message]) => /curation incomplete/iu.test(String(message)))).toEqual([[
       `Post-verdict knowledge curation incomplete for ${siblingRunId}; `
       + (context === 'local-headless' ? 'it will resume on the next run.' : `it ${CI_RESUME}.`),
     ]])
@@ -2479,7 +2493,7 @@ describe('the knowledge summary a sweep reports', () => {
     ]])
   })
 
-  it('warns as before with a log that has only warn when the sweep cannot finish', async () => {
+  it('hands a log that has only warn nothing when the sweep cannot finish', async () => {
     const warn = vi.fn()
     const unresolvable = successfulOperations({
       resolveKnowledgeRoot: () => { throw new Error('fixture root failure') },
@@ -2491,9 +2505,96 @@ describe('the knowledge summary a sweep reports', () => {
     await expect(runCurationTail(baseOptions(unresolvable, { log: { warn } }))).resolves.toBeUndefined()
     await expect(runCurationTail(baseOptions(throwing, { log: { warn } }))).resolves.toBeUndefined()
 
-    expect(warn.mock.calls).toEqual([
-      [`Post-verdict knowledge curation incomplete for ${runId}; it ${CI_RESUME}.`],
-      [`Post-verdict knowledge curation incomplete for ${runId}; it ${CI_RESUME}.`],
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['refused', () => ({ kind: 'not-held' as const })],
+    ['failed', () => { throw new Error('fixture release failure') }],
+  ] as const)('says on detail that the reconcile lease release %s', async (outcome, releaseLease) => {
+    const warn = vi.fn()
+    const detail = vi.fn()
+    const operations = successfulOperations({ releaseLease: vi.fn(releaseLease) as never })
+
+    await runCurationTail(baseOptions(operations, { log: { warn, detail } }))
+
+    expect(detail).toHaveBeenCalledWith(`curation: run-outcome projection writer lease release ${outcome}`)
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it('says on detail that it skips a sibling run its context hands back', async () => {
+    const siblingRunId = '000-sibling-run'
+    const currentRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(runId))
+    const siblingRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(siblingRunId))
+    const warn = vi.fn()
+    const detail = vi.fn()
+    const operations = successfulOperations({
+      loadCompletedRunHandoff: (file) => file === join(siblingRunDir, HANDOFF_FILE)
+        ? { ...handoff(), runId: siblingRunId } as CompletedRunHandoff
+        : handoff(),
+      listCompletedRunDirs: () => [siblingRunDir, currentRunDir],
+      resolveRunCurationContext: vi.fn(async () => ({ handBack: 'fixture hand-back reason' })) as never,
+    })
+
+    await runCurationTail(baseOptions(operations, { log: { warn, detail } }))
+
+    expect(detail).toHaveBeenCalledWith(
+      `Skipping post-verdict knowledge curation for ${siblingRunDir}: fixture hand-back reason`,
+    )
+    expect(warn).not.toHaveBeenCalled()
+  })
+
+  it('warns a log that has only warn of the quarantine and the missing handoff, and of nothing else', async () => {
+    const siblingRunId = '000-sibling-run'
+    const currentRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(runId))
+    const siblingRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(siblingRunId))
+    const warn = vi.fn()
+    const operations = successfulOperations({
+      loadCompletedRunHandoff: (file) => {
+        if (file === join(siblingRunDir, HANDOFF_FILE)) throw new Error('malformed sibling')
+        return handoff()
+      },
+      listCompletedRunDirs: () => [siblingRunDir, currentRunDir],
+      reconcileRunOutcomesProjection: vi.fn(() => ({ kind: 'skipped' as const, reason: 'no-writer-authority' as const })),
+      releaseLease: vi.fn(() => ({ kind: 'not-held' as const })) as never,
+      foldRunOutcomes: vi.fn(() => ({
+        kind: 'applied' as const,
+        tests: 1,
+        quarantine: {
+          kind: 'evaluated' as const,
+          append: { kind: 'appended' as const, lines: 1 },
+          events: [],
+          flagged: [],
+          escalatedNotQuarantined: [{
+            product: 'shop-web',
+            filePath: 'suite/checkout.test.ts',
+            testName: 'checkout completes',
+            fingerprint: 'fp::app_bug',
+            verdictClass: 'app_bug' as const,
+            producer: 'analyze-run' as const,
+            occurrenceOrdinals: 4,
+            windowOrdinals: 5,
+          }],
+          refusedLines: [{ lineNumber: 3, reason: 'fixture unreadable' }],
+        },
+      })) as never,
+      drainQueue: vi.fn(async () => drainedReport({
+        noops: 1,
+        noopDetails: [{ candidateId: 'cand-a', reason: 'delta-noop' }],
+        requeued: 1,
+        remaining: 1,
+      })),
+    })
+
+    await expect(runCurationTail(baseOptions(operations, { log: { warn } }))).resolves.toBeUndefined()
+    await expect(runCurationTail(baseOptions(successfulOperations({
+      loadCompletedRunHandoff: () => { throw new Error('missing handoff') },
+    }), { log: { warn } }))).resolves.toBeUndefined()
+
+    expect(warn.mock.calls.map(([message]) => String(message).split(':')[0])).toEqual([
+      'Quarantine withheld for checkout completes (suite/checkout.test.ts)',
+      `Quarantine ledger has 1 unreadable line(s) for ${runId}`,
+      'Skipping post-verdict knowledge curation',
     ])
   })
 })

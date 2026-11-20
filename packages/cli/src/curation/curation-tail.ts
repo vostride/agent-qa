@@ -341,7 +341,7 @@ const SNAPSHOT_NOT_RECORDED_LINE =
   'curation snapshot could not be validated and was not recorded; committed bundles are unaffected'
 
 // The context is the run's persisted one; in `ci` and `cloud` the line states the resume limit.
-function incompleteWarning(
+function incompleteLine(
   runId: string,
   executionContext: ExecutionContext | undefined,
   details?: string,
@@ -407,7 +407,7 @@ export interface CurateCompletedRunReport {
   /** Whether the receipt was written, i.e. whether this run needs folding again. */
   complete: boolean
   drainKind: 'drained' | 'handed-off' | 'aborted'
-  /** The same field list the incomplete warning renders; present only when incomplete. */
+  /** The same field list the incomplete line renders; present only when incomplete. */
   incompleteDetails?: string
 }
 
@@ -444,6 +444,7 @@ function remedyFor(crossing: {
 }
 
 // Silent unless lifecycle events land, an escalation is class-gated or the ledger read is refused.
+// Its warnings stay warnings: each tells the user a test can keep failing the build.
 function logQuarantineDisposition(
   runId: string,
   // Typed through the fold capability, because this package does not depend on knowledge-local.
@@ -648,7 +649,7 @@ export async function curateCompletedRun(
   if (!complete || completedReceipt === undefined) {
     // The summary's second line tells the user; the counters are for `--verbose`.
     input.log.detail?.(
-      incompleteWarning(receiptIdentity.runId, input.handoff.executionContext, incompleteDetails),
+      incompleteLine(receiptIdentity.runId, input.handoff.executionContext, incompleteDetails),
     )
     input.log.summary?.(drainReport === undefined
       ? unfinishedKnowledgeSummary(receiptIdentity.runId, input.handoff.executionContext)
@@ -730,7 +731,7 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
       currentRunDir,
     ])].sort()
   } catch {
-    opts.log.warn(incompleteWarning(String(currentHandoff.runId), currentHandoff.executionContext))
+    opts.log.detail?.(incompleteLine(String(currentHandoff.runId), currentHandoff.executionContext))
     opts.log.summary?.(
       unfinishedKnowledgeSummary(String(currentHandoff.runId), currentHandoff.executionContext),
     )
@@ -755,7 +756,7 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
       extractAnchors: exercisedAnchors,
     })
     if (reconcile.kind === 'skipped') {
-      opts.log.warn('curation: run-outcome projection not reconciled (no writer authority)')
+      opts.log.detail?.('curation: run-outcome projection not reconciled (no writer authority)')
     } else if (reconcile.kind === 'rebuilt') {
       opts.log.detail?.(
         'curation: run-outcome projection rebuilt at version '
@@ -766,8 +767,8 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
       )
     }
   } catch (error) {
-    // A reconcile can throw before or after its deletes, so the warning promises neither outcome.
-    opts.log.warn(
+    // A reconcile can throw before or after its deletes, so the line promises neither outcome.
+    opts.log.detail?.(
       'Post-verdict knowledge curation: the run-outcome projection reconcile did not complete. '
       + 'If the rebuild write phase had already begun, the projection family is left unstamped and possibly'
       + ' partial, and the next reconcile rebuilds it; if it stopped before that, the family and'
@@ -779,10 +780,10 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
       try {
         const released = operations.releaseLease({ knowledgeRoot, leaseId: acquiredReconcileLease.leaseId })
         if (released.kind !== 'released') {
-          opts.log.warn('curation: run-outcome projection writer lease release refused')
+          opts.log.detail?.('curation: run-outcome projection writer lease release refused')
         }
       } catch {
-        opts.log.warn('curation: run-outcome projection writer lease release failed')
+        opts.log.detail?.('curation: run-outcome projection writer lease release failed')
       }
     }
   }
@@ -794,7 +795,7 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
         ? currentHandoff
         : operations.loadCompletedRunHandoff(join(runDir, HANDOFF_FILE))
     } catch {
-      opts.log.warn(`Skipping post-verdict knowledge curation for ${runDir}: handoff is malformed.`)
+      opts.log.detail?.(`Skipping post-verdict knowledge curation for ${runDir}: handoff is malformed.`)
       continue
     }
 
@@ -810,7 +811,7 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
           drainerKnowledgeRoot: knowledgeRoot,
         })
         if ('handBack' in context) {
-          opts.log.warn(`Skipping post-verdict knowledge curation for ${runDir}: ${context.handBack}`)
+          opts.log.detail?.(`Skipping post-verdict knowledge curation for ${runDir}: ${context.handBack}`)
           continue
         }
         runMask = context.mask
@@ -838,7 +839,7 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
         continue
       }
     } catch {
-      opts.log.warn(incompleteWarning(receiptIdentity.runId, currentHandoff.executionContext))
+      opts.log.detail?.(incompleteLine(receiptIdentity.runId, currentHandoff.executionContext))
       opts.log.summary?.(
         unfinishedKnowledgeSummary(receiptIdentity.runId, currentHandoff.executionContext),
       )

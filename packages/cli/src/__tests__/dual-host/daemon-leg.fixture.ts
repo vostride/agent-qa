@@ -159,13 +159,17 @@ export async function runDaemonLeg(): Promise<void> {
     executionContext: 'local-interactive',
   } as unknown as CompletedRunHandoff
   const warnings: string[] = []
+  const details: string[] = []
   await runCurationTail({
     runId: FIXTURE_RUN_ID,
     agentQaRoot,
     knowledgeConfig: { dir: knowledgeRoot },
     configDir: root,
     modelDeps: {} as NonNullable<RunCurationTailOptions['modelDeps']>,
-    log: { warn: (message) => warnings.push(message) },
+    log: {
+      warn: (message) => { warnings.push(message) },
+      detail: (message) => { details.push(message) },
+    },
     operations: {
       loadCompletedRunHandoff: () => handoff,
       resolveKnowledgeRoot: () => knowledgeRoot,
@@ -196,7 +200,8 @@ export async function runDaemonLeg(): Promise<void> {
   })
   progress('tail-returned')
   // The contender must not rebuild under the daemon's lease; the tail discloses its typed skip.
-  expect(warnings).toEqual(['curation: run-outcome projection not reconciled (no writer authority)'])
+  expect(warnings).toEqual([])
+  expect(details).toContain('curation: run-outcome projection not reconciled (no writer authority)')
   await nudgeDaemon(agentQaRoot)
   progress('explicit-nudge-returned')
   await waitUntil(
