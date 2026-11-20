@@ -15,6 +15,7 @@ import {
   renderQuarantineSummarySegment,
 } from '../../reporters/console-reporter.js'
 import type { ConsoleReporterOptions } from '../../reporters/console-reporter.js'
+import type { LiveLine } from '../../reporters/live-line.js'
 import {
   QUARANTINED_CHECKOUT,
   QUARANTINED_ELSEWHERE,
@@ -585,6 +586,158 @@ describe('the console reporter under GitHub Actions', () => {
     expect(chunks).toContain('Failed tests:\n')
     const totals = chunks.filter((chunk) => /^(Tests|Steps|Cache|Time):/u.test(chunk))
     expect(totals).toHaveLength(4)
+  })
+})
+
+function withLiveLine(
+  envelopes: readonly RunEventEnvelope[],
+  liveLine?: LiveLine,
+): { events: string[]; output: string } {
+  const events: string[] = []
+  const recorded: LiveLine = liveLine ?? {
+    start: (text) => {
+      events.push(`start ${text}`)
+    },
+    stop: () => {
+      events.push('stop')
+    },
+  }
+  const reporter = createConsoleReporter({
+    colors: COLOURS_OFF,
+    verbose: true,
+    env: {},
+    liveLine: recorded,
+    write: (chunk) => {
+      events.push(chunk)
+    },
+  })
+  for (const envelope of envelopes) reporter.handler(envelope)
+  const output = events.filter((event) => event !== 'stop' && !event.startsWith('start ')).join('')
+  return { events, output }
+}
+
+function withoutLiveLine(envelopes: readonly RunEventEnvelope[]): string {
+  const capture = createCapture()
+  const reporter = createConsoleReporter({
+    colors: COLOURS_OFF,
+    verbose: true,
+    env: {},
+    write: capture.write,
+  })
+  for (const envelope of envelopes) reporter.handler(envelope)
+  return capture.output()
+}
+
+const passedStep = {
+  testIndex: 0,
+  stepIndex: 0,
+  cacheStatus: 'miss',
+  verifierVerdict: { pass: true, reasoning: 'ok' },
+  selfHealOccurred: false,
+  briefDigest: 'digest',
+  status: 'passed',
+  durationMs: 1_200,
+}
+
+describe('the console reporter drives the live line it is handed', () => {
+  it('starts the live line for a step and stops it before the step result line', () => {
+    const { events } = withLiveLine(
+      actionsStream([
+        ['stepStarted', { testIndex: 0, stepIndex: 0, stepText: 'Open login page' }],
+        ['stepFinalized', passedStep],
+      ]),
+    )
+    expect(events).toEqual(['start Open login page', 'stop', '✓ Open login page 1s\n'])
+  })
+
+  it('starts the live line with the file path of a test, or its name when it has none', () => {
+    const { events } = withLiveLine(
+      actionsStream([
+        [
+          'testStarted',
+          { testId: 't0', testIndex: 0, name: 'Login test', filePath: 'tests/login.yaml' },
+        ],
+        ['testStarted', { testId: 't1', testIndex: 1, name: 'Checkout test' }],
+      ]),
+    )
+    expect(events).toEqual(['start tests/login.yaml', 'start Checkout test'])
+  })
+
+  it('stops the live line before a test result, a hook line and the run summary', () => {
+    const { events } = withLiveLine(
+      actionsStream([
+        ['testStarted', { testId: 't0', testIndex: 0, name: 'Login test' }],
+        [
+          'hookStarted',
+          { hookName: 'seed-db', phase: 'setup', hookExecutionId: 'h1', scope: 'test' },
+        ],
+        [
+          'hookFinished',
+          {
+            hookName: 'seed-db',
+            phase: 'setup',
+            hookExecutionId: 'h1',
+            scope: 'test',
+            status: 'passed',
+            durationMs: 300,
+            stdout: '',
+            stderr: '',
+            kind: 'hook',
+          },
+        ],
+        ['testFinished', { testId: 't0', testIndex: 0, outcome: 'passed', durationMs: 2_000 }],
+        ['runFinished', { aggregateVerdict: 'passed' }],
+      ]),
+    )
+    expect(events.slice(0, 3)).toEqual(['start Login test', 'stop', '▶ Running setup hooks\n'])
+    expect(events.slice(3, 5)).toEqual(['stop', '  ✓ seed-db 300ms\n'])
+    expect(events.slice(5, 8)).toEqual(['stop', ' PASS  Login test 2s\n', '\n'])
+    expect(events[8]).toBe('stop')
+    expect(events.slice(9).join('')).toContain('Tests:  1 of 1 passed')
+  })
+
+  it('writes nothing while the live line is drawn, across a whole run', () => {
+    const { events } = withLiveLine(buildReporterFixture().envelopes)
+    let drawn = false
+    let starts = 0
+    for (const event of events) {
+      if (event.startsWith('start ')) {
+        drawn = true
+        starts++
+      } else if (event === 'stop') drawn = false
+      else expect(drawn, `written while drawn: ${JSON.stringify(event)}`).toBe(false)
+    }
+    expect(starts).toBeGreaterThan(0)
+    expect(drawn).toBe(false)
+  })
+
+  it('hands a step text of three lines to the live line as it is and prints it whole', () => {
+    const stepText = 'Open the cart\n  then add the mug\n  then check the total'
+    const { events } = withLiveLine(
+      actionsStream([
+        ['stepStarted', { testIndex: 0, stepIndex: 0, stepText }],
+        ['stepFinalized', passedStep],
+      ]),
+    )
+    expect(events).toEqual([`start ${stepText}`, 'stop', `✓ ${stepText} 1s\n`])
+  })
+
+  it('prints the same bytes with a live line as without one', () => {
+    const envelopes = buildReporterFixture().envelopes
+    expect(withLiveLine(envelopes).output).toBe(withoutLiveLine(envelopes))
+  })
+
+  it('still prints every result line when the live line throws', () => {
+    const envelopes = buildReporterFixture().envelopes
+    const throwing: LiveLine = {
+      start: () => {
+        throw new Error('start failed')
+      },
+      stop: () => {
+        throw new Error('stop failed')
+      },
+    }
+    expect(withLiveLine(envelopes, throwing).output).toBe(withoutLiveLine(envelopes))
   })
 })
 
