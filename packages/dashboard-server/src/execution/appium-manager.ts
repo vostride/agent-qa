@@ -3,10 +3,9 @@ import {
   type AppiumServer,
   type StartAppiumServerOptions,
 } from '@vostride/agent-qa-appium-runtime'
-import { printRunText } from '@vostride/agent-qa-core'
-import pc from 'picocolors'
+import { printLogLine } from '@vostride/agent-qa-core'
 
-const APPIUM_PREFIX = pc.magenta('[appium]')
+const TAG = 'appium'
 
 export interface AppiumLeaseOwner {
   runId: string
@@ -22,6 +21,7 @@ export class AppiumManager {
   private closed = false
   private logLevel: 'normal' | 'debug'
   private startAppium: (options: StartAppiumServerOptions) => Promise<AppiumServer>
+  private readonly masks = new Set<(text: string) => string>()
 
   constructor(opts?: {
     logLevel?: 'normal' | 'debug'
@@ -31,10 +31,31 @@ export class AppiumManager {
     this.startAppium = opts?.startAppium ?? startAppiumServer
   }
 
+  bindMask(mask: (text: string) => string): () => void {
+    this.masks.add(mask)
+    return () => {
+      this.masks.delete(mask)
+    }
+  }
+
+  private masked(text: string): string {
+    let result = text
+    for (const mask of this.masks) result = mask(result)
+    return result
+  }
+
+  private debugLine(message: string, data?: Record<string, unknown>): void {
+    if (this.logLevel === 'debug') printLogLine({ tag: TAG, message, data })
+  }
+
   async acquireLease(owner: AppiumLeaseOwner): Promise<void> {
     await this.ensureRunning()
     if (!this.leases.has(owner.runId)) this.leases.set(owner.runId, owner.platform)
-    console.log(`${APPIUM_PREFIX} lease acquired run=${owner.runId} platform=${owner.platform} leases=${this.leases.size}`)
+    this.debugLine('Lease acquired', {
+      run: owner.runId,
+      platform: owner.platform,
+      leases: this.leases.size,
+    })
   }
 
   releaseLease(runId: string, reason = 'completed'): boolean {
@@ -42,9 +63,9 @@ export class AppiumManager {
     if (!platform) return false
 
     this.leases.delete(runId)
-    console.log(`${APPIUM_PREFIX} lease released run=${runId} platform=${platform} reason=${reason} leases=${this.leases.size}`)
+    this.debugLine('Lease released', { run: runId, platform, reason, leases: this.leases.size })
     if (this.leases.size > 0) {
-      console.log(`${APPIUM_PREFIX} server kept alive leases=${this.leases.size}`)
+      this.debugLine('Server kept alive', { leases: this.leases.size })
     } else {
       void this.performShutdown()
     }
@@ -70,21 +91,30 @@ export class AppiumManager {
   }
 
   private async startAndWait(): Promise<void> {
+    // A chunk can end inside a line, and inside a secret, so only whole lines are masked and printed.
+    const unfinished = { stdout: '', stderr: '' }
+    const forward = (line: string, stream: 'stdout' | 'stderr'): void => {
+      if (line === '') return
+      printLogLine({ tag: TAG, level: 'debug', message: this.masked(line) }, { to: stream })
+    }
     const server = await this.startAppium({
       onOutput: (text, stream) => {
         if (this.logLevel !== 'debug') return
-        for (const line of text.split('\n').filter(Boolean)) {
-          printRunText(`${APPIUM_PREFIX} ${pc.dim(line)}`, (out) =>
-            stream === 'stdout' ? console.log(out) : console.error(out),
-          )
-        }
+        const lines = (unfinished[stream] + text).split(/\r?\n/u)
+        unfinished[stream] = lines.pop() ?? ''
+        for (const line of lines) forward(line, stream)
       },
     })
     this.server = server
-    console.log(`${APPIUM_PREFIX} ${pc.green(`started on :${new URL(server.url).port}`)}`)
+    printLogLine({ tag: TAG, message: `Started on :${new URL(server.url).port}` })
     // A server that ended on its own is no longer held, so the next call starts another.
     void server.exited.then(() => {
       if (this.server === server) this.server = null
+      for (const stream of ['stdout', 'stderr'] as const) {
+        const rest = unfinished[stream]
+        unfinished[stream] = ''
+        forward(rest, stream)
+      }
     })
   }
 
@@ -93,7 +123,7 @@ export class AppiumManager {
     if (server) {
       // Released before the stop settles, so a lease taken during the stop starts a new server.
       this.server = null
-      console.log(`${APPIUM_PREFIX} ${pc.yellow('stopped')}`)
+      printLogLine({ tag: TAG, message: 'Stopped' })
       this.stopping = Promise.all([this.stopping, server.stop()]).then(() => {})
     }
     return this.stopping

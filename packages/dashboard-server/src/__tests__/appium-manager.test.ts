@@ -1,17 +1,24 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { Mock } from 'vitest'
 import type { AppiumServer, StartAppiumServerOptions } from '@vostride/agent-qa-appium-runtime'
-
-vi.mock('picocolors', () => ({
-  default: {
-    magenta: (s: string) => `[magenta]${s}[/magenta]`,
-    green: (s: string) => `[green]${s}[/green]`,
-    yellow: (s: string) => `[yellow]${s}[/yellow]`,
-    dim: (s: string) => `[dim]${s}[/dim]`,
-  },
-}))
+import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 
 import { AppiumManager } from '../execution/appium-manager.js'
+
+const TAGGED = /^\d\d:\d\d:\d\d {2}appium {5}/u
+
+// The text after the time and the tag; a line without them is returned whole, so it cannot match.
+function messages(spy: { mock: { calls: unknown[][] } }): string[] {
+  return spy.mock.calls.map((call) => {
+    const text = String(call[0])
+    return TAGGED.test(text) ? text.replace(TAGGED, '') : text
+  })
+}
+
+function maskFor(name: string, value: string): (text: string) => string {
+  const redactor = new SecretRedactor(new SecretStore({ [name]: value }))
+  return (text) => redactor.redactString(text)
+}
 
 interface FakeServer extends AppiumServer {
   readonly stop: Mock<() => Promise<void>>
@@ -339,48 +346,95 @@ describe('AppiumManager', () => {
   })
 
   describe('log gating', () => {
-    it('suppresses stdout at normal logLevel', async () => {
+    it('prints nothing Appium writes at the normal level, on either stream', async () => {
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       const { mgr, start } = managerWith('normal')
       await mgr.ensureRunning()
       logSpy.mockClear()
+
       start.mock.calls[0][0].onOutput!('some appium traffic\n', 'stdout')
-      const stdoutCalls = logSpy.mock.calls.filter((c) => String(c[0]).includes('[dim]'))
-      expect(stdoutCalls).toHaveLength(0)
-    })
-
-    it('suppresses stderr at normal logLevel', async () => {
-      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-      vi.spyOn(console, 'log').mockImplementation(() => {})
-      const { mgr, start } = managerWith('normal')
-      await mgr.ensureRunning()
-      errSpy.mockClear()
       start.mock.calls[0][0].onOutput!('some warning\n', 'stderr')
-      const stderrCalls = errSpy.mock.calls.filter((c) => String(c[0]).includes('[dim]'))
-      expect(stderrCalls).toHaveLength(0)
+      start.mock.calls[0][0].onOutput!('an unfinished line', 'stdout')
+      await mgr.shutdown()
+
+      expect(messages(logSpy)).toEqual(['Stopped'])
+      expect(errSpy).not.toHaveBeenCalled()
     })
 
-    it('shows stdout with colored prefix at debug logLevel', async () => {
+    it('constructor defaults logLevel to normal', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { mgr, start } = managerWith()
+      await mgr.ensureRunning()
+      logSpy.mockClear()
+
+      start.mock.calls[0][0].onOutput!('out line\n', 'stdout')
+      start.mock.calls[0][0].onOutput!('err line\n', 'stderr')
+
+      expect(logSpy).not.toHaveBeenCalled()
+      expect(errSpy).not.toHaveBeenCalled()
+    })
+
+    it('prints no lease line at the normal level', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      const { mgr } = managerWith('normal')
+
+      await mgr.acquireLease({ runId: 'run_android_1', platform: 'android' })
+      await mgr.acquireLease({ runId: 'run_ios_1', platform: 'ios' })
+      mgr.releaseLease('run_android_1', 'completed')
+      mgr.releaseLease('run_ios_1', 'cancelled')
+
+      expect(messages(logSpy)).toEqual(['Started on :47231', 'Stopped'])
+    })
+
+    it('prints the lease lines at debug with their values as data', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      const { mgr } = managerWith('debug')
+
+      await mgr.acquireLease({ runId: 'run_android_1', platform: 'android' })
+      await mgr.acquireLease({ runId: 'run_ios_1', platform: 'ios' })
+      mgr.releaseLease('run_android_1', 'completed')
+      mgr.releaseLease('run_ios_1', 'cancelled')
+
+      expect(messages(logSpy)).toEqual([
+        'Started on :47231',
+        'Lease acquired run="run_android_1" platform="android" leases=1',
+        'Lease acquired run="run_ios_1" platform="ios" leases=2',
+        'Lease released run="run_android_1" platform="android" reason="completed" leases=1',
+        'Server kept alive leases=1',
+        'Lease released run="run_ios_1" platform="ios" reason="cancelled" leases=0',
+        'Stopped',
+      ])
+    })
+
+    it('prints a forwarded stdout line to console.log and a stderr line to console.error at debug', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const { mgr, start } = managerWith('debug')
+      await mgr.ensureRunning()
+      logSpy.mockClear()
+
+      start.mock.calls[0][0].onOutput!('out line\n', 'stdout')
+      start.mock.calls[0][0].onOutput!('err line\n', 'stderr')
+
+      expect(logSpy).toHaveBeenCalledTimes(1)
+      expect(errSpy).toHaveBeenCalledTimes(1)
+      expect(String(logSpy.mock.calls[0][0])).toMatch(TAGGED)
+      expect(String(errSpy.mock.calls[0][0])).toMatch(TAGGED)
+      expect(messages(logSpy)).toEqual(['out line'])
+      expect(messages(errSpy)).toEqual(['err line'])
+    })
+
+    it('prints each line of a chunk with three line breaks, and skips empty lines', async () => {
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
       const { mgr, start } = managerWith('debug')
       await mgr.ensureRunning()
       logSpy.mockClear()
-      start.mock.calls[0][0].onOutput!('debug traffic line\n', 'stdout')
-      const dimCalls = logSpy.mock.calls.filter((c) => String(c[0]).includes('[dim]'))
-      expect(dimCalls.length).toBeGreaterThan(0)
-      expect(String(dimCalls[0][0])).toContain('[magenta]')
-    })
 
-    it('shows stderr with colored prefix at debug logLevel', async () => {
-      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-      vi.spyOn(console, 'log').mockImplementation(() => {})
-      const { mgr, start } = managerWith('debug')
-      await mgr.ensureRunning()
-      errSpy.mockClear()
-      start.mock.calls[0][0].onOutput!('warning line\n', 'stderr')
-      const dimCalls = errSpy.mock.calls.filter((c) => String(c[0]).includes('[dim]'))
-      expect(dimCalls.length).toBeGreaterThan(0)
-      expect(String(dimCalls[0][0])).toContain('[magenta]')
+      start.mock.calls[0][0].onOutput!('first line\nsecond line\n\nthird line\r\n', 'stdout')
+
+      expect(messages(logSpy)).toEqual(['first line', 'second line', 'third line'])
     })
 
     describe('forwarded output under GitHub Actions', () => {
@@ -411,7 +465,7 @@ describe('AppiumManager', () => {
 
         expect(writes).toHaveLength(1)
         expect(writes[0]).toMatch(PAIR)
-        expect(writes[0]).toContain('##[error]x')
+        expect(writes[0]).toMatch(/\n\d\d:\d\d:\d\d {2}appium {5}##\[error\]x\n/u)
         expect(logSpy).not.toHaveBeenCalled()
       })
 
@@ -427,7 +481,7 @@ describe('AppiumManager', () => {
 
         expect(writes).toHaveLength(1)
         expect(writes[0]).toMatch(PAIR)
-        expect(writes[0]).toContain('##[error]x')
+        expect(writes[0]).toMatch(/\n\d\d:\d\d:\d\d {2}appium {5}##\[error\]x\n/u)
         expect(errSpy).not.toHaveBeenCalled()
       })
 
@@ -441,99 +495,139 @@ describe('AppiumManager', () => {
         start.mock.calls[0][0].onOutput!('out line\n', 'stdout')
         start.mock.calls[0][0].onOutput!('err line\n', 'stderr')
 
-        expect(logSpy.mock.calls).toEqual([['[magenta][appium][/magenta] [dim]out line[/dim]']])
-        expect(errSpy.mock.calls).toEqual([['[magenta][appium][/magenta] [dim]err line[/dim]']])
+        expect(messages(logSpy)).toEqual(['out line'])
+        expect(messages(errSpy)).toEqual(['err line'])
         expect(writes).toHaveLength(0)
       })
     })
+  })
 
-    it('constructor defaults logLevel to normal', async () => {
+  describe('masking forwarded output', () => {
+    const SECRET = 'made-up-device-pw-41c7'
+    const sessionLine = (password: string): string =>
+      `[HTTP] --> POST /session {"capabilities":{"alwaysMatch":{"appium:password":"${password}"}}}`
+
+    it("prints a new-session request with a declared secret's placeholder and not its value", async () => {
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
-      const { mgr, start } = managerWith()
+      const { mgr, start } = managerWith('debug')
+      mgr.bindMask(maskFor('DEVICE_PASSWORD', SECRET))
       await mgr.ensureRunning()
       logSpy.mockClear()
 
-      start.mock.calls[0][0].onOutput!('out line\n', 'stdout')
-      start.mock.calls[0][0].onOutput!('err line\n', 'stderr')
+      start.mock.calls[0][0].onOutput!(`${sessionLine(SECRET)}\n`, 'stdout')
 
-      expect(logSpy).not.toHaveBeenCalled()
-      expect(errSpy).not.toHaveBeenCalled()
+      expect(messages(logSpy)).toEqual([sessionLine('[secret:DEVICE_PASSWORD]')])
+      expect(logSpy.mock.calls.flat().join('\n').includes(SECRET)).toBe(false)
     })
 
-    it('constructor accepts logLevel debug', async () => {
+    it('applies two masks bound at once to one line', async () => {
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      vi.spyOn(console, 'log').mockImplementation(() => {})
+      const { mgr, start } = managerWith('debug')
+      mgr.bindMask(maskFor('DEVICE_PASSWORD', SECRET))
+      mgr.bindMask(maskFor('DEVICE_TOKEN', 'made-up-token-9a2b'))
+      await mgr.ensureRunning()
+
+      start.mock.calls[0][0].onOutput!(`token made-up-token-9a2b and ${SECRET}\n`, 'stderr')
+
+      expect(messages(errSpy)).toEqual(['token [secret:DEVICE_TOKEN] and [secret:DEVICE_PASSWORD]'])
+    })
+
+    it('stops applying a mask once its release is called, while a mask still bound applies', async () => {
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      const { mgr, start } = managerWith('debug')
+      const release = mgr.bindMask(maskFor('DEVICE_PASSWORD', SECRET))
+      mgr.bindMask(maskFor('DEVICE_TOKEN', 'made-up-token-9a2b'))
+      await mgr.ensureRunning()
+      logSpy.mockClear()
+
+      release()
+      start.mock.calls[0][0].onOutput!(`${SECRET} made-up-token-9a2b\n`, 'stdout')
+
+      expect(messages(logSpy)).toEqual([`${SECRET} [secret:DEVICE_TOKEN]`])
+    })
+
+    it('holds a line cut inside the secret until its line break, then prints it once, whole and masked', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      const { mgr, start } = managerWith('debug')
+      mgr.bindMask(maskFor('DEVICE_PASSWORD', SECRET))
+      await mgr.ensureRunning()
+      logSpy.mockClear()
+      const line = sessionLine(SECRET)
+      const cut = line.indexOf(SECRET) + 8
+
+      start.mock.calls[0][0].onOutput!(line.slice(0, cut), 'stdout')
+      expect(logSpy).not.toHaveBeenCalled()
+
+      start.mock.calls[0][0].onOutput!(`${line.slice(cut)}\nnext`, 'stdout')
+      expect(messages(logSpy)).toEqual([sessionLine('[secret:DEVICE_PASSWORD]')])
+    })
+
+    it('keeps the unfinished end of each stream apart', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
       const { mgr, start } = managerWith('debug')
       await mgr.ensureRunning()
       logSpy.mockClear()
 
-      start.mock.calls[0][0].onOutput!('first line\n\nsecond line\n', 'stdout')
+      start.mock.calls[0][0].onOutput!('out be', 'stdout')
+      start.mock.calls[0][0].onOutput!('err be', 'stderr')
+      start.mock.calls[0][0].onOutput!('gins\n', 'stdout')
+      start.mock.calls[0][0].onOutput!('gins\n', 'stderr')
 
-      expect(logSpy.mock.calls).toEqual([
-        ['[magenta][appium][/magenta] [dim]first line[/dim]'],
-        ['[magenta][appium][/magenta] [dim]second line[/dim]'],
-      ])
+      expect(messages(logSpy)).toEqual(['out begins'])
+      expect(messages(errSpy)).toEqual(['err begins'])
+    })
+
+    it('prints the unfinished end of a stream, masked, when the server ends', async () => {
+      const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+      vi.spyOn(console, 'log').mockImplementation(() => {})
+      const { mgr, start, servers } = managerWith('debug')
+      mgr.bindMask(maskFor('DEVICE_PASSWORD', SECRET))
+      await mgr.ensureRunning()
+
+      start.mock.calls[0][0].onOutput!(`last words ${SECRET}`, 'stderr')
+      expect(errSpy).not.toHaveBeenCalled()
+
+      servers[0].end()
+      await flushQueue()
+      expect(messages(errSpy)).toEqual(['last words [secret:DEVICE_PASSWORD]'])
+    })
+
+    it('prints the unfinished end of a stream, masked, when the manager shuts down', async () => {
+      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+      const { mgr, start } = managerWith('debug')
+      mgr.bindMask(maskFor('DEVICE_PASSWORD', SECRET))
+      await mgr.ensureRunning()
+      logSpy.mockClear()
+
+      start.mock.calls[0][0].onOutput!(`last words ${SECRET}`, 'stdout')
+      await mgr.shutdown()
+      await flushQueue()
+
+      expect(messages(logSpy)).toContain('last words [secret:DEVICE_PASSWORD]')
+      expect(messages(logSpy)).toContain('Stopped')
+      expect(logSpy.mock.calls.flat().join('\n').includes(SECRET)).toBe(false)
     })
   })
 
   describe('lifecycle messages', () => {
-    it('prints started lifecycle message at normal logLevel', async () => {
-      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      const { mgr } = managerWith('normal')
-      await mgr.ensureRunning()
-      const startedCalls = logSpy.mock.calls.filter((c) => String(c[0]).includes('[green]'))
-      expect(startedCalls).toHaveLength(1)
-      expect(String(startedCalls[0][0])).toContain('started on :47231')
-      expect(String(startedCalls[0][0])).toContain('[magenta]')
-    })
+    it.each(['normal', 'debug'] as const)(
+      'prints Started on the port and Stopped through console.log at the %s level',
+      async (logLevel) => {
+        const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
+        const errSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+        const { mgr } = managerWith(logLevel)
 
-    it('prints started lifecycle message at debug logLevel', async () => {
-      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      const { mgr } = managerWith('debug')
-      await mgr.ensureRunning()
-      const startedCalls = logSpy.mock.calls.filter((c) => String(c[0]).includes('[green]'))
-      expect(startedCalls).toHaveLength(1)
-      expect(String(startedCalls[0][0])).toContain('started on :47231')
-    })
+        await mgr.ensureRunning()
+        expect(messages(logSpy)).toEqual(['Started on :47231'])
+        await mgr.shutdown()
 
-    it('prints stopped lifecycle message at normal logLevel', async () => {
-      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      const { mgr } = managerWith('normal')
-      await mgr.ensureRunning()
-      logSpy.mockClear()
-      await mgr.shutdown()
-      const stoppedCalls = logSpy.mock.calls.filter((c) => String(c[0]).includes('[yellow]'))
-      expect(stoppedCalls).toHaveLength(1)
-      expect(String(stoppedCalls[0][0])).toContain('stopped')
-      expect(String(stoppedCalls[0][0])).toContain('[magenta]')
-    })
-
-    it('prints stopped lifecycle message at debug logLevel', async () => {
-      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      const { mgr } = managerWith('debug')
-      await mgr.ensureRunning()
-      logSpy.mockClear()
-      await mgr.shutdown()
-      const stoppedCalls = logSpy.mock.calls.filter((c) => String(c[0]).includes('[yellow]'))
-      expect(stoppedCalls).toHaveLength(1)
-      expect(String(stoppedCalls[0][0])).toContain('stopped')
-    })
-
-    it('prints ownership lease details', async () => {
-      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {})
-      const { mgr } = managerWith('normal')
-      await mgr.acquireLease({ runId: 'run_android_1', platform: 'android' })
-      await mgr.acquireLease({ runId: 'run_ios_1', platform: 'ios' })
-      mgr.releaseLease('run_android_1', 'completed')
-
-      const output = logSpy.mock.calls.map((c) => String(c[0])).join('\n')
-      expect(output).toContain('lease acquired')
-      expect(output).toContain('run=run_android_1')
-      expect(output).toContain('platform=android')
-      expect(output).toContain('leases=1')
-      expect(output).toContain('lease released')
-      expect(output).toContain('reason=completed')
-      expect(output).toContain('server kept alive leases=1')
-    })
+        expect(messages(logSpy)).toEqual(['Started on :47231', 'Stopped'])
+        expect(logSpy.mock.calls.every((call) => TAGGED.test(String(call[0])))).toBe(true)
+        expect(errSpy).not.toHaveBeenCalled()
+      },
+    )
   })
 })
+
