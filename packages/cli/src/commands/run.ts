@@ -8,7 +8,7 @@ import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, 
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
 import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, describeAndroidHere, describeIOSHere, discoverWorkspaceFiles, findDeviceHere, isUrlRemoteEntry, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, projectRemotesForDisplay, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
-import { colorsFor, printRunText } from '@vostride/agent-qa-core/run-text-output'
+import { colorsFor, isCi, printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, RemoteConnectionFields, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
@@ -106,6 +106,7 @@ import {
 } from '../run-session-composition.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import type { CliAnalyticsHost } from '../composition/analytics-host.js'
+import type { ConsoleReporterOptions } from '../reporters/console-reporter.js'
 import { errorReporter, settleReporting } from '../composition/error-reporting.js'
 import {
   runVerdictFirstCurationTail,
@@ -270,6 +271,19 @@ export const curationTailLog = {
 // A warning is written to stderr, which can be a terminal while stdout is a file.
 export function printRunWarning(line: string): void {
   printRunText(colorsFor(process.stderr).yellow(line), (text) => console.warn(text))
+}
+
+let processLiveLine: Promise<ConsoleReporterOptions['liveLine']> | undefined
+
+// Drawn only in a real terminal outside CI, so a pipe, a file and a CI log never load the library.
+// Built once, because a run of suites and then tests attaches the reporter twice.
+async function runLiveLine(consoleSelected: boolean): Promise<ConsoleReporterOptions['liveLine']> {
+  if (!consoleSelected || process.stdout.isTTY !== true || isCi(process.env)) return undefined
+  processLiveLine ??= import('../reporters/live-line.js').then(({ createLiveLine }) => {
+    const colors = colorsFor(process.stdout)
+    return createLiveLine(process.stdout, (glyph) => colors.cyan(glyph))
+  })
+  return await processLiveLine
 }
 
 // Unref'd backstop: a run that cannot settle still exits 130, so Ctrl+C never hangs the CLI.
@@ -2616,6 +2630,7 @@ async function executeSuites(
   const executionContext = resolveRunExecutionContext()
   let exitCode: number
   let remoteRefusal: Error | undefined
+  let liveLine: ConsoleReporterOptions['liveLine']
   try {
     const reporterSelection = requireReporterSelection(opts)
     const produced = await produceSuiteRunMembers({
@@ -2663,6 +2678,7 @@ async function executeSuites(
     // NOTHING ASKS. This door builds no confirm channel and carries no session trust: a suite starts
     // at a terminal, on a piped stdio and in CI alike, whatever environment its targets declare.
 
+    liveLine = await runLiveLine(reporterSelection.console)
     const { runInProcessCliRun } = await import('../composition/in-process-run-execution.js')
 
     const outcome = await (runInProcessCliRun as typeof RunInProcessCliRun)(
@@ -2683,7 +2699,9 @@ async function executeSuites(
           analyticsHost?.bindMaskingContext({ mask })
           return attachRunSubscribers({
             session,
-            console: reporterSelection.console ? { verbose: false } : false,
+            console: reporterSelection.console
+              ? { verbose: false, ...(liveLine === undefined ? {} : { liveLine }) }
+              : false,
             junitOutputPath: reporterSelection.junit ? opts.junitOutput : undefined,
             extraSubscribers,
             // The same resolved set the run is assembled with, so reporters and verdict agree.
@@ -2741,6 +2759,8 @@ async function executeSuites(
     exitCode = outcome.exitCode
     remoteRefusal = produced.takeRemoteRefusal?.()
   } finally {
+    // A run that ends without its closing event must leave no spinner drawn.
+    liveLine?.stop()
     clearGraceTimer()
     shutdownController.dispose()
     process.removeListener('SIGINT', shutdownController.handleSignal)
@@ -5466,6 +5486,7 @@ export function createRunCommand(
           ...(produced.remotePlugins === undefined ? {} : { remotePlugins: produced.remotePlugins }),
         }))
 
+        const liveLine = await runLiveLine(reporterSelection.console)
         const { runInProcessCliRun } = await import('../composition/in-process-run-execution.js')
         let singleExit: number
         try {
@@ -5493,7 +5514,9 @@ export function createRunCommand(
                 // Bus subscribers replay then go live; `quarantined` is the run's assembled set.
                 return attachRunSubscribers({
                   session,
-                  console: reporterSelection.console ? { verbose: false } : false,
+                  console: reporterSelection.console
+                    ? { verbose: false, ...(liveLine === undefined ? {} : { liveLine }) }
+                    : false,
                   junitOutputPath: reporterSelection.junit ? opts.junitOutput : undefined,
                   extraSubscribers: singleExtraSubscribers,
                   quarantined,
@@ -5559,6 +5582,7 @@ export function createRunCommand(
         } finally {
           // Keep both process signals live through the drain, then release them. The masking
           // context is disposed inside the drive, absolutely last within the run's own scope.
+          liveLine?.stop()
           clearGraceTimer()
           shutdownController.dispose()
           process.removeListener('SIGINT', shutdownController.handleSignal)

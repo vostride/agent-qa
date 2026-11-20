@@ -1,5 +1,3 @@
-import ora from 'ora'
-
 export interface LiveLine {
   start(text: string): void
   stop(): void
@@ -19,10 +17,13 @@ export function fitToRow(text: string, columns: number, tail: string): string {
   return parts.length > room ? `${parts.slice(0, room - 1).join('')}…` : parts.join('')
 }
 
-export function createLiveLine(
+// The library loads here, on first use: the bundled CLI would hoist a static import into every
+// command, and only a run in a terminal draws the line.
+export async function createLiveLine(
   stream: NodeJS.WriteStream,
   frame: (glyph: string) => string,
-): LiveLine {
+): Promise<LiveLine> {
+  const { default: ora } = await import('ora')
   // With stdin left to the library, a Ctrl+C typed during a step never reaches the run.
   const spinner = ora({
     stream,
