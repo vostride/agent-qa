@@ -143,9 +143,11 @@ async function runOnPlugin(): Promise<PluginRun> {
       throw new Error('fixture command exit')
     })
 
-    const program = new Command().option('--config <path>').addCommand(createRunCommand())
+    // The masked answer value is read from a post-run line, which prints with --verbose.
+    const program = new Command().option('--config <path>').option('--verbose')
+      .addCommand(createRunCommand())
     await expect(
-      program.parseAsync(['--config', project.configPath, 'run', project.testPattern], {
+      program.parseAsync(['--config', project.configPath, '--verbose', 'run', project.testPattern], {
         from: 'user',
       }),
     ).rejects.toThrow('fixture command exit')

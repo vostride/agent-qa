@@ -414,18 +414,10 @@ describe('an induced post-processing failure is invisible to the verdict', () =>
     const failedSuffix = tailSuffix(failed.stderr, failed.verdictScopedStderr)
     const cleanSuffix = tailSuffix(clean.stderr, clean.verdictScopedStderr)
     expect(lines(failedSuffix)).toEqual([])
-    // The clean run's suffix differs, with close-out and digest, so the prefix identity is a claim.
-    const cleanLines = lines(cleanSuffix)
-    // No fold reported here, so the summary is the durable stage's word, then the close-out.
-    expect(cleanLines[0]).toBe('Knowledge: complete')
-    expect(cleanLines[1]).toContain(`post-processing complete for ${RUN_ID}`)
-    expect(cleanLines[2]).toBe(`digest — ${RUN_ID}`)
-    expect(cleanLines[3]).toBe('analysis — 2 distinct problems:')
-    // Every digest section is present; this host reads no mark ledger, and the digest says so.
-    expect(cleanSuffix).toContain('marks — ledger not read here')
-    expect(cleanSuffix).not.toMatch(/pending overall|minted this run/)
-    expect(cleanSuffix).toContain('candidates — ')
-    expect(cleanSuffix).toContain('quarantine — 0 quarantined · 0 expired')
+    // The clean run's suffix differs, with its summary, so the prefix identity is a claim.
+    // No fold reported here, so the summary is the durable stage's word; the close-out and the
+    // digest block print at debug only.
+    expect(lines(cleanSuffix)).toEqual(['Knowledge: complete'])
     expect(cleanSuffix).not.toBe(failedSuffix)
 
     // Nothing escaped the tail: a tail that rethrew would land here even with the exit code intact.
@@ -447,6 +439,12 @@ describe('an induced post-processing failure is invisible to the verdict', () =>
       )
       expect(suffixLines[2]).toMatch(new RegExp(`^${TIME}  post-run   digest — ${RUN_ID}$`, 'u'))
       expect(suffixLines[3]).toBe(`${MESSAGE_COLUMN}analysis — 2 distinct problems:`)
+      // Every digest section is present; this host reads no mark ledger, and the digest says so.
+      const suffix = suffixLines.join('\n')
+      expect(suffix).toContain('marks — ledger not read here')
+      expect(suffix).not.toMatch(/pending overall|minted this run/)
+      expect(suffix).toContain('candidates — ')
+      expect(suffix).toContain('quarantine — 0 quarantined · 0 expired')
       for (const line of suffixLines.slice(1)) {
         expect(
           new RegExp(`^${TIME}  post-run   `, 'u').test(line) || line.startsWith(MESSAGE_COLUMN),
@@ -542,10 +540,23 @@ describe('the structural halves', () => {
       expect(lines(suffix)).toEqual([
         'Knowledge: pending',
         '  not finished, resumes on a later local run',
-        'post-processing — analysis: pending · curation: pending'
-        // Nothing drained under `--detach`, so the line carries the fetch command.
-        + ` · digest: ${digestFetchCommand(RUN_ID)}`,
       ])
+
+      await atLevel('debug', async () => {
+        const verbose = await runScenario(fixture(), { detach: true })
+        expect(verbose.stdout).toBe(verbose.verdictScopedStdout)
+        const verboseLines = lines(tailSuffix(verbose.stderr, verbose.verdictScopedStderr))
+        expect(verboseLines.slice(0, 2)).toEqual([
+          'Knowledge: pending',
+          '  not finished, resumes on a later local run',
+        ])
+        expect(verboseLines.slice(2)).toHaveLength(1)
+        // Nothing drained under `--detach`, so the close-out line carries the fetch command.
+        expect(verboseLines[2]).toMatch(new RegExp(
+          `^${TIME}  post-run   post-processing — analysis: pending · curation: pending`, 'u',
+        ))
+        expect(verboseLines[2]!.endsWith(` · digest: ${digestFetchCommand(RUN_ID)}`)).toBe(true)
+      })
     })
 
   it('routes both run.ts tail sites through the one helper and no legacy per-site tail', () => {
@@ -697,17 +708,18 @@ describe("the run command's tail logger prints every line on stderr", () => {
     expect(captured.stdout).toBe('')
   })
 
-  it('prints a detail line as it is at the default level and at info', async () => {
-    const message = 'curation: drained inline (12ms)'
+  it('prints no detail line at the default level or at info', async () => {
     for (const level of ['warn', 'info']) {
       const captured = captureTailLog()
 
       await atLevel(level, () => {
-        curationTailLog.detail(message, 'post-run')
+        curationTailLog.detail('curation: drained inline (12ms)')
+        curationTailLog.detail('post-processing — analysis: pending', 'post-run')
       })
 
-      expect(captured.stderr, level).toBe(`${message}\n`)
+      expect(captured.stderr, level).toBe('')
       expect(captured.stdout, level).toBe('')
+      expect(captured.streamWrites, level).toEqual([])
       vi.restoreAllMocks()
     }
   })

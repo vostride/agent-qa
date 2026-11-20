@@ -15,6 +15,7 @@ import { DRAIN_BUDGET_MS, resolveRunExecutionContext } from '@vostride/agent-qa-
 import { generateRunId } from '@vostride/agent-qa-ids'
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import { ownPostVerdictContinuation, postVerdictPendingPath } from '../post-verdict-continuation.js'
+import { knowledgePendingResumeWords } from '../knowledge-summary.js'
 import { runPostRunTail } from '../post-run-tail.js'
 import { spawn } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
@@ -654,8 +655,10 @@ async function commandSignalFixture(mode: 'direct' | 'suite', timing: 'post-verd
     return outcome
   })
   vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
-  const program = new Command().option('--config <path>').addCommand(createRunCommand())
-  const parsing = program.parseAsync(['--config', f.input.configPath, 'run',
+  // The hand-off sentence is a close-out line, which prints with --verbose.
+  const program = new Command().option('--config <path>').option('--verbose')
+    .addCommand(createRunCommand())
+  const parsing = program.parseAsync(['--config', f.input.configPath, '--verbose', 'run',
     mode === 'suite' ? f.input.suitePattern : f.input.testPattern, '--detach'], { from: 'user' })
   void parsing.catch(() => undefined)
   try {
@@ -716,8 +719,9 @@ it('actual --all command freezes an earlier suite failure into a passing direct 
 })
 
 it.each((['direct', 'suite'] as const).flatMap(mode =>
-  (['pending', 'late-failure', 'failed', 'settled-before-finish', 'skipped'] as const).map(state => ({ mode, state })),
-))('actual $mode command reports $state preparation without a false chain', async ({ mode, state }) => {
+  (['pending', 'late-failure', 'failed', 'settled-before-finish', 'skipped'] as const).flatMap(state =>
+    ([true, false] as const).map(verbose => ({ mode, state, verbose }))),
+))('actual $mode command reports $state preparation without a false chain (verbose: $verbose)', async ({ mode, state, verbose }) => {
   const f = continuationFixture()
   isolateUpdateCheck()
   vi.spyOn(console, 'log').mockImplementation(() => undefined)
@@ -770,9 +774,11 @@ it.each((['direct', 'suite'] as const).flatMap(mode =>
       return { runId, exitCode } as never
     } finally { release.resolve(); await preparation; await produced.finalize?.() }
   })
-  const program = new Command().option('--config <path>').addCommand(createRunCommand())
-  await expect(program.parseAsync(['--config', f.input.configPath, 'run',
-    mode === 'suite' ? f.input.suitePattern : f.input.testPattern, '--detach'], { from: 'user' }))
+  const program = new Command().option('--config <path>').option('--verbose')
+    .addCommand(createRunCommand())
+  const target = mode === 'suite' ? f.input.suitePattern : f.input.testPattern
+  await expect(program.parseAsync(['--config', f.input.configPath,
+    ...(verbose ? ['--verbose'] : []), 'run', target, '--detach'], { from: 'user' }))
     .rejects.toThrow('fixture command exit')
   expect(execution).toHaveBeenCalledTimes(1)
   expect(composed).toHaveBeenCalledTimes(1)
@@ -782,17 +788,33 @@ it.each((['direct', 'suite'] as const).flatMap(mode =>
   if (state === 'pending' || state === 'late-failure') {
     expect(report, 'a pending producer has no enqueue disposition and no completed drain')
       .toEqual({ preparationPending: true, drain: 'not-attempted', jobsRun: 0 })
-    expect(lines).toContain(preparationLine(pendingPath))
+    if (verbose) expect(lines).toContain(preparationLine(pendingPath))
   } else if (state === 'failed') expect(report).toEqual({ enqueue: 'failed', drain: 'not-attempted', jobsRun: 0 })
   else if (state === 'skipped') {
     expect(report).toEqual({ enqueue: 'skipped', drain: 'not-attempted', jobsRun: 0 })
-    expect(lines).toContain('post-processing — analysis: skipped (gate run) · curation: skipped (gate run)')
+    if (verbose) {
+      expect(lines).toContain('post-processing — analysis: skipped (gate run) · curation: skipped (gate run)')
+    }
     expect(lines).not.toContain('post-run analysis')
     expect(lines).not.toContain('Durable intent:')
   } else {
     expect(report).toEqual({ enqueue: 'enqueued', drain: 'detached', jobsRun: 0 })
     expect(lines).not.toContain('hand-off pending')
-    expect(lines).toContain('agent-qa digest')
+    if (verbose) expect(lines).toContain('agent-qa digest')
+  }
+  if (!verbose) {
+    // The close-out lines are the --verbose channel; by default the run ends with its summary.
+    expect(lines).not.toContain(preparationLine(pendingPath))
+    expect(lines).not.toContain('post-processing')
+    expect(lines).not.toContain('agent-qa digest')
+    const knowledge = lines.split('\n').flatMap((line, index, all) => line.startsWith('Knowledge: ')
+      ? [line, ...(all[index + 1]?.startsWith('  ') === true ? [all[index + 1]!] : [])]
+      : [])
+    const pendingSummary = ['Knowledge: pending',
+      `  not finished, ${knowledgePendingResumeWords(resolveRunExecutionContext())}`]
+    expect(knowledge).toEqual(state === 'failed' ? []
+      : state === 'skipped' ? ['Knowledge: skipped (gate run)']
+      : pendingSummary)
   }
   if (state === 'failed' || state === 'late-failure') {
     expect(warning).toContain('analysis enqueue failed or was refused (enqueue-error)')

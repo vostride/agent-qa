@@ -267,11 +267,13 @@ export const curationTailLog = {
   warn(message: string): void {
     printRunWarning(`Warning: ${message}`)
   },
+  // The --verbose channel: the fold's lines, the close-out line and the digest block.
   detail(message: string, tag?: string): void {
-    const line = curationTailLog.level === 'debug'
-      ? formatLogLine({ tag: tag ?? 'knowledge', message, level: 'debug' }, colorsFor(process.stderr))
-      : message
-    printRunText(line, (text) => console.error(text))
+    if (curationTailLog.level !== 'debug') return
+    printRunText(
+      formatLogLine({ tag: tag ?? 'knowledge', message, level: 'debug' }, colorsFor(process.stderr)),
+      (text) => console.error(text),
+    )
   },
   summary(summary: KnowledgeSummary): void {
     const second = knowledgeSecondLine(summary)
@@ -2530,6 +2532,12 @@ async function captureAuthStateForRun(input: {
   }
 }
 
+// The command's one `Run ID:` line per run: noted when the run starts, printed once.
+interface RunIdLine {
+  started(runId: string): void
+  print(): void
+}
+
 interface SuiteRunExit {
   readonly exitCode: number
   // A suite's remote refused it before its members started, which keeps the command's exit at 2.
@@ -2561,6 +2569,7 @@ async function executeSuites(
   loadPlugins: () => Promise<void>,
   refusalMemory: RemoteRefusalMemory,
   listDevicesHere: DevicesHereLister,
+  runIdLine: RunIdLine,
 ): Promise<SuiteRunExit> {
   const { parseSuiteFile, parseTestFile, patchTestForSuite } = await import('@vostride/agent-qa-core')
   // `startRun` is reached only through `createRunInvocationCore`, never bound here.
@@ -2713,6 +2722,7 @@ async function executeSuites(
         runRecord: record,
         onSession: (session) => {
           activeRunSession = session
+          runIdLine.started(runId)
         },
         subscribers: ({ session, quarantined, mask }) => {
           analyticsHost?.bindMaskingContext({ mask })
@@ -2738,6 +2748,9 @@ async function executeSuites(
           return frozenExitCode
         },
         afterVerdict: async ({ exitCode: verdictExitCode, mask, postVerdict, postVerdictDeadlineMs }) => {
+          // Under the run's summary block and before its Knowledge line: the close-out lines that
+          // also named the run print with --verbose only.
+          runIdLine.print()
           curationTailLog.level = effectiveLogLevel
           // One post-run tail serves both tail sites; only the in-process drain is detach-gated.
           const postRunTail = composeCliPostRunTail({
@@ -5156,6 +5169,19 @@ export function createRunCommand(
       let _crashSecretRedactor: SecretRedactor | undefined
       // The run this invocation started, so a framework error names the id it recorded.
       let _startedRunId: string | undefined
+      // A run's id prints once: at its verdict, or on the error path if it never got there.
+      let _printedRunId: string | undefined
+      const printStartedRunId = (): void => {
+        if (_startedRunId === undefined || _printedRunId === _startedRunId) return
+        _printedRunId = _startedRunId
+        printRunId(_startedRunId)
+      }
+      const runIdLine: RunIdLine = {
+        started: (runId) => {
+          _startedRunId = runId
+        },
+        print: printStartedRunId,
+      }
       // Set by the direct half's first signal; read again by the catch.
       let shutdownRequested = false
 
@@ -5260,7 +5286,7 @@ export function createRunCommand(
 
         // Handle suite execution (early return)
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length === 0) {
-          const { exitCode } = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere)
+          const { exitCode } = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere, runIdLine)
           await drainAnalytics() // The suite-only path's terminal exit.
           await exitAtNormalEnd(exitCode)
         }
@@ -5269,7 +5295,7 @@ export function createRunCommand(
         let suitesFailed = false
         let suitesRemoteRefused = false
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length > 0) {
-          const suiteRun = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere)
+          const suiteRun = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere, runIdLine)
           suitesFailed = suiteRun.exitCode !== 0
           suitesRemoteRefused = suiteRun.remoteRefused
         }
@@ -5526,7 +5552,7 @@ export function createRunCommand(
               runRecord: record,
               onSession: (session) => {
                 activeRunSession = session
-                _startedRunId = singleRunId
+                runIdLine.started(singleRunId)
                 logger?.setRunId(singleRunId)
               },
               subscribers: ({ session, quarantined, mask }) => {
@@ -5562,6 +5588,8 @@ export function createRunCommand(
                 return frozenExitCode
               },
               afterVerdict: async ({ exitCode, mask, postVerdict, postVerdictDeadlineMs }) => {
+                // Under the run's summary block and before its Knowledge line, as the suite run.
+                runIdLine.print()
                 curationTailLog.level = effectiveLogLevel
                 // The shared tail; the shell already enqueued, so it only drains and finishes.
                 const postRunTail = composeCliPostRunTail({
@@ -5654,7 +5682,7 @@ export function createRunCommand(
         }
         // A signal ends the plugin calls a remote waits on; the run was cancelled, not refused.
         if (isRemoteRefusal(err) && shutdownRequested) {
-          if (_startedRunId !== undefined) printRunId(_startedRunId)
+          printStartedRunId()
           try { _crashRecord?.close() } catch {}
           await drainAnalytics()
           process.exit(130)
@@ -5665,7 +5693,7 @@ export function createRunCommand(
             pc.red(redactSecretValue(err.message, _crashSecretRedactor)),
             (text) => console.error(text),
           )
-          if (_startedRunId !== undefined) printRunId(_startedRunId)
+          printStartedRunId()
           try { _crashRecord?.close() } catch {}
           errorReporter()?.capture(err)
           await drainAnalytics()
@@ -5678,7 +5706,7 @@ export function createRunCommand(
         )
 
         // The record's flush closed a verdictless own row; the printed id is how to read the run.
-        if (_startedRunId !== undefined) printRunId(_startedRunId)
+        printStartedRunId()
 
         try { _crashRecord?.close() } catch {}
         errorReporter()?.capture(err)
