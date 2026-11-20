@@ -48,8 +48,10 @@ import { drainViaDaemon } from '../commands/knowledge-maintain.js'
 import {
   CURATION_TAIL_RECEIPT_FILE,
   runCurationTail,
+  type CurationTailLogger,
   type CurationTailReceipt,
 } from '../curation/curation-tail.js'
+import * as curationTail from '../curation/curation-tail.js'
 import { DAEMON_NUDGE_TIMEOUT_MS, nudgeDaemon } from '../daemon/client.js'
 import {
   DRAIN_SESSION_RECEIPTS_FILE,
@@ -1170,5 +1172,73 @@ describe('daemon curation scheduling', () => {
 
     host.signal('SIGTERM')
     await expect(host.running).resolves.toBe(0)
+  })
+})
+
+describe("the daemon's fold log", () => {
+  it('prints the fold summary as one knowledge line and none of its detail', async () => {
+    const paths = makeRoot()
+    const runId = 'r_daemon-fold-learned-two'
+    const signals = new Map<NodeJS.Signals, () => void>()
+    let composed: ComposeLocalAgentInput | undefined
+    const logger = { info: vi.fn(), error: vi.fn() }
+    const actualOperations = curationTail.defaultCurationTailOperations
+    vi.spyOn(curationTail, 'defaultCurationTailOperations').mockImplementation(() => ({
+      ...actualOperations(),
+      loadCompletedRunHandoff: () => ({ runId, executionContext: 'local-headless' }) as never,
+    }))
+    let foldLog: CurationTailLogger | undefined
+    vi.spyOn(curationTail, 'curateCompletedRun').mockImplementation(async (input) => {
+      foldLog = input.log
+      input.log.warn('a fold warning')
+      input.log.detail?.('curation: drained inline (0s)')
+      input.log.summary?.({ runId, learned: 2, held: 1, proposed: 0, items: [] })
+      return { curated: 2, deprecated: 0, complete: true, drainKind: 'drained' }
+    })
+    const running = runDaemonHost({
+      agentQaRoot: paths.agentQaRoot,
+      knowledgeRoot: paths.knowledgeRoot,
+      config: CONFIG,
+      model: () => MODEL,
+      author: () => async () => ({ kind: 'fallback-required', reason: 'no-model' }),
+      operations: {
+        composeJobRecovery: (_input: ComposeJobRecoveryInput) => fakeRecovery(),
+        composeLocalAgent: (input: ComposeLocalAgentInput) => {
+          composed = input
+          return fakeLocalAgent()
+        },
+        inspectDrainableCurationWork: () => ({ queuedCandidateIds: [], recoverableClaimedCandidateIds: [] }),
+        countRemainingCurationWork: () => ({ queued: 0, claimedNonterminal: 0, quarantined: 0 }),
+        listQueuedCandidates: () => [],
+        drainQueue: async () => drainReport(0, 0),
+        randomUUID: () => SESSION_ID,
+        setInterval: () => 1 as unknown as ReturnType<typeof setInterval>,
+        clearInterval: vi.fn(),
+        setTimeout: () => 2 as unknown as ReturnType<typeof setTimeout>,
+        clearTimeout: vi.fn(),
+        onSignal: (signal: NodeJS.Signals, listener: () => void) => signals.set(signal, listener),
+        offSignal: (signal: NodeJS.Signals, listener: () => void) => {
+          if (signals.get(signal) === listener) signals.delete(signal)
+        },
+        hardExit: vi.fn(),
+      } as unknown as Partial<DaemonHostOperations>,
+      logger,
+    })
+    await waitUntil(
+      () => existsSync(join(paths.agentQaRoot, DAEMON_REGISTRATION_FILE)),
+      'daemon registration was not written',
+    )
+    logger.info.mockClear()
+    logger.error.mockClear()
+
+    await composed?.postRun?.curateRun({ runId, executionContext: 'local-headless' })
+
+    expect(foldLog).toBeDefined()
+    expect(foldLog).not.toHaveProperty('detail')
+    expect(logger.info.mock.calls).toEqual([['Learned 2, held 1 · r_daemon-fold', 'knowledge']])
+    expect(logger.error.mock.calls).toEqual([['a fold warning', 'knowledge']])
+
+    signals.get('SIGTERM')?.()
+    await expect(running).resolves.toBe(0)
   })
 })

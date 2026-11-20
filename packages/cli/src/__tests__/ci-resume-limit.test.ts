@@ -25,7 +25,7 @@ import {
 } from '../composition/__tests__/in-process-run-fixture.js'
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../composition/local-agent-host.js'
 import * as localAgentHost from '../composition/local-agent-host.js'
-import { runCurationTail } from '../curation/curation-tail.js'
+import { runCurationTail, type CurationTailLogger } from '../curation/curation-tail.js'
 import { runPostRunTail } from '../curation/post-run-tail.js'
 import * as tailComposition from '../curation/post-run-tail-composition.js'
 import {
@@ -119,20 +119,35 @@ function idleHandoff(): PostVerdictHandoff {
 }
 
 describe('every CI door states the resume limit', () => {
-  it('in ci the runs.start door exit line states each pending stage\'s resume limit', async () => {
+  it('in ci the runs.start door\'s Knowledge line states the resume limit under a pending curation', async () => {
+    // Another holder can keep the lease for its whole lifetime, so neither says the next run.
     const expected: Record<'ci' | 'local-headless', readonly string[]> = {
-      ci: [`analysis: pending (${ANY_HOST})`, `curation: pending (${LOCAL_RUN})`],
-      // This door pumps nothing when it took no lease, so locally the posture adds no suffix.
-      'local-headless': ['analysis: pending', 'curation: pending'],
+      ci: ['Knowledge: pending', `  not finished, ${LOCAL_RUN}`],
+      'local-headless': ['Knowledge: pending', '  not finished, resumes on a later local run'],
     }
     for (const context of ['local-headless', 'ci'] as const) {
       const fixture = await project()
-      // A held lease is a handed-off chain: the door's tail drains nothing and prints its posture.
+      // A held lease is a handed-off chain: the door's tail drains nothing and prints its summary.
       const knowledgeRoot = join(fixture.project, 'agent-qa-knowledge')
       const lease = acquireWriterLease(knowledgeRoot)
       if (lease.kind !== 'acquired') throw new Error(`expected a writer lease: ${lease.kind}`)
       const warnings: string[] = []
       vi.spyOn(console, 'warn').mockImplementation((message: unknown) => { warnings.push(plain(String(message))) })
+      const actualCompose = tailComposition.composeCliPostRunTail
+      const doorLogs: CurationTailLogger[] = []
+      const finishes: Promise<void>[] = []
+      vi.spyOn(tailComposition, 'composeCliPostRunTail').mockImplementation((input) => {
+        doorLogs.push(input.log)
+        const tail = actualCompose(input)
+        return {
+          ...tail,
+          finish: (finishInput) => {
+            const finished = tail.finish(finishInput)
+            finishes.push(finished)
+            return finished
+          },
+        }
+      })
       const host = composeCliLocalAgent({
         agentQaRoot: fixture.agentQaRoot,
         configPath: fixture.configPath,
@@ -141,10 +156,31 @@ describe('every CI door states the resume limit', () => {
       try {
         const ack = await invokeFunction(host.registry, 'runs.start',
           { patterns: [fixture.suitePattern] }, CLI_FUNCTION_CALLER) as { runId: string }
-        const line = await waitFor(() => warnings.find((message) => message.startsWith('post-processing — ')),
-          `${context}'s exit line`)
-        const stages = line.replace('post-processing — ', '').split(' · ').slice(0, 2)
-        expect(stages, `${context} ${ack.runId}\n${warnings.join('\n')}`).toEqual(expected[context])
+        const summary = await waitFor(() => warnings.find((message) => message.startsWith('Knowledge: ')),
+          `${context}'s Knowledge line`)
+        const seen = `${context} ${ack.runId}\n${warnings.join('\n')}`
+        expect(summary.split('\n'), seen).toEqual(expected[context])
+        await waitFor(() => finishes[0], `${context}'s tail close-out`)
+        // The door prints the summary and no detail: no close-out line, digest block or fold line.
+        expect(doorLogs.map((log) => 'detail' in log), seen).toEqual([false])
+        expect(warnings.filter((message) => /^(?:post-processing|digest|curation: )/u.test(message)), seen)
+          .toEqual([])
+
+        // The door prints what it is handed, and decides nothing.
+        warnings.length = 0
+        doorLogs[0]!.summary?.({ runId: ack.runId, learned: 2, held: 1, proposed: 0, items: [] })
+        doorLogs[0]!.summary?.({
+          runId: ack.runId,
+          learned: 0,
+          held: 0,
+          proposed: 0,
+          items: [],
+          unfinished: { notWritten: 0, resume: 'resumes on a later local run' },
+        })
+        expect(warnings, seen).toEqual([
+          'Knowledge: learned 2, held 1',
+          'Knowledge: learned 0, held 0\n  not finished, resumes on a later local run',
+        ])
       } finally {
         await host.close().catch(() => undefined)
         releaseLease({ knowledgeRoot, leaseId: lease.leaseId })

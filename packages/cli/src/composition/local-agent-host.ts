@@ -96,6 +96,7 @@ import {
   yamlParseFailureMessage,
 } from '@vostride/agent-qa-core'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
+import { knowledgeHeadline, knowledgeSecondLine } from '../curation/knowledge-summary.js'
 import type { RunAttributeTrigger, TestDefinition } from '@vostride/agent-qa-core'
 import type {
   ExplicitReviewDelegate,
@@ -280,12 +281,21 @@ function createComposedRunExecution(input: {
                 configFilePath: context.configFilePath,
                 knowledgeConfig: inputs.config.knowledge,
                 mask: context.mask,
-                // LOG, NEVER PRINT. The tail's close-out line and digest block are CLI outputs, and
+                // LOG, NEVER PRINT. The tail's summary is the one line this door prints for it, and
                 // this door serves `agent-qa fn --json` (stdout is the JSON document) and the MCP
-                // host (stdout IS the JSON-RPC connection). Both go to the same stderr sink the
-                // quarantine warning uses, so nothing this door serves can have its channel
-                // corrupted by a post-run line.
-                log: { warn, detail: warn },
+                // host (stdout IS the JSON-RPC connection). Warnings and the summary go to the same
+                // stderr sink the quarantine warning uses, so nothing this door serves can have its
+                // channel corrupted by a post-run line.
+                log: {
+                  warn,
+                  summary: (summary) => {
+                    const second = knowledgeSecondLine(summary)
+                    warn([
+                      `Knowledge: ${knowledgeHeadline(summary)}`,
+                      ...(second === undefined ? [] : [`  ${second}`]),
+                    ].join('\n'))
+                  },
+                },
                 executionContext,
                 ...(input.runBridge?.chipRelay === undefined
                   ? {}

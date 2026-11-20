@@ -4,6 +4,7 @@ import { rmSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import type { Readable } from 'node:stream'
 import { isDeepStrictEqual } from 'node:util'
+import { knowledgeTaggedMessage } from '../curation/knowledge-summary.js'
 import { renderPromotionLine } from '../curation/promotion-line.js'
 
 import type {
@@ -1996,7 +1997,9 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
             ...(deadlineMs === undefined ? {} : { deadlineMs }),
             log: {
               warn: (message: string) => logger.error(message, 'knowledge'),
-              detail: (message: string) => logger.info(message, 'knowledge'),
+              summary: (summary) => {
+                logger.info(knowledgeTaggedMessage(summary, { verbose: false }), 'knowledge')
+              },
             },
           })
           // Same fields as the CLI binding; only a leg with the declared mask may claim the kind.
