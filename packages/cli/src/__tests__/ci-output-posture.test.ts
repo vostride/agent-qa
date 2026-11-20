@@ -5,9 +5,9 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { colorEnabled } from '@vostride/agent-qa-core/run-text-output'
+import { colorEnabled, colorsFor, printLogLine } from '@vostride/agent-qa-core/run-text-output'
 import type { PostProcessingStatus } from '@vostride/agent-qa-schema'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { preparationPendingWarning } from '../composition/in-process-run-execution.js'
 import type { KnowledgeSummary } from '../curation/knowledge-summary.js'
@@ -16,7 +16,10 @@ import type { PostVerdictHandoff } from '../curation/post-verdict-step.js'
 
 type ApplyColorPosture = (env: NodeJS.ProcessEnv, stdoutIsTTY: boolean) => void
 
-// The module applies the posture to this process on load; the worker's own environment is put back.
+const POSTURE_RECORD = Symbol.for('agent-qa.color-posture')
+
+// The module applies the posture to this process on load; the worker's own environment is put back
+// and what the posture recorded of it is dropped.
 async function loadColorPosture(): Promise<ApplyColorPosture> {
   const saved = { NO_COLOR: process.env.NO_COLOR, FORCE_COLOR: process.env.FORCE_COLOR }
   vi.resetModules()
@@ -27,6 +30,7 @@ async function loadColorPosture(): Promise<ApplyColorPosture> {
       if (value === undefined) delete process.env[name]
       else process.env[name] = value
     }
+    Reflect.deleteProperty(globalThis, POSTURE_RECORD)
   }
 }
 
@@ -136,6 +140,115 @@ describe('colour posture', () => {
     } finally {
       vi.unstubAllEnvs()
     }
+  })
+})
+
+describe('the colour of each stream once the posture has run', () => {
+  const RED_X = '\u001b[31mx\u001b[39m'
+  const YELLOW = '\u001b[33m'
+  const streams = [process.stdout, process.stderr] as const
+  let savedTTY: (PropertyDescriptor | undefined)[] = []
+
+  beforeEach(() => {
+    savedTTY = streams.map((stream) => Object.getOwnPropertyDescriptor(stream, 'isTTY'))
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+    Reflect.deleteProperty(globalThis, POSTURE_RECORD)
+    streams.forEach((stream, index) => {
+      const saved = savedTTY[index]
+      if (saved === undefined) Reflect.deleteProperty(stream, 'isTTY')
+      else Object.defineProperty(stream, 'isTTY', saved)
+    })
+  })
+
+  // Runs the module as the CLI's first import does, in a process with these streams and variables.
+  async function startCli(
+    terminals: { stdout: boolean; stderr: boolean },
+    env: Readonly<Record<string, string>> = {},
+  ): Promise<void> {
+    for (const name of ['NO_COLOR', 'FORCE_COLOR', 'CI', 'GITHUB_ACTIONS', 'TERM']) {
+      vi.stubEnv(name, env[name])
+    }
+    Object.defineProperty(process.stdout, 'isTTY', { value: terminals.stdout, configurable: true })
+    Object.defineProperty(process.stderr, 'isTTY', { value: terminals.stderr, configurable: true })
+    vi.resetModules()
+    await import('../color-posture.js')
+  }
+
+  function coloured(): { stdout: boolean; stderr: boolean } {
+    return {
+      stdout: colorsFor(process.stdout).red('x') === RED_X,
+      stderr: colorsFor(process.stderr).red('x') === RED_X,
+    }
+  }
+
+  it('keeps colour on a terminal stderr when stdout goes to a file', async () => {
+    await startCli({ stdout: false, stderr: true })
+
+    expect(process.env.NO_COLOR).toBe('1')
+    expect(coloured()).toEqual({ stdout: false, stderr: true })
+  })
+
+  it('prints a warning yellow on a terminal stderr when stdout goes to a file', async () => {
+    await startCli({ stdout: false, stderr: true })
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+
+    printLogLine({ tag: 'server', level: 'warn', message: 'careful' })
+
+    expect(String(warn.mock.calls[0]?.[0])).toContain(`${YELLOW}careful`)
+  })
+
+  it('keeps colour codes out of a stderr file when stdout is a terminal', async () => {
+    await startCli({ stdout: true, stderr: false })
+
+    expect(coloured()).toEqual({ stdout: true, stderr: false })
+  })
+
+  it('colours neither stream when both go to a file', async () => {
+    await startCli({ stdout: false, stderr: false })
+
+    expect(coloured()).toEqual({ stdout: false, stderr: false })
+  })
+
+  it.each([
+    [{ NO_COLOR: '1' }],
+    [{ FORCE_COLOR: '0' }],
+    [{ FORCE_COLOR: 'false' }],
+    [{ TERM: 'dumb' }],
+  ])('colours neither stream, terminal or not, when the user set %j', async (env) => {
+    await startCli({ stdout: false, stderr: true }, env)
+    expect(coloured()).toEqual({ stdout: false, stderr: false })
+
+    await startCli({ stdout: true, stderr: true }, env)
+    expect(coloured()).toEqual({ stdout: false, stderr: false })
+  })
+
+  it.each([
+    [{ FORCE_COLOR: '1' }],
+    [{ FORCE_COLOR: '' }],
+    [{ CI: 'true' }],
+    [{ GITHUB_ACTIONS: 'true' }],
+  ])('colours both streams, terminal or not, when the user set %j', async (env) => {
+    await startCli({ stdout: false, stderr: false }, env)
+
+    expect(coloured()).toEqual({ stdout: true, stderr: true })
+  })
+
+  it('reads a colour variable changed after the posture ran as it now stands', async () => {
+    await startCli({ stdout: false, stderr: true })
+    vi.stubEnv('NO_COLOR', 'yes')
+
+    expect(coloured()).toEqual({ stdout: false, stderr: false })
+  })
+
+  it("reads an environment that is not the process's own as it is given", async () => {
+    await startCli({ stdout: false, stderr: true })
+
+    expect(colorEnabled({ NO_COLOR: '1' }, true)).toBe(false)
+    expect(colorsFor(process.stderr, { NO_COLOR: '1' }).red('x')).toBe('x')
   })
 })
 

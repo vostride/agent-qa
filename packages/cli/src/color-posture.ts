@@ -34,4 +34,15 @@ export function applyColorPosture(env: NodeJS.ProcessEnv, stdoutIsTTY: boolean):
   if (!libraryColorOn(env, stdoutIsTTY)) env.FORCE_COLOR = '1'
 }
 
+function colorVariables(env: NodeJS.ProcessEnv): { NO_COLOR?: string; FORCE_COLOR?: string } {
+  return { NO_COLOR: env.NO_COLOR, FORCE_COLOR: env.FORCE_COLOR }
+}
+
+// What stdout made of the two variables says nothing about stderr, so core's colorEnabled reads
+// what the user set from this record. It stays in this process: a child inherits the environment.
+const asked = colorVariables(process.env)
 applyColorPosture(process.env, process.stdout.isTTY === true)
+;(globalThis as { [key: symbol]: unknown })[Symbol.for('agent-qa.color-posture')] = {
+  asked,
+  left: colorVariables(process.env),
+}

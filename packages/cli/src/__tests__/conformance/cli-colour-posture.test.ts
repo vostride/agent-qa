@@ -1,5 +1,6 @@
 // Where the shipped bin colours its output: in CI and with FORCE_COLOR, not in a plain pipe or
-// with NO_COLOR. The env comes from `hermeticEnv`.
+// with NO_COLOR, and for each stream by whether that stream is a terminal. The env comes from
+// `hermeticEnv`.
 
 import { spawn } from 'node:child_process'
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
@@ -20,6 +21,7 @@ import {
 
 const MISSING_TEST_LINE = 'Error: Workspace test file not found: tests/missing.yaml'
 const COLOUR_CODE = '\x1b['
+const RED = '\x1b[31m'
 
 interface BinOutcome {
   readonly status: number | null
@@ -60,15 +62,28 @@ function missingTestProject(): { root: string; configPath: string } {
 }
 
 type ColourEnv = Readonly<Partial<Record<'CI' | 'NO_COLOR' | 'FORCE_COLOR', string>>>
+type Terminal = 'stdout' | 'stderr'
 
-async function runMissingTest(colourEnv: ColourEnv): Promise<BinOutcome> {
+// Both of the child's streams are pipes. The bin reads `isTTY` to tell a terminal from a file, so
+// a preload sets it on the one stream a case calls a terminal.
+function terminalPreload(root: string, terminal: Terminal): string[] {
+  const path = join(root, 'terminal.cjs')
+  writeFileSync(path, `Object.defineProperty(process.${terminal}, 'isTTY', { value: true })\n`)
+  return ['--require', path]
+}
+
+async function runBin(
+  project: { root: string; configPath: string },
+  command: readonly string[],
+  colourEnv: ColourEnv,
+  terminal?: Terminal,
+): Promise<BinOutcome> {
   if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')
   const freshness = buildFreshness(ANCHORED_BUILDS)
   expect(
     { missing: freshness.missing, stale: freshness.stale },
     `these cells drive the built CLI: ${REBUILD_INSTRUCTION}`,
   ).toEqual({ missing: [], stale: [] })
-  const project = missingTestProject()
   const env: NodeJS.ProcessEnv = { ...hermeticEnv(project.root) }
   delete env.CI
   delete env.NO_COLOR
@@ -76,7 +91,13 @@ async function runMissingTest(colourEnv: ColourEnv): Promise<BinOutcome> {
   Object.assign(env, colourEnv)
   const child = spawn(
     process.execPath,
-    [CLI_ENTRY, '--config', project.configPath, 'run', 'tests/missing.yaml'],
+    [
+      ...(terminal === undefined ? [] : terminalPreload(project.root, terminal)),
+      CLI_ENTRY,
+      '--config',
+      project.configPath,
+      ...command,
+    ],
     { cwd: project.root, env, stdio: ['ignore', 'pipe', 'pipe'] },
   )
   let stdout = ''
@@ -93,6 +114,18 @@ async function runMissingTest(colourEnv: ColourEnv): Promise<BinOutcome> {
   } finally {
     clearTimeout(budget)
   }
+}
+
+async function runMissingTest(colourEnv: ColourEnv): Promise<BinOutcome> {
+  return await runBin(missingTestProject(), ['run', 'tests/missing.yaml'], colourEnv)
+}
+
+// The daemon command reads its config before it starts anything and prints the failure as an
+// error log line on stderr.
+async function runDaemonOnUnreadableConfig(terminal: Terminal): Promise<BinOutcome> {
+  const project = missingTestProject()
+  writeFileSync(project.configPath, 'workspace: [\n', 'utf8')
+  return await runBin(project, ['daemon'], {}, terminal)
 }
 
 describe('the shipped bin\'s colour posture', () => {
@@ -124,5 +157,19 @@ describe('the shipped bin\'s colour posture', () => {
     expect(outcome.stderr, JSON.stringify(outcome)).toContain(MISSING_TEST_LINE)
     expect(outcome.status, JSON.stringify(outcome)).toBe(1)
     expect(outcome.stderr.includes(COLOUR_CODE), JSON.stringify(outcome.stderr)).toBe(true)
+  }, 90_000)
+
+  it('with stdout piped and stderr a terminal, a log line on stderr is coloured', async () => {
+    const outcome = await runDaemonOnUnreadableConfig('stderr')
+    expect(outcome.status, JSON.stringify(outcome)).toBe(1)
+    expect(outcome.stderr, JSON.stringify(outcome)).toContain(`${RED}Daemon error: `)
+    expect(outcome.stdout.includes(COLOUR_CODE), JSON.stringify(outcome.stdout)).toBe(false)
+  }, 90_000)
+
+  it('with stdout a terminal and stderr piped, a log line on stderr has no colour', async () => {
+    const outcome = await runDaemonOnUnreadableConfig('stdout')
+    expect(outcome.status, JSON.stringify(outcome)).toBe(1)
+    expect(outcome.stderr, JSON.stringify(outcome)).toContain('Daemon error: ')
+    expect(outcome.stderr.includes(COLOUR_CODE), JSON.stringify(outcome.stderr)).toBe(false)
   }, 90_000)
 })
