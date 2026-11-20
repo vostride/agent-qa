@@ -299,17 +299,35 @@ export function printRunWarning(line: string): void {
   printRunText(colorsFor(process.stderr).yellow(line), (text) => console.warn(text))
 }
 
-let processLiveLine: Promise<ConsoleReporterOptions['liveLine']> | undefined
+// The command's one live line. Built once, because a run of suites and then tests attaches the
+// reporter twice.
+interface RunLiveLine {
+  build(consoleSelected: boolean): Promise<ConsoleReporterOptions['liveLine']>
+  stop(): void
+}
 
 // Drawn only in a real terminal outside CI, so a pipe, a file and a CI log never load the library.
-// Built once, because a run of suites and then tests attaches the reporter twice.
-async function runLiveLine(consoleSelected: boolean): Promise<ConsoleReporterOptions['liveLine']> {
-  if (!consoleSelected || process.stdout.isTTY !== true || isCi(process.env)) return undefined
-  processLiveLine ??= import('../reporters/live-line.js').then(({ createLiveLine }) => {
-    const colors = colorsFor(process.stdout)
-    return createLiveLine(process.stdout, (glyph) => colors.cyan(glyph))
-  })
-  return await processLiveLine
+function createRunLiveLine(): RunLiveLine {
+  let building: Promise<ConsoleReporterOptions['liveLine']> | undefined
+  let built: ConsoleReporterOptions['liveLine']
+  return {
+    async build(consoleSelected) {
+      if (!consoleSelected || process.stdout.isTTY !== true || isCi(process.env)) return undefined
+      building ??= import('../reporters/live-line.js').then(async ({ createLiveLine }) => {
+        const colors = colorsFor(process.stdout)
+        built = await createLiveLine(process.stdout, (glyph) => colors.cyan(glyph))
+        return built
+      })
+      return await building
+    },
+    stop() {
+      try {
+        built?.stop()
+      } catch {
+        // The caller is on its way out; a line that cannot be erased must not stop it.
+      }
+    },
+  }
 }
 
 // Unref'd backstop: a run that cannot settle still exits 130, so Ctrl+C never hangs the CLI.
@@ -2588,6 +2606,7 @@ async function executeSuites(
   refusalMemory: RemoteRefusalMemory,
   listDevicesHere: DevicesHereLister,
   runIdLine: RunIdLine,
+  runLiveLine: RunLiveLine,
 ): Promise<SuiteRunExit> {
   const { parseSuiteFile, parseTestFile, patchTestForSuite } = await import('@vostride/agent-qa-core')
   // `startRun` is reached only through `createRunInvocationCore`, never bound here.
@@ -2642,8 +2661,11 @@ async function executeSuites(
     attributes: runAttributes,
     warn: (line) => printRunWarning(line),
   })
+  // A forced exit reaches no verdict and no `finally`, so it clears the spinner and prints the id.
   const forceExit = (code: number): never => {
     closeOwnRowAtForcedExit(record)
+    runLiveLine.stop()
+    runIdLine.print()
     process.exit(code)
   }
 
@@ -2724,7 +2746,7 @@ async function executeSuites(
     // NOTHING ASKS. This door builds no confirm channel and carries no session trust: a suite starts
     // at a terminal, on a piped stdio and in CI alike, whatever environment its targets declare.
 
-    liveLine = await runLiveLine(reporterSelection.console)
+    liveLine = await runLiveLine.build(reporterSelection.console)
     const { runInProcessCliRun } = await import('../composition/in-process-run-execution.js')
 
     const outcome = await (runInProcessCliRun as typeof RunInProcessCliRun)(
@@ -5209,6 +5231,7 @@ export function createRunCommand(
         },
         print: printStartedRunId,
       }
+      const runLiveLine = createRunLiveLine()
       // Set by the direct half's first signal; read again by the catch.
       let shutdownRequested = false
 
@@ -5315,7 +5338,7 @@ export function createRunCommand(
 
         // Handle suite execution (early return)
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length === 0) {
-          const { exitCode } = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere, runIdLine)
+          const { exitCode } = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere, runIdLine, runLiveLine)
           await drainAnalytics() // The suite-only path's terminal exit.
           await exitAtNormalEnd(exitCode)
         }
@@ -5324,7 +5347,7 @@ export function createRunCommand(
         let suitesFailed = false
         let suitesRemoteRefused = false
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length > 0) {
-          const suiteRun = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere, runIdLine)
+          const suiteRun = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere, runIdLine, runLiveLine)
           suitesFailed = suiteRun.exitCode !== 0
           suitesRemoteRefused = suiteRun.remoteRefused
         }
@@ -5496,8 +5519,11 @@ export function createRunCommand(
           graceTimer = undefined
         }
         // A second Ctrl+C force-exits 130 at once, whatever the grace timer or `done` is doing.
+        // It reaches no verdict and no `finally`, so it clears the spinner and prints the id.
         const forceExit = (code: number): never => {
           closeOwnRowAtForcedExit(record)
+          runLiveLine.stop()
+          runIdLine.print()
           process.exit(code)
         }
         const shutdownController = createShutdownController({
@@ -5561,7 +5587,7 @@ export function createRunCommand(
           ...(produced.remotePlugins === undefined ? {} : { remotePlugins: produced.remotePlugins }),
         }))
 
-        const liveLine = await runLiveLine(reporterSelection.console)
+        const liveLine = await runLiveLine.build(reporterSelection.console)
         const { runInProcessCliRun } = await import('../composition/in-process-run-execution.js')
         let singleExit: number
         try {
