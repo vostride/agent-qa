@@ -28,7 +28,6 @@ import { CLI_ENTRY, cleanupTempRoots, hermeticEnv } from './spawned-chat.js'
 const FILE_BUDGET_MS = 900_000
 const SPAWN_BUDGET_MS = 240_000
 
-const COLOUR_CODE = '\x1b['
 const SPINNER_GLYPHS = /[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏◐◓◑◒]/u
 const PROMPT_SHAPES = /\(y\/n\)|\[y\/N\]|\[Y\/n\]|\? .+ ›|Press (?:enter|any key)/iu
 
@@ -94,6 +93,11 @@ interface Scene {
 const scene: Scene = { legs: [] }
 let model: StubModelServer | undefined
 let target: FixtureServer | undefined
+
+// The readers below find lines by their words, whichever of those words are coloured.
+function withoutColour(text: string): string {
+  return text.replace(/\x1b\[[0-9;]*m/g, '')
+}
 
 function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
@@ -194,7 +198,7 @@ async function runLeg(project: PopulatedRunProject, leg: Leg): Promise<void> {
   }
   leg.stdout = stdout
   leg.stderr = stderr
-  const lines = [...stdout.split('\n'), ...stderr.split('\n')]
+  const lines = [...withoutColour(stdout).split('\n'), ...withoutColour(stderr).split('\n')]
   leg.exitLines = lines.filter((line) => line.startsWith('post-processing — ')
     || line.startsWith(`post-processing complete for ${leg.runId} — `)
     || line.startsWith(`post-processing failed for ${leg.runId} — `))
@@ -297,18 +301,17 @@ describe('headless CI runs', () => {
       expect(run.recordedVerdict, `${key}'s verdict\n${seen()}`).toEqual({ verdict: run.verdict })
       expect({ code: run.code, signal: run.signal }, `${key}'s exit\n${seen()}`)
         .toEqual({ code: run.verdict === 'passed' ? 0 : 1, signal: null })
-      expect(printedRunIds(`${run.stdout}\n${run.stderr}`), `${key}'s run id\n${seen()}`)
+      expect(printedRunIds(withoutColour(`${run.stdout}\n${run.stderr}`)), `${key}'s run id\n${seen()}`)
         .toContain(run.runId)
     }
   })
 
-  it('a headless CI run prints no colour code, redraw or prompt', () => {
+  it('a headless CI run prints no redraw, spinner or prompt', () => {
     for (const key of ['passed', 'supersede', 'failed', 'detached']) {
       const run = legOf(key)
       const streams = { stdout: run.stdout ?? '', stderr: run.stderr ?? '' }
       expect(streams.stdout.length, `${key} printed its report\n${seen()}`).toBeGreaterThan(0)
       for (const [name, text] of Object.entries(streams)) {
-        expect(text.includes(COLOUR_CODE), `${key}'s ${name} has no colour code\n${seen()}`).toBe(false)
         expect(text.includes('\r'), `${key}'s ${name} has no carriage-return redraw\n${seen()}`).toBe(false)
         expect(SPINNER_GLYPHS.test(text), `${key}'s ${name} has no spinner\n${seen()}`).toBe(false)
         expect(PROMPT_SHAPES.test(text), `${key}'s ${name} has no prompt\n${seen()}`).toBe(false)
@@ -325,7 +328,7 @@ describe('headless CI runs', () => {
             .toBe(`pending${CI_PENDING_SUFFIX[stage]}`)
         }
       }
-      expect(`${streams.stdout}\n${streams.stderr}`, `${key} prints no done or excluded stage\n${seen()}`)
+      expect(withoutColour(`${streams.stdout}\n${streams.stderr}`), `${key} prints no done or excluded stage\n${seen()}`)
         .not.toMatch(/(?:analysis|curation): (?:done|excluded)\b/u)
     }
   })

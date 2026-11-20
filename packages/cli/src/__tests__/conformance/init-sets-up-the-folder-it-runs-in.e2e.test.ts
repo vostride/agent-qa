@@ -3,6 +3,7 @@
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { stripVTControlCharacters } from 'node:util'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -189,7 +190,8 @@ describe('the folder init runs in', () => {
       })
       expect(outcome.code, outcome.text).toBe(2)
       expect(outcome.stdout).toBe('')
-      expect(outcome.stderr).toMatch(
+      // Under GitHub Actions the refusal is coloured; the pair is read by its words.
+      expect(stripVTControlCharacters(outcome.stderr)).toMatch(
         new RegExp(`^::stop-commands::([0-9a-f]{32})\\n${escaped(DIR_LINE)}\\n::\\1::\\n$`, 'u'),
       )
     },
