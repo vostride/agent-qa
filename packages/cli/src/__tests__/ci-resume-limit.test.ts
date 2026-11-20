@@ -280,14 +280,20 @@ describe('every CI door states the resume limit', () => {
       cloud: `it ${LOCAL_RUN}.`,
       'local-headless': 'it will resume on the next run.',
     }
+    const resume: Record<Context, string> = {
+      ci: LOCAL_RUN,
+      cloud: LOCAL_RUN,
+      'local-headless': 'resumes on the next run',
+    }
     for (const context of ['local-headless', ...CI_CONTEXTS] as const) {
       const warnings: string[] = []
+      const summary = vi.fn()
       await runCurationTail({
         runId: 'run_fold',
         agentQaRoot: '/workspace/.agent-qa',
         knowledgeConfig: { dir: 'knowledge' },
         configDir: '/workspace',
-        log: { warn: (message: string) => { warnings.push(message) }, detail: () => undefined },
+        log: { warn: (message: string) => { warnings.push(message) }, detail: () => undefined, summary },
         operations: {
           loadCompletedRunHandoff: (() => ({ runId: 'run_fold', executionContext: context })) as never,
           resolveKnowledgeRoot: () => { throw new Error('fixture root failure') },
@@ -296,6 +302,14 @@ describe('every CI door states the resume limit', () => {
       expect(warnings, context).toEqual([
         `Post-verdict knowledge curation incomplete for run_fold; ${expected[context]}`,
       ])
+      expect(summary.mock.calls, context).toEqual([[{
+        runId: 'run_fold',
+        learned: 0,
+        held: 0,
+        proposed: 0,
+        items: [],
+        unfinished: { notWritten: 0, resume: resume[context] },
+      }]])
     }
   })
 

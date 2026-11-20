@@ -2325,3 +2325,124 @@ describe('the knowledge summary a fold reports', () => {
     expect(warn).not.toHaveBeenCalled()
   })
 })
+
+function unfinishedSummary(forRunId: string, resume: string) {
+  return {
+    runId: forRunId,
+    learned: 0,
+    held: 0,
+    proposed: 0,
+    items: [],
+    unfinished: { notWritten: 0, resume },
+  }
+}
+
+describe('the knowledge summary a sweep reports', () => {
+  it.each([
+    ['local-headless', LOCAL_RESUME],
+    ['ci', CI_RESUME],
+    ['cloud', CI_RESUME],
+  ] as const)('reports the current %s run unfinished when the knowledge root cannot be resolved', async (context, resume) => {
+    const summary = vi.fn()
+    const warn = vi.fn()
+    const operations = successfulOperations({
+      loadCompletedRunHandoff: () => handoff(context),
+      resolveKnowledgeRoot: () => { throw new Error('fixture root failure') },
+    })
+
+    await runCurationTail(baseOptions(operations, { log: { warn, summary } }))
+
+    expect(summary.mock.calls).toEqual([[unfinishedSummary(runId, resume)]])
+    expect(warn.mock.calls).toEqual([[
+      `Post-verdict knowledge curation incomplete for ${runId}; `
+      + (context === 'local-headless' ? 'it will resume on the next run.' : `it ${CI_RESUME}.`),
+    ]])
+  })
+
+  it.each([
+    ['local-headless', LOCAL_RESUME],
+    ['ci', CI_RESUME],
+    ['cloud', CI_RESUME],
+  ] as const)('reports a %s run whose fold throws as unfinished, for that run', async (context, resume) => {
+    const siblingRunId = '000-sibling-run'
+    const currentRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(runId))
+    const siblingRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(siblingRunId))
+    const sibling = { ...handoff(context), runId: siblingRunId } as CompletedRunHandoff
+    const summary = vi.fn()
+    const warn = vi.fn()
+    const operations = successfulOperations({
+      loadCompletedRunHandoff: (file) => file === join(siblingRunDir, HANDOFF_FILE)
+        ? sibling
+        : handoff(context),
+      listCompletedRunDirs: () => [siblingRunDir, currentRunDir],
+      emitCurationCandidates: vi.fn((input: { handoff: CompletedRunHandoff }) => {
+        if (input.handoff.runId === siblingRunId) throw new Error('emit failed')
+        return { enqueued: 0, coalesced: 0, capExceeded: 0, refused: 0, details: [] }
+      }),
+    })
+
+    await runCurationTail(baseOptions(operations, { log: { warn, summary } }))
+
+    expect(summary.mock.calls).toEqual([
+      [unfinishedSummary(siblingRunId, resume)],
+      [{ runId, learned: 0, held: 0, proposed: 0, items: [] }],
+    ])
+    expect(warn.mock.calls).toEqual([[
+      `Post-verdict knowledge curation incomplete for ${siblingRunId}; `
+      + (context === 'local-headless' ? 'it will resume on the next run.' : `it ${CI_RESUME}.`),
+    ]])
+  })
+
+  it('reports only the folds\' summaries when every fold finishes', async () => {
+    const siblingRunId = '000-sibling-run'
+    const currentRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(runId))
+    const siblingRunDir = join(agentQaRoot, RUNS_SUBDIR, slugBranch(siblingRunId))
+    const summary = vi.fn()
+    const operations = successfulOperations({
+      loadCompletedRunHandoff: (file) => file === join(siblingRunDir, HANDOFF_FILE)
+        ? { ...handoff(), runId: siblingRunId } as CompletedRunHandoff
+        : handoff(),
+      listCompletedRunDirs: () => [siblingRunDir, currentRunDir],
+    })
+
+    await runCurationTail(baseOptions(operations, { log: { warn: vi.fn(), summary } }))
+
+    expect(summary.mock.calls).toEqual([
+      [{ runId: siblingRunId, learned: 0, held: 0, proposed: 0, items: [] }],
+      [{ runId, learned: 0, held: 0, proposed: 0, items: [] }],
+    ])
+  })
+
+  it('reports no summary when the current run\'s handoff is missing or malformed', async () => {
+    const summary = vi.fn()
+    const warn = vi.fn()
+    const operations = successfulOperations({
+      loadCompletedRunHandoff: () => { throw new Error('missing handoff') },
+    })
+
+    await runCurationTail(baseOptions(operations, { log: { warn, summary } }))
+
+    expect(summary).not.toHaveBeenCalled()
+    expect(warn.mock.calls).toEqual([[
+      'Skipping post-verdict knowledge curation: the completed run handoff is missing or malformed.',
+    ]])
+  })
+
+  it('warns as before with a log that has only warn when the sweep cannot finish', async () => {
+    const warn = vi.fn()
+    const unresolvable = successfulOperations({
+      resolveKnowledgeRoot: () => { throw new Error('fixture root failure') },
+    })
+    const throwing = successfulOperations({
+      emitCurationCandidates: () => { throw new Error('emit failed') },
+    })
+
+    await expect(runCurationTail(baseOptions(unresolvable, { log: { warn } }))).resolves.toBeUndefined()
+    await expect(runCurationTail(baseOptions(throwing, { log: { warn } }))).resolves.toBeUndefined()
+
+    expect(warn.mock.calls).toEqual([
+      [`Post-verdict knowledge curation incomplete for ${runId}; it ${CI_RESUME}.`],
+      [`Post-verdict knowledge curation incomplete for ${runId}; it ${CI_RESUME}.`],
+    ])
+  })
+})

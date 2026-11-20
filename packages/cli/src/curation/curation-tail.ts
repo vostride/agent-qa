@@ -754,6 +754,9 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
     ])].sort()
   } catch {
     opts.log.warn(incompleteWarning(String(currentHandoff.runId), currentHandoff.executionContext))
+    opts.log.summary?.(
+      unfinishedKnowledgeSummary(String(currentHandoff.runId), currentHandoff.executionContext),
+    )
     return
   }
 
@@ -859,6 +862,9 @@ export async function runCurationTail(opts: RunCurationTailOptions): Promise<voi
       }
     } catch {
       opts.log.warn(incompleteWarning(receiptIdentity.runId, currentHandoff.executionContext))
+      opts.log.summary?.(
+        unfinishedKnowledgeSummary(receiptIdentity.runId, currentHandoff.executionContext),
+      )
       if (opts.signal?.aborted === true) return
     }
   }
