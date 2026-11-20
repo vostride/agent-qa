@@ -112,6 +112,11 @@ function plain(text: string): string {
   return text.replace(/\x1b\[[0-9;]*m/g, '')
 }
 
+// A tagged line starts with the time it printed, which the two arms need not share.
+function untimed(line: string): string {
+  return line.replace(/^\d\d:\d\d:\d\d(?= {2})/u, '<time>')
+}
+
 // Each arm runs in a folder of its own, so a line that names it names <project>.
 function withoutFolder(lines: readonly string[], dir: string): string[] {
   const spellings = [realpathSync(dir), dir]
@@ -175,7 +180,9 @@ async function runHost(
   expect(reporter !== undefined, `reporting ${reporting}`).toBe(reporting === 'on')
   reporter?.beginCommandSpan(host.command.name(), [])
   const keep = (...parts: unknown[]): void => {
-    if (exits.length === 0) printed.push(...plain(parts.map(String).join(' ')).split('\n'))
+    if (exits.length === 0) {
+      printed.push(...plain(parts.map(String).join(' ')).split('\n').map(untimed))
+    }
   }
   const spies = [
     vi.spyOn(console, 'log').mockImplementation(keep),
@@ -545,7 +552,7 @@ describe('agent-qa dashboard and agent-qa serve', () => {
     })
 
     expect(arms.on.exits).toEqual([2])
-    expect(arms.on.printed).toContain(`${host.label} error: ${missingHooks}`)
+    expect(arms.on.printed).toContain(`<time>  server     ${host.label} error: ${missingHooks}`)
     expect(withoutFolder(reportedErrors(arms.on.sent), arms.on.dir)).toEqual([missingHooks])
     expect(untilTheFirstExit(arms.on.steps)).toEqual([...SETTLED, 'exit 2'])
     expectReportingOffChangesNothingElse(arms)
