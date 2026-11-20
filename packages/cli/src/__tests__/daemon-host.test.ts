@@ -3388,6 +3388,7 @@ describe('runDaemonHost — the run-outcome projection reconcile', () => {
         },
       },
       logger: { info, error: vi.fn() },
+      logLevel: 'debug',
     })
     await waitUntil(
       () => existsSync(join(paths.agentQaRoot, DAEMON_REGISTRATION_FILE)),
@@ -3417,10 +3418,50 @@ describe('runDaemonHost — the run-outcome projection reconcile', () => {
     expect(calls[0]!.tracesAtCall).not.toContain('local-agent-composed')
     expect(calls[0]!.tracesAtCall).not.toContain('jobs-opened')
 
-    // A rebuild of the derived index is never silent — the tail's own rule, on the second host.
-    expect(info.mock.calls.map((call) => call[0])).toContainEqual(
-      expect.stringContaining('folded 2, skipped 0 handoff, 1 artifact'),
-    )
+    // With --verbose the rebuild of the derived index is logged, under the knowledge tag.
+    expect(info.mock.calls).toContainEqual([
+      'daemon: run-outcome projection rebuilt (folded 2, skipped 0 handoff, 1 artifact)',
+      'knowledge',
+    ])
+  })
+
+  it('logs a rebuild only at the debug level, and a skipped reconcile as an error at every level', async () => {
+    for (const reconcile of ['rebuilt', 'skipped'] as const) {
+      const paths = makePaths(`reconcile-default-${reconcile}`)
+      const harness = hostHarness()
+      const info = vi.fn()
+      const error = vi.fn()
+
+      const running = runDaemonHost({
+        agentQaRoot: paths.agentQaRoot,
+        knowledgeRoot: paths.knowledgeRoot,
+        config: TEST_CONFIG,
+        model: () => TEST_MODEL,
+        operations: {
+          ...harness.operations,
+          reconcileRunOutcomesProjection: () => reconcile === 'rebuilt'
+            ? { kind: 'rebuilt', report: { folded: 2, skippedHandoffs: 0, skippedArtifacts: 1 } }
+            : { kind: 'skipped', reason: 'no-writer-authority' },
+        },
+        logger: { info, error },
+        logLevel: 'warn',
+      })
+      await waitUntil(
+        () => existsSync(join(paths.agentQaRoot, DAEMON_REGISTRATION_FILE)),
+        'daemon registration was not written',
+      )
+      harness.signal('SIGTERM')
+      await expect(running).resolves.toBe(0)
+
+      const projectionLines = (calls: unknown[][]): unknown[][] =>
+        calls.filter((call) => String(call[0]).includes('run-outcome projection'))
+      expect(projectionLines(info.mock.calls), reconcile).toEqual([])
+      expect(projectionLines(error.mock.calls), reconcile).toEqual(
+        reconcile === 'rebuilt'
+          ? []
+          : [['daemon: run-outcome projection not reconciled (no writer authority)', 'knowledge']],
+      )
+    }
   })
 
   it('serves past a throwing reconcile, with one logged error', async () => {
