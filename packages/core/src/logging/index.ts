@@ -16,7 +16,6 @@ export {
 
 export { LogManager, MemberLogScopeUnavailableError } from './log-manager.js'
 export type { AsyncScopeStore, MemberLogScope } from './log-manager.js'
-export { formatLogEntry } from './cli-formatter.js'
 export {
   isGitHubActions,
   guardRunText,

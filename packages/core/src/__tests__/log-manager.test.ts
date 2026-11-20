@@ -3,8 +3,36 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { LogManager, MemberLogScopeUnavailableError } from '../logging/log-manager.js'
 import type { MemberLogScope } from '../logging/log-manager.js'
 import type { LogStorage, LogEntry } from '../logging/types.js'
-import { formatLogEntry } from '../logging/cli-formatter.js'
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
+
+const YELLOW = '\u001b[33m'
+const DIM = '\u001b[2m'
+
+function localClock(at: Date): string {
+  const two = (value: number) => String(value).padStart(2, '0')
+  return `${two(at.getHours())}:${two(at.getMinutes())}:${two(at.getSeconds())}`
+}
+
+// Each stream's own isTTY is put back afterwards, so nothing outside the call sees the change.
+function withTerminals(terminals: { stdout: boolean; stderr: boolean }, fn: () => void): void {
+  const streams = [
+    [process.stdout, terminals.stdout],
+    [process.stderr, terminals.stderr],
+  ] as const
+  const saved = streams.map(([stream]) => Object.getOwnPropertyDescriptor(stream, 'isTTY'))
+  try {
+    for (const [stream, isTTY] of streams) {
+      Object.defineProperty(stream, 'isTTY', { value: isTTY, configurable: true, writable: true })
+    }
+    fn()
+  } finally {
+    streams.forEach(([stream], index) => {
+      const descriptor = saved[index]
+      if (descriptor === undefined) Reflect.deleteProperty(stream, 'isTTY')
+      else Object.defineProperty(stream, 'isTTY', descriptor)
+    })
+  }
+}
 
 describe('LogManager', () => {
   let stderrSpy: any
@@ -99,13 +127,50 @@ describe('LogManager', () => {
     expect(block).toContain('::set-output name=x::y')
   })
 
-  it('prints a displayed entry to stderr exactly as formatted off GitHub Actions', () => {
+  it('prints a displayed entry to stderr as its local time, its source as the tag and its message off GitHub Actions', () => {
     const lm = new LogManager({ runId: 'run-1', displayLevel: 'info' })
     lm.log('info', 'agent', '::set-output name=x::y')
     const [entry] = lm.getBuffer()
+    expect(entry.timestamp).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u)
     expect(stderrSpy).toHaveBeenCalledTimes(1)
-    expect(stderrSpy).toHaveBeenCalledWith(formatLogEntry(entry) + '\n')
+    const line = String(stderrSpy.mock.calls[0][0])
+    expect(line).toMatch(/^\d\d:\d\d:\d\d {2}agent {6}::set-output name=x::y\n$/u)
+    expect(line.slice(0, 8)).toBe(localClock(new Date(entry.timestamp)))
     expect(stdoutSpy).not.toHaveBeenCalled()
+  })
+
+  it('prints a displayed warning at the default level and leaves out a debug entry', () => {
+    const lm = new LogManager({ runId: 'run-1', displayLevel: 'warn' })
+    lm.log('debug', 'cache', 'lookup')
+    lm.log('warn', 'cache', 'expiring', { key: 'k1' })
+    expect(stderrSpy).toHaveBeenCalledTimes(1)
+    expect(String(stderrSpy.mock.calls[0][0])).toMatch(
+      /^\d\d:\d\d:\d\d {2}cache {6}expiring key="k1"\n$/u,
+    )
+  })
+
+  it('colours a displayed line when stderr is a terminal and stdout is not', () => {
+    const lm = new LogManager({ runId: 'run-1', displayLevel: 'warn', env: {} })
+    const before = [process.stdout.isTTY, process.stderr.isTTY]
+    withTerminals({ stdout: false, stderr: true }, () => {
+      lm.log('warn', 'agent', 'careful')
+    })
+    expect([process.stdout.isTTY, process.stderr.isTTY]).toEqual(before)
+    const line = String(stderrSpy.mock.calls[0][0])
+    expect(line).toContain(`${YELLOW}careful`)
+    expect(line).toContain(DIM)
+  })
+
+  it('prints a displayed line without colour when stdout is a terminal and stderr is not', () => {
+    const lm = new LogManager({ runId: 'run-1', displayLevel: 'warn', env: {} })
+    const before = [process.stdout.isTTY, process.stderr.isTTY]
+    withTerminals({ stdout: true, stderr: false }, () => {
+      lm.log('warn', 'agent', 'careful')
+    })
+    expect([process.stdout.isTTY, process.stderr.isTTY]).toEqual(before)
+    const line = String(stderrSpy.mock.calls[0][0])
+    expect(line).toMatch(/^\d\d:\d\d:\d\d {2}agent {6}careful\n$/u)
+    expect(line).not.toContain('\u001b')
   })
 
   it('silent displayLevel shows nothing', () => {
@@ -240,7 +305,9 @@ describe('LogManager', () => {
     expect(JSON.stringify(lm.getBuffer())).not.toContain('raw-secret-sentinel')
     expect(lm.getBuffer()[0].message).toContain('[secret:API_KEY]')
     expect(lm.getBuffer()[0].data).toEqual({ token: '[secret:API_KEY]' })
-    expect(stderrSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('')).not.toContain('raw-secret-sentinel')
+    const shown = stderrSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('')
+    expect(shown).not.toContain('raw-secret-sentinel')
+    expect(shown).toContain('using [secret:API_KEY]')
     expect(stdoutSpy.mock.calls.map((c: unknown[]) => String(c[0])).join('')).not.toContain('raw-secret-sentinel')
   })
 })

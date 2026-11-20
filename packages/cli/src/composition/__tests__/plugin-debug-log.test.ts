@@ -27,7 +27,8 @@ function captureStreams(): { stderr: string[]; stdout: string[] } {
 function expectGuarded(written: string): void {
   const token = /^::stop-commands::([0-9a-f]+)\n/.exec(written)?.[1]
   expect(token, written).toBeDefined()
-  expect(written).toContain(`DEBUG [adapter] ${LINE}\n::${token}::\n`)
+  expect(written.split('\n')[1]).toMatch(/^\d\d:\d\d:\d\d {2}plugin {5}/u)
+  expect(written).toContain(`${LINE}\n::${token}::\n`)
 }
 
 afterEach(() => {
@@ -42,7 +43,7 @@ describe('the plugin debug log', () => {
     }
   })
 
-  it("prints each line on stderr as a DEBUG adapter line in the run logger's form, and nothing on stdout", () => {
+  it('prints each line on stderr as the time, the plugin tag and the line, and nothing on stdout', () => {
     vi.stubEnv('GITHUB_ACTIONS', '')
     const debugLog = pluginDebugLog('debug')
     expect(debugLog).toBeTypeOf('function')
@@ -52,7 +53,7 @@ describe('the plugin debug log', () => {
 
     expect(streams.stderr).toHaveLength(1)
     expect(streams.stderr[0]).toMatch(
-      /^\d{2}:\d{2}:\d{2}\.\d{3} DEBUG \[adapter\] plugin lab: ready with \[secret:LAB_KEY\]\n$/,
+      /^\d\d:\d\d:\d\d {2}plugin {5}plugin lab: ready with \[secret:LAB_KEY\]\n$/u,
     )
     expect(streams.stdout).toEqual([])
   })
