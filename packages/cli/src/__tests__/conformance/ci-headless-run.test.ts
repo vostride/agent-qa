@@ -31,32 +31,19 @@ const SPAWN_BUDGET_MS = 240_000
 const SPINNER_GLYPHS = /[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏◐◓◑◒]/u
 const PROMPT_SHAPES = /\(y\/n\)|\[y\/N\]|\[Y\/n\]|\? .+ ›|Press (?:enter|any key)/iu
 
-// `post-run-tail.ts`'s `CI_PENDING_SUFFIX` per stage drainer.
-const CI_PENDING_SUFFIX = {
-  analysis: " (resumes only if this workspace's .agent-qa/ is kept and a later run or the daemon picks it up)",
-  curation: " (resumes only if this workspace's .agent-qa/ is kept and a later local run picks it up)",
-} as const
-type Stage = keyof typeof CI_PENDING_SUFFIX
-
-const STAGE_WORD = /^(?:pending|running|complete|failed|skipped \((?:gate run|outcome-excluded|no verdict)\))$/u
-// The close-out's buckets (`CURATION_BREAKDOWN_BUCKETS`) and its outcome line.
-const BUCKETS_LINE =
-  /^curation: added (\d+), confirmed (\d+), superseded (\d+), deprecated (\d+), proposed (\d+)$/u
-const PROMOTION_LINE = /^curation: \S+ (?:held: |promoted via )/u
-const CI_OUTCOME_LINE =
-  /^curation: (\d+) learned change\(s\) recorded, (\d+) kept proposed \(ci runs never promote learned knowledge\)$/u
 // `knowledgePendingResumeWords` in `ci`, the end of the line under a `Knowledge:` line.
 const CI_RESUME_SENTENCE = "resumes only if this workspace's .agent-qa/ is kept and a later local run picks it up"
 
-type Verdict = 'passed' | 'failed'
-
-interface Buckets {
-  readonly added: number
-  readonly confirmed: number
-  readonly superseded: number
-  readonly deprecated: number
-  readonly proposed: number
+// The line under each leg's `Knowledge:` line. The three legs that are not detached finish their
+// chain in their own process, so their curation stage reads complete and they print none.
+const SECOND_LINE: Record<string, string | undefined> = {
+  passed: undefined,
+  supersede: undefined,
+  failed: undefined,
+  detached: `  not finished, ${CI_RESUME_SENTENCE}`,
 }
+
+type Verdict = 'passed' | 'failed'
 
 interface BundleFacts {
   readonly dir: string
@@ -79,10 +66,6 @@ interface Leg {
   stdout?: string
   stderr?: string
   recordedVerdict?: unknown
-  // The summary line (`post-processing — …`) or, when the tail drained the chain, its terminal
-  // line (`post-processing <outcome> for <id> — …`): the one line naming the stages.
-  exitLines?: string[]
-  curationLines?: string[]
   // Each `Knowledge:` line on stderr, with the indented line under it when there is one.
   knowledge?: KnowledgeLines[]
   requestKinds?: string[]
@@ -207,11 +190,6 @@ async function runLeg(project: PopulatedRunProject, leg: Leg): Promise<void> {
   }
   leg.stdout = stdout
   leg.stderr = stderr
-  const lines = [...withoutColour(stdout).split('\n'), ...withoutColour(stderr).split('\n')]
-  leg.exitLines = lines.filter((line) => line.startsWith('post-processing — ')
-    || line.startsWith(`post-processing complete for ${leg.runId} — `)
-    || line.startsWith(`post-processing failed for ${leg.runId} — `))
-  leg.curationLines = lines.filter((line) => line.startsWith('curation: '))
   leg.knowledge = knowledgeLinesOf(withoutColour(stderr))
   leg.requestKinds = (model?.requests ?? []).slice(before).map((request) => request.kind)
   leg.recordedVerdict = verdictOf(project, leg.runId)
@@ -269,34 +247,6 @@ function legOf(key: string): Leg {
   return found as Leg
 }
 
-function stagesOf(exitLine: string): Partial<Record<Stage, string>> {
-  const stages: Partial<Record<Stage, string>> = {}
-  for (const part of exitLine.slice(exitLine.indexOf(' — ') + 3).split(' · ')) {
-    const match = /^(analysis|curation): (.*)$/u.exec(part)
-    if (match !== null) stages[match[1] as Stage] = match[2]!
-  }
-  return stages
-}
-
-// A finished stage on the chain line carries its counts in parentheses; a pending one its suffix.
-function stageWordOf(stage: Stage, printed: string): string {
-  if (printed.endsWith(CI_PENDING_SUFFIX[stage])) return printed.slice(0, -CI_PENDING_SUFFIX[stage].length)
-  return /^(?:complete|failed) \(/u.test(printed) ? printed.slice(0, printed.indexOf(' (')) : printed
-}
-
-function bucketsOf(run: Leg): Buckets[] {
-  return (run.curationLines ?? []).flatMap((line) => {
-    const match = BUCKETS_LINE.exec(line)
-    return match === null ? [] : [{
-      added: Number(match[1]),
-      confirmed: Number(match[2]),
-      superseded: Number(match[3]),
-      deprecated: Number(match[4]),
-      proposed: Number(match[5]),
-    }]
-  })
-}
-
 beforeAll(async () => {
   refuseWithoutRecordingTools()
   if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')
@@ -325,6 +275,25 @@ describe('headless CI runs', () => {
     }
   })
 
+  // On stdout under the summary block, after a blank line; the Knowledge line follows on stderr.
+  it('a headless CI run prints its run id once, under its summary block', () => {
+    for (const key of ['passed', 'supersede', 'failed', 'detached']) {
+      const run = legOf(key)
+      const lines = withoutColour(run.stdout ?? '').split('\n')
+      const idLines = lines.flatMap((line, index) => line.startsWith('Run ID: ') ? [index] : [])
+      expect(idLines.map((index) => lines[index]), `${key}'s one Run ID line\n${seen()}`)
+        .toEqual([`Run ID: ${run.runId}`])
+      const at = idLines[0]!
+      expect(lines[at - 1], `${key}'s blank line above its run id\n${seen()}`).toBe('')
+      expect(lines[at - 2]?.startsWith('Time: '), `${key}'s summary ends above it\n${seen()}`)
+        .toBe(true)
+      expect(lines.slice(at + 1).join(''), `${key} prints nothing on stdout after it\n${seen()}`)
+        .toBe('')
+      expect(withoutColour(run.stderr ?? '').includes('Run ID: '), `${key}'s stderr\n${seen()}`)
+        .toBe(false)
+    }
+  })
+
   it('a headless CI run colours its report and prints no redraw, spinner or prompt', () => {
     for (const key of ['passed', 'supersede', 'failed', 'detached']) {
       const run = legOf(key)
@@ -335,67 +304,29 @@ describe('headless CI runs', () => {
         expect(text.includes('\r'), `${key}'s ${name} has no carriage-return redraw\n${seen()}`).toBe(false)
         expect(SPINNER_GLYPHS.test(text), `${key}'s ${name} has no spinner\n${seen()}`).toBe(false)
         expect(PROMPT_SHAPES.test(text), `${key}'s ${name} has no prompt\n${seen()}`).toBe(false)
-      }
-      expect(run.exitLines?.length, `${key}'s one stage line\n${seen()}`).toBe(1)
-      const stages = stagesOf(run.exitLines![0]!)
-      for (const stage of ['analysis', 'curation'] as const) {
-        const printed = stages[stage]
-        expect(printed, `${key}'s ${stage} stage\n${seen()}`).toBeDefined()
-        const word = stageWordOf(stage, printed!)
-        expect(word, `${key}'s ${stage} reads the stage word\n${seen()}`).toMatch(STAGE_WORD)
-        if (word === 'pending') {
-          expect(printed, `${key}'s pending ${stage} states the resume limit\n${seen()}`)
-            .toBe(`pending${CI_PENDING_SUFFIX[stage]}`)
+        // The close-out line, the digest block and the fold's lines print with --verbose only.
+        for (const line of withoutColour(text).split('\n')) {
+          expect(line.includes('post-processing'), `${key}'s ${name} line: ${line}\n${seen()}`)
+            .toBe(false)
+          expect(line.startsWith('digest — '), `${key}'s ${name} line: ${line}\n${seen()}`)
+            .toBe(false)
+          expect(line.startsWith('curation: '), `${key}'s ${name} line: ${line}\n${seen()}`)
+            .toBe(false)
         }
       }
       expect(run.knowledge?.length, `${key} prints one Knowledge line\n${seen()}`).toBe(1)
-      const knowledge = run.knowledge![0]!
-      const curation = stageWordOf('curation', stages.curation!)
-      if (curation === 'pending') {
-        expect(knowledge.second, `${key}'s pending curation has a second line\n${seen()}`)
-          .toMatch(/^ {2}\S/u)
-        expect(knowledge.second!.endsWith(CI_RESUME_SENTENCE),
-          `${key}'s second line states the resume limit\n${seen()}`).toBe(true)
-      }
-      if (curation === 'complete') {
-        expect(knowledge.second, `${key}'s complete curation has no second line\n${seen()}`)
-          .toBeUndefined()
-      }
-      expect(withoutColour(`${streams.stdout}\n${streams.stderr}`), `${key} prints no done or excluded stage\n${seen()}`)
-        .not.toMatch(/(?:analysis|curation): (?:done|excluded)\b/u)
+      expect(run.knowledge![0]!.second, `${key}'s line under its Knowledge line\n${seen()}`)
+        .toBe(SECOND_LINE[key])
     }
   })
 
-  it('a detached CI run prints pending stages with the resume limit', () => {
+  it('a detached CI run prints a pending summary with the resume limit', () => {
     const run = legOf('detached')
     expect(run.recordedVerdict, seen()).toEqual({ verdict: 'passed' })
     expect({ code: run.code, signal: run.signal }, seen()).toEqual({ code: 0, signal: null })
-    expect(run.exitLines?.length, seen()).toBe(1)
-    expect(run.exitLines![0]!.startsWith('post-processing — '), seen()).toBe(true)
-    expect(stagesOf(run.exitLines![0]!), seen()).toEqual({
-      analysis: `pending${CI_PENDING_SUFFIX.analysis}`,
-      curation: `pending${CI_PENDING_SUFFIX.curation}`,
-    })
     expect(run.knowledge, seen()).toEqual([
       { line: 'Knowledge: pending', second: `  not finished, ${CI_RESUME_SENTENCE}` },
     ])
-  })
-
-  it('a CI run curation outcome line counts only the changes its buckets line shows', () => {
-    const measured = ['passed', 'supersede', 'failed'].map((key) => {
-      const run = legOf(key)
-      const buckets = bucketsOf(run)
-      expect(buckets, `${key}'s one buckets line\n${seen()}`).toHaveLength(1)
-      const bucketed = Object.values(buckets[0]!).reduce((sum, count) => sum + count, 0)
-      const outcome = (run.curationLines ?? []).flatMap((line) => {
-        const match = CI_OUTCOME_LINE.exec(line)
-        return match === null ? [] : [Number(match[1]) + Number(match[2])]
-      })
-      return { key, bucketed, outcome }
-    })
-    expect(measured, seen()).toEqual(measured.map(({ key, bucketed }) =>
-      ({ key, bucketed, outcome: bucketed === 0 ? [] : [bucketed] })))
-    expect(measured.filter((each) => each.bucketed > 0).length, seen()).toBeGreaterThan(0)
   })
 })
 
@@ -404,13 +335,8 @@ describe('curation in CI only proposes', () => {
     const first = legOf('passed')
     const second = legOf('supersede')
 
-    expect(bucketsOf(first), `the first CI run's close-out\n${seen()}`)
-      .toEqual([{ added: 1, confirmed: 0, superseded: 0, deprecated: 0, proposed: 0 }])
     expect(first.knowledge?.map((each) => each.line), `the first CI run's summary\n${seen()}`)
       .toEqual(['Knowledge: learned 1, held 0'])
-    expect(first.curationLines, `the CI outcome line\n${seen()}`).toContain(
-      'curation: 1 learned change(s) recorded, 0 kept proposed (ci runs never promote learned knowledge)',
-    )
     const added = first.knowledgeAfter ?? []
     expect(added.map((each) => ({ kind: each.kind, status: each.status, ctx: each.executionContext })),
       `the first CI run wrote one candidate\n${seen()}`)
@@ -418,13 +344,8 @@ describe('curation in CI only proposes', () => {
     const victim = added[0]!
 
     expect(second.requestKinds, `the curator arm authored the Supersede\n${seen()}`).toContain('curator')
-    expect(bucketsOf(second), `the second CI run's close-out\n${seen()}`)
-      .toEqual([{ added: 0, confirmed: 0, superseded: 0, deprecated: 0, proposed: 1 }])
     expect(second.knowledge?.map((each) => each.line), `the second CI run's summary\n${seen()}`)
       .toEqual(['Knowledge: learned 0, held 0, proposed 1'])
-    expect(second.curationLines, `the CI outcome line for the proposed correction\n${seen()}`).toContain(
-      'curation: 0 learned change(s) recorded, 1 kept proposed (ci runs never promote learned knowledge)',
-    )
     const after = second.knowledgeAfter ?? []
     const victimAfter = after.find((each) => each.dir === victim.dir)
     expect(victimAfter, `the victim record is unchanged\n${seen()}`).toEqual(victim)
@@ -436,10 +357,5 @@ describe('curation in CI only proposes', () => {
         ctx: 'ci',
         relations: [{ type: 'proposed-supersession-of', targetId: victim.id }],
       }])
-
-    for (const run of [first, second]) {
-      expect((run.curationLines ?? []).filter((line) => PROMOTION_LINE.test(line)),
-        `${run.key} attempted no promotion\n${seen()}`).toEqual([])
-    }
   })
 })
