@@ -28,6 +28,7 @@ import {
   type PostVerdictHandoff,
 } from '../curation/post-verdict-step.js'
 import { REPLAY_FROM_START, attachRunSubscribers } from '../run-session-composition.js'
+import type { ConsoleReporterOptions } from '../reporters/console-reporter.js'
 import {
   isMintedCliRunId,
   mintCliRunId,
@@ -512,7 +513,7 @@ export async function runInProcessCliRun(
  * reach ONE attach helper rather than each writing the argument fold themselves.
  */
 export function cliRunSubscribers(input: {
-  readonly console?: { verbose: boolean; logLevel: string } | false
+  readonly console?: ConsoleReporterOptions | false
   readonly junitOutputPath?: string | undefined
   readonly extraSubscribers?: Parameters<typeof attachRunSubscribers>[0]['extraSubscribers']
 }): (attach: RunSubscriberAttachInput) => { flush(): Promise<void> } {

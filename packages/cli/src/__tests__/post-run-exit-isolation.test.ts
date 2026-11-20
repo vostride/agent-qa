@@ -22,6 +22,7 @@ import {
   CURRENT_BUS_SCHEMA_VERSION,
   MASKED_RESOLVED_CONFIG_SCHEMA_VERSION,
 } from '@vostride/agent-qa-schema'
+import pc from 'picocolors'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { curationTailLog } from '../commands/run.js'
@@ -267,14 +268,11 @@ async function runScenario(
   const restore = captureChannels(channels)
   try {
     // 1. The SHIPPED console reporter over the SHIPPED envelope fixture, through the reporter's
-    //    own injected writer. `plain`/`isTTY:false` remove the TTY control codes so what is
-    //    compared is the text a CI log holds.
+    //    own injected writer, with colour off so what is compared is the text a plain log holds.
     const reporterFixture = buildReporterFixture()
     const reporter = createConsoleReporter({
-      plain: true,
-      colorize: false,
+      colors: pc.createColors(false),
       verbose: true,
-      isTTY: false,
       write: (chunk: string) => {
         channels.stdout += chunk
       },

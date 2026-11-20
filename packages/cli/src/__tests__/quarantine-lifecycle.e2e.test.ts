@@ -35,6 +35,7 @@ import type { LocalAgentHost } from '@vostride/agent-qa-agent-local'
 import { RUNS_SUBDIR } from '@vostride/agent-qa-runner-local'
 import { createTimeoutAbortReason, mapVerdictToExitCode, startRun } from '@vostride/agent-qa-runner'
 import type { RunConfig, RunMemberDescriptor, TestResult } from '@vostride/agent-qa-runner'
+import pc from 'picocolors'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { createConsoleReporter, QUARANTINE_TEST_ANNOTATION } from '../reporters/console-reporter.js'
@@ -426,9 +427,7 @@ async function driveRun(env: Harness, script: RunScript, now = NOW): Promise<Dri
   })
   const consoleChunks: string[] = []
   const consoleReporter = createConsoleReporter({
-    plain: true,
-    colorize: false,
-    isTTY: false,
+    colors: pc.createColors(false),
     write: (chunk) => consoleChunks.push(chunk),
     quarantined: snapshotAtStart,
   })
@@ -548,7 +547,7 @@ describe('the quarantine lifecycle, end to end', () => {
     expect(runB.junitXml).toContain(JUNIT_QUARANTINE_MARKER_BLOCK)
     expect(runB.junitXml).toContain('failures="1"')
     expect(runB.junitXml).not.toContain('<skipped')
-    expect(runB.consoleOutput).toContain(`FAIL ${TEST_NAME} 1s ${QUARANTINE_TEST_ANNOTATION}`)
+    expect(runB.consoleOutput).toContain(` FAIL  ${TEST_NAME} 1s ${QUARANTINE_TEST_ANNOTATION}`)
     expect(runB.consoleOutput).toContain('Tests:  0 of 1 passed · 1 quarantined failure')
     // Suppression writes nothing, because the entry is already open.
     expect(runB.ledgerAfter).toEqual(runB.ledgerBefore)

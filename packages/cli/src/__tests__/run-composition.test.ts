@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import * as ts from 'typescript/unstable/ast'
 import { createVirtualFileSystem } from 'typescript/unstable/fs'
 import { API } from 'typescript/unstable/sync'
+import pc from 'picocolors'
 import { afterAll, describe, it, expect, vi } from 'vitest'
 import type { RiskActionDescriptor } from '@vostride/agent-qa-schema'
 import type { RunEventEnvelope } from '@vostride/agent-qa-schema'
@@ -122,7 +123,7 @@ describe('attachRunSubscribers threads the quarantine snapshot to both reporters
 
     const { flush } = attachRunSubscribers({
       session: session as never,
-      console: { plain: true, colorize: false, isTTY: false, write: capture.write },
+      console: { colors: pc.createColors(false), write: capture.write },
       junitOutputPath: junitPath,
       quarantined: [QUARANTINED_CHECKOUT],
     })
