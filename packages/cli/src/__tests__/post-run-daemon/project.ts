@@ -20,6 +20,7 @@ import {
 } from '@vostride/agent-qa-schema'
 
 import { CLI_FUNCTION_CALLER } from '../../composition/local-agent-host.js'
+import type { KnowledgeSummary } from '../../curation/knowledge-summary.js'
 import {
   runPostRunTail,
   type PostRunTailOperations,
@@ -133,6 +134,7 @@ export interface TailOutcome {
   readonly report: PostRunTailReport
   readonly info: readonly string[]
   readonly warn: readonly string[]
+  readonly summaries: readonly KnowledgeSummary[]
 }
 
 // The real lease and nudge, so the leg hands off and the nudge crosses the daemon's socket.
@@ -144,6 +146,7 @@ export async function runRealTail(input: {
 }): Promise<TailOutcome> {
   const info: string[] = []
   const warn: string[] = []
+  const summaries: KnowledgeSummary[] = []
   const enqueueOutcome = await enqueueThroughTheStep({
     runId: input.runId,
     agentQaRoot: input.agentQaRoot,
@@ -164,6 +167,7 @@ export async function runRealTail(input: {
     log: {
       warn: (message: string) => { warn.push(message) },
       detail: (message: string) => { info.push(message) },
+      summary: (summary: KnowledgeSummary) => { summaries.push(summary) },
     },
     operations: {
       resolveKnowledgeRoot: () => input.knowledgeRoot,
@@ -177,7 +181,7 @@ export async function runRealTail(input: {
   })
   await tail.drain()
   await tail.finish()
-  return { report: tail.report(), info, warn }
+  return { report: tail.report(), info, warn, summaries }
 }
 
 /** A composition over the same root the daemon serves — the second, socket-free reader. */

@@ -42,6 +42,11 @@ import {
 } from './curation-tail.js'
 import type { CanaryCreditCounters } from './canary-credit.js'
 import { NON_SIGNAL_CLASSES } from './emit-canary-outcomes.js'
+import {
+  knowledgePendingResumeWords,
+  knowledgeTaggedMessage,
+  type KnowledgeSummary,
+} from './knowledge-summary.js'
 import { createPostRunChipEmitter } from './post-run-chip-emitter.js'
 import { resolveRunCurationContext } from './run-curation-context.js'
 import { ciResumeClause, isCiContext, resumeLimitClause } from './resume-limit.js'
@@ -244,11 +249,36 @@ const PUMP_EXIT_STARVES_OWN_CHAIN: Record<ChainPumpExit, boolean> = {
 export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
   // Every line this tail logs, or hands a leg to log, is masked.
   const mask = opts.mask ?? ((text: string) => text)
+  // This run's last fold report, handed to the host once by `finish()`.
+  let keptSummary: KnowledgeSummary | undefined
+  let summaryHanded = false
   const log: RunPostRunTailOptions['log'] = {
     warn: (message) => opts.log.warn(mask(message)),
     ...(opts.log.detail === undefined
       ? {}
-      : { detail: (message: string) => opts.log.detail?.(mask(message)) }),
+      : {
+          detail: (message: string, tag?: string) => tag === undefined
+            ? opts.log.detail?.(mask(message))
+            : opts.log.detail?.(mask(message), tag),
+        }),
+    summary: (summary) => {
+      if (summary.runId === opts.runId) {
+        keptSummary = summary
+        return
+      }
+      // Another run's tail closes that run out; here it is one line.
+      opts.log.detail?.(mask(knowledgeTaggedMessage(summary, { verbose: false })))
+    },
+  }
+  // Without a stage the status could not be read: the kept report goes as it is, none is made up.
+  const handOverSummary = (stage: CurationStage | undefined): void => {
+    if (summaryHanded) return
+    const summary = stage === undefined
+      ? keptSummary
+      : closeOutSummary(opts.runId, keptSummary, stage, opts.executionContext)
+    if (summary === undefined) return
+    summaryHanded = true
+    opts.log.summary?.(summary)
   }
   // Resolved inside a leg's try, so a module read that throws cannot turn a pass into exit 2.
   let resolvedOperations: PostRunTailOperations | undefined
@@ -557,10 +587,12 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
     async finish(input: { readonly detached?: boolean } = {}): Promise<void> {
       const actualEnqueue = enqueueOutcome()
       if (opts.postVerdict !== undefined && actualEnqueue === undefined) {
+        handOverSummary(PENDING_HAND_OFF_STAGE)
         const resumeClause = ciResumeClause(opts.executionContext, 'any-host')
         log.detail?.(resumeClause !== undefined
           ? `Run ${opts.runId}: post-verdict hand-off pending; analysis is not yet queued. It ${resumeClause}. Durable intent: ${opts.postVerdict.pendingPath}.`
-          : `Run ${opts.runId}: post-verdict hand-off pending; analysis is not yet queued. Durable intent: ${opts.postVerdict.pendingPath}. The next local run or daemon drain resumes eligible pending hand-offs.`)
+          : `Run ${opts.runId}: post-verdict hand-off pending; analysis is not yet queued. Durable intent: ${opts.postVerdict.pendingPath}. The next local run or daemon drain resumes eligible pending hand-offs.`,
+        'post-run')
         if (!observingLateFailure && opts.postVerdict.completion !== undefined) {
           observingLateFailure = true
           void opts.postVerdict.completion.then(() => {
@@ -596,7 +628,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         if (!analyzeRunCompleted) return
         const digest = await readDigest(openedHost)
         if (digest === undefined || digest.lines.length === 0) return
-        log.detail?.(digest.lines.join('\n'))
+        log.detail?.(digest.lines.join('\n'), 'post-run')
       }
       // A failed enqueue already warned, so no close-out line is built from an empty chain.
       if (actualEnqueue === 'failed') return
@@ -606,15 +638,17 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         openedHost = openHost()
       } catch (error) {
         log.warn(summaryFailureWarning(opts.runId, error))
+        handOverSummary(undefined)
         return
       }
       try {
         const status = await ops().readPostProcessingStatus(openedHost, opts.runId)
+        handOverSummary(curationStageOf(status))
         if (status.notification !== undefined && drainOutcome === 'drained') {
           // The chain reached its terminal in this process, so this line reports what happened.
           const receipt = readCurationTailReceipt(completedRunDir(opts.agentQaRoot, opts.runId))
           log.detail?.(renderChainTerminalLine(status.notification,
-            receipt?.runId === opts.runId ? receipt : undefined))
+            receipt?.runId === opts.runId ? receipt : undefined), 'post-run')
           await printDigestBlock(openedHost)
           return
         }
@@ -628,10 +662,12 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
           + (analyzeRunCompleted
             ? ''
             : renderDigestPointer(opts.runId, await readDigest(openedHost))),
+          'post-run',
         )
         await printDigestBlock(openedHost)
       } catch (error) {
         log.warn(summaryFailureWarning(opts.runId, error))
+        handOverSummary(undefined)
       } finally {
         try {
           // Idempotent, and the detach leg's only close: this leg opened the store and the
@@ -715,6 +751,47 @@ const DRAIN_OUTCOME_POSTURE: Record<PostRunDrainOutcome, PostRunPendingPosture> 
 
 function postureOf(outcome: PostRunDrainOutcome): PostRunPendingPosture {
   return DRAIN_OUTCOME_POSTURE[outcome]
+}
+
+// The curation stage in the summary's words, and whether it still waits on a later local run.
+interface CurationStage {
+  readonly words: string
+  readonly pending: boolean
+}
+
+const PENDING_HAND_OFF_STAGE: CurationStage = { words: 'pending', pending: true }
+
+function curationStageOf(status: PostProcessingStatus): CurationStage {
+  if (status.skipped !== undefined) {
+    return {
+      words: `skipped (${POST_PROCESSING_SKIP_REASON_WORDS[status.skipped.reason]})`,
+      pending: false,
+    }
+  }
+  return { words: status.chips.curation, pending: status.chips.curation === 'pending' }
+}
+
+function closeOutSummary(
+  runId: string,
+  kept: KnowledgeSummary | undefined,
+  stage: CurationStage,
+  executionContext: ExecutionContext | undefined,
+): KnowledgeSummary {
+  const unfinished = { notWritten: 0, resume: knowledgePendingResumeWords(executionContext) }
+  if (kept === undefined) {
+    return {
+      runId,
+      learned: 0,
+      held: 0,
+      proposed: 0,
+      items: [],
+      instead: stage.words,
+      ...(stage.pending ? { unfinished } : {}),
+    }
+  }
+  if (kept.unfinished !== undefined || !stage.pending) return kept
+  // A fold that finished does not mean the queued curation finished.
+  return { ...kept, unfinished }
 }
 
 // Status words come verbatim from `runs.postprocessing`; the parenthetical comes from posture only.
