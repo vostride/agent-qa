@@ -9,6 +9,7 @@ import {
   knowledgeSecondLine,
   knowledgeSummaryOfDrain,
   knowledgeTaggedMessage,
+  mergeKnowledgeSummaries,
   type KnowledgeSummary,
   type KnowledgeSummaryItem,
 } from '../knowledge-summary.js'
@@ -237,6 +238,140 @@ describe('the item lines', () => {
 
   it('a summary with no items has no item lines', () => {
     expect(knowledgeItemLines(summary())).toEqual([])
+  })
+})
+
+describe('two reports of one run merged into one', () => {
+  const learnedA: KnowledgeSummaryItem = {
+    outcome: 'learned', id: ID_A, reason: 'deterministic-verdict-floor',
+  }
+  const heldB: KnowledgeSummaryItem = {
+    outcome: 'held', id: ID_B, reason: 'no-element-observation',
+  }
+  const heldC: KnowledgeSummaryItem = {
+    outcome: 'held', id: ID_C, reason: 'no-confirmed-evidence',
+  }
+  const learnedD: KnowledgeSummaryItem = {
+    outcome: 'learned', id: ID_D, reason: 'deterministic-verdict-floor',
+  }
+  const counted = summary({
+    runId: 'r_phasis-label-purple-ligne',
+    learned: 5,
+    held: 2,
+    proposed: 1,
+    items: [learnedA, heldB, heldC],
+  })
+  const nothing = summary({ runId: counted.runId, learned: 0, held: 0, items: [] })
+
+  it('adds the numbers and the items a later report brings', () => {
+    const later = summary({
+      runId: counted.runId, learned: 1, held: 0, proposed: 2, items: [learnedD],
+    })
+
+    expect(mergeKnowledgeSummaries(counted, later)).toEqual({
+      runId: counted.runId,
+      learned: 6,
+      held: 2,
+      proposed: 3,
+      items: [learnedA, heldB, heldC, learnedD],
+    })
+  })
+
+  it('keeps every number and item when the later report has none', () => {
+    expect(mergeKnowledgeSummaries(counted, nothing)).toEqual(counted)
+  })
+
+  it('counts once an item both reports name with the same outcome', () => {
+    const later = summary({
+      runId: counted.runId, learned: 2, held: 1, items: [learnedA, heldB, learnedD],
+    })
+
+    expect(mergeKnowledgeSummaries(counted, later)).toEqual({
+      runId: counted.runId,
+      learned: 6,
+      held: 2,
+      proposed: 1,
+      items: [learnedA, heldB, heldC, learnedD],
+    })
+  })
+
+  it('counts an item that was held and is learned later as learned only', () => {
+    const learnedB: KnowledgeSummaryItem = { ...learnedA, id: ID_B }
+    const later = summary({ runId: counted.runId, learned: 1, held: 0, items: [learnedB] })
+
+    expect(mergeKnowledgeSummaries(counted, later)).toEqual({
+      runId: counted.runId,
+      learned: 6,
+      held: 1,
+      proposed: 1,
+      items: [learnedA, learnedB, heldC],
+    })
+  })
+
+  it('keeps an item one report names twice, and matches each naming once', () => {
+    const twice = summary({
+      runId: counted.runId, learned: 2, held: 0, items: [learnedA, learnedA],
+    })
+    const later = summary({ runId: counted.runId, learned: 1, held: 0, items: [learnedA] })
+
+    expect(mergeKnowledgeSummaries(twice, nothing)).toEqual(twice)
+    expect(mergeKnowledgeSummaries(twice, later)).toEqual(twice)
+  })
+
+  it.each([
+    {
+      name: 'a later report that finished clears the earlier second line',
+      kept: { notWritten: 1, resume: LOCAL_RESUME },
+      later: summary({ learned: 1, held: 0 }),
+      unfinished: undefined,
+    },
+    {
+      name: 'a later report that did not finish says so over an earlier finished one',
+      kept: undefined,
+      later: summary({ learned: 0, held: 0, unfinished: { notWritten: 0, resume: LOCAL_RESUME } }),
+      unfinished: { notWritten: 0, resume: LOCAL_RESUME },
+    },
+    {
+      name: 'a later report that wrote nothing leaves what the earlier one could not write',
+      kept: { notWritten: 2, resume: LOCAL_RESUME },
+      later: summary({ learned: 0, held: 0, unfinished: { notWritten: 0, resume: CI_RESUME } }),
+      unfinished: { notWritten: 2, resume: CI_RESUME },
+    },
+    {
+      name: 'a later report that wrote something gives its own count of what is not written',
+      kept: { notWritten: 2, resume: LOCAL_RESUME },
+      later: summary({ learned: 1, held: 0, unfinished: { notWritten: 1, resume: LOCAL_RESUME } }),
+      unfinished: { notWritten: 1, resume: LOCAL_RESUME },
+    },
+  ])('$name', ({ kept, later, unfinished }) => {
+    const merged = mergeKnowledgeSummaries(
+      { ...counted, ...(kept === undefined ? {} : { unfinished: kept }) },
+      { ...later, runId: counted.runId },
+    )
+
+    expect(merged.unfinished).toEqual(unfinished)
+    expect(merged.learned).toBe(counted.learned + later.learned)
+  })
+
+  it.each([
+    { name: 'the later report\'s', kept: 'pending', later: 'handed to the daemon' },
+    { name: 'the kept report\'s when the later has none', kept: 'pending', later: undefined },
+  ])('with nothing counted, the words in place of the numbers are $name', ({ kept, later }) => {
+    const instead = later ?? kept
+    const merged = mergeKnowledgeSummaries(
+      { ...nothing, instead: kept },
+      { ...nothing, ...(later === undefined ? {} : { instead: later }) },
+    )
+
+    expect(merged.instead).toBe(instead)
+    expect(knowledgeHeadline(merged)).toBe(instead)
+  })
+
+  it('shows the numbers, not the words in their place, once a report has counted something', () => {
+    const merged = mergeKnowledgeSummaries(counted, { ...nothing, instead: 'handed to the daemon' })
+
+    expect(merged.instead).toBeUndefined()
+    expect(knowledgeHeadline(merged)).toBe('learned 5, held 2, proposed 1')
   })
 })
 

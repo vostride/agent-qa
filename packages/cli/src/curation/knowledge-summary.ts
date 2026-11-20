@@ -80,6 +80,57 @@ export function knowledgeSummaryOfDrain(input: {
   }
 }
 
+// Two reports of one run as one. The later report adds to the kept one: an item both name is
+// counted once, by the later decision, and a later report with no numbers erases none.
+export function mergeKnowledgeSummaries(
+  kept: KnowledgeSummary,
+  later: KnowledgeSummary,
+): KnowledgeSummary {
+  const items = [...kept.items]
+  const namedAgain = new Set<number>()
+  const countedAgain = { learned: 0, held: 0 }
+  let noLongerHeld = 0
+  for (const item of later.items) {
+    const at = kept.items.findIndex((named, index) =>
+      named.id === item.id && !namedAgain.has(index))
+    const before = kept.items[at]
+    if (before === undefined) {
+      items.push(item)
+      continue
+    }
+    namedAgain.add(at)
+    items[at] = item
+    if (before.outcome === item.outcome) countedAgain[item.outcome] += 1
+    else if (before.outcome === 'held') noLongerHeld += 1
+  }
+  const learned = kept.learned + Math.max(later.learned - countedAgain.learned, 0)
+  const held = Math.max(kept.held - noLongerHeld, 0)
+    + Math.max(later.held - countedAgain.held, 0)
+  const proposed = kept.proposed + later.proposed
+  const counted = learned + held + proposed > 0 || items.length > 0
+  const instead = counted ? undefined : later.instead ?? kept.instead
+  const laterWroteNothing = later.learned + later.held + later.proposed === 0
+    && later.items.length === 0
+  // What an earlier fold could not write is still unwritten after a fold that wrote nothing.
+  const unfinished = later.unfinished === undefined
+    ? undefined
+    : {
+        notWritten: laterWroteNothing
+          ? Math.max(kept.unfinished?.notWritten ?? 0, later.unfinished.notWritten)
+          : later.unfinished.notWritten,
+        resume: later.unfinished.resume,
+      }
+  return {
+    ...(kept.runId === undefined ? {} : { runId: kept.runId }),
+    learned,
+    held,
+    proposed,
+    items,
+    ...(instead === undefined ? {} : { instead }),
+    ...(unfinished === undefined ? {} : { unfinished }),
+  }
+}
+
 export function knowledgeHeadline(summary: KnowledgeSummary): string {
   if (summary.instead !== undefined) return summary.instead
   const counts = `learned ${summary.learned}, held ${summary.held}`

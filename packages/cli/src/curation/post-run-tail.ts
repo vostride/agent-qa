@@ -45,6 +45,7 @@ import { NON_SIGNAL_CLASSES } from './emit-canary-outcomes.js'
 import {
   knowledgePendingResumeWords,
   knowledgeTaggedMessage,
+  mergeKnowledgeSummaries,
   type KnowledgeSummary,
 } from './knowledge-summary.js'
 import { createPostRunChipEmitter } from './post-run-chip-emitter.js'
@@ -249,7 +250,8 @@ const PUMP_EXIT_STARVES_OWN_CHAIN: Record<ChainPumpExit, boolean> = {
 export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
   // Every line this tail logs, or hands a leg to log, is masked.
   const mask = opts.mask ?? ((text: string) => text)
-  // This run's last fold report, handed to the host once by `finish()`.
+  // This run's fold reports as one, handed to the host once by `finish()`. The queued job and the
+  // sweep can each fold the run in one drain.
   let keptSummary: KnowledgeSummary | undefined
   let summaryHanded = false
   const log: RunPostRunTailOptions['log'] = {
@@ -263,7 +265,9 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
         }),
     summary: (summary) => {
       if (summary.runId === opts.runId) {
-        keptSummary = summary
+        keptSummary = keptSummary === undefined
+          ? summary
+          : mergeKnowledgeSummaries(keptSummary, summary)
         return
       }
       // Another run's tail closes that run out; here it is one line.
