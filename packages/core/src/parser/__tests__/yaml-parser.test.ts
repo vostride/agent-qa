@@ -1,7 +1,7 @@
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { afterEach, describe, it, expect } from 'vitest'
+import { afterEach, describe, it, expect, vi } from 'vitest'
 import { parseAllTestBindings, parseAllTests, parseTestFile } from '../yaml-parser.js'
 import { formatParseError } from '../errors.js'
 
@@ -175,6 +175,39 @@ describe('parseTestFile', () => {
       expect(formatted).toContain('-->')
       expect(formatted).toContain('|')
       expect(formatted).toContain('^')
+    })
+
+    // picocolors decides at its own load, and this package's tests load it with NO_COLOR=1, so the
+    // formatter is loaded fresh over a colour-enabled picocolors to see what NO_COLOR alone does.
+    async function formatWithNoColor(value: string | undefined): Promise<string> {
+      const error = parseTestFile(readFixture('malformed-schema.yaml'), 'malformed-schema.yaml')
+        .errors[0]
+      vi.doMock('picocolors', async () => {
+        const actual = await vi.importActual<{
+          default: { createColors: (enabled: boolean) => unknown }
+        }>('picocolors')
+        return { default: actual.default.createColors(true) }
+      })
+      vi.resetModules()
+      vi.stubEnv('NO_COLOR', value)
+      try {
+        const { formatParseError: format } = await import('../errors.js')
+        return format(error)
+      } finally {
+        vi.unstubAllEnvs()
+        vi.doUnmock('picocolors')
+        vi.resetModules()
+      }
+    }
+
+    it('formats a parse error with an empty NO_COLOR as it does with NO_COLOR unset', async () => {
+      const unset = await formatWithNoColor(undefined)
+      expect(unset).toContain('\u001b[')
+      expect(await formatWithNoColor('')).toBe(unset)
+    })
+
+    it('formats a parse error with NO_COLOR=1 with no escape code', async () => {
+      expect(await formatWithNoColor('1')).not.toContain('\u001b[')
     })
   })
 
