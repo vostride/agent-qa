@@ -8,6 +8,7 @@ import {
   printLogLine,
   type LogLine,
 } from '../logging/log-line.js'
+import { reserveStdoutForData } from '../logging/run-text-output.js'
 
 const PLAIN = pc.createColors(false)
 const COLOURED = pc.createColors(true)
@@ -222,6 +223,41 @@ describe('printLogLine', () => {
       expect(String(error.mock.calls[0]?.[0])).toMatch(/^\d\d:\d\d:\d\d {2}server {5}broken$/u)
       expect(String(log.mock.calls[1]?.[0])).toContain(`${RED}moved`)
     })
+
+    it('gives a line it moves off a reserved stdout the colours of stderr', () => {
+      setTerminals({ stdout: true, stderr: false })
+      const release = reserveStdoutForData()
+      try {
+        printLogLine({ tag: 'appium', message: 'Started on :4723' }, { env: {} })
+      } finally {
+        release()
+      }
+
+      expect(log).not.toHaveBeenCalled()
+      expect(String(error.mock.calls[0]?.[0])).toMatch(
+        /^\d\d:\d\d:\d\d {2}appium {5}Started on :4723$/u,
+      )
+    })
+  })
+
+  it('sends every line to stderr while stdout is reserved for data', () => {
+    const release = reserveStdoutForData()
+    try {
+      printLogLine({ tag: 'appium', message: 'Started on :4723' }, { env: {} })
+      printLogLine({ tag: 'appium', message: 'forwarded' }, { env: {}, to: 'stdout' })
+    } finally {
+      release()
+    }
+    expect(log).not.toHaveBeenCalled()
+    expect(stdout).not.toHaveBeenCalled()
+    expect(error.mock.calls.map((call: unknown[]) => String(call[0]).slice(10))).toEqual([
+      'appium     Started on :4723',
+      'appium     forwarded',
+    ])
+
+    printLogLine({ tag: 'appium', message: 'Stopped' }, { env: {} })
+    expect(log).toHaveBeenCalledTimes(1)
+    expect(error).toHaveBeenCalledTimes(2)
   })
 
   it('writes one stop-commands pair holding the line under GitHub Actions', () => {

@@ -50,6 +50,10 @@ export function reserveStdoutForData(): () => void {
   }
 }
 
+export function stdoutCarriesData(): boolean {
+  return stdoutReservations().count > 0
+}
+
 export function printRunText(
   text: string,
   print: (text: string) => void = (line) => console.log(line),
@@ -63,7 +67,7 @@ export function printRunText(
   const block = guardRunText(text, env)
   // The runner reads stdout and stderr on separate threads, so every wrapped block shares one
   // stream: stdout, or stderr when stdout carries data. The caller's print never sees a block.
-  if (options.stdoutIsData ?? stdoutReservations().count > 0) {
+  if (options.stdoutIsData ?? stdoutCarriesData()) {
     process.stderr.write(block)
     return
   }
