@@ -522,7 +522,7 @@ describe('daemon curation serving tracer', () => {
       agentQaRoot: paths.agentQaRoot,
       knowledgeConfig: { dir: paths.knowledgeRoot },
       configDir: paths.root,
-      log: { warn: vi.fn(), info: vi.fn() },
+      log: { warn: vi.fn(), detail: vi.fn() },
       operations: {
         loadCompletedRunHandoff: () => handoff,
         resolveKnowledgeRoot: () => paths.knowledgeRoot,

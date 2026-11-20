@@ -348,7 +348,7 @@ function options(h: Harness): RunPostRunTailOptions {
     mask: (text: string) => text,
     log: {
       warn: (message: string) => h.warn(message),
-      info: (message: string) => h.info(message),
+      detail: (message: string) => h.info(message),
     },
     operations: h.operations,
   }
@@ -852,7 +852,7 @@ describe('the chain-terminal line a real snapshot-bearing run prints', () => {
           configPath: join(root, 'agent-qa.config.yaml'),
           knowledgeConfig: { dir: 'knowledge' },
           configDir: root,
-          log: { warn: (m: string) => warn(m), info: (m: string) => info(m) },
+          log: { warn: (m: string) => warn(m), detail: (m: string) => info(m) },
           operations: {
             resolveKnowledgeRoot: () => knowledge,
             runCurationTail: async () => undefined,
@@ -949,7 +949,7 @@ describe('the chain-terminal line a real snapshot-bearing run prints', () => {
           configPath: join(root, 'agent-qa.config.yaml'),
           knowledgeConfig: { dir: 'knowledge' },
           configDir: root,
-          log: { warn: () => undefined, info: (m: string) => info(m) },
+          log: { warn: () => undefined, detail: (m: string) => info(m) },
           operations: {
             resolveKnowledgeRoot: () => knowledge,
             runCurationTail: async () => undefined,

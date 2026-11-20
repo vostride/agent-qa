@@ -191,7 +191,7 @@ function fixture(behaviour: {
         configDir: agentQaRoot,
         log: {
           warn: (message: string) => warn(message),
-          info: (message: string) => info(message),
+          detail: (message: string) => info(message),
         },
         operations: {
           resolveKnowledgeRoot: () => knowledgeRoot,

@@ -62,7 +62,7 @@ function fixture(over: Record<string, unknown> = {}) {
   const input = { runDir: root, handoff: { runId: RUN_ID, schemaVersion: CURRENT_HANDOFF_SCHEMA_VERSION, buildOrdinal: 42,
     executionContext: 'local-headless', scope: { tier: 'product', key: 'storefront' } },
     knowledgeRoot: join(root, 'knowledge'), agentQaRoot: root,
-    authority: { leaseId: 'lease', epoch: 1 }, log: { warn: vi.fn(), info }, operations,
+    authority: { leaseId: 'lease', epoch: 1 }, log: { warn: vi.fn(), detail: info }, operations,
   } as unknown as tailModule.CurateCompletedRunInput
   return { root, input, drainQueue, info, canaryDetail }
 }
@@ -218,7 +218,7 @@ describe('curation tail snapshot', () => {
       await enqueueThroughTheStep({ runId: zeroRun, agentQaRoot: root, configPath, composeHost: () => composeHost() })
       const tail = runPostRunTail({ runId: zeroRun, agentQaRoot: root, configPath,
         knowledgeConfig: { dir: 'knowledge' }, configDir: root,
-        log: { warn: () => undefined, info: () => undefined },
+        log: { warn: () => undefined, detail: () => undefined },
         operations: { resolveKnowledgeRoot: () => knowledge, runCurationTail: async () => undefined,
           composeHost } as unknown as PostRunTailOperations } as never)
       await tail.drain()

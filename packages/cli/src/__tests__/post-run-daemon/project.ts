@@ -163,7 +163,7 @@ export async function runRealTail(input: {
     configDir: input.agentQaRoot,
     log: {
       warn: (message: string) => { warn.push(message) },
-      info: (message: string) => { info.push(message) },
+      detail: (message: string) => { info.push(message) },
     },
     operations: {
       resolveKnowledgeRoot: () => input.knowledgeRoot,

@@ -75,7 +75,7 @@ async function runSkippedTail(
     configPath: join(root, 'agent-qa.config.yaml'),
     configDir: root,
     knowledgeConfig: { dir: 'knowledge' },
-    log: { warn: (message) => warnings.push(message), info: (message) => lines.push(message) },
+    log: { warn: (message) => warnings.push(message), detail: (message) => lines.push(message) },
     postVerdict,
     executionContext,
     operations: {

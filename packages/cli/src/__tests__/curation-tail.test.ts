@@ -37,6 +37,7 @@ import {
 } from '@vostride/agent-qa-schema'
 import { describe, expect, it, vi } from 'vitest'
 
+import { curationTailLog } from '../commands/run.js'
 import {
   CURATION_TAIL_RECEIPT_FILE,
   CURATION_TAIL_RECEIPT_SCHEMA_VERSION,
@@ -458,7 +459,7 @@ describe('runCurationTail post-verdict fold', () => {
       ],
     }))
     await runCurationTail(baseOptions(successfulOperations({ drainQueue }), {
-      log: { warn: vi.fn(), info },
+      log: { warn: vi.fn(), detail: info },
     }))
     // The drain is handed no proposals root.
     expect(drainQueue.mock.calls[0]![0]).not.toHaveProperty('agentQaRoot')
@@ -723,7 +724,7 @@ describe('runCurationTail post-verdict fold', () => {
 
       await runCurationTail(baseOptions(operations, {
         agentQaRoot: realAgentQaRoot,
-        log: { warn: vi.fn(), info },
+        log: { warn: vi.fn(), detail: info },
       }))
 
       expect(JSON.parse(
@@ -742,7 +743,7 @@ describe('runCurationTail post-verdict fold', () => {
 
       await runCurationTail(baseOptions(operations, {
         agentQaRoot: realAgentQaRoot,
-        log: { warn: vi.fn(), info },
+        log: { warn: vi.fn(), detail: info },
       }))
 
       expect(emitCurationCandidates).toHaveBeenCalledOnce()
@@ -789,7 +790,7 @@ describe('runCurationTail post-verdict fold', () => {
       drainQueue: vi.fn(async () => handedOffDrainReport()),
     })
 
-    await runCurationTail(baseOptions(operations, { log: { warn, info } }))
+    await runCurationTail(baseOptions(operations, { log: { warn, detail: info } }))
 
     expect(writeCurationTailReceipt).not.toHaveBeenCalled()
     expect(warn).toHaveBeenCalledWith(expect.stringMatching(/curation incomplete/i))
@@ -805,7 +806,7 @@ describe('runCurationTail post-verdict fold', () => {
     const operations = successfulOperations({ writeCurationTailReceipt })
 
     await runCurationTail(baseOptions(operations, {
-      log: { warn: vi.fn(), info },
+      log: { warn: vi.fn(), detail: info },
     }))
 
     expect(writeCurationTailReceipt).toHaveBeenCalledWith(
@@ -1503,7 +1504,7 @@ describe('run-outcome projection under the extended tail receipt', () => {
     })
 
     const authority = { leaseId: 'held-post-run-lease', epoch: 12 }
-    await runCurationTail(baseOptions(operations, { authority, log: { warn: vi.fn(), info } }))
+    await runCurationTail(baseOptions(operations, { authority, log: { warn: vi.fn(), detail: info } }))
     expect(operations.acquireWriterLease).not.toHaveBeenCalled()
     expect(operations.releaseLease).not.toHaveBeenCalled()
 
@@ -1847,7 +1848,7 @@ describe('per-run candidate summary line', () => {
       })),
     })
 
-    await runCurationTail(baseOptions(operations, { log: { warn, info } }))
+    await runCurationTail(baseOptions(operations, { log: { warn, detail: info } }))
 
     const line = summaryLineFrom(info)
     expect(line).toBe(
@@ -1868,7 +1869,7 @@ describe('per-run candidate summary line', () => {
     const warn = vi.fn()
     const info = vi.fn()
 
-    await runCurationTail(baseOptions(successfulOperations(), { log: { warn, info } }))
+    await runCurationTail(baseOptions(successfulOperations(), { log: { warn, detail: info } }))
 
     expect(summaryLineFrom(info)).toBe(
       `Knowledge curation candidates for ${runId}: procedure 0 projected.`,
@@ -1897,7 +1898,7 @@ describe('per-run candidate summary line', () => {
       })),
     })
 
-    await runCurationTail(baseOptions(operations, { log: { warn, info } }))
+    await runCurationTail(baseOptions(operations, { log: { warn, detail: info } }))
 
     const line = summaryLineFrom(info)
     expect(line).toContain(`procedure 1 projected (1 coalesced: ${procedureId})`)
@@ -1940,7 +1941,7 @@ describe('per-run candidate summary line', () => {
       })),
     })
 
-    await runCurationTail(baseOptions(operations, { log: { warn, info } }))
+    await runCurationTail(baseOptions(operations, { log: { warn, detail: info } }))
 
     const line = summaryLineFrom(info)
     expect(line).toBeDefined()
@@ -1973,13 +1974,8 @@ describe('per-run candidate summary line', () => {
     )
   })
 
-  it('wires an info channel on the production tail logger (run.ts)', () => {
-    const source = readFileSync(
-      fileURLToPath(new URL('../commands/run.ts', import.meta.url)),
-      'utf8',
-    )
-
-    expect(source).toContain('info(message: string): void')
+  it('the tail logger of the run command has a detail member', () => {
+    expect(typeof curationTailLog.detail).toBe('function')
   })
 })
 
@@ -2042,7 +2038,7 @@ describe('the quarantine disposition line', () => {
         escalatedNotQuarantined: [],
         refusedLines: [],
       }),
-      { log: { warn, info } },
+      { log: { warn, detail: info } },
     ))
 
     expect(info.mock.calls.map(([message]) => String(message))
@@ -2062,7 +2058,7 @@ describe('the quarantine disposition line', () => {
         escalatedNotQuarantined: [],
         refusedLines: [],
       }),
-      { log: { warn: vi.fn(), info } },
+      { log: { warn: vi.fn(), detail: info } },
     ))
 
     expect(info).toHaveBeenCalledWith(
@@ -2083,7 +2079,7 @@ describe('the quarantine disposition line', () => {
         escalatedNotQuarantined: [sighting],
         refusedLines: [],
       }),
-      { log: { warn, info } },
+      { log: { warn, detail: info } },
     ))
 
     expect(info).toHaveBeenCalledWith(
@@ -2127,7 +2123,7 @@ describe('the quarantine disposition line', () => {
         escalatedNotQuarantined: [unauthoredSighting(cls)],
         refusedLines: [],
       }),
-      { log: { warn, info: vi.fn() } },
+      { log: { warn, detail: vi.fn() } },
     ))
 
     const withheld = warn.mock.calls
@@ -2183,7 +2179,7 @@ describe('the quarantine disposition line', () => {
 
     await runCurationTail(baseOptions(
       withQuarantine({ kind: 'ledger-unreadable', reason: 'schemaVersion 99 is newer' }),
-      { log: { warn, info: vi.fn() } },
+      { log: { warn, detail: vi.fn() } },
     ))
 
     expect(warn).toHaveBeenCalledWith(
@@ -2197,7 +2193,7 @@ describe('the quarantine disposition line', () => {
 
     await runCurationTail(baseOptions(
       withQuarantine({ kind: 'not-evaluated', reason: 'already-applied' }),
-      { log: { warn, info } },
+      { log: { warn, detail: info } },
     ))
 
     expect([...info.mock.calls, ...warn.mock.calls]
