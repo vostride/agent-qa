@@ -15,6 +15,8 @@ import type {
   TestStartedPayload,
 } from '@vostride/agent-qa-schema'
 
+import type { LiveLine } from './live-line.js'
+
 export function humanDuration(milliseconds: number): string {
   if (milliseconds < 1000) return `${milliseconds}ms`
   const totalSeconds = Math.floor(milliseconds / 1000)
@@ -33,6 +35,8 @@ export interface ConsoleReporterOptions {
   // Taken at construction from the set the verdict rule got, matched through schema's predicate.
   quarantined?: readonly QuarantineAppliedEntry[]
   env?: RunTextEnv
+  // Drawn while a test or a step is in progress; absent with no terminal and in CI.
+  liveLine?: LiveLine
 }
 
 export const QUARANTINE_TEST_ANNOTATION = 'QUARANTINED — failed, not counted'
@@ -49,6 +53,26 @@ export interface ConsoleReporterHandle {
   flush: () => Promise<void>
 }
 
+// A live line that throws must never cost a handler the result line it prints.
+function quietLiveLine(line: LiveLine | undefined): LiveLine {
+  return {
+    start(text) {
+      try {
+        line?.start(text)
+      } catch {
+        // the result lines still print
+      }
+    },
+    stop() {
+      try {
+        line?.stop()
+      } catch {
+        // the result lines still print
+      }
+    },
+  }
+}
+
 interface TestMeta {
   name: string
   filePath: string
@@ -60,6 +84,7 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
   const env = options.env ?? process.env
   const colors = options.colors ?? colorsFor(process.stdout, env)
   const sink = options.write ?? ((chunk: string) => void process.stdout.write(chunk))
+  const liveLine = quietLiveLine(options.liveLine)
 
   function emit(finalMasked: string): void {
     sink(finalMasked)
@@ -180,13 +205,16 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
       sawSuite = true
       printBlock([`\n${colors.bold(`Suite: ${payload.suiteName ?? payload.suiteId}`)}`])
     }
+    liveLine.start(payload.filePath ?? payload.name)
   }
 
   function onStepStarted(payload: StepStartedPayload): void {
     stepTextByIndex.set(payload.stepIndex, payload.stepText)
+    liveLine.start(payload.stepText)
   }
 
   function onStepFinalized(payload: StepFinalizedPayload): void {
+    liveLine.stop()
     const status = payload.status
     if (status === 'passed' || status === 'healed') ptPassed++
     else if (status === 'failed') ptFailed++
@@ -208,6 +236,7 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
   }
 
   function onHookStarted(payload: HookStartedPayload): void {
+    liveLine.stop()
     const phaseKey = payload.phase === 'inline' ? `inline:${payload.hookName}` : payload.phase
     if (hookPhaseStarted.has(phaseKey)) return
     hookPhaseStarted.add(phaseKey)
@@ -223,6 +252,7 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
   }
 
   function onHookFinished(payload: HookFinishedPayload): void {
+    liveLine.stop()
     const icon = statusIcon(payload.status === 'passed' ? 'passed' : payload.status === 'failed' ? 'failed' : 'skipped')
     const lines = [`  ${icon} ${payload.hookName} ${colors.dim(humanDuration(payload.durationMs))}`]
     if (payload.status === 'failed' && payload.error) {
@@ -242,6 +272,7 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
   }
 
   function onTestFinished(payload: TestFinishedPayload): void {
+    liveLine.stop()
     // flush per-test buckets into the aggregate (retry-reset already dropped stale attempts)
     stepsPassed += ptPassed
     stepsFailed += ptFailed
@@ -293,6 +324,7 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
   }
 
   function onRunFinished(_payload: RunFinishedPayload): void {
+    liveLine.stop()
     println('')
     const total = testsPassed + testsFailed + testsSkipped + testsCancelled
     const cancelledSegment = testsCancelled > 0 ? `, ${testsCancelled} cancelled` : ''
