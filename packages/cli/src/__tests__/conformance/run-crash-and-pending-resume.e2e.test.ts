@@ -42,7 +42,7 @@ import {
   type PopulatedRunProject,
   type StubModelServer,
 } from './populated-run-fixture.js'
-import { CLI_ENTRY, cleanupTempRoots, hermeticEnv } from './spawned-chat.js'
+import { CLI_ENTRY, cleanupTempRoots, hermeticEnv, untagLogLines } from './spawned-chat.js'
 
 const LEG_BUDGET_MS = 300_000
 const SPAWN_BUDGET_MS = 240_000
@@ -597,10 +597,12 @@ function pendingLeg(key: PendingLeg['key'], testPath: string, flags: readonly st
 function readExit(project: PopulatedRunProject, leg: PendingLeg, ended: Spawned): void {
   leg.exit = { code: ended.code, signal: ended.signal }
   const exitLine = (line: string): boolean => line.startsWith('post-processing — ')
-  leg.exitLines = [...ended.stdout.split('\n'), ...ended.stderr.split('\n')].filter(exitLine)
+  const stdoutLines = untagLogLines(ended.stdout).split('\n')
+  const stderrLines = untagLogLines(ended.stderr).split('\n')
+  leg.exitLines = [...stdoutLines, ...stderrLines].filter(exitLine)
   leg.exitLineStreams = [
-    ...ended.stdout.split('\n').filter(exitLine).map(() => 'stdout'),
-    ...ended.stderr.split('\n').filter(exitLine).map(() => 'stderr'),
+    ...stdoutLines.filter(exitLine).map(() => 'stdout'),
+    ...stderrLines.filter(exitLine).map(() => 'stderr'),
   ]
   const output = `${ended.stdout}\n${ended.stderr}`
   leg.printed = printedRunIds(output).includes(leg.runId)
@@ -619,7 +621,7 @@ async function driveStalled(): Promise<void> {
   const fromRequest = model.requests.length
   leg.abortedBefore = model.held.aborted()
   leg.startedAt = Date.now()
-  const run = startCli(project, ['run', leg.testPath, ...leg.flags], leg.runId)
+  const run = startCli(project, ['--verbose', 'run', leg.testPath, ...leg.flags], leg.runId)
   leg.reached = await untilHeld(model, held, () => exited(run.child))
   if (leg.reached !== 'held') {
     readExit(project, leg, await run.closed)
@@ -650,7 +652,7 @@ async function driveDetached(): Promise<void> {
   pending.detached = leg
   const fromRequest = model.requests.length
   leg.startedAt = Date.now()
-  const ended = await cli(project, ['run', leg.testPath, ...leg.flags], leg.runId)
+  const ended = await cli(project, ['--verbose', 'run', leg.testPath, ...leg.flags], leg.runId)
   leg.exitedAt = Date.now()
   leg.analysisRequestsAtExit = analysisRequests(model, fromRequest)
   readExit(project, leg, ended)
@@ -665,11 +667,12 @@ async function localRun(testPath: string): Promise<LocalRun> {
   const run: LocalRun = { runId: generateRunId(), testPath }
   const fromRequest = model.requests.length
   run.startedAt = Date.now()
-  const ended = await cli(project, ['run', testPath], run.runId)
+  const ended = await cli(project, ['--verbose', 'run', testPath], run.runId)
   run.exitedAt = Date.now()
   run.exit = { code: ended.code, signal: ended.signal }
   const output = `${ended.stdout}\n${ended.stderr}`
-  run.exitLines = output.split('\n').filter((line) => line.startsWith('post-processing — '))
+  run.exitLines = untagLogLines(output).split('\n')
+    .filter((line) => line.startsWith('post-processing — '))
   run.printed = printedRunIds(output).includes(run.runId)
   run.recordedVerdict = loggedEvents(project, run.runId).find((event) => event.type === 'verdict')?.payload
   run.analysisRequests = analysisRequests(model, fromRequest)

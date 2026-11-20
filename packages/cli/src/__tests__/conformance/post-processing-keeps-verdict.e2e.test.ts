@@ -26,7 +26,7 @@ import {
   type PopulatedRunProject,
   type StubModelServer,
 } from './populated-run-fixture.js'
-import { CLI_ENTRY, cleanupTempRoots, hermeticEnv } from './spawned-chat.js'
+import { CLI_ENTRY, cleanupTempRoots, hermeticEnv, untagLogLines } from './spawned-chat.js'
 
 const FILE_BUDGET_MS = 900_000
 const SPAWN_BUDGET_MS = 240_000
@@ -273,14 +273,16 @@ async function drainOnce(project: PopulatedRunProject, runId: string, attempt: n
 }
 
 async function runLeg(project: PopulatedRunProject, leg: Leg): Promise<void> {
-  const ran = await cli(project, ['run', leg.testPath, ...leg.flags], leg.runId)
+  const ran = await cli(project, ['--verbose', 'run', leg.testPath, ...leg.flags], leg.runId)
   const output = `${ran.stdout}\n${ran.stderr}`
   leg.exit = { code: ran.code, signal: ran.signal }
   const exitLine = (line: string): boolean => line.startsWith('post-processing — ')
-  leg.exitLines = [...ran.stdout.split('\n'), ...ran.stderr.split('\n')].filter(exitLine)
+  const stdoutLines = untagLogLines(ran.stdout).split('\n')
+  const stderrLines = untagLogLines(ran.stderr).split('\n')
+  leg.exitLines = [...stdoutLines, ...stderrLines].filter(exitLine)
   leg.exitLineStreams = [
-    ...ran.stdout.split('\n').filter(exitLine).map(() => 'stdout'),
-    ...ran.stderr.split('\n').filter(exitLine).map(() => 'stderr'),
+    ...stdoutLines.filter(exitLine).map(() => 'stdout'),
+    ...stderrLines.filter(exitLine).map(() => 'stderr'),
   ]
   leg.printed = printedRunIds(output).includes(leg.runId)
   leg.recordedVerdict = verdictOf(project, leg.runId)

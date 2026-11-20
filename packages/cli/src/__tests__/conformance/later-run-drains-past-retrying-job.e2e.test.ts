@@ -21,7 +21,7 @@ import {
   type PopulatedRunProject,
   type StubModelServer,
 } from './populated-run-fixture.js'
-import { CLI_ENTRY, cleanupTempRoots, hermeticEnv } from './spawned-chat.js'
+import { CLI_ENTRY, cleanupTempRoots, hermeticEnv, untagLogLines } from './spawned-chat.js'
 
 const FILE_BUDGET_MS = 600_000
 const SPAWN_BUDGET_MS = 240_000
@@ -65,7 +65,7 @@ function seen(): string {
 
 async function runOnce(project: PopulatedRunProject, testPath: string): Promise<Leg> {
   const leg: Leg = { runId: generateRunId() }
-  const args = [CLI_ENTRY, '--config', project.configPath, 'run', testPath]
+  const args = [CLI_ENTRY, '--config', project.configPath, '--verbose', 'run', testPath]
   const child = spawn(process.execPath, args, {
     cwd: project.root,
     env: {
@@ -94,8 +94,9 @@ async function runOnce(project: PopulatedRunProject, testPath: string): Promise<
     if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
   }
   const output = `${stdout}\n${stderr}`
-  leg.exitLines = output.split('\n').filter((line) => line.startsWith('post-processing — '))
-  leg.closeOutLines = output.split('\n')
+  const lines = untagLogLines(output).split('\n')
+  leg.exitLines = lines.filter((line) => line.startsWith('post-processing — '))
+  leg.closeOutLines = lines
     .filter((line) => line.startsWith('post-processing complete for '))
   leg.printed = printedRunIds(output).includes(leg.runId)
   leg.tail = output.slice(-2_000)
