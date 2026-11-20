@@ -116,17 +116,43 @@ async function runBin(
   }
 }
 
-async function runMissingTest(colourEnv: ColourEnv): Promise<BinOutcome> {
-  return await runBin(missingTestProject(), ['run', 'tests/missing.yaml'], colourEnv)
+async function runMissingTest(colourEnv: ColourEnv, terminal?: Terminal): Promise<BinOutcome> {
+  return await runBin(missingTestProject(), ['run', 'tests/missing.yaml'], colourEnv, terminal)
 }
 
-// The daemon command reads its config before it starts anything and prints the failure as an
-// error log line on stderr.
-async function runDaemonOnUnreadableConfig(terminal: Terminal): Promise<BinOutcome> {
+// The daemon command and its subcommands read the config before they start anything and print
+// the failure on stderr.
+async function runDaemonOnUnreadableConfig(
+  subcommand: readonly string[],
+  terminal: Terminal,
+): Promise<BinOutcome> {
   const project = missingTestProject()
   writeFileSync(project.configPath, 'workspace: [\n', 'utf8')
-  return await runBin(project, ['daemon'], {}, terminal)
+  return await runBin(project, ['daemon', ...subcommand], {}, terminal)
 }
+
+// Lines the run and daemon commands colour themselves and print on stderr.
+const COMMAND_ERROR_LINES: readonly {
+  readonly name: string
+  readonly line: string
+  readonly run: (terminal: Terminal) => Promise<BinOutcome>
+}[] = [
+  {
+    name: "a refused run's error line",
+    line: MISSING_TEST_LINE,
+    run: (terminal) => runMissingTest({}, terminal),
+  },
+  {
+    name: "the run command's own usage error",
+    line: 'Error: --test, --suite, and --all are mutually exclusive.',
+    run: (terminal) => runBin(missingTestProject(), ['run', '--suite', '--all'], {}, terminal),
+  },
+  {
+    name: "the daemon status command's error line",
+    line: 'Daemon status error: ',
+    run: (terminal) => runDaemonOnUnreadableConfig(['status'], terminal),
+  },
+]
 
 describe('the shipped bin\'s colour posture', () => {
   it('the shipped bin under CI=true with stdout and stderr piped prints colour codes', async () => {
@@ -160,16 +186,36 @@ describe('the shipped bin\'s colour posture', () => {
   }, 90_000)
 
   it('with stdout piped and stderr a terminal, a log line on stderr is coloured', async () => {
-    const outcome = await runDaemonOnUnreadableConfig('stderr')
+    const outcome = await runDaemonOnUnreadableConfig([], 'stderr')
     expect(outcome.status, JSON.stringify(outcome)).toBe(1)
     expect(outcome.stderr, JSON.stringify(outcome)).toContain(`${RED}Daemon error: `)
     expect(outcome.stdout.includes(COLOUR_CODE), JSON.stringify(outcome.stdout)).toBe(false)
   }, 90_000)
 
   it('with stdout a terminal and stderr piped, a log line on stderr has no colour', async () => {
-    const outcome = await runDaemonOnUnreadableConfig('stdout')
+    const outcome = await runDaemonOnUnreadableConfig([], 'stdout')
     expect(outcome.status, JSON.stringify(outcome)).toBe(1)
     expect(outcome.stderr, JSON.stringify(outcome)).toContain('Daemon error: ')
     expect(outcome.stderr.includes(COLOUR_CODE), JSON.stringify(outcome.stderr)).toBe(false)
   }, 90_000)
+
+  it.each(COMMAND_ERROR_LINES)(
+    'with stdout piped and stderr a terminal, $name is red',
+    async ({ line, run }) => {
+      const outcome = await run('stderr')
+      expect(outcome.stderr, JSON.stringify(outcome)).toContain(`${RED}${line}`)
+      expect(outcome.stdout.includes(COLOUR_CODE), JSON.stringify(outcome.stdout)).toBe(false)
+    },
+    90_000,
+  )
+
+  it.each(COMMAND_ERROR_LINES)(
+    'with stdout a terminal and stderr piped, $name has no colour',
+    async ({ line, run }) => {
+      const outcome = await run('stdout')
+      expect(outcome.stderr, JSON.stringify(outcome)).toContain(line)
+      expect(outcome.stderr.includes(COLOUR_CODE), JSON.stringify(outcome.stderr)).toBe(false)
+    },
+    90_000,
+  )
 })
