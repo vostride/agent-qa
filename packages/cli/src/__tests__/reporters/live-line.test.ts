@@ -1,6 +1,6 @@
 import { Console } from 'node:console'
 import { EventEmitter } from 'node:events'
-import { clearLine, cursorTo, moveCursor } from 'node:readline'
+import { clearLine, clearScreenDown, cursorTo, moveCursor } from 'node:readline'
 
 import xterm from '@xterm/headless'
 import pc from 'picocolors'
@@ -45,15 +45,25 @@ function drawEmojiTwoCellsWide(terminal: InstanceType<typeof xterm.Terminal>): v
   terminal.unicode.activeVersion = 'emoji-two-cells'
 }
 
+type OnNarrowing =
+  | 'cuts the row the cursor is on'
+  | 'wraps that row again and keeps the cursor on its character'
+
 // A terminal the live line draws on: the stream's bytes go to the emulator, and the screen is read
 // back from the emulator's buffer once it has parsed every byte written so far.
-function emulator(columns: number, rows = 12, widths: 'unicode-6' | 'wide-emoji' = 'unicode-6') {
+function emulator(
+  columns: number,
+  rows = 12,
+  widths: 'unicode-6' | 'wide-emoji' = 'unicode-6',
+  onNarrowing: OnNarrowing = 'cuts the row the cursor is on',
+) {
   // A terminal device moves to the start of the row on a line feed, so the emulator does too.
   const terminal = new xterm.Terminal({
     cols: columns,
     rows,
     allowProposedApi: true,
     convertEol: true,
+    reflowCursorLine: onNarrowing !== 'cuts the row the cursor is on',
   })
   if (widths === 'wide-emoji') drawEmojiTwoCellsWide(terminal)
   let written = ''
@@ -72,6 +82,7 @@ function emulator(columns: number, rows = 12, widths: 'unicode-6' | 'wide-emoji'
     cursorTo: (x: number, y?: number): boolean => cursorTo(tty, x, y),
     moveCursor: (dx: number, dy: number): boolean => moveCursor(tty, dx, dy),
     clearLine: (dir: -1 | 0 | 1): boolean => clearLine(tty, dir),
+    clearScreenDown: (): boolean => clearScreenDown(tty),
   })
   const tty = stream as unknown as NodeJS.WriteStream
   const flush = (): Promise<void> => new Promise((resolve) => terminal.write('', resolve))
@@ -104,7 +115,22 @@ function emulator(columns: number, rows = 12, widths: 'unicode-6' | 'wide-emoji'
     // As in a terminal: the window changes size first, and the program hears of it afterwards.
     async resize(next: number): Promise<void> {
       await flush()
+      const buffer = terminal.buffer.active
+      const firstRowOfTheLine = (row: number): number => {
+        let first = row
+        while (buffer.getLine(first)?.isWrapped === true) first--
+        return first
+      }
+      const row = buffer.baseY + buffer.cursorY
+      const along = (row - firstRowOfTheLine(row)) * terminal.cols + buffer.cursorX
       terminal.resize(next, rows)
+      if (onNarrowing !== 'cuts the row the cursor is on') {
+        // The emulator moves the cursor down with the rows a wrap adds. This terminal keeps it on
+        // the character it was on, so it is put back there.
+        const first = firstRowOfTheLine(buffer.baseY + buffer.cursorY)
+        const at = first + Math.floor(along / next) - buffer.baseY
+        terminal.write(`\x1B[${at + 1};${(along % next) + 1}H`)
+      }
       stream.columns = next
       stream.emit('resize')
     },
@@ -181,7 +207,7 @@ describe('fitToRow', () => {
       LONG,
       48,
       '  12s',
-      `${LONG.slice(0, 38)}…`,
+      `${LONG.slice(0, 40)}…`,
     ],
     [
       'turns a text written over several lines into one line with single spaces',
@@ -193,37 +219,37 @@ describe('fitToRow', () => {
     [
       'cuts a Japanese text by the two cells each character takes',
       'カートを開いて合計を確認する',
-      22,
+      20,
       '  4s',
       'カートを開い…',
     ],
     [
-      'keeps a Japanese text that fills the row up to its last two columns',
+      'keeps a Japanese text that fills the row exactly',
       'カートを開いて',
-      22,
+      20,
       '  4s',
       'カートを開いて',
     ],
     [
       'leaves a cell empty when a wide character would straddle the cut',
       'abcd漢字x',
-      14,
+      12,
       '  4s',
       'abcd…',
     ],
-    ['counts an emoji as two cells', '🛒🛒🛒🛒🛒', 16, '  4s', '🛒🛒🛒…'],
-    ['counts a Thai cluster of two letters as two cells', 'น้ำน้ำน้ำน้ำ', 14, '  4s', 'น้ำน้ำ…'],
-    ['gives a combining mark that stands alone no cell', '\u0301abcd', 12, '  4s', '\u0301abcd'],
-    ['gives nothing when the row holds only the tail', 'Open the cart', 9, '  4s', ''],
+    ['counts an emoji as two cells', '🛒🛒🛒🛒🛒', 14, '  4s', '🛒🛒🛒…'],
+    ['counts a Thai cluster of two letters as two cells', 'น้ำน้ำน้ำน้ำ', 12, '  4s', 'น้ำน้ำ…'],
+    ['gives a combining mark that stands alone no cell', '\u0301abcd', 10, '  4s', '\u0301abcd'],
+    ['gives nothing when the row holds only the tail', 'Open the cart', 7, '  4s', ''],
     ['gives nothing when the window reports no width', 'Open the cart', 0, '  4s', ''],
   ])('%s', (_title, text, columns, tail, expected) => {
     expect(fitToRow(text, columns, tail)).toBe(expected)
   })
 
-  it('keeps the spinner, the text and the tail inside the row, its last two columns empty', () => {
+  it('keeps the spinner, the text and the tail inside the row', () => {
     const fitted = fitToRow(LONG, 48, '  12s')
 
-    expect(segments(fitted)).toHaveLength(48 - 2 - 5 - 2)
+    expect(segments(fitted)).toHaveLength(48 - 2 - 5)
     expect(LONG.startsWith(fitted.slice(0, -1))).toBe(true)
   })
 
@@ -234,10 +260,10 @@ describe('fitToRow', () => {
     const cellsOf = (parts: string[]): number =>
       parts.reduce((sum, part) => sum + (/\p{Emoji_Presentation}/u.test(part) ? 2 : 1), 0)
 
-    for (let columns = 11; columns <= 60; columns++) {
+    for (let columns = 9; columns <= 60; columns++) {
       const fitted = fitToRow(text, columns, '  3s')
       const kept = segments(fitted.slice(0, -1))
-      const room = columns - 2 - 4 - 2
+      const room = columns - 2 - 4
 
       expect(fitted.endsWith('…')).toBe(true)
       expect(kept).toEqual(whole.slice(0, kept.length))
@@ -267,7 +293,7 @@ describe('the live line on a terminal', () => {
 
     expect(during).toHaveLength(1)
     expect(during[0]).toMatch(FRAME)
-    expect(during[0]).toBe(`${during[0]?.slice(0, 2)}${LONG.slice(0, 38)}…  12s`)
+    expect(during[0]).toBe(`${during[0]?.slice(0, 2)}${LONG.slice(0, 40)}…  12s`)
   })
 
   it('passes each spinner glyph through the frame function', async () => {
@@ -301,6 +327,7 @@ describe('the live line on a terminal', () => {
   it.each([
     ['a Ctrl+C', '^C'],
     ['a typed letter', 'q'],
+    ['a typed word', 'status'],
   ])(
     'leaves no live line behind when the terminal echoes %s during a step longer than the window',
     async (_title, echo) => {
@@ -330,9 +357,9 @@ describe('the live line on a terminal', () => {
     term.stream.write('✓ カートを開く 3s\n')
 
     expect(during).toHaveLength(1)
-    expect(during[0]).toBe(`${during[0]?.slice(0, 2)}${JAPANESE.slice(0, 35)}…  2s`)
+    expect(during[0]).toBe(`${during[0]?.slice(0, 2)}${JAPANESE.slice(0, 36)}…  2s`)
     expect(during[0]).toMatch(FRAME)
-    expect(cells).toBe(77)
+    expect(cells).toBe(79)
     expect(await term.screen()).toEqual(['✓ カートを開く 3s'])
   })
 
@@ -351,33 +378,38 @@ describe('the live line on a terminal', () => {
     expect(during[0]).toMatch(FRAME)
     expect(during[0]).toMatch(/…  2s$/u)
     expect(EMOJI.startsWith(during[0]?.slice(2, -5) ?? '-')).toBe(true)
-    // The row is full but for its last two columns and the cell a cut before a wide character can
-    // leave empty.
-    expect([77, 78]).toContain(cells)
+    // The row is full but for the cell a cut before a wide character can leave empty.
+    expect([79, 80]).toContain(cells)
     expect(await term.screen()).toEqual(['✓ Add 🛒 3s'])
   })
 
-  it('leaves only the result line after the window narrows and widens during a step', async () => {
-    const term = emulator(60)
-    const live = await createLiveLine(term.stream, (glyph) => glyph)
+  it.each([
+    ['cuts the row the cursor is on'],
+    ['wraps that row again and keeps the cursor on its character'],
+  ] as const)(
+    'leaves only the result line after the window narrows and widens, in a terminal that %s',
+    async (onNarrowing) => {
+      const term = emulator(60, 12, 'unicode-6', onNarrowing)
+      const live = await createLiveLine(term.stream, (glyph) => glyph)
 
-    live.start(LONG)
-    vi.advanceTimersByTime(300)
-    await term.resize(30)
-    const narrowed = await term.screen()
-    vi.advanceTimersByTime(300)
-    await term.resize(60)
-    const widened = await term.screen()
-    vi.advanceTimersByTime(300)
-    live.stop()
-    term.stream.write('✓ Open the cart 4s\n')
+      live.start(LONG)
+      vi.advanceTimersByTime(300)
+      await term.resize(30)
+      const narrowed = await term.screen()
+      vi.advanceTimersByTime(300)
+      await term.resize(60)
+      const widened = await term.screen()
+      vi.advanceTimersByTime(300)
+      live.stop()
+      term.stream.write('✓ Open the cart 4s\n')
 
-    expect(narrowed).toHaveLength(1)
-    expect(segments(narrowed[0] ?? '').length).toBeLessThanOrEqual(30)
-    expect(widened).toHaveLength(1)
-    expect(segments(widened[0] ?? '').length).toBeGreaterThan(30)
-    expect(await term.screen()).toEqual(['✓ Open the cart 4s'])
-  })
+      expect(narrowed).toHaveLength(1)
+      expect(segments(narrowed[0] ?? '').length).toBeLessThanOrEqual(30)
+      expect(widened).toHaveLength(1)
+      expect(segments(widened[0] ?? '').length).toBeGreaterThan(30)
+      expect(await term.screen()).toEqual(['✓ Open the cart 4s'])
+    },
+  )
 
   it('prints a line that arrives during a step once, above the live line', async () => {
     const term = emulator(60)
