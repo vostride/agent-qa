@@ -29,9 +29,11 @@ function cellsOf(grapheme: string): number {
   return (grapheme.match(TAKES_A_CELL)?.length ?? 1) > 1 ? 2 : 1
 }
 
-// The spinner's glyph and the space after it take the row's first two columns.
+// The spinner's glyph and the space after it take the row's first two columns. The last two stay
+// empty: the terminal echoes a typed key there, `^C` among them, and on a full row the echo starts
+// a new row, which leaves the drawn one behind when the line stops.
 export function fitToRow(text: string, columns: number, tail: string): string {
-  const room = columns - 2 - tail.length
+  const room = columns - 4 - tail.length
   if (room <= 1) return ''
   const parts = Array.from(
     graphemes.segment(text.replace(/\s+/gu, ' ').trim()),
