@@ -29,9 +29,11 @@ function cellsOf(grapheme: string): number {
   return (grapheme.match(TAKES_A_CELL)?.length ?? 1) > 1 ? 2 : 1
 }
 
-// The spinner's glyph and the space after it take the row's first two columns.
+// The spinner's glyph and the space after it take the row's first two columns. The last two stay
+// empty: a frame drawn just before the program hears that the window lost a column or two then
+// still fits the row, where a full one would wrap and leave its first part behind.
 export function fitToRow(text: string, columns: number, tail: string): string {
-  const room = columns - 2 - tail.length
+  const room = columns - 4 - tail.length
   if (room <= 1) return ''
   const parts = Array.from(
     graphemes.segment(text.replace(/\s+/gu, ' ').trim()),
