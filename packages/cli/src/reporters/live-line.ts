@@ -29,11 +29,9 @@ function cellsOf(grapheme: string): number {
   return (grapheme.match(TAKES_A_CELL)?.length ?? 1) > 1 ? 2 : 1
 }
 
-// The spinner's glyph and the space after it take the row's first two columns. The last two stay
-// empty: the terminal echoes a typed key there, `^C` among them, and on a full row the echo starts
-// a new row, which leaves the drawn one behind when the line stops.
+// The spinner's glyph and the space after it take the row's first two columns.
 export function fitToRow(text: string, columns: number, tail: string): string {
-  const room = columns - 4 - tail.length
+  const room = columns - 2 - tail.length
   if (room <= 1) return ''
   const parts = Array.from(
     graphemes.segment(text.replace(/\s+/gu, ' ').trim()),
@@ -68,12 +66,17 @@ export async function createLiveLine(
   let startedAt = 0
   let ticker: NodeJS.Timeout | undefined
 
+  // The carriage return rests the cursor at the row's start. A key the terminal echoes then lands
+  // on the line, where the next frame covers it, and not past the row's end on a row of its own.
   const draw = (): void => {
     const tail = `  ${Math.floor((Date.now() - startedAt) / 1000)}s`
-    spinner.text = fitToRow(text, stream.columns || 80, tail) + tail
+    spinner.text = `${fitToRow(text, stream.columns || 80, tail)}${tail}\r`
   }
+  // A terminal that wraps the row again when the window narrows, and keeps the cursor on its
+  // character, leaves the rest of the old line on the rows below: erasing down removes it.
   const onResize = (): void => {
     draw()
+    stream.clearScreenDown()
     spinner.render()
   }
 
