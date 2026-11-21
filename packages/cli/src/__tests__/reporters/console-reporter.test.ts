@@ -12,6 +12,7 @@ import type {
 import {
   QUARANTINE_TEST_ANNOTATION,
   createConsoleReporter,
+  humanDuration,
   renderQuarantineSummarySegment,
 } from '../../reporters/console-reporter.js'
 import type { ConsoleReporterOptions } from '../../reporters/console-reporter.js'
@@ -98,6 +99,19 @@ function renderWith(options: ConsoleReporterOptions): { output: string; chunks: 
   for (const envelope of buildReporterFixture().envelopes) reporter.handler(envelope)
   return { output: chunks.join(''), chunks }
 }
+
+describe('humanDuration', () => {
+  it.each([
+    [400, '400ms'],
+    [948.2520420000001, '948ms'],
+    [0.4, '0ms'],
+    [999.6, '1s'],
+    [6141.698375, '6s'],
+    [146_000, '2m 26s'],
+  ])('prints %s milliseconds as %s', (milliseconds, expected) => {
+    expect(humanDuration(milliseconds)).toBe(expected)
+  })
+})
 
 describe('the console reporter prints one text form', () => {
   it('prints icons and padded badges, never the words ok, x or an unpadded FAIL', () => {

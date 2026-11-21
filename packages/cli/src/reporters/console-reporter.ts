@@ -18,8 +18,9 @@ import type {
 import type { LiveLine } from './live-line.js'
 
 export function humanDuration(milliseconds: number): string {
-  if (milliseconds < 1000) return `${milliseconds}ms`
-  const totalSeconds = Math.floor(milliseconds / 1000)
+  const whole = Math.round(milliseconds)
+  if (whole < 1000) return `${whole}ms`
+  const totalSeconds = Math.floor(whole / 1000)
   const minutes = Math.floor(totalSeconds / 60)
   const seconds = totalSeconds % 60
   if (minutes === 0) return `${seconds}s`
