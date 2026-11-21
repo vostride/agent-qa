@@ -181,7 +181,7 @@ describe('fitToRow', () => {
       LONG,
       48,
       '  12s',
-      `${LONG.slice(0, 40)}…`,
+      `${LONG.slice(0, 38)}…`,
     ],
     [
       'turns a text written over several lines into one line with single spaces',
@@ -193,37 +193,37 @@ describe('fitToRow', () => {
     [
       'cuts a Japanese text by the two cells each character takes',
       'カートを開いて合計を確認する',
-      20,
+      22,
       '  4s',
       'カートを開い…',
     ],
     [
-      'keeps a Japanese text that fills the row exactly',
+      'keeps a Japanese text that fills the row up to its last two columns',
       'カートを開いて',
-      20,
+      22,
       '  4s',
       'カートを開いて',
     ],
     [
       'leaves a cell empty when a wide character would straddle the cut',
       'abcd漢字x',
-      12,
+      14,
       '  4s',
       'abcd…',
     ],
-    ['counts an emoji as two cells', '🛒🛒🛒🛒🛒', 14, '  4s', '🛒🛒🛒…'],
-    ['counts a Thai cluster of two letters as two cells', 'น้ำน้ำน้ำน้ำ', 12, '  4s', 'น้ำน้ำ…'],
-    ['gives a combining mark that stands alone no cell', '\u0301abcd', 10, '  4s', '\u0301abcd'],
-    ['gives nothing when the row holds only the tail', 'Open the cart', 7, '  4s', ''],
+    ['counts an emoji as two cells', '🛒🛒🛒🛒🛒', 16, '  4s', '🛒🛒🛒…'],
+    ['counts a Thai cluster of two letters as two cells', 'น้ำน้ำน้ำน้ำ', 14, '  4s', 'น้ำน้ำ…'],
+    ['gives a combining mark that stands alone no cell', '\u0301abcd', 12, '  4s', '\u0301abcd'],
+    ['gives nothing when the row holds only the tail', 'Open the cart', 9, '  4s', ''],
     ['gives nothing when the window reports no width', 'Open the cart', 0, '  4s', ''],
   ])('%s', (_title, text, columns, tail, expected) => {
     expect(fitToRow(text, columns, tail)).toBe(expected)
   })
 
-  it('keeps the spinner, the text and the tail inside the row', () => {
+  it('keeps the spinner, the text and the tail inside the row, its last two columns empty', () => {
     const fitted = fitToRow(LONG, 48, '  12s')
 
-    expect(segments(fitted)).toHaveLength(48 - 2 - 5)
+    expect(segments(fitted)).toHaveLength(48 - 2 - 5 - 2)
     expect(LONG.startsWith(fitted.slice(0, -1))).toBe(true)
   })
 
@@ -234,10 +234,10 @@ describe('fitToRow', () => {
     const cellsOf = (parts: string[]): number =>
       parts.reduce((sum, part) => sum + (/\p{Emoji_Presentation}/u.test(part) ? 2 : 1), 0)
 
-    for (let columns = 9; columns <= 60; columns++) {
+    for (let columns = 11; columns <= 60; columns++) {
       const fitted = fitToRow(text, columns, '  3s')
       const kept = segments(fitted.slice(0, -1))
-      const room = columns - 2 - 4
+      const room = columns - 2 - 4 - 2
 
       expect(fitted.endsWith('…')).toBe(true)
       expect(kept).toEqual(whole.slice(0, kept.length))
@@ -267,7 +267,7 @@ describe('the live line on a terminal', () => {
 
     expect(during).toHaveLength(1)
     expect(during[0]).toMatch(FRAME)
-    expect(during[0]).toBe(`${during[0]?.slice(0, 2)}${LONG.slice(0, 40)}…  12s`)
+    expect(during[0]).toBe(`${during[0]?.slice(0, 2)}${LONG.slice(0, 38)}…  12s`)
   })
 
   it('passes each spinner glyph through the frame function', async () => {
@@ -298,6 +298,26 @@ describe('the live line on a terminal', () => {
     expect(await term.screen()).toEqual(['✗ Check the total 27s'])
   })
 
+  it.each([
+    ['a Ctrl+C', '^C'],
+    ['a typed letter', 'q'],
+  ])(
+    'leaves no live line behind when the terminal echoes %s during a step longer than the window',
+    async (_title, echo) => {
+      const term = emulator(48)
+      const live = await createLiveLine(term.stream, (glyph) => glyph)
+
+      live.start(LONG)
+      vi.advanceTimersByTime(2_400)
+      term.feed(echo)
+      vi.advanceTimersByTime(300)
+      live.stop()
+      term.stream.write('⊘ Check the total (cancelled)\n')
+
+      expect(await term.screen()).toEqual(['⊘ Check the total (cancelled)'])
+    },
+  )
+
   it('keeps a Japanese step on one row of an 80-column window', async () => {
     const term = emulator(80)
     const live = await createLiveLine(term.stream, (glyph) => glyph)
@@ -310,9 +330,9 @@ describe('the live line on a terminal', () => {
     term.stream.write('✓ カートを開く 3s\n')
 
     expect(during).toHaveLength(1)
-    expect(during[0]).toBe(`${during[0]?.slice(0, 2)}${JAPANESE.slice(0, 36)}…  2s`)
+    expect(during[0]).toBe(`${during[0]?.slice(0, 2)}${JAPANESE.slice(0, 35)}…  2s`)
     expect(during[0]).toMatch(FRAME)
-    expect(cells).toBe(79)
+    expect(cells).toBe(77)
     expect(await term.screen()).toEqual(['✓ カートを開く 3s'])
   })
 
@@ -331,8 +351,9 @@ describe('the live line on a terminal', () => {
     expect(during[0]).toMatch(FRAME)
     expect(during[0]).toMatch(/…  2s$/u)
     expect(EMOJI.startsWith(during[0]?.slice(2, -5) ?? '-')).toBe(true)
-    // The row is full but for the cell a cut before a wide character can leave empty.
-    expect([79, 80]).toContain(cells)
+    // The row is full but for its last two columns and the cell a cut before a wide character can
+    // leave empty.
+    expect([77, 78]).toContain(cells)
     expect(await term.screen()).toEqual(['✓ Add 🛒 3s'])
   })
 
