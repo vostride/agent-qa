@@ -22,7 +22,7 @@ import {
 
 const BASE = ['--platform', 'web', '--no-browsers', '--agents', 'none', '--pm', 'npm']
 const OK: RunResult = { code: 0, signal: null, output: '' }
-const DASHBOARD = 'npx agent-qa dashboard'
+const DASHBOARD = 'npx agent-qa dashboard --open'
 const IN_THE_DASHBOARD = 'Run a test in the dashboard:'
 const FROM_THE_TERMINAL = 'Run a test from the terminal:'
 const RUN_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total.yaml'
@@ -182,7 +182,7 @@ describe('an interactive fresh init ends on its next steps and starts nothing', 
     const lines = nextSteps(ui)
     const signIn = lines.indexOf('npx agent-qa auth login --config claude-code')
     expect(lines[signIn - 1]).toBe('Sign in with your subscription:')
-    expect(lines.some((line) => line.includes('--open'))).toBe(false)
+    expect(lines.some((line) => line.includes('/config/models'))).toBe(false)
   })
 
   it('a saved compatible key lists the model page with its name', async () => {
@@ -226,7 +226,7 @@ describe('an interactive fresh init ends on its next steps and starts nothing', 
 
     expect(dashboardCalls(run)).toEqual([])
     expect(nextSteps(ui)).toContain(DASHBOARD)
-    expect(nextSteps(ui).some((line) => line.includes('--open'))).toBe(false)
+    expect(nextSteps(ui).some((line) => line.includes('/config/models'))).toBe(false)
   })
 })
 

@@ -13,7 +13,7 @@ import {
 } from '../commands/init-next-steps.js'
 import { NONE_CHOSEN, NONE_FOUND, type InitStepRecord } from '../commands/init-steps.js'
 
-const DASHBOARD = 'npx agent-qa dashboard'
+const DASHBOARD = 'npx agent-qa dashboard --open'
 const RUN_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total.yaml'
 const RUN_ANDROID_STARTER = 'npx agent-qa run tests/examples/playground-android-open-komazon.yaml'
 const RUN_IOS_STARTER = 'npx agent-qa run tests/examples/playground-ios-open-komazon.yaml'
@@ -225,7 +225,7 @@ describe('a model finished in the dashboard', () => {
   })
 
   it('no model page gives no model step', () => {
-    expect(commands(facts()).some((command) => command.includes('--open'))).toBe(false)
+    expect(commands(facts()).some((command) => command.includes('/config/models'))).toBe(false)
   })
 })
 
