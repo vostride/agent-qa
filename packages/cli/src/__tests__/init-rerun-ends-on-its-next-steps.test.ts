@@ -22,7 +22,7 @@ const NODE = '/fake/node'
 const OK: RunResult = { code: 0, signal: null, output: '' }
 const GUIDE_LINE = 'agent-qa 0.4.0 can change your config. To upgrade, point your coding agent at'
 const GUIDE_0_3_TO_0_4 = 'https://vostride.com/docs/agent-qa/migrate/v0-3-to-v0-4'
-const DASHBOARD = 'npx agent-qa dashboard'
+const DASHBOARD = 'npx agent-qa dashboard --open'
 const MODEL_PAGE = 'npx agent-qa dashboard --open "/config/models"'
 const RUN_STARTER = 'npx agent-qa run tests/examples/komazon-cart-total.yaml'
 
@@ -230,7 +230,7 @@ describe('an interactive re-run ends on its next steps and starts nothing', () =
       command: 'npx agent-qa auth login --config claude-code',
       description: 'Sign in with your subscription:',
     })
-    expect(doc.nextSteps.some((step) => step.command.includes('--open'))).toBe(false)
+    expect(doc.nextSteps.some((step) => step.command.includes('/config/models'))).toBe(false)
   })
 
   it('lists the dashboard and no model page once the model is ready, and runs no dashboard', async () => {
@@ -243,6 +243,6 @@ describe('an interactive re-run ends on its next steps and starts nothing', () =
     expect(result.exit, result.stderr).toBe(0)
     expect(dashboardCalls(run)).toEqual([])
     expect(nextSteps(result.entries)).toContain(DASHBOARD)
-    expect(nextSteps(result.entries).some((line) => line.includes('--open'))).toBe(false)
+    expect(nextSteps(result.entries).some((line) => line.includes('/config/models'))).toBe(false)
   })
 })

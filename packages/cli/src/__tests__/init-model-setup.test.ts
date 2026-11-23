@@ -524,7 +524,7 @@ describe('init next steps', () => {
         'npx agent-qa auth login --config codex',
         '',
         'Run a test in the dashboard:',
-        'npx agent-qa dashboard',
+        'npx agent-qa dashboard --open',
         '',
         'Run a test from the terminal:',
         'npx agent-qa run tests/examples/komazon-cart-total.yaml',
@@ -538,7 +538,7 @@ describe('init next steps', () => {
     const { ui } = await init(['--platform', 'web', '--llm', 'anthropic'])
 
     const [box] = nextStepNotes(ui)
-    expect(box).toContain('npx agent-qa dashboard')
+    expect(box).toContain('npx agent-qa dashboard --open')
     expect(ui.output()).not.toContain('auth login')
     expect(ui.output()).not.toContain('auth set')
     expect(ui.output()).not.toContain(SUBSCRIPTION_AUTH_PACKAGE)

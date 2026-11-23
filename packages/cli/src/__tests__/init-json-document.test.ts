@@ -243,7 +243,7 @@ describe('init --json prints one document on stdout', () => {
       'npm install',
       'npx agent-qa validate',
       'npx agent-qa auth login --config claude-code',
-      'npx agent-qa dashboard',
+      'npx agent-qa dashboard --open',
       'npx agent-qa run tests/examples/komazon-cart-total.yaml',
     ])
     expect(doc.nextSteps).toContainEqual({

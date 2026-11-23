@@ -50,7 +50,7 @@ const MOBILE_STARTERS = [
   { runtime: 'android', command: `npx agent-qa run ${EXAMPLE_PATHS.androidStarter}` },
   { runtime: 'ios', command: `npx agent-qa run ${EXAMPLE_PATHS.iosStarter}` },
 ] as const
-const DASHBOARD_COMMAND = 'npx agent-qa dashboard'
+const DASHBOARD_COMMAND = 'npx agent-qa dashboard --open'
 export const INIT_COMMAND = 'npx agent-qa init'
 const IN_THE_DASHBOARD = 'Run a test in the dashboard:'
 const FROM_THE_TERMINAL = 'Run a test from the terminal:'
@@ -153,7 +153,7 @@ export function initNextSteps(facts: InitNextStepFacts): {
   // The sign-in finishes a pending subscription, so its model page would be a second way to it.
   if (facts.modelPage !== undefined && !signIn) {
     add(
-      `${DASHBOARD_COMMAND} --open "${facts.modelPage}"`,
+      `${DASHBOARD_COMMAND} "${facts.modelPage}"`,
       facts.modelPage.includes('?add=') ? ADD_MODEL : FINISH_MODEL,
     )
   }
