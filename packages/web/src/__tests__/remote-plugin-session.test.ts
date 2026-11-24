@@ -44,6 +44,12 @@ interface FakeLeases {
   end(ended: RemoteLeaseEnded): void
 }
 
+// A timer can fire a millisecond before the clock the adapter reads has moved by its delay.
+async function clockMovedBy(ms: number): Promise<void> {
+  const until = Date.now() + ms
+  while (Date.now() < until) await new Promise((wait) => setTimeout(wait, until - Date.now()))
+}
+
 // With sessions, each lease registers its own release there once, as the run's plugin host does.
 function fakeLeases(
   answer: RemoteLeaseAnswer,
@@ -58,7 +64,7 @@ function fakeLeases(
   const source: RemoteLeaseSource = {
     async acquire(request) {
       requests.push(request)
-      if (delayMs > 0) await new Promise((wait) => setTimeout(wait, delayMs))
+      if (delayMs > 0) await clockMovedBy(delayMs)
       let releasing: Promise<void> | undefined
       const releaseOnce = () => (releasing ??= release())
       const lease: RemoteLease = {
