@@ -91,6 +91,16 @@ interface ServiceFixture {
 const openFixtures: ServiceFixture[] = []
 const POST_RUN_BOUND_MS = 90_000
 
+// A started run that prints after the file ends fails the worker's teardown.
+async function startedRunsSettled(runDoor: { postRunSettled(): Promise<void> }): Promise<void> {
+  let timer: NodeJS.Timeout | undefined
+  const bound = new Promise<void>((done) => {
+    timer = setTimeout(done, POST_RUN_BOUND_MS)
+  })
+  await Promise.race([runDoor.postRunSettled().catch(() => undefined), bound])
+  clearTimeout(timer)
+}
+
 /** The composition `agent-qa dashboard` performs, on an ephemeral port over a temp project. */
 async function openRunService(): Promise<ServiceFixture> {
   const configPath = fixtureWorkspace()
@@ -130,13 +140,7 @@ async function openRunService(): Promise<ServiceFixture> {
     origin: boundOrigin,
     configDir,
     close: async () => {
-      // A started run that prints after the file ends fails the worker's teardown.
-      let timer: NodeJS.Timeout | undefined
-      const bound = new Promise<void>((done) => {
-        timer = setTimeout(done, POST_RUN_BOUND_MS)
-      })
-      await Promise.race([runDoor.postRunSettled().catch(() => undefined), bound])
-      clearTimeout(timer)
+      await startedRunsSettled(runDoor)
       started.close()
       runService.dispose()
       await host.close()
@@ -542,6 +546,7 @@ describe('the door never forwards a caller’s run id, even with its own check b
       expect(runsThatProducedEvents(configDir)).not.toContain(smuggled)
       expect(runsThatProducedEvents(configDir).length).toBeGreaterThan(0)
     } finally {
+      await startedRunsSettled(runDoor)
       composition.dispose()
       await host.close()
       db.close()
